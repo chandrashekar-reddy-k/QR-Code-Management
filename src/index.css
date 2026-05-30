@@ -1,0 +1,492 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide number input steppers (up/down arrows) — Chrome, Safari, Edge, Opera */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Partner SelectInput: lighter chevron on dark field backgrounds */
+.dark select.partner-select-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+/* Prevent body overflow */
+html,
+body {
+  overflow-x: hidden;
+  height: 100%;
+  font-family:
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100%;
+  overflow-x: hidden;
+  font-family:
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    sans-serif;
+}
+
+/* Modern Scrollbar Styles */
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Dark mode scrollbar styles */
+.dark .sidebar-scrollbar {
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+.dark .sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.3);
+}
+
+.dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.5);
+}
+
+/* Modern Table Scrollbar */
+.table-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.table-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-scrollbar::-webkit-scrollbar-track {
+  background: rgba(243, 244, 246, 0.5);
+  border-radius: 10px;
+  margin: 4px;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(156, 163, 175, 0.6),
+    rgba(107, 114, 128, 0.6)
+  );
+  border-radius: 10px;
+  border: 2px solid rgba(243, 244, 246, 0.5);
+  transition: all 0.2s ease;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(156, 163, 175, 0.8),
+    rgba(107, 114, 128, 0.8)
+  );
+  border-color: rgba(243, 244, 246, 0.8);
+}
+
+.table-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark mode table scrollbar */
+.dark .table-scrollbar {
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.dark .table-scrollbar::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+.dark .table-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(156, 163, 175, 0.5),
+    rgba(107, 114, 128, 0.5)
+  );
+  border: 2px solid rgba(31, 41, 55, 0.5);
+}
+
+.dark .table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(156, 163, 175, 0.7),
+    rgba(107, 114, 128, 0.7)
+  );
+  border-color: rgba(31, 41, 55, 0.8);
+}
+
+/* Modern Horizontal Tabs Scrollbar */
+.tabs-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.tabs-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tabs-scrollbar::-webkit-scrollbar-track {
+  background: rgba(243, 244, 246, 0.3);
+  border-radius: 10px;
+  margin: 4px 0;
+}
+
+.tabs-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+  border: 1px solid rgba(243, 244, 246, 0.5);
+}
+
+.tabs-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+/* Dark mode tabs scrollbar */
+.dark .tabs-scrollbar {
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.dark .tabs-scrollbar::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+.dark .tabs-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border: 1px solid rgba(31, 41, 55, 0.5);
+}
+
+.dark .tabs-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+/* Global Scrollbar Styles for all overflow elements */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(243, 244, 246, 0.3);
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+  border: 1px solid rgba(243, 244, 246, 0.3);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark mode global scrollbar */
+.dark * {
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.dark *::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border: 1px solid rgba(31, 41, 55, 0.5);
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+/* Enhanced Dropdown Animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.94);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOutUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.dropdown-enter {
+  animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: top;
+}
+
+.dropdown-exit {
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  transform-origin: top;
+  will-change: opacity, transform;
+  pointer-events: none;
+}
+
+.dropdown-item {
+  animation: fadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  transform-origin: left;
+}
+
+.dropdown-item-exit {
+  animation: fadeOutUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  transform-origin: left;
+  will-change: opacity, transform;
+  pointer-events: none;
+}
+
+/* Select dropdown options styling for dark mode */
+select {
+  color-scheme: light;
+  position: relative;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23525252' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 16px 16px;
+  padding-right: 2.5rem;
+}
+
+.dark select {
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+/* Bootstrap compatibility */
+select.form-select,
+.form-select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 16px 16px;
+  padding-right: 2.5rem;
+}
+
+/* Hide legacy IE/Edge default expand icon */
+select::-ms-expand,
+.form-select::-ms-expand {
+  display: none;
+}
+
+/* Filter wrappers use manual chevron icons; hide SelectInput arrow there only. */
+div[class*="[&_select]"] select.partner-select-input {
+  background-image: none !important;
+  padding-right: 0.75rem !important;
+}
+
+/* Ensure select dropdown options are styled properly */
+select option {
+  background-color: white;
+  color: #111827;
+  padding: 8px 12px;
+}
+
+.dark select option {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+/* Ensure select dropdown is above other elements when focused */
+select:focus {
+  z-index: 9999;
+  position: relative;
+}
+
+/* Style for select in filter bars - ensure dropdown is visible */
+div[class*="relative"] select {
+  z-index: 20;
+}
+
+div[class*="relative"] select:focus {
+  z-index: 9999;
+}
+
+/* Ensure filter containers don't clip dropdowns */
+div[class*="overflow-hidden"] {
+  position: relative;
+}
+
+/* Make sure select dropdowns render above everything when open */
+select:active,
+select:focus {
+  z-index: 9999 !important;
+}
+
+/* Remove focus ring from filter select boxes */
+[class*="filter"] select:focus,
+[class*="Filter"] select:focus,
+div[class*="[&_select]"] select:focus {
+  outline: none !important;
+  --tw-ring-width: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Keep custom chevrons visible; native arrow is removed above globally. */
+
+/* Image alt text styling for broken images */
+img[alt] {
+  color: #374151;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.dark img[alt] {
+  color: #ffffff;
+}
+
+/* Style broken/failed images */
+img:not([src]),
+img[src=""],
+img[src="#"] {
+  color: #374151 !important;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.dark img:not([src]),
+.dark img[src=""],
+.dark img[src="#"] {
+  color: #ffffff !important;
+  background-color: #374151;
+}
+
+/* Jodit Description editor: same dark background as other form fields (gray-700) */
+.dark .jodit-container,
+.dark .jodit-container .jodit-workplace,
+.dark .jodit-container .jodit-wysiwyg {
+  background-color: #374151 !important;
+  color: #f3f4f6;
+}
+.dark .jodit-container .jodit-toolbar__box,
+.dark .jodit-container .jodit-toolbar-button {
+  background-color: #374151 !important;
+  border-color: #4b5563;
+  color: #ffffff !important;
+}
+.dark .jodit-container .jodit-toolbar-button svg,
+.dark .jodit-container .jodit-toolbar-button .jodit-icon,
+.dark .jodit-container .jodit-toolbar-button path,
+.dark .jodit-container .jodit-toolbar-button use,
+.dark .jodit-container .jodit-toolbar-editor-collection button svg,
+.dark .jodit-container .jodit-toolbar-editor-collection button path {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+.dark .jodit-container .jodit-toolbar-button:hover svg,
+.dark .jodit-container .jodit-toolbar-button:hover path,
+.dark .jodit-container .jodit-toolbar-button:hover use {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+}
+.dark .jodit-container [class*="jodit-toolbar"] svg,
+.dark .jodit-container [class*="jodit-toolbar"] path {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+}
+.dark .jodit-container .jodit-status-bar {
+  background-color: #374151 !important;
+  border-color: #4b5563;
+  color: #9ca3af;
+}

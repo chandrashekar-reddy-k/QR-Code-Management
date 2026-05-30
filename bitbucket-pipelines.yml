@@ -1,0 +1,45 @@
+image: node:22
+
+pipelines:
+
+  branches:
+
+    master:
+
+      - step:
+
+          name: Build and Deploy Partner
+
+          caches:
+
+            - node
+
+          script:
+
+            - npm ci
+
+            - npm run build
+
+            - tar -czf devpartnerapp-build.tar.gz dist
+
+            - pipe: atlassian/scp-deploy:1.5.0
+
+              variables:
+
+                USER: 'ubuntu'
+
+                SERVER: '13.203.3.108'
+
+                REMOTE_PATH: '/tmp'
+
+                LOCAL_PATH: 'devpartnerapp-build.tar.gz'
+
+            - pipe: atlassian/ssh-run:0.8.1
+
+              variables:
+
+                SSH_USER: 'ubuntu'
+
+                SERVER: '13.203.3.108'
+
+                COMMAND: 'sudo /usr/local/bin/deploy-partner.sh'

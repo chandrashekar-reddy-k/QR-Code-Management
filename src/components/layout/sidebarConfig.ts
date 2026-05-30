@@ -1,0 +1,560 @@
+import {
+  Home,
+  Package,
+  ShoppingCart,
+  Store,
+  Image as ImageIcon,
+  Tag,
+  Ticket,
+  Truck,
+  Settings,
+  Percent,
+  MapPin,
+  Navigation,
+  Building2,
+  Phone,
+  Info,
+  FileText,
+  Shield,
+  Upload,
+  RefreshCw,
+  Film,
+  Users,
+  Boxes,
+  ClipboardList,
+  Bell,
+  UserCheck,
+  Wallet,
+  DollarSign,
+  Sliders,
+  Clock,
+  CreditCard,
+  Globe,
+  BarChart3,
+  Download,
+  ShoppingBag,
+  Map,
+  Calendar,
+  Car,
+  Star as StarIcon,
+} from "lucide-react";
+import { LucideIcon } from "lucide-react";
+
+// Menu item types
+export interface MenuItem {
+  path: string;
+  label: string;
+  icon: LucideIcon;
+  hidden?: boolean; // For commented out items
+}
+
+export interface SubMenuItem extends MenuItem {
+  hidden?: boolean;
+  /** When set, used instead of path match to determine if this sub-item is active */
+  activeCheck?: (pathname: string) => boolean;
+}
+
+export interface MenuSection {
+  type: "section" | "link" | "collapsible";
+  sectionTitle?: string; // For section headers
+  path?: string; // For direct links
+  label?: string; // For direct links
+  icon?: LucideIcon; // For direct links
+  subItems?: SubMenuItem[]; // For collapsible menus
+  stateKey?: string; // Key for managing open/close state
+  activeCheck?: (pathname: string) => boolean; // Custom active state logic
+  hidden?: boolean;
+}
+
+// Active state check functions
+export const activeCheckers = {
+  isUserManagementActive: (pathname: string) =>
+    pathname.startsWith("/user-management"),
+  isVendorManagementActive: (pathname: string) =>
+    pathname.startsWith("/vendors") &&
+    !pathname.startsWith("/vendors/requests") &&
+    !pathname.startsWith("/vendors/create") &&
+    !pathname.startsWith("/vendors/edit") &&
+    !pathname.startsWith("/vendors/view"),
+  isMyCategoryManagementActive: (pathname: string) =>
+    pathname.startsWith("/my-categories") ||
+  pathname.startsWith("/my-sub-categories"),
+  isProductActive: (pathname: string) =>
+    pathname.startsWith("/products") &&
+    !pathname.startsWith("/products/brands") &&
+    !pathname.startsWith("/products/units") &&
+    !pathname.startsWith("/products/taxes"),
+  /** Manage Products sub-item: active on manage list, create (add/edit variant), and product edit */
+  isManageProductsActive: (pathname: string) =>
+    pathname.startsWith("/products/manage") ||
+    pathname === "/products/create" ||
+    /^\/products\/[^/]+\/edit$/.test(pathname),
+  isStockManagementActive: (pathname: string) =>
+    pathname.startsWith("/stock") || pathname.startsWith("/inventory"),
+  isOrderManagementActive: (pathname: string) =>
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/home-delivery-orders") ||
+    pathname.startsWith("/self-pickup-orders"),
+  isStaffManagementActive: (pathname: string) =>
+    pathname.startsWith("/delivery-boys") &&
+    !pathname.startsWith("/delivery-boys/requests"),
+};
+
+// Initial state check functions for useEffect
+export const initialStateCheckers = {
+  isProductsOpen: (pathname: string) => pathname.startsWith("/products"),
+  isOrderManagementOpen: (pathname: string) =>
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/home-delivery-orders") ||
+    pathname.startsWith("/self-pickup-orders"),
+  isMyCategoryManagementOpen: (pathname: string) =>
+      pathname.startsWith("/my-categories") ||
+  pathname.startsWith("/my-sub-categories"),
+  isVendorManagementOpen: (pathname: string) =>
+    pathname.startsWith("/vendors") &&
+    !pathname.startsWith("/vendors/requests") &&
+    !pathname.startsWith("/vendors/create") &&
+    !pathname.startsWith("/vendors/edit") &&
+    !pathname.startsWith("/vendors/view"),
+  isStaffManagementOpen: (pathname: string) =>
+    pathname.startsWith("/delivery-boys") &&
+    !pathname.startsWith("/delivery-boys/requests"),
+  isUserManagementOpen: (pathname: string) =>
+    pathname.startsWith("/user-management"),
+  isPromotionsOffersOpen: (pathname: string) =>
+    pathname.startsWith("/promo-codes") ||
+    pathname.startsWith("/banners") ||
+    pathname.startsWith("/campaigns"),
+  isReportsOpen: (pathname: string) => pathname.startsWith("/reports"),
+  isSystemOpen: (pathname: string) => pathname.startsWith("/system"),
+  isNotificationsOpen: (pathname: string) =>
+    pathname.startsWith("/notifications"),
+  isRatingsReviewsOpen: (pathname: string) =>
+    pathname.startsWith("/ratings") || pathname.startsWith("/reviews"),
+  isContactUsOpen: (pathname: string) => pathname.startsWith("/contact-us"),
+  isResourceManagementOpen: (pathname: string) =>
+    pathname.startsWith("/resource-management") ||
+    pathname.startsWith("/assets") ||
+    pathname.startsWith("/administration-report") ||
+    pathname.startsWith("/human-resource"),
+  isLocationsOpen: (pathname: string) =>
+    pathname.startsWith("/locations") ||
+    pathname.startsWith("/states") ||
+    pathname.startsWith("/cities") ||
+    pathname.startsWith("/zip-codes") ||
+    pathname.startsWith("/areas"),
+  isDeliverySettingsOpen: (pathname: string) =>
+    pathname.startsWith("/delivery-settings") ||
+    pathname.startsWith("/delivery-types") ||
+    pathname.startsWith("/scheduled-delivery"),
+};
+
+// Menu configuration
+export const sidebarConfig: MenuSection[] = [
+  // Dashboard
+  {
+    type: "link",
+    path: "/",
+    label: "Dashboard",
+    icon: Home,
+  },
+
+  // PRODUCT & STOCK Section
+  {
+    type: "section",
+    sectionTitle: "PRODUCT & STOCK",
+  },
+  {
+    type: "collapsible",
+    label: "Product Management",
+    icon: Package,
+    stateKey: "isProductsOpen",
+    activeCheck: activeCheckers.isProductActive,
+    subItems: [
+      {
+        path: "/products/manage",
+        label: "Manage Products",
+        icon: Package,
+        activeCheck: activeCheckers.isManageProductsActive,
+      },
+      { path: "/products/media", label: "Media", icon: Film },
+      { path: "/products/bulk-upload", label: "Bulk Upload", icon: Upload },
+      { path: "/products/bulk-update", label: "Bulk Update", icon: RefreshCw },
+      { path: "/products/import", label: "Import Products", icon: Download },
+      { path: "/products/export", label: "Export Products", icon: Upload },
+      // Hidden as per sidebar screenshots
+      // { path: '/products/approve', label: 'Approve Requests', icon: CheckCircle, hidden: true },
+      // { path: '/products/ratings', label: 'Product Ratings', icon: Star, hidden: true },
+    ],
+  },
+  {
+    type: "link",
+    path: "/stock",
+    label: "Stock Management",
+    icon: Boxes,
+    activeCheck: activeCheckers.isStockManagementActive,
+  },
+
+  // ORDERS & DELIVERY Section
+  {
+    type: "section",
+    sectionTitle: "ORDERS & DELIVERY",
+  },
+  {
+    type: "link",
+    path: "/purchase-management",
+    label: "Purchase Management",
+    icon: ShoppingCart,
+  },
+  {
+    type: "collapsible",
+    label: "My Category Management",
+    icon: Tag, // Or any icon you prefer
+    stateKey: "isMyCategoryManagementOpen",  // Use this stateKey to manage open/close
+    activeCheck: activeCheckers.isMyCategoryManagementActive,  // Use the active state check
+    subItems: [
+      { path: "/my-categories", label: "My Categories", icon: Tag },
+      { path: "/my-sub-categories", label: "My Sub Categories", icon: Tag },
+    ],
+  },
+  {
+    type: "collapsible",
+    label: "Order Management",
+    icon: ShoppingCart,
+    stateKey: "isOrderManagementOpen",
+    activeCheck: activeCheckers.isOrderManagementActive,
+    subItems: [
+      {
+        path: "/home-delivery-orders",
+        label: "Home delivery Orders",
+        icon: ShoppingCart,
+      },
+      {
+        path: "/self-pickup-orders",
+        label: "Self Pickup Orders",
+        icon: ShoppingBag,
+      },
+    ],
+  },
+  {
+    type: "collapsible",
+    label: "Vendor Management",
+    icon: Store,
+    stateKey: "isVendorManagementOpen",
+    activeCheck: activeCheckers.isVendorManagementActive,
+    subItems: [
+      { path: "/vendors/manage", label: "Manage Vendors", icon: UserCheck },
+      {
+        path: "/vendors/wallet-transactions",
+        label: "Vendors Wallet Transactions",
+        icon: Wallet,
+      },
+      { path: "/vendors/policies", label: "Vendors Policies", icon: FileText },
+    ],
+  },
+
+  // Staff Management
+  {
+    type: "collapsible",
+    label: "Staff Management",
+    icon: Users,
+    stateKey: "isStaffManagementOpen",
+    activeCheck: activeCheckers.isStaffManagementActive,
+    subItems: [
+      {
+        path: "/delivery-boys/manage",
+        label: "Delivery Agents",
+        icon: Truck,
+      },
+    ],
+  },
+
+  // User Management
+  {
+    type: "collapsible",
+    label: "User Management",
+    icon: Users,
+    stateKey: "isUserManagementOpen",
+    activeCheck: activeCheckers.isUserManagementActive,
+    subItems: [
+      {
+        path: "/user-management/customers",
+        label: "Customers",
+        icon: Users,
+      },
+      {
+        path: "/user-management/customer-categories",
+        label: "Customer Categories",
+        icon: Tag,
+      },
+      // Hidden as per sidebar screenshots
+      // { path: '/delivery-boys/requests', label: 'Delivery agent', icon: Truck, hidden: true },
+      // { path: '/vendors/requests', label: 'Vendors', icon: Store, hidden: true },
+      // { path: '/user-management/admins', label: 'Admins', icon: UserCog, hidden: true },
+      // { path: '/user-management/partners', label: 'Partners', icon: Handshake, hidden: true },
+    ],
+  },
+
+  // Delivery Settings
+  {
+    type: "collapsible",
+    label: "Delivery Settings",
+    icon: Truck,
+    stateKey: "isDeliverySettingsOpen",
+    activeCheck: (pathname: string) =>
+      pathname.startsWith("/delivery-settings") ||
+      pathname.startsWith("/delivery-types") ||
+      pathname.startsWith("/scheduled-delivery") ||
+      pathname.startsWith("/delivery-settings/store-pickup") ||
+      pathname.startsWith("/delivery-settings/pick-at-vehicle"),
+    subItems: [
+      {
+        path: "/delivery-settings/delivery-types",
+        label: "Delivery Types",
+        icon: Truck,
+      },
+      {
+        path: "/delivery-settings/scheduled-delivery",
+        label: "Scheduled Delivery",
+        icon: Calendar,
+      },
+      {
+        path: "/delivery-settings/store-pickup",
+        label: "Store Pickup",
+        icon: Calendar,
+      },
+      {
+        path: "/delivery-settings/pick-at-vehicle",
+        label: "Pickup At Vehicle",
+        icon: Calendar,
+      },
+    ],
+  },
+
+  // Point of Sales
+  {
+    type: "link",
+    path: "/point-of-sales",
+    label: "Point of Sales",
+    icon: Percent,
+  },
+
+  // FINANCIAL Section
+  {
+    type: "section",
+    sectionTitle: "FINANCIAL",
+  },
+  {
+    type: "link",
+    path: "/withdrawal-request",
+    label: "Withdrawal Request",
+    icon: DollarSign,
+  },
+  {
+    type: "link",
+    path: "/wallet-transactions",
+    label: "Wallet Transactions",
+    icon: Wallet,
+  },
+
+  // Promotions and Offers
+  {
+    type: "collapsible",
+    label: "Promotions and Offers",
+    icon: ClipboardList,
+    stateKey: "isPromotionsOffersOpen",
+    subItems: [
+      { path: "/promo-codes/manage", label: "Promo Codes", icon: Ticket },
+      { path: "/banners", label: "Banners", icon: ImageIcon },
+      { path: "/campaigns", label: "Campaigns", icon: Sliders },
+    ],
+  },
+
+  // REPORTS Section
+  {
+    type: "section",
+    sectionTitle: "REPORTS",
+  },
+  {
+    type: "collapsible",
+    label: "Reports",
+    icon: BarChart3,
+    stateKey: "isReportsOpen",
+    subItems: [
+      {
+        path: "/reports/product-sales-reports",
+        label: "Product Sales Report",
+        icon: BarChart3,
+      },
+      {
+        path: "/reports/sales-reports",
+        label: "Sales Reports",
+        icon: BarChart3,
+      },
+      { path: "/reports/pos-reports", label: "POS Reports", icon: BarChart3 },
+    ],
+  },
+
+  // Settings
+  {
+    type: "collapsible",
+    label: "Settings",
+    icon: Settings,
+    stateKey: "isSystemOpen",
+    subItems: [
+      {
+        path: "/system/store-settings",
+        label: "Store Settings",
+        icon: Settings,
+      },
+      {
+        path: "/system/delivery-settings",
+        label: "Delivery Settings",
+        icon: Clock,
+      },
+      {
+        path: "/system/payment-methods",
+        label: "Payment Methods",
+        icon: CreditCard,
+      },
+      { path: "/system/contact-us", label: "Contact Us", icon: Phone },
+      { path: "/system/about-us", label: "About Us", icon: Info },
+      { path: "/system/seo-settings", label: "SEO Settings", icon: Globe },
+    ],
+  },
+
+  // Root Map Creation
+  {
+    type: "link",
+    path: "/root-map-creation",
+    label: "Root Map Creation",
+    icon: Map,
+  },
+
+  // Slot Management
+  {
+    type: "link",
+    path: "/slot-management",
+    label: "Slot Management",
+    icon: Calendar,
+  },
+
+  // Delivery Zone Management
+  {
+    type: "link",
+    path: "/delivery-zone-management",
+    label: "Delivery Zone Management",
+    icon: MapPin,
+  },
+
+  // Notifications
+  {
+    type: "collapsible",
+    label: "Notifications",
+    icon: Bell,
+    stateKey: "isNotificationsOpen",
+    subItems: [
+      {
+        path: "/notifications/customer",
+        label: "Customer Notification",
+        icon: Bell,
+      },
+      {
+        path: "/notifications/warehouse",
+        label: "Warehouse Notification",
+        icon: Bell,
+      },
+      {
+        path: "/notifications/vendor",
+        label: "Vendor Notification",
+        icon: Bell,
+      },
+      { path: "/notifications/staff", label: "Staff Notification", icon: Bell },
+      {
+        path: "/notifications/delivery-agent",
+        label: "Delivery Agent Notification",
+        icon: Bell,
+      },
+    ],
+  },
+
+  // Referral Notification
+  {
+    type: "link",
+    path: "/referral-notification",
+    label: "Referral Notification",
+    icon: Bell,
+  },
+
+  // Ratings and Reviews
+  {
+    type: "collapsible",
+    label: "Ratings and Reviews",
+    icon: StarIcon,
+    stateKey: "isRatingsReviewsOpen",
+    subItems: [], // Empty submenu as per screenshot
+  },
+
+  // Product
+  {
+    type: "link",
+    path: "/product",
+    label: "Product",
+    icon: Package,
+  },
+
+  // Service
+  {
+    type: "link",
+    path: "/service",
+    label: "Service",
+    icon: Settings,
+  },
+
+  // Contact Us
+  {
+    type: "collapsible",
+    label: "Contact Us",
+    icon: Phone,
+    stateKey: "isContactUsOpen",
+    subItems: [], // Empty submenu as per screenshot
+  },
+
+  // Access Management
+  {
+    type: "link",
+    path: "/access-management",
+    label: "Access Management",
+    icon: Shield,
+  },
+
+  // Resource Management
+  {
+    type: "link",
+    path: "/resource-management",
+    label: "Resource Management",
+    icon: FileText,
+  },
+
+  // Vehicles
+  {
+    type: "link",
+    path: "/vehicles",
+    label: "Vehicles",
+    icon: Car,
+  },
+
+  // Locations
+  {
+    type: "collapsible",
+    label: "Locations",
+    icon: MapPin,
+    stateKey: "isLocationsOpen",
+    subItems: [
+      { path: "/locations/states", label: "States", icon: MapPin },
+      { path: "/locations/cities", label: "Cities", icon: Building2 },
+      { path: "/locations/zip-codes", label: "Zip Codes", icon: MapPin },
+      { path: "/locations/areas", label: "Areas", icon: Navigation },
+    ],
+  },
+];

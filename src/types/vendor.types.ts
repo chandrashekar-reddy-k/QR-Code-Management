@@ -1,0 +1,64 @@
+export interface Vendor {
+  id: number;
+  name: string;
+  email: string;
+  mobile: string;
+  storeName: string;
+  categoryIds: string;
+  categoryNames?: string;
+  city: string;
+  state: string;
+  street: string;
+  latitude: number;
+  longitude: number;
+  logo: string;
+  taxName?: string;
+  taxNumber?: string;
+  panNumber: string;
+  commission: number;
+  status: "pending" | "approved" | "rejected" | "active" | "inactive";
+  createdAt: string;
+  requireProductApproval: boolean;
+  selfPickupMode: boolean;
+  bankName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  bankAccountName?: string;
+  storeDescription?: string;
+  nationalIdentityCard?: string;
+  addressProof?: string;
+  balance?: number;
+  availability?: "available" | "unavailable";
+}
+
+export interface VendorFormData {
+  name: string;
+  surname?: string;
+  vendorDesignation?: string;
+  email: string;
+  mobile: string;
+  password: string;
+  confirmPassword: string;
+  storeName: string;
+  categoryIds: string;
+  taxName?: string;
+  taxNumber?: string;
+  panNumber: string;
+  commission: number;
+  productStatus: boolean;
+  requireProductApproval: boolean;
+  selfPickupMode: boolean;
+  city: string;
+  state: string;
+  street: string;
+  latitude: number;
+  longitude: number;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  bankAccountName: string;
+  storeDescription?: string;
+  nationalIdentityCard?: File | null;
+  addressProof?: File | null;
+  logo?: File | null;
+}

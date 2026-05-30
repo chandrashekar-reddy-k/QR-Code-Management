@@ -1,0 +1,294 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+// import { returnRequestsAPI } from '../../../lib/api';
+import { ReturnRequest } from '../../../types';
+import { FormSectionWithDots, SelectInput, Button, PrimaryButton } from '../../../components/ui';
+import Breadcrumbs from '../../../components/common/Breadcrumbs';
+import BackButton from '../../../components/common/BackButton';
+import { Save } from 'lucide-react';
+
+// Mock data for return requests (same as ManageReturnRequests)
+const mockReturnRequests: ReturnRequest[] = [
+  {
+    id: 1,
+    userId: 201,
+    name: 'Rajesh Kumar',
+    productName: 'iPhone 15 Pro',
+    quantity: 1,
+    total: 75000.00,
+    status: 'pending',
+    reason: 'Product damaged on delivery',
+    date: '2025-01-15T10:30:00Z',
+  },
+  {
+    id: 2,
+    userId: 202,
+    name: 'Priya Sharma',
+    productName: 'Cotton T-Shirt',
+    quantity: 2,
+    total: 1200.00,
+    status: 'approved',
+    reason: 'Wrong size received',
+    date: '2025-01-16T14:20:00Z',
+  },
+  {
+    id: 3,
+    userId: 203,
+    name: 'Amit Patel',
+    productName: 'Samsung Galaxy S24',
+    quantity: 1,
+    total: 65000.00,
+    status: 'rejected',
+    reason: 'Changed my mind',
+    date: '2025-01-17T09:15:00Z',
+  },
+  {
+    id: 4,
+    userId: 204,
+    name: 'Sneha Reddy',
+    productName: 'Denim Jeans',
+    quantity: 1,
+    total: 1800.00,
+    status: 'completed',
+    reason: 'Product quality not as expected',
+    date: '2025-01-18T16:45:00Z',
+  },
+  {
+    id: 5,
+    userId: 205,
+    name: 'Vikram Singh',
+    productName: 'Wireless Headphones',
+    quantity: 1,
+    total: 2500.00,
+    status: 'pending',
+    reason: 'Product not working properly',
+    date: '2025-01-19T11:30:00Z',
+  },
+  {
+    id: 6,
+    userId: 206,
+    name: 'Anjali Mehta',
+    productName: 'Running Shoes',
+    quantity: 1,
+    total: 3200.00,
+    status: 'approved',
+    reason: 'Wrong color received',
+    date: '2025-01-20T13:20:00Z',
+  },
+];
+
+const EditReturnRequest = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    status: 'pending' as 'pending' | 'approved' | 'rejected' | 'completed',
+    reason: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [request, setRequest] = useState<ReturnRequest | null>(null);
+
+  useEffect(() => {
+    const fetchRequest = async () => {
+      try {
+        setLoading(true);
+        const foundRequest = mockReturnRequests.find((r) => r.id === parseInt(id || '0'));
+        if (foundRequest) {
+          setRequest(foundRequest);
+          setFormData({
+            status: foundRequest.status,
+            reason: foundRequest.reason,
+          });
+        } else {
+          alert('Return request not found!');
+          navigate('/return-requests');
+        }
+      } catch (error) {
+        console.error('Error fetching return request:', error);
+        alert('Error fetching return request. Please try again.');
+        navigate('/return-requests');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchRequest();
+    }
+  }, [id, navigate]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.status) {
+      newErrors.status = 'Status is required';
+    }
+    if (!formData.reason.trim()) {
+      newErrors.reason = 'Reason is required';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validate()) {
+      try {
+        setLoading(true);
+        alert('Return request updated successfully!');
+        navigate('/return-requests');
+      } catch (error: unknown) {
+        console.error('Error updating return request:', error);
+        const message = error instanceof Error ? error.message : 'Error updating return request. Please try again.';
+        alert(message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  if (loading && !request) {
+    return (
+      <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
+        <div className="p-8 text-center">
+          <p className="text-gray-500 dark:text-gray-400">Loading return request...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!request) {
+    return (
+      <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
+        <div className="p-8 text-center">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">Return request not found</p>
+          <button
+            onClick={() => navigate('/return-requests')}
+            className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
+      {/* Page Title */}
+      <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Edit Return Request
+        </h1>
+        <BackButton to="/return-requests" />
+      </div>
+      
+      {/* Breadcrumbs */}
+      <div className="mb-4">
+        <Breadcrumbs />
+      </div>
+
+      {/* Request Info Card */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4">
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Request Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Request ID</label>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.id}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">User ID</label>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.userId}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Customer Name</label>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.name}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Product Name</label>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.productName}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Quantity</label>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.quantity}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Total Amount</label>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">₹{request.total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Form */}
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <div className="max-w-4xl">
+          {/* Update Return Request Section */}
+          <FormSectionWithDots title="Update Return Request">
+            {/* Status */}
+            <SelectInput
+              label="Status"
+              required
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              error={errors.status}
+            >
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="completed">Completed</option>
+            </SelectInput>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Reason <span className="text-red-500 dark:text-red-400">*</span>
+              </label>
+              <textarea
+                name="reason"
+                value={formData.reason}
+                onChange={handleChange}
+                placeholder="Enter return reason"
+                rows={4}
+                className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
+                  errors.reason ? 'border-red-300 dark:border-red-600 focus:ring-red-500 dark:focus:ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500'
+                }`}
+              />
+              {errors.reason && <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">{errors.reason}</p>}
+            </div>
+          </FormSectionWithDots>
+
+          {/* Submit Buttons */}
+          <div className="flex items-center justify-end gap-3 mt-6">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate('/return-requests')}
+              className="px-4 py-2 text-xs font-medium"
+            >
+              Cancel
+            </Button>
+            <PrimaryButton
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium"
+            >
+              <Save size={14} />
+              <span>Update Return Request</span>
+            </PrimaryButton>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default EditReturnRequest;
+
