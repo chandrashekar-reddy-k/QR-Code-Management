@@ -75,6 +75,15 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isDeliverySettingsOpen, setIsDeliverySettingsOpen] = useState(
     initialStateCheckers.isDeliverySettingsOpen(location.pathname)
   );
+  const [isVsmsOpen, setIsVsmsOpen] = useState(
+    initialStateCheckers.isVsmsOpen(location.pathname)
+  );
+  const [isAssetsOpen, setIsAssetsOpen] = useState(
+    initialStateCheckers.isAssetsOpen(location.pathname)
+  );
+  const [isProcurementOpen, setIsProcurementOpen] = useState(
+    initialStateCheckers.isProcurementOpen(location.pathname)
+  );
 
   // ============================================
   // STATE MAPS - For dynamic state access
@@ -102,6 +111,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isResourceManagementOpen: setIsResourceManagementOpen,
       isLocationsOpen: setIsLocationsOpen,
       isDeliverySettingsOpen: setIsDeliverySettingsOpen,
+      isVsmsOpen: setIsVsmsOpen,
+      isAssetsOpen: setIsAssetsOpen,
+      isProcurementOpen: setIsProcurementOpen,
     }),
     []
   );
@@ -128,6 +140,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isResourceManagementOpen,
       isLocationsOpen,
       isDeliverySettingsOpen,
+      isVsmsOpen,
+      isAssetsOpen,
+      isProcurementOpen,
     }),
     [
       isProductsOpen,
@@ -145,6 +160,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isResourceManagementOpen,
       isLocationsOpen,
       isDeliverySettingsOpen,
+      isVsmsOpen,
+      isAssetsOpen,
+      isProcurementOpen,
     ]
   );
 
@@ -190,6 +208,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     setIsDeliverySettingsOpen(
       initialStateCheckers.isDeliverySettingsOpen(location.pathname)
     );
+    setIsVsmsOpen(initialStateCheckers.isVsmsOpen(location.pathname));
+    setIsAssetsOpen(initialStateCheckers.isAssetsOpen(location.pathname));
+    setIsProcurementOpen(initialStateCheckers.isProcurementOpen(location.pathname));
   }, [location.pathname]);
 
   // ============================================
@@ -235,6 +256,22 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
    */
   const isSubItemActive = useCallback(
     (path: string): boolean => {
+      // Handle query-param based paths (e.g. /procurement?tab=vendors)
+      if (path.includes("?")) {
+        const [itemPathname, itemSearch] = path.split("?");
+        const currentSearch = location.search.startsWith("?")
+          ? location.search.slice(1)
+          : location.search;
+        const itemParams = new URLSearchParams(itemSearch);
+        const currentParams = new URLSearchParams(currentSearch);
+        // Pathname must match AND every param in item path must match current
+        if (location.pathname !== itemPathname) return false;
+        for (const [key, value] of itemParams.entries()) {
+          if (currentParams.get(key) !== value) return false;
+        }
+        return true;
+      }
+
       const normalizedPath = path.endsWith("/manage")
         ? path.slice(0, -"/manage".length)
         : path;
@@ -246,7 +283,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         location.pathname.startsWith(normalizedPath + "/")
       );
     },
-    [location.pathname]
+    [location.pathname, location.search]
   );
 
   // ============================================
@@ -326,8 +363,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         return null;
 
       // Get current state (open or closed)
-      const isOpen = stateGetters[section.stateKey] || false;
-      const setIsOpen = stateSetters[section.stateKey];
+      const isSectionOpen = stateGetters[section.stateKey] || false;
+      const setSectionOpen = stateSetters[section.stateKey];
       const isActive = isItemActive(section);
       const Icon = section.icon;
 
@@ -339,7 +376,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       // Special check for Promotions and Offers
       const isPromotionsActive =
         section.stateKey === "isPromotionsOffersOpen" &&
-        (isOpen ||
+        (isSectionOpen ||
           location.pathname.startsWith("/promo-codes") ||
           location.pathname.startsWith("/banners") ||
           location.pathname.startsWith("/campaigns") ||
@@ -348,24 +385,24 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       // Special check for Notifications
       const isNotificationsActive =
         section.stateKey === "isNotificationsOpen" &&
-        (isOpen || location.pathname.startsWith("/notifications"));
+        (isSectionOpen || location.pathname.startsWith("/notifications"));
 
       // Special check for Ratings and Reviews
       const isRatingsActive =
         section.stateKey === "isRatingsReviewsOpen" &&
-        (isOpen ||
+        (isSectionOpen ||
           location.pathname.startsWith("/ratings") ||
           location.pathname.startsWith("/reviews"));
 
       // Special check for Contact Us
       const isContactUsActive =
         section.stateKey === "isContactUsOpen" &&
-        (isOpen || location.pathname.startsWith("/contact-us"));
+        (isSectionOpen || location.pathname.startsWith("/contact-us"));
 
       // Special check for Locations
       const isLocationsActive =
         section.stateKey === "isLocationsOpen" &&
-        (isOpen ||
+        (isSectionOpen ||
           location.pathname.startsWith("/locations") ||
           location.pathname.startsWith("/states") ||
           location.pathname.startsWith("/cities") ||
@@ -375,7 +412,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       // Special check for Order Management
       const isOrderManagementActive =
         section.stateKey === "isOrderManagementOpen" &&
-        (isOpen ||
+        (isSectionOpen ||
           location.pathname.startsWith("/orders") ||
           location.pathname.startsWith("/home-delivery-orders") ||
           location.pathname.startsWith("/self-pickup-orders"));
@@ -401,7 +438,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         <div className="mt-1" key={section.stateKey}>
           {/* Main Menu Button - Expands/collapses on click */}
           <button
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => setSectionOpen?.(!isSectionOpen)}
             className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalActive
                 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
                 : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
@@ -429,17 +466,17 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               </span>
             </div>
             {/* Expand/Collapse Icon */}
-            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {isSectionOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
 
           {/* Submenu Items - Visible when expanded */}
           <div
-            className={`overflow-hidden ${isOpen ? "dropdown-enter" : "dropdown-exit"
+            className={`overflow-hidden ${isSectionOpen ? "dropdown-enter" : "dropdown-exit"
               }`}
             style={{
-              maxHeight: isOpen ? "500px" : "0",
+              maxHeight: isSectionOpen ? "500px" : "0",
               transition:
-                section.stateKey === "isUserManagementOpen" && isOpen
+                section.stateKey === "isUserManagementOpen" && isSectionOpen
                   ? "max-height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)"
                   : "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
@@ -458,13 +495,13 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                     <Link
                       key={subItem.path}
                       to={subItem.path}
-                      className={`${isOpen ? "dropdown-item" : "dropdown-item-exit"
+                      className={`${isSectionOpen ? "dropdown-item" : "dropdown-item-exit"
                         } flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${isActive
                           ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
                           : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
                         }`}
                       style={{
-                        animationDelay: isOpen
+                        animationDelay: isSectionOpen
                           ? `${index * 0.05}s`
                           : `${(totalItems - index - 1) * 0.03}s`,
                       }}

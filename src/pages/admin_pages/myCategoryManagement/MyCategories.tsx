@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -18,65 +18,74 @@ import {
   Pagination,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
+import { useGetProductCategoriesList } from "../../../hooks/product";
 
-// ---------------- MOCK DATA ----------------
-interface Category {
-  id: number;
-  image: string;
+interface ApiCategory {
+  id: string;
   name: string;
-  subtitle: string;
-  status: boolean;
+  description?: string;
+  image?: string;
+  isActive?: boolean;
+  displayOrder?: number;
+  slug?: string;
+  subCategories?: unknown[];
 }
-
-const mockCategories: Category[] = [
-  {
-    id: 1,
-    image: "https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2",
-    name: "Fruits & Vegetables",
-    subtitle: "Fresh fruits and organic vegetables",
-    status: false,
-  },
-  {
-    id: 2,
-    image: "https://images.unsplash.com/photo-1580910051074-3eb694886505",
-    name: "Dairy Products",
-    subtitle: "Milk, cheese and dairy items",
-    status: false,
-  },
-  {
-    id: 3,
-    image: "https://images.unsplash.com/photo-1606787366850-de6330128bfc",
-    name: "Grains & Pulses",
-    subtitle: "Healthy grains and pulses",
-    status: false,
-  },
-];
 
 const MyCategories = () => {
   const navigate = useNavigate();
-  const [categories] = useState<Category[]>(mockCategories);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Static pagination values (UI only)
-  const currentPage = 1;
-  const totalPages = 5;
-  const itemsPerPage = 10;
+  const { data: categoriesData, isLoading } = useGetProductCategoriesList();
+
+  // Parse API response
+  const allCategories: ApiCategory[] = useMemo(() => {
+    const res = categoriesData as { data?: ApiCategory[] } | undefined;
+    const arr = Array.isArray(res?.data) ? res!.data! : [];
+    return arr;
+  }, [categoriesData]);
+
+  // Filter by search and status
+  const filtered = useMemo(() => {
+    return allCategories.filter((c) => {
+      const matchesSearch =
+        !searchTerm.trim() ||
+        (c.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        !statusFilter ||
+        (statusFilter === "active" ? c.isActive !== false : c.isActive === false);
+      return matchesSearch && matchesStatus;
+    });
+  }, [allCategories, searchTerm, statusFilter]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalCount = allCategories.length;
+  const activeCount = allCategories.filter((c) => c.isActive !== false).length;
+  const inactiveCount = allCategories.filter((c) => c.isActive === false).length;
 
   const kpiData = [
     {
       title: "Total Categories",
-      value: "14",
+      value: isLoading ? "..." : String(totalCount),
       icon: Box,
       variant: "purple" as const,
     },
     {
       title: "Active Categories",
-      value: "13",
+      value: isLoading ? "..." : String(activeCount),
       icon: CheckCircle,
       variant: "yellow" as const,
     },
     {
       title: "Inactive Categories",
-      value: "0",
+      value: isLoading ? "..." : String(inactiveCount),
       icon: XCircle,
       variant: "green" as const,
     },
@@ -87,24 +96,33 @@ const MyCategories = () => {
       key: "id",
       label: "ID",
       sortable: true,
-      render: (item: Category) => (
+      render: (item: ApiCategory) => (
         <div className="text-center">
-        <span className="text-sm text-gray-800 dark:text-gray-200">
-          {item.id}
-        </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+            {item.id.slice(0, 8)}...
+          </span>
         </div>
       ),
     },
     {
       key: "image",
       label: "IMAGE",
-      render: (item: Category) => (
-                 <div className="flex items-center justify-center">
-        <img
-          src={item.image}
-          alt="category"
-          className="w-12 h-12 rounded-lg object-cover"
-        />
+      render: (item: ApiCategory) => (
+        <div className="flex items-center justify-center">
+          {item.image ? (
+            <img
+              src={item.image}
+              alt="category"
+              className="w-12 h-12 rounded-lg object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <Box size={20} className="text-gray-400" />
+            </div>
+          )}
         </div>
       ),
     },
@@ -112,39 +130,63 @@ const MyCategories = () => {
       key: "name",
       label: "NAME",
       sortable: true,
-      render: (item: Category) => (
-         <div className="text-center">
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-          {item.name}
-        </span>
+      render: (item: ApiCategory) => (
+        <div className="text-center">
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+            {item.name}
+          </span>
         </div>
       ),
     },
     {
-      key: "subtitle",
-      label: "SUBTITLE",
-      sortable: true,
-      render: (item: Category) => (
-          <div className="text-center">
-        <span className="text-sm text-gray-600 dark:text-gray-400">
-          {item.subtitle}
-        </span>
+      key: "description",
+      label: "DESCRIPTION",
+      render: (item: ApiCategory) => (
+        <div className="text-center">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {item.description || "—"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: "subCategories",
+      label: "SUB-CATEGORIES",
+      render: (item: ApiCategory) => (
+        <div className="text-center">
+          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+            {Array.isArray(item.subCategories) ? item.subCategories.length : 0}
+          </span>
         </div>
       ),
     },
     {
       key: "status",
       label: "STATUS",
-      render: () => (
-
-        <div className="flex justify-center">
-          <div className="w-10 h-5 bg-gray-300 rounded-full relative">
-            <div className="w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 shadow" />
+      render: (item: ApiCategory) => {
+        const isActive = item.isActive !== false;
+        return (
+          <div className="flex justify-center">
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                isActive
+                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+              }`}
+            >
+              {isActive ? "Active" : "Inactive"}
+            </span>
           </div>
-        </div>
-      ),
+        );
+      },
     },
   ];
+
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("");
+    setCurrentPage(1);
+  };
 
   return (
     <div className="w-full px-2 sm:px-4 pb-6">
@@ -157,7 +199,10 @@ const MyCategories = () => {
           <Breadcrumbs />
         </div>
 
-        <PrimaryButton onClick={() => navigate('/my-categories/requests')}  className="flex items-center gap-2">
+        <PrimaryButton
+          onClick={() => navigate("/my-categories/requests")}
+          className="flex items-center gap-2"
+        >
           <Plus size={16} />
           Request Category
         </PrimaryButton>
@@ -176,7 +221,7 @@ const MyCategories = () => {
         ))}
       </div>
 
-       {/* FILTERS + SEARCH (UI ONLY) */}
+      {/* FILTERS + SEARCH */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-xl overflow-hidden">
           {/* Filter icon */}
@@ -185,37 +230,21 @@ const MyCategories = () => {
           </div>
 
           {/* STATUS DROPDOWN */}
-        <div className="px-3 sm:px-4 py-3 sm:py-4 flex-1 min-w-0 relative">
+          <div className="px-3 sm:px-4 py-3 sm:py-4 flex-1 min-w-0 relative">
             <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
-              value=""
-              onChange={() => {}}
-              options={[
-                { value: "", label: "Status" },
-                { value: "active", label: "Active" },
-                { value: "inactive", label: "Inactive" },
-              ]}
-            />
-          </div>
-            <ChevronDown
-              size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
-            />
-          </div>
-
-          {/* CATEGORY DROPDOWN */}
-            <div className="px-3 sm:px-4 py-3 sm:py-4 flex-1 min-w-0 relative">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
-              <SelectInput
-              value=""
-              onChange={() => {}}
-              options={[
-                { value: "", label: "Category" },
-                { value: "1", label: "Fruits" },
-                { value: "2", label: "Dairy" },
-              ]}
-            />
-          </div>
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { value: "", label: "Status" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+              />
+            </div>
             <ChevronDown
               size={16}
               className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
@@ -224,71 +253,88 @@ const MyCategories = () => {
 
           {/* RESET */}
           <div className="px-4 py-3">
-            <button className="flex items-center gap-2 text-orange-600 text-sm">
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center gap-2 text-orange-600 text-sm hover:opacity-80 transition-opacity"
+            >
               <RotateCcw size={14} />
               Reset Filter
             </button>
           </div>
         </div>
-    {/* Search beside filters */}
+
+        {/* Search beside filters */}
         <div className="w-full lg:w-auto lg:min-w-[200px] lg:flex-shrink-0">
-            <SearchInput
-            placeholder="Search"
-            value=""
-            onChange={() => {}}
+          <SearchInput
+            placeholder="Search categories..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
           />
         </div>
-
       </div>
 
       {/* TABLE */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow border overflow-hidden">
-        <DataTable
-          data={categories}
-          columns={columns}
-          keyExtractor={(item) => item.id.toString()}
-        />
+      {isLoading ? (
+        <div className="flex items-center justify-center h-48">
+          <p className="text-gray-500 dark:text-gray-400">Loading categories...</p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow border overflow-hidden">
+          <DataTable
+            data={paginated}
+            columns={columns}
+            keyExtractor={(item) => (item as ApiCategory).id}
+          />
 
-        {/*  PAGINATION UI (ADDED) */}
-        <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-
-            {/* LEFT SIDE */}
-            <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Show</span>
-
-              <div className="[&_select]:text-orange-600 [&_select]:px-2 [&_select]:py-1 [&_select]:border [&_select]:rounded-lg [&_select]:w-16 [&_select]:h-7">
-                <SelectInput
-                  value="10"
-                  onChange={() => {}}
-                  options={[
-                    { value: "10", label: "10" },
-                    { value: "25", label: "25" },
-                    { value: "50", label: "50" },
-                  ]}
-                />
+          {/* PAGINATION */}
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+              {/* LEFT SIDE */}
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Show</span>
+                <div className="[&_select]:text-orange-600 [&_select]:px-2 [&_select]:py-1 [&_select]:border [&_select]:rounded-lg [&_select]:w-16 [&_select]:h-7">
+                  <SelectInput
+                    value={String(itemsPerPage)}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    options={[
+                      { value: "10", label: "10" },
+                      { value: "25", label: "25" },
+                      { value: "50", label: "50" },
+                    ]}
+                  />
+                </div>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Showing results{" "}
+                  <span className="text-orange-600 font-medium">
+                    {Math.min(paginated.length, itemsPerPage)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="text-orange-600 font-medium">
+                    {filtered.length}
+                  </span>
+                </span>
               </div>
 
-              <span className="text-gray-600 dark:text-gray-400">
-                Showing results{" "}
-                <span className="text-orange-600 font-medium">10</span> of{" "}
-                <span className="text-orange-600 font-medium">14</span>
-              </span>
-            </div>
-
-            {/* RIGHT SIDE */}
-            <div className="w-full sm:w-auto flex justify-center sm:justify-end">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={() => {}}
-                itemsPerPage={itemsPerPage}
-                totalItems={14}
-              />
+              {/* RIGHT SIDE */}
+              <div className="w-full sm:w-auto flex justify-center sm:justify-end">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={filtered.length}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

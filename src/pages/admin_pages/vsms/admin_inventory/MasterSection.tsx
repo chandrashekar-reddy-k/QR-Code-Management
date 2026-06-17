@@ -1,0 +1,570 @@
+// @ts-nocheck
+import React from 'react';
+import { 
+  Search, Filter, CheckSquare, Square, Barcode, Grid, 
+  Package, Gift, Pencil, Trash2, Loader2, ArrowLeft, Check, Plus, FileText, RefreshCw
+} from 'lucide-react';
+
+const MasterSection = ({
+  selectedItems,
+  toggleSelectItem,
+  handleToggleStatus,
+  openEditModal,
+  handleDeleteItem,
+  deletingId,
+  handleSelectAll,
+  filteredItems,
+  masterSearch,
+  setMasterSearch,
+  setShowScanner,
+  setScannerTarget,
+  masterFreeOnly,
+  setMasterFreeOnly,
+  showFilters,
+  setShowFilters,
+  handleBulkDelete,
+  isUploading,
+  categories,
+  masterCategory,
+  setMasterCategory,
+  masterSubCategory,
+  setMasterSubCategory,
+  subCategories,
+  masterStatus,
+  setMasterStatus,
+  paginatedItems,
+  totalPages,
+  currentPage,
+  setCurrentPage,
+  itemsPerPage,
+  can,
+  setIsCreateView,
+  setModalTab
+}) => {
+
+  const renderProductCard = (item) => {
+    const isSelected = selectedItems.includes(item.id);
+    return (
+      <div
+        key={item.id}
+        className={`bg-white dark:bg-gray-800 p-4 rounded-lg border transition-all duration-200 ${isSelected ? 'border-emerald-500 bg-emerald-50/10' : item.isFree ? 'border-emerald-100 bg-emerald-50/20' : 'border-gray-200 dark:border-gray-700'} shadow-sm flex items-center justify-between group relative`}
+      >
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => toggleSelectItem(item.id)}
+            className={`p-1 rounded-md transition-colors ${isSelected ? 'text-emerald-600' : 'text-gray-300'}`}
+          >
+            {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+          </button>
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden border shadow-inner ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
+            {item.image ? (
+              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+            ) : (
+              item.isFree ? <Gift size={24} /> : <Package size={24} />
+            )}
+          </div>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h3 className={`text-[11px] font-bold uppercase tracking-tight ${item.isFree ? 'text-emerald-950' : 'text-gray-900 dark:text-white'}`}>{item.name}</h3>
+              {item.displayId && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded tracking-wider">{item.displayId}</span>}
+              <div className="flex items-center gap-1.5 ml-auto">
+                <div className="flex flex-col items-end">
+                  <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest">Store</span>
+                  <span className="text-[10px] font-bold text-emerald-700">{item.warehouseStock || 0}</span>
+                </div>
+                <div className="w-px h-4 bg-gray-200 mx-0.5" />
+                <div className="flex flex-col items-end">
+                  <span className="text-[7px] font-bold text-amber-600 uppercase tracking-widest">Vehicle</span>
+                  <span className="text-[10px] font-bold text-amber-700">{item.vehicleStock || 0}</span>
+                </div>
+                <div className="w-px h-4 bg-gray-200 mx-0.5" />
+                <div className="flex flex-col items-end bg-gray-50 dark:bg-gray-900/50 px-1.5 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">Total</span>
+                  <span className={`text-[10px] font-bold ${item.totalStock > (item.minStockAlert || 5) ? 'text-gray-900 dark:text-white' : 'text-rose-600'}`}>
+                    {item.totalStock || 0}
+                  </span>
+                </div>
+              </div>
+              {item.unit && (
+                <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                  {item.unitValue || ''} {item.unit.type}
+                </span>
+              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleToggleStatus(item)}
+                  className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${item.status === 'INACTIVE' ? 'bg-gray-200' : 'bg-emerald-500'}`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white dark:bg-gray-800 shadow ring-0 transition duration-200 ease-in-out ${item.status === 'INACTIVE' ? 'translate-x-0' : 'translate-x-4'}`}
+                  />
+                </button>
+                <span className={`text-[7px] font-bold uppercase tracking-widest ${item.status === 'INACTIVE' ? 'text-gray-400' : 'text-emerald-600'}`}>
+                  {item.status || 'ACTIVE'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[9px] text-gray-400 uppercase font-bold tracking-widest">{item.category?.name || 'Uncategorized'}</span>
+              <span className="text-[8px] text-gray-300 font-bold">•</span>
+              <span className="text-[9px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest">{item.subCategory?.name || 'General Item'}</span>
+              {item.storeName && (
+                <>
+                  <span className="text-[8px] text-gray-300 font-bold">•</span>
+                  <span className="text-[8px] text-emerald-600 uppercase font-bold tracking-widest">Branch: {item.storeName}</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Selling</span>
+                <span className="text-xs font-bold text-emerald-700">₹{item.price}</span>
+              </div>
+              <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">MRP</span>
+                <span className="text-[10px] text-gray-400 line-through">₹{item.mrp || 0}</span>
+              </div>
+              <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Discount</span>
+                <span className="text-[10px] text-emerald-600 font-bold">₹{item.discount || 0}</span>
+              </div>
+              <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Lnd. Price</span>
+                <span className="text-[10px] text-slate-500 font-bold">₹{item.landingPrice || 0}</span>
+              </div>
+              <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">GST</span>
+                <span className="text-[10px] text-blue-600 font-bold">{item.gst || 0}%</span>
+              </div>
+              {item.isFree && (
+                <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+                  <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-tighter">Free Above</span>
+                  <span className="text-[10px] text-emerald-600 font-bold">₹{item.minShopAmount || 0}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {can('INVENTORY', 'TOGGLE_STATUS', 'MASTER') && (
+            <button
+              onClick={() => handleToggleStatus(item)}
+              className={`text-xs font-bold p-2 rounded-lg flex items-center gap-1 transition-colors ${item.status === 'INACTIVE' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+              title={item.status === 'INACTIVE' ? "Activate Item" : "Deactivate Item"}
+            >
+              <RefreshCw size={14} className={item.status === 'INACTIVE' ? 'text-emerald-600' : 'text-emerald-600'} />
+            </button>
+          )}
+          <div className="w-px h-4 bg-gray-200 mx-1 border-r border-gray-200 dark:border-gray-700" />
+          {can('INVENTORY', 'UPDATE', 'MASTER') && (
+            <button
+              onClick={() => openEditModal(item)}
+              className="text-gray-600 dark:text-gray-400 text-xs font-bold p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          {can('INVENTORY', 'DELETE', 'MASTER') && (
+            <button
+              onClick={() => handleDeleteItem(item)}
+              title="Delete Item"
+              disabled={deletingId === item.id}
+              className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deletingId === item.id
+                ? <Loader2 size={14} className="animate-spin text-rose-400" />
+                : <Trash2 size={14} />}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const allSelected = filteredItems.length > 0 && selectedItems.length === filteredItems.length;
+
+  const renderDesktopTable = (itemsToRender) => (
+    <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+      <table className="w-full text-left border-collapse table-fixed">
+        <thead>
+          <tr className="bg-gray-50 dark:bg-gray-900/50/50">
+            <th className="pl-4 py-3 w-10">
+              <button
+                onClick={() => handleSelectAll(itemsToRender)}
+                className={`p-1 rounded-md transition-colors ${selectedItems.length === itemsToRender.length && itemsToRender.length > 0 ? 'text-emerald-600' : 'text-gray-300'}`}
+              >
+                {selectedItems.length === itemsToRender.length && itemsToRender.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
+              </button>
+            </th>
+            <th className="px-3 py-3 text-[9px] font-bold uppercase tracking-widest text-gray-400 w-[25%]">Product & Category</th>
+            <th className="px-3 py-3 text-[9px] font-bold uppercase tracking-widest text-gray-400 text-center w-[15%]">Pricing & Tax</th>
+            <th className="px-3 py-3 text-[9px] font-bold uppercase tracking-widest text-emerald-600 text-center bg-emerald-50/30 w-[25%]">Stock Distribution</th>
+            <th className="px-3 py-3 text-[9px] font-bold uppercase tracking-widest text-gray-400 text-center w-[12%]">Status</th>
+            <th className="pr-4 py-3 text-[9px] font-bold uppercase tracking-widest text-gray-400 text-right w-[10%]">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {itemsToRender.map((item) => {
+            const isSelected = selectedItems.includes(item.id);
+            return (
+              <tr key={item.id} className={`hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group ${isSelected ? 'bg-emerald-50/10' : ''}`}>
+                <td className="pl-4 py-2">
+                  <button
+                    onClick={() => toggleSelectItem(item.id)}
+                    className={`p-1 rounded-md transition-colors ${isSelected ? 'text-emerald-600' : 'text-gray-300'}`}
+                  >
+                    {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                  </button>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border shadow-inner shrink-0 ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        item.isFree ? <Gift size={14} /> : <Package size={14} />
+                      )}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-bold text-gray-900 dark:text-white leading-tight truncate">{item.name}</span>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter truncate max-w-[80px]">
+                          {item.category?.name || 'General'}
+                        </span>
+                        {item.storeName && (
+                          <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-tighter truncate max-w-[80px]">
+                            • {item.storeName}
+                          </span>
+                        )}
+                        {item.displayId && <span className="text-[7px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded tracking-widest">{item.displayId}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-emerald-700">₹{item.price}</span>
+                      <span className="text-[8px] font-bold text-blue-500 bg-blue-50 px-1 rounded">{item.gst || 0}%</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[8px] font-bold text-gray-400">
+                      <span className="line-through">₹{item.mrp || 0}</span>
+                      <span className="text-emerald-500">(-₹{item.discount || 0})</span>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2 bg-emerald-50/10">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] font-bold text-emerald-700">{item.warehouseStock || 0}</span>
+                      <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest leading-none mt-0.5">Store</span>
+                    </div>
+                    <div className="w-px h-4 bg-emerald-100" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] font-bold text-amber-700">{item.vehicleStock || 0}</span>
+                      <span className="text-[7px] font-bold text-amber-600 uppercase tracking-widest leading-none mt-0.5">Fleet</span>
+                    </div>
+                    <div className="w-px h-4 bg-emerald-100" />
+                    <div className="flex flex-col items-center bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded-lg border border-emerald-100 shadow-sm">
+                      <span className={`text-[10px] font-bold ${item.totalStock > (item.minStockAlert || 5) ? 'text-gray-900 dark:text-white' : 'text-rose-600'}`}>
+                        {item.totalStock || 0}
+                      </span>
+                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">Total</span>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2 text-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => handleToggleStatus(item)}
+                      className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${item.status === 'INACTIVE' ? 'bg-gray-200' : 'bg-emerald-500'}`}
+                      title={item.status === 'INACTIVE' ? "Activate Item" : "Deactivate Item"}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white dark:bg-gray-800 shadow ring-0 transition duration-200 ease-in-out ${item.status === 'INACTIVE' ? 'translate-x-0' : 'translate-x-5'}`}
+                      />
+                    </button>
+                    <span className={`text-[7px] font-bold uppercase tracking-widest ${item.status === 'INACTIVE' ? 'text-gray-400' : 'text-emerald-600'}`}>
+                      {item.status || 'ACTIVE'}
+                    </span>
+                  </div>
+                </td>
+                <td className="pr-4 py-2">
+                  <div className="flex items-center justify-end gap-0.5 transition-all">
+                    {can('INVENTORY', 'UPDATE', 'MASTER') && (
+                      <button
+                        onClick={() => openEditModal(item)}
+                        className="p-1.5 text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
+                    {can('INVENTORY', 'DELETE', 'MASTER') && (
+                      <button
+                        onClick={() => handleDeleteItem(item)}
+                        disabled={deletingId === item.id}
+                        className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
+                      >
+                        {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 flex items-center gap-2 bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-2 pl-2">
+            <button
+              onClick={() => handleSelectAll(filteredItems)}
+              className={`p-1 rounded-md transition-colors ${allSelected ? 'text-emerald-600' : 'text-gray-300'}`}
+              title="Select All"
+            >
+              {allSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+            </button>
+          </div>
+          <Search size={18} className="text-gray-400 shrink-0" />
+          <input
+            type="text"
+            placeholder="Search items by name or barcode..."
+            className="w-full bg-transparent border-none focus:outline-none text-sm min-w-0"
+            value={masterSearch}
+            onChange={(e) => setMasterSearch(e.target.value)}
+          />
+          <button
+            onClick={() => {
+              setScannerTarget('master');
+              setShowScanner(true);
+            }}
+            className="p-1.5 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50 text-gray-400 hover:text-blue-600 transition-all border border-transparent hover:border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0"
+            title="Scan Barcode to Search"
+          >
+            <Barcode size={18} />
+          </button>
+          <div className="flex items-center gap-1.5 shrink-0 border-l border-gray-200 dark:border-gray-700 pl-2">
+            <button
+              onClick={() => setMasterFreeOnly(!masterFreeOnly)}
+              className={`px-2.5 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold transition-all border ${masterFreeOnly ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100'}`}
+            >
+              {masterFreeOnly ? '✓ Free Only' : 'Free'}
+            </button>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-1.5 rounded-xl transition-colors border ${showFilters ? 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm' : 'bg-white dark:bg-gray-800 border-transparent hover:bg-gray-50 dark:bg-gray-900/50 text-gray-400'}`}
+              title="Advanced Filters"
+            >
+              <Filter size={16} />
+            </button>
+          </div>
+        </div>
+        {selectedItems.length > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            disabled={isUploading}
+            className="bg-rose-50 text-rose-600 px-4 py-3 rounded-lg border border-rose-100 shadow-sm hover:bg-rose-100 transition-all flex items-center gap-2 font-bold text-sm"
+          >
+            <Trash2 size={18} />
+            <span>Delete {selectedItems.length}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Categories Quick Filter */}
+      <div className="relative group mb-4">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+          <button
+            onClick={() => { setMasterCategory('ALL'); setMasterSubCategory('ALL'); }}
+            className={`whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${masterCategory === 'ALL'
+              ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
+              }`}
+          >
+            All Items
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => { setMasterCategory(cat.name); setMasterSubCategory('ALL'); }}
+              className={`flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${masterCategory === cat.name
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
+                }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sub-Categories Quick Filter */}
+      {masterCategory !== 'ALL' && (
+        <div className="relative group mb-6 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 rounded-xl border border-emerald-100 mr-2">
+              <Grid size={12} className="text-emerald-500" />
+              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">Sub Categories</span>
+            </div>
+            <button
+              onClick={() => setMasterSubCategory('ALL')}
+              className={`whitespace-nowrap px-4 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all border ${masterSubCategory === 'ALL'
+                ? 'bg-emerald-500 border-emerald-500 text-white shadow-md'
+                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'
+                }`}
+            >
+              All {masterCategory}
+            </button>
+            {subCategories
+              .filter(sub => {
+                const parentCat = categories.find(c => c.name === masterCategory);
+                return sub.categoryId === parentCat?.id;
+              })
+              .map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => setMasterSubCategory(sub.name)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all border ${masterSubCategory === sub.name
+                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-md'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'
+                    }`}
+                >
+                  {sub.name}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {showFilters && (
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="space-y-1 flex-1 min-w-[150px]">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Additional Filters</label>
+            <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 p-2 rounded-xl border border-gray-200 dark:border-gray-700">
+              <Check size={14} className="text-emerald-500" />
+              Category Filter is active ({masterCategory})
+            </div>
+          </div>
+          <div className="space-y-1 flex-1 min-w-[150px]">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</label>
+            <select
+              className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none"
+              value={masterStatus}
+              onChange={(e) => setMasterStatus(e.target.value)}
+            >
+              <option value="ALL">All Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={() => { setMasterCategory('ALL'); setMasterSubCategory('ALL'); setMasterStatus('ALL'); setMasterSearch(''); setMasterFreeOnly(false); }}
+              className="text-xs font-bold text-gray-400 hover:text-gray-600 dark:text-gray-400 px-3 py-2"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {filteredItems.length === 0 ? (
+          <div className="py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-center shadow-sm">
+            <Package size={32} className="mx-auto text-gray-200 mb-2" />
+            <p className="text-sm font-bold text-gray-400">No items match your filters</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-8">
+              {paginatedItems.filter(i => !i.isFree).length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">Regular Products</h4>
+                  {paginatedItems.filter(i => !i.isFree).map(renderProductCard)}
+                </div>
+              )}
+              {paginatedItems.filter(i => i.isFree).length > 0 && (
+                <div className="space-y-3 mt-4">
+                  <h4 className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest pl-2 flex items-center gap-1.5"><Gift size={14} /> Promotional Gifts</h4>
+                  {paginatedItems.filter(i => i.isFree).map(renderProductCard)}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block space-y-8">
+              {paginatedItems.filter(i => !i.isFree).length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-4">Regular Products</h4>
+                  {renderDesktopTable(paginatedItems.filter(i => !i.isFree))}
+                </div>
+              )}
+              {paginatedItems.filter(i => i.isFree).length > 0 && (
+                <div className="space-y-3 mt-8">
+                  <h4 className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest pl-4 flex items-center gap-1.5"><Gift size={14} /> Promotional Gifts</h4>
+                  {renderDesktopTable(paginatedItems.filter(i => i.isFree))}
+                </div>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 px-2 border-t border-gray-200 dark:border-gray-700 pt-6">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Showing {Math.min(filteredItems.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(filteredItems.length, currentPage * itemsPerPage)} of {filteredItems.length} Products
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
+                  >
+                    <ArrowLeft size={14} /> Previous
+                  </button>
+                  {(() => {
+                    let pages = [];
+                    let startPage = Math.max(1, currentPage - 2);
+                    let endPage = Math.min(totalPages, startPage + 4);
+                    if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+                    for (let i = startPage; i <= endPage; i++) {
+                      if (i > 0) {
+                        pages.push(
+                          <button
+                            key={i}
+                            onClick={() => { setCurrentPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === i ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'}`}
+                          >
+                            {i}
+                          </button>
+                        );
+                      }
+                    }
+                    return pages;
+                  })()}
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
+                  >
+                    Next <ArrowLeft size={14} className="rotate-180" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MasterSection;

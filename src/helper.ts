@@ -213,11 +213,18 @@ async function fetchData<T>(
     // Skip token for login and other auth endpoints that don't need token
     if (!isAuthEndpointWithoutToken) {
       const token = localStorage.getItem("token");
-      if (token) {
-        options.headers = {
-          ...options.headers,
-          Authorization: `Bearer ${token}`,
-        };
+      if (!token) {
+        // Don't fire the request tokenless — wait for refresh if one is in progress
+        if (isRefreshing && refreshPromise) {
+          const newToken = await refreshPromise;
+          options.headers = { ...options.headers, Authorization: `Bearer ${newToken}` };
+        } else {
+          // No token, no refresh in progress — redirect to login
+          clearAuthAndRedirect();
+          throw { status: 401, message: "No auth token. Please login again." } as FetchError;
+        }
+      } else {
+        options.headers = { ...options.headers, Authorization: `Bearer ${token}` };
       }
     }
 

@@ -1,0 +1,284 @@
+// @ts-nocheck
+import React from 'react';
+import { Grid, Package, Loader2, ArrowLeft } from 'lucide-react';
+
+const StoreStockSection = ({
+  loadingInventory,
+  warehouseStock,
+  warehouseSearch,
+  setWarehouseSearch,
+  warehouseCategory,
+  setWarehouseCategory,
+  categories,
+}) => {
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const itemsPerPage = 10;
+
+  const filteredStock = warehouseStock.filter(s => {
+    const matchesSearch = s.product.name.toLowerCase().includes(warehouseSearch.toLowerCase()) ||
+      (s.product.barcode && s.product.barcode.toLowerCase().includes(warehouseSearch.toLowerCase())) ||
+      (s.product.displayId && s.product.displayId.toLowerCase().includes(warehouseSearch.toLowerCase()));
+    
+    let matchesCategory = warehouseCategory === 'ALL' || s.product.category?.name === warehouseCategory;
+    
+    // Split filter logic
+    if (warehouseCategory === 'NO_STOCK') {
+      matchesCategory = s.quantity === 0;
+    } else if (warehouseCategory === 'LOW_STOCK') {
+      matchesCategory = s.quantity > 0 && s.quantity <= (s.product.minStockAlert || 0);
+    }
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  // Reset page on search or category change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [warehouseSearch, warehouseCategory]);
+
+  const totalPages = Math.ceil(filteredStock.length / itemsPerPage);
+  const paginatedStock = filteredStock.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const totalValuation = filteredStock.reduce((acc, s) => acc + (s.quantity * (s.product.landingPrice || s.product.purchasePrice || s.product.price || 0)), 0);
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {loadingInventory ? (
+        <div className="grid grid-cols-1 gap-2">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 shadow-sm animate-pulse flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-10 h-10 bg-gray-100 rounded-xl" />
+                <div className="space-y-2 flex-1">
+                  <div className="w-24 h-3 bg-gray-100 rounded-md" />
+                  <div className="w-12 h-2 bg-gray-50 dark:bg-gray-900/50 rounded-md" />
+                </div>
+              </div>
+              <div className="flex items-center gap-8">
+                <div className="w-12 h-8 bg-gray-50 dark:bg-gray-900/50 rounded-lg" />
+                <div className="w-16 h-8 bg-gray-50 dark:bg-gray-900/50 rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between group">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-emerald-600/20 group-hover:scale-110 transition-transform">
+                  <Grid size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">SOH Intelligence</h3>
+                  <div className="flex items-center gap-3 mt-1">
+                    <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">{warehouseStock.length} Active SKUs</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
+                      <Package size={10} className="text-blue-500" />
+                      <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest">
+                        {warehouseStock.reduce((acc, s) => acc + s.quantity, 0)} Total Units
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between group">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-emerald-600/20 group-hover:scale-110 transition-transform">
+                  <Package size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Store Stock Inventory</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Live Warehouse Valuation</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end bg-gray-50 dark:bg-gray-900/50 px-6 py-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-inner">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Valuation</span>
+                <span className="text-xl font-bold text-emerald-600 tracking-tighter">₹{totalValuation.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth">
+            <div className="flex items-center gap-1.5 py-1">
+              <span className="px-3 py-1.5 bg-gray-50 dark:bg-gray-900/50 text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-gray-200 dark:border-gray-700">Quick Filters</span>
+            </div>
+            <button
+              onClick={() => setWarehouseCategory('ALL')}
+              className={`flex-shrink-0 whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${warehouseCategory === 'ALL' ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
+                }`}
+            >
+              All Stock
+            </button>
+            <button
+              onClick={() => setWarehouseCategory('NO_STOCK')}
+              className={`flex-shrink-0 whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${warehouseCategory === 'NO_STOCK' ? 'bg-rose-600 border-rose-600 text-white shadow-lg shadow-rose-500/20' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-rose-600/60 hover:border-rose-200 hover:text-rose-600'
+                }`}
+            >
+              No Stock ({warehouseStock.filter(s => s.quantity === 0).length})
+            </button>
+            <button
+              onClick={() => setWarehouseCategory('LOW_STOCK')}
+              className={`flex-shrink-0 whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${warehouseCategory === 'LOW_STOCK' ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-amber-600/60 hover:border-amber-200 hover:text-amber-600'
+                }`}
+            >
+              Critical Low ({warehouseStock.filter(s => s.quantity > 0 && s.quantity <= (s.product.minStockAlert || 0)).length})
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setWarehouseCategory(cat.name)}
+                className={`flex-shrink-0 whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${warehouseCategory === cat.name ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
+                  }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-2">
+            {paginatedStock.map((stock) => {
+              const isNoStock = stock.quantity === 0;
+              const isLowStock = !isNoStock && stock.product.minStockAlert > 0 && stock.quantity <= stock.product.minStockAlert;
+              
+              return (
+                <div 
+                  key={stock.id} 
+                  className={`p-3 rounded-lg border bg-white dark:bg-gray-800 transition-all group flex items-center justify-between gap-4 shadow-sm hover:shadow-md ${
+                    isNoStock ? 'border-l-4 border-l-rose-500 border-gray-200 dark:border-gray-700' : 
+                    isLowStock ? 'border-l-4 border-l-amber-500 border-gray-200 dark:border-gray-700' :
+                    'border-gray-200 dark:border-gray-700 hover:border-emerald-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 bg-gray-50 dark:bg-gray-900/50 rounded-xl flex items-center justify-center text-gray-400 group-hover:text-emerald-600 transition-colors shrink-0">
+                      {stock.product.image ? (
+                        <img src={stock.product.image} className="w-full h-full object-cover rounded-xl" alt="" />
+                      ) : (
+                        <Grid size={18} />
+                      )}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-[11px] font-bold text-gray-900 dark:text-white uppercase tracking-tight truncate">{stock.product.name}</h4>
+                        {isNoStock ? (
+                          <span className="text-[7px] font-bold text-rose-600 border border-rose-200 px-1.5 py-0.5 rounded-md uppercase tracking-widest bg-rose-50">
+                            Out of Stock
+                          </span>
+                        ) : isLowStock && (
+                          <span className="text-[7px] font-bold text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-md uppercase tracking-widest bg-amber-50">
+                            Critical Low
+                          </span>
+                        )}
+                        <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-widest border ${
+                          stock.product.status === 'INACTIVE' ? 'bg-gray-50 dark:bg-gray-900/50 text-gray-400 border-gray-200 dark:border-gray-700' : 
+                          'bg-emerald-50 text-emerald-600 border-emerald-200'
+                        }`}>
+                          {stock.product.status || 'ACTIVE'}
+                        </span>
+                      </div>
+                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest leading-none">{stock.product.category?.name || 'General'}</span>
+                    </div>
+                  </div>
+
+                  <div className="hidden sm:flex items-center gap-6 shrink-0">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">Buy</span>
+                      <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400">₹{stock.product.landingPrice || 0}</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">Sale</span>
+                      <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400">₹{stock.product.price || 0}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="flex flex-col items-end border-l border-gray-200 dark:border-gray-700 pl-4">
+                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">In Vehicles</span>
+                      <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 tracking-tighter">
+                        {stock.product.vehicleStock || 0}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end min-w-[3.5rem] border-l border-gray-200 dark:border-gray-700 pl-4">
+                      <span className={`text-[7px] font-bold uppercase tracking-widest leading-none mb-1 ${
+                        isNoStock ? 'text-rose-600' : isLowStock ? 'text-amber-600' : 'text-gray-400'
+                      }`}>Store</span>
+                      <span className={`text-xs font-bold tracking-tighter ${
+                        isNoStock ? 'text-rose-600' : isLowStock ? 'text-amber-600' : 'text-gray-900 dark:text-white'
+                      }`}>
+                        {stock.quantity}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end min-w-[3.5rem] bg-gray-50 dark:bg-gray-900/50 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Total</span>
+                      <span className="text-sm font-bold text-blue-600 tracking-tighter">
+                        {stock.product.totalStock || stock.quantity}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end min-w-[4.5rem] border-l border-gray-200 dark:border-gray-700 pl-4">
+                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Valuation</span>
+                      <span className="text-xs font-bold text-emerald-600 tracking-tight">₹{(stock.quantity * (stock.product.landingPrice || 0)).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 px-2 border-t border-gray-200 dark:border-gray-700 pt-6">
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Showing {Math.min(filteredStock.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(filteredStock.length, currentPage * itemsPerPage)} of {filteredStock.length} Items
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); }}
+                  className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
+                >
+                  <ArrowLeft size={14} /> Previous
+                </button>
+                {(() => {
+                  let pages = [];
+                  let startPage = Math.max(1, currentPage - 2);
+                  let endPage = Math.min(totalPages, startPage + 4);
+                  if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+                  for (let i = startPage; i <= endPage; i++) {
+                    if (i > 0) {
+                      pages.push(
+                        <button
+                          key={i}
+                          onClick={() => { setCurrentPage(i); }}
+                          className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === i ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'}`}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                  }
+                  return pages;
+                })()}
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); }}
+                  className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
+                >
+                  Next <ArrowLeft size={14} className="rotate-180" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default StoreStockSection;

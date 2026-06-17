@@ -141,20 +141,18 @@ const AddDeliveryAgent = () => {
                     }
                   }}
                   disabled={step > currentStep && !completed}
-                  className={`flex items-center gap-2 ${
-                    step <= currentStep || completed
-                      ? "cursor-pointer"
-                      : "cursor-not-allowed opacity-50"
-                  }`}
+                  className={`flex items-center gap-2 ${step <= currentStep || completed
+                    ? "cursor-pointer"
+                    : "cursor-not-allowed opacity-50"
+                    }`}
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors
-                      ${
-                        step === currentStep
-                          ? "bg-green-600 text-white"
-                          : completed
-                            ? "bg-green-500 text-white"
-                            : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                      ${step === currentStep
+                        ? "bg-green-600 text-white"
+                        : completed
+                          ? "bg-green-500 text-white"
+                          : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
                       }
                     `}
                   >
@@ -162,13 +160,12 @@ const AddDeliveryAgent = () => {
                   </div>
 
                   <span
-                    className={`text-xs font-medium hidden sm:block ${
-                      step === currentStep
-                        ? "text-green-600"
-                        : completed
-                          ? "text-green-500"
-                          : "text-gray-500"
-                    }`}
+                    className={`text-xs font-medium hidden sm:block ${step === currentStep
+                      ? "text-green-600"
+                      : completed
+                        ? "text-green-500"
+                        : "text-gray-500"
+                      }`}
                   >
                     {step === 1 && "Personal Info"}
                     {step === 2 && "Address"}
@@ -181,11 +178,10 @@ const AddDeliveryAgent = () => {
                 {step < TOTAL_STEPS && (
                   <div className="flex-1 h-0.5 mx-2 bg-gray-200 dark:bg-gray-700">
                     <div
-                      className={`h-full transition-all ${
-                        step < currentStep || completed
-                          ? "bg-green-500 w-full"
-                          : "w-0"
-                      }`}
+                      className={`h-full transition-all ${step < currentStep || completed
+                        ? "bg-green-500 w-full"
+                        : "w-0"
+                        }`}
                     />
                   </div>
                 )}
@@ -284,6 +280,25 @@ const AddDeliveryAgent = () => {
                         dd-mm-yyyy
                       </p>
                     </div>
+                  )}
+                />
+
+                {/* Portal Type */}
+                <Controller
+                  name="role"
+                  control={control}
+                  defaultValue="DELIVERY_AGENT"
+                  render={({ field }) => (
+                    <SelectInput
+                      label="Portal Type"
+                      required
+                      value={field.value || "DELIVERY_AGENT"}
+                      onChange={field.onChange}
+                      error={errors.role?.message}
+                    >
+                      <option value="DELIVERY_AGENT">Delivery Agent Portal</option>
+                      <option value="VEHICLE_AGENT">VSMS Vehicle Agent Portal</option>
+                    </SelectInput>
                   )}
                 />
 

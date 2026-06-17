@@ -37,8 +37,18 @@ import {
   Calendar,
   Car,
   Star as StarIcon,
+  AlertTriangle,
+  ScanLine,
+  Receipt,
+  Database,
+  ArrowRightLeft,
+  Wrench,
+  HelpCircle,
+  Link2,      // ← ADD
+  BookOpen,   // ← ADD
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
+
 
 // Menu item types
 export interface MenuItem {
@@ -147,6 +157,12 @@ export const initialStateCheckers = {
     pathname.startsWith("/delivery-settings") ||
     pathname.startsWith("/delivery-types") ||
     pathname.startsWith("/scheduled-delivery"),
+  isVsmsOpen: (pathname: string) =>
+    pathname.startsWith("/vsms") && !pathname.startsWith("/vsms/assets"),
+  isAssetsOpen: (pathname: string) =>
+    pathname.startsWith("/vsms/assets"),
+  isProcurementOpen: (pathname: string) =>
+    pathname.startsWith("/procurement"),
 };
 
 // Menu configuration
@@ -201,10 +217,21 @@ export const sidebarConfig: MenuSection[] = [
     sectionTitle: "ORDERS & DELIVERY",
   },
   {
-    type: "link",
-    path: "/purchase-management",
+    type: "collapsible",
     label: "Purchase Management",
     icon: ShoppingCart,
+    stateKey: "isProcurementOpen",
+    activeCheck: (pathname: string) => pathname.startsWith("/procurement"),
+    subItems: [
+      { path: "/procurement?tab=vendors", label: "Vendors", icon: Users },
+      { path: "/procurement?tab=mapping", label: "Item Mapping", icon: Link2 },
+      { path: "/procurement?tab=po", label: "Purchase Orders", icon: ClipboardList },
+      { path: "/procurement?tab=grn", label: "Goods Receipt", icon: Truck },
+      { path: "/procurement?tab=purchases", label: "Purchases", icon: ShoppingCart },
+      { path: "/procurement?tab=ledger", label: "Stock Ledger", icon: BookOpen },
+      { path: "/procurement?tab=payments", label: "Payments", icon: CreditCard },
+      { path: "/procurement?tab=reports", label: "Reports", icon: BarChart3 },
+    ],
   },
   {
     type: "collapsible",
@@ -392,6 +419,46 @@ export const sidebarConfig: MenuSection[] = [
         icon: BarChart3,
       },
       { path: "/reports/pos-reports", label: "POS Reports", icon: BarChart3 },
+    ],
+  },
+
+  // VSMS Logistics Section
+  {
+    type: "section",
+    sectionTitle: "VSMS LOGISTICS",
+  },
+  {
+    type: "collapsible",
+    label: "VSMS Logistics",
+    icon: Truck,
+    stateKey: "isVsmsOpen",
+    subItems: [
+      { path: '/vsms/vehicles', label: 'Fleet Vehicles', icon: Truck },
+      { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
+      { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
+      { path: '/vsms/routes-coverage', label: 'Routes & Coverage', icon: MapPin },
+      { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
+      { path: '/vsms/cash-management', label: 'Cash Management', icon: Wallet },
+      { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },
+      { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
+    ],
+  },
+  {
+    type: "collapsible",
+    label: "Fleet Assets",
+    icon: Database,
+    stateKey: "isAssetsOpen",
+    subItems: [
+      { path: '/vsms/assets?tab=master', label: 'Assets Registry', icon: Package },
+      { path: '/vsms/assets?tab=categories', label: 'Asset Categories', icon: Tag },
+      { path: '/vsms/assets?tab=tracking', label: 'Asset Assignment', icon: Users },
+      { path: '/vsms/assets?tab=transfers', label: 'Asset Transfers', icon: ArrowRightLeft },
+      { path: '/vsms/assets?tab=vehicle-mapping', label: 'Vehicle Mapping', icon: Truck },
+      { path: '/vsms/assets?tab=issues', label: 'Asset Maintenance', icon: Wrench },
+      { path: '/vsms/assets?tab=depreciation', label: 'Depreciation', icon: Percent },
+      { path: '/vsms/assets?tab=audit', label: 'Asset Audit', icon: ClipboardList },
+      { path: '/vsms/assets?tab=requests', label: 'Asset Requests', icon: HelpCircle },
+      { path: '/vsms/assets?tab=reports', label: 'Asset Reports', icon: BarChart3 },
     ],
   },
 

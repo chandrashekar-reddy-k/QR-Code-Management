@@ -1,0 +1,504 @@
+// @ts-nocheck
+import React, { useState, useEffect } from 'react';
+import { Truck, Search, Barcode, ArrowDownCircle, Gift, Package, ArrowLeft, Loader2, History, Clock, Printer, FileDown, FileText, RefreshCw, Check, X } from 'lucide-react';
+import { StockItemRow } from './SharedComponents';
+import adminAPI from '.././services/adminService';
+import * as XLSX from 'xlsx';
+
+const ReturnSection = ({
+  groupedReturnItems,
+  itemsPerPage,
+  currentPage,
+  setCurrentPage,
+  stockQuantities,
+  handleQuantityChange,
+  selectedVehicleId,
+  setSelectedVehicleId,
+  vehicles,
+  returnSearch,
+  setReturnSearch,
+  setScannerTarget,
+  setShowScanner,
+  totalReturnInventoryValue,
+  handleStockAction,
+  isSubmitting,
+  hasInvalidReturnQuantities,
+  vehicleInventoryMap,
+  can
+}) => {
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const res = await adminAPI.getReturnHistory();
+      
+      const grouped = {};
+      res.data.forEach(item => {
+        const d = new Date(item.date);
+        const timeKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}-${Math.floor(d.getMinutes() / 5)}`; 
+        const key = `${item.vehicleId}_${timeKey}`;
+        if (!grouped[key]) {
+          grouped[key] = {
+            date: item.date,
+            vehicle: item.vehicle,
+            user: item.user,
+            items: []
+          };
+        }
+        grouped[key].items.push(item);
+      });
+      
+      setHistoryData(Object.values(grouped).sort((a,b) => new Date(b.date) - new Date(a.date)));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const exportHistoryToExcel = () => {
+    const data = historyData.map(session => ({
+      'Vehicle Number': session.vehicle?.vehicleNumber,
+      'Vehicle Type': session.vehicle?.vehicleName || 'Standard Load',
+      'Received By': session.user?.name || 'System Admin',
+      'Date': new Date(session.date).toLocaleDateString(),
+      'Time': new Date(session.date).toLocaleTimeString(),
+      'SKUs Returned': session.items.length,
+      'Total Qty': session.items.reduce((acc, item) => acc + item.quantity, 0),
+      'Timestamp': new Date(session.date).toISOString()
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ReturnHistory");
+    XLSX.writeFile(wb, `Return_History_${new Date().toLocaleDateString()}.xlsx`);
+  };
+
+  const exportReturnDetailToExcel = () => {
+    if (!selectedSession) return;
+    const data = selectedSession.items.map(item => ({
+      'Product Name': item.product?.name,
+      'Category': item.product?.category?.name || 'General',
+      'SKU Code': item.product?.skuCode,
+      'Rate': item.priceAtTime || item.product?.price,
+      'Quantity Returned': item.quantity,
+      'Unit': item.product?.unit?.name || 'pcs',
+      'Total Value': (item.quantity * (item.priceAtTime || item.product?.price)).toFixed(2),
+      'Vehicle': selectedSession.vehicle?.vehicleNumber,
+      'Date': new Date(selectedSession.date).toLocaleString()
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ReturnDetails");
+    XLSX.writeFile(wb, `Return_Details_${selectedSession.vehicle?.vehicleNumber}_${new Date(selectedSession.date).toLocaleDateString()}.xlsx`);
+  };
+
+  const allFiltered = [...groupedReturnItems.regular, ...groupedReturnItems.free];
+  const totalPages = Math.ceil(allFiltered.length / itemsPerPage);
+  const paginatedItemsFromAll = allFiltered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const regularItems = paginatedItemsFromAll.filter(i => !i.isFree);
+  const freeItems = paginatedItemsFromAll.filter(i => i.isFree);
+
+  const renderReturnTable = (itemsToRender, isFreeGroup = false) => (
+    <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+      <table className="w-full text-left border-collapse table-fixed">
+        <thead>
+          <tr className="bg-gray-50 dark:bg-gray-900/50/50 text-[9px] font-bold uppercase tracking-widest text-gray-400">
+            <th className="px-4 py-3 w-[25%]">Product Details</th>
+            <th className="px-3 py-3 text-center bg-amber-50/20 text-amber-600 w-[28%]">System Availability</th>
+            {can && can('INVENTORY', 'UPDATE', 'RETURN') && (
+              <th className="px-3 py-3 text-center bg-emerald-50/20 text-emerald-600 w-[15%]">Return Qty</th>
+            )}
+            <th className="pr-4 py-3 text-right w-[20%]">Net Value</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {itemsToRender.map((item) => {
+            const qty = parseFloat(stockQuantities[item.id]) || 0;
+            const price = parseFloat(item.price) || 0;
+            const currentStock = vehicleInventoryMap[item.id] || 0;
+            const displayAmount = qty * price;
+            return (
+              <tr key={`return-table-${item.id}`} className={`hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group ${isFreeGroup ? 'bg-emerald-50/10' : ''}`}>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border shadow-inner shrink-0 ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        item.isFree ? <Gift size={14} /> : <Package size={14} />
+                      )}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 leading-tight truncate">{item.name}</span>
+                      <span className="text-[8px] font-bold text-blue-500 uppercase tracking-tighter">Rate: ₹{price}</span>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 bg-amber-50/5">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] font-bold text-amber-700">{currentStock}</span>
+                      <span className="text-[7px] font-bold text-amber-600 uppercase tracking-widest leading-none mt-0.5">In Vehicle</span>
+                    </div>
+                    <div className="w-px h-4 bg-amber-100" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] font-bold text-emerald-600">{item.warehouseStock ?? item.stock ?? 0}</span>
+                      <span className="text-[7px] font-bold text-emerald-500 uppercase tracking-widest leading-none mt-0.5">In Store</span>
+                    </div>
+                    <div className="w-px h-4 bg-amber-100" />
+                    <div className="flex flex-col items-center bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded-lg border border-amber-100 shadow-sm">
+                      <span className="text-[10px] font-bold text-blue-600">
+                        {item.totalStock || ((item.warehouseStock || 0) + (item.vehicleStock || 0))}
+                      </span>
+                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">System</span>
+                    </div>
+                  </div>
+                </td>
+                {can && can('INVENTORY', 'UPDATE', 'RETURN') && (
+                  <td className="px-3 py-2.5 bg-emerald-50/5">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <input
+                        type="number"
+                        placeholder="0"
+                        min="0"
+                        onWheel={(e) => e.target.blur()}
+                        className={`w-16 bg-white dark:bg-gray-800 border ${qty > currentStock ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-200'} rounded-lg px-2 py-1 text-[11px] text-center font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-sm`}
+                        value={stockQuantities[item.id] || ''}
+                        onChange={(e) => {
+                          const val = Math.max(0, parseInt(e.target.value) || 0);
+                          handleQuantityChange(item.id, val);
+                        }}
+                      />
+                      {qty > currentStock && (
+                        <span className="text-[7px] font-bold text-rose-600 uppercase animate-pulse">Exceeds Fleet</span>
+                      )}
+                    </div>
+                  </td>
+                )}
+                <td className="pr-4 py-2.5 text-right">
+                  <span className={`text-[10px] font-bold ${qty > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>
+                    ₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500 print:p-0">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page { size: A4; margin: 10mm; }
+          body { background: white !important; -webkit-print-color-adjust: exact; }
+          body * { visibility: hidden; }
+          .print-section, .print-section * { visibility: visible; }
+          .print-section { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            border: none !important; 
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .no-print { display: none !important; }
+          .print-header { display: block !important; margin-bottom: 20px; border-bottom: 3px solid #059669; padding-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10pt; }
+          th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+          th { background-color: #f8fafc !important; color: #059669 !important; font-weight: 900 !important; text-transform: uppercase; letter-spacing: 0.05em; font-size: 8pt; }
+        }
+        .print-header { display: none; }
+      `}} />
+
+      {/* Render Return Stock Form in-page when active */}
+      {showReturnModal ? (
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden animate-in fade-in duration-300">
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700 no-print">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setShowReturnModal(false)} 
+                className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div className="text-left">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight leading-none uppercase">Vehicle Return Operations</h3>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Reclaim stock from fleet vehicles to warehouse</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input type="text" placeholder="Search products..." className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-3 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner" value={returnSearch} onChange={(e) => setReturnSearch(e.target.value)} />
+              </div>
+              <button onClick={() => { setScannerTarget('returnOps'); setShowScanner(true); }} className="p-3 bg-gray-50 dark:bg-gray-900/50 hover:bg-emerald-50 rounded-lg text-gray-400 hover:text-emerald-600 transition-all border border-transparent hover:border-emerald-100 shadow-sm">
+                <Barcode size={24} />
+              </button>
+            </div>
+          </div>
+
+          {/* Professional Header: Selected Source Vehicle and Total Value Side-by-Side */}
+          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between p-5 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center gap-4 flex-1">
+              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 shrink-0">
+                <Truck size={18} className="text-emerald-600" />
+                <span className="text-xs font-bold uppercase tracking-wider">Select Source Vehicle:</span>
+              </div>
+              <select 
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all min-w-[280px]" 
+                value={selectedVehicleId} 
+                onChange={(e) => setSelectedVehicleId(e.target.value)}
+              >
+                <option value="">Select a Vehicle</option>
+                {vehicles.map(v => (
+                  <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName})</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-6 self-end md:self-auto">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Return Value</span>
+                <span className="text-xl font-black text-emerald-600">₹{totalReturnInventoryValue.toFixed(2)}</span>
+              </div>
+              <button 
+                onClick={async () => {
+                  await handleStockAction('RETURN');
+                  setShowReturnModal(false);
+                  fetchHistory();
+                }} 
+                disabled={isSubmitting || !selectedVehicleId || totalReturnInventoryValue === 0 || hasInvalidReturnQuantities} 
+                className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-md disabled:opacity-40 flex items-center gap-2"
+              >
+                {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <ArrowDownCircle size={14} />}
+                <span>Complete Return</span>
+              </button>
+            </div>
+          </div>
+
+          {selectedVehicleId ? (
+            <>
+              {regularItems.length > 0 && (
+                <div className="space-y-4 text-left">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2">Regular Products</h4>
+                  {renderReturnTable(regularItems)}
+                </div>
+              )}
+              {freeItems.length > 0 && (
+                <div className="mt-8 text-left">
+                  <div className="flex items-center gap-2 mb-4 px-2">
+                    <Gift size={16} className="text-emerald-500" />
+                    <h4 className="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.2em]">Free / Promotional Items</h4>
+                  </div>
+                  {renderReturnTable(freeItems, true)}
+                </div>
+              )}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8 py-4 border-t border-gray-200 dark:border-gray-700">
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-emerald-600 disabled:opacity-30 transition-colors">Prev</button>
+                  <span className="text-[10px] font-bold text-emerald-600 px-4 py-2 bg-emerald-50 rounded-xl">Page {currentPage} of {totalPages}</span>
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-emerald-600 disabled:opacity-30 transition-colors">Next</button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-20 bg-gray-50 dark:bg-gray-900/50/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+              <Truck size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase">Select Vehicle</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Select a vehicle to start reclaiming stock</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Otherwise render default Return logs main page */
+        selectedSession ? (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300 print:p-0">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700 no-print">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setSelectedSession(null)} className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700"><ArrowLeft size={18} /></button>
+                <div className="text-left">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">Return Details</h4>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Inventory Reclaim Session</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={exportReturnDetailToExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><FileDown size={14} /> Excel</button>
+                <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"><Printer size={14} /> Print</button>
+              </div>
+            </div>
+
+            <div className="print-section">
+              <div className="print-header">
+                <div className="flex justify-between items-center text-left">
+                  <div>
+                    <h1 className="text-2xl font-bold text-emerald-600 uppercase">Stock Return Report</h1>
+                    <p className="text-xs font-bold text-gray-400 tracking-[0.2em] uppercase">VillageKart Sales Tracker</p>
+                  </div>
+                  <div className="text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date: {new Date(selectedSession.date).toLocaleString()}</div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-start gap-x-12 gap-y-6 mb-8 pb-6 border-b border-gray-200 dark:border-gray-700 text-left">
+                <div className="flex flex-col min-w-[150px]">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Truck size={10} className="text-emerald-400" /> Vehicle</span>
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">{selectedSession.vehicle?.vehicleNumber || 'Unknown'}</span>
+                </div>
+                <div className="flex flex-col min-w-[150px]">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Check size={10} className="text-emerald-400" /> Received By</span>
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{selectedSession.user?.name || 'System Admin'}</span>
+                </div>
+                <div className="flex flex-col min-w-[150px]">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><RefreshCw size={10} className="text-emerald-400" /> Timestamp</span>
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{new Date(selectedSession.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                </div>
+                <div className="flex flex-col min-w-[100px]">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Package size={10} className="text-emerald-400" /> Total Items</span>
+                  <span className="text-xs font-bold text-emerald-600">{selectedSession.items.length} Products</span>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-900/50/50">
+                      <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Product</th>
+                      <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Rate</th>
+                      <th className="px-4 py-3 text-[9px] font-bold text-emerald-600 uppercase tracking-widest text-right">Qty Returned</th>
+                      <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {selectedSession.items.map((item, i) => (
+                      <tr key={`det-ret-${i}`} className="hover:bg-emerald-50/10 transition-colors group">
+                        <td className="px-4 py-2.5">
+                          <div className="flex flex-col text-left">
+                            <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 group-hover:text-emerald-600 transition-colors uppercase tracking-tight leading-none mb-0.5">{item.product?.name}</span>
+                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{item.product?.category?.name || 'General'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-[10px] font-bold text-gray-400 text-center">₹{(item.priceAtTime || item.product?.price || 0).toFixed(2)}</td>
+                        <td className="px-4 py-2.5 text-right"><span className="text-[11px] font-bold text-emerald-600">-{item.quantity}</span><span className="text-[8px] font-bold text-gray-400 uppercase ml-1">{item.product?.unit?.name || 'pcs'}</span></td>
+                        <td className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-900 dark:text-white">₹{(item.quantity * (item.priceAtTime || item.product?.price || 0)).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-20 hidden print:block">
+                <div className="flex justify-between px-10 gap-20">
+                  <div className="text-center flex-1">
+                    <div className="border-t border-gray-400 pt-2">
+                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Authorized Signatory</p>
+                    </div>
+                  </div>
+                  <div className="text-center flex-1">
+                    <div className="border-t border-gray-400 pt-2">
+                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Driver / Agent Signature</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-8 text-center">
+                  <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">This is a system generated return manifest from VillageKart Sales Tracker.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="print-section">
+            <div className="print-header">
+              <div className="flex justify-between items-center text-left">
+                <div>
+                  <h1 className="text-2xl font-bold text-emerald-600 uppercase">Return History Logs</h1>
+                  <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">VillageKart Sales Tracker</p>
+                </div>
+                <div className="text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Export Date: {new Date().toLocaleString()}</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between no-print mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-widest"><History size={18} className="text-emerald-500" /> Return History</h4>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowReturnModal(true)} 
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm"
+                >
+                  <ArrowDownCircle size={14} /> Return Stock
+                </button>
+                <button onClick={exportHistoryToExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><FileDown size={14} /> Export Excel</button>
+                <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"><Printer size={14} /> Print History</button>
+              </div>
+            </div>
+
+            {isLoadingHistory ? (
+              <div className="flex items-center justify-center py-12"><Loader2 size={32} className="animate-spin text-emerald-500" /></div>
+            ) : historyData.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"><Clock size={32} className="mx-auto text-gray-300 mb-3" /><p className="text-sm font-bold text-gray-400">No return history found.</p></div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">Date & Time</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">Vehicle Number</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">Received By</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500 text-center">Total SKU's</th>
+                      <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500 text-right no-print">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {historyData.map((session, idx) => (
+                      <tr key={`ret-hist-tr-${idx}`} className="hover:bg-gray-50/40 dark:hover:bg-gray-700/20 transition-colors group">
+                        <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">
+                          {new Date(session.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                        </td>
+                        <td className="px-6 py-4 text-xs font-bold text-gray-900 dark:text-white uppercase">
+                          {session.vehicle?.vehicleNumber || 'Unspecified'}
+                        </td>
+                        <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">
+                          {session.user?.name || 'System Admin'}
+                        </td>
+                        <td className="px-6 py-4 text-xs font-bold text-center text-emerald-600">
+                          {session.items.length} Items
+                        </td>
+                        <td className="px-6 py-4 text-right no-print">
+                          <button 
+                            onClick={() => setSelectedSession(session)} 
+                            className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
+                          >
+                            View Manifest
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )
+      )}
+    </div>
+  );
+};
+
+export default ReturnSection;

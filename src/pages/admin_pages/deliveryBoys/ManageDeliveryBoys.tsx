@@ -8,9 +8,6 @@ import {
   Filter,
   RotateCcw,
   ChevronDown,
-  FileText,
-  Percent,
-  Calendar,
 } from "lucide-react";
 import {
   StatCard,
@@ -24,12 +21,10 @@ import {
   Badge,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
-import { formatDate } from "../../../utils/formatters";
 import {
   useGetDeliveryAgentsByWarehouse,
   useToggleDeliveryBoyStatus,
 } from "../../../hooks/deliveryBoy";
-import { getPartnerWarehouseId } from "../../../utils/partnerWarehouse";
 import { extractAgentsFromGetAllResponse } from "../../../utils/deliveryAgentsGetAll";
 
 // Define the actual API response type
@@ -74,6 +69,7 @@ interface ApiDeliveryAgentResponse {
   } | null;
   documents?: Array<Record<string, unknown>>;
   createdAt: string;
+  role?: string;
 }
 
 // UI display type (mapped from API response)
@@ -95,6 +91,7 @@ interface ApiDeliveryAgent {
   bonus?: number;
   documents?: string[];
   dateOfBirth?: string;
+  role?: string;
 }
 
 interface ApiStats {
@@ -150,6 +147,7 @@ const mapApiAgentToUiAgent = (
       )
       : [],
     dateOfBirth: apiAgent.dob || undefined,
+    role: apiAgent.role || "DELIVERY_AGENT",
   };
 };
 
@@ -161,11 +159,6 @@ const ManageDeliveryBoys = () => {
   const { mutate: toggleStatus, isPending } = useToggleDeliveryBoyStatus();
   const [togglingId, setTogglingId] = useState<string | number | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-
-  const warehouseId = useMemo(
-    () => getPartnerWarehouseId(),
-    [location.key, location.pathname],
-  );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -190,9 +183,9 @@ const ManageDeliveryBoys = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const { data, isLoading, isFetching, refetch, error } =
+  const { data, isLoading, refetch, error } =
     useGetDeliveryAgentsByWarehouse(
-      warehouseId,
+      undefined,
       dateFilter,
       debouncedSearchTerm,
       statusFilter
@@ -483,6 +476,21 @@ const ManageDeliveryBoys = () => {
         </div>
       ),
     },
+    {
+      key: "role",
+      label: "PORTAL TYPE",
+      sortable: true,
+      render: (agent: ApiDeliveryAgent) => (
+        <div className="text-center">
+          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${agent.role === "VEHICLE_AGENT"
+              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"
+              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+            }`}>
+            {agent.role === "VEHICLE_AGENT" ? "VSMS Vehicle" : "Delivery Agent"}
+          </span>
+        </div>
+      ),
+    },
     // {
     //   key: "bonus",
     //   label: "BONUS(%)",
@@ -675,53 +683,6 @@ const ManageDeliveryBoys = () => {
     filteredAndSortedAgents.length,
   );
 
-  if (!warehouseId) {
-    return (
-      <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
-        <div className="mb-3 mt-3">
-          <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
-            Delivery Agents
-          </h1>
-        </div>
-        <div className="mb-4">
-          <Breadcrumbs />
-        </div>
-        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 text-sm text-amber-900 dark:text-amber-200">
-          <p className="font-medium mb-2">Warehouse ID is required</p>
-          <p className="mb-2">
-            This list loads from{" "}
-            <code className="text-xs bg-white/50 dark:bg-black/20 px-1 rounded">
-              GET partner/deliveryagents/getall?warehouseId=…
-            </code>
-            . Set a warehouse id using one of:
-          </p>
-          <ul className="list-disc list-inside space-y-1 text-xs sm:text-sm">
-            <li>
-              Log out and log in again — we save warehouse id from the login API
-              into <code className="text-xs">localStorage.warehouseId</code>.
-            </li>
-            <li>
-              If the API does not send a warehouse field, we use your partner{" "}
-              <code>user.id</code> for <code>warehouseId</code> on
-              delivery-agent requests.
-            </li>
-          </ul>
-        </div>
-      </div>
-    );
-  }
-
-  // if (isLoading) {
-  //   return (
-  //     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
-  //       <div className="flex items-center justify-center h-64">
-  //         <p className="text-gray-600 dark:text-gray-400">
-  //           Loading delivery agents…
-  //         </p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">

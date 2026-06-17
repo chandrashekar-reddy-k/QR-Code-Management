@@ -405,15 +405,16 @@ const DeliveryAgentOnboarding = () => {
   const { data: editData, isLoading: isEditLoading } =
     useGetDeliveryBoyDetailsById(routeAgentId || "");
   const hasPrefilledRef = useRef(false);
-
-  useEffect(() => {
-    if (!isEditMode) {
-      sessionStorage.removeItem(STORAGE_KEY);
-      setUserId("");
-    }
-  }, [isEditMode]);
-
   const [step, setStep] = useState(1);
+  useEffect(() => {
+    if (isEditMode) return; // edit mode uses routeAgentId, not sessionStorage
+    if (step > 1 && !userId) {
+      const storedId = sessionStorage.getItem(STORAGE_KEY);
+      if (storedId) setUserId(storedId);
+    }
+  }, [isEditMode, step, userId]);
+
+
   const totalSteps = 5;
 
   const isStepCompleted = (stepNum: number) => stepNum < step;
@@ -438,6 +439,7 @@ const DeliveryAgentOnboarding = () => {
     gender: "",
     maritalStatus: "",
     nationality: "",
+    role: "DELIVERY_AGENT",
   });
 
   // Step 2 — same structure as deliveryBoys/AddDeliveryAgent
@@ -583,6 +585,7 @@ const DeliveryAgentOnboarding = () => {
       gender: String(source.gender || "MALE"),
       maritalStatus: String(source.maritalStatus || "SINGLE"),
       nationality: String(source.nationality || "Indian"),
+      role: String(source.role || "DELIVERY_AGENT"),
     });
 
     const addresses = source.addresses || [];
@@ -737,38 +740,52 @@ const DeliveryAgentOnboarding = () => {
     }
   }, [editData, isEditMode, routeAgentId]);
 
- const submitStep1 = useCallback(async () => {
-  const payload: Record<string, unknown> = {
-    step: 1,
-    fullName: s1.fullName.trim(),
-    surname: s1.surname.trim(),
-    fatherOrSpouseName: s1.fatherOrSpouseName.trim(),
-    phone: s1.phone.trim(),
-    email: s1.email.trim(),
-    dob: s1.dob,
-    gender: s1.gender,
-    maritalStatus: s1.maritalStatus,
-    nationality: s1.nationality.trim() || "Indian",
-  };
+  const submitStep1 = useCallback(async () => {
+    // 🔍 ADD THESE LOGS
+    // console.log("=== submitStep1 DEBUG ===");
+    // console.log("isEditMode:", isEditMode);
+    // console.log("routeAgentId:", routeAgentId);
+    // console.log("userId state:", userId);
+    // console.log("effectiveId:", effectiveId);
+    // console.log("sessionStorage value:", sessionStorage.getItem(STORAGE_KEY));
+    const payload: Record<string, unknown> = {
+      step: 1,
+      fullName: s1.fullName.trim(),
+      surname: s1.surname.trim(),
+      fatherOrSpouseName: s1.fatherOrSpouseName.trim(),
+      phone: s1.phone.trim(),
+      email: s1.email.trim(),
+      dob: s1.dob,
+      gender: s1.gender,
+      maritalStatus: s1.maritalStatus,
+      nationality: s1.nationality.trim() || "Indian",
+      role: s1.role || "DELIVERY_AGENT",
+    };
 
-  const alt = s1.alternatePhone.trim();
-  if (alt) payload.alternatePhone = alt;
+    const alt = s1.alternatePhone.trim();
+    if (alt) payload.alternatePhone = alt;
 
-  let res;
+    let res;
 
-  //  FIX: check userId also
-  if (isEditMode || userId) {
-    res = await updateMutateAsync(payload);   //  UPDATE
-  } else {
-    res = await createMutateAsync(payload);   //  CREATE (first time only)
+    //  FIX: check userId also
+    if (isEditMode) {
+      // Edit mode: always update existing agent
+      res = await updateMutateAsync(payload);
+    } else {
+      // Create mode: Step 1 always POSTs to create
+      // Clear any stale sessionStorage userId before creating
+      sessionStorage.removeItem(STORAGE_KEY);
+      setUserId("");
 
-    const uid = res?.userId;
-    if (uid) persistUserId(uid);
-  }
+      res = await createMutateAsync(payload);
 
-  const next = res?.nextStep ?? 2;
-  setStep(next);
-}, [s1, isEditMode, userId, createMutateAsync, updateMutateAsync]);
+      const uid = res?.userId ?? (res as any)?.data?.userId;
+      if (uid) persistUserId(uid);
+    }
+
+    const next = res?.nextStep ?? 2;
+    setStep(next);
+  }, [s1, isEditMode, createMutateAsync, updateMutateAsync]);
 
   const submitStep2 = useCallback(async () => {
     if (!requireUserId()) return;
@@ -815,14 +832,14 @@ const DeliveryAgentOnboarding = () => {
       const prevHasPDF = prev.some((f) => f.type === "application/pdf");
       const prevHasImage = prev.some((f) => f.type.startsWith("image/"));
 
-          //  LIMIT CHECK (THIS IS WHAT YOU ADD)
-    const totalCount =
-      prev.length + existingPaySlipUrls.length + list.length;
+      //  LIMIT CHECK (THIS IS WHAT YOU ADD)
+      const totalCount =
+        prev.length + existingPaySlipUrls.length + list.length;
 
-    if (totalCount > 6) {
-      toast.error("Max 6 pay slips allowed");
-      return prev;
-    }
+      if (totalCount > 6) {
+        toast.error("Max 6 pay slips allowed");
+        return prev;
+      }
 
       //  Prevent mixing
       if (
@@ -1487,7 +1504,7 @@ const DeliveryAgentOnboarding = () => {
     console.log("Current Step:", step);
 
     const isValid = await validateStep();
-    
+
 
     if (!isValid) {
       console.log("Validation Errors:", errors);
@@ -1725,6 +1742,17 @@ const DeliveryAgentOnboarding = () => {
                     setS1({ ...s1, nationality: e.target.value })
                   }
                   error={errors.nationality}
+                />
+                <SelectInput
+                  label="Portal Type"
+                  value={s1.role || "DELIVERY_AGENT"}
+                  onChange={(e) => setS1({ ...s1, role: e.target.value })}
+                  options={[
+                    { value: "DELIVERY_AGENT", label: "Delivery Agent Portal" },
+                    { value: "VEHICLE_AGENT", label: "VSMS Vehicle Agent Portal" },
+                  ]}
+                  required
+                  error={errors.role}
                 />
               </div>
             </FormSectionWithDots>
@@ -2267,7 +2295,7 @@ const DeliveryAgentOnboarding = () => {
 
                   <label
                     htmlFor="paySlips-upload-onboarding"
-                    className={`cursor-pointer block ${ paySlipFiles.length + existingPaySlipUrls.length >= 6 ? "opacity-50 pointer-events-none" : ""}`}
+                    className={`cursor-pointer block ${paySlipFiles.length + existingPaySlipUrls.length >= 6 ? "opacity-50 pointer-events-none" : ""}`}
                   >
                     <div className="flex flex-col items-center justify-center">
                       <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#00891D] rounded-full flex items-center justify-center mb-3">

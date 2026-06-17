@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import React, { lazy } from "react";
 
 // Lazy load all components for better performance
 const Login = lazy(() => import("../pages/public_pages/login_page/Login"));
@@ -131,6 +131,9 @@ const RequestSubCategory = lazy(
 // Stock
 const StockManagement = lazy(
   () => import("../pages/admin_pages/stock/StockManagement")
+);
+const AdminProcurement = lazy(
+  () => import("../pages/admin_pages/procurement/AdminProcurement")
 );
 
 // Sellers
@@ -504,10 +507,43 @@ const Notifications = lazy(
   () => import("../pages/admin_pages/notifications/Notifications")
 );
 
+// VSMS Pages
+const AdminVehicles = lazy(() => import("../pages/admin_pages/vsms/AdminVehicles"));
+const AdminExpenses = lazy(() => import("../pages/admin_pages/vsms/AdminExpenses"));
+const AdminDamage = lazy(() => import("../pages/admin_pages/vsms/AdminDamage"));
+const AdminRoutes = lazy(() => import("../pages/admin_pages/vsms/AdminRoutes"));
+const AdminInventory = lazy(() => import("../pages/admin_pages/vsms/AdminInventory"));
+const AdminCashManagement = lazy(() => import("../pages/admin_pages/vsms/AdminCashManagement"));
+const AdminPOS = lazy(() => import("../pages/admin_pages/vsms/AdminPOS"));
+const AdminSalesPage = lazy(() => import("../pages/admin_pages/vsms/AdminSales"));
+const AdminAssets = lazy(() => import("../pages/admin_pages/vsms/AdminAssets"));
+
+// VSMS Agent Portal Pages
+const AgentPortalLayout = lazy(() => import("../pages/admin_pages/vsms/agent/AgentPortalLayout"));
+const TodayPlan = lazy(() => import("../pages/admin_pages/vsms/agent/TodayPlan"));
+const SalesEntry = lazy(() => import("../pages/admin_pages/vsms/agent/SalesEntry"));
+const CashWallet = lazy(() => import("../pages/admin_pages/vsms/agent/CashWallet"));
+const AgentAttendance = lazy(() => import("../pages/admin_pages/vsms/agent/AgentAttendance"));
+const Reports = lazy(() => import("../pages/admin_pages/vsms/agent/Reports"));
+const SalesHistory = lazy(() => import("../pages/admin_pages/vsms/agent/SalesHistory"));
+const VgeTargets = lazy(() => import("../pages/admin_pages/vsms/agent/VgeTargets"));
+const AgentAssets = lazy(() => import("../pages/admin_pages/vsms/agent/AgentAssets"));
+const AgentActivityLogs = lazy(() => import("../pages/admin_pages/vsms/agent/AgentActivityLogs"));
+const ReportDamage = lazy(() => import("../pages/admin_pages/vsms/agent/ReportDamage"));
+const CreateExpense = lazy(() => import("../pages/admin_pages/vsms/agent/CreateExpense"));
+const Profile = lazy(() => import("../pages/admin_pages/vsms/agent/Profile"));
+const OrderDetail = lazy(() => import("../pages/admin_pages/vsms/agent/OrderDetail"));
+const AgentInventoryPage = lazy(() => import("../pages/admin_pages/vsms/agent/AgentInventory"));
+const PaymentScreen = lazy(() => import("../pages/admin_pages/vsms/agent/PaymentScreen"));
+const SuccessScreen = lazy(() => import("../pages/admin_pages/vsms/agent/SuccessScreen"));
+const OpeningCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/OpeningCashEntry"));
+const ClosingCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/ClosingCashEntry"));
+
+
 // Route configuration interface
 export interface RouteConfig {
   path: string;
-  component: React.LazyExoticComponent<React.ComponentType<any>>;
+  component: React.ComponentType<any> | React.LazyExoticComponent<React.ComponentType<any>>;
   requiresAuth?: boolean;
 }
 
@@ -767,6 +803,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/stock-management",
     component: StockManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/procurement",
+    component: AdminProcurement,
     requiresAuth: true,
   },
   // Sellers
@@ -1615,6 +1656,148 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vehicles",
     component: UnderDevelopment,
+    requiresAuth: true,
+  },
+  // VSMS Routes
+  {
+    path: "/vsms/vehicles",
+    component: AdminVehicles,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/assets",
+    component: AdminAssets,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/fuel-maintenance",
+    component: AdminExpenses,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/damages",
+    component: AdminDamage,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/routes-coverage",
+    component: AdminRoutes,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/stock-history",
+    component: AdminInventory,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/cash-management",
+    component: AdminCashManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/pos",
+    component: AdminPOS,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/sales",
+    component: AdminSalesPage,
+    requiresAuth: true,
+  },
+  // VSMS Agent Portal Routes
+  {
+    path: "/vsms/agent-portal",
+    component: AgentPortalLayout,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/today-plan",
+    component: () => <AgentPortalLayout><TodayPlan /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/sales",
+    component: () => <AgentPortalLayout><SalesEntry /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/wallet",
+    component: () => <AgentPortalLayout><CashWallet /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/attendance",
+    component: () => <AgentPortalLayout><AgentAttendance /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/reports",
+    component: () => <AgentPortalLayout><Reports /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/sales-history",
+    component: () => <AgentPortalLayout><SalesHistory /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/targets",
+    component: () => <AgentPortalLayout><VgeTargets /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/assets",
+    component: () => <AgentPortalLayout><AgentAssets /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/activity-logs",
+    component: () => <AgentPortalLayout><AgentActivityLogs /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/report-damage",
+    component: () => <AgentPortalLayout><ReportDamage /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/create-expense",
+    component: () => <AgentPortalLayout><CreateExpense /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/profile",
+    component: () => <AgentPortalLayout><Profile /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/order/:id",
+    component: () => <AgentPortalLayout><OrderDetail /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/inventory",
+    component: () => <AgentPortalLayout><AgentInventoryPage /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/payment",
+    component: PaymentScreen,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/success/:id",
+    component: SuccessScreen,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/opening-cash",
+    component: () => <AgentPortalLayout><OpeningCashEntry /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/closing-cash",
+    component: () => <AgentPortalLayout><ClosingCashEntry /></AgentPortalLayout>,
     requiresAuth: true,
   },
 ];

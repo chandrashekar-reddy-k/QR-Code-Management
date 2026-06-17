@@ -1,16 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import fetchData, { type FetchError } from "../helper";
 import { toast } from "react-toastify";
-import { getPartnerWarehouseId } from "../utils/partnerWarehouse";
 
-/** GET partner/deliveryagents/getall?warehouseId=… — tries hyphenated path on 404 */
+/** GET partner/deliveryagents/getall — lists all agents (no warehouse filter) */
 async function fetchDeliveryAgentsGetAll(
-  warehouseId: string,
   dateFilter?: string,
   search?: string,
   approvalStatus?: string
 ): Promise<unknown> {
-  const qs = new URLSearchParams({ warehouseId });
+  const qs = new URLSearchParams();
 
   if (dateFilter?.trim()) {
     qs.set("dateFilter", dateFilter.trim());
@@ -24,9 +22,10 @@ async function fetchDeliveryAgentsGetAll(
     qs.set("approvalStatus", approvalStatus.trim());
   }
 
+  const qStr = qs.toString();
   const paths = [
-    `partner/deliveryagents/getall?${qs.toString()}`,
-    `partner/delivery-agents/getall?${qs.toString()}`,
+    `partner/deliveryagents/getall${qStr ? `?${qStr}` : ""}`,
+    `partner/delivery-agents/getall${qStr ? `?${qStr}` : ""}`,
   ];
 
   let lastErr: unknown = null;
@@ -47,16 +46,11 @@ async function fetchDeliveryAgentsGetAll(
   throw lastErr;
 }
 
-/** page/limit ignored; list is warehouse-scoped. Warehouse id comes from login (localStorage). */
+/** Lists all delivery agents globally (no warehouse filter). */
 const useGetAllDeliveryBoyList = (_page: number, _limit: number) => {
-  const wid = getPartnerWarehouseId();
   return useQuery({
-    queryKey: ["deliveryBoy", wid],
-    queryFn: () => {
-      if (!wid?.trim()) throw new Error("warehouseId is required");
-      return fetchDeliveryAgentsGetAll(wid.trim());
-    },
-    enabled: !!wid?.trim(),
+    queryKey: ["deliveryBoy"],
+    queryFn: () => fetchDeliveryAgentsGetAll(),
   });
 };
 
@@ -64,8 +58,8 @@ const useGetDeliveryBoyDetailsById = (id: string) => {
   return useQuery({
     queryKey: ["deliveryBoyById", id],
     queryFn: () => fetchData(`partner/deliveryagents/get/${id}`, "GET"),
-
     enabled: !!id,
+    refetchOnWindowFocus: false,  // ← ADD THIS — stops the 401 on tab switch
   });
 };
 
@@ -143,30 +137,24 @@ const useDeleteDeliveryBoy = () => {
   });
 };
 
-/** page/limit kept for call-site compatibility; API returns full list for warehouse */
+/** Lists all delivery agents globally (no warehouse filter). */
 const useGetDeliveryBoyRequests = (_page: number, _limit: number) => {
-  const wid = getPartnerWarehouseId();
   return useQuery({
-    queryKey: ["deliveryBoyRequests", wid],
-    queryFn: () => {
-      if (!wid?.trim()) throw new Error("warehouseId is required");
-      return fetchDeliveryAgentsGetAll(wid.trim());
-    },
-    enabled: !!wid?.trim(),
+    queryKey: ["deliveryBoyRequests"],
+    queryFn: () => fetchDeliveryAgentsGetAll(),
   });
 };
 
 /**
- * GET partner/deliveryagents/getall?warehouseId=...
- * Used on /delivery-boys/manage (partner warehouse–scoped list).
+ * GET partner/deliveryagents/getall — lists all agents globally.
+ * warehouseId param is kept for call-site compatibility but is no longer sent to the API.
  */
 const useGetDeliveryAgentsByWarehouse = (
-  warehouseId: string | undefined,
+  _warehouseId: string | undefined,
   dateFilter?: string,
   search?: string,
   approvalStatus?: string
 ) => {
-  const id = warehouseId?.trim();
   const df = dateFilter?.trim() || "";
   const q = search?.trim() || "";
   const status = approvalStatus?.trim() || "";
@@ -174,22 +162,16 @@ const useGetDeliveryAgentsByWarehouse = (
   return useQuery({
     queryKey: [
       "deliveryAgentsByWarehouse",
-      id,
       df,
       q,
       status,
     ],
-    queryFn: () => {
-      if (!id) throw new Error("warehouseId is required");
-
-      return fetchDeliveryAgentsGetAll(
-        id,
+    queryFn: () =>
+      fetchDeliveryAgentsGetAll(
         df,
         q,
         status
-      );
-    },
-    enabled: !!id,
+      ),
   });
 };
 

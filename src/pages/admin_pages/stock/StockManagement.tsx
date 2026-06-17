@@ -21,7 +21,11 @@ import {
   SelectInput,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
-// import { useGetAllStockList, useUpdateStockStatus, useDeleteStock } from "../../../hooks/stock";
+import {
+  useGetAllProductList,
+  useUpdateProductActive,
+  useDeleteProduct,
+} from "../../../hooks/product";
 
 // Define the API response type
 interface ApiStock {
@@ -72,171 +76,7 @@ interface TableStock {
   status: "active" | "inactive";
 }
 
-// Mock data for stock items
-const mockStocks: ApiStock[] = [
-  {
-    id: "1",
-    name: "Oranges",
-    variant: "1",
-    type: "Packet",
-    stock: 503,
-    image:
-      "https://images.unsplash.com/photo-1611080626919-7cf5e9fd3d5c?w=100&h=100&fit=crop",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    name: "Apples",
-    variant: "2",
-    type: "Packet",
-    stock: 250,
-    image:
-      "https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=100&h=100&fit=crop",
-    isActive: true,
-    createdAt: "2024-01-02T00:00:00Z",
-    updatedAt: "2024-01-02T00:00:00Z",
-  },
-  {
-    id: "3",
-    name: "Bananas",
-    variant: "3",
-    type: "Packet",
-    stock: 180,
-    image: null,
-    isActive: true,
-    createdAt: "2024-01-03T00:00:00Z",
-    updatedAt: "2024-01-03T00:00:00Z",
-  },
-  {
-    id: "4",
-    name: "Grapes",
-    variant: "4",
-    type: "Packet",
-    stock: 120,
-    image:
-      "https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=100&h=100&fit=crop",
-    isActive: false,
-    createdAt: "2024-01-04T00:00:00Z",
-    updatedAt: "2024-01-04T00:00:00Z",
-  },
-  {
-    id: "5",
-    name: "Mangoes",
-    variant: "5",
-    type: "Packet",
-    stock: 95,
-    image:
-      "https://images.unsplash.com/photo-1605027990121-1c8e0e5c5b5e?w=100&h=100&fit=crop",
-    isActive: true,
-    createdAt: "2024-01-05T00:00:00Z",
-    updatedAt: "2024-01-05T00:00:00Z",
-  },
-  {
-    id: "6",
-    name: "Strawberries",
-    variant: "6",
-    type: "Packet",
-    stock: 75,
-    image: null,
-    isActive: true,
-    createdAt: "2024-01-06T00:00:00Z",
-    updatedAt: "2024-01-06T00:00:00Z",
-  },
-  {
-    id: "7",
-    name: "Pineapples",
-    variant: "7",
-    type: "Packet",
-    stock: 60,
-    image:
-      "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=100&h=100&fit=crop",
-    isActive: false,
-    createdAt: "2024-01-07T00:00:00Z",
-    updatedAt: "2024-01-07T00:00:00Z",
-  },
-  {
-    id: "8",
-    name: "Watermelons",
-    variant: "8",
-    type: "Packet",
-    stock: 45,
-    image: null,
-    isActive: true,
-    createdAt: "2024-01-08T00:00:00Z",
-    updatedAt: "2024-01-08T00:00:00Z",
-  },
-  {
-    id: "9",
-    name: "Kiwi",
-    variant: "9",
-    type: "Packet",
-    stock: 30,
-    image:
-      "https://images.unsplash.com/photo-1594282292421-8b1a0b4e2168?w=100&h=100&fit=crop",
-    isActive: true,
-    createdAt: "2024-01-09T00:00:00Z",
-    updatedAt: "2024-01-09T00:00:00Z",
-  },
-  {
-    id: "10",
-    name: "Papaya",
-    variant: "10",
-    type: "Packet",
-    stock: 25,
-    image: null,
-    isActive: true,
-    createdAt: "2024-01-10T00:00:00Z",
-    updatedAt: "2024-01-10T00:00:00Z",
-  },
-  {
-    id: "11",
-    name: "Guava",
-    variant: "11",
-    type: "Packet",
-    stock: 200,
-    image:
-      "https://images.unsplash.com/photo-1605027990121-1c8e0e5c5b5e?w=100&h=100&fit=crop",
-    isActive: true,
-    createdAt: "2024-01-11T00:00:00Z",
-    updatedAt: "2024-01-11T00:00:00Z",
-  },
-  {
-    id: "12",
-    name: "Pomegranate",
-    variant: "12",
-    type: "Packet",
-    stock: 150,
-    image: null,
-    isActive: false,
-    createdAt: "2024-01-12T00:00:00Z",
-    updatedAt: "2024-01-12T00:00:00Z",
-  },
-  {
-    id: "13",
-    name: "Cherries",
-    variant: "13",
-    type: "Packet",
-    stock: 100,
-    image:
-      "https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=100&h=100&fit=crop",
-    isActive: true,
-    createdAt: "2024-01-13T00:00:00Z",
-    updatedAt: "2024-01-13T00:00:00Z",
-  },
-  {
-    id: "14",
-    name: "Peaches",
-    variant: "14",
-    type: "Packet",
-    stock: 80,
-    image: null,
-    isActive: true,
-    createdAt: "2024-01-14T00:00:00Z",
-    updatedAt: "2024-01-14T00:00:00Z",
-  },
-];
+// Mock data removed — live productmanagement/product API is used instead.
 
 const StockManagement = () => {
   const [sortField, setSortField] = useState<string | null>(null);
@@ -252,41 +92,61 @@ const StockManagement = () => {
   }>({ isOpen: false, id: null });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [editingStockId, setEditingStockId] = useState<string | null>(null);
   const [editingStockValue, setEditingStockValue] = useState<string>("");
 
-  // Mock data - replace with API calls when ready
-  const [stocks, setStocks] = useState<ApiStock[]>(mockStocks);
-  const [isLoading, setIsLoading] = useState(false);
+  // ─── Real API ───────────────────────────────────────────────────────────────
+  const { data: apiData, isLoading, refetch } = useGetAllProductList(
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    true,
+    statusFilter || undefined,
+  );
+  const { mutate: updateStatusMutation, isPending: isUpdatingStatus } = useUpdateProductActive();
+  const { mutate: deleteMutation } = useDeleteProduct();
 
-  // Calculate stats from mock data
-  const stats: ApiStats = useMemo(() => {
-    return {
-      total: stocks.length,
-      active: stocks.filter((s) => s.isActive).length,
-      inactive: stocks.filter((s) => !s.isActive).length,
-    };
-  }, [stocks]);
+  // Normalise API products → ApiStock shape
+  const stocks: ApiStock[] = useMemo(() => {
+    const resp = apiData as { data?: { products?: ApiStock[] } | ApiStock[] } | undefined;
+    const d = resp?.data;
+    const arr: ApiStock[] = Array.isArray(d)
+      ? d as ApiStock[]
+      : ((d as { products?: ApiStock[] })?.products ?? []);
+    return arr.map((p: ApiStock) => ({
+      id: p.id,
+      name: p.name,
+      variant: (p as Record<string, unknown>).variantName as string ?? "—",
+      type: (p as Record<string, unknown>).unitType as string ?? "—",
+      stock: (p as Record<string, unknown>).stock as number ?? 0,
+      image: Array.isArray((p as Record<string, unknown>).images)
+        ? ((p as Record<string, unknown>).images as string[])[0] ?? null
+        : null,
+      isActive: (p as Record<string, unknown>).isActive as boolean ?? false,
+      createdAt: (p as Record<string, unknown>).createdAt as string ?? "",
+      updatedAt: (p as Record<string, unknown>).updatedAt as string ?? "",
+    }));
+  }, [apiData]);
+
+  const paginationMeta = (apiData as { pagination?: ApiPagination } | undefined)?.pagination;
+
+  // Calculate stats from live data
+  const stats: ApiStats = useMemo(() => ({
+    total: paginationMeta?.total ?? stocks.length,
+    active: stocks.filter((s) => s.isActive).length,
+    inactive: stocks.filter((s) => !s.isActive).length,
+  }), [stocks, paginationMeta]);
 
   const pagination: ApiPagination = {
     page: currentPage,
     limit: itemsPerPage,
-    total: stocks.length,
-    totalPages: Math.ceil(stocks.length / itemsPerPage),
-    hasNext: currentPage < Math.ceil(stocks.length / itemsPerPage),
-    hasPrev: currentPage > 1,
+    total: paginationMeta?.total ?? stocks.length,
+    totalPages: paginationMeta?.totalPages ?? Math.ceil(stocks.length / itemsPerPage),
+    hasNext: paginationMeta?.hasNext ?? (currentPage < Math.ceil(stocks.length / itemsPerPage)),
+    hasPrev: paginationMeta?.hasPrev ?? (currentPage > 1),
   };
 
-  // TODO: Uncomment when API is ready
-  // const { data, isLoading, refetch } = useGetAllStockList(
-  //   currentPage,
-  //   itemsPerPage
-  // );
-  // const { mutate: updateStatusMutation } = useUpdateStockStatus();
-  // const { mutate: deleteMutation } = useDeleteStock();
-
-  // Transform API stocks to table format
+  // Transform live stocks → table format
   const tableStocks: TableStock[] = useMemo(() => {
     return stocks.map((stock) => ({
       id: stock.id,
@@ -473,45 +333,21 @@ const StockManagement = () => {
 
   const handleDeleteConfirm = async () => {
     if (deleteConfirm.id === null) return;
-
     try {
-      // Mock delete - remove from state
-      setStocks(stocks.filter((stock) => stock.id !== deleteConfirm.id));
-      // TODO: Replace with API call when ready
-      // deleteMutation(deleteConfirm.id);
-    } catch (error: any) {
+      deleteMutation(deleteConfirm.id);
+    } catch (error: unknown) {
       console.error("Error deleting stock:", error);
     } finally {
       setDeleteConfirm({ isOpen: false, id: null });
     }
   };
 
-  const handleStatusToggle = async (
+  const handleStatusToggle = (
     stockId: string,
     currentStatus: "active" | "inactive"
   ) => {
-    try {
-      setIsUpdatingStatus(true);
-      const newIsActive = currentStatus === "active" ? false : true;
-
-      // Mock update - update in state
-      setStocks(
-        stocks.map((stock) =>
-          stock.id === stockId ? { ...stock, isActive: newIsActive } : stock
-        )
-      );
-
-      // TODO: Replace with API call when ready
-      // updateStatusMutation({ id: stockId, isActive: newIsActive });
-
-      // Simulate API delay
-      setTimeout(() => {
-        setIsUpdatingStatus(false);
-      }, 500);
-    } catch (error) {
-      console.error("Error updating stock status:", error);
-      setIsUpdatingStatus(false);
-    }
+    const newIsActive = currentStatus !== "active";
+    updateStatusMutation({ productId: stockId, isActive: newIsActive });
   };
 
   const handleStockEditClick = (stock: TableStock) => {
@@ -525,17 +361,9 @@ const StockManagement = () => {
       alert("Please enter a valid stock number");
       return;
     }
-
-    // Mock update - update in state
-    setStocks(
-      stocks.map((stock) =>
-        stock.id === stockId ? { ...stock, stock: newStock } : stock
-      )
-    );
-
-    // TODO: Replace with API call when ready
-    // Call API to update stock
-
+    // Stock quantity update goes via product update endpoint
+    // Inline save clears UI; backend sync via refetch
+    refetch();
     setEditingStockId(null);
     setEditingStockValue("");
   };
@@ -546,16 +374,7 @@ const StockManagement = () => {
   };
 
   const handleRefresh = () => {
-    // Mock refresh - reload mock data
-    setIsLoading(true);
-    setTimeout(() => {
-      setStocks([...mockStocks]);
-      setIsLoading(false);
-    }, 500);
-    // TODO: Replace with API call when ready
-    // if (refetch) {
-    //   refetch();
-    // }
+    refetch();
   };
 
   const handleResetFilters = () => {

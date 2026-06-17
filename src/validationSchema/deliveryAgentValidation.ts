@@ -1,6 +1,11 @@
 import * as yup from "yup";
 
 export const step1Schema = yup.object({
+  role: yup
+    .string()
+    .required("Portal Type is required")
+    .oneOf(["DELIVERY_AGENT", "VEHICLE_AGENT"], "Invalid Portal Type"),
+
   fullName: yup
     .string()
     .required("Full name is required")

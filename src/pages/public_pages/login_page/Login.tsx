@@ -28,7 +28,11 @@ const Login = () => {
         },
       });
     } else {
-      navigate("/");
+      if (user.role === "VEHICLE_AGENT") {
+        navigate("/vsms/agent-portal/today-plan");
+      } else {
+        navigate("/");
+      }
     }
   };
 

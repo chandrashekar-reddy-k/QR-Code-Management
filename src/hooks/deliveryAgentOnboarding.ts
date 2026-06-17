@@ -154,43 +154,18 @@ async function postOnboardingStep(
 }
 
 async function putOnboardingStep(
-  agentId: string,
-  payload: Record<string, unknown>
-): Promise<OnboardingStepResponse> {
-  const id = agentId.trim();
-  if (!id) throw new Error("agentId is required for update");
-  const paths = [
-    `partner/deliveryagents/update/${id}`,
-    `partner/delivery-agents/update/${id}`,
-  ];
-  let lastError: unknown = null;
-
-  for (let i = 0; i < paths.length; i++) {
-    const path = paths[i];
-    try {
-      const raw = await fetchData<unknown>(path, "PUT", payload);
-      const normalized = normalizeOnboardingResponse(raw);
-      if (normalized.status === false) {
-        const msg =
-          normalized.message ||
-          normalized.response ||
-          "Could not update this step. Please check your data.";
-        throw { status: 400, message: msg, data: raw } as FetchError;
-      }
-      return normalized;
-    } catch (e) {
-      lastError = e;
-      const fe = e as FetchError;
-      const is404 = fe?.status === 404;
-      const hasMore = i < paths.length - 1;
-      if (is404 && hasMore) continue;
-      throw e;
-    }
+  id: string,
+  payload: unknown
+): Promise<OnboardingStepResponse> {   // ← type the return
+  if (!id?.trim()) {
+    throw { status: 400, message: "Agent ID is missing. Cannot update." } as FetchError;
   }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("Onboarding update failed");
+  const raw = await fetchData<unknown>(
+    `partner/deliveryagents/update/${id}`,
+    "PUT",
+    payload
+  );
+  return normalizeOnboardingResponse(raw);  // ← normalize so onSuccess can read .message
 }
 
 /**
