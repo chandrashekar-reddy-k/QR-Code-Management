@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save,Search } from "lucide-react";
+import { Save, Search } from "lucide-react";
 import {
   FormSectionWithDots,
   PrimaryButton,
@@ -8,48 +8,31 @@ import {
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
+import { useGetProductCategoriesList } from "../../../hooks/product";
 
-// ---------------- MOCK DATA ----------------
-interface Category {
-  id: number;
+interface ApiCategory {
+  id: string;
   name: string;
-  image: string;
+  image: string | null;
 }
-
-const allCategories: Category[] = [
-  {
-    id: 1,
-    name: "Skincare",
-    image:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=facearea&w=64&h=64",
-  },
-  {
-    id: 2,
-    name: "Dairy Products",
-    image:
-      "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=facearea&w=64&h=64",
-  },
-  {
-    id: 3,
-    name: "Fruits",
-    image:
-      "https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2",
-  },
-];
 
 const RequestCategoryPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+
+  // Fetch active categories from the database using the partner-compatible product categories hook
+  const { data: categoryData, isLoading } = useGetProductCategoriesList();
+  const allCategories: ApiCategory[] = Array.isArray(categoryData?.data) ? categoryData.data : [];
 
   // ---------------- HANDLERS ----------------
-  const handleToggle = (id: number) => {
+  const handleToggle = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
     );
   };
 
-  const handleRemove = (id: number) => {
+  const handleRemove = (id: string) => {
     setSelected((prev) => prev.filter((sid) => sid !== id));
   };
 
@@ -64,8 +47,25 @@ const RequestCategoryPage = () => {
     // API call here
     alert("Request sent successfully!");
 
-    navigate("/categories");
+    navigate("/my-categories");
   };
+
+  // Filter categories by search input
+  const filteredCategories = allCategories.filter((cat) =>
+    cat.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
+        <div className="p-8 text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
+            Loading categories...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // ---------------- UI ----------------
   return (
@@ -75,7 +75,7 @@ const RequestCategoryPage = () => {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
           Request Category
         </h1>
-        <BackButton  />
+        <BackButton />
       </div>
 
       {/* BREADCRUMBS */}
@@ -107,11 +107,20 @@ const RequestCategoryPage = () => {
                     key={cat.id}
                     className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-300 dark:border-gray-600 text-xs"
                   >
-                    <img
-                      src={cat.image}
-                      alt={cat.name}
-                      className="w-5 h-5 rounded-full"
-                    />
+                    {cat.image ? (
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        className="w-5 h-5 rounded-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=facearea&w=64&h=64";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-[8px] text-gray-400">
+                        N/A
+                      </div>
+                    )}
                     {cat.name}
                     <button
                       type="button"
@@ -124,43 +133,58 @@ const RequestCategoryPage = () => {
                 );
               })}
             </div>
-  {/* SEARCH */}
-		  <div className="relative mb-3">
-			<Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-			<input
-			  type="text"
-			  placeholder="Search Category"
-			  value={search}
-			  onChange={(e) => setSearch(e.target.value)}
-			  className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm"
-			/>
-		  </div>
+            {/* SEARCH */}
+            <div className="relative mb-3">
+              <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search Category"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
 
             {/* CATEGORY LIST */}
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-              {allCategories.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center px-4 py-3 border-b last:border-b-0 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(cat.id)}
-                    onChange={() => handleToggle(cat.id)}
-                    className="mr-3 accent-green-600 cursor-pointer"
-                  />
-
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="w-8 h-8 rounded-full mr-3 object-cover"
-                  />
-
-                  <span className="text-sm text-gray-800 dark:text-gray-200">
-                    {cat.name}
-                  </span>
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+              {filteredCategories.length === 0 ? (
+                <div className="p-4 text-center text-sm text-gray-500 bg-white dark:bg-gray-800">
+                  No categories found
                 </div>
-              ))}
+              ) : (
+                filteredCategories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center px-4 py-3 border-b last:border-b-0 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(cat.id)}
+                      onChange={() => handleToggle(cat.id)}
+                      className="mr-3 accent-green-600 cursor-pointer"
+                    />
+
+                    {cat.image ? (
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        className="w-8 h-8 rounded-full mr-3 object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=facearea&w=64&h=64";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full mr-3 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] text-gray-400">
+                        N/A
+                      </div>
+                    )}
+
+                    <span className="text-sm text-gray-800 dark:text-gray-200">
+                      {cat.name}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </FormSectionWithDots>
 
@@ -169,7 +193,7 @@ const RequestCategoryPage = () => {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => navigate("/categories")}
+              onClick={() => navigate("/my-categories")}
               className="px-4 py-2 text-xs font-medium"
             >
               Cancel
