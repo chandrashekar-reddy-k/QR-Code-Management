@@ -1,4 +1,4 @@
-import { URL } from "./config";
+import { URL, URL_ADMIN } from "./config";
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 interface FetchError {
@@ -160,6 +160,7 @@ async function fetchData<T>(
   payload?: unknown,
   signalOrIsRetry?: AbortSignal | boolean,
   isRetry: boolean = false,
+  useAdmin: boolean = false,
 ): Promise<T> {
   let signal: AbortSignal | undefined;
   if (typeof signalOrIsRetry === "boolean") {
@@ -170,7 +171,7 @@ async function fetchData<T>(
 
   try {
     // Get and validate base URL
-    const baseUrl = URL;
+    const baseUrl = useAdmin ? URL_ADMIN : URL;
     if (!baseUrl) {
       const error = {
         status: 500,

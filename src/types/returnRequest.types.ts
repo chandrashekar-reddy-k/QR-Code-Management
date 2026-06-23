@@ -1,6 +1,6 @@
 export interface ReturnRequest {
-  id: number;
-  userId: number;
+  id: string | number;
+  userId: string | number;
   name: string;
   productName: string;
   quantity: number;
@@ -9,4 +9,5 @@ export interface ReturnRequest {
   reason: string;
   date: string;
 }
+
 

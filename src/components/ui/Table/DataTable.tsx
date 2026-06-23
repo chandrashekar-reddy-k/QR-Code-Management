@@ -3,7 +3,7 @@ import SortableTableHeader from './SortableTableHeader';
 
 export interface Column<T> {
   key: string;
-  label: string;
+  label: ReactNode;
   sortable?: boolean;
   render?: (item: T) => ReactNode;
   sortValue?: (item: T) => unknown;
