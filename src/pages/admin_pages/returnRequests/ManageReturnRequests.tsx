@@ -15,7 +15,10 @@ import {
   TrendingUp,
   Banknote,
 } from "lucide-react";
-// import { returnRequestsAPI } from '../../../lib/api';
+import {
+  useGetReturnRequests,
+  useDeleteReturnRequest
+} from "../../../hooks/returnRequest";
 import { ReturnRequest } from "../../../types";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
 import {
@@ -33,81 +36,11 @@ import {
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 
-// Mock data for return requests
-const mockReturnRequests: ReturnRequest[] = [
-  {
-    id: 1,
-    userId: 201,
-    name: "Rajesh Kumar",
-    productName: "iPhone 15 Pro",
-    quantity: 1,
-    total: 75000.0,
-    status: "pending",
-    reason: "Product damaged on delivery",
-    date: "2025-01-15T10:30:00Z",
-  },
-  {
-    id: 2,
-    userId: 202,
-    name: "Priya Sharma",
-    productName: "Cotton T-Shirt",
-    quantity: 2,
-    total: 1200.0,
-    status: "approved",
-    reason: "Wrong size received",
-    date: "2025-01-16T14:20:00Z",
-  },
-  {
-    id: 3,
-    userId: 203,
-    name: "Amit Patel",
-    productName: "Samsung Galaxy S24",
-    quantity: 1,
-    total: 65000.0,
-    status: "rejected",
-    reason: "Changed my mind",
-    date: "2025-01-17T09:15:00Z",
-  },
-  {
-    id: 4,
-    userId: 204,
-    name: "Sneha Reddy",
-    productName: "Denim Jeans",
-    quantity: 1,
-    total: 1800.0,
-    status: "completed",
-    reason: "Product quality not as expected",
-    date: "2025-01-18T16:45:00Z",
-  },
-  {
-    id: 5,
-    userId: 205,
-    name: "Vikram Singh",
-    productName: "Wireless Headphones",
-    quantity: 1,
-    total: 2500.0,
-    status: "pending",
-    reason: "Product not working properly",
-    date: "2025-01-19T11:30:00Z",
-  },
-  {
-    id: 6,
-    userId: 206,
-    name: "Anjali Mehta",
-    productName: "Running Shoes",
-    quantity: 1,
-    total: 3200.0,
-    status: "approved",
-    reason: "Wrong color received",
-    date: "2025-01-20T13:20:00Z",
-  },
-];
+
 
 const ManageReturnRequests = () => {
   const navigate = useNavigate();
-  const [returnRequests, setReturnRequests] =
-    useState<ReturnRequest[]>(mockReturnRequests);
-  const [loading, setLoading] = useState(false);
+  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(
     null
@@ -118,25 +51,22 @@ const ManageReturnRequests = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  // Fetch real data
+  const { data: apiData, isLoading: loading, refetch } = useGetReturnRequests({
+    page: 1,
+    limit: 1000,
+    search: "",
+    status: ""
+  });
+
   useEffect(() => {
-    fetchReturnRequests();
-  }, []);
+    if (apiData?.data?.data) {
+      setReturnRequests(apiData.data.data);
+    }
+  }, [apiData]);
 
   const fetchReturnRequests = async () => {
-    try {
-      setLoading(true);
-      // Using mock data for now - replace with API call when ready
-      // const data = await returnRequestsAPI.getAll();
-      // setReturnRequests(Array.isArray(data) ? data : data.returnRequests || []);
-      setReturnRequests(mockReturnRequests);
-      // Small delay so loading spinner is visible when using mock data
-      await new Promise((resolve) => setTimeout(resolve, 400));
-    } catch (error) {
-      console.error("Error fetching return requests:", error);
-      setReturnRequests(mockReturnRequests);
-    } finally {
-      setLoading(false);
-    }
+    refetch();
   };
 
   const handleSort = (field: string) => {
@@ -281,12 +211,13 @@ const ManageReturnRequests = () => {
     setCurrentPage(1);
   };
 
+  const deleteMutation = useDeleteReturnRequest();
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
-    id: number | null;
+    id: number | string | null;
   }>({ isOpen: false, id: null });
 
-  const handleDeleteClick = (id: number) => {
+  const handleDeleteClick = (id: number | string) => {
     setDeleteConfirm({ isOpen: true, id });
   };
 
@@ -294,19 +225,9 @@ const ManageReturnRequests = () => {
     if (deleteConfirm.id === null) return;
 
     try {
-      // Using mock data for now - replace with API call when ready
-      // await returnRequestsAPI.delete(deleteConfirm.id);
-      setReturnRequests(
-        returnRequests.filter((rr) => rr.id !== deleteConfirm.id)
-      );
-      alert("Return request deleted successfully!");
+      await deleteMutation.mutateAsync(deleteConfirm.id);
     } catch (error: unknown) {
       console.error("Error deleting return request:", error);
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Error deleting return request. Please try again.";
-      alert(message);
     } finally {
       setDeleteConfirm({ isOpen: false, id: null });
     }

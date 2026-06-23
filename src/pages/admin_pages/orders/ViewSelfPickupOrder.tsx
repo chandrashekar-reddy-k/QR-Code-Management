@@ -11,6 +11,8 @@ import {
   OrderStatus,
   type PartnerPutOrderStatus,
 } from "../../../hooks/order";
+import { OmsStepper } from "../../../components/oms/OmsStepper";
+import { AuditTrailViewer } from "../../../components/oms/AuditTrailViewer";
 
 // Interface for API Response
 interface ApiConsumer {
@@ -210,9 +212,13 @@ const ViewSelfPickupOrder = () => {
   const handleStatusUpdate = async () => {
     if (!selectedStatus || !id) return;
 
+    const apiOrder = data?.data as any;
+    const fulfillmentOrderId = apiOrder?.fulfillmentOrders?.[0]?.id;
+
     try {
       await updateStatusMutation.mutateAsync({
         status: selectedStatus as PartnerPutOrderStatus,
+        fulfillmentOrderId,
       });
       setStatusUpdateOpen(false);
       // The order will be refetched automatically via query invalidation
@@ -266,6 +272,9 @@ const ViewSelfPickupOrder = () => {
           <BackButton to="/self-pickup-orders" />
         </div>
       </div>
+
+      {/* OMS Stepper */}
+      <OmsStepper orderId={order.id} currentStatus={order.status} />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6">
@@ -555,6 +564,8 @@ const ViewSelfPickupOrder = () => {
             </div>
           </div>
 
+          {/* OMS Audit Trail */}
+          <AuditTrailViewer orderId={order.id} />
         </div>
 
         {/* Right Column */}
