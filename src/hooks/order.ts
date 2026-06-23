@@ -152,6 +152,7 @@ export type PartnerPutOrderStatus =
 
 interface UpdateOrderStatusPayload {
   status: PartnerPutOrderStatus;
+  fulfillmentOrderId?: string;
 }
 
 interface UpdateOrderStatusResponse {
@@ -165,11 +166,46 @@ const useUpdateOrderStatus = (orderId: string | undefined) => {
 
   return useMutation({
     mutationFn: (payload: UpdateOrderStatusPayload) => {
-      if (!orderId) {
-        throw new Error("Order ID is required");
+      const { status, fulfillmentOrderId } = payload;
+      if (!fulfillmentOrderId) {
+        if (!orderId) {
+          throw new Error("Order ID or Fulfillment Order ID is required");
+        }
+        const endpoint = `partner/orders/${orderId}/status`;
+        return fetchData<UpdateOrderStatusResponse>(endpoint, "PUT", { status });
       }
-      const endpoint = `partner/orders/${orderId}/status`;
-      return fetchData<UpdateOrderStatusResponse>(endpoint, "PUT", payload);
+
+      // Map partner status to OMS Core FulfillmentOrderStatus
+      let nextStatus: string | null = null;
+      if (status === OrderStatus.CONFIRMED) {
+        nextStatus = "ACCEPTED";
+      } else if (status === OrderStatus.PROCESSING) {
+        nextStatus = "PROCESSING";
+      } else if (status === OrderStatus.READY_FOR_PICKUP) {
+        nextStatus = "READY_FOR_PICKUP";
+      } else if (status === OrderStatus.PICKED_UP) {
+        nextStatus = "PICKED_UP";
+      } else if (status === OrderStatus.IN_TRANSIT) {
+        nextStatus = "OUT_FOR_DELIVERY";
+      } else if (status === OrderStatus.DELIVERED) {
+        nextStatus = "DELIVERED";
+      } else if (status === OrderStatus.CANCELLED) {
+        nextStatus = "CANCELLED";
+      }
+
+      if (!nextStatus) {
+        throw new Error(`Unsupported status transition: ${status}`);
+      }
+
+      const endpoint = `oms/fulfillment/${fulfillmentOrderId}/transition`;
+      return fetchData<UpdateOrderStatusResponse>(
+        endpoint,
+        "POST",
+        { nextStatus, reason: `Transitioned to ${status} via partner portal` },
+        undefined,
+        false,
+        true // useAdmin = true
+      );
     },
     onSuccess: (data: UpdateOrderStatusResponse) => {
       toast.success(data.response || "Order status updated successfully");
@@ -310,4 +346,61 @@ export {
   useAssignDeliveryAgent,
   useRequestDeliveryOtp,
   useVerifyDelivery,
+  useGetOrderTimeline,
+  useGetOrderAuditHistory,
+  useBulkTransitionOrders,
+  useGeneratePickingList,
 };
+
+const useGetOrderTimeline = (id: string | undefined) => {
+  return useQuery({
+    queryKey: ["orderTimeline", id],
+    queryFn: () => {
+      const endpoint = `oms/orders/${id}/timeline`;
+      return fetchData<any>(endpoint, "GET", undefined, undefined, false, true);
+    },
+    enabled: !!id,
+  });
+};
+
+const useGetOrderAuditHistory = (id: string | undefined) => {
+  return useQuery({
+    queryKey: ["orderAuditHistory", id],
+    queryFn: () => {
+      const endpoint = `oms/orders/${id}/audit-history`;
+      return fetchData<any>(endpoint, "GET", undefined, undefined, false, true);
+    },
+    enabled: !!id,
+  });
+};
+
+const useBulkTransitionOrders = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { orderIds: string[]; status: string }) => {
+      const endpoint = `partner/orders/bulk-transition`;
+      return fetchData<any>(endpoint, "POST", payload);
+    },
+    onSuccess: (data: any) => {
+      toast.success(data.response || "Bulk transitions executed successfully");
+      queryClient.invalidateQueries({ queryKey: ["deliveryOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["pickupOrders"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to execute bulk transitions");
+    }
+  });
+};
+
+const useGeneratePickingList = () => {
+  return useMutation({
+    mutationFn: (payload: { orderIds: string[] }) => {
+      const endpoint = `partner/orders/picking-list`;
+      return fetchData<any>(endpoint, "POST", payload);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to compile picking list");
+    }
+  });
+};
+

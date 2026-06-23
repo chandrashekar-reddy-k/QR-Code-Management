@@ -1,81 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// import { returnRequestsAPI } from '../../../lib/api';
+import { useGetReturnRequestById, useUpdateReturnRequestStatus } from "../../../hooks/returnRequest";
+import { toast } from "react-toastify";
 import { ReturnRequest } from '../../../types';
 import { FormSectionWithDots, SelectInput, Button, PrimaryButton } from '../../../components/ui';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import BackButton from '../../../components/common/BackButton';
 import { Save } from 'lucide-react';
 
-// Mock data for return requests (same as ManageReturnRequests)
-const mockReturnRequests: ReturnRequest[] = [
-  {
-    id: 1,
-    userId: 201,
-    name: 'Rajesh Kumar',
-    productName: 'iPhone 15 Pro',
-    quantity: 1,
-    total: 75000.00,
-    status: 'pending',
-    reason: 'Product damaged on delivery',
-    date: '2025-01-15T10:30:00Z',
-  },
-  {
-    id: 2,
-    userId: 202,
-    name: 'Priya Sharma',
-    productName: 'Cotton T-Shirt',
-    quantity: 2,
-    total: 1200.00,
-    status: 'approved',
-    reason: 'Wrong size received',
-    date: '2025-01-16T14:20:00Z',
-  },
-  {
-    id: 3,
-    userId: 203,
-    name: 'Amit Patel',
-    productName: 'Samsung Galaxy S24',
-    quantity: 1,
-    total: 65000.00,
-    status: 'rejected',
-    reason: 'Changed my mind',
-    date: '2025-01-17T09:15:00Z',
-  },
-  {
-    id: 4,
-    userId: 204,
-    name: 'Sneha Reddy',
-    productName: 'Denim Jeans',
-    quantity: 1,
-    total: 1800.00,
-    status: 'completed',
-    reason: 'Product quality not as expected',
-    date: '2025-01-18T16:45:00Z',
-  },
-  {
-    id: 5,
-    userId: 205,
-    name: 'Vikram Singh',
-    productName: 'Wireless Headphones',
-    quantity: 1,
-    total: 2500.00,
-    status: 'pending',
-    reason: 'Product not working properly',
-    date: '2025-01-19T11:30:00Z',
-  },
-  {
-    id: 6,
-    userId: 206,
-    name: 'Anjali Mehta',
-    productName: 'Running Shoes',
-    quantity: 1,
-    total: 3200.00,
-    status: 'approved',
-    reason: 'Wrong color received',
-    date: '2025-01-20T13:20:00Z',
-  },
-];
+
 
 const EditReturnRequest = () => {
   const { id } = useParams<{ id: string }>();
@@ -85,37 +18,28 @@ const EditReturnRequest = () => {
     reason: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
   const [request, setRequest] = useState<ReturnRequest | null>(null);
 
-  useEffect(() => {
-    const fetchRequest = async () => {
-      try {
-        setLoading(true);
-        const foundRequest = mockReturnRequests.find((r) => r.id === parseInt(id || '0'));
-        if (foundRequest) {
-          setRequest(foundRequest);
-          setFormData({
-            status: foundRequest.status,
-            reason: foundRequest.reason,
-          });
-        } else {
-          alert('Return request not found!');
-          navigate('/return-requests');
-        }
-      } catch (error) {
-        console.error('Error fetching return request:', error);
-        alert('Error fetching return request. Please try again.');
-        navigate('/return-requests');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: apiData, isLoading: loading, isError } = useGetReturnRequestById(id);
+  const updateStatusMutation = useUpdateReturnRequestStatus(id);
 
-    if (id) {
-      fetchRequest();
+  useEffect(() => {
+    if (apiData?.data) {
+      const foundRequest = apiData.data;
+      setRequest(foundRequest);
+      setFormData({
+        status: foundRequest.status,
+        reason: foundRequest.reason || '',
+      });
     }
-  }, [id, navigate]);
+  }, [apiData]);
+
+  useEffect(() => {
+    if (isError) {
+      toast.error("Return request not found!");
+      navigate('/return-requests');
+    }
+  }, [isError, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -141,15 +65,13 @@ const EditReturnRequest = () => {
     e.preventDefault();
     if (validate()) {
       try {
-        setLoading(true);
-        alert('Return request updated successfully!');
+        await updateStatusMutation.mutateAsync({
+          status: formData.status,
+          reason: formData.reason,
+        });
         navigate('/return-requests');
       } catch (error: unknown) {
         console.error('Error updating return request:', error);
-        const message = error instanceof Error ? error.message : 'Error updating return request. Please try again.';
-        alert(message);
-      } finally {
-        setLoading(false);
       }
     }
   };

@@ -11,7 +11,8 @@ import {
   ViewIconButton,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
-import { useGetPickupOrders } from "../../../hooks/order";
+import { useGetPickupOrders, useBulkTransitionOrders, useGeneratePickingList } from "../../../hooks/order";
+import { toast } from "react-toastify";
 
 // Interface for Self Pickup Order from API
 interface ApiSelfPickupOrder {
@@ -97,6 +98,105 @@ const SelfPickupOrders = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const { mutate: bulkTransition, isPending: isBulkTransitioning } = useBulkTransitionOrders();
+  const { mutateAsync: generatePickingList, isPending: isGeneratingPickingList } = useGeneratePickingList();
+
+  useEffect(() => {
+    setSelectedOrderIds([]);
+  }, [currentPage, itemsPerPage, selectedStatus, dateFilter]);
+
+  const handleBulkAction = (status: string) => {
+    if (selectedOrderIds.length === 0) return;
+    bulkTransition(
+      { orderIds: selectedOrderIds, status },
+      {
+        onSuccess: () => {
+          setSelectedOrderIds([]);
+        },
+      }
+    );
+  };
+
+  const handlePrintPickingList = async () => {
+    if (selectedOrderIds.length === 0) return;
+    try {
+      const res = await generatePickingList({ orderIds: selectedOrderIds });
+      const pickList = res?.data;
+      if (!pickList || !pickList.pickLines || pickList.pickLines.length === 0) {
+        toast.error("No picking lines found");
+        return;
+      }
+
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) return;
+
+      const linesHtml = pickList.pickLines.map((line: any) => `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px; font-weight: 600; color: #1e293b; text-align: left;">${line.productName}</td>
+          <td style="padding: 12px; font-family: monospace; color: #475569; text-align: left;">${line.sku}</td>
+          <td style="padding: 12px; font-family: monospace; color: #475569; text-align: left;">${line.barcode}</td>
+          <td style="padding: 12px; font-weight: 700; color: #4f46e5; text-align: center;">${line.quantity}</td>
+          <td style="padding: 12px; font-weight: 600; color: #10b981; text-align: right;">${line.shelfLocation}</td>
+        </tr>
+      `).join("");
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Consolidated Picking List - ${pickList.warehouseName}</title>
+            <style>
+              body { font-family: 'Outfit', 'Inter', sans-serif; padding: 40px; color: #334155; }
+              .header { display: flex; justify-content: space-between; border-bottom: 3px solid #4f46e5; padding-bottom: 20px; margin-bottom: 30px; }
+              .title { font-size: 24px; font-weight: 800; color: #1e1b4b; }
+              .meta { text-align: right; font-size: 13px; color: #64748b; line-height: 1.5; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background-color: #f8fafc; padding: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; }
+              @media print {
+                body { padding: 0; }
+                button { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div>
+                <div class="title">CONSOLIDATED PICKING LIST</div>
+                <div style="font-weight: 600; color: #4f46e5; margin-top: 4px;">${pickList.warehouseName}</div>
+              </div>
+              <div class="meta">
+                <div>Generated: ${new Date(pickList.generatedAt).toLocaleString('en-IN')}</div>
+                <div>Orders Selected: ${selectedOrderIds.length}</div>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="text-align: left;">Product Name</th>
+                  <th style="text-align: left;">SKU</th>
+                  <th style="text-align: left;">Barcode</th>
+                  <th style="text-align: center;">Pick Qty</th>
+                  <th style="text-align: right;">Shelf Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${linesHtml}
+              </tbody>
+            </table>
+            <div style="margin-top: 40px; text-align: center;">
+              <button onclick="window.print()" style="padding: 10px 20px; background-color: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px -1px rgb(79 70 229 / 0.1);">
+                Print Document
+              </button>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate picking list");
+    }
+  };
 
   // Use API hook with filters
   const { data, isLoading, refetch } = useGetPickupOrders({
@@ -344,6 +444,42 @@ const SelfPickupOrders = () => {
 
   // Table columns
   const columns = [
+    {
+      key: "select",
+      label: (
+        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={tableOrders.length > 0 && selectedOrderIds.length === tableOrders.length}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedOrderIds(tableOrders.map(o => o.id.toString()));
+              } else {
+                setSelectedOrderIds([]);
+              }
+            }}
+            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+          />
+        </div>
+      ),
+      sortable: false,
+      render: (order: TableOrder) => (
+        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={selectedOrderIds.includes(order.id.toString())}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedOrderIds(prev => [...prev, order.id.toString()]);
+              } else {
+                setSelectedOrderIds(prev => prev.filter(id => id !== order.id.toString()));
+              }
+            }}
+            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+          />
+        </div>
+      ),
+    },
     {
       key: "id",
       label: "Order id",
@@ -604,6 +740,56 @@ const SelfPickupOrders = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedOrderIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-700/50 rounded-2xl px-6 py-4 flex flex-wrap items-center gap-4 sm:gap-6 shadow-2xl z-50 max-w-[90%] sm:max-w-2xl text-white">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-xs font-bold font-mono">
+              {selectedOrderIds.length}
+            </span>
+            <span className="text-sm font-semibold text-slate-200">
+              orders selected
+            </span>
+          </div>
+
+          <div className="h-6 w-px bg-slate-700/50 hidden sm:block" />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => handleBulkAction("CONFIRMED")}
+              disabled={isBulkTransitioning}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            >
+              <span>{isBulkTransitioning ? "Accepting..." : "Bulk Accept"}</span>
+            </button>
+
+            <button
+              onClick={() => handleBulkAction("PROCESSING")}
+              disabled={isBulkTransitioning}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-50"
+            >
+              <span>{isBulkTransitioning ? "Packing..." : "Bulk Pack"}</span>
+            </button>
+
+            <button
+              onClick={handlePrintPickingList}
+              disabled={isGeneratingPickingList}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            >
+              <span>{isGeneratingPickingList ? "Compiling..." : "Print Picking Sheet"}</span>
+            </button>
+
+            <button
+              onClick={() => setSelectedOrderIds([])}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Clear selection"
+            >
+              <RotateCcw size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

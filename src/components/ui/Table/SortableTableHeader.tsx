@@ -2,7 +2,7 @@ import { SortIcon } from '..';
 
 export interface SortableTableHeaderProps {
   field: string;
-  label: string;
+  label: React.ReactNode;
   currentField: string | null;
   direction: 'asc' | 'desc' | null;
   onSort?: (field: string) => void;
