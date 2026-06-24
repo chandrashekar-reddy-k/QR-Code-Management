@@ -174,6 +174,12 @@ export const sidebarConfig: MenuSection[] = [
     label: "Dashboard",
     icon: Home,
   },
+  {
+    type: "link",
+    path: "/dashboard/warehouse",
+    label: "Warehouse Dashboard",
+    icon: Home,
+  },
 
   // PRODUCT & STOCK Section
   {
@@ -209,6 +215,12 @@ export const sidebarConfig: MenuSection[] = [
     label: "Stock Management",
     icon: Boxes,
     activeCheck: activeCheckers.isStockManagementActive,
+  },
+  {
+    type: "link",
+    path: "/inventory/atp",
+    label: "ATP Inventory",
+    icon: Boxes,
   },
 
   // ORDERS & DELIVERY Section
@@ -260,6 +272,11 @@ export const sidebarConfig: MenuSection[] = [
         path: "/self-pickup-orders",
         label: "Self Pickup Orders",
         icon: ShoppingBag,
+      },
+      {
+        path: "/escalations",
+        label: "Escalated Orders",
+        icon: AlertTriangle,
       },
     ],
   },

@@ -14,6 +14,15 @@ const CreatePassword = lazy(
 const Dashboard = lazy(
   () => import("../pages/admin_pages/dashboard/Dashboard")
 );
+const WarehouseDashboard = lazy(
+  () => import("../pages/admin_pages/dashboard/WarehouseDashboard")
+);
+const AtpInventory = lazy(
+  () => import("../pages/admin_pages/inventory/AtpInventory")
+);
+const EscalatedOrders = lazy(
+  () => import("../pages/admin_pages/escalations/EscalatedOrders")
+);
 
 // Categories
 const ManageCategories = lazy(
@@ -106,8 +115,6 @@ const HomeDeliveryOrders = lazy(
 const ViewHomeDeliveryOrder = lazy(
   () => import("../pages/admin_pages/orders/ViewHomeDeliveryOrder")
 );
-const Orders = lazy(() => import("../pages/admin_pages/orders/Orders"));
-const ViewOrder = lazy(() => import("../pages/admin_pages/orders/ViewOrder"));
 const SelfPickupOrders = lazy(
   () => import("../pages/admin_pages/orders/SelfPickupOrders")
 );
@@ -133,6 +140,7 @@ const StockManagement = lazy(
   () => import("../pages/admin_pages/stock/StockManagement")
 );
 const AdminProcurement = lazy(
+  // @ts-ignore
   () => import("../pages/admin_pages/procurement/AdminProcurement")
 );
 
@@ -395,20 +403,9 @@ const CreateTransfer = lazy(
 const Operations = lazy(
   () => import("../pages/admin_pages/inventory/Operations")
 );
-const Transfers = lazy(
-  () => import("../pages/admin_pages/inventory/Transfers")
-);
-const GRN = lazy(() => import("../pages/admin_pages/inventory/GRN"));
-const CycleCounts = lazy(
-  () => import("../pages/admin_pages/inventory/CycleCounts")
-);
 const Monitoring = lazy(
   () => import("../pages/admin_pages/inventory/Monitoring")
 );
-const Reservations = lazy(
-  () => import("../pages/admin_pages/inventory/Reservations")
-);
-const Alerts = lazy(() => import("../pages/admin_pages/inventory/Alerts"));
 const InventorySettings = lazy(
   () => import("../pages/admin_pages/inventory/InventorySettings")
 );
@@ -572,6 +569,21 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/",
     component: Dashboard,
+    requiresAuth: true,
+  },
+  {
+    path: "/dashboard/warehouse",
+    component: WarehouseDashboard,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/atp",
+    component: AtpInventory,
+    requiresAuth: true,
+  },
+  {
+    path: "/escalations",
+    component: EscalatedOrders,
     requiresAuth: true,
   },
   // Notifications
