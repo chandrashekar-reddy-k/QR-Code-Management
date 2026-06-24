@@ -1,0 +1,50 @@
+name: Frontend Partner Deploy
+
+on:
+  push:
+    branches:
+      - erp/dev
+
+concurrency:
+  group: frontend-partner-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Partner-Frontend Application
+        uses: appleboy/ssh-action@v1.2.0
+
+        with:
+          host: ${{ secrets.DEV_EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+
+          script: |
+            set -e
+
+            export PATH=$PATH:/home/ubuntu/n/bin
+
+            cd /opt/apps/villagkart/erp-dev/partner_web
+
+            echo "Updating repository..."
+
+            git checkout erp/dev
+            git pull origin erp/dev
+
+            echo "Installing dependencies..."
+
+            npm install
+
+            echo "Building frontend..."
+
+            npm run build
+
+            echo "Restarting frontend process..."
+
+            pm2 restart test_erp-partner-web
+            pm2 save
+
+            echo "Frontend deployment completed successfully."
