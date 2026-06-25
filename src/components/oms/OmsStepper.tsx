@@ -77,7 +77,7 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({ orderId, currentStatus }
   // Find when each milestone was first hit
   const getMilestoneTime = (milestone: Milestone) => {
     const matched = milestonesHistory.find((h: any) =>
-      h?.status && milestone.statuses.includes(h.status.toUpperCase())
+      h && typeof h.status === "string" && milestone.statuses.includes(h.status.toUpperCase())
     );
     if (!matched) return null;
     return new Date(matched.at).toLocaleString("en-IN", {
