@@ -17,6 +17,11 @@ const Dashboard = lazy(
 const WarehouseDashboard = lazy(
   () => import("../pages/admin_pages/dashboard/WarehouseDashboard")
 );
+// Pricing Engine
+const PriceBooks = lazy(() => import("../pages/admin_pages/pricing/PriceBooks"));
+const ProductPricing = lazy(() => import("../pages/admin_pages/pricing/ProductPricing"));
+const PriceComparison = lazy(() => import("../pages/admin_pages/pricing/PriceComparison"));
+
 const AtpInventory = lazy(
   () => import("../pages/admin_pages/inventory/AtpInventory")
 );
@@ -1810,6 +1815,21 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/agent-portal/closing-cash",
     component: () => <AgentPortalLayout><ClosingCashEntry /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/pricing/price-books",
+    component: PriceBooks,
+    requiresAuth: true,
+  },
+  {
+    path: "/pricing/product-pricing",
+    component: ProductPricing,
+    requiresAuth: true,
+  },
+  {
+    path: "/pricing/price-comparison",
+    component: PriceComparison,
     requiresAuth: true,
   },
 ];

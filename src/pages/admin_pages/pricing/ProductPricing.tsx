@@ -1,0 +1,485 @@
+import React, { useState, useEffect } from "react";
+import { Plus, Upload, History, DollarSign, Calendar, Search } from "lucide-react";
+import fetchData from "../../../helper";
+import { toast } from "react-toastify";
+
+interface PriceBook {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  price: number;
+  mrp: number;
+}
+
+interface ProductPriceHistoryItem {
+  id: string;
+  mrp: number;
+  sellingPrice: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  priceBook: {
+    name: string;
+    code: string;
+  };
+}
+
+export default function ProductPricing() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [priceBooks, setPriceBooks] = useState<PriceBook[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [priceHistory, setPriceHistory] = useState<ProductPriceHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Assign Price Form States
+  const [productId, setProductId] = useState("");
+  const [priceBookId, setPriceBookId] = useState("");
+  const [mrp, setMrp] = useState("");
+  const [sellingPrice, setSellingPrice] = useState("");
+  const [effectiveFrom, setEffectiveFrom] = useState("");
+  const [effectiveTo, setEffectiveTo] = useState("");
+
+  // Bulk Upload Form State
+  const [bulkJson, setBulkJson] = useState("");
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [productsRes, priceBooksRes] = await Promise.all([
+        fetchData<{ status: number; data: Product[] | { products: Product[] } }>("/productmanagement/product"),
+        fetchData<{ status: number; data: PriceBook[] }>("/pricing/price-books")
+      ]);
+
+      if (productsRes) {
+        // Handle different possible products list shapes
+        const prodData = Array.isArray(productsRes.data)
+          ? productsRes.data
+          : (productsRes.data as any)?.products || [];
+        setProducts(prodData);
+      }
+      if (priceBooksRes && priceBooksRes.data) {
+        setPriceBooks(priceBooksRes.data.filter(b => b.isActive !== false));
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load pricing configurations");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleOpenAssign = (product?: Product) => {
+    setProductId(product?.id || products[0]?.id || "");
+    setPriceBookId(priceBooks[0]?.id || "");
+    setMrp(product?.mrp?.toString() || "");
+    setSellingPrice(product?.price?.toString() || "");
+    setEffectiveFrom(new Date().toISOString().split("T")[0]);
+    setEffectiveTo("");
+    setAssignModalOpen(true);
+  };
+
+  const handleAssignPrice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productId || !priceBookId || mrp === undefined || sellingPrice === undefined) {
+      toast.warn("Product, Price Book, MRP, and Selling Price are required");
+      return;
+    }
+
+    try {
+      const payload = {
+        productId,
+        priceBookId,
+        mrp: Number(mrp),
+        sellingPrice: Number(sellingPrice),
+        effectiveFrom: effectiveFrom ? new Date(effectiveFrom).toISOString() : new Date().toISOString(),
+        effectiveTo: effectiveTo ? new Date(effectiveTo).toISOString() : null
+      };
+
+      const response = await fetchData<{ status: number; message: string }>("/pricing/product-prices", "POST", payload);
+      if (response && response.status === 200) {
+        toast.success(response.message || "Price assigned successfully");
+        setAssignModalOpen(false);
+        loadData();
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to assign price");
+    }
+  };
+
+  const handleOpenHistory = async (product: Product) => {
+    setSelectedProduct(product);
+    setHistoryModalOpen(true);
+    setHistoryLoading(true);
+    try {
+      const response = await fetchData<{ status: number; data: ProductPriceHistoryItem[] }>(`/pricing/prices/history?productId=${product.id}`);
+      if (response && response.data) {
+        setPriceHistory(response.data);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load price history");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleBulkUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const parsed = JSON.parse(bulkJson);
+      if (!Array.isArray(parsed)) {
+        toast.warn("Bulk data must be a JSON array of pricing rules");
+        return;
+      }
+
+      const response = await fetchData<{ status: number; message: string }>("/pricing/product-prices", "POST", { prices: parsed });
+      if (response && response.status === 200) {
+        toast.success(response.message || "Bulk prices uploaded successfully");
+        setBulkModalOpen(false);
+        setBulkJson("");
+        loadData();
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Invalid JSON or upload failed");
+    }
+  };
+
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  return (
+    <div className="p-6 bg-slate-50 dark:bg-slate-900 min-h-screen">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Product Pricing</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Configure channel-specific custom pricing and active periods</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setBulkModalOpen(true)}
+            className="flex items-center gap-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg font-semibold transition-all shadow-sm"
+          >
+            <Upload size={18} />
+            Bulk Upload JSON
+          </button>
+          <button
+            onClick={() => handleOpenAssign()}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm"
+          >
+            <Plus size={18} />
+            Assign Price
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-6 flex gap-4">
+        <div className="relative flex-1">
+          <Search size={18} className="absolute left-3 top-3 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search products by name or SKU..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-green-600"
+          />
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase">
+                <th className="px-6 py-4">Product</th>
+                <th className="px-6 py-4">SKU</th>
+                <th className="px-6 py-4">Default MRP</th>
+                <th className="px-6 py-4">Default Price</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm text-slate-700 dark:text-slate-300">
+              {filteredProducts.map((product) => (
+                <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-all">
+                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{product.name}</td>
+                  <td className="px-6 py-4 font-mono text-xs">{product.sku || "—"}</td>
+                  <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400">Rs {product.mrp || product.price || 0}</td>
+                  <td className="px-6 py-4 font-mono font-semibold text-green-600 dark:text-green-400">Rs {product.price || 0}</td>
+                  <td className="px-6 py-4 text-right flex justify-end gap-3">
+                    <button
+                      onClick={() => handleOpenHistory(product)}
+                      className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-all flex items-center gap-1.5 text-xs font-semibold"
+                      title="View Price History"
+                    >
+                      <History size={16} />
+                      History
+                    </button>
+                    <button
+                      onClick={() => handleOpenAssign(product)}
+                      className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-all flex items-center gap-1.5 text-xs font-semibold"
+                      title="Assign Price"
+                    >
+                      <DollarSign size={16} />
+                      Assign
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filteredProducts.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-center py-10 text-slate-400">
+                    No products found matching filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Assign Price Modal */}
+      {assignModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-100 dark:border-slate-700">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Assign Channel Price</h2>
+              <button onClick={() => setAssignModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleAssignPrice} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                  Select Product
+                </label>
+                <select
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-green-600"
+                  required
+                >
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.sku || "No SKU"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                  Select Price Book (Channel)
+                </label>
+                <select
+                  value={priceBookId}
+                  onChange={(e) => setPriceBookId(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-green-600"
+                  required
+                >
+                  {priceBooks.map((pb) => (
+                    <option key={pb.id} value={pb.id}>
+                      {pb.name} ({pb.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                    MRP (Rs)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={mrp}
+                    onChange={(e) => setMrp(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-600"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                    Selling Price (Rs)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={sellingPrice}
+                    onChange={(e) => setSellingPrice(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-600"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                    Effective From
+                  </label>
+                  <input
+                    type="date"
+                    value={effectiveFrom}
+                    onChange={(e) => setEffectiveFrom(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-600"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                    Effective To
+                  </label>
+                  <input
+                    type="date"
+                    value={effectiveTo}
+                    onChange={(e) => setEffectiveTo(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-600"
+                    placeholder="Indefinite"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setAssignModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold"
+                >
+                  Assign Price
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {bulkModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-100 dark:border-slate-700">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Bulk Upload Prices</h2>
+              <button onClick={() => setBulkModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleBulkUpload} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                  Paste JSON Array
+                </label>
+                <textarea
+                  rows={10}
+                  value={bulkJson}
+                  onChange={(e) => setBulkJson(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:border-green-600"
+                  placeholder={`[\n  {\n    "productId": "product-uuid-here",\n    "priceBookId": "price-book-uuid-here",\n    "mrp": 100,\n    "sellingPrice": 85,\n    "effectiveFrom": "2026-06-25T00:00:00Z"\n  }\n]`}
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setBulkModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold"
+                >
+                  Process Upload
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* History Modal */}
+      {historyModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full overflow-hidden border border-slate-100 dark:border-slate-700">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                Price History: {selectedProduct?.name}
+              </h2>
+              <button onClick={() => setHistoryModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[500px]">
+              {historyLoading ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+              ) : priceHistory.length === 0 ? (
+                <div className="text-center py-10 text-slate-400">
+                  No channel pricing history found for this product.
+                </div>
+              ) : (
+                <div className="relative border-l border-slate-200 dark:border-slate-700 ml-4 space-y-6">
+                  {priceHistory.map((item) => (
+                    <div key={item.id} className="relative pl-6">
+                      <div className="absolute -left-[6px] top-1.5 h-3 w-3 rounded-full bg-green-500 border border-white dark:border-slate-800"></div>
+                      <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg border border-slate-100 dark:border-slate-700/80">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded">
+                            {item.priceBook.name} ({item.priceBook.code})
+                          </span>
+                          <span className="text-xs text-slate-400 flex items-center gap-1">
+                            <Calendar size={12} />
+                            {new Date(item.effectiveFrom).toLocaleDateString()} to{" "}
+                            {item.effectiveTo ? new Date(item.effectiveTo).toLocaleDateString() : "Present"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 font-mono text-sm">
+                          <div>
+                            <span className="text-slate-400">MRP: </span>
+                            <span className="font-semibold">Rs {item.mrp}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Selling Price: </span>
+                            <span className="font-semibold text-green-600 dark:text-green-400">
+                              Rs {item.sellingPrice}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
