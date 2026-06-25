@@ -650,7 +650,7 @@ const ViewSelfPickupOrder = () => {
                       {/* Weight/Verifications */}
                       {order.status === OrderStatus.PROCESSING && packedItems[product.id] && (
                         <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-950/20 px-2 py-1 rounded-md border border-green-205 dark:border-green-900/30">
-                          {['KG', 'GRAM', 'LITRE'].some(u => product.variant.toUpperCase().includes(u)) ? (
+                          {['KG', 'GRAM', 'LITRE'].some(u => (product.variant ?? '').toUpperCase().includes(u)) ? (
                             <>
                               <input
                                 type="number"

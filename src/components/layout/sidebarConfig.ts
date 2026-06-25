@@ -222,6 +222,12 @@ export const sidebarConfig: MenuSection[] = [
     label: "ATP Inventory",
     icon: Boxes,
   },
+  {
+    type: "link",
+    path: "/inventory/monitoring/reservations",
+    label: "Reservations",
+    icon: Clock,
+  },
 
   // ORDERS & DELIVERY Section
   {

@@ -77,7 +77,7 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({ orderId, currentStatus }
   // Find when each milestone was first hit
   const getMilestoneTime = (milestone: Milestone) => {
     const matched = milestonesHistory.find((h: any) =>
-      milestone.statuses.includes(h.status.toUpperCase())
+      h?.status && milestone.statuses.includes(h.status.toUpperCase())
     );
     if (!matched) return null;
     return new Date(matched.at).toLocaleString("en-IN", {
@@ -86,13 +86,16 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({ orderId, currentStatus }
     });
   };
 
+  // Safely normalise currentStatus
+  const normalizedStatus = (currentStatus ?? "").toUpperCase();
+
   // Find index of current status in MILESTONES
-  const isCancelled = currentStatus.toUpperCase() === "CANCELLED" || currentStatus.toUpperCase() === "FAILED";
-  const isReturned = currentStatus.toUpperCase() === "RETURNED" || currentStatus.toUpperCase() === "RETURN_INITIATED";
+  const isCancelled = normalizedStatus === "CANCELLED" || normalizedStatus === "FAILED";
+  const isReturned = normalizedStatus === "RETURNED" || normalizedStatus === "RETURN_INITIATED";
 
   let activeIndex = -1;
   for (let i = 0; i < MILESTONES.length; i++) {
-    const isMatched = MILESTONES[i].statuses.includes(currentStatus.toUpperCase()) || getMilestoneTime(MILESTONES[i]) !== null;
+    const isMatched = MILESTONES[i].statuses.includes(normalizedStatus) || getMilestoneTime(MILESTONES[i]) !== null;
     if (isMatched) {
       activeIndex = i;
     }

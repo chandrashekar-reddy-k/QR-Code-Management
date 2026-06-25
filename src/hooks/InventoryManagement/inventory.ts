@@ -145,3 +145,27 @@ export const useCreateInventoryMovement = () => {
     }
   });
 };
+
+/* ---------- GET INVENTORY RESERVATIONS ---------- */
+export const useGetInventoryReservations = () => {
+  return useQuery({
+    queryKey: ["inventoryReservations"],
+    queryFn: () => fetchData("inventorymanagement/inventory/reservations", "GET"),
+  });
+};
+
+/* ---------- RELEASE INVENTORY RESERVATION ---------- */
+export const useReleaseInventoryReservation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => fetchData(`inventorymanagement/inventory/reservations/${id}/release`, "POST"),
+    onSuccess: (data: any) => {
+      toast.success(data.message || "Reservation released successfully");
+      queryClient.invalidateQueries({ queryKey: ["inventoryReservations"] });
+      queryClient.invalidateQueries({ queryKey: ["inventoryBalances"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to release reservation");
+    }
+  });
+};
