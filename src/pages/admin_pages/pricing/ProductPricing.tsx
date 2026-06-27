@@ -7,6 +7,15 @@ interface PriceBook {
   id: string;
   name: string;
   code: string;
+  isActive?: boolean;
+}
+
+interface Variant {
+  id: string;
+  variantName: string;
+  sku: string;
+  mrp: number;
+  sellingPrice: number;
 }
 
 interface Product {
@@ -15,6 +24,7 @@ interface Product {
   sku: string;
   price: number;
   mrp: number;
+  variants?: Variant[];
 }
 
 interface ProductPriceHistoryItem {
@@ -40,6 +50,7 @@ export default function ProductPricing() {
   const [priceHistory, setPriceHistory] = useState<ProductPriceHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVariantId, setSelectedVariantId] = useState("");
 
   // Assign Price Form States
   const [productId, setProductId] = useState("");
@@ -52,12 +63,15 @@ export default function ProductPricing() {
   // Bulk Upload Form State
   const [bulkJson, setBulkJson] = useState("");
 
+  const [comparisonData, setComparisonData] = useState<any[]>([]);
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [productsRes, priceBooksRes] = await Promise.all([
-        fetchData<{ status: number; data: Product[] | { products: Product[] } }>("/productmanagement/product"),
-        fetchData<{ status: number; data: PriceBook[] }>("/pricing/price-books")
+      const [productsRes, priceBooksRes, comparisonRes] = await Promise.all([
+        fetchData<{ status: number; data: Product[] | { products: Product[] } }>("/productmanagement/product?limit=1000"),
+        fetchData<{ status: number; data: PriceBook[] }>("/pricing/price-books"),
+        fetchData<{ status: number; data: any[] }>("/pricing/prices/comparison")
       ]);
 
       if (productsRes) {
@@ -70,6 +84,9 @@ export default function ProductPricing() {
       if (priceBooksRes && priceBooksRes.data) {
         setPriceBooks(priceBooksRes.data.filter(b => b.isActive !== false));
       }
+      if (comparisonRes && comparisonRes.data) {
+        setComparisonData(comparisonRes.data);
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to load pricing configurations");
     } finally {
@@ -81,11 +98,46 @@ export default function ProductPricing() {
     loadData();
   }, []);
 
+  const handleProductChange = (prodId: string) => {
+    setProductId(prodId);
+    const prod = products.find((p) => p.id === prodId);
+    if (prod) {
+      if (prod.variants && prod.variants.length > 0) {
+        const firstVar = prod.variants[0];
+        setSelectedVariantId(firstVar.id);
+        setMrp(firstVar.mrp?.toString() || "");
+        setSellingPrice(firstVar.sellingPrice?.toString() || "");
+      } else {
+        setSelectedVariantId("");
+        setMrp(prod.mrp?.toString() || "");
+        setSellingPrice(prod.price?.toString() || "");
+      }
+    }
+  };
+
   const handleOpenAssign = (product?: Product) => {
-    setProductId(product?.id || products[0]?.id || "");
+    const activeProduct = product || products[0];
+    const prodId = activeProduct?.id || "";
+    setProductId(prodId);
     setPriceBookId(priceBooks[0]?.id || "");
-    setMrp(product?.mrp?.toString() || "");
-    setSellingPrice(product?.price?.toString() || "");
+
+    if (activeProduct) {
+      if (activeProduct.variants && activeProduct.variants.length > 0) {
+        const firstVar = activeProduct.variants[0];
+        setSelectedVariantId(firstVar.id);
+        setMrp(firstVar.mrp?.toString() || "");
+        setSellingPrice(firstVar.sellingPrice?.toString() || "");
+      } else {
+        setSelectedVariantId("");
+        setMrp(activeProduct.mrp?.toString() || "");
+        setSellingPrice(activeProduct.price?.toString() || "");
+      }
+    } else {
+      setSelectedVariantId("");
+      setMrp("");
+      setSellingPrice("");
+    }
+
     setEffectiveFrom(new Date().toISOString().split("T")[0]);
     setEffectiveTo("");
     setAssignModalOpen(true);
@@ -101,6 +153,7 @@ export default function ProductPricing() {
     try {
       const payload = {
         productId,
+        productVariantId: selectedVariantId || null,
         priceBookId,
         mrp: Number(mrp),
         sellingPrice: Number(sellingPrice),
@@ -156,10 +209,10 @@ export default function ProductPricing() {
     }
   };
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredComparison = comparisonData.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.sku && item.sku.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -211,21 +264,45 @@ export default function ProductPricing() {
               <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase">
                 <th className="px-6 py-4">Product</th>
                 <th className="px-6 py-4">SKU</th>
-                <th className="px-6 py-4">Default MRP</th>
-                <th className="px-6 py-4">Default Price</th>
+                <th className="px-6 py-4">Base (MRP/Price)</th>
+                <th className="px-6 py-4">POS (MRP/Price)</th>
+                <th className="px-6 py-4">Online (MRP/Price)</th>
+                <th className="px-6 py-4">Quick (MRP/Price)</th>
+                <th className="px-6 py-4">Vehicle (MRP/Price)</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm text-slate-700 dark:text-slate-300">
-              {filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-all">
-                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{product.name}</td>
-                  <td className="px-6 py-4 font-mono text-xs">{product.sku || "—"}</td>
-                  <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400">Rs {product.mrp || product.price || 0}</td>
-                  <td className="px-6 py-4 font-mono font-semibold text-green-600 dark:text-green-400">Rs {product.price || 0}</td>
+              {filteredComparison.map((item) => (
+                <tr key={item.productVariantId ? `${item.id}-${item.productVariantId}` : item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-all">
+                  <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{item.name}</td>
+                  <td className="px-6 py-4 font-mono text-xs">{item.sku || "—"}</td>
+                  <td className="px-6 py-4 font-mono text-xs">
+                    <div>MRP: Rs {item.baseMrp || 0}</div>
+                    <div className="text-slate-500">Price: Rs {item.basePrice || 0}</div>
+                  </td>
+                  <td className="px-6 py-4 font-mono text-xs text-green-600 dark:text-green-400">
+                    <div>MRP: Rs {item.posMrp || 0}</div>
+                    <div className="font-semibold">Price: Rs {item.posPrice || 0}</div>
+                  </td>
+                  <td className="px-6 py-4 font-mono text-xs text-indigo-600 dark:text-indigo-400">
+                    <div>MRP: Rs {item.onlineMrp || 0}</div>
+                    <div className="font-semibold">Price: Rs {item.onlinePrice || 0}</div>
+                  </td>
+                  <td className="px-6 py-4 font-mono text-xs text-amber-600 dark:text-amber-400">
+                    <div>MRP: Rs {item.quickMrp || 0}</div>
+                    <div className="font-semibold">Price: Rs {item.quickPrice || 0}</div>
+                  </td>
+                  <td className="px-6 py-4 font-mono text-xs text-rose-600 dark:text-rose-400">
+                    <div>MRP: Rs {item.vehicleMrp || 0}</div>
+                    <div className="font-semibold">Price: Rs {item.vehiclePrice || 0}</div>
+                  </td>
                   <td className="px-6 py-4 text-right flex justify-end gap-3">
                     <button
-                      onClick={() => handleOpenHistory(product)}
+                      onClick={() => {
+                        const product = products.find(p => p.id === item.id);
+                        if (product) handleOpenHistory(product);
+                      }}
                       className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-all flex items-center gap-1.5 text-xs font-semibold"
                       title="View Price History"
                     >
@@ -233,7 +310,17 @@ export default function ProductPricing() {
                       History
                     </button>
                     <button
-                      onClick={() => handleOpenAssign(product)}
+                      onClick={() => {
+                        const product = products.find(p => p.id === item.id);
+                        if (product) {
+                          handleOpenAssign(product);
+                          if (item.productVariantId) {
+                            setSelectedVariantId(item.productVariantId);
+                            setMrp(item.baseMrp?.toString() || "");
+                            setSellingPrice(item.basePrice?.toString() || "");
+                          }
+                        }
+                      }}
                       className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-all flex items-center gap-1.5 text-xs font-semibold"
                       title="Assign Price"
                     >
@@ -243,9 +330,9 @@ export default function ProductPricing() {
                   </td>
                 </tr>
               ))}
-              {filteredProducts.length === 0 && (
+              {filteredComparison.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-slate-400">
+                  <td colSpan={8} className="text-center py-10 text-slate-400">
                     No products found matching filters.
                   </td>
                 </tr>
@@ -272,7 +359,7 @@ export default function ProductPricing() {
                 </label>
                 <select
                   value={productId}
-                  onChange={(e) => setProductId(e.target.value)}
+                  onChange={(e) => handleProductChange(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-green-600"
                   required
                 >
@@ -282,6 +369,61 @@ export default function ProductPricing() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {(() => {
+                const selectedProd = products.find((p) => p.id === productId);
+                if (selectedProd && selectedProd.variants && selectedProd.variants.length > 0) {
+                  return (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                        Select Variant
+                      </label>
+                      <select
+                        value={selectedVariantId}
+                        onChange={(e) => {
+                          const varId = e.target.value;
+                          setSelectedVariantId(varId);
+                          const variant = selectedProd.variants?.find((v) => v.id === varId);
+                          if (variant) {
+                            setMrp(variant.mrp?.toString() || "");
+                            setSellingPrice(variant.sellingPrice?.toString() || "");
+                          }
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-green-600"
+                      >
+                        {selectedProd.variants.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.variantName} ({v.sku || "No SKU"})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                  SKU Code
+                </label>
+                <input
+                  type="text"
+                  value={(() => {
+                    const selectedProd = products.find((p) => p.id === productId);
+                    if (selectedProd) {
+                      if (selectedProd.variants && selectedProd.variants.length > 0) {
+                        const variant = selectedProd.variants.find((v) => v.id === selectedVariantId);
+                        return variant?.sku || "No SKU";
+                      }
+                      return selectedProd.sku || "No SKU";
+                    }
+                    return "";
+                  })()}
+                  readOnly
+                  className="w-full bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-500 dark:text-slate-400 focus:outline-none cursor-not-allowed"
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">

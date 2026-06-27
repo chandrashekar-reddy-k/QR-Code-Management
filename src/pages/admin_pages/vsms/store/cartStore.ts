@@ -7,6 +7,7 @@ export const checkIsFree = (val: any): boolean => val === true || val === 'true'
 interface CartItem {
   id?: string;
   productId: string;
+  productVariantId?: string | null;
   name: string;
   price: number;
   mrp: number;
@@ -38,9 +39,9 @@ interface CartState {
   promotionDiscount: number;
   appliedPromotion: any | null;
   totalItems: number;
-  addItem: (product: any, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (product: any, quantity?: number, productVariantId?: string | null) => void;
+  removeItem: (productId: string, productVariantId?: string | null) => void;
+  updateQuantity: (productId: string, quantity: number, productVariantId?: string | null) => void;
   clearCart: () => void;
   setCustomerMobile: (mobile: string) => void;
   setCustomerName: (name: string) => void;
@@ -132,9 +133,9 @@ export const useCartStore = create<CartState>()(
       setCustomerMobile: (mobile) => set({ customerMobile: mobile }),
       setCustomerName: (name) => set({ customerName: name }),
 
-      addItem: (product, quantity = 1) => {
+      addItem: (product, quantity = 1, productVariantId = null) => {
         const items = get().items;
-        const existing = items.find((i) => i.productId === product.id || i.id === product.id);
+        const existing = items.find((i) => i.productId === product.id && i.productVariantId === productVariantId);
         const isFree = checkIsFree(product.isFree);
         
         const availableStock = product.stock || 0;
@@ -149,7 +150,7 @@ export const useCartStore = create<CartState>()(
         let newItems;
         if (existing) {
           newItems = items.map((i) =>
-            i.productId === product.id || i.id === product.id
+            i.productId === product.id && i.productVariantId === productVariantId
               ? { 
                   ...i, 
                   quantity: i.quantity + quantity, 
@@ -163,8 +164,9 @@ export const useCartStore = create<CartState>()(
           newItems = [
             ...items,
             {
-              id: product.id,
+              id: productVariantId || product.id,
               productId: product.id,
+              productVariantId: productVariantId,
               name: product.name,
               price: Number(product.price || 0),
               mrp: Number(product.mrp || 0),
@@ -181,44 +183,39 @@ export const useCartStore = create<CartState>()(
         set({ items: newItems, ...calculateTotals(newItems, get().deliverySlabs, get().appliedPromotion) });
       },
 
-      removeItem: (productId) => {
-        const newItems = get().items.filter((i) => i.productId !== productId && i.id !== productId);
+      removeItem: (productId, productVariantId = null) => {
+        const newItems = get().items.filter((i) => !(i.productId === productId && i.productVariantId === productVariantId));
         set({ items: newItems, ...calculateTotals(newItems, get().deliverySlabs, get().appliedPromotion) });
       },
 
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (productId, quantity, productVariantId = null) => {
         if (quantity <= 0) {
-          get().removeItem(productId);
+          get().removeItem(productId, productVariantId);
           return;
         }
 
         const items = get().items;
-        const item = items.find(i => i.productId === productId || i.id === productId);
-        if (item && quantity > (item.stock || 0)) {
-          quantity = item.stock;
-        }
-
         const newItems = items.map((i) =>
-          i.productId === productId || i.id === productId ? { ...i, quantity } : i
+          i.productId === productId && i.productVariantId === productVariantId ? { ...i, quantity } : i
         );
         set({ items: newItems, ...calculateTotals(newItems, get().deliverySlabs, get().appliedPromotion) });
       },
 
       clearCart: () => set({ 
         items: [], 
-        customerName: '', 
         customerMobile: '', 
-        totalAmount: 0, 
-        deliveryCharge: 0,
-        promotionDiscount: 0,
+        customerName: '', 
         appliedPromotion: null,
+        totalAmount: 0, 
+        deliveryCharge: 0, 
+        promotionDiscount: 0, 
         totalItems: 0 
       }),
       
       setCartOwner: (id) => set({ cartOwnerId: id }),
     }),
     {
-      name: 'agent-cart-storage',
+      name: 'vk-pos-cart-storage',
       partialize: (state) => ({
         items: state.items,
         customerMobile: state.customerMobile,
