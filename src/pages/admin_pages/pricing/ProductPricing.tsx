@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Upload, History, DollarSign, Calendar, Search } from "lucide-react";
+import { Plus, Upload, History, DollarSign, Calendar, Search, Edit3, Trash2 } from "lucide-react";
 import fetchData from "../../../helper";
 import { toast } from "react-toastify";
 
@@ -97,6 +97,38 @@ export default function ProductPricing() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleEditChannelPrice = (item: any, channelCode: string, currentMrp: number, currentPrice: number) => {
+    const pb = priceBooks.find(b => b.code === channelCode);
+    if (!pb) {
+      toast.error(`Price book for channel ${channelCode} not found`);
+      return;
+    }
+
+    setProductId(item.id);
+    setPriceBookId(pb.id);
+    setSelectedVariantId(item.productVariantId || "");
+    setMrp(currentMrp.toString());
+    setSellingPrice(currentPrice.toString());
+    setEffectiveFrom(new Date().toISOString().split("T")[0]);
+    setEffectiveTo("");
+    setAssignModalOpen(true);
+  };
+
+  const handleDeleteChannelPrice = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this channel pricing? It will fall back to base price.")) {
+      return;
+    }
+    try {
+      const response = await fetchData<{ status: number; message: string }>(`/pricing/product-prices/${id}`, "DELETE");
+      if (response && response.status === 200) {
+        toast.success(response.message || "Price deleted successfully");
+        loadData();
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete price");
+    }
+  };
 
   const handleProductChange = (prodId: string) => {
     setProductId(prodId);
@@ -281,21 +313,101 @@ export default function ProductPricing() {
                     <div>MRP: Rs {item.baseMrp || 0}</div>
                     <div className="text-slate-500">Price: Rs {item.basePrice || 0}</div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs text-green-600 dark:text-green-400">
-                    <div>MRP: Rs {item.posMrp || 0}</div>
-                    <div className="font-semibold">Price: Rs {item.posPrice || 0}</div>
+                  <td className="px-6 py-4 font-mono text-xs text-green-600 dark:text-green-400 group relative">
+                    <div className="flex flex-col pr-8">
+                      <div>MRP: Rs {item.posMrp || 0}</div>
+                      <div className="font-semibold">Price: Rs {item.posPrice || 0}</div>
+                    </div>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
+                      <button
+                        onClick={() => handleEditChannelPrice(item, 'POS', item.posMrp, item.posPrice)}
+                        className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 p-0.5"
+                        title="Edit POS Price"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      {item.posIsCustom && (
+                        <button
+                          onClick={() => handleDeleteChannelPrice(item.posCustomId)}
+                          className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
+                          title="Reset to Catalog Base Price"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs text-indigo-600 dark:text-indigo-400">
-                    <div>MRP: Rs {item.onlineMrp || 0}</div>
-                    <div className="font-semibold">Price: Rs {item.onlinePrice || 0}</div>
+                  <td className="px-6 py-4 font-mono text-xs text-indigo-600 dark:text-indigo-400 group relative">
+                    <div className="flex flex-col pr-8">
+                      <div>MRP: Rs {item.onlineMrp || 0}</div>
+                      <div className="font-semibold">Price: Rs {item.onlinePrice || 0}</div>
+                    </div>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
+                      <button
+                        onClick={() => handleEditChannelPrice(item, 'ONLINE', item.onlineMrp, item.onlinePrice)}
+                        className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-0.5"
+                        title="Edit Online Price"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      {item.onlineIsCustom && (
+                        <button
+                          onClick={() => handleDeleteChannelPrice(item.onlineCustomId)}
+                          className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
+                          title="Reset to Catalog Base Price"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs text-amber-600 dark:text-amber-400">
-                    <div>MRP: Rs {item.quickMrp || 0}</div>
-                    <div className="font-semibold">Price: Rs {item.quickPrice || 0}</div>
+                  <td className="px-6 py-4 font-mono text-xs text-amber-600 dark:text-amber-400 group relative">
+                    <div className="flex flex-col pr-8">
+                      <div>MRP: Rs {item.quickMrp || 0}</div>
+                      <div className="font-semibold">Price: Rs {item.quickPrice || 0}</div>
+                    </div>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
+                      <button
+                        onClick={() => handleEditChannelPrice(item, 'QUICK', item.quickMrp, item.quickPrice)}
+                        className="text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 p-0.5"
+                        title="Edit Quick Price"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      {item.quickIsCustom && (
+                        <button
+                          onClick={() => handleDeleteChannelPrice(item.quickCustomId)}
+                          className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
+                          title="Reset to Catalog Base Price"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs text-rose-600 dark:text-rose-400">
-                    <div>MRP: Rs {item.vehicleMrp || 0}</div>
-                    <div className="font-semibold">Price: Rs {item.vehiclePrice || 0}</div>
+                  <td className="px-6 py-4 font-mono text-xs text-rose-600 dark:text-rose-400 group relative">
+                    <div className="flex flex-col pr-8">
+                      <div>MRP: Rs {item.vehicleMrp || 0}</div>
+                      <div className="font-semibold">Price: Rs {item.vehiclePrice || 0}</div>
+                    </div>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
+                      <button
+                        onClick={() => handleEditChannelPrice(item, 'VEHICLE', item.vehicleMrp, item.vehiclePrice)}
+                        className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
+                        title="Edit Vehicle Price"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      {item.vehicleIsCustom && (
+                        <button
+                          onClick={() => handleDeleteChannelPrice(item.vehicleCustomId)}
+                          className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
+                          title="Reset to Catalog Base Price"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right flex justify-end gap-3">
                     <button
