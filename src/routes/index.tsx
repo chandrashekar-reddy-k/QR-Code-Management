@@ -1,5 +1,7 @@
 import React, { lazy } from "react";
 
+const ShopkeeperERP = lazy(() => import("../pages/ShopkeeperERP"));
+
 // Lazy load all components for better performance
 const Login = lazy(() => import("../pages/public_pages/login_page/Login"));
 const UnderDevelopment = lazy(
@@ -570,6 +572,12 @@ export const publicRoutes: RouteConfig[] = [
 
 // Protected routes (authentication required)
 export const protectedRoutes: RouteConfig[] = [
+  // Shopkeeper ERP
+  {
+    path: "/shopkeeper",
+    component: ShopkeeperERP,
+    requiresAuth: true,
+  },
   // Dashboard
   {
     path: "/",

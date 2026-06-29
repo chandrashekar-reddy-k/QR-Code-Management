@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Phone, MapPin, ChevronDown, Search } from "lucide-react";
+import api from "../../../api/axios";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
@@ -173,6 +174,37 @@ const ViewHomeDeliveryOrder = () => {
   const [packedItems, setPackedItems] = useState<Record<string, boolean>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [shopkeepers, setShopkeepers] = useState<any[]>([]);
+  const [selectedShopkeeperId, setSelectedShopkeeperId] = useState<string>("");
+  const [isAllocatingShopkeeper, setIsAllocatingShopkeeper] = useState(false);
+
+  useEffect(() => {
+    const fetchShopkeepers = async () => {
+      try {
+        const res = await api.get("/shopkeepers");
+        setShopkeepers(res.data);
+      } catch (err) {
+        console.error("Failed to fetch shopkeepers", err);
+      }
+    };
+    fetchShopkeepers();
+  }, []);
+
+  const handleAllocateShopkeeper = async () => {
+    if (!selectedShopkeeperId) return;
+    setIsAllocatingShopkeeper(true);
+    try {
+      await api.post(`/orders/${id}/allocate-shopkeeper`, {
+        shopkeeperId: selectedShopkeeperId,
+      });
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to allocate shopkeeper", err);
+    } finally {
+      setIsAllocatingShopkeeper(false);
+    }
+  };
+
   // Get delivery agents from API
   const deliveryAgents: DeliveryAgent[] = useMemo(() => {
     return agentsData?.data || [];
@@ -254,7 +286,9 @@ const ViewHomeDeliveryOrder = () => {
       additionalCharges: 0, // Not in API response
       finalTotal: orderData.totalAmount || 0,
       taxAmount: orderData.taxAmount || 0,
-    } as HomeDeliveryOrderView;
+      assignedShopkeeperId: orderData.assignedShopkeeperId || null,
+      shopkeeper_name: orderData.assignedShopkeeper?.name || null,
+    } as any;
   }, [data, id, deliveryAgents]);
 
   useEffect(() => {
@@ -546,6 +580,55 @@ const ViewHomeDeliveryOrder = () => {
               </div>
             </div>
           </div>
+
+          {/* Shopkeeper Allocation - Conditional Rendering (Paid or Confirmed/Placed orders) */}
+          {(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PLACED || order.assignedShopkeeperId) && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase">
+                  Shopkeeper Allocation
+                </h3>
+                {order.assignedShopkeeperId ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      Assigned Shopkeeper:
+                    </span>
+                    <span className="text-xs sm:text-sm font-semibold text-green-600 dark:text-green-400">
+                      {order.shopkeeper_name || "Assigned"}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-gray-500">
+                      Allocate to Shopkeeper
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedShopkeeperId}
+                        onChange={(e) => setSelectedShopkeeperId(e.target.value)}
+                        className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900 dark:text-gray-100"
+                      >
+                        <option value="">Select Shopkeeper...</option>
+                        {shopkeepers.map((sk) => (
+                          <option key={sk.id} value={sk.id}>
+                            {sk.name} ({sk.phone})
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        onClick={handleAllocateShopkeeper}
+                        variant="primary"
+                        size="sm"
+                        disabled={isAllocatingShopkeeper || !selectedShopkeeperId}
+                      >
+                        {isAllocatingShopkeeper ? "Allocating..." : "Allocate"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Current Status */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">

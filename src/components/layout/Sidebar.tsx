@@ -87,6 +87,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isPricingOpen, setIsPricingOpen] = useState(
     initialStateCheckers.isPricingOpen(location.pathname)
   );
+  const [isShopkeeperOpen, setIsShopkeeperOpen] = useState(
+    location.pathname.startsWith("/shopkeeper")
+  );
 
   // ============================================
   // STATE MAPS - For dynamic state access
@@ -118,6 +121,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen: setIsAssetsOpen,
       isProcurementOpen: setIsProcurementOpen,
       isPricingOpen: setIsPricingOpen,
+      isShopkeeperOpen: setIsShopkeeperOpen,
     }),
     []
   );
@@ -148,6 +152,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
       isProcurementOpen,
       isPricingOpen,
+      isShopkeeperOpen,
     }),
     [
       isProductsOpen,
@@ -169,6 +174,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
       isProcurementOpen,
       isPricingOpen,
+      isShopkeeperOpen,
     ]
   );
 
