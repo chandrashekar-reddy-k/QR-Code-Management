@@ -14,6 +14,7 @@ import { HandoverVerification } from "../components/shopkeeper/HandoverVerificat
 import { SelfPickup } from "../components/shopkeeper/SelfPickup";
 import { Returns } from "../components/shopkeeper/Returns";
 import { SLAMonitoring } from "../components/shopkeeper/SLAMonitoring";
+import { Settings } from "../components/shopkeeper/Settings";
 import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 
@@ -48,7 +49,8 @@ type Screen =
   | "self-pickup"
   | "returns"
   | "sla-monitoring"
-  | "profile";
+  | "profile"
+  | "settings";
 
 function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void }) {
   const [stats, setStats] = useState({ orders: 0, completed: 0, sla: 100, selfPickup: 0 });
@@ -183,7 +185,7 @@ export default function ShopkeeperERP() {
     setHistory(prev => [...prev, screen]);
     
     // Check if the destination is a primary tab in the sidebar
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper?tab=${dest}`);
     } else {
@@ -197,7 +199,7 @@ export default function ShopkeeperERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper?tab=${prev}`);
       } else {
@@ -226,6 +228,7 @@ export default function ShopkeeperERP() {
         {screen === "returns" && <Returns onBack={goBack} />}
         {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} />}
         {screen === "profile" && <ProfileScreen onNavigate={navigate} />}
+        {screen === "settings" && <Settings />}
       </div>
     );
   };

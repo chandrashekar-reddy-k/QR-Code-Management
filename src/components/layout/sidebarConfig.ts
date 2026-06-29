@@ -194,6 +194,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/shopkeeper?tab=picking-queue", label: "Picking Queue", icon: Package },
       { path: "/shopkeeper?tab=packing-queue", label: "Packing Queue", icon: Boxes },
       { path: "/shopkeeper?tab=profile", label: "Profile", icon: Users },
+      { path: "/shopkeeper?tab=settings", label: "Settings", icon: Settings },
     ],
   },
 
