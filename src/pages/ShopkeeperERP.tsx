@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, ShoppingBag, Package, PackageCheck, User } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+
 import { Dashboard } from "../components/shopkeeper/Dashboard";
 import { NewOrders } from "../components/shopkeeper/NewOrders";
 import { OrderDetails } from "../components/shopkeeper/OrderDetails";
@@ -15,6 +16,7 @@ import { SelfPickup } from "../components/shopkeeper/SelfPickup";
 import { Returns } from "../components/shopkeeper/Returns";
 import { SLAMonitoring } from "../components/shopkeeper/SLAMonitoring";
 import { Settings } from "../components/shopkeeper/Settings";
+import { AllOrders } from "../components/shopkeeper/AllOrders";
 import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 
@@ -37,6 +39,7 @@ api.interceptors.request.use((config) => {
 type Screen =
   | "dashboard"
   | "new-orders"
+  | "all-orders"
   | "order-details"
   | "picking-queue"
   | "picking-screen"
@@ -52,7 +55,7 @@ type Screen =
   | "profile"
   | "settings";
 
-function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void }) {
+function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) => void; onBack: () => void }) {
   const [stats, setStats] = useState({ orders: 0, completed: 0, sla: 100, selfPickup: 0 });
 
   useEffect(() => {
@@ -95,7 +98,15 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
-      <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-14 pb-8 flex flex-col items-center">
+      <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-8 flex flex-col items-center relative">
+        <div className="absolute top-12 left-4">
+          <button
+            onClick={onBack}
+            className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+          >
+            <ArrowLeft size={20} color="white" />
+          </button>
+        </div>
         <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-3">
           <span className="text-white font-bold text-2xl">RS</span>
         </div>
@@ -161,6 +172,7 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
 export default function ShopkeeperERP() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [orderData, setOrderData] = useState<unknown>(null);
+  const [allOrdersStatus, setAllOrdersStatus] = useState<string | undefined>(undefined);
   const [history, setHistory] = useState<Screen[]>([]);
   const location = useLocation();
   const reactNavigate = useReactNavigate();
@@ -168,7 +180,7 @@ export default function ShopkeeperERP() {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get("tab") || "dashboard";
-    
+
     const isSubScreenOfTab = (currentScreen: string, targetTab: string) => {
       if (targetTab === "new-orders" && currentScreen === "order-details") return true;
       if (targetTab === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(currentScreen)) return true;
@@ -183,7 +195,14 @@ export default function ShopkeeperERP() {
 
   const navigate = (dest: string, data?: unknown) => {
     setHistory(prev => [...prev, screen]);
-    
+
+    // Handle all-orders with optional status filter
+    if (dest === "all-orders") {
+      setAllOrdersStatus(typeof data === 'string' ? data : undefined);
+      setScreen("all-orders");
+      return;
+    }
+
     // Check if the destination is a primary tab in the sidebar
     const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings"].includes(dest);
     if (isTab) {
@@ -191,7 +210,7 @@ export default function ShopkeeperERP() {
     } else {
       setScreen(dest as Screen);
     }
-    
+
     if (data !== undefined) setOrderData(data);
   };
 
@@ -202,11 +221,13 @@ export default function ShopkeeperERP() {
       const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper?tab=${prev}`);
+        setScreen(prev as Screen);
       } else {
         setScreen(prev);
       }
     } else {
       reactNavigate("/shopkeeper?tab=dashboard");
+      setScreen("dashboard");
     }
   };
 
@@ -215,6 +236,7 @@ export default function ShopkeeperERP() {
       <div className="w-full">
         {screen === "dashboard" && <Dashboard onNavigate={navigate} />}
         {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} />}
+        {screen === "all-orders" && <AllOrders onBack={goBack} initialStatus={allOrdersStatus} />}
         {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} />}
         {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
@@ -227,7 +249,7 @@ export default function ShopkeeperERP() {
         {screen === "self-pickup" && <SelfPickup onBack={goBack} />}
         {screen === "returns" && <Returns onBack={goBack} />}
         {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} />}
-        {screen === "profile" && <ProfileScreen onNavigate={navigate} />}
+        {screen === "profile" && <ProfileScreen onNavigate={navigate} onBack={goBack} />}
         {screen === "settings" && <Settings />}
       </div>
     );
