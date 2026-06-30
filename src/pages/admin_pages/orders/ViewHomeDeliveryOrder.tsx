@@ -588,44 +588,33 @@ const ViewHomeDeliveryOrder = () => {
                 <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase">
                   Shopkeeper Allocation
                 </h3>
-                {order.assignedShopkeeperId ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      Assigned Shopkeeper:
-                    </span>
-                    <span className="text-xs sm:text-sm font-semibold text-green-600 dark:text-green-400">
-                      {order.shopkeeper_name || "Assigned"}
-                    </span>
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-gray-500">
+                    {order.assignedShopkeeperId ? "Assigned Shopkeeper" : "Allocate to Shopkeeper"}
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedShopkeeperId || order.assignedShopkeeperId || ""}
+                      onChange={(e) => setSelectedShopkeeperId(e.target.value)}
+                      className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="">Select Shopkeeper...</option>
+                      {shopkeepers.map((sk) => (
+                        <option key={sk.id} value={sk.id}>
+                          {sk.name} ({sk.phone})
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      onClick={handleAllocateShopkeeper}
+                      variant="primary"
+                      size="sm"
+                      disabled={isAllocatingShopkeeper || !selectedShopkeeperId}
+                    >
+                      {isAllocatingShopkeeper ? "Allocating..." : order.assignedShopkeeperId ? "Reassign" : "Allocate"}
+                    </Button>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-medium text-gray-500">
-                      Allocate to Shopkeeper
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedShopkeeperId}
-                        onChange={(e) => setSelectedShopkeeperId(e.target.value)}
-                        className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900 dark:text-gray-100"
-                      >
-                        <option value="">Select Shopkeeper...</option>
-                        {shopkeepers.map((sk) => (
-                          <option key={sk.id} value={sk.id}>
-                            {sk.name} ({sk.phone})
-                          </option>
-                        ))}
-                      </select>
-                      <Button
-                        onClick={handleAllocateShopkeeper}
-                        variant="primary"
-                        size="sm"
-                        disabled={isAllocatingShopkeeper || !selectedShopkeeperId}
-                      >
-                        {isAllocatingShopkeeper ? "Allocating..." : "Allocate"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           )}

@@ -75,8 +75,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
     const elapsed = (Date.now() - new Date(o.shopkeeper_accepted_at).getTime()) / 60000;
     return elapsed > o.sla_minutes;
   }).length;
-  // Simulated rider assignment for demo
-  const riderAssignedCount = Math.floor(orders.length / 2);
+  const riderAssignedCount = orders.filter(o => !!o.agentId).length;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
@@ -112,7 +111,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
             return elapsed > order.sla_minutes;
           })();
-          const riderAssigned = idx % 2 === 0; // Simulated
+          const riderAssigned = !!order.agentId;
           return (
             <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
               {isOverdue && (
@@ -148,33 +147,24 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                   </div>
                 )}
 
-                {!riderAssigned ? (
-                  <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Assign Rider
-                    </label>
-                    <select
-                      onChange={(e) => handleAssignRider(order.id, e.target.value)}
-                      disabled={assigningId === order.id}
-                      className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900 dark:text-gray-100"
-                    >
-                      <option value="">Select Rider...</option>
-                      {agents.map((agent) => (
-                        <option key={agent.id} value={agent.id}>
-                          {agent.name} ({agent.phone})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-xl p-2.5 mb-3" style={{ backgroundColor: "#E8F5E9" }}>
-                    <Bike size={16} color="#2E7D32" />
-                    <span className="text-green-700" style={{ fontWeight: 500, fontSize: "12px" }}>
-                      Rider: Assigned
-                    </span>
-                    <CheckCircle size={14} color="#2E7D32" className="ml-auto" />
-                  </div>
-                )}
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    Assign Rider
+                  </label>
+                  <select
+                    value={order.agentId || ""}
+                    onChange={(e) => handleAssignRider(order.id, e.target.value)}
+                    disabled={assigningId === order.id}
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="">Select Rider...</option>
+                    {agents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name} ({agent.phone})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <button
                   onClick={() => onNavigate("handover-verification", order)}

@@ -1,0 +1,1857 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CreditCard, Percent, FileText, ChevronRight, Bell, Lock, X, Loader2, Save, Store, Mail, Phone, MapPin, Hash, Package, Trash2, Edit, ArrowLeft, CheckCircle2, Plus, AlertTriangle, Search, Clock, Receipt, Truck, Tag } from 'lucide-react';
+import adminAPI from '../../services/adminService';
+import { getExpenseCategories, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory } from '../../services/expenseService';
+import toast from 'react-hot-toast';
+import { useUserStore } from '../../store/userStore';
+import AdminLateEntryConfig from './AdminLateEntryConfig';
+
+export default function AdminSettings() {
+  const navigate = useNavigate();
+  const [settings, setSettings] = useState({
+    businessName: '',
+    gstNo: '',
+    contactNo: '',
+    email: '',
+    address: '',
+    taxRates: '0,5,12,18',
+    shiftMode: 'STANDARD', // 'STANDARD' | 'MULTI'
+    shifts: [],
+    deliverySlabs: [],
+    deliverySlots: [],
+    deliveryRadiusEnforced: true
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeModal, setActiveModal] = useState(null); // 'TAX' | 'BUSINESS' | 'UNITS' | 'CATEGORIES' | 'SHIFTS' | 'DELIVERY'
+  const [isCreatingShift, setIsCreatingShift] = useState(false);
+  const [editingShiftId, setEditingShiftId] = useState(null);
+  const [shiftForm, setShiftForm] = useState({
+    type: 'STANDARD',
+    name: '',
+    isActive: true,
+    sessions: [{ startTime: '09:00', endTime: '18:00' }]
+  });
+
+  // Units State
+  const [units, setUnits] = useState([]);
+  const [unitsLoading, setUnitsLoading] = useState(false);
+  const [newUnit, setNewUnit] = useState({ name: '', type: '' });
+  const [editingUnitId, setEditingUnitId] = useState(null);
+
+  // Categories State
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: '' });
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+
+  // Asset Categories State
+  const [assetCategories, setAssetCategories] = useState([]);
+  const [assetCategoriesLoading, setAssetCategoriesLoading] = useState(false);
+  const [newAssetCategory, setNewAssetCategory] = useState({ name: '' });
+  const [editingAssetCategoryId, setEditingAssetCategoryId] = useState(null);
+  // Sub Categories State
+  const [subCategories, setSubCategories] = useState([]);
+  const [subCategoriesLoading, setSubCategoriesLoading] = useState(false);
+  const [newSubCategory, setNewSubCategory] = useState({ name: '', categoryId: '' });
+  const [editingSubCategoryId, setEditingSubCategoryId] = useState(null);
+
+  // Asset Sub-Categories State (Virtual)
+  const [editingAssetSubCategoryId, setEditingAssetSubCategoryId] = useState(null);
+  const [newAssetSubCategory, setNewAssetSubCategory] = useState({ name: '', parentName: '' });
+  const [assetSubCategorySearch, setAssetSubCategorySearch] = useState('');
+  
+  // Expense Categories State
+  const [expenseCategories, setExpenseCategories] = useState([]);
+  const [expenseCategoriesLoading, setExpenseCategoriesLoading] = useState(false);
+  const [newExpenseCategory, setNewExpenseCategory] = useState({ name: '' });
+  const [editingExpenseCategoryId, setEditingExpenseCategoryId] = useState(null);
+
+  // Expense Sub-Categories State (Virtual)
+  const [editingExpenseSubCategoryId, setEditingExpenseSubCategoryId] = useState(null);
+  const [newExpenseSubCategory, setNewExpenseSubCategory] = useState({ name: '', parentName: '', limit: '' });
+  const [expenseSubCategorySearch, setExpenseSubCategorySearch] = useState('');
+  
+  // Search States
+  const [unitSearch, setUnitSearch] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [subCategorySearch, setSubCategorySearch] = useState('');
+  const [assetCategorySearch, setAssetCategorySearch] = useState('');
+  const [expenseCategorySearch, setExpenseCategorySearch] = useState('');
+  
+
+
+  const currentUser = useUserStore(s => s.user);
+  const can = useUserStore(s => s.can);
+
+  useEffect(() => {
+    fetchSettings();
+    fetchUnits();
+    fetchCategories();
+    fetchSubCategories();
+    fetchAssetCategories();
+    fetchExpenseCategories();
+  }, [currentUser?.storeId]);
+
+  const fetchUnits = async () => {
+    setUnitsLoading(true);
+    try {
+      const { data } = await adminAPI.getUnits({ storeId: currentUser?.storeId });
+      setUnits(data);
+    } catch (error) {
+      toast.error('Failed to load units');
+    } finally {
+      setUnitsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const { data } = await adminAPI.getCategories({ storeId: currentUser?.storeId });
+      setCategories(data);
+    } catch (error) {
+      toast.error('Failed to load categories');
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const fetchSubCategories = async () => {
+    setSubCategoriesLoading(true);
+    try {
+      const { data } = await adminAPI.getSubCategories({ storeId: currentUser?.storeId });
+      setSubCategories(data);
+    } catch (error) {
+      toast.error('Failed to load sub-categories');
+    } finally {
+      setSubCategoriesLoading(false);
+    }
+  };
+
+  const fetchAssetCategories = async () => {
+    setAssetCategoriesLoading(true);
+    try {
+      const { data } = await adminAPI.getAssetCategories({ storeId: currentUser?.storeId });
+      setAssetCategories(data);
+    } catch (error) {
+      toast.error('Failed to load asset categories');
+    } finally {
+      setAssetCategoriesLoading(false);
+    }
+  };
+
+  const fetchExpenseCategories = async () => {
+    setExpenseCategoriesLoading(true);
+    try {
+      const data = await getExpenseCategories();
+      setExpenseCategories(data);
+    } catch (error) {
+      toast.error('Failed to load expense categories');
+    } finally {
+      setExpenseCategoriesLoading(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const { data } = await adminAPI.getSettings({ storeId: currentUser?.storeId });
+      if (data.success) {
+        setSettings({
+          ...data.data,
+          deliverySlabs: data.data.deliverySlabs || [],
+          deliverySlots: data.data.deliverySlots || [],
+          deliveryRadiusEnforced: data.data.deliveryRadiusEnforced !== undefined ? data.data.deliveryRadiusEnforced : true
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize shifts if empty when entering SHIFTS modal
+  useEffect(() => {
+    if (activeModal === 'SHIFTS' && (settings.shifts || []).length === 0) {
+      const now = Date.now();
+      const defaultShifts = [
+        {
+          id: `shift_${now}_1`,
+          name: 'Full Day',
+          type: 'STANDARD',
+          startTime: '09:00',
+          endTime: '18:00',
+          sessions: [{ startTime: '09:00', endTime: '18:00' }],
+          isActive: true
+        },
+        {
+          id: `shift_${now}_2`,
+          name: 'Afternoon',
+          type: 'MULTI_SESSION',
+          startTime: '14:30',
+          endTime: '17:00',
+          sessions: [{ startTime: '14:30', endTime: '17:00' }],
+          isActive: true
+        },
+        {
+          id: `shift_${now}_3`,
+          name: 'Break shift',
+          type: 'MULTI_SESSION',
+          startTime: '15:00',
+          endTime: '19:00',
+          sessions: [{ startTime: '15:00', endTime: '19:00' }],
+          isActive: true
+        }
+      ];
+      setSettings(prev => ({
+        ...prev,
+        shifts: defaultShifts
+      }));
+    }
+  }, [activeModal]);
+
+  const handleUpdateSettings = async (e) => {
+    e?.preventDefault?.();
+    setSaving(true);
+    try {
+      const { data } = await adminAPI.updateSettings({ ...settings, storeId: currentUser?.storeId });
+      if (data.success) {
+        toast.success('Settings updated!');
+        setActiveModal(null);
+      }
+    } catch (error) {
+      toast.error('Failed to update settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveUnit = async (e) => {
+    e.preventDefault();
+    if (!newUnit.name || !newUnit.type) return toast.error('Please enter name and type');
+    setSaving(true);
+    try {
+      if (editingUnitId) {
+        const { data } = await adminAPI.updateUnit(editingUnitId, newUnit);
+        setUnits(units.map(u => u.id === editingUnitId ? data : u));
+        toast.success('Unit updated');
+      } else {
+        const { data } = await adminAPI.createUnit({ ...newUnit, storeId: currentUser?.storeId });
+        setUnits([data, ...units]);
+        toast.success('Unit created');
+      }
+      setNewUnit({ name: '', type: '' });
+      setEditingUnitId(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to save unit');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteUnit = async (id) => {
+    if (!confirm('Are you sure you want to delete this unit?')) return;
+    try {
+      await adminAPI.deleteUnit(id);
+      setUnits(units.filter(u => u.id !== id));
+      toast.success('Unit deleted');
+    } catch (error) {
+      toast.error('Failed to delete unit');
+    }
+  };
+
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+    if (!newCategory.name) return toast.error('Please enter category name');
+    setSaving(true);
+    try {
+      if (editingCategoryId) {
+        const { data } = await adminAPI.updateCategory(editingCategoryId, newCategory);
+        setCategories(categories.map(c => c.id === editingCategoryId ? data : c));
+        toast.success('Category updated');
+      } else {
+        const { data } = await adminAPI.createCategory({ ...newCategory, storeId: currentUser?.storeId });
+        setCategories([data, ...categories]);
+        toast.success('Category created');
+      }
+      setNewCategory({ name: '' });
+      setEditingCategoryId(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to save category');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    try {
+      await adminAPI.deleteCategory(id);
+      setCategories(categories.filter(c => c.id !== id));
+      toast.success('Category deleted');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete category');
+    }
+  };
+
+  const handleSaveSubCategory = async (e) => {
+    e.preventDefault();
+    if (!newSubCategory.name || !newSubCategory.categoryId) return toast.error('Please enter name and select category');
+    setSaving(true);
+    try {
+      if (editingSubCategoryId) {
+        const { data } = await adminAPI.updateSubCategory(editingSubCategoryId, newSubCategory);
+        setSubCategories(subCategories.map(s => s.id === editingSubCategoryId ? data : s));
+        toast.success('Sub-category updated');
+      } else {
+        const { data } = await adminAPI.createSubCategory({ ...newSubCategory, storeId: currentUser?.storeId });
+        setSubCategories([data, ...subCategories]);
+        toast.success('Sub-category created');
+      }
+      setNewSubCategory({ name: '', categoryId: '' });
+      setEditingSubCategoryId(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to save sub-category');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveExpenseCategory = async (e) => {
+    e.preventDefault();
+    if (!newExpenseCategory.name) return toast.error('Please enter category name');
+    setSaving(true);
+    try {
+        if (editingExpenseCategoryId) {
+            await updateExpenseCategory(editingExpenseCategoryId, { name: newExpenseCategory.name });
+            toast.success('Expense category updated');
+        } else {
+            await createExpenseCategory({ name: newExpenseCategory.name });
+            toast.success('Expense category created');
+        }
+        setNewExpenseCategory({ name: '' });
+        setEditingExpenseCategoryId(null);
+        fetchExpenseCategories();
+    } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to save expense category');
+    } finally {
+        setSaving(false);
+    }
+  };
+
+  const handleSaveExpenseSubCategory = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const fullName = `${newExpenseSubCategory.parentName} | ${newExpenseSubCategory.name}`;
+      const payload = { name: fullName, limit: newExpenseSubCategory.limit };
+      if (editingExpenseSubCategoryId) {
+        await updateExpenseCategory(editingExpenseSubCategoryId, payload);
+        toast.success('Sub-category updated');
+      } else {
+        await createExpenseCategory(payload);
+        toast.success('Sub-category created');
+      }
+      setEditingExpenseSubCategoryId(null);
+      setNewExpenseSubCategory({ name: '', parentName: '', limit: '' });
+      fetchExpenseCategories();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to save sub-category');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteExpenseCategory = async (id) => {
+    if (!confirm('Are you sure you want to delete this expense category?')) return;
+    try {
+        await deleteExpenseCategory(id);
+        toast.success('Expense category deleted');
+        fetchExpenseCategories();
+    } catch (error) {
+        toast.error('Failed to delete expense category');
+    }
+  };
+
+  const handleApplyDefaultHierarchy = async () => {
+    if (!confirm('This will establish 30+ professional categories and sub-categories. Existing ones will be skipped. Continue?')) return;
+    setSaving(true);
+    const defaults = {
+      "Vehicle": ["Fuel (Diesel/Petrol)", "Repairs & Maintenance", "Insurance & Road Tax", "Tolls & Parking", "Tires & Tubes"],
+      "Staff": ["Monthly Salaries", "Sales Incentives", "Advance/Loan Payment", "Food & Refreshments", "Training & Uniforms"],
+      "Operations": ["Warehouse Rent", "Electricity Bill", "Internet & Mobile Recharge", "Cleaning & Sanitation", "Water Charges"],
+      "Marketing": ["Banners & Flex Printing", "Customer Samples", "Agent Commissions", "Promotional Events"],
+      "Assets": ["Computing (Laptops/Tabs)", "Furniture & Fixtures"],
+      "Inventory": ["Loading & Unloading Labor", "Damage Write-offs"],
+      "Admin": ["Stationery & Printing", "Audit & Legal Fees", "Software Subscriptions", "Courier & Post"],
+      "Misc": ["Bank Charges", "Donations/Charity", "Unexpected Emergencies"]
+    };
+
+    try {
+      let count = 0;
+      for (const [master, subs] of Object.entries(defaults)) {
+        // Create Master
+        if (!expenseCategories.find(c => c.name === master)) {
+          await createExpenseCategory({ name: master });
+          count++;
+        }
+        // Create Subs
+        for (const sub of subs) {
+          const fullName = `${master} | ${sub}`;
+          if (!expenseCategories.find(c => c.name === fullName)) {
+            await createExpenseCategory({ name: fullName });
+            count++;
+          }
+        }
+      }
+      toast.success(`Successfully initialized ${count} categories/sub-categories`);
+      fetchExpenseCategories();
+    } catch (error) {
+      toast.error('Partial success. Some categories might have failed.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteSubCategory = async (id) => {
+    if (!confirm('Are you sure? Products in this sub-category will be moved to Uncategorized.')) return;
+    try {
+      await adminAPI.deleteSubCategory(id);
+      setSubCategories(subCategories.filter(s => s.id !== id));
+      toast.success('Sub-category deleted');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete sub-category');
+    }
+  };
+
+  const handleSaveAssetCategory = async (e) => {
+    e.preventDefault();
+    if (!newAssetCategory.name) return toast.error('Please enter category name');
+    setSaving(true);
+    try {
+      if (editingAssetCategoryId) {
+        const { data } = await adminAPI.updateAssetCategory(editingAssetCategoryId, newAssetCategory);
+        setAssetCategories(assetCategories.map(c => c.id === editingAssetCategoryId ? data : c));
+        toast.success('Asset Category updated');
+      } else {
+        const { data } = await adminAPI.createAssetCategory({ ...newAssetCategory, storeId: currentUser?.storeId });
+        setAssetCategories([data, ...assetCategories]);
+        toast.success('Asset Category created');
+      }
+      setNewAssetCategory({ name: '' });
+      setEditingAssetCategoryId(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to save asset category');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAssetCategory = async (id) => {
+    if (!confirm('Are you sure you want to delete this asset category?')) return;
+    try {
+      await adminAPI.deleteAssetCategory(id);
+      setAssetCategories(assetCategories.filter(c => c.id !== id));
+      toast.success('Asset Category deleted');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete asset category');
+    }
+  };
+
+  const handleSaveAssetSubCategory = async (e) => {
+    e.preventDefault();
+    if (!newAssetSubCategory.parentName || !newAssetSubCategory.name) {
+      return toast.error('Please select a parent category and enter a sub-category name');
+    }
+    setSaving(true);
+    try {
+      const fullName = `${newAssetSubCategory.parentName} | ${newAssetSubCategory.name}`;
+      if (editingAssetSubCategoryId) {
+        const { data } = await adminAPI.updateAssetCategory(editingAssetSubCategoryId, { name: fullName });
+        setAssetCategories(assetCategories.map(c => c.id === editingAssetSubCategoryId ? data : c));
+        toast.success('Asset Sub-category updated');
+      } else {
+        const { data } = await adminAPI.createAssetCategory({ name: fullName, storeId: currentUser?.storeId });
+        setAssetCategories([data, ...assetCategories]);
+        toast.success('Asset Sub-category created');
+      }
+      setEditingAssetSubCategoryId(null);
+      setNewAssetSubCategory({ name: '', parentName: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to save asset sub-category');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApplyDefaultAssetHierarchy = async () => {
+    if (!confirm('This will establish standard asset categories and sub-categories. Existing ones will be skipped. Continue?')) return;
+    setSaving(true);
+    const defaults = {
+      "Electronics & POS": ["POS Billing Terminals", "Smartphones & Tablets", "Barcode Scanners", "Receipt Printers"],
+      "Logistics & Delivery": ["Delivery Trucks/Vans", "Electric Two-Wheelers", "GPS Tracker Devices", "Battery Chargers"],
+      "Warehouse & Storage": ["Storage Racks & Shelving", "Heavy Duty Pallets", "Hydraulic Pallet Jacks", "Plastic Crates"],
+      "Cold Chain Equipment": ["Deep Freezers", "Insulated Ice Boxes", "Temperature Monitors"],
+      "Furniture & Fixtures": ["Office Desks & Chairs", "Invoicing Counters", "Visitor Seating"],
+      "Safety & Security": ["CCTV Cameras", "Fire Extinguishers", "Lobby Access Controls"]
+    };
+
+    try {
+      let count = 0;
+      for (const [master, subs] of Object.entries(defaults)) {
+        // Create Master if it doesn't exist
+        let masterCat = assetCategories.find(c => c.name === master);
+        if (!masterCat) {
+          const { data } = await adminAPI.createAssetCategory({ name: master, storeId: currentUser?.storeId });
+          masterCat = data;
+          count++;
+        }
+        // Create Subs
+        for (const sub of subs) {
+          const fullName = `${master} | ${sub}`;
+          if (!assetCategories.find(c => c.name === fullName)) {
+            await adminAPI.createAssetCategory({ name: fullName, storeId: currentUser?.storeId });
+            count++;
+          }
+        }
+      }
+      toast.success(`Successfully initialized ${count} asset categories/sub-categories`);
+      fetchAssetCategories();
+    } catch (error) {
+      toast.error('Partial success. Some categories might have failed.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hasPermission = (sectionKey) => {
+    // No restriction key = always show (generic sections visible to anyone with SETTINGS access)
+    if (!sectionKey) return true;
+    if (sectionKey === 'EXPENSE_SETTINGS') {
+      return can('EXPENSES', 'READ', 'SETTINGS') || can('EXPENSES', 'UPDATE', 'SETTINGS');
+    }
+    if (sectionKey === 'ASSET_SETTINGS') {
+      return can('ASSETS', 'READ', 'SETTINGS') || can('ASSETS', 'UPDATE', 'SETTINGS');
+    }
+    const targetSections = currentUser?.permissions?.SETTINGS_TARGET_SECTIONS;
+    // No widget config exists at all → show everything (TENANT_OWNER / no customRole)
+    if (targetSections === undefined || targetSections === null) return true;
+    // Config exists → enforce it
+    return targetSections.includes(sectionKey);
+  };
+
+  const hasSectionAccess = (sectionKey) => hasPermission(sectionKey);
+
+  const sections = [
+    { 
+      sectionKey: 'POS_CONFIG',
+      title: 'Inventory Management', 
+      icon: Package, 
+      items: [
+        { label: 'Measurement Units', action: () => setActiveModal('UNITS') },
+        { label: 'Product Categories', action: () => setActiveModal('CATEGORIES') },
+        { label: 'Sub-Category Management', action: () => setActiveModal('SUB_CATEGORIES') }
+      ]
+    },
+    {
+      sectionKey: 'EXPENSE_SETTINGS',
+      title: 'Expense Management',
+      icon: Receipt,
+      items: [
+        { label: 'Categories', action: () => setActiveModal('EXPENSES') },
+        { label: 'Sub Categories', action: () => setActiveModal('SUB_EXPENSES') }
+      ]
+    },
+    {
+      sectionKey: 'POS_CONFIG',
+      title: 'Asset Management',
+      icon: Tag,
+      items: [
+        { label: 'Asset Categories', action: () => setActiveModal('ASSET_CATEGORIES') },
+        { label: 'Asset Sub-Categories', action: () => setActiveModal('ASSET_SUB_CATEGORIES') }
+      ]
+    },
+    { 
+      sectionKey: 'POS_CONFIG',
+      title: 'Payment Settings', 
+      icon: CreditCard, 
+      items: [
+        { label: 'Add/Edit Payment Modes', action: () => toast.error('This feature is coming soon') },
+        { label: 'UPI Settings', action: () => toast.error('This feature is coming soon') },
+        { label: 'Card Terminal Config', action: () => toast.error('This feature is coming soon') }
+      ]
+    },
+    { 
+      sectionKey: 'POS_CONFIG',
+      title: 'Business Profile', 
+      icon: Store, 
+      items: [
+        { label: 'Basic Information', action: () => setActiveModal('BUSINESS') },
+        { label: 'Contact Details', action: () => setActiveModal('BUSINESS') }
+      ]
+    },
+    { 
+      sectionKey: 'POS_CONFIG',
+      title: 'Tax Settings', 
+      icon: Receipt, 
+      items: [
+        { label: 'GST Configuration', action: () => setActiveModal('TAX') },
+        { label: 'Tax Slabs & Rules', action: () => setActiveModal('TAX') }
+      ]
+    },
+    { 
+      sectionKey: 'POS_CONFIG',
+      title: 'Invoice Format', 
+      icon: FileText, 
+      items: [
+        { label: 'Header/Footer Text', action: () => toast.error('Coming soon') },
+        { label: 'Upload Logo', action: () => toast.error('Coming soon') },
+        { label: 'Sequential Numbering', action: () => toast.error('Coming soon') }
+      ]
+    },
+    { 
+      sectionKey: 'POS_CONFIG',
+      title: 'Notifications', 
+      icon: Bell, 
+      items: [
+        { label: 'Low Stock Alerts', action: () => {} },
+        { label: 'Daily Sales Report Email', action: () => {} }
+      ]
+    },
+    {
+      sectionKey: 'POS_CONFIG',
+      title: 'Shift Management',
+      icon: Clock,
+      items: [
+        { label: 'Configure Timing & Shifts', action: () => { setActiveModal('SHIFTS'); setSettings(prev => ({...prev, shiftMode: 'MULTI'})); } },
+        { label: 'Late Entry Rules', action: () => setActiveModal('LATE_RULES') }
+      ]
+    },
+    {
+      sectionKey: 'POS_CONFIG',
+      title: 'Delivery Logistics',
+      icon: Truck,
+      items: [
+        { label: 'Delivery Fee Slabs', action: () => navigate('/admin/delivery-logistics') },
+        { label: 'Time Slots Management', action: () => navigate('/admin/delivery-logistics') },
+        { label: 'Radius Enforcement', action: () => navigate('/admin/delivery-logistics') }
+      ]
+    },
+    {
+      sectionKey: 'POS_CONFIG',
+      title: 'Marketing & Offers',
+      icon: Tag,
+      items: [
+        { label: 'Coupons & Promo Codes', action: () => navigate('/admin/promotions') },
+        { label: 'BOGO & Combo Deals', action: () => navigate('/admin/promotions') },
+        { label: 'Targeted Campaigns', action: () => navigate('/admin/promotions') }
+      ]
+    },
+    {
+      sectionKey: 'POS_TERMINAL',
+      title: 'POS Terminal Access',
+      icon: CreditCard,
+      items: [
+        { label: 'Open POS Interface', action: () => navigate('/pos') },
+        { label: 'Launch Billing Station', action: () => window.open('/pos', '_blank') }
+      ]
+    }
+  ].filter(s => hasSectionAccess(s.sectionKey));
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <Loader2 className="animate-spin text-emerald-600" size={32} />
+        <p className="text-gray-500 font-medium tracking-wide text-sm">Loading Settings...</p>
+      </div>
+    );
+  }
+
+  const renderHeader = (title, subtitle, Icon, colorClass) => (
+    <div className="flex items-center justify-between mb-8 animate-in fade-in slide-in-from-left-4 duration-500">
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={() => setActiveModal(null)}
+          className="p-2.5 bg-white border border-gray-100 rounded-2xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm group"
+        >
+          <ArrowLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+        </button>
+        <div>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">{title}</h2>
+          <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mt-1 italic">{subtitle}</p>
+        </div>
+      </div>
+      <div className={`hidden md:flex items-center gap-3 px-6 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm`}>
+        <div className={`p-2 rounded-xl bg-opacity-10 ${colorClass}`}>
+          <Icon size={18} />
+        </div>
+        <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Configuration Active</span>
+      </div>
+    </div>
+  );
+
+  // ════════════════════════════════════════════════════════════════════════
+  // Sub-Pages Rendering
+  // ════════════════════════════════════════════════════════════════════════
+
+  if (activeModal === 'UNITS') {
+    return (
+      <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+        {renderHeader('Unit Management', 'Inventory Measurement Specs', Package, 'text-emerald-600 bg-emerald-100')}
+        
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+          <div className="bg-white rounded-[2rem] p-8 border border-gray-50 shadow-xl h-fit">
+            <h4 className="text-[10px] font-black text-emerald-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              {editingUnitId ? 'Modification Sync' : 'Measurement Entry'}
+            </h4>
+            <form onSubmit={handleSaveUnit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Universal Unit Name</label>
+                <input type="text" required placeholder="e.g., Kilogram" value={newUnit.name} onChange={e => setNewUnit({...newUnit, name: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Symbolic Notation (Type)</label>
+                <input type="text" required placeholder="e.g., KG" value={newUnit.type} onChange={e => setNewUnit({...newUnit, type: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
+              </div>
+              <div className="pt-4 flex flex-col gap-2">
+                <button type="submit" disabled={saving} className="w-full bg-emerald-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]">
+                  {saving ? <Loader2 size={20} className="animate-spin" /> : (editingUnitId ? <Save size={20} /> : <Plus size={20} />)}
+                  {saving ? 'Processing...' : (editingUnitId ? 'Update Identity' : 'Authorize Unit')}
+                </button>
+                {editingUnitId && (
+                  <button type="button" onClick={() => { setEditingUnitId(null); setNewUnit({name:'', type:''}) }}
+                    className="w-full py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 transition-colors">
+                    Discard Selection
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-50 shadow-xl overflow-hidden min-h-[500px]">
+            <div className="px-8 py-6 bg-emerald-900 text-emerald-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <FileText size={18} className="text-emerald-400 opacity-60" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em]">Authorized Units Registry</h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search Units..." 
+                    value={unitSearch}
+                    onChange={(e) => setUnitSearch(e.target.value)}
+                    className="bg-emerald-800/50 border border-emerald-700/50 rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-emerald-400 focus:bg-emerald-800 outline-none w-48 transition-all"
+                  />
+                </div>
+                <span className="text-[10px] font-black px-4 py-1.5 bg-emerald-800/50 rounded-full border border-emerald-700/50 min-w-fit">{units.length} ACTIVE</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-gray-100">
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">Formal Identity</th>
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Notation</th>
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {units.filter(u => u.name.toLowerCase().includes(unitSearch.toLowerCase()) || u.type.toLowerCase().includes(unitSearch.toLowerCase())).map(unit => (
+                    <tr key={unit.id} className="hover:bg-emerald-50/30 transition-all group">
+                      <td className="py-5 px-8">
+                        <span className="text-sm font-black text-slate-700">{unit.name}</span>
+                      </td>
+                      <td className="py-5 px-8 text-center">
+                        <span className="inline-block px-3 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-lg border border-emerald-100">{unit.type}</span>
+                      </td>
+                      <td className="py-5 px-8 text-right">
+                        <div className="flex items-center justify-end gap-2 pr-2">
+                          <button onClick={() => { setEditingUnitId(unit.id); setNewUnit({ name: unit.name, type: unit.type }) }}
+                            className="p-2 text-emerald-600 hover:bg-white hover:shadow-md rounded-xl transition-all"><Edit size={16} /></button>
+                          <button onClick={() => handleDeleteUnit(unit.id)}
+                            className="p-2 text-rose-400 hover:bg-white hover:shadow-md hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {units.length === 0 && !unitsLoading && <div className="py-20 text-center text-gray-400 text-xs font-bold font-black uppercase tracking-widest italic opacity-40">Zero Records in Registry</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'CATEGORIES') {
+    return (
+      <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+        {renderHeader('Catalog Classification', 'Top-Level Inventory Segmentation', Package, 'text-amber-600 bg-amber-100')}
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+          <div className="bg-white rounded-[2rem] p-8 border border-gray-50 shadow-xl h-fit">
+            <h4 className="text-[10px] font-black text-amber-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+              <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+              {editingCategoryId ? 'Entity Amendment' : 'Structural Creation'}
+            </h4>
+            <form onSubmit={handleSaveCategory} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Formal Category Label</label>
+                <input type="text" required placeholder="e.g., Consumer Electronics" value={newCategory.name} onChange={e => setNewCategory({...newCategory, name: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all" />
+              </div>
+              <div className="pt-4 flex flex-col gap-2">
+                <button type="submit" disabled={saving} className="w-full bg-amber-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-amber-500/20 hover:bg-amber-700 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]">
+                  {saving ? <Loader2 size={20} className="animate-spin" /> : (editingCategoryId ? <Save size={20} /> : <Plus size={20} />)}
+                  {saving ? 'Synchronizing...' : (editingCategoryId ? 'Commit Update' : 'Initialize Category')}
+                </button>
+                {editingCategoryId && (
+                  <button type="button" onClick={() => { setEditingCategoryId(null); setNewCategory({name:''}) }}
+                    className="w-full py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 transition-colors">
+                    Discard Selection
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-50 shadow-xl overflow-hidden min-h-[500px]">
+             <div className="px-8 py-6 bg-slate-900 text-slate-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Hash size={18} className="text-amber-400 opacity-60" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em]">Master Classification Indexed</h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search Categories..." 
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-slate-500 focus:bg-slate-850 outline-none w-48 transition-all"
+                  />
+                </div>
+                <span className="text-[10px] font-black px-4 py-1.5 bg-slate-800 rounded-full border border-slate-700 min-w-fit">{categories.length} SEGMENTS</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-bold">
+                <thead><tr className="bg-slate-50 border-b border-gray-100"><th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">Operational Category</th><th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Contextual Actions</th></tr></thead>
+                <tbody className="divide-y divide-gray-50">
+                  {categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase())).map(category => (
+                    <tr key={category.id} className="hover:bg-amber-50/20 group">
+                      <td className="py-5 px-8 text-sm font-black text-slate-700">{category.name}</td>
+                      <td className="py-5 px-8 text-right"><div className="flex items-center justify-end gap-2 pr-2">
+                        <button onClick={() => { setEditingCategoryId(category.id); setNewCategory({ name: category.name }) }}
+                          className="p-2 text-amber-600 hover:bg-white hover:rotate-12 transition-all"><Edit size={16} /></button>
+                        <button onClick={() => handleDeleteCategory(category.id)}
+                          className="p-2 text-rose-400 hover:bg-white hover:-rotate-12 transition-all"><Trash2 size={16} /></button>
+                      </div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {categories.length === 0 && <div className="py-20 text-center text-gray-300 font-black uppercase tracking-widest italic text-[10px]">Registry Empty</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'SUB_CATEGORIES') {
+    return (
+      <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+        {renderHeader('Sub-Segmentation', 'Granular Inventory Refinement', Package, 'text-orange-600 bg-orange-100')}
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+          <div className="bg-white rounded-[2rem] p-8 border border-gray-50 shadow-xl h-fit">
+            <h4 className="text-[10px] font-black text-orange-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+              <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+              {editingSubCategoryId ? 'Hierarchy Amendment' : 'Relational Entry'}
+            </h4>
+            <form onSubmit={handleSaveSubCategory} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Parent Classification</label>
+                <select required value={newSubCategory.categoryId} onChange={e => setNewSubCategory({...newSubCategory, categoryId: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-black text-emerald-800 appearance-none outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 focus:bg-white transition-all cursor-pointer">
+                  <option value="">Select Master Category</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sub-Category Identifier</label>
+                <input type="text" required placeholder="e.g., Wireless Peripherals" value={newSubCategory.name} onChange={e => setNewSubCategory({...newSubCategory, name: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all" />
+              </div>
+              <div className="pt-4 flex flex-col gap-2">
+                <button type="submit" disabled={saving} className="w-full bg-orange-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-orange-500/20 hover:bg-orange-700 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]">
+                  {saving ? <Loader2 size={20} className="animate-spin" /> : (editingSubCategoryId ? <Save size={20} /> : <Plus size={20} />)}
+                  {saving ? 'Processing Hierarchy...' : (editingSubCategoryId ? 'Authorize Change' : 'Forge Sub-Category')}
+                </button>
+                {editingSubCategoryId && (
+                   <button type="button" onClick={() => { setEditingSubCategoryId(null); setNewSubCategory({name:'', categoryId:''}) }}
+                    className="w-full py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 transition-colors">Discard Amendment</button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-50 shadow-xl overflow-hidden min-h-[500px]">
+            <div className="px-8 py-6 bg-orange-950 text-white flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Package size={18} className="text-orange-400 opacity-60" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em]">Granular Catalog Index</h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search Sub-Cats..." 
+                    value={subCategorySearch}
+                    onChange={(e) => setSubCategorySearch(e.target.value)}
+                    className="bg-orange-900 border border-orange-800 rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-orange-600 focus:bg-orange-800 outline-none w-48 transition-all"
+                  />
+                </div>
+                <span className="text-[10px] font-black px-4 py-1.5 bg-orange-900 rounded-full border border-orange-800 min-w-fit">{subCategories.length} RECORDS</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto font-bold">
+              <table className="w-full text-left">
+                <thead><tr className="bg-slate-50 border-b border-gray-100"><th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">Sub-segment</th><th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">Parent Segment</th><th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Operations</th></tr></thead>
+                <tbody className="divide-y divide-gray-50">
+                  {subCategories.filter(s => s.name.toLowerCase().includes(subCategorySearch.toLowerCase()) || s.category?.name.toLowerCase().includes(subCategorySearch.toLowerCase())).map(sub => (
+                    <tr key={sub.id} className="hover:bg-orange-50 transition-all group">
+                      <td className="py-5 px-8 text-sm font-black text-slate-700">{sub.name}</td>
+                      <td className="py-5 px-8"><span className="text-[10px] px-2.5 py-1 bg-gray-100 text-gray-500 rounded-lg uppercase font-black">{sub.category?.name}</span></td>
+                      <td className="py-5 px-8 text-right"><div className="flex items-center justify-end gap-2 pr-2">
+                        <button onClick={() => { setEditingSubCategoryId(sub.id); setNewSubCategory({ name: sub.name, categoryId: sub.categoryId }) }}
+                          className="p-2 text-orange-600 hover:bg-white hover:shadow-lg rounded-xl transition-all"><Edit size={16} /></button>
+                        <button onClick={() => handleDeleteSubCategory(sub.id)}
+                          className="p-2 text-rose-400 hover:bg-white hover:shadow-lg hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
+                      </div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {subCategories.length === 0 && <div className="py-24 text-center text-gray-300 font-black uppercase tracking-widest text-[10px]">Inventory Hierarchy Empty</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'ASSET_CATEGORIES') {
+    return (
+      <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+        {renderHeader('Capital Asset Taxonomy', 'Non-Inventory Resource Classification', Package, 'text-indigo-600 bg-indigo-100')}
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+          <div className="bg-white rounded-[2rem] p-8 border border-gray-50 shadow-xl h-fit">
+            <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+              {editingAssetCategoryId ? 'Taxonomy Override' : 'Asset Group Entry'}
+            </h4>
+            <form onSubmit={handleSaveAssetCategory} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Asset Category Nomenclature</label>
+                <input type="text" required placeholder="e.g., Computing Hardware" value={newAssetCategory.name} onChange={e => setNewAssetCategory({...newAssetCategory, name: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all" />
+              </div>
+              <div className="pt-4 flex flex-col gap-2">
+                 <button type="submit" disabled={saving} className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]">
+                  {saving ? <Loader2 size={20} className="animate-spin" /> : (editingAssetCategoryId ? <Save size={20} /> : <Plus size={20} />)}
+                  {saving ? 'Relogging Group...' : 'Authorize Asset Type'}
+                </button>
+                {editingAssetCategoryId && (
+                   <button type="button" onClick={() => { setEditingAssetCategoryId(null); setNewAssetCategory({name:''}) }}
+                    className="w-full py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 transition-colors">Discard Grouping</button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-50 shadow-xl overflow-hidden min-h-[500px]">
+            <div className="px-8 py-6 bg-indigo-950 text-indigo-50 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Store size={18} className="text-indigo-400 opacity-60" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em]">Institutional Asset Registry</h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <button onClick={handleApplyDefaultAssetHierarchy} disabled={saving}
+                  className="px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-500/20 transition-all flex items-center gap-2">
+                  <CheckCircle2 size={12}/> Apply Defaults
+                </button>
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search Asset Types..." 
+                    value={assetCategorySearch}
+                    onChange={(e) => setAssetCategorySearch(e.target.value)}
+                    className="bg-indigo-900 border border-indigo-800 rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-indigo-600 focus:bg-indigo-800 outline-none w-48 transition-all"
+                  />
+                </div>
+                <span className="text-[10px] font-black px-4 py-1.5 bg-indigo-900 rounded-full border border-indigo-800 min-w-fit">{assetCategories.filter(c => !c.name.includes(' | ')).length} GROUPS</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto font-bold">
+              <table className="w-full text-left">
+                <thead><tr className="bg-slate-50 border-b border-gray-100"><th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">Asset Grouping</th><th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Override Options</th></tr></thead>
+                <tbody className="divide-y divide-gray-50">
+                  {assetCategories
+                    .filter(c => !c.name.includes(' | '))
+                    .filter(c => c.name.toLowerCase().includes(assetCategorySearch.toLowerCase()))
+                    .map(category => (
+                    <tr key={category.id} className="hover:bg-indigo-50 group">
+                      <td className="py-5 px-8 text-sm font-black text-slate-700">{category.name}</td>
+                      <td className="py-5 px-8 text-right"><div className="flex items-center justify-end gap-2 pr-2">
+                        <button onClick={() => { setEditingAssetCategoryId(category.id); setNewAssetCategory({ name: category.name }) }}
+                          className="p-2 text-indigo-600 hover:bg-white hover:scale-110 transition-all shadow-indigo-100"><Edit size={16} /></button>
+                        <button onClick={() => handleDeleteAssetCategory(category.id)}
+                          className="p-2 text-rose-400 hover:bg-white hover:scale-110 transition-all shadow-rose-100"><Trash2 size={16} /></button>
+                      </div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {assetCategories.filter(c => !c.name.includes(' | ')).length === 0 && !assetCategoriesLoading && <div className="py-20 text-center text-gray-400 text-xs font-bold font-black uppercase tracking-widest italic opacity-40">Empty Classification Registry</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'ASSET_SUB_CATEGORIES') {
+    const masterCategories = assetCategories.filter(c => !c.name.includes(' | '));
+    const subCategoriesList = assetCategories.filter(c => c.name.includes(' | ')).map(c => {
+      const [parent, child] = c.name.split(' | ');
+      return { ...c, parentName: parent, childName: child };
+    });
+
+    return (
+      <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+        {renderHeader('Asset Sub-Categories', 'Nested Resource Classification & Mapping', Hash, 'text-indigo-600 bg-indigo-100')}
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+          <div className="bg-white rounded-[2rem] p-8 border border-gray-50 shadow-xl h-fit">
+            <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+              {editingAssetSubCategoryId ? 'Modify Sub-Type' : 'Establish New Sub-Type'}
+            </h4>
+            <form onSubmit={handleSaveAssetSubCategory} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Parent Category</label>
+                <select required value={newAssetSubCategory.parentName} onChange={e => setNewAssetSubCategory({...newAssetSubCategory, parentName: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-black text-indigo-800 appearance-none outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all cursor-pointer">
+                  <option value="">Select Master Category</option>
+                  {masterCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sub-Category Name</label>
+                <input type="text" required placeholder="e.g. Electric Two-Wheelers" value={newAssetSubCategory.name} onChange={e => setNewAssetSubCategory({...newAssetSubCategory, name: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all" />
+              </div>
+              <div className="pt-4 flex flex-col gap-2">
+                <button type="submit" disabled={saving} className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-indigo-500/20 hover:bg-indigo-700 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]">
+                  {saving ? <Loader2 size={20} className="animate-spin" /> : (editingAssetSubCategoryId ? <Save size={20} /> : <Plus size={20} />)}
+                  {saving ? 'Synchronizing...' : (editingAssetSubCategoryId ? 'Commit Update' : 'Initialize Sub-Type')}
+                </button>
+                {editingAssetSubCategoryId && (
+                  <button type="button" onClick={() => { setEditingAssetSubCategoryId(null); setNewAssetSubCategory({name:'', parentName:''}) }}
+                    className="w-full py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 transition-colors">
+                    Discard Selection
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-50 shadow-xl overflow-hidden min-h-[500px]">
+             <div className="px-8 py-6 bg-slate-900 text-slate-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Hash size={18} className="text-indigo-400 opacity-60" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em]">Sub Category Index</h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search Sub-Cats..." 
+                    value={assetSubCategorySearch}
+                    onChange={(e) => setAssetSubCategorySearch(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-slate-500 focus:bg-slate-800 outline-none w-48 transition-all"
+                  />
+                </div>
+                <span className="text-[10px] font-black px-4 py-1.5 bg-slate-800 rounded-full border border-slate-700 min-w-fit">{subCategoriesList.length} ITEMS</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto font-bold">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-gray-100">
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">Sub-Category</th>
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Parent Type</th>
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {subCategoriesList
+                    .filter(s => (s.childName || '').toLowerCase().includes((assetSubCategorySearch || '').toLowerCase()) || (s.parentName || '').toLowerCase().includes((assetSubCategorySearch || '').toLowerCase()))
+                    .map(sub => (
+                    <tr key={sub.id} className="hover:bg-indigo-50 transition-all group">
+                      <td className="py-5 px-8">
+                        <span className="text-sm font-black text-slate-700">{sub.childName}</span>
+                      </td>
+                      <td className="py-5 px-8 text-center">
+                        <span className="inline-block px-3 py-1.5 bg-gray-100 text-gray-500 text-[10px] font-black rounded-lg border border-gray-200 uppercase tracking-tighter">{sub.parentName}</span>
+                      </td>
+                      <td className="py-5 px-8 text-right">
+                        <div className="flex items-center justify-end gap-2 pr-2">
+                          <button onClick={() => { setEditingAssetSubCategoryId(sub.id); setNewAssetSubCategory({ name: sub.childName, parentName: sub.parentName }) }}
+                            className="p-2 text-indigo-600 hover:bg-white hover:shadow-md rounded-xl transition-all"><Edit size={16} /></button>
+                          <button onClick={() => handleDeleteAssetCategory(sub.id)}
+                            className="p-2 text-rose-400 hover:bg-white hover:shadow-md hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {subCategoriesList.length === 0 && !assetCategoriesLoading && <div className="py-20 text-center text-gray-400 text-xs font-bold font-black uppercase tracking-widest italic opacity-40">No Sub-Hierarchies Established</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'TAX') {
+    return (
+      <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+        {renderHeader('Fiscal Compliance', 'GST Slabbing & Taxation Logic', Percent, 'text-rose-600 bg-rose-100')}
+        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl p-10 md:p-16">
+          <form onSubmit={handleUpdateSettings} className="space-y-12">
+            <div className="space-y-4">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                <Hash size={14} className="text-rose-500" /> Active GST Slabs (Comma Separated)
+              </label>
+              <div className="relative group">
+                <input type="text" required placeholder="0, 5, 12, 18, 28" value={settings.taxRates} onChange={e => setSettings({...settings, taxRates: e.target.value})}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl px-8 py-6 text-2xl font-black text-slate-900 focus:bg-white focus:border-rose-500 focus:ring-[12px] focus:ring-rose-500/5 transition-all outline-none tracking-tight" />
+                <div className="absolute top-1/2 -right-4 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-12 hidden lg:block">
+                  <div className="bg-slate-900 text-white text-[10px] font-black px-4 py-2 rounded-xl whitespace-nowrap shadow-xl">
+                    Values determine product tax menus
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 bg-rose-50/50 rounded-2xl border border-rose-100/50 flex gap-4">
+                 <AlertTriangle size={20} className="text-rose-500 shrink-0 mt-1" />
+                 <p className="text-xs font-bold text-rose-900 leading-relaxed uppercase tracking-tighter italic">
+                  Critical Configuration: Changes to these slabs will immediately update the available tax options for all inventory modules across the platform.
+                 </p>
+              </div>
+            </div>
+
+            <div className="pt-6">
+              {can('SETTINGS', 'UPDATE') ? (
+                <button type="submit" disabled={saving} className="w-full bg-slate-900 text-white font-black py-6 rounded-3xl shadow-2xl shadow-slate-900/30 hover:bg-rose-600 transition-all text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-4 active:scale-95 disabled:bg-slate-400">
+                  {saving ? <Loader2 size={24} className="animate-spin" /> : <CheckCircle2 size={24} />}
+                  {saving ? 'Synchronizing Slopes...' : 'Apply Governance Policy'}
+                </button>
+              ) : (
+                <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex items-center justify-center gap-3 text-rose-500 font-black text-xs uppercase tracking-widest">
+                  <Lock size={16} /> Restricted: Administrative Override Required
+                </div>
+              )}
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+
+
+  if (activeModal === 'BUSINESS') {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-10 duration-700">
+        {renderHeader('Institutional Profile', 'Core Legal & Communication Identity', Store, 'text-blue-600 bg-blue-100')}
+        <div className="bg-white rounded-[3rem] border border-gray-50 shadow-2xl overflow-hidden">
+          <div className="p-10 md:p-14 space-y-14">
+            <form onSubmit={handleUpdateSettings} className="space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-10">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Legacy Business Identity</label>
+                    <div className="relative group">
+                       <input type="text" required placeholder="Institutional Name" value={settings.businessName} onChange={e => setSettings({...settings, businessName: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5.5 text-lg font-black text-slate-900 focus:bg-white focus:border-blue-500 transition-all outline-none" />
+                       <Store size={20} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Legal GSTIN Authorization</label>
+                    <div className="relative group">
+                      <input type="text" placeholder="22AAAAA0000A1Z5" value={settings.gstNo || ''} onChange={e => setSettings({...settings, gstNo: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5.5 text-lg font-black text-slate-900 focus:bg-white focus:border-blue-500 transition-all outline-none tracking-widest uppercase" />
+                      <Hash size={20} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-10">
+                   <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Operational Hotline</label>
+                    <div className="relative group">
+                      <input type="text" placeholder="+91" value={settings.contactNo || ''} onChange={e => setSettings({...settings, contactNo: e.target.value })}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5.5 text-lg font-black text-slate-900 focus:bg-white focus:border-blue-500 transition-all outline-none" />
+                      <Phone size={20} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contact Email Protocol</label>
+                    <div className="relative group">
+                      <input type="email" placeholder="hq@entity.com" value={settings.email || ''} onChange={e => setSettings({...settings, email: e.target.value})}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5.5 text-lg font-black text-slate-900 focus:bg-white focus:border-blue-500 transition-all outline-none" />
+                      <Mail size={20} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Institutional Headquarters Address</label>
+                <div className="relative group">
+                  <textarea rows="3" placeholder="Full physical address for invoicing..." value={settings.address || ''} onChange={e => setSettings({...settings, address: e.target.value})}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl px-8 py-6 text-lg font-bold text-slate-900 focus:bg-white focus:border-blue-500 transition-all outline-none resize-none" />
+                  <MapPin size={24} className="absolute right-6 top-8 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                </div>
+              </div>
+
+              <div className="pt-8">
+                {can('SETTINGS', 'UPDATE') ? (
+                  <button type="submit" disabled={saving} className="w-full bg-blue-600 text-white font-black py-7 rounded-[2rem] shadow-2xl shadow-blue-500/20 hover:bg-blue-700 transition-all text-xs uppercase tracking-[0.25em] flex items-center justify-center gap-4 active:scale-95">
+                    {saving ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
+                    {saving ? 'Archiving Profile...' : 'Commit Institutional Identity'}
+                  </button>
+                ) : (
+                  <div className="bg-slate-100 p-8 rounded-[2rem] flex items-center justify-center gap-3 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                    <Lock size={16} /> Restricted Module: Elevated Permissions Required
+                  </div>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'SHIFTS') {
+    const formatTime12h = (time24) => {
+      if (!time24) return 'N/A';
+      const [hours, minutes] = time24.split(':');
+      const h = parseInt(hours);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${h12}:${minutes} ${ampm}`;
+    };
+
+    const handleAddSession = () => {
+      if (shiftForm.sessions.length >= 5) return toast.error('Maximum 5 sessions allowed');
+      setShiftForm({
+        ...shiftForm,
+        sessions: [...shiftForm.sessions, { startTime: '14:00', endTime: '18:00' }]
+      });
+    };
+
+    const handleRemoveSession = (index) => {
+      if (shiftForm.sessions.length <= 1) return;
+      setShiftForm({
+        ...shiftForm,
+        sessions: shiftForm.sessions.filter((_, i) => i !== index)
+      });
+    };
+
+    const handleSessionChange = (index, field, value) => {
+      const newSessions = [...shiftForm.sessions];
+      newSessions[index][field] = value;
+      setShiftForm({ ...shiftForm, sessions: newSessions });
+    };
+
+    const validateShiftForm = () => {
+      if (!shiftForm.name) return 'Shift name is required';
+      if (!shiftForm.type) return 'Shift type is required';
+      
+      for (let i = 0; i < shiftForm.sessions.length; i++) {
+        const s = shiftForm.sessions[i];
+        if (s.startTime >= s.endTime) return `Session ${i + 1}: End time must be after start time`;
+        
+        // Overlap check
+        for (let j = i + 1; j < shiftForm.sessions.length; j++) {
+          const s2 = shiftForm.sessions[j];
+          if (s.startTime < s2.endTime && s.endTime > s2.startTime) {
+            return `Overlap detected between Session ${i + 1} and Session ${j + 1}`;
+          }
+        }
+      }
+      return null;
+    };
+
+    const handleSaveShift = async (e) => {
+      e.preventDefault();
+      const error = validateShiftForm();
+      if (error) return toast.error(error);
+
+      setSaving(true);
+      try {
+        // Calculate overall start/end for backward compatibility
+        const allStarts = shiftForm.sessions.map(s => s.startTime).sort();
+        const allEnds = shiftForm.sessions.map(s => s.endTime).sort();
+        
+        const newShift = {
+          id: editingShiftId || `shift_${Date.now()}`,
+          name: shiftForm.name,
+          type: shiftForm.type,
+          startTime: allStarts[0],
+          endTime: allEnds[allEnds.length - 1],
+          sessions: shiftForm.sessions,
+          isActive: shiftForm.isActive
+        };
+
+        const updatedShifts = editingShiftId 
+          ? settings.shifts.map(s => s.id === editingShiftId ? newShift : s)
+          : [...(settings.shifts || []), newShift];
+        const { data } = await adminAPI.updateSettings({ 
+          ...settings, 
+          shifts: updatedShifts, 
+          storeId: currentUser?.storeId 
+        });
+
+        if (data.success) {
+          setSettings({ ...settings, shifts: updatedShifts });
+          toast.success(editingShiftId ? 'Shift Updated ✅' : 'Shift Configuration Saved ✅');
+          setIsCreatingShift(false);
+          setEditingShiftId(null);
+          setShiftForm({ type: 'STANDARD', name: '', isActive: true, sessions: [{ startTime: '09:00', endTime: '18:00' }] });
+        }
+      } catch (err) {
+        toast.error('Failed to save shift');
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    const handleDeleteShift = async (id) => {
+      if (!confirm('Are you sure you want to delete this shift?')) return;
+      const updatedShifts = settings.shifts.filter(s => s.id !== id);
+      try {
+        await adminAPI.updateSettings({ ...settings, shifts: updatedShifts, storeId: currentUser?.storeId });
+        setSettings({ ...settings, shifts: updatedShifts });
+        toast.success('Shift deleted');
+      } catch (err) {
+        toast.error('Failed to delete shift');
+      }
+    };
+
+    const handleToggleShiftStatus = async (id) => {
+      const updatedShifts = settings.shifts.map(s => 
+        s.id === id ? { ...s, isActive: s.isActive === false } : s
+      );
+      try {
+        await adminAPI.updateSettings({ ...settings, shifts: updatedShifts, storeId: currentUser?.storeId });
+        setSettings({ ...settings, shifts: updatedShifts });
+        toast.success('Shift status updated');
+      } catch (err) {
+        toast.error('Failed to update status');
+      }
+    };
+
+    const handleEditShift = (shift) => {
+      setShiftForm({
+        type: shift.type || (shift.sessions?.length > 1 ? 'MULTI_SESSION' : 'STANDARD'),
+        name: shift.name,
+        isActive: shift.isActive !== undefined ? shift.isActive : true,
+        sessions: shift.sessions || [{ startTime: shift.startTime, endTime: shift.endTime }]
+      });
+      setEditingShiftId(shift.id);
+      setIsCreatingShift(true);
+    };
+
+    if (isCreatingShift) {
+      return (
+        <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500 pb-20">
+          <div className="flex items-center justify-between mb-8">
+             <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => { setIsCreatingShift(false); setEditingShiftId(null); setShiftForm({ type: 'STANDARD', name: '', isActive: true, sessions: [{ startTime: '09:00', endTime: '18:00' }] }); }} 
+                  className="p-2.5 bg-white border border-gray-100 rounded-2xl text-gray-400 hover:text-rose-600 transition-all shadow-sm"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">{editingShiftId ? 'Edit Shift Configuration' : 'Create Shift Configuration'}</h2>
+                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mt-1">{editingShiftId ? 'Update Operational Parameters' : 'Define Operational Parameters'}</p>
+                </div>
+             </div>
+          </div>
+
+          <div className="bg-white rounded-[3rem] border border-gray-100 shadow-2xl overflow-hidden p-8 md:p-12 space-y-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="space-y-3">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Shift Type</label>
+                  <select 
+                    value={shiftForm.type} 
+                    onChange={e => {
+                      const type = e.target.value;
+                      setShiftForm({ 
+                        ...shiftForm, 
+                        type, 
+                        sessions: type === 'STANDARD' ? [{ startTime: '09:00', endTime: '18:00' }] : [{ startTime: '09:00', endTime: '13:00' }, { startTime: '15:00', endTime: '19:00' }]
+                      });
+                    }}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-black text-slate-900 appearance-none outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all cursor-pointer"
+                  >
+                    <option value="STANDARD">Standard Shift (Full Day)</option>
+                    <option value="MULTI_SESSION">Multi-Session Shift (Split)</option>
+                  </select>
+               </div>
+
+               <div className="space-y-3">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Shift Name</label>
+                  <div className="flex gap-4">
+                    <input 
+                      type="text" 
+                      placeholder="e.g., General Operations Shift" 
+                      value={shiftForm.name} 
+                      onChange={e => setShiftForm({ ...shiftForm, name: e.target.value })}
+                      className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all" 
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShiftForm({...shiftForm, isActive: !shiftForm.isActive})}
+                      className={`px-6 rounded-2xl border flex items-center gap-2 transition-all ${shiftForm.isActive ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-500'}`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${shiftForm.isActive ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`}></div>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{shiftForm.isActive ? 'Active' : 'Inactive'}</span>
+                    </button>
+                  </div>
+               </div>
+            </div>
+
+            <div className="pt-6 border-t border-gray-50">
+              <div className="flex items-center justify-between mb-6">
+                <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Clock size={16} className="text-violet-600" /> Time Configuration
+                </h4>
+                {shiftForm.type === 'MULTI_SESSION' && (
+                  <button onClick={handleAddSession} className="text-[10px] font-black text-violet-600 uppercase tracking-widest hover:underline flex items-center gap-1">
+                    <Plus size={14} /> Add Session
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-6">
+                {shiftForm.sessions.map((session, idx) => (
+                  <div key={idx} className="bg-slate-50/50 rounded-3xl p-6 border border-slate-100 relative group animate-in zoom-in-95 duration-300">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {shiftForm.type === 'STANDARD' ? 'Operational Hours' : `Session ${idx + 1}`}
+                      </span>
+                      {shiftForm.type === 'MULTI_SESSION' && shiftForm.sessions.length > 1 && (
+                        <button onClick={() => handleRemoveSession(idx)} className="text-rose-400 hover:text-rose-600 transition-colors opacity-0 group-hover:opacity-100">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Start Time</label>
+                        <input type="time" value={session.startTime} onChange={e => handleSessionChange(idx, 'startTime', e.target.value)}
+                          className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">End Time</label>
+                        <input type="time" value={session.endTime} onChange={e => handleSessionChange(idx, 'endTime', e.target.value)}
+                          className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-3.5 text-sm font-black focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 outline-none transition-all" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 bg-violet-50 rounded-3xl border border-violet-100 flex items-center justify-between gap-4">
+               <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-violet-600 shadow-sm">
+                   <FileText size={18} />
+                 </div>
+                 <div>
+                   <p className="text-[10px] font-black text-violet-900 uppercase tracking-widest mb-0.5">Configuration Summary</p>
+                   <p className="text-xs font-bold text-violet-600 italic">
+                     {shiftForm.sessions.length > 1 
+                       ? `Split shift with ${shiftForm.sessions.length} active sessions` 
+                       : `Standard continuous shift: ${formatTime12h(shiftForm.sessions[0].startTime)} to ${formatTime12h(shiftForm.sessions[0].endTime)}`}
+                   </p>
+                 </div>
+               </div>
+               <div className="flex gap-3">
+                 <button onClick={() => { setIsCreatingShift(false); setEditingShiftId(null); }} className="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Cancel</button>
+                 <button onClick={handleSaveShift} disabled={saving} className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-violet-600 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
+                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    {editingShiftId ? 'Update Shift' : 'Save Shift'}
+                 </button>
+               </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
+        {renderHeader('Shift Configuration', 'Manage Operational Sessions', Clock, 'text-emerald-600 bg-emerald-100')}
+        
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Registry</h4>
+          </div>
+          <button 
+            onClick={() => setIsCreatingShift(true)}
+            className="bg-emerald-600 text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <Plus size={18} strokeWidth={3} /> Create Shift
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {(settings.shifts || []).map((shift) => (
+            <div key={shift.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl p-6 relative group overflow-hidden hover:border-emerald-200 transition-all">
+              <div className="absolute top-0 right-0 p-4 flex gap-2">
+                <button onClick={() => handleEditShift(shift)} className="p-2 text-emerald-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                  <Edit size={18} />
+                </button>
+                <button onClick={() => handleDeleteShift(shift.id)} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+              
+              <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 mb-6 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
+                <Clock size={24} />
+              </div>
+
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-sm font-black text-gray-900">{shift.name}</h4>
+                <button 
+                  onClick={() => handleToggleShiftStatus(shift.id)}
+                  className={`px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 ${
+                    shift.isActive !== false 
+                      ? 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100' 
+                      : 'bg-rose-50 border-rose-100 text-rose-500 hover:bg-rose-100'
+                  }`}
+                >
+                  <div className={`w-1.5 h-1.5 rounded-full ${shift.isActive !== false ? 'bg-emerald-500' : 'bg-rose-500'} ${shift.isActive !== false ? 'animate-pulse' : ''}`}></div>
+                  {shift.isActive !== false ? 'Active' : 'Inactive'}
+                </button>
+              </div>
+              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">
+                {shift.type === 'MULTI_SESSION' ? 'Multi-Session Shift' : 'Standard Shift'}
+              </p>
+
+              <div className="space-y-2 border-t border-gray-50 pt-4">
+                 {(shift.sessions || [{startTime: shift.startTime, endTime: shift.endTime}]).map((s, i) => (
+                   <div key={i} className="flex items-center justify-between text-[11px] font-bold text-gray-500">
+                      <span>{shift.type === 'MULTI_SESSION' ? `Session ${i+1}` : 'Timing'}</span>
+                      <span className="text-gray-900 font-black">{formatTime12h(s.startTime)} - {formatTime12h(s.endTime)}</span>
+                   </div>
+                 ))}
+              </div>
+            </div>
+          ))}
+          {(!settings.shifts || settings.shifts.length === 0) && (
+            <div className="col-span-full py-20 text-center bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200">
+               <Clock size={48} className="mx-auto text-gray-200 mb-4" />
+               <p className="text-sm font-bold text-gray-400 uppercase tracking-widest italic">No shifts configured yet</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'EXPENSES') {
+    return (
+      <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+        {renderHeader('Categories', 'Spending Thresholds & Classification', Receipt, 'text-emerald-600 bg-emerald-100')}
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+          <div className="bg-white rounded-[2rem] p-8 border border-gray-50 shadow-xl h-fit">
+            <h4 className="text-[10px] font-black text-emerald-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              {editingExpenseCategoryId ? 'Amend Category' : 'Create Expense Type'}
+            </h4>
+            <form onSubmit={handleSaveExpenseCategory} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Expense Type Name</label>
+                <input type="text" required placeholder="e.g. Vehicle Fuel" value={newExpenseCategory.name} onChange={e => setNewExpenseCategory({...newExpenseCategory, name: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
+              </div>
+              <div className="pt-4 flex flex-col gap-2">
+                <button type="submit" disabled={saving} className="w-full bg-emerald-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]">
+                  {saving ? <Loader2 size={20} className="animate-spin" /> : (editingExpenseCategoryId ? <Save size={20} /> : <Plus size={20} />)}
+                  {saving ? 'Synchronizing...' : (editingExpenseCategoryId ? 'Commit Update' : 'Initialize Expense Type')}
+                </button>
+                {editingExpenseCategoryId && (
+                  <button type="button" onClick={() => { setEditingExpenseCategoryId(null); setNewExpenseCategory({name:'', limit:''}) }}
+                    className="w-full py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 transition-colors">
+                    Discard Selection
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-50 shadow-xl overflow-hidden min-h-[500px]">
+             <div className="px-8 py-6 bg-slate-900 text-slate-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Hash size={18} className="text-emerald-400 opacity-60" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em]">Master Category Index</h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <button onClick={handleApplyDefaultHierarchy} disabled={saving}
+                  className="px-4 py-2 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 transition-all flex items-center gap-2">
+                  <CheckCircle2 size={12}/> Apply Defaults
+                </button>
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search Expenses..." 
+                    value={expenseCategorySearch}
+                    onChange={(e) => setExpenseCategorySearch(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-slate-500 focus:bg-slate-800 outline-none w-48 transition-all"
+                  />
+                </div>
+                <span className="text-[10px] font-black px-4 py-1.5 bg-slate-800 rounded-full border border-slate-700 min-w-fit">{expenseCategories.filter(c => !c.name.includes(' | ')).length} TYPES</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-gray-100">
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">Expense Nature</th>
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {expenseCategories
+                    .filter(c => !c.name.includes(' | '))
+                    .filter(c => c.name.toLowerCase().includes(expenseCategorySearch.toLowerCase()))
+                    .map(category => (
+                    <tr key={category.id} className="hover:bg-emerald-50/30 transition-all group">
+                      <td className="py-5 px-8">
+                        <span className="text-sm font-black text-slate-700">{category.name}</span>
+                      </td>
+                      <td className="py-5 px-8 text-right">
+                        <div className="flex items-center justify-end gap-2 pr-2">
+                          <button onClick={() => { setEditingExpenseCategoryId(category.id); setNewExpenseCategory({ name: category.name, limit: category.limit || '' }) }}
+                            className="p-2 text-emerald-600 hover:bg-white hover:shadow-md rounded-xl transition-all"><Edit size={16} /></button>
+                          <button onClick={() => handleDeleteExpenseCategory(category.id)}
+                            className="p-2 text-rose-400 hover:bg-white hover:shadow-md hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {expenseCategories.length === 0 && !expenseCategoriesLoading && <div className="py-20 text-center text-gray-400 text-xs font-bold font-black uppercase tracking-widest italic opacity-40">Empty Classification Registry</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'SUB_EXPENSES') {
+    const masterCategories = expenseCategories.filter(c => !c.name.includes(' | '));
+    const subCategoriesList = expenseCategories.filter(c => c.name.includes(' | ')).map(c => {
+      const [parent, child] = c.name.split(' | ');
+      return { ...c, parentName: parent, childName: child };
+    });
+
+    return (
+      <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+        {renderHeader('Sub Categories', 'Nested Classification & Mapping', Hash, 'text-emerald-600 bg-emerald-100')}
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+          <div className="bg-white rounded-[2rem] p-8 border border-gray-50 shadow-xl h-fit">
+            <h4 className="text-[10px] font-black text-emerald-900 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              {editingExpenseSubCategoryId ? 'Modify Sub-Type' : 'Establish New Sub-Type'}
+            </h4>
+            <form onSubmit={handleSaveExpenseSubCategory} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Parent Category</label>
+                <select required value={newExpenseSubCategory.parentName} onChange={e => setNewExpenseSubCategory({...newExpenseSubCategory, parentName: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-black text-emerald-800 appearance-none outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white transition-all cursor-pointer">
+                  <option value="">Select Master Category</option>
+                  {masterCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sub-Category Name</label>
+                <input type="text" required placeholder="e.g. Repair & Maintenance" value={newExpenseSubCategory.name} onChange={e => setNewExpenseSubCategory({...newExpenseSubCategory, name: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Single Transaction Limit (₹)</label>
+                <input type="number" placeholder="Optional: No limit" value={newExpenseSubCategory.limit} onChange={e => setNewExpenseSubCategory({...newExpenseSubCategory, limit: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
+              </div>
+              <div className="pt-4 flex flex-col gap-2">
+                <button type="submit" disabled={saving} className="w-full bg-emerald-600 text-white font-black py-5 rounded-2xl shadow-2xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]">
+                  {saving ? <Loader2 size={20} className="animate-spin" /> : (editingExpenseSubCategoryId ? <Save size={20} /> : <Plus size={20} />)}
+                  {saving ? 'Synchronizing...' : (editingExpenseSubCategoryId ? 'Commit Update' : 'Initialize Sub-Type')}
+                </button>
+                {editingExpenseSubCategoryId && (
+                  <button type="button" onClick={() => { setEditingExpenseSubCategoryId(null); setNewExpenseSubCategory({name:'', parentName:''}) }}
+                    className="w-full py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 transition-colors">
+                    Discard Selection
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-50 shadow-xl overflow-hidden min-h-[500px]">
+             <div className="px-8 py-6 bg-slate-900 text-slate-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Hash size={18} className="text-emerald-400 opacity-60" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em]">Sub Category Index</h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search Sub-Cats..." 
+                    value={expenseSubCategorySearch}
+                    onChange={(e) => setExpenseSubCategorySearch(e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-slate-500 focus:bg-slate-800 outline-none w-48 transition-all"
+                  />
+                </div>
+                <span className="text-[10px] font-black px-4 py-1.5 bg-slate-800 rounded-full border border-slate-700 min-w-fit">{subCategoriesList.length} ITEMS</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-gray-100">
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">Sub-Category</th>
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Parent Type</th>
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Txn Limit</th>
+                    <th className="py-5 px-8 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {subCategoriesList
+                    .filter(s => s.childName.toLowerCase().includes(expenseSubCategorySearch.toLowerCase()) || s.parentName.toLowerCase().includes(expenseSubCategorySearch.toLowerCase()))
+                    .map(sub => (
+                    <tr key={sub.id} className="hover:bg-emerald-50/30 transition-all group">
+                      <td className="py-5 px-8">
+                        <span className="text-sm font-black text-slate-700">{sub.childName}</span>
+                      </td>
+                      <td className="py-5 px-8 text-center">
+                        <span className="inline-block px-3 py-1.5 bg-gray-100 text-gray-500 text-[10px] font-black rounded-lg border border-gray-200 uppercase tracking-tighter">{sub.parentName}</span>
+                      </td>
+                      <td className="py-5 px-8 text-center">
+                        {sub.limit ? (
+                          <span className="inline-block px-3 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-lg border border-emerald-100">₹{sub.limit.toLocaleString()}</span>
+                        ) : (
+                          <span className="text-xs font-bold text-gray-300 italic">No limit</span>
+                        )}
+                      </td>
+                      <td className="py-5 px-8 text-right">
+                        <div className="flex items-center justify-end gap-2 pr-2">
+                          <button onClick={() => { setEditingExpenseSubCategoryId(sub.id); setNewExpenseSubCategory({ name: sub.childName, parentName: sub.parentName, limit: sub.limit || '' }) }}
+                            className="p-2 text-emerald-600 hover:bg-white hover:shadow-md rounded-xl transition-all"><Edit size={16} /></button>
+                          <button onClick={() => handleDeleteExpenseCategory(sub.id)}
+                            className="p-2 text-rose-400 hover:bg-white hover:shadow-md hover:text-rose-600 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {subCategoriesList.length === 0 && !expenseCategoriesLoading && <div className="py-20 text-center text-gray-400 text-xs font-bold font-black uppercase tracking-widest italic opacity-40">No Sub-Hierarchies Established</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModal === 'LATE_RULES') {
+    return (
+      <div className="space-y-6 pb-20">
+        <div className="flex items-center gap-4 mb-8">
+          <button 
+            onClick={() => setActiveModal(null)}
+            className="p-2.5 bg-white border border-gray-100 rounded-2xl text-gray-400 hover:text-emerald-600 transition-all shadow-sm group"
+          >
+            <ArrowLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+          <div>
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Late Entry Rules</h2>
+            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mt-1 italic">Attendance Policy Configuration</p>
+          </div>
+        </div>
+        <AdminLateEntryConfig />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 pb-20">
+      <div className="flex flex-col gap-1 px-2">
+        <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+        <p className="text-sm text-gray-500 font-medium">Configure your platform behavior</p>
+      </div>
+
+      <div className="space-y-4">
+        {sections.map((section) => (
+          <div key={section.title} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mx-1">
+            <div className="p-4 bg-gray-50/50 border-b border-gray-100 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <section.icon size={18} />
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">{section.title}</h3>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {section.items.map((item) => (
+                <button 
+                  key={item.label} 
+                  onClick={item.action}
+                  className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors group text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="text-sm text-gray-600 group-hover:text-emerald-600 font-bold transition-colors">{item.label}</span>
+                  <ChevronRight size={16} className="text-gray-300 group-hover:text-emerald-500 transition-colors" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+

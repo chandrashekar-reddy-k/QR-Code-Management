@@ -38,7 +38,7 @@ import StoreSelector from '../StoreSelector';
 // Modals
 import { 
   OpenStoreModal, CloseStoreModal, EditStoreModal, SafeMovementModal, 
-  BankDepositModal, DepositConfirmModal 
+  BankDepositModal, DepositConfirmModal, InitializeSafeAlertModal
 } from './StoreSafeModals';
 import { 
   AssignFloatModal, EditReconciliationModal, DeleteModal, 
@@ -91,6 +91,7 @@ export default function AdminCashManagementContent() {
 
   // Assignment Modal
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showInitAlertModal, setShowInitAlertModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentData, setAssignmentData] = useState({
     vehicleId: '', shift: 1, amount: 0, isNoService: false,
@@ -924,7 +925,9 @@ export default function AdminCashManagementContent() {
                 {can('CASH', 'CREATE', 'FLOAT_ASSIGNMENT') && (
                   <button 
                     onClick={() => {
-                      if (!storeRegisterData?.storeRegister || storeRegisterData.storeRegister.status !== 'OPEN') return toast.error('Initialize Safe first');
+                      if (!storeRegisterData?.storeRegister || storeRegisterData.storeRegister.status !== 'OPEN') {
+                        return setShowInitAlertModal(true);
+                      }
                       setViewingAssignFloat(true);
                     }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/10 active:scale-95 flex items-center gap-3 ml-2"
@@ -1002,6 +1005,7 @@ export default function AdminCashManagementContent() {
       {/* Modals */}
       <OpenStoreModal show={showOpenStoreModal} setShow={setShowOpenStoreModal} storeModalStep={storeModalStep} setStoreModalStep={setStoreModalStep} storeRegisterData={storeRegisterData} storeDenomData={storeDenomData} setStoreDenomData={setStoreDenomData} handleDenominationChange={handleDenominationChange} handleOpenStoreRegister={handleOpenStoreRegister} isSubmitting={isSubmitting} />
       <CloseStoreModal show={showCloseStoreModal} setShow={setShowCloseStoreModal} storeRegisterData={storeRegisterData} storeDenomData={storeDenomData} setStoreDenomData={setStoreDenomData} handleDenominationChange={handleDenominationChange} handleCloseStoreRegister={handleCloseStoreRegister} isSubmitting={isSubmitting} />
+      <InitializeSafeAlertModal show={showInitAlertModal} setShow={setShowInitAlertModal} onOpenSafe={() => setShowOpenStoreModal(true)} />
       <EditStoreModal show={showEditStoreModal} setShow={setShowEditStoreModal} storeDenomData={storeDenomData} handleDenominationChange={handleDenominationChange} handleUpdateStoreRegister={handleUpdateStoreRegister} isSubmitting={isSubmitting} />
       <SafeMovementModal show={showSafeMovementModal} setShow={setShowSafeMovementModal} safeMovementData={safeMovementData} setSafeMovementData={setSafeMovementData} handleDenominationChange={handleDenominationChange} handleSafeMovement={handleSafeMovement} isSubmitting={isSubmitting} storeRegisterData={storeRegisterData} />
       <BankDepositModal show={showBankModal} setShow={setShowBankModal} bankData={bankData} setBankData={setBankData} storeRegisterData={storeRegisterData} user={user} handleCreateBankDeposit={handleCreateBankDeposit} isSubmitting={isSubmitting} setPreviewImage={setPreviewImage} adminAPI={adminAPI} toast={toast} />
