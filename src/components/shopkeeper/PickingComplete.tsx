@@ -141,15 +141,23 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
           { label: "Order Type", value: order.order_type || "Quick Commerce" },
           {
             label: "Pick Start",
-            value: order.picking_started_at
-              ? new Date(order.picking_started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-              : "—",
+            value: (() => {
+              const val = order.pickingStartedAt || order.picking_started_at;
+              if (val === undefined || val === null || val === "" || String(val).toLowerCase() === "null") return "—";
+              const date = new Date(val);
+              if (isNaN(date.getTime())) return "—";
+              return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+            })(),
           },
           {
             label: "Pick End",
-            value: order.picking_completed_at
-              ? new Date(order.picking_completed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-              : "—",
+            value: (() => {
+              const val = order.pickingCompletedAt || order.picking_completed_at;
+              if (val === undefined || val === null || val === "" || String(val).toLowerCase() === "null") return "—";
+              const date = new Date(val);
+              if (isNaN(date.getTime())) return "—";
+              return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+            })(),
           },
           { label: "Success Rate", value: `${successRate}%` },
         ].map((row) => (

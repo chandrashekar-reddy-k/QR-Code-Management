@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, ShoppingBag, Package, PackageCheck, User } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, Settings as SettingsIcon, History } from "lucide-react";
 import { Dashboard } from "../components/shopkeeper/Dashboard";
 import { NewOrders } from "../components/shopkeeper/NewOrders";
 import { OrderDetails } from "../components/shopkeeper/OrderDetails";
@@ -15,6 +15,7 @@ import { SelfPickup } from "../components/shopkeeper/SelfPickup";
 import { Returns } from "../components/shopkeeper/Returns";
 import { SLAMonitoring } from "../components/shopkeeper/SLAMonitoring";
 import { Settings } from "../components/shopkeeper/Settings";
+import { AllOrders } from "../components/shopkeeper/AllOrders";
 import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 
@@ -37,6 +38,7 @@ api.interceptors.request.use((config) => {
 type Screen =
   | "dashboard"
   | "new-orders"
+  | "all-orders"
   | "order-details"
   | "picking-queue"
   | "picking-screen"
@@ -52,8 +54,29 @@ type Screen =
   | "profile"
   | "settings";
 
-function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void }) {
+function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) => void; onBack: () => void }) {
   const [stats, setStats] = useState({ orders: 0, completed: 0, sla: 100, selfPickup: 0 });
+  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (err) {
+      console.error("Failed to parse user from localStorage", err);
+    }
+  }, []);
+
+  const name = user?.name || "Shopkeeper";
+  const email = user?.email || "shopkeeper@gmail.com";
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -86,7 +109,7 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
     {
       title: "Store Info",
       items: [
-        { label: "Hyderabad Store 01", icon: "🏬", desc: "Store Manager: Rohit Singh" },
+        { label: "Hyderabad Store 01", icon: "🏬", desc: `Store Manager: ${name}` },
         { label: "Operating Hours", icon: "🕐", desc: "6:00 AM – 11:00 PM" },
         { label: "Store Performance", icon: "⭐", desc: "4.8 / 5.0 Rating" },
       ],
@@ -95,11 +118,19 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
-      <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-14 pb-8 flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-3">
-          <span className="text-white font-bold text-2xl">RS</span>
+      <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-8 flex flex-col items-center relative">
+        <div className="absolute top-12 left-4">
+          <button
+            onClick={onBack}
+            className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+          >
+            <ArrowLeft size={20} color="white" />
+          </button>
         </div>
-        <h1 className="text-white font-bold text-xl">Rohit Singh</h1>
+        <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-3">
+          <span className="text-white font-bold text-2xl">{initials}</span>
+        </div>
+        <h1 className="text-white font-bold text-xl">{name}</h1>
         <p className="text-white/70 text-xs">Store Manager · Hyderabad Store 01</p>
         <div className="flex gap-3 mt-3">
           {[
@@ -150,7 +181,13 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
             ))}
           </div>
         ))}
-        <button className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-center gap-2 border border-red-100 hover:bg-red-50 transition-colors">
+        <button
+          onClick={() => {
+            localStorage.clear();
+            window.location.href = "/login";
+          }}
+          className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-center gap-2 border border-red-100 hover:bg-red-50 transition-colors w-full"
+        >
           <span className="text-red-600 font-semibold text-sm">Sign Out</span>
         </button>
       </div>
@@ -161,14 +198,20 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
 export default function ShopkeeperERP() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [orderData, setOrderData] = useState<unknown>(null);
+  const [allOrdersStatus, setAllOrdersStatus] = useState<string | undefined>(undefined);
   const [history, setHistory] = useState<Screen[]>([]);
   const location = useLocation();
   const reactNavigate = useReactNavigate();
 
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/login";
+  };
+
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get("tab") || "dashboard";
-    
+
     const isSubScreenOfTab = (currentScreen: string, targetTab: string) => {
       if (targetTab === "new-orders" && currentScreen === "order-details") return true;
       if (targetTab === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(currentScreen)) return true;
@@ -183,15 +226,23 @@ export default function ShopkeeperERP() {
 
   const navigate = (dest: string, data?: unknown) => {
     setHistory(prev => [...prev, screen]);
-    
+
+    // Handle all-orders with optional status filter
+    if (dest === "all-orders") {
+      setAllOrdersStatus(typeof data === 'string' ? data : undefined);
+      setScreen("all-orders");
+      reactNavigate(`/shopkeeper?tab=all-orders`);
+      return;
+    }
+
     // Check if the destination is a primary tab in the sidebar
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "all-orders"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper?tab=${dest}`);
     } else {
       setScreen(dest as Screen);
     }
-    
+
     if (data !== undefined) setOrderData(data);
   };
 
@@ -199,14 +250,16 @@ export default function ShopkeeperERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "all-orders"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper?tab=${prev}`);
+        setScreen(prev as Screen);
       } else {
         setScreen(prev);
       }
     } else {
       reactNavigate("/shopkeeper?tab=dashboard");
+      setScreen("dashboard");
     }
   };
 
@@ -215,6 +268,7 @@ export default function ShopkeeperERP() {
       <div className="w-full">
         {screen === "dashboard" && <Dashboard onNavigate={navigate} />}
         {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} />}
+        {screen === "all-orders" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
         {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} />}
         {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
@@ -227,17 +281,129 @@ export default function ShopkeeperERP() {
         {screen === "self-pickup" && <SelfPickup onBack={goBack} />}
         {screen === "returns" && <Returns onBack={goBack} />}
         {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} />}
-        {screen === "profile" && <ProfileScreen onNavigate={navigate} />}
+        {screen === "profile" && <ProfileScreen onNavigate={navigate} onBack={goBack} />}
         {screen === "settings" && <Settings />}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] p-4 flex flex-col items-center" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
-      {/* Screen container */}
-      <div className="w-full max-w-4xl flex-1">
-        {renderScreen()}
+    <div className="min-h-screen bg-[#F5F7FA] flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 flex-shrink-0 h-screen sticky top-0">
+        {/* Logo or Brand */}
+        <div className="p-6 border-b border-gray-50 flex items-center gap-3 justify-center">
+          <img
+            src="/villagkart_logo_name_new.svg"
+            alt="VillagKart"
+            className="h-10 w-auto object-contain"
+          />
+        </div>
+        
+        {/* Navigation Items */}
+        <nav className="flex-1 p-4 space-y-1">
+          {[
+            { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+            { id: "new-orders", label: "Inbox Orders", icon: <ShoppingBag size={18} /> },
+            { id: "all-orders", label: "Order History", icon: <History size={18} /> },
+            { id: "picking-queue", label: "Picking Queue", icon: <Package size={18} /> },
+            { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={18} /> },
+            { id: "profile", label: "Profile", icon: <User size={18} /> },
+            { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
+          ].map((item) => {
+            const isActive = screen === item.id || (
+              item.id === "new-orders" && screen === "order-details"
+            ) || (
+              item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
+            ) || (
+              item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
+            );
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  isActive
+                    ? "bg-[#00891D]/10 text-[#00891D]"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                }`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        
+        {/* Sign Out Button */}
+        <div className="p-4 border-t border-gray-50">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-all"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile Header / Navigation */}
+        <header className="md:hidden bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+          <img
+            src="/villagkart_logo_name_new.svg"
+            alt="VillagKart"
+            className="h-8 w-auto object-contain"
+          />
+          <button
+            onClick={() => navigate("all-orders")}
+            className="flex items-center gap-1.5 text-[#00891D] font-semibold text-xs bg-[#00891D]/10 px-3 py-1.5 rounded-lg active:scale-95 transition-all"
+          >
+            <History size={14} />
+            <span>History</span>
+          </button>
+        </header>
+
+        {/* Content Body */}
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto w-full">
+          {renderScreen()}
+        </main>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="md:hidden bg-white border-t border-gray-100 flex justify-around py-2 sticky bottom-0 z-30">
+          {[
+            { id: "dashboard", label: "Home", icon: <LayoutDashboard size={18} /> },
+            { id: "new-orders", label: "Inbox", icon: <ShoppingBag size={18} /> },
+            { id: "picking-queue", label: "Picking", icon: <Package size={18} /> },
+            { id: "packing-queue", label: "Packing", icon: <PackageCheck size={18} /> },
+            { id: "profile", label: "Profile", icon: <User size={18} /> },
+          ].map((item) => {
+            const isActive = screen === item.id || (
+              item.id === "new-orders" && screen === "order-details"
+            ) || (
+              item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
+            ) || (
+              item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
+            );
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(item.id)}
+                className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold transition-all ${
+                  isActive ? "text-[#00891D]" : "text-gray-400"
+                }`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

@@ -401,19 +401,19 @@ export function Settings() {
   return (
     <div className="w-full bg-[#F5F7FA] min-h-screen">
       {/* Header section */}
-      <div className="bg-white px-6 py-5 border-b border-gray-200 shadow-sm rounded-2xl mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+      <div className="bg-white px-4 md:px-6 py-5 border-b border-gray-200 shadow-sm rounded-2xl mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
           <MapPin className="text-[#00891D]" size={24} /> Warehouse Settings
         </h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="text-gray-500 text-xs md:text-sm mt-1">
           Configure store layout structure (Racks, Shelves, Trays) and assign products to their physical locations.
         </p>
 
         {/* Tab Buttons */}
-        <div className="flex gap-4 mt-6 border-b border-gray-100">
+        <div className="flex gap-4 mt-6 border-b border-gray-100 overflow-x-auto whitespace-nowrap no-scrollbar">
           <button
             onClick={() => setActiveTab("layout")}
-            className={`pb-3 font-semibold text-sm transition-all border-b-2 px-1 ${
+            className={`pb-3 font-semibold text-xs md:text-sm transition-all border-b-2 px-1 ${
               activeTab === "layout"
                 ? "border-[#00891D] text-[#00891D]"
                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -423,7 +423,7 @@ export function Settings() {
           </button>
           <button
             onClick={() => setActiveTab("mapping")}
-            className={`pb-3 font-semibold text-sm transition-all border-b-2 px-1 ${
+            className={`pb-3 font-semibold text-xs md:text-sm transition-all border-b-2 px-1 ${
               activeTab === "mapping"
                 ? "border-[#00891D] text-[#00891D]"
                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -435,7 +435,7 @@ export function Settings() {
       </div>
 
       {/* Success/Error Alerts */}
-      <div className="max-w-4xl mx-auto px-2">
+      <div className="max-w-4xl mx-auto px-4">
         {successMsg && (
           <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 text-green-700 text-sm shadow-sm animate-fadeIn">
             <CheckCircle2 size={18} />
@@ -451,7 +451,7 @@ export function Settings() {
       </div>
 
       {/* Tab Contents */}
-      <div className="max-w-4xl mx-auto px-2 pb-16">
+      <div className="max-w-4xl mx-auto px-4 pb-16">
         
         {/* ======================================================== */}
         {/* TAB 1: STORE LAYOUT                                      */}
@@ -459,8 +459,8 @@ export function Settings() {
         {activeTab === "layout" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            {/* Create Forms (Left column) */}
-            <div className="md:col-span-1 flex flex-col gap-6">
+            {/* Create Forms (Left column, grid-based layout for responsiveness) */}
+            <div className="md:col-span-1 grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 gap-6">
               
               {/* Rack form */}
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -474,12 +474,12 @@ export function Settings() {
                     placeholder="Rack Name (e.g. Rack A)"
                     value={newRackName}
                     onChange={(e) => setNewRackName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    className="w-full text-xs px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                   />
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
                     {submitting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                     Create Rack
@@ -506,12 +506,12 @@ export function Settings() {
                     placeholder="Shelf Name (e.g. Shelf 1)"
                     value={newShelfName}
                     onChange={(e) => setNewShelfName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    className="w-full text-xs px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                   />
                   <button
                     type="submit"
                     disabled={submitting || !selectedRackForShelf}
-                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
                     {submitting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                     Create Shelf
@@ -549,12 +549,12 @@ export function Settings() {
                     placeholder="Tray Name (e.g. Tray X)"
                     value={newTrayName}
                     onChange={(e) => setNewTrayName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    className="w-full text-xs px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                   />
                   <button
                     type="submit"
                     disabled={submitting || !selectedShelfForTray}
-                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
                     {submitting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                     Create Tray
@@ -565,7 +565,7 @@ export function Settings() {
             </div>
 
             {/* Layout Tree list (Right 2 columns) */}
-            <div className="md:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="md:col-span-2 bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
               <h3 className="font-bold text-gray-800 text-base mb-4 flex items-center gap-2">
                 🏠 Store Layout Hierarchy
               </h3>
@@ -583,7 +583,7 @@ export function Settings() {
               ) : (
                 <div className="flex flex-col gap-4">
                   {racks.map(rack => (
-                    <div key={rack.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+                    <div key={rack.id} className="border border-gray-100 rounded-xl p-3 md:p-4 bg-gray-50/50">
                       <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
                         <span className="font-bold text-gray-800 text-sm flex items-center gap-1.5">
                           📂 {rack.name}
@@ -599,7 +599,7 @@ export function Settings() {
                       {rack.shelves.length === 0 ? (
                         <p className="text-gray-400 text-[11px] italic ml-6">No shelves under this rack.</p>
                       ) : (
-                        <div className="flex flex-col gap-3 ml-4 pl-2 border-l-2 border-gray-200">
+                        <div className="flex flex-col gap-3 ml-2 md:ml-4 pl-2 border-l-2 border-gray-200">
                           {rack.shelves.map(shelf => (
                             <div key={shelf.id} className="bg-white rounded-lg p-3 border border-gray-100 shadow-2xs">
                               <div className="flex justify-between items-center mb-1">
@@ -617,16 +617,16 @@ export function Settings() {
                               {shelf.trays.length === 0 ? (
                                 <p className="text-gray-400 text-[10px] italic ml-5">No trays on this shelf.</p>
                               ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 ml-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 ml-2 md:ml-4">
                                   {shelf.trays.map(tray => (
                                     <div 
                                       key={tray.id} 
-                                      className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded-md px-2.5 py-1 text-[11px] text-gray-600 font-medium"
+                                      className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded-md px-2 py-1 text-[10px] md:text-[11px] text-gray-600 font-medium"
                                     >
-                                      <span>📥 {tray.name}</span>
+                                      <span className="truncate">📥 {tray.name}</span>
                                       <button
                                         onClick={() => handleDeleteEntity("tray", tray.id, tray.name)}
-                                        className="text-red-400 hover:text-red-600 ml-1"
+                                        className="text-red-400 hover:text-red-600 ml-1 flex-shrink-0"
                                       >
                                         <Trash2 size={10} />
                                       </button>
@@ -655,15 +655,15 @@ export function Settings() {
           <div className="flex flex-col gap-6">
             
             {/* Mapping configuration form */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100">
               <h3 className="font-bold text-gray-800 text-base mb-4 flex items-center gap-2">
                 📍 Map Product to Location
               </h3>
               
-              <form onSubmit={handleMapProduct} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <form onSubmit={handleMapProduct} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
                 
                 {/* Product Search & Select */}
-                <div className="flex flex-col gap-1.5 md:col-span-1">
+                <div className="flex flex-col gap-1.5 sm:col-span-2 md:col-span-1">
                   <div className="relative mb-0.5">
                     <label className="text-xs font-semibold text-gray-600 block mb-1">1. Select Product</label>
                     <input
@@ -671,9 +671,9 @@ export function Settings() {
                       placeholder="Search product..."
                       value={searchProductQuery}
                       onChange={(e) => setSearchProductQuery(e.target.value)}
-                      className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                      className="w-full text-xs pl-8 pr-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                     />
-                    <Search className="absolute left-2.5 top-[29px] text-gray-400" size={14} />
+                    <Search className="absolute left-2.5 top-[32px] text-gray-400" size={14} />
                   </div>
                   <CustomSelect
                     label=""
@@ -688,7 +688,7 @@ export function Settings() {
                 </div>
 
                 {/* Rack Selector */}
-                <div className="flex flex-col gap-1.5 md:col-span-1">
+                <div className="flex flex-col gap-1.5">
                   <CustomSelect
                     label="2. Select Rack"
                     value={selectedRackForMap}
@@ -703,7 +703,7 @@ export function Settings() {
                 </div>
 
                 {/* Shelf Selector */}
-                <div className="flex flex-col gap-1.5 md:col-span-1">
+                <div className="flex flex-col gap-1.5">
                   <CustomSelect
                     label="3. Select Shelf"
                     disabled={!selectedRackForMap}
@@ -718,7 +718,7 @@ export function Settings() {
                 </div>
 
                 {/* Tray Selector */}
-                <div className="flex flex-col gap-1.5 md:col-span-1">
+                <div className="flex flex-col gap-1.5">
                   <CustomSelect
                     label="4. Select Tray"
                     disabled={!selectedShelfForMap}
@@ -729,11 +729,11 @@ export function Settings() {
                   />
                 </div>
 
-                <div className="md:col-span-4 mt-2">
+                <div className="sm:col-span-2 md:col-span-4 mt-2">
                   <button
                     type="submit"
                     disabled={submitting || !selectedProductKey || !selectedTrayForMap}
-                    className="w-full md:w-auto bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs px-6 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 ml-auto"
+                    className="w-full md:w-auto bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs px-6 py-3 rounded-lg transition-colors flex items-center justify-center gap-1.5 ml-auto"
                   >
                     {submitting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                     Assign Product Location
@@ -744,7 +744,7 @@ export function Settings() {
             </div>
 
             {/* Mapped Products list */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 overflow-hidden">
               <h3 className="font-bold text-gray-800 text-base mb-4">
                 📋 Current Product Locations
               </h3>
@@ -760,42 +760,75 @@ export function Settings() {
                   <p className="text-xs mt-1">Select a product and layout items above to map your inventory.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-100 text-gray-400 text-[10px] uppercase font-bold tracking-wider bg-gray-50/50">
-                        <th className="py-3 px-4">Product Name</th>
-                        <th className="py-3 px-4">SKU / Batch</th>
-                        <th className="py-3 px-4">Location</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mappings.map(map => (
-                        <tr key={map.id} className="border-b border-gray-50 hover:bg-gray-50/30 transition-colors text-xs text-gray-700">
-                          <td className="py-3.5 px-4 font-medium text-gray-800">
-                            {map.product.name}
-                          </td>
-                          <td className="py-3.5 px-4 font-mono text-[11px] text-gray-500">
-                            {map.product.sku || "—"}
-                          </td>
-                          <td className="py-3.5 px-4 font-semibold text-[#00891D]">
-                            {map.tray.shelf.rack.name} / {map.tray.shelf.name} / {map.tray.name}
-                          </td>
-                          <td className="py-3.5 px-4 text-right">
-                            <button
-                              onClick={() => handleUnmapProduct(map.id, map.product.name)}
-                              className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors"
-                              title="Remove location assignment"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
+                <>
+                  {/* Mobile Card list view */}
+                  <div className="block sm:hidden space-y-3">
+                    {mappings.map(map => (
+                      <div key={map.id} className="bg-gray-50/50 border border-gray-100 rounded-xl p-3 flex flex-col gap-2 relative">
+                        <div className="pr-8">
+                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Product</span>
+                          <p className="text-xs font-bold text-gray-800">{map.product.name}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100/50">
+                          <div>
+                            <span className="text-[10px] text-gray-400">SKU / Batch</span>
+                            <p className="text-xs font-mono text-gray-600 truncate">{map.product.sku || "—"}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-gray-400">Location</span>
+                            <p className="text-xs font-bold text-[#00891D] truncate">
+                              {map.tray?.shelf?.rack?.name || "R"} / {map.tray?.shelf?.name || "S"} / {map.tray?.name || "T"}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleUnmapProduct(map.id, map.product.name)}
+                          className="absolute top-2.5 right-2.5 text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-gray-400 text-[10px] uppercase font-bold tracking-wider bg-gray-50/50">
+                          <th className="py-3 px-4">Product Name</th>
+                          <th className="py-3 px-4">SKU / Batch</th>
+                          <th className="py-3 px-4">Location</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {mappings.map(map => (
+                          <tr key={map.id} className="border-b border-gray-50 hover:bg-gray-50/30 transition-colors text-xs text-gray-700">
+                            <td className="py-3.5 px-4 font-medium text-gray-800">
+                              {map.product.name}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-[11px] text-gray-500">
+                              {map.product.sku || "—"}
+                            </td>
+                            <td className="py-3.5 px-4 font-semibold text-[#00891D]">
+                              {map.tray?.shelf?.rack?.name || "R"} / {map.tray?.shelf?.name || "S"} / {map.tray?.name || "T"}
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <button
+                                onClick={() => handleUnmapProduct(map.id, map.product.name)}
+                                className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors"
+                                title="Remove location assignment"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
 

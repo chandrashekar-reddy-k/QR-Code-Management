@@ -70,6 +70,7 @@ const mapRoleToApiValue = (displayRole: string): string => {
     "Support Staff": "SUPPORT_STAFF",
     "Content Manager": "CONTENT_MANAGER",
     "Moderator": "MODERATOR",
+    "Shopkeeper": "SHOPKEEPER",
   };
   return roleMap[displayRole] || displayRole.toUpperCase().replace(/\s+/g, "_");
 };
@@ -83,6 +84,7 @@ const mapApiValueToRole = (apiRole: string): string => {
     "SUPPORT_STAFF": "Support Staff",
     "CONTENT_MANAGER": "Content Manager",
     "MODERATOR": "Moderator",
+    "SHOPKEEPER": "Shopkeeper",
   };
   return reverseRoleMap[apiRole] || apiRole;
 };
@@ -377,6 +379,7 @@ const AddEditAdmin = () => {
                       <option value="Support Staff">Support Staff</option>
                       <option value="Content Manager">Content Manager</option>
                       <option value="Moderator">Moderator</option>
+                      <option value="Shopkeeper">Shopkeeper</option>
                     </select>
                     {errors.role && (
                       <p className="text-red-500 dark:text-red-400 text-[10px] mt-0.5">
