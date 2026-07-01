@@ -1,0 +1,15 @@
+{
+  "env": {
+    "VITE_GOOGLE_MAPS_API_KEY": "AIzaSyC8jvNYaqaeCvWv0zyANSaWClNxMGgQqi0"
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://52.66.255.38:5001/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

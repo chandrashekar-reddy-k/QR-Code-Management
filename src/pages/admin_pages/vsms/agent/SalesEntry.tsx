@@ -173,7 +173,7 @@ export default function SalesEntry() {
       {/* Sticky Combined Input Section */}
       <div className="sticky top-[56px] z-20 bg-slate-50/90 backdrop-blur-xl border-b border-emerald-100/30 pb-2 pt-2 shadow-sm">
         <div className="max-w-lg mx-auto px-5 space-y-2">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Customer Name */}
             <div className="glass rounded-[1.25rem] p-1 flex items-center gap-2 border border-emerald-100 bg-white/70 shadow-sm focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:bg-white focus:border-emerald-500 transition-all overflow-hidden">
               <div className="bg-emerald-50 p-1 rounded-xl text-emerald-500 ml-1">
@@ -206,7 +206,7 @@ export default function SalesEntry() {
           </div>
 
           {/* Search */}
-          <div className="glass rounded-[1.25rem] p-1 flex items-center gap-3 border border-emerald-100 bg-white/70 shadow-sm focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:bg-white focus:border-emerald-500 transition-all">
+          <div className="glass rounded-[1.25rem] p-1 flex flex-wrap items-center gap-2 sm:gap-3 border border-emerald-100 bg-white/70 shadow-sm focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:bg-white focus:border-emerald-500 transition-all">
             <div className="bg-emerald-50 p-1.5 rounded-xl text-emerald-500 ml-1">
               <Search size={18} strokeWidth={2.5} />
             </div>

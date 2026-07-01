@@ -53,7 +53,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, refreshUserProfile } = useUserStore();
+  const { user, refreshUserProfile } = useUserStore() as any;
   const agentName = user?.name || localStorage.getItem('userName') || 'Agent';
 
   useEffect(() => {
@@ -77,14 +77,14 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       {/* Sidebar Header */}
       <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-200 dark:shadow-none">
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200 dark:shadow-none">
             <Store size={20} strokeWidth={2.5} />
           </div>
           <div>
             <h1 className="text-sm font-black text-slate-900 dark:text-white tracking-tight leading-tight">
               Agent Portal
             </h1>
-            <p className="text-[9px] font-bold text-orange-600 uppercase tracking-widest mt-0.5">
+            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">
               Operations
             </p>
           </div>
@@ -114,11 +114,11 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
                   onClick={() => setIsOpen(false)}
                   className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-xs font-bold uppercase tracking-wider ${
                     isActive
-                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-200 dark:shadow-none'
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-none'
                       : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-750 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  <Icon size={16} strokeWidth={isActive ? 3 : 2.5} className={isActive ? 'text-white' : 'text-orange-500'} />
+                  <Icon size={16} strokeWidth={isActive ? 3 : 2.5} className={isActive ? 'text-white' : 'text-emerald-500'} />
                   <span className="flex-grow">{item.label}</span>
                 </NavLink>
               );
@@ -130,7 +130,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       {/* User Footer */}
       <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 flex-shrink-0">
         <div className="mx-2 p-3 rounded-2xl bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 shadow-sm flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 font-black text-sm border border-orange-100 dark:border-orange-900/30 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 font-black text-sm border border-emerald-100 dark:border-emerald-900/30 shrink-0">
             {agentName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -163,7 +163,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       {/* Mobile Drawer (Collapsible) */}
       {isOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -186,7 +186,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
               <span className="hidden sm:inline text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider">
                 Welcome back, {agentName}
               </span>
-              <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white text-xs font-black">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-black">
                 {agentName.charAt(0).toUpperCase()}
               </div>
             </div>

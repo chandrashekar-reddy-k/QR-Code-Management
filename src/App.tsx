@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
@@ -20,9 +21,20 @@ import { ToastContainer } from "react-toastify";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
+
+  if (isAgentPortal) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
   }
 
   return (
