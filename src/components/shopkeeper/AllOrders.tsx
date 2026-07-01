@@ -145,7 +145,7 @@ export function AllOrders({ onBack, initialStatus }: AllOrdersProps) {
           <ArrowLeft size={20} color="white" />
         </button>
         <div>
-          <h1 className="text-white text-xl font-bold">All Orders</h1>
+          <h1 className="text-white text-xl font-bold">Order History</h1>
           <p className="text-white/80 text-xs">{filteredOrders.length} orders total</p>
         </div>
       </div>

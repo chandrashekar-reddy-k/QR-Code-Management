@@ -46,6 +46,7 @@ import {
   HelpCircle,
   Link2,      // ← ADD
   BookOpen,   // ← ADD
+  History,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -193,6 +194,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/shopkeeper?tab=new-orders", label: "Inbox Orders", icon: ShoppingCart },
       { path: "/shopkeeper?tab=picking-queue", label: "Picking Queue", icon: Package },
       { path: "/shopkeeper?tab=packing-queue", label: "Packing Queue", icon: Boxes },
+      { path: "/shopkeeper?tab=all-orders", label: "Order History", icon: History },
       { path: "/shopkeeper?tab=profile", label: "Profile", icon: Users },
       { path: "/shopkeeper?tab=settings", label: "Settings", icon: Settings },
     ],
