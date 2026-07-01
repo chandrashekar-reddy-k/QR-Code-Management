@@ -183,22 +183,7 @@ export const sidebarConfig: MenuSection[] = [
     label: "Warehouse Dashboard",
     icon: Home,
   },
-  {
-    type: "collapsible",
-    label: "Shopkeeper ERP",
-    icon: Store,
-    stateKey: "isShopkeeperOpen",
-    activeCheck: (pathname: string) => pathname.startsWith("/shopkeeper"),
-    subItems: [
-      { path: "/shopkeeper?tab=dashboard", label: "Dashboard", icon: Home },
-      { path: "/shopkeeper?tab=new-orders", label: "Inbox Orders", icon: ShoppingCart },
-      { path: "/shopkeeper?tab=picking-queue", label: "Picking Queue", icon: Package },
-      { path: "/shopkeeper?tab=packing-queue", label: "Packing Queue", icon: Boxes },
-      { path: "/shopkeeper?tab=all-orders", label: "Order History", icon: History },
-      { path: "/shopkeeper?tab=profile", label: "Profile", icon: Users },
-      { path: "/shopkeeper?tab=settings", label: "Settings", icon: Settings },
-    ],
-  },
+
 
   // PRODUCT & STOCK Section
   {

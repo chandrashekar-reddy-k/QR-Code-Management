@@ -14,12 +14,29 @@ import useLogin, { LoginResponse } from "../../../hooks/login";
 const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<"staff" | "shopkeeper">("staff");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const onSuccess = (data: LoginResponse) => {
     if (!data) return;
     setErrorMessage("");
     const user = data.data.user;
+
+    // Role-based Tab validation
+    if (activeTab === "shopkeeper") {
+      if (user.role !== "SHOPKEEPER") {
+        localStorage.clear();
+        setErrorMessage("Invalid email/phone or password");
+        return;
+      }
+    } else {
+      if (user.role === "SHOPKEEPER") {
+        localStorage.clear();
+        setErrorMessage("Invalid email/phone or password");
+        return;
+      }
+    }
+
     if (user.isCreatedPassword) {
       navigate("/create-password", {
         state: {
@@ -30,6 +47,8 @@ const Login = () => {
     } else {
       if (user.role === "VEHICLE_AGENT") {
         navigate("/vsms/agent-portal/today-plan");
+      } else if (user.role === "SHOPKEEPER") {
+        navigate("/shopkeeper");
       } else {
         navigate("/");
       }
@@ -42,6 +61,7 @@ const Login = () => {
     control,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<LoginFormData>({
     resolver: yupResolver(loginSchema),
     mode: "onSubmit",
@@ -143,6 +163,46 @@ const Login = () => {
             <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-900 mb-8">
               Hey Welcome Partner!
             </h1>
+
+            {/* Tab Navigation */}
+            <div className="flex border-b border-gray-200 mb-6">
+              <button
+                type="button"
+                className={`flex-1 pb-3 text-sm font-semibold transition-all ${
+                  activeTab === "staff"
+                    ? "border-b-2 border-[#00891D] text-[#00891D]"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+                onClick={() => {
+                  setActiveTab("staff");
+                  setErrorMessage("");
+                  reset();
+                }}
+              >
+                Staff Login
+              </button>
+              <button
+                type="button"
+                className={`flex-1 pb-3 text-sm font-semibold transition-all ${
+                  activeTab === "shopkeeper"
+                    ? "border-b-2 border-[#00891D] text-[#00891D]"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+                onClick={() => {
+                  setActiveTab("shopkeeper");
+                  setErrorMessage("");
+                  reset();
+                }}
+              >
+                Shopkeeper Login
+              </button>
+            </div>
+
+            {errorMessage && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-semibold mb-5">
+                {errorMessage}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div>

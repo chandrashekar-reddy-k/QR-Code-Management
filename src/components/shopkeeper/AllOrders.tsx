@@ -5,6 +5,7 @@ import { useSocket } from "../../hooks/useSocket";
 
 interface AllOrdersProps {
   onBack: () => void;
+  onNavigate?: (screen: string, data?: any) => void;
   initialStatus?: string;
 }
 
@@ -42,7 +43,7 @@ const tabMap: Record<string, string> = {
   RETURNS: "Returns",
 };
 
-export function AllOrders({ onBack, initialStatus }: AllOrdersProps) {
+export function AllOrders({ onBack, onNavigate, initialStatus }: AllOrdersProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,7 +208,8 @@ export function AllOrders({ onBack, initialStatus }: AllOrdersProps) {
             return (
               <div
                 key={order.id}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-left flex items-start gap-3"
+                onClick={() => onNavigate && onNavigate("order-details", order)}
+                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-left flex items-start gap-3 cursor-pointer hover:border-green-300 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: statusBg }}>
                   <ShoppingBag size={18} color={statusColor} />

@@ -119,6 +119,28 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   });
 
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [userName, setUserName] = useState("Shopkeeper");
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        if (parsed?.name) {
+          setUserName(parsed.name);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load user name in Dashboard", err);
+    }
+  }, []);
+
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   // Using store ID 1 as defined in our DB schema
   const socket = useSocket(1);
@@ -392,7 +414,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-6">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <p className="text-white/70 text-sm">{getGreeting()} 👋</p>
+            <p className="text-white/70 text-sm">{getGreeting()}, {userName} 👋</p>
             <h1 className="text-white text-xl" style={{ fontWeight: 700 }}>Hyderabad Store 01</h1>
           </div>
           <div className="flex gap-2">
@@ -406,8 +428,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               )}
             </button>
             <div onClick={() => onNavigate("profile")}
-              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="text-white font-semibold">RS</span>
+              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors">
+              <span className="text-white font-semibold">{initials}</span>
             </div>
           </div>
         </div>
