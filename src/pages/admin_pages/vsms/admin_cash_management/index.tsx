@@ -63,6 +63,7 @@ export default function AdminCashManagementContent() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [summaries, setSummaries] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
@@ -242,6 +243,15 @@ export default function AdminCashManagementContent() {
     }
   };
 
+  const fetchAgents = async () => {
+    try {
+      const { data } = await adminAPI.getVehicleAgents();
+      setAgents(data);
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+    }
+  };
+
   const fetchStoreRegister = async () => {
     setStoreLoading(true);
     try {
@@ -308,6 +318,7 @@ export default function AdminCashManagementContent() {
     // Clear data to avoid showing stale state from previous selection
     setSummaries([]);
     setVehicles([]);
+    setAgents([]);
     setStoreRegisterData(null);
     setLedgerData(null);
     setPosHistory([]);
@@ -315,6 +326,7 @@ export default function AdminCashManagementContent() {
     
     fetchSummaries();
     fetchVehicles();
+    fetchAgents();
     fetchStoreRegister();
     fetchPOSHistory();
   }, [date, storeFilterId]);
@@ -375,10 +387,12 @@ export default function AdminCashManagementContent() {
 
   const handleAssignFloat = async (e) => {
     e.preventDefault();
-    if (!assignmentData.vehicleId) return toast.error('Select a vehicle');
+    if (!assignmentData.agentId) return toast.error('Select an agent');
     if (!assignmentData.isNoService && assignmentData.amount <= 0) return toast.error('Enter valid denominations');
-    const agent = vehicles.find(v => v.id === assignmentData.vehicleId)?.assignedUsers?.[0];
-    if (!agent) return toast.error('No agent assigned');
+    const agent = agents.find(a => a.id === assignmentData.agentId);
+    if (!agent) return toast.error('Agent not found');
+    const vehicleId = agent.assignedVehicleId;
+    if (!vehicleId) return toast.error('Agent has no assigned vehicle');
     const requestedAmount = assignmentData.isNoService ? 0 : assignmentData.amount;
     const availableCounterCash = storeRegisterData?.liveMetrics?.availableCash || 0;
     if (requestedAmount > availableCounterCash) {
@@ -387,7 +401,7 @@ export default function AdminCashManagementContent() {
     setIsSubmitting(true);
     try {
       await adminSubmitOpeningCash({ 
-        vehicleId: assignmentData.vehicleId, 
+        vehicleId, 
         userId: agent.id, 
         totalOpeningCash: requestedAmount, 
         denominations: assignmentData.isNoService ? {} : assignmentData.denominations, 
@@ -399,7 +413,7 @@ export default function AdminCashManagementContent() {
       toast.success('Float assigned');
       setShowAssignModal(false);
       setViewingAssignFloat(false);
-      setAssignmentData({ vehicleId: '', shift: 1, amount: 0, isNoService: false, denominations: { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 } });
+      setAssignmentData({ agentId: '', vehicleId: '', shift: 1, amount: 0, isNoService: false, denominations: { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 } });
       fetchSummaries(); fetchStoreRegister();
     } catch (error) { toast.error(error.response?.data?.message || 'Failed'); } finally { setIsSubmitting(false); }
   };
@@ -692,7 +706,7 @@ export default function AdminCashManagementContent() {
         <AssignFloatView 
           onClose={() => setViewingAssignFloat(false)}
           assignmentData={assignmentData} setAssignmentData={setAssignmentData}
-          vehicles={vehicles} summaries={summaries}
+          vehicles={vehicles} agents={agents} summaries={summaries}
           handleDenominationChange={handleDenominationChange}
           handleAssignFloat={handleAssignFloat}
           isSubmitting={isSubmitting}

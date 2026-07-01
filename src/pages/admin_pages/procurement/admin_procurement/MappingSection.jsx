@@ -37,7 +37,7 @@ const MappingSection = ({ can, setHideMainHeader }) => {
     const load = async () => {
       try {
         const [v, p] = await Promise.all([
-          procurementAPI.getVendors({ status: 'ACTIVE' }),
+          procurementAPI.getVendors({ limit: 100 }),
           adminAPI.getItems()
         ]);
         setVendors(v.data?.data || v.data || []);

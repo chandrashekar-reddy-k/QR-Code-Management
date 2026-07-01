@@ -8,7 +8,7 @@ import {
 const denominationsList = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
 export default function AssignFloatView({ 
-  onClose, assignmentData, setAssignmentData, vehicles, summaries, 
+  onClose, assignmentData, setAssignmentData, vehicles, agents = [], summaries, 
   handleDenominationChange, handleAssignFloat, isSubmitting 
 }) {
   return (
@@ -43,8 +43,8 @@ export default function AssignFloatView({
                   { id: 2, label: 'Shift 2', icon: Moon, color: 'text-indigo-500' }
                 ].map((s) => {
                   const isDisabled = (() => {
-                    if (!assignmentData.vehicleId) return false;
-                    const summary = summaries.find(sum => sum.vehicleId === assignmentData.vehicleId);
+                    if (!assignmentData.agentId) return false;
+                    const summary = summaries.find(sum => sum.agentId === assignmentData.agentId || sum.vehicleId === agents.find(a => a.id === assignmentData.agentId)?.assignedVehicleId);
                     const s1Closed = summary?.shiftDetails?.shift1?.closing;
                     return s.id === 2 && !s1Closed;
                   })();
@@ -72,15 +72,15 @@ export default function AssignFloatView({
               <select
                 required
                 className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-bold text-gray-700 focus:border-emerald-500 outline-none"
-                value={assignmentData.vehicleId}
-                onChange={(e) => setAssignmentData({ ...assignmentData, vehicleId: e.target.value })}
+                value={assignmentData.agentId || ''}
+                onChange={(e) => setAssignmentData({ ...assignmentData, agentId: e.target.value })}
               >
-                <option value="">Select vehicle...</option>
-                {vehicles.map((v) => {
-                  const agent = v.assignedUsers?.[0];
-                  if (!agent) return null;
-                  return <option key={v.id} value={v.id}>{agent.name} ({v.vehicleNumber})</option>;
-                }).filter(Boolean)}
+                <option value="">Select agent...</option>
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}{a.assignedVehicle ? ` (${a.assignedVehicle.vehicleNumber})` : ''}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -89,7 +89,7 @@ export default function AssignFloatView({
                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                   assignmentData.isNoService ? 'bg-rose-50 border-rose-200' : 'bg-gray-50 border-gray-100'
                 }`}
-                onClick={() => setAssignmentData({ ...assignmentData, isNoService: !assignmentData.isNoService })}
+                            onClick={() => setAssignmentData({ ...assignmentData, isNoService: !assignmentData.isNoService })}
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${assignmentData.isNoService ? 'bg-rose-500 text-white' : 'bg-white text-rose-300'}`}>
                   <AlertTriangle size={16} />
@@ -104,9 +104,10 @@ export default function AssignFloatView({
             )}
           </div>
 
-          {assignmentData.vehicleId && (
+          {assignmentData.agentId && (
             (() => {
-              const existingSummary = summaries.find(s => s.vehicleId === assignmentData.vehicleId);
+              const selectedAgent = agents.find(a => a.id === assignmentData.agentId);
+              const existingSummary = summaries.find(s => s.vehicleId === selectedAgent?.assignedVehicleId);
               const shiftKey = `shift${assignmentData.shift}`;
               const existingShiftData = existingSummary?.shiftDetails?.[shiftKey];
               const isAlreadyAssigned = !!existingShiftData?.opening;
@@ -164,10 +165,10 @@ export default function AssignFloatView({
 
             <button
               onClick={handleAssignFloat}
-              disabled={isSubmitting || !assignmentData.vehicleId}
+              disabled={isSubmitting || !assignmentData.agentId}
               className={`font-black rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 ${
                 (() => {
-                  const existingSummary = summaries.find(s => s.vehicleId === assignmentData.vehicleId);
+                  const existingSummary = summaries.find(s => s.vehicleId === agents.find(a => a.id === assignmentData.agentId)?.assignedVehicleId);
                   const isAlreadyAssigned = !!existingSummary?.shiftDetails?.[`shift${assignmentData.shift}`]?.opening;
                   return isAlreadyAssigned ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white';
                 })()
@@ -177,7 +178,7 @@ export default function AssignFloatView({
                 <>
                   <Coins size={16} strokeWidth={2.5} />
                   {(() => {
-                    const existingSummary = summaries.find(s => s.vehicleId === assignmentData.vehicleId);
+                    const existingSummary = summaries.find(s => s.vehicleId === agents.find(a => a.id === assignmentData.agentId)?.assignedVehicleId);
                     const isAlreadyAssigned = !!existingSummary?.shiftDetails?.[`shift${assignmentData.shift}`]?.opening;
                     return isAlreadyAssigned ? 'Update Assignment' : 'Confirm Assignment';
                   })()}

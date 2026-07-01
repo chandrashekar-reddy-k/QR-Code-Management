@@ -10,5 +10,9 @@ export const URL =
 export const URL_ADMIN =
   import.meta.env.VITE_URL_ADMIN || "https://dadminapi.villagkart.com/api/v1/";
 
+/** Agent API base URL (served by main partner-apis, merged from vsms-agent-apis) */
+export const URL_AGENT =
+  import.meta.env.VITE_URL_AGENT || "http://localhost:3004/api/v1/agent";
+
 export const GOOGLE_MAP_API_KEY =
   import.meta.env.VITE_GOOGLE_MAP_API_KEY;

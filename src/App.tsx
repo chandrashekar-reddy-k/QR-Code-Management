@@ -27,7 +27,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (location.pathname.startsWith("/shopkeeper")) {
+  const isShopkeeper = location.pathname.startsWith("/shopkeeper");
+  const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
+
+  if (isShopkeeper || isAgentPortal) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
