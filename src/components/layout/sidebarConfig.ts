@@ -46,6 +46,7 @@ import {
   HelpCircle,
   Link2,      // ← ADD
   BookOpen,   // ← ADD
+  History,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -163,6 +164,8 @@ export const initialStateCheckers = {
     pathname.startsWith("/vsms/assets"),
   isProcurementOpen: (pathname: string) =>
     pathname.startsWith("/procurement"),
+  isPricingOpen: (pathname: string) =>
+    pathname.startsWith("/pricing"),
 };
 
 // Menu configuration
@@ -180,6 +183,7 @@ export const sidebarConfig: MenuSection[] = [
     label: "Warehouse Dashboard",
     icon: Home,
   },
+
 
   // PRODUCT & STOCK Section
   {
@@ -221,6 +225,24 @@ export const sidebarConfig: MenuSection[] = [
     path: "/inventory/atp",
     label: "ATP Inventory",
     icon: Boxes,
+  },
+  {
+    type: "link",
+    path: "/inventory/monitoring/reservations",
+    label: "Reservations",
+    icon: Clock,
+  },
+  {
+    type: "collapsible",
+    label: "Pricing Engine",
+    icon: DollarSign,
+    stateKey: "isPricingOpen",
+    activeCheck: (pathname: string) => pathname.startsWith("/pricing"),
+    subItems: [
+      { path: "/pricing/price-books", label: "Price Books", icon: BookOpen },
+      { path: "/pricing/product-pricing", label: "Product Pricing", icon: Tag },
+      { path: "/pricing/price-comparison", label: "Price Comparison", icon: BarChart3 }
+    ]
   },
 
   // ORDERS & DELIVERY Section

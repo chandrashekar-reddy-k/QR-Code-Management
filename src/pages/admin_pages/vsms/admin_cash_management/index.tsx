@@ -38,7 +38,7 @@ import StoreSelector from '../StoreSelector';
 // Modals
 import { 
   OpenStoreModal, CloseStoreModal, EditStoreModal, SafeMovementModal, 
-  BankDepositModal, DepositConfirmModal 
+  BankDepositModal, DepositConfirmModal, InitializeSafeAlertModal
 } from './StoreSafeModals';
 import { 
   AssignFloatModal, EditReconciliationModal, DeleteModal, 
@@ -63,6 +63,7 @@ export default function AdminCashManagementContent() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [summaries, setSummaries] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
@@ -91,6 +92,7 @@ export default function AdminCashManagementContent() {
 
   // Assignment Modal
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showInitAlertModal, setShowInitAlertModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentData, setAssignmentData] = useState({
     vehicleId: '', shift: 1, amount: 0, isNoService: false,
@@ -241,6 +243,15 @@ export default function AdminCashManagementContent() {
     }
   };
 
+  const fetchAgents = async () => {
+    try {
+      const { data } = await adminAPI.getVehicleAgents();
+      setAgents(data);
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+    }
+  };
+
   const fetchStoreRegister = async () => {
     setStoreLoading(true);
     try {
@@ -307,6 +318,7 @@ export default function AdminCashManagementContent() {
     // Clear data to avoid showing stale state from previous selection
     setSummaries([]);
     setVehicles([]);
+    setAgents([]);
     setStoreRegisterData(null);
     setLedgerData(null);
     setPosHistory([]);
@@ -314,6 +326,7 @@ export default function AdminCashManagementContent() {
     
     fetchSummaries();
     fetchVehicles();
+    fetchAgents();
     fetchStoreRegister();
     fetchPOSHistory();
   }, [date, storeFilterId]);
@@ -374,10 +387,12 @@ export default function AdminCashManagementContent() {
 
   const handleAssignFloat = async (e) => {
     e.preventDefault();
-    if (!assignmentData.vehicleId) return toast.error('Select a vehicle');
+    if (!assignmentData.agentId) return toast.error('Select an agent');
     if (!assignmentData.isNoService && assignmentData.amount <= 0) return toast.error('Enter valid denominations');
-    const agent = vehicles.find(v => v.id === assignmentData.vehicleId)?.assignedUsers?.[0];
-    if (!agent) return toast.error('No agent assigned');
+    const agent = agents.find(a => a.id === assignmentData.agentId);
+    if (!agent) return toast.error('Agent not found');
+    const vehicleId = agent.assignedVehicleId;
+    if (!vehicleId) return toast.error('Agent has no assigned vehicle');
     const requestedAmount = assignmentData.isNoService ? 0 : assignmentData.amount;
     const availableCounterCash = storeRegisterData?.liveMetrics?.availableCash || 0;
     if (requestedAmount > availableCounterCash) {
@@ -386,7 +401,7 @@ export default function AdminCashManagementContent() {
     setIsSubmitting(true);
     try {
       await adminSubmitOpeningCash({ 
-        vehicleId: assignmentData.vehicleId, 
+        vehicleId, 
         userId: agent.id, 
         totalOpeningCash: requestedAmount, 
         denominations: assignmentData.isNoService ? {} : assignmentData.denominations, 
@@ -398,7 +413,7 @@ export default function AdminCashManagementContent() {
       toast.success('Float assigned');
       setShowAssignModal(false);
       setViewingAssignFloat(false);
-      setAssignmentData({ vehicleId: '', shift: 1, amount: 0, isNoService: false, denominations: { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 } });
+      setAssignmentData({ agentId: '', vehicleId: '', shift: 1, amount: 0, isNoService: false, denominations: { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 } });
       fetchSummaries(); fetchStoreRegister();
     } catch (error) { toast.error(error.response?.data?.message || 'Failed'); } finally { setIsSubmitting(false); }
   };
@@ -691,7 +706,7 @@ export default function AdminCashManagementContent() {
         <AssignFloatView 
           onClose={() => setViewingAssignFloat(false)}
           assignmentData={assignmentData} setAssignmentData={setAssignmentData}
-          vehicles={vehicles} summaries={summaries}
+          vehicles={vehicles} agents={agents} summaries={summaries}
           handleDenominationChange={handleDenominationChange}
           handleAssignFloat={handleAssignFloat}
           isSubmitting={isSubmitting}
@@ -924,7 +939,9 @@ export default function AdminCashManagementContent() {
                 {can('CASH', 'CREATE', 'FLOAT_ASSIGNMENT') && (
                   <button 
                     onClick={() => {
-                      if (!storeRegisterData?.storeRegister || storeRegisterData.storeRegister.status !== 'OPEN') return toast.error('Initialize Safe first');
+                      if (!storeRegisterData?.storeRegister || storeRegisterData.storeRegister.status !== 'OPEN') {
+                        return setShowInitAlertModal(true);
+                      }
                       setViewingAssignFloat(true);
                     }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/10 active:scale-95 flex items-center gap-3 ml-2"
@@ -1002,6 +1019,7 @@ export default function AdminCashManagementContent() {
       {/* Modals */}
       <OpenStoreModal show={showOpenStoreModal} setShow={setShowOpenStoreModal} storeModalStep={storeModalStep} setStoreModalStep={setStoreModalStep} storeRegisterData={storeRegisterData} storeDenomData={storeDenomData} setStoreDenomData={setStoreDenomData} handleDenominationChange={handleDenominationChange} handleOpenStoreRegister={handleOpenStoreRegister} isSubmitting={isSubmitting} />
       <CloseStoreModal show={showCloseStoreModal} setShow={setShowCloseStoreModal} storeRegisterData={storeRegisterData} storeDenomData={storeDenomData} setStoreDenomData={setStoreDenomData} handleDenominationChange={handleDenominationChange} handleCloseStoreRegister={handleCloseStoreRegister} isSubmitting={isSubmitting} />
+      <InitializeSafeAlertModal show={showInitAlertModal} setShow={setShowInitAlertModal} onOpenSafe={() => setShowOpenStoreModal(true)} />
       <EditStoreModal show={showEditStoreModal} setShow={setShowEditStoreModal} storeDenomData={storeDenomData} handleDenominationChange={handleDenominationChange} handleUpdateStoreRegister={handleUpdateStoreRegister} isSubmitting={isSubmitting} />
       <SafeMovementModal show={showSafeMovementModal} setShow={setShowSafeMovementModal} safeMovementData={safeMovementData} setSafeMovementData={setSafeMovementData} handleDenominationChange={handleDenominationChange} handleSafeMovement={handleSafeMovement} isSubmitting={isSubmitting} storeRegisterData={storeRegisterData} />
       <BankDepositModal show={showBankModal} setShow={setShowBankModal} bankData={bankData} setBankData={setBankData} storeRegisterData={storeRegisterData} user={user} handleCreateBankDeposit={handleCreateBankDeposit} isSubmitting={isSubmitting} setPreviewImage={setPreviewImage} adminAPI={adminAPI} toast={toast} />

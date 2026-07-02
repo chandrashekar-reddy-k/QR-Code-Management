@@ -1,0 +1,234 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useCartStore, checkIsFree } from '../store/cartStore';
+import { ArrowLeft, ArrowRight, Package, Smartphone, Truck, Calendar, Clock } from 'lucide-react';
+import adminAPI from '../services/adminService';
+import toast from 'react-hot-toast';
+
+export default function InvoicePreview() {
+  const { items, customerMobile, customerName, totalAmount, deliveryCharge } = useCartStore();
+  const [slots, setSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data } = await adminAPI.getSettings();
+        if (data?.success) {
+          setSlots(data.data.deliverySlots || []);
+          if (data.data.deliverySlots?.length > 0) {
+            setSelectedSlot(data.data.deliverySlots[0].name);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load delivery slots');
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // Calculate subtotal for free item threshold comparison
+  const subtotalRaw = items.reduce((sum, i) => {
+    const isFree = checkIsFree(i.isFree);
+    return !isFree ? sum + Number(i.price || 0) * i.quantity : sum;
+  }, 0);
+  const subtotal = Math.round(subtotalRaw * 100) / 100;
+
+  const totalMRP = items.reduce((sum, i) => sum + (Number(i.mrp || 0) || Number(i.price || 0)) * i.quantity, 0);
+  const totalSavings = totalMRP - totalAmount;
+
+  if (items.length === 0) {
+    navigate('/');
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 animate-fade-in pb-[calc(var(--safe-bottom)+8rem)]">
+      {/* Header */}
+      <div className="sticky top-0 z-40 px-5 pt-[calc(var(--safe-top)+0.5rem)] pb-3 flex items-center gap-4 bg-white border-b border-gray-100 max-w-lg mx-auto transition-all duration-300">
+        <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl hover:bg-emerald-50 active:scale-90 transition-all bg-white shadow-sm border border-emerald-100 text-emerald-700">
+          <ArrowLeft size={22} strokeWidth={2.5} />
+        </button>
+        <div>
+          <h1 className="text-xl font-black text-emerald-950 tracking-tight">Invoice Preview</h1>
+          <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mt-0.5">{items.length} units scheduled</p>
+        </div>
+      </div>
+
+      <div className="max-w-lg mx-auto px-5 pt-6 space-y-5">
+        {/* Customer Info */}
+        <div className="glass rounded-[1.5rem] p-5 shadow-sm border border-emerald-50 bg-white/70">
+          <p className="text-[10px] font-black text-emerald-800/40 uppercase tracking-widest mb-3 px-1">Billed To</p>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-[1.25rem] bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm">
+              <Smartphone size={22} strokeWidth={3} />
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-col">
+                {customerName ? (
+                  <>
+                    <p className="font-black text-emerald-950 text-[1.1rem] leading-none capitalize mb-1">
+                      {customerName}
+                    </p>
+                    {customerMobile && (
+                      <p className="text-sm font-bold text-emerald-900/60 tracking-tight flex items-center gap-1">
+                        <Smartphone size={12} strokeWidth={3} /> {customerMobile}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="font-black text-emerald-950 text-[1.1rem] leading-none">
+                    {customerMobile ? customerMobile : 'Walk-in Customer'}
+                  </p>
+                )}
+              </div>
+              <p className="text-[10px] font-bold text-emerald-600/50 uppercase tracking-widest mt-1.5">Direct Sale</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery Logistics */}
+        <div className="glass rounded-[1.5rem] p-6 shadow-sm border border-blue-50 bg-white/70 space-y-5">
+          <div className="flex items-center gap-2 px-1">
+             <Truck size={16} className="text-blue-600" />
+             <p className="text-[10px] font-black text-blue-900/60 uppercase tracking-widest">Fulfillment Logistics</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Delivery Date</label>
+              <div className="relative">
+                <input 
+                  type="date" 
+                  value={selectedDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={e => setSelectedDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-black text-emerald-950 focus:bg-white transition-all outline-none" 
+                />
+                <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-300 pointer-events-none" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Preferred Slot</label>
+              <div className="relative">
+                <select 
+                  value={selectedSlot}
+                  onChange={e => setSelectedSlot(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-black text-emerald-950 focus:bg-white appearance-none outline-none transition-all"
+                >
+                  {slots.length > 0 ? (
+                    slots.map(s => <option key={s.id} value={s.name}>{s.name} ({s.startTime}-{s.endTime})</option>)
+                  ) : (
+                    <option value="">No Slots Available</option>
+                  )}
+                </select>
+                <Clock size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-300 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Items List */}
+        <div className="glass rounded-[2rem] overflow-hidden shadow-sm border border-emerald-50 bg-white/70">
+          <div className="px-6 py-4 border-b border-emerald-100/50 flex text-[10px] uppercase tracking-widest text-emerald-800/40 font-black bg-emerald-50/30">
+            <span className="flex-1">Description</span>
+            <span className="w-16 text-center">Qty</span>
+            <span className="w-20 text-right">Subtotal</span>
+          </div>
+          <div className="divide-y divide-emerald-50">
+            {items
+              .map((item) => {
+                const isFree = item.isFree === true || item.isFree === 'true';
+                const qualifies = subtotal >= Number(item.minShopAmount || 0);
+                return (
+                  <div key={item.productId} className="px-6 py-5 flex items-center gap-2 group hover:bg-white transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[0.95rem] font-black text-emerald-950 truncate leading-tight">{item.name}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {isFree && qualifies ? (
+                          <span className="text-xs font-black text-orange-600 tracking-tight flex items-center gap-1">
+                            FREE <span className="text-[8px] bg-orange-100 px-1 rounded animate-pulse">OFFER</span>
+                          </span>
+                        ) : (
+                          <span className="text-xs font-black text-emerald-600 tracking-tight">₹{Number(item.price || 0).toFixed(2)}</span>
+                        )}
+                        {item.mrp > item.price && (
+                          <span className="text-[10px] font-bold text-emerald-900/30 line-through">₹{Number(item.mrp || 0).toFixed(2)}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="w-16 flex justify-center">
+                      <span className="bg-emerald-50 text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-black border border-emerald-100 shadow-inner">{item.quantity}</span>
+                    </div>
+                    <span className="w-20 text-right text-[1rem] font-black text-emerald-950 tracking-tighter">
+                      ₹{((isFree && qualifies ? 0 : Number(item.price || 0)) * item.quantity).toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
+        {/* Totals */}
+        <div className="glass rounded-[2rem] p-8 space-y-4 shadow-sm border border-emerald-50 bg-white/70 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/20 blur-3xl rounded-full translate-x-12 -translate-y-12" />
+          <div className="flex justify-between items-center text-xs font-black text-emerald-800/40 uppercase tracking-widest px-1">
+            <span>Bill Subtotal</span>
+            <span className="text-emerald-950/60">₹{subtotal.toFixed(2)}</span>
+          </div>
+          
+          {useCartStore.getState().promotionDiscount > 0 && (
+            <div className="flex justify-between items-center text-xs font-black text-emerald-600 uppercase tracking-widest px-1">
+              <div className="flex items-center gap-2">
+                <span>Promo Discount</span>
+                <span className="text-[8px] bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">
+                  {useCartStore.getState().appliedPromotion?.code}
+                </span>
+              </div>
+              <span>- ₹{useCartStore.getState().promotionDiscount.toFixed(2)}</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest px-1">
+            <span className={deliveryCharge === 0 ? 'text-emerald-600' : 'text-blue-600'}>Delivery Charge</span>
+            <span className={deliveryCharge === 0 ? 'text-emerald-600' : 'text-blue-600'}>
+              {deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge.toFixed(2)}`}
+            </span>
+          </div>
+          {totalSavings > 0 && (
+            <div className="flex justify-between items-center text-xs font-black text-orange-600 uppercase tracking-widest px-1">
+              <span>Total Savings</span>
+              <span>- ₹{totalSavings.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center font-black pt-5 border-t border-emerald-100/50">
+            <span className="text-xl text-emerald-950 uppercase tracking-tighter">Total Amount</span>
+            <span className="text-3xl text-emerald-600 tracking-tighter">₹{totalAmount.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-[calc(var(--safe-bottom)+1rem)] left-0 right-0 max-w-lg mx-auto z-30 flex gap-4 px-5 animate-slide-up">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-16 h-16 rounded-[1.5rem] bg-white text-emerald-600 font-bold active:scale-95 transition-all shadow-xl shadow-emerald-900/5 border border-emerald-100 hover:bg-emerald-50 flex items-center justify-center flex-shrink-0"
+        >
+          <ArrowLeft size={24} strokeWidth={3} />
+        </button>
+        <button
+          id="proceed-to-payment"
+          onClick={() => navigate('/payment', { state: { deliverySlot: selectedSlot, deliveryDate: selectedDate } })}
+          className="bg-emerald-600 text-white flex-1 h-16 text-lg font-black rounded-[1.5rem] shadow-2xl shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 hover:bg-emerald-700 relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <span className="relative z-10 flex items-center gap-3 uppercase text-xs tracking-[0.2em]">
+            Proceed to Payment <ArrowRight size={20} strokeWidth={3} />
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}

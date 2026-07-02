@@ -1,5 +1,7 @@
 import React, { lazy } from "react";
 
+const ShopkeeperERP = lazy(() => import("../pages/ShopkeeperERP"));
+
 // Lazy load all components for better performance
 const Login = lazy(() => import("../pages/public_pages/login_page/Login"));
 const UnderDevelopment = lazy(
@@ -17,6 +19,11 @@ const Dashboard = lazy(
 const WarehouseDashboard = lazy(
   () => import("../pages/admin_pages/dashboard/WarehouseDashboard")
 );
+// Pricing Engine
+const PriceBooks = lazy(() => import("../pages/admin_pages/pricing/PriceBooks"));
+const ProductPricing = lazy(() => import("../pages/admin_pages/pricing/ProductPricing"));
+const PriceComparison = lazy(() => import("../pages/admin_pages/pricing/PriceComparison"));
+
 const AtpInventory = lazy(
   () => import("../pages/admin_pages/inventory/AtpInventory")
 );
@@ -565,6 +572,12 @@ export const publicRoutes: RouteConfig[] = [
 
 // Protected routes (authentication required)
 export const protectedRoutes: RouteConfig[] = [
+  // Shopkeeper ERP
+  {
+    path: "/shopkeeper",
+    component: ShopkeeperERP,
+    requiresAuth: true,
+  },
   // Dashboard
   {
     path: "/",
@@ -1810,6 +1823,21 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/agent-portal/closing-cash",
     component: () => <AgentPortalLayout><ClosingCashEntry /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/pricing/price-books",
+    component: PriceBooks,
+    requiresAuth: true,
+  },
+  {
+    path: "/pricing/product-pricing",
+    component: ProductPricing,
+    requiresAuth: true,
+  },
+  {
+    path: "/pricing/price-comparison",
+    component: PriceComparison,
     requiresAuth: true,
   },
 ];

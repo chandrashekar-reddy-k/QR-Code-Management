@@ -4,6 +4,7 @@ import { Filter, RotateCcw, ChevronDown } from 'lucide-react';
 import { useInventory } from '../../../hooks/useInventory';
 import { Reservation } from '../../../types/inventory.types';
 import { DataTable, Pagination, Badge, SearchInput, SelectInput, ViewIconButton, ConfirmModal } from '../../../components/ui';
+import { useGetInventoryReservations, useReleaseInventoryReservation } from '../../../hooks/InventoryManagement/inventory';
 
 const Reservations = () => {
   const navigate = useNavigate();
@@ -16,136 +17,18 @@ const Reservations = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [forceReleaseConfirm, setForceReleaseConfirm] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+  const [viewingReservation, setViewingReservation] = useState<Reservation | null>(null);
 
-  // Initialize with mock data if empty
+  const { data: realReservationsRes } = useGetInventoryReservations();
+  const releaseMutation = useReleaseInventoryReservation();
+
+  // Sync real reservations from backend
   useEffect(() => {
-    // Ensure reservations is an array before checking length
-    if (!Array.isArray(reservations) || reservations.length === 0) {
-      const mockReservations: Reservation[] = [
-        {
-          id: 'RES-001',
-          orderId: 'ORD-2025-001',
-          customerName: 'John Smith',
-          variantId: 'VAR-001',
-          sku: 'SKU-APPLE-001',
-          locationCode: 'MAIN-WH',
-          qty: 25,
-          status: 'active',
-          createdAt: '2025-01-15T09:00:00',
-          expiresAt: '2025-01-22T09:00:00',
-        },
-        {
-          id: 'RES-002',
-          orderId: 'ORD-2025-002',
-          customerName: 'Sarah Johnson',
-          variantId: 'VAR-002',
-          sku: 'SKU-BANANA-001',
-          locationCode: 'STORE-A',
-          qty: 15,
-          status: 'active',
-          createdAt: '2025-01-14T14:30:00',
-          expiresAt: '2025-01-21T14:30:00',
-        },
-        {
-          id: 'RES-003',
-          orderId: 'ORD-2025-003',
-          customerName: 'Michael Brown',
-          variantId: 'VAR-003',
-          sku: 'SKU-MILK-001',
-          locationCode: 'DIST-CENTER',
-          qty: 50,
-          status: 'released',
-          createdAt: '2025-01-10T10:00:00',
-          expiresAt: '2025-01-17T10:00:00',
-        },
-        {
-          id: 'RES-004',
-          orderId: 'ORD-2025-004',
-          customerName: 'Emily Davis',
-          variantId: 'VAR-004',
-          sku: 'SKU-RICE-001',
-          locationCode: 'MAIN-WH',
-          qty: 10,
-          status: 'active',
-          createdAt: '2025-01-16T11:15:00',
-          expiresAt: '2025-01-23T11:15:00',
-        },
-        {
-          id: 'RES-005',
-          orderId: 'ORD-2025-005',
-          customerName: 'David Wilson',
-          variantId: 'VAR-005',
-          sku: 'SKU-DAL-001',
-          locationCode: 'STORE-A',
-          qty: 5,
-          status: 'active',
-          createdAt: '2025-01-15T16:45:00',
-          expiresAt: '2025-01-22T16:45:00',
-        },
-        {
-          id: 'RES-006',
-          orderId: 'ORD-2025-006',
-          customerName: 'Lisa Anderson',
-          variantId: 'VAR-006',
-          sku: 'SKU-SPICE-001',
-          locationCode: 'STORE-B',
-          qty: 8,
-          status: 'released',
-          createdAt: '2025-01-12T08:20:00',
-          expiresAt: '2025-01-19T08:20:00',
-        },
-        {
-          id: 'RES-007',
-          orderId: 'ORD-2025-007',
-          customerName: 'Robert Taylor',
-          variantId: 'VAR-007',
-          sku: 'SKU-OIL-001',
-          locationCode: 'MAIN-WH',
-          qty: 20,
-          status: 'active',
-          createdAt: '2025-01-17T13:00:00',
-          expiresAt: '2025-01-24T13:00:00',
-        },
-        {
-          id: 'RES-008',
-          orderId: 'ORD-2025-008',
-          customerName: 'Jennifer Martinez',
-          variantId: 'VAR-001',
-          sku: 'SKU-APPLE-001',
-          locationCode: 'STORE-A',
-          qty: 30,
-          status: 'active',
-          createdAt: '2025-01-16T09:30:00',
-          expiresAt: '2025-01-23T09:30:00',
-        },
-        {
-          id: 'RES-009',
-          orderId: 'ORD-2025-009',
-          customerName: 'William Garcia',
-          variantId: 'VAR-003',
-          sku: 'SKU-MILK-001',
-          locationCode: 'DIST-CENTER',
-          qty: 40,
-          status: 'active',
-          createdAt: '2025-01-15T15:20:00',
-          expiresAt: '2025-01-22T15:20:00',
-        },
-        {
-          id: 'RES-010',
-          orderId: 'ORD-2025-010',
-          customerName: 'Amanda White',
-          variantId: 'VAR-002',
-          sku: 'SKU-BANANA-001',
-          locationCode: 'MAIN-WH',
-          qty: 12,
-          status: 'released',
-          createdAt: '2025-01-11T12:00:00',
-          expiresAt: '2025-01-18T12:00:00',
-        },
-      ];
-      setReservations(mockReservations);
+    if (realReservationsRes) {
+      const raw = (realReservationsRes as any)?.data ?? [];
+      setReservations(raw);
     }
-  }, [reservations, setReservations]);
+  }, [realReservationsRes, setReservations]);
 
   const statusOptions = [
     { value: 'All', label: 'All' },
@@ -193,8 +76,8 @@ const Reservations = () => {
       filtered = filtered.filter(
         (r) =>
           r.orderId.toLowerCase().includes(term) ||
-          r.sku.toLowerCase().includes(term) ||
-          r.customerName.toLowerCase().includes(term)
+          r.customerName.toLowerCase().includes(term) ||
+          r.items?.some(item => item.sku.toLowerCase().includes(term) || item.productName.toLowerCase().includes(term))
       );
     }
 
@@ -218,8 +101,8 @@ const Reservations = () => {
             bValue = b.customerName.toLowerCase();
             break;
           case 'sku':
-            aValue = a.sku.toLowerCase();
-            bValue = b.sku.toLowerCase();
+            aValue = a.items?.[0]?.sku?.toLowerCase() || '';
+            bValue = b.items?.[0]?.sku?.toLowerCase() || '';
             break;
           case 'locationCode':
             aValue = a.locationCode.toLowerCase();
@@ -279,18 +162,14 @@ const Reservations = () => {
     setForceReleaseConfirm({ isOpen: true, id });
   };
 
-  const handleForceReleaseConfirm = () => {
+  const handleForceReleaseConfirm = async () => {
     if (forceReleaseConfirm.id === null) return;
-    
-    // Compute the new reservations array
-    const updatedReservations = reservations.map((reservation) =>
-      reservation.id === forceReleaseConfirm.id
-        ? { ...reservation, status: 'released' as const }
-        : reservation
-    );
-    
-    setReservations(updatedReservations);
-    setForceReleaseConfirm({ isOpen: false, id: null });
+    try {
+      await releaseMutation.mutateAsync(forceReleaseConfirm.id);
+      setForceReleaseConfirm({ isOpen: false, id: null });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -374,22 +253,12 @@ const Reservations = () => {
           data={paginatedReservations}
           columns={[
             {
-              key: 'id',
-              label: 'RESERVATION ID',
-              sortable: true,
-              render: (reservation: Reservation) => (
-                <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.id}</span>
-                </div>
-              ),
-            },
-            {
               key: 'orderId',
-              label: 'ORDER ID',
+              label: 'ORDER / RESERVATION ID',
               sortable: true,
               render: (reservation: Reservation) => (
-                <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.orderId}</span>
+                <div className="text-center font-medium text-gray-900 dark:text-gray-100">
+                  <span>{reservation.orderId}</span>
                 </div>
               ),
             },
@@ -404,32 +273,34 @@ const Reservations = () => {
               ),
             },
             {
-              key: 'sku',
-              label: 'SKU',
-              sortable: true,
-              render: (reservation: Reservation) => (
-                <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.sku}</span>
-                </div>
-              ),
-            },
-            {
               key: 'locationCode',
               label: 'LOCATION',
               sortable: true,
               render: (reservation: Reservation) => (
-                <div className="text-center">
+                <div className="text-center font-mono">
                   <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.locationCode}</span>
                 </div>
               ),
             },
             {
               key: 'qty',
-              label: 'QTY',
+              label: 'TOTAL QTY',
               sortable: true,
               render: (reservation: Reservation) => (
-                <div className="text-center">
+                <div className="text-center font-semibold">
                   <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.qty}</span>
+                </div>
+              ),
+            },
+            {
+              key: 'itemsCount',
+              label: 'ITEMS COUNT',
+              sortable: false,
+              render: (reservation: Reservation) => (
+                <div className="text-center">
+                  <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full font-medium">
+                    {reservation.items?.length || 0} items
+                  </span>
                 </div>
               ),
             },
@@ -477,15 +348,15 @@ const Reservations = () => {
               label: 'ACTIONS',
               sortable: false,
               render: (reservation: Reservation) => (
-                <div className="flex items-center justify-center gap-1.5">
+                <div className="flex items-center justify-center gap-2">
                   <ViewIconButton
-                    onClick={() => navigate(`/inventory/sku/${reservation.variantId}`)}
-                    size={12}
+                    onClick={() => setViewingReservation(reservation)}
+                    size={14}
                   />
                   {reservation.status === 'active' && (
                     <button
                       onClick={() => handleForceReleaseClick(reservation.id)}
-                      className="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                      className="px-2 py-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                     >
                       Release
                     </button>
@@ -547,6 +418,73 @@ const Reservations = () => {
         cancelText="Cancel"
         variant="warning"
       />
+
+      {/* Detailed Items Modal */}
+      {viewingReservation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-2xl w-full overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/30">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+                Reservation Details (Order: {viewingReservation.orderId})
+              </h3>
+              <button
+                onClick={() => setViewingReservation(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 flex flex-col sm:flex-row sm:justify-between gap-2">
+                <span>Customer: <strong className="text-gray-800 dark:text-gray-200">{viewingReservation.customerName}</strong></span>
+                <span>Location Code: <strong className="text-gray-800 dark:text-gray-200">{viewingReservation.locationCode}</strong></span>
+              </div>
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/10 text-gray-500 dark:text-gray-400 font-semibold">
+                      <th className="py-2.5 px-3">SKU</th>
+                      <th className="py-2.5 px-3">PRODUCT</th>
+                      <th className="py-2.5 px-3">VARIANT</th>
+                      <th className="py-2.5 px-3 text-center">QTY</th>
+                      <th className="py-2.5 px-3 text-center">ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
+                    {viewingReservation.items?.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20">
+                        <td className="py-3 px-3 font-mono text-[11px] sm:text-xs">{item.sku}</td>
+                        <td className="py-3 px-3 font-medium">{item.productName}</td>
+                        <td className="py-3 px-3 text-gray-500 dark:text-gray-400">{item.variantName}</td>
+                        <td className="py-3 px-3 text-center font-semibold">{item.qty}</td>
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            onClick={() => {
+                              setViewingReservation(null);
+                              navigate(`/inventory/sku/${item.variantId}`);
+                            }}
+                            className="px-2 py-1 text-xs bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/20 dark:hover:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold rounded transition-colors"
+                          >
+                            View SKU
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/10 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+              <button
+                onClick={() => setViewingReservation(null)}
+                className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

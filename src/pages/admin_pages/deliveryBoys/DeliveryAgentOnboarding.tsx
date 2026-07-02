@@ -1750,6 +1750,7 @@ const DeliveryAgentOnboarding = () => {
                   options={[
                     { value: "DELIVERY_AGENT", label: "Delivery Agent Portal" },
                     { value: "VEHICLE_AGENT", label: "VSMS Vehicle Agent Portal" },
+                    { value: "SHOPKEEPER", label: "Shopkeeper Portal" },
                   ]}
                   required
                   error={errors.role}

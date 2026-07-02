@@ -35,13 +35,21 @@ export interface Reservation {
   id: string;
   orderId: string;
   customerName: string;
-  variantId: string;
-  sku: string;
+  variantId?: string;
+  sku?: string;
   locationCode: string;
   qty: number;
   status: 'active' | 'released';
   createdAt: string;
   expiresAt: string;
+  items?: Array<{
+    id: string;
+    productName: string;
+    variantName: string;
+    sku: string;
+    qty: number;
+    variantId: string;
+  }>;
 }
 
 export interface Transfer {

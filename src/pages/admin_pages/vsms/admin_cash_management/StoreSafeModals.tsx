@@ -650,3 +650,49 @@ export const DepositConfirmModal = ({
     </div>
   );
 };
+
+export const InitializeSafeAlertModal = ({ show, setShow, onOpenSafe }) => {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
+              <AlertTriangle size={22} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-gray-900 leading-tight">Safe Not Initialized</h3>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Action Required</p>
+            </div>
+          </div>
+          <button onClick={() => setShow(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400"><X size={18} /></button>
+        </div>
+
+        <div className="space-y-4 py-2">
+          <p className="text-xs font-semibold text-gray-500 leading-relaxed">
+            Please initialize the store cash register first before assigning a float to any agents or vehicles.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 justify-end pt-2">
+          <button
+            onClick={() => setShow(false)}
+            className="px-6 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 text-xs font-bold text-gray-500 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              setShow(false);
+              onOpenSafe();
+            }}
+            className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white transition-all shadow-md shadow-emerald-500/10"
+          >
+            Initialize Store Cash
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

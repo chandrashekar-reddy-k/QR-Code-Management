@@ -480,16 +480,24 @@ const ManageDeliveryBoys = () => {
       key: "role",
       label: "PORTAL TYPE",
       sortable: true,
-      render: (agent: ApiDeliveryAgent) => (
-        <div className="text-center">
-          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${agent.role === "VEHICLE_AGENT"
-              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"
-              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
-            }`}>
-            {agent.role === "VEHICLE_AGENT" ? "VSMS Vehicle" : "Delivery Agent"}
-          </span>
-        </div>
-      ),
+      render: (agent: ApiDeliveryAgent) => {
+        let label = "Delivery Agent";
+        let colorClass = "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300";
+        if (agent.role === "VEHICLE_AGENT") {
+          label = "VSMS Vehicle";
+          colorClass = "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300";
+        } else if (agent.role === "SHOPKEEPER") {
+          label = "Shopkeeper";
+          colorClass = "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
+        }
+        return (
+          <div className="text-center">
+            <span className={`whitespace-nowrap px-2 py-0.5 rounded text-[10px] font-bold ${colorClass}`}>
+              {label}
+            </span>
+          </div>
+        );
+      },
     },
     // {
     //   key: "bonus",

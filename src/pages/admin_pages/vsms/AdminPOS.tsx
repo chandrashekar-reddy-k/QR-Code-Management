@@ -305,6 +305,7 @@ export default function AdminPOS() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [variantSelectionProduct, setVariantSelectionProduct] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [unavailableCode, setUnavailableCode] = useState(null);
   const [scannedProduct, setScannedProduct] = useState(null);
@@ -1451,6 +1452,10 @@ export default function AdminPOS() {
                             toast.error('Please click DONE to start a new sale');
                             return;
                           }
+                          if (product.variants && product.variants.length > 0) {
+                            // Do nothing on card click. Only the "Add" button triggers variant selection.
+                            return;
+                          }
                           if (product.stock <= 0) {
                             toast.error('Product out of stock');
                             return;
@@ -1544,7 +1549,11 @@ export default function AdminPOS() {
                                 if (checkoutStep === 'SUCCESS') {
                                   toast.error('Please click DONE to start a new sale');
                                   return;
-                                  }
+                                }
+                                if (product.variants && product.variants.length > 0) {
+                                  setVariantSelectionProduct(product);
+                                  return;
+                                }
                                 addItem(product);
                               }}
                               className={`w-full py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 border ${
@@ -1637,7 +1646,7 @@ export default function AdminPOS() {
                         </div>
                       ) : (
                         items.map(item => (
-                          <div key={item.productId} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 group hover:border-emerald-200 transition-all">
+                          <div key={`${item.productId}-${item.productVariantId || ''}`} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 group hover:border-emerald-200 transition-all">
                             <div className="w-12 h-12 bg-slate-50 rounded-xl overflow-hidden shrink-0 border border-slate-100">
                               {item.image ? (
                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -1651,21 +1660,21 @@ export default function AdminPOS() {
                             </div>
                             <div className="flex flex-col items-end gap-1.5">
                               <button 
-                                onClick={() => removeItem(item.productId)}
+                                onClick={() => removeItem(item.productId, item.productVariantId)}
                                 className="p-1 text-slate-300 hover:text-rose-500 transition-colors"
                               >
                                 <Trash2 size={12} />
                               </button>
                               <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
                                 <button
-                                  onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                                  onClick={() => updateQuantity(item.productId, item.quantity - 1, item.productVariantId)}
                                   className="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-400 hover:text-rose-500 shadow-sm"
                                 >
                                   <Minus size={10} strokeWidth={3} />
                                 </button>
                                 <span className="w-4 text-center text-[10px] font-black">{item.quantity}</span>
                                 <button
-                                  onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                                  onClick={() => updateQuantity(item.productId, item.quantity + 1, item.productVariantId)}
                                   className="w-5 h-5 flex items-center justify-center bg-white rounded text-emerald-600 hover:bg-emerald-50 shadow-sm"
                                 >
                                   <Plus size={10} strokeWidth={3} />
@@ -2364,6 +2373,102 @@ export default function AdminPOS() {
                 Confirm Addition
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Variant Selection Modal */}
+      {variantSelectionProduct && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white rounded-[3rem] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in-95 relative overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="absolute top-0 left-0 w-full h-2 bg-emerald-600" />
+            
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-2xl font-black text-gray-900 leading-tight">{variantSelectionProduct.name}</h3>
+                <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mt-1">Select Variant</p>
+              </div>
+              <button 
+                onClick={() => setVariantSelectionProduct(null)}
+                className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2 mb-6">
+              {variantSelectionProduct.variants.map((v) => {
+                const inCart = items.find(i => i.productId === variantSelectionProduct.id && i.productVariantId === v.id);
+                const quantity = inCart ? inCart.quantity : 0;
+                const price = v.price || v.sellingPrice || variantSelectionProduct.price;
+                const mrp = v.mrp || variantSelectionProduct.mrp || price;
+
+                return (
+                  <div key={v.id} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                    quantity > 0 ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-100 hover:border-slate-200'
+                  }`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-slate-800 uppercase tracking-wide">{v.name || `${v.unitValue} ${v.unit}`}</p>
+                      <p className="text-xs font-bold text-slate-400 mt-1">
+                        MRP: ₹{mrp.toFixed(2)} | Price: <span className="text-slate-800 font-extrabold">₹{price.toFixed(2)}</span>
+                      </p>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
+                        Stock: {v.stockQuantity || v.stock || 0} left
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {quantity > 0 ? (
+                        <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
+                          <button
+                            onClick={() => updateQuantity(variantSelectionProduct.id, quantity - 1, v.id)}
+                            className="w-7 h-7 flex items-center justify-center bg-white rounded text-slate-400 hover:text-rose-500 shadow-sm transition-all"
+                          >
+                            <Minus size={12} strokeWidth={3} />
+                          </button>
+                          <span className="w-5 text-center text-xs font-black text-slate-700">{quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(variantSelectionProduct.id, quantity + 1, v.id)}
+                            className="w-7 h-7 flex items-center justify-center bg-white rounded text-emerald-600 hover:bg-emerald-50 shadow-sm transition-all"
+                          >
+                            <Plus size={12} strokeWidth={3} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          disabled={(v.stockQuantity || v.stock || 0) <= 0}
+                          onClick={() => {
+                            const variantProductObj = {
+                              ...variantSelectionProduct,
+                              name: `${variantSelectionProduct.name} - ${v.name || `${v.unitValue} ${v.unit}`}`,
+                              price: price,
+                              mrp: mrp,
+                              stock: v.stockQuantity || v.stock || 0
+                            };
+                            addItem(variantProductObj, 1, v.id);
+                            toast.success(`${v.name} Added to cart`);
+                          }}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                            (v.stockQuantity || v.stock || 0) <= 0
+                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                              : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-100 hover:border-emerald-600'
+                          }`}
+                        >
+                          Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setVariantSelectionProduct(null)}
+              className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 active:scale-95 transition-all text-xs uppercase tracking-widest"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

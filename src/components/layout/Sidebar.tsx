@@ -84,6 +84,12 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isProcurementOpen, setIsProcurementOpen] = useState(
     initialStateCheckers.isProcurementOpen(location.pathname)
   );
+  const [isPricingOpen, setIsPricingOpen] = useState(
+    initialStateCheckers.isPricingOpen(location.pathname)
+  );
+  const [isShopkeeperOpen, setIsShopkeeperOpen] = useState(
+    location.pathname.startsWith("/shopkeeper")
+  );
 
   // ============================================
   // STATE MAPS - For dynamic state access
@@ -114,6 +120,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isVsmsOpen: setIsVsmsOpen,
       isAssetsOpen: setIsAssetsOpen,
       isProcurementOpen: setIsProcurementOpen,
+      isPricingOpen: setIsPricingOpen,
+      isShopkeeperOpen: setIsShopkeeperOpen,
     }),
     []
   );
@@ -143,6 +151,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isVsmsOpen,
       isAssetsOpen,
       isProcurementOpen,
+      isPricingOpen,
+      isShopkeeperOpen,
     }),
     [
       isProductsOpen,
@@ -163,6 +173,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isVsmsOpen,
       isAssetsOpen,
       isProcurementOpen,
+      isPricingOpen,
+      isShopkeeperOpen,
     ]
   );
 
@@ -211,6 +223,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     setIsVsmsOpen(initialStateCheckers.isVsmsOpen(location.pathname));
     setIsAssetsOpen(initialStateCheckers.isAssetsOpen(location.pathname));
     setIsProcurementOpen(initialStateCheckers.isProcurementOpen(location.pathname));
+    setIsPricingOpen(initialStateCheckers.isPricingOpen(location.pathname));
   }, [location.pathname]);
 
   // ============================================

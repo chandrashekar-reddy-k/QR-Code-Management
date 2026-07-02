@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import fetchData from "../helper";
 import { toast } from "react-toastify";
-import { persistWarehouseIdAfterLogin } from "../utils/partnerWarehouse";
+import { URL_AGENT } from "../config";
 
 export interface User {
   id: string;
@@ -57,8 +57,6 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
     //     toast.success(data.response);
     // },
     onSuccess: (data: LoginResponse) => {
-      onSuccess(data);
-
       const user = data.data.user;
 
       // Only persist tokens for users who should go to dashboard (password already created is FALSE)
@@ -68,6 +66,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         localStorage.setItem("user", JSON.stringify(user));
       }
 
+      onSuccess(data);
       toast.success(data.response);
     },
     onError: (error: ApiError) => {
@@ -76,6 +75,86 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         error?.response ||
         (error?.data as { response?: string })?.response ||
         "Login failed";
+      toast.error(errorMessage);
+    },
+  });
+};
+
+interface AgentLoginPayload {
+  mobile: string;
+  password: string;
+}
+
+export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
+  return useMutation<LoginResponse, ErrorResponse, AgentLoginPayload>({
+    mutationFn: async (payload: AgentLoginPayload) => {
+      const response = await fetch(`${URL_AGENT.replace(/\/$/, "")}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      let apiData;
+      try {
+        apiData = await response.json();
+      } catch (e) {
+        throw { message: "Network error. Please check your connection." } as ErrorResponse;
+      }
+
+      if (!response.ok) {
+        throw apiData as ErrorResponse;
+      }
+      
+      if (apiData.role !== "VEHICLE_AGENT") {
+        throw { message: "This login is exclusively for VSMS Agents." } as ErrorResponse;
+      }
+      
+      // Map the VSMS Agent API response format to the Partner Web LoginResponse format
+      const formattedData: LoginResponse = {
+        status: true,
+        response: "Agent logged in successfully",
+        data: {
+          user: {
+            id: apiData.id,
+            name: apiData.name,
+            phone: apiData.mobile,
+            email: apiData.email || "",
+            role: apiData.role,
+            avatar: apiData.avatar || null,
+            isCreatedPassword: false, // Bypass create password screen
+            store: apiData.storeId ? { id: apiData.storeId } : null,
+            supplier: null,
+          },
+          accessToken: apiData.token,
+          refreshToken: apiData.token,
+          expiresIn: "3600",
+        }
+      };
+
+      return formattedData;
+    },
+    onSuccess: (data: LoginResponse) => {
+      const user = data.data.user;
+
+      if (!user.isCreatedPassword) {
+        localStorage.setItem("token", data.data.accessToken);
+        localStorage.setItem("refreshToken", data.data.refreshToken);
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("role", user.role);
+      }
+
+      onSuccess(data);
+
+      toast.success(data.response || "Agent logged in successfully");
+    },
+    onError: (error: ErrorResponse) => {
+      const errorMessage =
+        error?.message ||
+        error?.response ||
+        (error?.data as { response?: string })?.response ||
+        "Agent Login failed";
       toast.error(errorMessage);
     },
   });

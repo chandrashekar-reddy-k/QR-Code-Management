@@ -23,7 +23,8 @@ export const adminAPI = {
   createShift: (data) => api.post('/admin/users/shifts', data),
 
   // Vehicles
-  getVehicles: (params) => api.get('/admin/vehicles', { params }),
+  getVehicles: (params?) => api.get('/admin/vehicles', { params }),
+  getVehicleAgents: () => api.get('/admin/vehicles/agents'),
   createVehicle: (data) => api.post('/admin/vehicles', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),

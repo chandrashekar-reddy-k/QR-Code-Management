@@ -94,6 +94,8 @@ interface SelfPickupOrderView {
     method: string;
     status: string;
   }
+  paymentMethod?: string;
+  paymentStatus?: string;
   status: OrderStatus;
   orderDate: string;
   products?: {
@@ -133,6 +135,7 @@ const ViewSelfPickupOrder = () => {
   const [order, setOrder] = useState<SelfPickupOrderView | null>(null);
   const [statusUpdateOpen, setStatusUpdateOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "">("");
+  const [packedItems, setPackedItems] = useState<Record<string, boolean>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
 
 
@@ -153,8 +156,8 @@ const ViewSelfPickupOrder = () => {
       image: item.product?.images?.[0] || "",
     }));
 
-    const paymentMethod = orderData.payment?.method || "N/A";
-    const paymentStatus = orderData.payment?.status || "N/A";
+    const paymentMethod = (orderData.payment as any)?.method || "N/A";
+    const paymentStatus = (orderData.payment as any)?.status || "N/A";
 
 
     return {
@@ -169,7 +172,7 @@ const ViewSelfPickupOrder = () => {
       mobile: orderData.consumer?.phone || "N/A",
       total: orderData.totalAmount || 0,
       additionalCharges: 0, // Not in API response
-      taxAmount: orderData.taxAmount || 0,
+      taxAmount: (orderData.taxAmount as number) || 0,
       walletUsed: 0, // Not in API response
       finalTotal: orderData.totalAmount || 0,
       paymentMethod: paymentMethod,
@@ -212,7 +215,15 @@ const ViewSelfPickupOrder = () => {
   const handleStatusUpdate = async () => {
     if (!selectedStatus || !id) return;
 
-    const apiOrder = data?.data as any;
+    if (order?.status === OrderStatus.PROCESSING && selectedStatus === OrderStatus.READY_FOR_PICKUP) {
+      const allPacked = order.products && order.products.every(p => packedItems[p.id]);
+      if (!allPacked) {
+        alert("Please verify and pack all items before setting status to Ready for Pickup!");
+        return;
+      }
+    }
+
+    const apiOrder = (data as any)?.data;
     const fulfillmentOrderId = apiOrder?.fulfillmentOrders?.[0]?.id;
 
     try {
@@ -580,31 +591,106 @@ const ViewSelfPickupOrder = () => {
                 No. of Products: {order.products && order.products.length > 0 ? order.products.length.toString().padStart(2, "0") : "00"}
               </span>
             </div>
-            <div className="space-y-3 sm:space-y-4">
+
+            {/* Packing Progress */}
+            {order.status === OrderStatus.PROCESSING && order.products && order.products.length > 0 && (
+              <div className="mb-6 p-4 rounded-xl border border-yellow-250 bg-yellow-50/40 dark:border-yellow-900/30 dark:bg-yellow-950/10">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs sm:text-sm font-semibold text-yellow-800 dark:text-yellow-400">
+                    Packing Progress Verification
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-yellow-850 dark:text-yellow-405">
+                    {order.products.filter(p => packedItems[p.id]).length} / {order.products.length} Packed
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-yellow-500 h-full transition-all duration-300"
+                    style={{ width: `${(order.products.filter(p => packedItems[p.id]).length / order.products.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
               {order.products && order.products.length > 0 ? (
                 order.products.map((product) => (
                   <div
                     key={product.id}
-                    className="flex items-center gap-3 sm:gap-4"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-gray-100 dark:border-gray-700/50 rounded-xl gap-3"
                   >
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover flex-shrink-0 border border-gray-200 dark:border-gray-700"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-200 truncate">
-                        {product.name}
-                      </p>
-                      <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
-                        {product.variant}
-                      </p>
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      {order.status === OrderStatus.PROCESSING && (
+                        <input
+                          type="checkbox"
+                          checked={!!packedItems[product.id]}
+                          onChange={() => setPackedItems(prev => ({ ...prev, [product.id]: !prev[product.id] }))}
+                          className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                        />
+                      )}
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover flex-shrink-0 border border-gray-200 dark:border-gray-700"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-200 truncate">
+                          {product.name}
+                        </p>
+                        <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
+                          {product.variant}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-200 flex-shrink-0 whitespace-nowrap">
-                      {product.quantity} × {formatCurrency(product.price)}
+                    
+                    <div className="flex items-center gap-4 justify-between sm:justify-end">
+                      {/* Weight/Verifications */}
+                      {order.status === OrderStatus.PROCESSING && packedItems[product.id] && (
+                        <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-950/20 px-2 py-1 rounded-md border border-green-205 dark:border-green-900/30">
+                          {['KG', 'GRAM', 'LITRE'].some(u => (product.variant ?? '').toUpperCase().includes(u)) ? (
+                            <>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Weight"
+                                className="w-20 px-2 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-gray-100"
+                                defaultValue={product.quantity}
+                              />
+                              <span className="text-[10px] text-green-700 dark:text-green-400 font-medium uppercase">
+                                {product.variant} verified
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-green-700 dark:text-green-400 font-medium">
+                              ✓ Count Verified
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-200 whitespace-nowrap">
+                          {product.quantity} × {formatCurrency(product.price)}
+                        </div>
+
+                        {order.status === OrderStatus.PROCESSING && (
+                          <button
+                            onClick={() => {
+                              setPackedItems(prev => ({ ...prev, [product.id]: true }));
+                            }}
+                            className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors border ${
+                              packedItems[product.id]
+                                ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-950/20 dark:border-green-800 dark:text-green-400"
+                                : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600 dark:text-gray-300"
+                            }`}
+                          >
+                            {packedItems[product.id] ? "✓ Verified" : "Scan SKU"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))

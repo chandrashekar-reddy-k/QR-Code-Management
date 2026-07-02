@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
@@ -20,9 +21,51 @@ import { ToastContainer } from "react-toastify";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Parse user role from localStorage
+  let role = "";
+  try {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    role = user?.role || "";
+  } catch (e) {}
+
+  const isAgentRole = role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT";
+  const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
+
+  if (isAgentRole) {
+    if (!isAgentPortal) {
+      // Prevent agents from loading partner views; redirect to agent portal
+      return <Navigate to="/vsms/agent-portal/today-plan" replace />;
+    }
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  // If a partner/admin/shopkeeper attempts to access the agent portal, redirect them
+  if (isAgentPortal) {
+    if (role === "SHOPKEEPER") {
+      return <Navigate to="/shopkeeper" replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
+
+  const isShopkeeper = location.pathname.startsWith("/shopkeeper");
+
+  if (isShopkeeper) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
   }
 
   return (

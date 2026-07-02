@@ -22,6 +22,22 @@ export const loginSchema = yup.object({
 
 export type LoginFormData = yup.InferType<typeof loginSchema>;
 
+// Yup validation schema for Agent Login
+export const agentLoginSchema = yup.object({
+  mobile: yup
+    .string()
+    .required("Mobile number is required")
+    .matches(/^[0-9]{10}$/, "Please enter a valid 10-digit mobile number")
+    .trim(),
+  password: yup
+    .string()
+    .required("Password is required")
+    .max(MAX_PASSWORD_LENGTH, `Password should not exceed ${MAX_PASSWORD_LENGTH} characters`)
+    .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`),
+});
+
+export type AgentLoginFormData = yup.InferType<typeof agentLoginSchema>;
+
 // Yup validation schema for Forgot Password
 export const forgotPasswordSchema = yup.object({
   email: yup
