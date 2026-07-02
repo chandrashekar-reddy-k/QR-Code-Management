@@ -23,6 +23,24 @@ const Login = () => {
     setErrorMessage("");
     const user = data.data.user;
 
+    // Check login type constraints
+    if (loginType === "partner" && user.role === "SHOPKEEPER") {
+      setErrorMessage("Invalid login");
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      return;
+    }
+
+    if (loginType === "staff" && user.role !== "SHOPKEEPER" && user.role !== "WAREHOUSE_STAFF" && user.role !== "REGIONAL_ADMIN" && user.role !== "OPERATIONAL_ADMIN" && user.role !== "SUPER_ADMIN" && user.role !== "ADMIN") {
+      setErrorMessage("Invalid login");
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      return;
+    }
 
     if (user.isCreatedPassword) {
       navigate("/create-password", {
