@@ -298,6 +298,7 @@ const AddDeliveryAgent = () => {
                     >
                       <option value="DELIVERY_AGENT">Delivery Agent Portal</option>
                       <option value="VEHICLE_AGENT">VSMS Vehicle Agent Portal</option>
+                      <option value="SHOPKEEPER">Shopkeeper Portal</option>
                     </SelectInput>
                   )}
                 />

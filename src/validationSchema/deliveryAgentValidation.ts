@@ -4,7 +4,7 @@ export const step1Schema = yup.object({
   role: yup
     .string()
     .required("Portal Type is required")
-    .oneOf(["DELIVERY_AGENT", "VEHICLE_AGENT"], "Invalid Portal Type"),
+    .oneOf(["DELIVERY_AGENT", "VEHICLE_AGENT", "SHOPKEEPER"], "Invalid Portal Type"),
 
   fullName: yup
     .string()

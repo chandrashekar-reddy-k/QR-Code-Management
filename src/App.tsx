@@ -27,10 +27,40 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  const isShopkeeper = location.pathname.startsWith("/shopkeeper");
+  // Parse user role from localStorage
+  let role = "";
+  try {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    role = user?.role || "";
+  } catch (e) {}
+
+  const isAgentRole = role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT";
   const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
 
-  if (isShopkeeper || isAgentPortal) {
+  if (isAgentRole) {
+    if (!isAgentPortal) {
+      // Prevent agents from loading partner views; redirect to agent portal
+      return <Navigate to="/vsms/agent-portal/today-plan" replace />;
+    }
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  // If a partner/admin/shopkeeper attempts to access the agent portal, redirect them
+  if (isAgentPortal) {
+    if (role === "SHOPKEEPER") {
+      return <Navigate to="/shopkeeper" replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
+
+  const isShopkeeper = location.pathname.startsWith("/shopkeeper");
+
+  if (isShopkeeper) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
