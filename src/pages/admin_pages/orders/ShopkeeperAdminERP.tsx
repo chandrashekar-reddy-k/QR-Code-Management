@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, ShoppingBag, Package, PackageCheck, Settings as SettingsIcon, History } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, PackageCheck, Settings as SettingsIcon, History, Users, Store, RotateCcw, BarChart3 } from "lucide-react";
 import { Dashboard } from "../../../components/shopkeeper/Dashboard";
 import { NewOrders } from "../../../components/shopkeeper/NewOrders";
 import { OrderDetails } from "../../../components/shopkeeper/OrderDetails";
@@ -16,6 +16,7 @@ import { Returns } from "../../../components/shopkeeper/Returns";
 import { SLAMonitoring } from "../../../components/shopkeeper/SLAMonitoring";
 import { Settings } from "../../../components/shopkeeper/Settings";
 import { AllOrders } from "../../../components/shopkeeper/AllOrders";
+import { StaffTracker } from "../../../components/shopkeeper/StaffTracker";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 
 type Screen =
@@ -34,6 +35,7 @@ type Screen =
   | "self-pickup"
   | "returns"
   | "sla-monitoring"
+  | "staff-tracker"
   | "settings";
 
 export default function ShopkeeperAdminERP() {
@@ -70,7 +72,7 @@ export default function ShopkeeperAdminERP() {
       return;
     }
 
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "all-orders"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "all-orders", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper-erp?tab=${dest}`);
     } else {
@@ -84,7 +86,7 @@ export default function ShopkeeperAdminERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "all-orders"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "all-orders", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper-erp?tab=${prev}`);
         setScreen(prev as Screen);
@@ -115,6 +117,7 @@ export default function ShopkeeperAdminERP() {
         {screen === "self-pickup" && <SelfPickup onBack={goBack} />}
         {screen === "returns" && <Returns onBack={goBack} />}
         {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} />}
+        {screen === "staff-tracker" && <StaffTracker />}
         {screen === "settings" && <Settings />}
       </div>
     );
@@ -125,7 +128,11 @@ export default function ShopkeeperAdminERP() {
     { id: "new-orders", label: "Inbox Orders", icon: <ShoppingBag size={16} /> },
     { id: "picking-queue", label: "Picking Queue", icon: <Package size={16} /> },
     { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={16} /> },
+    { id: "self-pickup", label: "Self Pickup", icon: <Store size={16} /> },
+    { id: "returns", label: "Returns", icon: <RotateCcw size={16} /> },
+    { id: "sla-monitoring", label: "SLA Monitoring", icon: <BarChart3 size={16} /> },
     { id: "all-orders", label: "Order History", icon: <History size={16} /> },
+    { id: "staff-tracker", label: "Staff Tracker", icon: <Users size={16} /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon size={16} /> },
   ];
 

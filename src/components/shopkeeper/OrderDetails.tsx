@@ -123,7 +123,7 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 p-4 pb-32">
+      <div className="flex flex-col gap-3 p-4 pb-6">
         {/* Customer Information */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <h3 className="text-gray-700 mb-3" style={{ fontWeight: 600, fontSize: "13px" }}>Customer Information</h3>
@@ -329,21 +329,21 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
       </div>
 
       {fullOrder.status === 'new' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 flex gap-3">
+        <div className="bg-white border-t border-gray-100 p-4 flex gap-3 mt-auto">
           <button
             onClick={handleReject}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 border border-red-200 bg-red-50"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
           >
-            <XCircle size={18} color="#D32F2F" />
-            <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "15px" }}>Reject</span>
+            <XCircle size={16} color="#D32F2F" />
+            <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>Reject</span>
           </button>
           <button
             onClick={handleAccept}
-            className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-3.5"
+            className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-2.5 hover:bg-[#007016] transition-colors"
             style={{ backgroundColor: "#00891D" }}
           >
-            <CheckCircle size={18} color="white" />
-            <span className="text-white" style={{ fontWeight: 600, fontSize: "15px" }}>Accept Order</span>
+            <CheckCircle size={16} color="white" />
+            <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Accept Order</span>
           </button>
         </div>
       )}

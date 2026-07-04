@@ -47,6 +47,7 @@ import {
   Link2,      // ← ADD
   BookOpen,   // ← ADD
   History,
+  RotateCcw,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -193,7 +194,11 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/shopkeeper-erp?tab=new-orders', label: 'Inbox Orders', icon: ShoppingCart },
       { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
       { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
+      { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
+      { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
+      { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
       { path: '/shopkeeper-erp?tab=all-orders', label: 'Order History', icon: History },
+      { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
       { path: '/shopkeeper-erp?tab=settings', label: 'Settings', icon: Settings }
     ]
   },
