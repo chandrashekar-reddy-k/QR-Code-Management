@@ -101,9 +101,9 @@ export function AllOrders({ onBack, onNavigate, initialStatus }: AllOrdersProps)
     if (activeTab !== "All") {
       result = orders.filter((o: any) => {
         const s = o.status?.toLowerCase();
-        if (activeTab === "New") return s === "new";
-        if (activeTab === "Picking") return s === "picking";
-        if (activeTab === "Packing") return s === "packing";
+        if (activeTab === "New") return s === "new" || s === "placed";
+        if (activeTab === "Picking") return s === "picking" || s === "accepted" || s === "confirmed";
+        if (activeTab === "Packing") return s === "packing" || s === "processing";
         if (activeTab === "Ready") return s === "ready";
         if (activeTab === "Dispatched") return s === "dispatched";
         if (activeTab === "Rejected") return s === "rejected" || s === "cancelled";
@@ -227,7 +227,8 @@ export function AllOrders({ onBack, onNavigate, initialStatus }: AllOrdersProps)
                       {(() => {
                         const statusTimeMap: Record<string, { label: string; fields: string[] }> = {
                           new: { label: "Placed", fields: ["createdAt", "created_at"] },
-                          accepted: { label: "Accepted", fields: ["acceptedAt", "accepted_at"] },
+                          accepted: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
+                          confirmed: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
                           picking: { label: "Picking", fields: ["pickedAt", "picking_started_at", "pickingStartedAt"] },
                           packing: { label: "Packing", fields: ["packedAt", "packing_started_at", "packingStartedAt"] },
                           ready: { label: "Ready", fields: ["packedAt", "packing_completed_at", "packingCompletedAt"] },

@@ -70,7 +70,6 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
   }, []);
 
   const name = user?.name || "Shopkeeper";
-  const email = user?.email || "shopkeeper@gmail.com";
   const initials = name
     .split(" ")
     .map((n) => n[0])

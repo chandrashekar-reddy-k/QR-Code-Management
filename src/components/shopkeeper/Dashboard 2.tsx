@@ -55,10 +55,22 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       const res = await api.get('/orders');
       const allOrders = res.data;
 
-      const newOrders = allOrders.filter((o: any) => o.status === 'new').length;
-      const picking = allOrders.filter((o: any) => o.status === 'picking').length;
-      const packing = allOrders.filter((o: any) => o.status === 'packing').length;
-      const ready = allOrders.filter((o: any) => o.status === 'ready').length;
+      const newOrders = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'new' || s === 'placed';
+      }).length;
+      const picking = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'accepted' || s === 'picking' || s === 'confirmed';
+      }).length;
+      const packing = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'packing' || s === 'processing';
+      }).length;
+      const ready = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'ready';
+      }).length;
       const completed = allOrders.filter((o: any) => o.status === 'dispatched' || o.status === 'delivered').length;
       const breached = allOrders.filter((o: any) => isSLABreached(o)).length;
 

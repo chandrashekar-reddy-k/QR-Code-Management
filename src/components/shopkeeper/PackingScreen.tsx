@@ -159,26 +159,26 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4">
-        <div className="flex gap-3">
+      <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-100 p-2.5">
+        <div className="flex gap-2">
           <button
             onClick={() => setLabelPrinted(true)}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border"
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 border"
             style={{ borderColor: labelPrinted ? "#00891D" : "#EF5A06", backgroundColor: labelPrinted ? "#E8F5E9" : "white" }}
           >
-            <Printer size={16} color={labelPrinted ? "#00891D" : "#EF5A06"} />
-            <span style={{ color: labelPrinted ? "#00891D" : "#EF5A06", fontWeight: 600, fontSize: "13px" }}>
+            <Printer size={13} color={labelPrinted ? "#00891D" : "#EF5A06"} />
+            <span style={{ color: labelPrinted ? "#00891D" : "#EF5A06", fontWeight: 600, fontSize: "11px" }}>
               {labelPrinted ? "Label Printed ✓" : "Print Label"}
             </span>
           </button>
           <button
             onClick={handleCompletePacking}
             disabled={!allChecked || !labelPrinted}
-            className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-3 transition-opacity"
+            className="flex-[2] flex items-center justify-center gap-1.5 rounded-lg py-2 transition-opacity"
             style={{ backgroundColor: allChecked && labelPrinted ? "#2E7D32" : "#BDBDBD", opacity: allChecked && labelPrinted ? 1 : 0.7 }}
           >
-            <CheckCircle size={16} color="white" />
-            <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>
+            <CheckCircle size={13} color="white" />
+            <span className="text-white" style={{ fontWeight: 600, fontSize: "12px" }}>
               {allChecked && labelPrinted ? "Complete Packing" : `Pack ${remainingToPack} more item${remainingToPack === 1 ? "" : "s"}`}
             </span>
           </button>

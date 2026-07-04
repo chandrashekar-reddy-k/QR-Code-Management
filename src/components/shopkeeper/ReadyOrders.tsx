@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Package, CheckCircle, Bike, QrCode, AlertCircle, Loader2, User } from "lucide-react";
+import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, User } from "lucide-react";
 import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
 
@@ -105,13 +105,12 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
       </div>
 
       <div className="flex flex-col gap-3 p-4">
-        {orders.map((order, idx) => {
+        {orders.map((order) => {
           const isOverdue = (() => {
             if (!order.shopkeeper_accepted_at) return false;
             const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
             return elapsed > order.sla_minutes;
           })();
-          const riderAssigned = !!order.agentId;
           return (
             <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
               {isOverdue && (
@@ -167,7 +166,13 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                 </div>
 
                 <button
-                  onClick={() => onNavigate("handover-verification", order)}
+                  onClick={() => {
+                    const agent = agents.find(a => a.id === order.agentId);
+                    onNavigate("handover-verification", {
+                      ...order,
+                      riderName: agent ? agent.name : "N/A"
+                    });
+                  }}
                   className="w-full flex items-center justify-center gap-2 rounded-xl py-3"
                   style={{ backgroundColor: "#2E7D32" }}
                 >

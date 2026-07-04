@@ -60,20 +60,25 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
       );
       setItems(newItems);
 
+      // 1. Wait for the API call to complete so backend updates the db and sets timestamps
+      await api.put(`/orders/${order.id}/items/${itemId}/pick`);
+
+      // 2. Check if all items are now processed
       const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
       if (allCompleted) {
-        setTimeout(async () => {
-          try {
-            const updatedOrderRes = await api.get(`/orders/${order.id}`);
-            onNavigate("picking-complete", { ...updatedOrderRes.data, items: newItems });
-          } catch (e) {
-            // fallback
-            onNavigate("picking-complete", { ...order, items: newItems, picking_completed_at: new Date().toISOString() });
-          }
-        }, 300);
+        try {
+          const updatedOrderRes = await api.get(`/orders/${order.id}`);
+          onNavigate("picking-complete", { ...updatedOrderRes.data, items: newItems });
+        } catch (e) {
+          // fallback
+          onNavigate("picking-complete", {
+            ...order,
+            items: newItems,
+            pickingCompletedAt: new Date().toISOString(),
+            picking_completed_at: new Date().toISOString()
+          });
+        }
       }
-
-      await api.put(`/orders/${order.id}/items/${itemId}/pick`);
     } catch (err) {
       console.error(err);
     }
@@ -100,23 +105,28 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
       setItems(newItems);
       setShowRejectModal(false);
 
-      const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
-      if (allCompleted) {
-        setTimeout(async () => {
-          try {
-            const updatedOrderRes = await api.get(`/orders/${order.id}`);
-            onNavigate("picking-complete", { ...updatedOrderRes.data, items: newItems });
-          } catch (e) {
-            onNavigate("picking-complete", { ...order, items: newItems, picking_completed_at: new Date().toISOString() });
-          }
-        }, 300);
-      }
-
-      // API integration call
+      // 1. Wait for the API call to complete
       await api.put(`/orders/${order.id}/items/${rejectingItem.id}/reject`, {
         reason: selectedRejectReason,
         remarks: rejectRemarks
       });
+
+      // 2. Check if all items are now processed
+      const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
+      if (allCompleted) {
+        try {
+          const updatedOrderRes = await api.get(`/orders/${order.id}`);
+          onNavigate("picking-complete", { ...updatedOrderRes.data, items: newItems });
+        } catch (e) {
+          // fallback
+          onNavigate("picking-complete", {
+            ...order,
+            items: newItems,
+            pickingCompletedAt: new Date().toISOString(),
+            picking_completed_at: new Date().toISOString()
+          });
+        }
+      }
     } catch (err) {
       console.warn("Failed to call reject API, falling back to local state:", err);
     } finally {

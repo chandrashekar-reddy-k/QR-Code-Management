@@ -163,10 +163,22 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       }
       setOrders(allOrders);
 
-      const newOrders = allOrders.filter((o: any) => o.status === 'new').length;
-      const picking = allOrders.filter((o: any) => o.status === 'picking').length;
-      const packing = allOrders.filter((o: any) => o.status === 'packing').length;
-      const ready = allOrders.filter((o: any) => o.status === 'ready').length;
+      const newOrders = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'new' || s === 'placed';
+      }).length;
+      const picking = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'accepted' || s === 'picking' || s === 'confirmed';
+      }).length;
+      const packing = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'packing' || s === 'processing';
+      }).length;
+      const ready = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'ready';
+      }).length;
 
       const completed = allOrders.filter((o: any) => {
         const s = o.status?.toLowerCase();
@@ -569,7 +581,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       {(() => {
                         const statusTimeMap: Record<string, { label: string; fields: string[] }> = {
                           new: { label: "Placed", fields: ["createdAt", "created_at"] },
-                          accepted: { label: "Accepted", fields: ["acceptedAt", "accepted_at"] },
+                          accepted: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
+                          confirmed: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
                           picking: { label: "Picking", fields: ["pickedAt", "picking_started_at", "pickingStartedAt"] },
                           packing: { label: "Packing", fields: ["packedAt", "packing_started_at", "packingStartedAt"] },
                           ready: { label: "Ready", fields: ["packedAt", "packing_completed_at", "packingCompletedAt"] },

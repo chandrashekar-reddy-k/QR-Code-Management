@@ -35,7 +35,7 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
           </button>
           <div>
             <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Handover Verification</h1>
-            <p className="text-white/70" style={{ fontSize: "12px" }}>Order #{order.order_number || "QC100240"} · Rider: Arjun Kumar</p>
+            <p className="text-white/70" style={{ fontSize: "12px" }}>Order #{order.order_number || "QC100240"} · Rider: {order.riderName || "N/A"}</p>
           </div>
         </div>
       </div>
@@ -122,7 +122,7 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
             <div className="bg-orange-50 rounded-2xl p-4 w-full text-center">
               <Bike size={32} color="#EF5A06" className="mx-auto mb-2" />
               <p className="text-orange-800" style={{ fontWeight: 600, fontSize: "14px" }}>Rider Scan Verification</p>
-              <p className="text-orange-600" style={{ fontSize: "12px" }}>Rider: Arjun Kumar scans from their device</p>
+              <p className="text-orange-600" style={{ fontSize: "12px" }}>Rider: {order.riderName || "N/A"} scans from their device</p>
             </div>
             <button
               onClick={async () => {
@@ -163,13 +163,13 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
 
             <div className="text-center">
               <h2 className="text-gray-900 mb-1" style={{ fontWeight: 700, fontSize: "22px" }}>Handover Complete!</h2>
-              <p className="text-gray-500" style={{ fontSize: "14px" }}>Order dispatched to Arjun Kumar</p>
+              <p className="text-gray-500" style={{ fontSize: "14px" }}>Order dispatched to {order.riderName || "N/A"}</p>
             </div>
 
             <div className="bg-white rounded-2xl p-4 w-full shadow-sm">
               {[
                 { label: "Order", value: `#${order.order_number || "QC100240"}` },
-                { label: "Rider", value: "Arjun Kumar" },
+                { label: "Rider", value: order.riderName || "N/A" },
                 { label: "Staff Verified", value: staffVerifiedAt ? staffVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
                 { label: "Rider Verified", value: riderVerifiedAt ? riderVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
                 { label: "Handover Time", value: riderVerifiedAt ? riderVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
