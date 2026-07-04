@@ -321,9 +321,21 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
               ))
             )}
           </div>
-          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-gray-500" style={{ fontSize: "13px" }}>Total</span>
-            <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>₹{fullOrder.total_value}</span>
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500" style={{ fontSize: "13px" }}>Subtotal</span>
+              <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>₹{fullOrder.total_value - (fullOrder.delivery_charge || 0)}</span>
+            </div>
+            {fullOrder.delivery_charge > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500" style={{ fontSize: "13px" }}>Delivery Charges</span>
+                <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>₹{fullOrder.delivery_charge}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between border-t border-gray-50 pt-2">
+              <span className="text-gray-900" style={{ fontWeight: 600, fontSize: "13.5px" }}>Total</span>
+              <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>₹{fullOrder.total_value}</span>
+            </div>
           </div>
         </div>
       </div>
