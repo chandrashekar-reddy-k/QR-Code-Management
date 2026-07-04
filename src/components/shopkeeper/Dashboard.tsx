@@ -13,6 +13,7 @@ import {
   XCircle,
   RotateCcw,
   IndianRupee,
+  ClipboardList,
 } from "lucide-react";
 import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
@@ -293,9 +294,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const todayRevenue = dispatchedTodayOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
 
   const secondRowKpis = [
+    { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "all-orders" },
     { label: "Dispatched", value: dispatchedToday, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED" },
     { label: "Rejected", value: rejectedToday, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED" },
-    { label: "SLA Breached", value: slaBreachedCount, icon: ShieldAlert, color: "#F43F5E", bg: "#FFE4E6", screen: "sla-monitoring" },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns" },
     { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7" },
   ];
