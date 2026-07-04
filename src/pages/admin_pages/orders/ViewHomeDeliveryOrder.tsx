@@ -175,7 +175,7 @@ const ViewHomeDeliveryOrder = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
-  const [selectedShopkeeperId, setSelectedShopkeeperId] = useState<string>("");
+  const [selectedShopkeeperId, setSelectedShopkeeperId] = useState<string | undefined>(undefined);
   const [isAllocatingShopkeeper, setIsAllocatingShopkeeper] = useState(false);
 
   useEffect(() => {
@@ -582,7 +582,7 @@ const ViewHomeDeliveryOrder = () => {
           </div>
 
           {/* Shopkeeper Allocation - Conditional Rendering (Paid or Confirmed/Placed orders) */}
-          {(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PLACED || order.assignedShopkeeperId) && (
+          {(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PLACED || order.status === "PENDING") && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase">
@@ -594,8 +594,25 @@ const ViewHomeDeliveryOrder = () => {
                   </label>
                   <div className="flex gap-2">
                     <select
-                      value={selectedShopkeeperId || order.assignedShopkeeperId || ""}
-                      onChange={(e) => setSelectedShopkeeperId(e.target.value)}
+                      value={selectedShopkeeperId !== undefined ? selectedShopkeeperId : (order.assignedShopkeeperId || "")}
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        setSelectedShopkeeperId(val);
+                        if (!val && order.assignedShopkeeperId) {
+                          // Automatically trigger unassignment when empty option is selected
+                          setIsAllocatingShopkeeper(true);
+                          try {
+                            await api.post(`/orders/${id}/allocate-shopkeeper`, {
+                              shopkeeperId: "",
+                            });
+                            window.location.reload();
+                          } catch (err) {
+                            console.error("Failed to unallocate shopkeeper", err);
+                          } finally {
+                            setIsAllocatingShopkeeper(false);
+                          }
+                        }
+                      }}
                       className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900 dark:text-gray-100"
                     >
                       <option value="">Select Shopkeeper...</option>
@@ -607,11 +624,17 @@ const ViewHomeDeliveryOrder = () => {
                     </select>
                     <Button
                       onClick={handleAllocateShopkeeper}
-                      variant="primary"
+                      variant={!selectedShopkeeperId && order.assignedShopkeeperId ? "secondary" : "primary"}
                       size="sm"
-                      disabled={isAllocatingShopkeeper || !selectedShopkeeperId}
+                      disabled={isAllocatingShopkeeper || (selectedShopkeeperId === (order.assignedShopkeeperId || ""))}
                     >
-                      {isAllocatingShopkeeper ? "Allocating..." : order.assignedShopkeeperId ? "Reassign" : "Allocate"}
+                      {isAllocatingShopkeeper 
+                        ? "Allocating..." 
+                        : !selectedShopkeeperId && order.assignedShopkeeperId 
+                          ? "Unassign" 
+                          : order.assignedShopkeeperId 
+                            ? "Reassign" 
+                            : "Allocate"}
                     </Button>
                   </div>
                 </div>

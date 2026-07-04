@@ -90,6 +90,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isShopkeeperOpen, setIsShopkeeperOpen] = useState(
     location.pathname.startsWith("/shopkeeper")
   );
+  const [isShopkeeperErpAdminOpen, setIsShopkeeperErpAdminOpen] = useState(
+    location.pathname.startsWith("/shopkeeper-erp")
+  );
 
   // ============================================
   // STATE MAPS - For dynamic state access
@@ -122,6 +125,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen: setIsProcurementOpen,
       isPricingOpen: setIsPricingOpen,
       isShopkeeperOpen: setIsShopkeeperOpen,
+      isShopkeeperErpAdminOpen: setIsShopkeeperErpAdminOpen,
     }),
     []
   );
@@ -153,6 +157,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen,
       isPricingOpen,
       isShopkeeperOpen,
+      isShopkeeperErpAdminOpen,
     }),
     [
       isProductsOpen,
@@ -175,6 +180,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen,
       isPricingOpen,
       isShopkeeperOpen,
+      isShopkeeperErpAdminOpen,
     ]
   );
 
@@ -224,6 +230,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     setIsAssetsOpen(initialStateCheckers.isAssetsOpen(location.pathname));
     setIsProcurementOpen(initialStateCheckers.isProcurementOpen(location.pathname));
     setIsPricingOpen(initialStateCheckers.isPricingOpen(location.pathname));
+    setIsShopkeeperErpAdminOpen(location.pathname.startsWith("/shopkeeper-erp"));
   }, [location.pathname]);
 
   // ============================================

@@ -37,6 +37,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   const isAgentRole = role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT";
   const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
+  const isShopkeeperPortal = location.pathname.startsWith('/shopkeeper') && !location.pathname.startsWith('/shopkeeper-erp');
 
   if (isAgentRole) {
     if (!isAgentPortal) {
@@ -58,9 +59,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/" replace />;
   }
 
-  const isShopkeeper = location.pathname.startsWith("/shopkeeper");
-
-  if (isShopkeeper) {
+  // If accessing the Shopkeeper portal, directly render the children (it has its own layout/sidebar)
+  if (isShopkeeperPortal) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>{children}</Suspense>

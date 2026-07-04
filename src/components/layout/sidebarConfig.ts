@@ -183,6 +183,20 @@ export const sidebarConfig: MenuSection[] = [
     label: "Warehouse Dashboard",
     icon: Home,
   },
+  {
+    type: "collapsible",
+    label: "Shopkeeper ERP (Admin)",
+    icon: Store,
+    stateKey: "isShopkeeperErpAdminOpen",
+    subItems: [
+      { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
+      { path: '/shopkeeper-erp?tab=new-orders', label: 'Inbox Orders', icon: ShoppingCart },
+      { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
+      { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
+      { path: '/shopkeeper-erp?tab=all-orders', label: 'Order History', icon: History },
+      { path: '/shopkeeper-erp?tab=settings', label: 'Settings', icon: Settings }
+    ]
+  },
 
 
   // PRODUCT & STOCK Section

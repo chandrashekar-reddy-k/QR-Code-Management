@@ -1,6 +1,7 @@
 import React, { lazy } from "react";
 
 const ShopkeeperERP = lazy(() => import("../pages/ShopkeeperERP"));
+const ShopkeeperAdminERP = lazy(() => import("../pages/admin_pages/orders/ShopkeeperAdminERP"));
 
 // Lazy load all components for better performance
 const Login = lazy(() => import("../pages/public_pages/login_page/Login"));
@@ -1461,6 +1462,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/campaigns",
     component: ManageCampaigns,
+    requiresAuth: true,
+  },
+  {
+    path: "/shopkeeper-erp",
+    component: ShopkeeperAdminERP,
     requiresAuth: true,
   },
   {
