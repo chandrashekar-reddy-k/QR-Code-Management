@@ -14,7 +14,7 @@ import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
 
 interface DashboardProps {
-  onNavigate: (screen: string) => void;
+  onNavigate: (screen: string, data?: any) => void;
 }
 
 const isSLABreached = (order: any): boolean => {
@@ -273,7 +273,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             return (
               <button
                 key={order.id}
-                onClick={() => onNavigate("order-details")}
+                onClick={() => onNavigate("order-details", order)}
                 className="bg-white rounded-2xl p-3.5 shadow-sm text-left flex items-center gap-3 hover:bg-gray-50 active:scale-98 transition-transform"
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: statusBg }}>

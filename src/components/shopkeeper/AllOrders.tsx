@@ -1,12 +1,27 @@
 import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, Clock, Search, ShoppingBag, X } from "lucide-react";
+import axios from "axios";
 import api from "../../api/axios";
+
+const adminApi = axios.create({
+  baseURL: import.meta.env.VITE_ADMIN_URL || "http://localhost:3001/api/v1",
+});
+
+adminApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 import { useSocket } from "../../hooks/useSocket";
 
 interface AllOrdersProps {
   onBack: () => void;
   onNavigate?: (screen: string, data?: any) => void;
   initialStatus?: string;
+  isAdmin?: boolean;
 }
 
 const getLatestActivityTime = (order: any): number => {
@@ -43,7 +58,7 @@ const tabMap: Record<string, string> = {
   RETURNS: "Returns",
 };
 
-export function AllOrders({ onBack, onNavigate, initialStatus }: AllOrdersProps) {
+export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }: AllOrdersProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,7 +74,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus }: AllOrdersProps)
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/orders');
+      const res = await adminApi.get('/orders');
       const resData = res.data;
       let allOrders: any[] = [];
       if (Array.isArray(resData)) {
@@ -71,6 +86,22 @@ export function AllOrders({ onBack, onNavigate, initialStatus }: AllOrdersProps)
       } else if (resData && Array.isArray(resData.orders)) {
         allOrders = resData.orders;
       }
+
+      // Staff view client-side shopkeeper filter
+      if (!isAdmin) {
+        const storedUser = localStorage.getItem("user");
+        const user = storedUser ? JSON.parse(storedUser) : null;
+        const skId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
+        const skPhone = user?.phone;
+        if (skId || skPhone) {
+          allOrders = allOrders.filter((o: any) => {
+            const matchesId = skId && (o.assignedShopkeeperId === skId || o.assigned_shopkeeper_id === skId);
+            const matchesPhone = skPhone && (o.assignedShopkeeper?.phone === skPhone || o.assigned_shopkeeper_phone === skPhone || o.shopkeeper_phone === skPhone);
+            return matchesId || matchesPhone;
+          });
+        }
+      }
+
       setOrders(allOrders);
     } catch (err) {
       console.error("Failed to fetch orders", err);

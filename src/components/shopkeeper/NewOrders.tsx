@@ -1,6 +1,20 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, MapPin, Zap, ShoppingCart, Phone, AlertCircle, CheckCircle, XCircle, ChevronRight, Loader2, User } from "lucide-react";
+import axios from "axios";
 import api from "../../api/axios";
+
+const adminApi = axios.create({
+  baseURL: import.meta.env.VITE_ADMIN_URL || "http://localhost:3001/api/v1",
+});
+
+adminApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 import { useSocket } from "../../hooks/useSocket";
 import { AllocationCountdown } from "./AllocationCountdown";
 import { ShopkeeperModal } from "./ShopkeeperModal";
@@ -46,8 +60,20 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/orders?status=new');
-      setOrders(res.data);
+      const res = await adminApi.get('/orders');
+      const resData = res.data;
+      let allOrders: any[] = [];
+      if (Array.isArray(resData)) {
+        allOrders = resData;
+      } else if (resData && Array.isArray(resData.data)) {
+        allOrders = resData.data;
+      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
+        allOrders = resData.data.orders;
+      } else if (resData && Array.isArray(resData.orders)) {
+        allOrders = resData.orders;
+      }
+      const newOrders = allOrders.filter((o: any) => o.status?.toLowerCase() === 'new');
+      setOrders(newOrders);
       setError(null);
     } catch (err) {
       console.error(err);

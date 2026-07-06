@@ -196,7 +196,14 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
 export default function ShopkeeperERP() {
   const [screen, setScreen] = useState<Screen>("dashboard");
-  const [orderData, setOrderData] = useState<unknown>(null);
+  const [orderData, setOrderData] = useState<unknown>(() => {
+    try {
+      const saved = localStorage.getItem("sk_active_order");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [allOrdersStatus, setAllOrdersStatus] = useState<string | undefined>(undefined);
   const [history, setHistory] = useState<Screen[]>([]);
   const location = useLocation();
@@ -242,7 +249,14 @@ export default function ShopkeeperERP() {
       setScreen(dest as Screen);
     }
 
-    if (data !== undefined) setOrderData(data);
+    if (data !== undefined) {
+      setOrderData(data);
+      if (data) {
+        localStorage.setItem("sk_active_order", JSON.stringify(data));
+      } else {
+        localStorage.removeItem("sk_active_order");
+      }
+    }
   };
 
   const goBack = () => {

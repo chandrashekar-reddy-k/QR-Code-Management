@@ -9,8 +9,9 @@ interface OrderDetailsProps {
 }
 
 export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
-  const [fullOrder, setFullOrder] = useState<any>(order || {});
-  const [loading, setLoading] = useState(!order?.items);
+  const [fullOrder, setFullOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   // Tick every minute so SLA elapsed/remaining updates automatically
   const [now, setNow] = useState(new Date());
 
@@ -21,14 +22,18 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
 
   useEffect(() => {
     if (order?.id) {
+      setLoading(true);
+      setError(null);
       api.get(`/orders/${order.id}`).then(res => {
         setFullOrder(res.data);
         setLoading(false);
       }).catch(err => {
         console.error(err);
+        setError("Failed to load order details. Please try again.");
         setLoading(false);
       });
     } else {
+      setError("No order selected or invalid order ID.");
       setLoading(false);
     }
   }, [order?.id]);
@@ -59,10 +64,46 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
     }
   };
 
-  if (loading) {
+  if (loading || !fullOrder) {
     return (
       <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center p-4">
+        <XCircle className="text-red-500 mb-3" size={48} />
+        <p className="text-gray-800 text-center font-medium mb-4">{error}</p>
+        <div className="flex gap-3">
+          <button 
+            onClick={onBack} 
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+          >
+            Go Back
+          </button>
+          <button 
+            onClick={() => {
+              if (order?.id) {
+                setLoading(true);
+                setError(null);
+                api.get(`/orders/${order.id}`).then(res => {
+                  setFullOrder(res.data);
+                  setLoading(false);
+                }).catch(err => {
+                  console.error(err);
+                  setError("Failed to load order details. Please try again.");
+                  setLoading(false);
+                });
+              }
+            }} 
+            className="px-4 py-2 bg-[#00891D] text-white rounded-xl font-semibold hover:bg-[#006614] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -74,32 +115,45 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
   // Target SLA: fixed value from backend, never modified
   const slaMinutes: number = fullOrder.sla_minutes || 30;
 
+  // Format seconds helper
+  const formatSeconds = (totalSecs: number) => {
+    const absSecs = Math.abs(totalSecs);
+    const mins = Math.floor(absSecs / 60);
+    const secs = absSecs % 60;
+    return `${mins}m ${secs}s`;
+  };
+
   // Determine which SLA state we are in
   let slaState: "waiting" | "inprogress" | "completed" = "waiting";
-  let slaElapsed = 0;
-  let slaRemaining = 0;
-  let slaActual = 0;
+  let slaElapsedSeconds = 0;
+  let slaRemainingSeconds = 0;
+  let slaActualSeconds = 0;
   let slaIsBreached = false;
   let slaStatusLabel = "";
 
-  if (!fullOrder.shopkeeper_accepted_at) {
+  const acceptedAtStr = fullOrder.shopkeeperAcceptedAt || fullOrder.shopkeeper_accepted_at || fullOrder.acceptedByShopkeeperAt;
+  const completedAtStr = fullOrder.deliveredAt || fullOrder.delivered_at || fullOrder.dispatched_at || fullOrder.dispatchedAt || (fullOrder.status === "dispatched" ? fullOrder.updatedAt : null);
+
+  if (!acceptedAtStr) {
     // Shopkeeper has not accepted yet → SLA hasn't started
     slaState = "waiting";
-  } else if (fullOrder.dispatched_at) {
+    slaStatusLabel = "Waiting for Acceptance";
+  } else if (fullOrder.status === "dispatched" || completedAtStr) {
     // Order has been dispatched → SLA is done
     slaState = "completed";
-    const acceptedAt = new Date(fullOrder.shopkeeper_accepted_at).getTime();
-    const dispatchedAt = new Date(fullOrder.dispatched_at).getTime();
-    slaActual = Math.floor((dispatchedAt - acceptedAt) / 60000);
-    slaIsBreached = slaActual > slaMinutes;
-    slaStatusLabel = slaIsBreached ? "❌ SLA Breached" : "✅ Within SLA";
+    const acceptedAt = new Date(acceptedAtStr).getTime();
+    const dispatchedAt = new Date(completedAtStr || new Date()).getTime();
+    slaActualSeconds = Math.floor((dispatchedAt - acceptedAt) / 1000);
+    slaIsBreached = slaActualSeconds > (slaMinutes * 60);
+    slaStatusLabel = slaIsBreached ? "SLA Breached" : "Within SLA";
   } else {
     // Order accepted but not yet dispatched → SLA is counting
     slaState = "inprogress";
-    const acceptedAt = new Date(fullOrder.shopkeeper_accepted_at).getTime();
-    slaElapsed = Math.floor((now.getTime() - acceptedAt) / 60000);
-    slaRemaining = slaMinutes - slaElapsed;
-    slaIsBreached = slaRemaining < 0;
+    const acceptedAt = new Date(acceptedAtStr).getTime();
+    slaElapsedSeconds = Math.floor((now.getTime() - acceptedAt) / 1000);
+    slaRemainingSeconds = (slaMinutes * 60) - slaElapsedSeconds;
+    slaIsBreached = slaRemainingSeconds < 0;
+    slaStatusLabel = slaIsBreached ? "SLA Breached" : "Within SLA";
   }
 
   return (
@@ -180,7 +234,7 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
               <div className="flex justify-between items-center">
                 <span className="text-gray-500" style={{ fontSize: "13px" }}>Status:</span>
                 <span className="text-orange-500" style={{ fontWeight: 600, fontSize: "13px" }}>
-                  ⏳ Waiting for Acceptance
+                  {slaStatusLabel}
                 </span>
               </div>
             )}
@@ -189,9 +243,21 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
             {slaState === "inprogress" && (
               <>
                 <div className="flex justify-between items-center">
+                  <span className="text-gray-500" style={{ fontSize: "13px" }}>Status:</span>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      color: slaIsBreached ? "#D32F2F" : "#2E7D32",
+                    }}
+                  >
+                    {slaStatusLabel}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
                   <span className="text-gray-500" style={{ fontSize: "13px" }}>Elapsed:</span>
                   <span className="text-gray-800" style={{ fontWeight: 600, fontSize: "13px" }}>
-                    {slaElapsed} min
+                    {formatSeconds(slaElapsedSeconds)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -200,10 +266,10 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
                     style={{
                       fontWeight: 700,
                       fontSize: "13px",
-                      color: slaIsBreached ? "#D32F2F" : slaRemaining <= 5 ? "#EF5A06" : "#2E7D32",
+                      color: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#EF5A06" : "#2E7D32",
                     }}
                   >
-                    {slaIsBreached ? `Overdue by ${Math.abs(slaRemaining)} min` : `${slaRemaining} min`}
+                    {slaIsBreached ? `Overdue by ${formatSeconds(slaRemainingSeconds)}` : formatSeconds(slaRemainingSeconds)}
                   </span>
                 </div>
                 {/* Progress bar */}
@@ -211,8 +277,8 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
-                      width: `${Math.min((slaElapsed / slaMinutes) * 100, 100)}%`,
-                      backgroundColor: slaIsBreached ? "#D32F2F" : slaRemaining <= 5 ? "#EF5A06" : "#00891D",
+                      width: `${Math.min((slaElapsedSeconds / (slaMinutes * 60)) * 100, 100)}%`,
+                      backgroundColor: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#EF5A06" : "#00891D",
                     }}
                   />
                 </div>
@@ -225,7 +291,7 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500" style={{ fontSize: "13px" }}>Actual SLA:</span>
                   <span className="text-gray-800" style={{ fontWeight: 600, fontSize: "13px" }}>
-                    {slaActual} min
+                    {formatSeconds(slaActualSeconds)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -270,23 +336,23 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
             )}
             {slaState === "inprogress" && (
               <div className="rounded-xl p-2.5 text-center"
-                style={{ backgroundColor: slaIsBreached ? "#FFEBEE" : slaRemaining <= 5 ? "#FFF3E0" : "#E8F5E9" }}>
-                <p style={{ fontWeight: 700, fontSize: "14px", color: slaIsBreached ? "#D32F2F" : slaRemaining <= 5 ? "#E65100" : "#2E7D32" }}>
-                  {slaIsBreached ? `+${Math.abs(slaRemaining)}m` : `${slaRemaining}m`}
+                style={{ backgroundColor: slaIsBreached ? "#FFEBEE" : (slaRemainingSeconds <= 300) ? "#FFF3E0" : "#E8F5E9" }}>
+                <p style={{ fontWeight: 700, fontSize: "13px", color: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#E65100" : "#2E7D32" }}>
+                  {slaIsBreached ? `+${formatSeconds(slaRemainingSeconds)}` : formatSeconds(slaRemainingSeconds)}
                 </p>
-                <p style={{ fontSize: "10px", color: slaIsBreached ? "#D32F2F" : slaRemaining <= 5 ? "#E65100" : "#2E7D32" }}>
-                  {slaIsBreached ? "Breached" : "Remaining"}
+                <p style={{ fontSize: "10px", color: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#E65100" : "#2E7D32" }}>
+                  {slaStatusLabel}
                 </p>
               </div>
             )}
             {slaState === "completed" && (
               <div className="rounded-xl p-2.5 text-center"
                 style={{ backgroundColor: slaIsBreached ? "#FFEBEE" : "#E8F5E9" }}>
-                <p style={{ fontWeight: 700, fontSize: "14px", color: slaIsBreached ? "#D32F2F" : "#2E7D32" }}>
-                  {slaActual}m
+                <p style={{ fontWeight: 700, fontSize: "13px", color: slaIsBreached ? "#D32F2F" : "#2E7D32" }}>
+                  {formatSeconds(slaActualSeconds)}
                 </p>
                 <p style={{ fontSize: "10px", color: slaIsBreached ? "#D32F2F" : "#2E7D32" }}>
-                  {slaIsBreached ? "Breached" : "On Time"}
+                  {slaStatusLabel}
                 </p>
               </div>
             )}
@@ -324,17 +390,31 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
           <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-gray-500" style={{ fontSize: "13px" }}>Subtotal</span>
-              <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>₹{fullOrder.total_value - (fullOrder.delivery_charge || 0)}</span>
+              <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>
+                ₹{Number(
+                  (fullOrder.total_value || fullOrder.totalAmount || 0) -
+                  (fullOrder.delivery_charge || fullOrder.deliveryCharge || 0) -
+                  (fullOrder.additional_charges || fullOrder.additionalCharges || 0)
+                ).toFixed(2)}
+              </span>
             </div>
-            {fullOrder.delivery_charge > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-500" style={{ fontSize: "13px" }}>Delivery Charges</span>
-                <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>₹{fullOrder.delivery_charge}</span>
-              </div>
-            )}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500" style={{ fontSize: "13px" }}>Delivery Charges</span>
+              <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>
+                ₹{Number(fullOrder.delivery_charge || fullOrder.deliveryCharge || 0).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500" style={{ fontSize: "13px" }}>Additional Charges</span>
+              <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>
+                ₹{Number(fullOrder.additional_charges || fullOrder.additionalCharges || 0).toFixed(2)}
+              </span>
+            </div>
             <div className="flex items-center justify-between border-t border-gray-50 pt-2">
               <span className="text-gray-900" style={{ fontWeight: 600, fontSize: "13.5px" }}>Total</span>
-              <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>₹{fullOrder.total_value}</span>
+              <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>
+                ₹{Number(fullOrder.total_value || fullOrder.totalAmount || 0).toFixed(2)}
+              </span>
             </div>
           </div>
         </div>

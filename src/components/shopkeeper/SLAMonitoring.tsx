@@ -3,6 +3,8 @@ import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Loader2, Package } from "
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, Tooltip } from "recharts";
 import api from "../../api/axios";
 
+import { useSocket } from "../../hooks/useSocket";
+
 interface SLAMonitoringProps {
   onBack: () => void;
 }
@@ -13,12 +15,30 @@ const GREEN_LIGHT = "#E8F5E9";
 const ORANGE_LIGHT = "#FFF3E0";
 
 export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
-  const [data, setData] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [slaData, setSlaData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
+  const socket = useSocket(1);
 
   const fetchData = () => {
-    api.get('/sla').then(res => {
-      setData(res.data);
+    Promise.all([
+      api.get('/orders?all=true'),
+      api.get('/sla')
+    ]).then(([ordersRes, slaRes]) => {
+      const resData = ordersRes.data;
+      let allOrders: any[] = [];
+      if (Array.isArray(resData)) {
+        allOrders = resData;
+      } else if (resData && Array.isArray(resData.data)) {
+        allOrders = resData.data;
+      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
+        allOrders = resData.data.orders;
+      } else if (resData && Array.isArray(resData.orders)) {
+        allOrders = resData.orders;
+      }
+      setOrders(allOrders);
+      setSlaData(slaRes.data);
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -28,9 +48,25 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
 
   useEffect(() => {
     fetchData();
-    const timer = setInterval(fetchData, 30000);
-    return () => clearInterval(timer);
-  }, []);
+    const fetchTimer = setInterval(fetchData, 60000);
+    const nowTimer = setInterval(() => {
+      setNow(new Date());
+    }, 60000);
+
+    if (socket.current) {
+      socket.current.on('order:new', fetchData);
+      socket.current.on('order:status', fetchData);
+    }
+
+    return () => {
+      clearInterval(fetchTimer);
+      clearInterval(nowTimer);
+      if (socket.current) {
+        socket.current.off('order:new', fetchData);
+        socket.current.off('order:status', fetchData);
+      }
+    };
+  }, [socket.current]);
 
   if (loading) {
     return (
@@ -40,20 +76,72 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
     );
   }
 
-  const breaches = data?.breaches || [];
-  const summary = data?.summary || { active_breaches: 0, at_risk: 0, active_orders: 0, avg_fulfillment: 0 };
-  const hourlyData = data?.hourlyData || [];
-  const processingTimes = data?.processingTimes || [];
+  // Helper to check if order status is not dispatched or cancelled
+  const isNotDispatchedOrCancelled = (o: any) => {
+    const s = o.status?.toLowerCase();
+    return s && !['dispatched', 'delivered', 'completed', 'cancelled', 'rejected', 'out_for_delivery'].includes(s);
+  };
 
-  const onTimeCount = Math.max(0, summary.active_orders - summary.at_risk - summary.active_breaches);
+  // 1. Summary counts
+  let onTrackCount = 0;
+  let atRiskCount = 0;
+  let breachedCount = 0;
+  const breachesList: any[] = [];
 
+  orders.forEach((o) => {
+    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
+    if (!acceptedAtStr || !isNotDispatchedOrCancelled(o)) {
+      return;
+    }
+
+    const acceptedAt = new Date(acceptedAtStr).getTime();
+    const elapsed = (now.getTime() - acceptedAt) / 60000;
+    const slaMinutes = o.sla_minutes || o.slaMinutes || 30;
+    const remaining = slaMinutes - elapsed;
+
+    if (elapsed > slaMinutes) {
+      breachedCount++;
+      breachesList.push({
+        order_number: o.order_number || o.orderNumber,
+        customer_name: o.customer_name || o.consumer?.name || "Customer",
+        customer_phone: o.customer_phone || o.consumer?.phone || "",
+        order_type: o.order_type || (o.fulfillmentType === 'STORE_PICKUP' ? 'Self Pickup' : 'Home Delivery'),
+        status: o.status,
+        sla_minutes: slaMinutes,
+        delay_minutes: Math.max(0, Math.floor(elapsed - slaMinutes))
+      });
+    } else if (remaining < 15) {
+      atRiskCount++;
+    } else {
+      onTrackCount++;
+    }
+  });
+
+  const activeOrdersCount = onTrackCount + atRiskCount + breachedCount;
+
+  // 2. SLA Compliance Rate
   let complianceRate = 100;
-  if (summary.active_orders > 0) {
-    complianceRate = (onTimeCount / summary.active_orders) * 100;
+  if (activeOrdersCount > 0) {
+    complianceRate = (onTrackCount / activeOrdersCount) * 100;
   }
-  const atRiskPct = summary.active_orders > 0 ? (summary.at_risk / summary.active_orders) * 100 : 0;
-  const breachedPct = summary.active_orders > 0 ? (summary.active_breaches / summary.active_orders) * 100 : 0;
+  const atRiskPct = activeOrdersCount > 0 ? (atRiskCount / activeOrdersCount) * 100 : 0;
+  const breachedPct = activeOrdersCount > 0 ? (breachedCount / activeOrdersCount) * 100 : 0;
 
+  // 3. Breach Alerts List
+  const breaches = breachesList;
+
+  // 4. SLA data properties from /sla endpoint
+  const hourlyData = slaData?.hourlyData || [];
+  const processingTimes = slaData?.processingTimes || [];
+
+  const summary = {
+    active_orders: activeOrdersCount,
+    at_risk: atRiskCount,
+    active_breaches: breachedCount,
+    avg_fulfillment: slaData?.summary?.avg_fulfillment || 0
+  };
+
+  const onTimeCount = onTrackCount;
   const noChartData = hourlyData.length === 0;
 
   return (

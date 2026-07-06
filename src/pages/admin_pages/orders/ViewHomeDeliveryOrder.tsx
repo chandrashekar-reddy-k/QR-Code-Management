@@ -89,6 +89,8 @@ interface ApiOrderData {
   items: ApiOrderItem[];
   payment?: unknown | null;
   delivery?: unknown | null;
+  assignedShopkeeperId?: string | null;
+  assignedShopkeeper?: { name: string } | null;
   [key: string]: unknown;
 }
 
@@ -127,6 +129,8 @@ interface HomeDeliveryOrderView {
   additionalCharges: number;
   taxAmount:number;
   finalTotal: number;
+  assignedShopkeeperId?: string | null;
+  shopkeeper_name?: string | null;
 }
 
 // Helper to get user-friendly label from enum
@@ -582,7 +586,7 @@ const ViewHomeDeliveryOrder = () => {
           </div>
 
           {/* Shopkeeper Allocation - Conditional Rendering (Paid or Confirmed/Placed orders) */}
-          {(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PLACED || order.status === "PENDING") && (
+          {(order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PLACED || (order.status as string) === "PENDING") && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase">

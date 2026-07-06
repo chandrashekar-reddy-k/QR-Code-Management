@@ -5,7 +5,6 @@ import {
   Package,
   CheckCircle,
   AlertTriangle,
-  ShieldAlert,
   Clock,
   Bell,
   ChevronRight,
@@ -15,7 +14,21 @@ import {
   IndianRupee,
   ClipboardList,
 } from "lucide-react";
+import axios from "axios";
 import api from "../../api/axios";
+
+const adminApi = axios.create({
+  baseURL: import.meta.env.VITE_ADMIN_URL || "http://localhost:3001/api/v1",
+});
+
+adminApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 import { useSocket } from "../../hooks/useSocket";
 import {
   BarChart,
@@ -30,6 +43,7 @@ import {
 
 interface DashboardProps {
   onNavigate: (screen: string, data?: unknown) => void;
+  isAdmin?: boolean;
 }
 
 const isSLABreached = (order: any): boolean => {
@@ -101,8 +115,19 @@ function KPICard({ label, value, icon: Icon, color, bg, onClick }: KPICardProps)
   );
 }
 
-export function Dashboard({ onNavigate }: DashboardProps) {
+export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const [orders, setOrders] = useState<any[]>([]);
+  const [shopkeepers, setShopkeepers] = useState<any[]>([]);
+
+  const fetchShopkeepers = async () => {
+    if (!isAdmin) return;
+    try {
+      const res = await api.get('/shopkeepers');
+      setShopkeepers(res.data || []);
+    } catch (err) {
+      console.error("Failed to load active shopkeepers", err);
+    }
+  };
   const [stats, setStats] = useState<any>({
     newOrders: 0,
     picking: 0,
@@ -135,14 +160,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       console.error("Failed to load user name in Dashboard", err);
     }
   }, []);
-
-  const initials = userName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
   // Using store ID 1 as defined in our DB schema
   const socket = useSocket(1);
 
@@ -150,7 +167,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     try {
       // In a real app we would have an endpoint specifically for this,
       // Since we only have /orders right now, let's derive it or fetch /orders and aggregate locally for demo
-      const res = await api.get('/orders');
+      const res = await adminApi.get('/orders');
       const resData = res.data;
       let allOrders: any[] = [];
       if (Array.isArray(resData)) {
@@ -162,11 +179,27 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       } else if (resData && Array.isArray(resData.orders)) {
         allOrders = resData.orders;
       }
+
+      // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
+      if (!isAdmin) {
+        const storedUser = localStorage.getItem("user");
+        const user = storedUser ? JSON.parse(storedUser) : null;
+        const userPhone = user?.phone;
+        if (userPhone) {
+          allOrders = allOrders.filter(
+            (o: any) =>
+              o.assignedShopkeeper?.phone === userPhone ||
+              o.assigned_shopkeeper?.phone === userPhone ||
+              o.shopkeeper_phone === userPhone
+          );
+        }
+      }
+
       setOrders(allOrders);
 
       const newOrders = allOrders.filter((o: any) => {
         const s = o.status?.toLowerCase();
-        return s === 'new' || s === 'placed';
+        return s === 'new';
       }).length;
       const picking = allOrders.filter((o: any) => {
         const s = o.status?.toLowerCase();
@@ -202,8 +235,20 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       }).length;
 
       const breached = allOrders.filter((o: any) => {
-        const isCompleted = o.status?.toLowerCase() === 'delivered' || o.status?.toLowerCase() === 'completed';
-        return isSLABreached(o) && !isCompleted;
+        const acceptedAtStr = o.shopkeeperAcceptedAt || o.shopkeeper_accepted_at || o.acceptedByShopkeeperAt;
+        if (!acceptedAtStr) return false;
+        
+        const s = o.status?.toLowerCase();
+        if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
+          return false;
+        }
+        
+        const acceptedAt = new Date(acceptedAtStr).getTime();
+        const elapsedMinutes = (Date.now() - acceptedAt) / 60000;
+        const slaMinutes = o.sla_minutes ?? 30;
+        const remaining = slaMinutes - elapsedMinutes;
+        
+        return remaining < 15;
       }).length;
 
       setStats({
@@ -224,6 +269,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       const sortedOrders = [...allOrders].sort((a, b) => getLatestActivityTime(b) - getLatestActivityTime(a));
       setRecentOrders(sortedOrders.slice(0, 5));
+      if (isAdmin) {
+        fetchShopkeepers();
+      }
     } catch (err) {
       console.error("Failed to load dashboard data", err);
     }
@@ -231,8 +279,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   useEffect(() => {
     fetchDashboardData();
+    if (isAdmin) {
+      fetchShopkeepers();
+    }
 
-    const slaTimer = setInterval(fetchDashboardData, 30000);
+    const slaTimer = setInterval(() => {
+      fetchDashboardData();
+      if (isAdmin) {
+        fetchShopkeepers();
+      }
+    }, 30000);
 
     if (socket.current) {
       socket.current.on('order:new', fetchDashboardData);
@@ -247,7 +303,43 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         socket.current.off('order:status');
       }
     };
-  }, [socket.current]);
+  }, [socket.current, isAdmin]);
+
+  useEffect(() => {
+    const localSlaTimer = setInterval(() => {
+      if (orders.length === 0) return;
+      setStats((prev: any) => {
+        const breached = orders.filter((o: any) => {
+          const acceptedAtStr = o.shopkeeperAcceptedAt || o.shopkeeper_accepted_at || o.acceptedByShopkeeperAt;
+          if (!acceptedAtStr) return false;
+          
+          const s = o.status?.toLowerCase();
+          if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
+            return false;
+          }
+          
+          const acceptedAt = new Date(acceptedAtStr).getTime();
+          const elapsedMinutes = (Date.now() - acceptedAt) / 60000;
+          const slaMinutes = o.sla_minutes ?? 30;
+          const remaining = slaMinutes - elapsedMinutes;
+          
+          return remaining < 15;
+        }).length;
+
+        if (prev.slaAlerts === breached) return prev;
+        return {
+          ...prev,
+          slaAlerts: breached,
+          todaySummary: {
+            ...prev.todaySummary,
+            breached: breached
+          }
+        };
+      });
+    }, 60000);
+
+    return () => clearInterval(localSlaTimer);
+  }, [orders]);
 
   const kpiCards = [
     { label: "New Orders", value: stats.newOrders, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", screen: "new-orders" },
@@ -274,16 +366,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     return isDispatched && isToday(dispatchTime);
   });
 
-  const dispatchedToday = dispatchedTodayOrders.length;
-
   const rejectedToday = todayOrders.filter((o: any) => {
     const s = o.status?.toLowerCase();
     return s === 'rejected' || s === 'cancelled';
-  }).length;
-
-  const slaBreachedCount = orders.filter((o: any) => {
-    const isCompleted = o.status?.toLowerCase() === 'delivered' || o.status?.toLowerCase() === 'completed';
-    return isSLABreached(o) && !isCompleted;
   }).length;
 
   const returnsToday = todayOrders.filter((o: any) => {
@@ -293,9 +378,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   const todayRevenue = dispatchedTodayOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
 
+  const totalDispatched = orders.filter((o: any) => o.status?.toLowerCase() === 'dispatched').length;
+
   const secondRowKpis = [
     { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "all-orders" },
-    { label: "Dispatched", value: dispatchedToday, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED" },
+    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED" },
     { label: "Rejected", value: rejectedToday, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED" },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns" },
     { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7" },
@@ -534,6 +621,72 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </div>
       </div>
 
+      {/* Active Shopkeepers Status (Only for Admin/Partner) */}
+      {isAdmin && (
+        <div className="px-4 mt-4">
+          <div className="rounded-2xl shadow-sm border border-gray-100 bg-white p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-gray-800 text-sm">Active Shopkeepers Status</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Real-time status and active order allocation</p>
+              </div>
+              <span className="bg-[#00891D]/10 text-[#00891D] text-xs font-semibold rounded-full px-2.5 py-0.5">
+                {shopkeepers.length} Active
+              </span>
+            </div>
+            
+            <div className="flex flex-col gap-3">
+              {shopkeepers.length === 0 ? (
+                <p className="text-gray-500 text-center text-xs py-4">No active shopkeepers found.</p>
+              ) : (
+                shopkeepers.map((sk) => {
+                  const initials = sk.name
+                    ? sk.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+                    : "SK";
+                  const isBusy = (sk.activeOrderCount || 0) > 0;
+                  
+                  return (
+                    <div key={sk.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-50 bg-gray-50/30">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-[#00891D] font-bold text-sm">
+                          {initials}
+                        </div>
+                        <div>
+                          <p className="text-gray-800 font-semibold text-sm">{sk.name}</p>
+                          <p className="text-gray-400 text-xs mt-0.5">
+                            ID: {sk.employeeId || "N/A"} · {sk.phone}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
+                        <div className="text-right hidden sm:block">
+                          <p className="text-xs font-medium text-gray-600">
+                            {isBusy ? "Processing Orders" : "Awaiting Allocation"}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {sk.activeOrderCount || 0} active orders
+                          </p>
+                        </div>
+                        <span 
+                          className="px-2.5 py-1 rounded-full text-[11px] font-bold text-center min-w-[75px]"
+                          style={{
+                            backgroundColor: isBusy ? "#FFF3E0" : "#E8F5E9",
+                            color: isBusy ? "#EF5A06" : "#00891D"
+                          }}
+                        >
+                          {isBusy ? "Busy" : "Available"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Recent Orders */}
       <div className="px-4 mt-4 mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -563,7 +716,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             return (
               <button
                 key={order.id}
-                onClick={() => onNavigate("order-details")}
+                onClick={() => onNavigate("order-details", order)}
                 className="bg-white rounded-2xl p-3.5 shadow-sm text-left flex items-center gap-3 hover:bg-gray-50 active:scale-98 transition-transform"
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: statusBg }}>
