@@ -508,7 +508,6 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isAssetsOpen",
     subItems: [
       { path: '/vsms/assets?tab=master', label: 'Assets Registry', icon: Package },
-      { path: '/vsms/assets?tab=categories', label: 'Asset Categories', icon: Tag },
       { path: '/vsms/assets?tab=tracking', label: 'Asset Assignment', icon: Users },
       { path: '/vsms/assets?tab=transfers', label: 'Asset Transfers', icon: ArrowRightLeft },
       { path: '/vsms/assets?tab=vehicle-mapping', label: 'Vehicle Mapping', icon: Truck },

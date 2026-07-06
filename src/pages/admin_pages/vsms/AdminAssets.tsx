@@ -109,6 +109,55 @@ export default function AdminAssets() {
   // Return form
   const [returnForm, setReturnForm] = useState({ assignmentId: '', returnCondition: 'GOOD', remarks: '' });
 
+  const [selectedParentId, setSelectedParentId] = useState('');
+  const [editSelectedParentId, setEditSelectedParentId] = useState('');
+
+  // Sync selectedParentId for Create Modal
+  useEffect(() => {
+    if (!form.categoryId) {
+      return;
+    }
+    const cat = assetCategories.find(c => c.id === form.categoryId);
+    if (cat) {
+      if (cat.name.includes(' | ')) {
+        const parentName = cat.name.split(' | ')[0];
+        const parent = assetCategories.find(p => !p.name.includes(' | ') && p.name === parentName);
+        if (parent && selectedParentId !== parent.id) {
+          setSelectedParentId(parent.id);
+        }
+      } else if (selectedParentId !== cat.id) {
+        setSelectedParentId(cat.id);
+      }
+    }
+  }, [form.categoryId, assetCategories]);
+
+  // Sync editSelectedParentId for Edit Modal
+  useEffect(() => {
+    if (!editForm || !editForm.categoryId) {
+      setEditSelectedParentId('');
+      return;
+    }
+    const cat = assetCategories.find(c => c.id === editForm.categoryId);
+    if (cat) {
+      if (cat.name.includes(' | ')) {
+        const parentName = cat.name.split(' | ')[0];
+        const parent = assetCategories.find(p => !p.name.includes(' | ') && p.name === parentName);
+        if (parent) {
+          setEditSelectedParentId(parent.id);
+        }
+      } else {
+        setEditSelectedParentId(cat.id);
+      }
+    }
+  }, [editForm?.categoryId, assetCategories]);
+
+  // Reset parent selection when create modal opens/closes or categoryId is cleared
+  useEffect(() => {
+    if (!showCreateModal) {
+      setSelectedParentId('');
+    }
+  }, [showCreateModal]);
+
   const location = useLocation();
   const currentUser = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
@@ -398,6 +447,7 @@ export default function AdminAssets() {
       fd.append('model', form.model || '');
       fd.append('description', form.description || '');
       fd.append('estimatedCost', form.estimatedCost || '0');
+      if (storeId) fd.append('storeId', storeId);
       if (selectedFile) fd.append('image', selectedFile);
 
       const response = await adminAPI.createAsset(fd);
@@ -2179,10 +2229,11 @@ export default function AdminAssets() {
     };
 
     const handleNextStep = () => {
+      console.log('VSMS handleNextStep form:', form);
       // Basic validations
       if (currentRegStep === 1) {
         if (!form.name || !form.categoryId) {
-          toast.error('Please fill out all required fields marked with *');
+          toast.error(`Validation failed: Name is "${form.name || 'empty'}" and Category ID is "${form.categoryId || 'empty'}". Markings: * require both to be filled.`);
           return;
         }
       }
@@ -2246,50 +2297,90 @@ export default function AdminAssets() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Asset Category <span className="text-rose-500">*</span></label>
-                      <select value={form.categoryId} onChange={e => setForm({ ...form, categoryId: e.target.value })} required
-                        className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black text-emerald-800 appearance-none outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all cursor-pointer">
-                        <option value="">Select Category</option>
-                        {(() => {
-                          const electronicKeywords = /electronic|pos|terminal|computer|laptop|phone|device|printer|hardware|camera|tablet|battery|charger|router|scanner|digital|sensor|monitor|screen/i;
+                    <div className="space-y-4 col-span-1 md:col-span-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Parent Category Select */}
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Asset Category <span className="text-rose-500">*</span></label>
+                          <select 
+                            value={selectedParentId} 
+                            onChange={e => {
+                              const pId = e.target.value;
+                              setSelectedParentId(pId);
+                              if (!pId) {
+                                setForm({ ...form, categoryId: '' });
+                                return;
+                              }
+                              const parentCat = assetCategories.find(c => c.id === pId);
+                              if (parentCat) {
+                                const hasChildren = assetCategories.some(c => c.name.includes(' | ') && c.name.startsWith(parentCat.name + ' | '));
+                                setForm({ ...form, categoryId: hasChildren ? '' : pId });
+                              }
+                            }} 
+                            required
+                            className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black text-emerald-800 appearance-none outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all cursor-pointer"
+                          >
+                            <option value="">Select Category</option>
+                            {(() => {
+                              const electronicKeywords = /electronic|pos|terminal|computer|laptop|phone|device|printer|hardware|camera|tablet|battery|charger|router|scanner|digital|sensor|monitor|screen/i;
+                              let filteredCategories = assetCategories;
+                              if (form.assetType === 'ELECTRONIC') {
+                                filteredCategories = assetCategories.filter(c => electronicKeywords.test(c.name));
+                              } else {
+                                filteredCategories = assetCategories.filter(c => !electronicKeywords.test(c.name));
+                              }
+                              if (filteredCategories.length === 0) {
+                                filteredCategories = assetCategories;
+                              }
+                              const parents = filteredCategories.filter(c => !c.name.includes(' | '));
+                              return parents.map(parent => (
+                                <option key={parent.id} value={parent.id}>
+                                  {parent.name}
+                                </option>
+                              ));
+                            })()}
+                          </select>
+                        </div>
 
-                          // Filter categories list based on selected nature
-                          let filteredCategories = assetCategories;
-                          if (form.assetType === 'ELECTRONIC') {
-                            filteredCategories = assetCategories.filter(c => electronicKeywords.test(c.name));
-                          } else {
-                            filteredCategories = assetCategories.filter(c => !electronicKeywords.test(c.name));
-                          }
+                        {/* Sub Category Select */}
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Asset Sub Category {(() => {
+                            const pCat = assetCategories.find(c => c.id === selectedParentId);
+                            const hasChildren = pCat && assetCategories.some(c => c.name.includes(' | ') && c.name.startsWith(pCat.name + ' | '));
+                            return hasChildren ? <span className="text-rose-500">*</span> : null;
+                          })()}</label>
+                          {(() => {
+                            const parentCat = assetCategories.find(c => c.id === selectedParentId);
+                            const children = parentCat 
+                              ? assetCategories.filter(c => c.name.includes(' | ') && c.name.startsWith(parentCat.name + ' | '))
+                              : [];
+                            const isLocked = !selectedParentId || children.length === 0;
 
-                          // Fallback to all categories if no category matches, to ensure the admin is never blocked
-                          if (filteredCategories.length === 0) {
-                            filteredCategories = assetCategories;
-                          }
-
-                          const parents = filteredCategories.filter(c => !c.name.includes(' | '));
-                          const subs = filteredCategories.filter(c => c.name.includes(' | '));
-                          return parents.map(parent => {
-                            const children = subs.filter(sub => sub.name.startsWith(parent.name + ' | '));
-                            if (children.length > 0) {
-                              return (
-                                <optgroup key={parent.id} label={parent.name}>
-                                  {children.map(child => (
-                                    <option key={child.id} value={child.id}>
-                                      {child.name.split(' | ')[1]}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              );
-                            }
                             return (
-                              <option key={parent.id} value={parent.id}>
-                                {parent.name}
-                              </option>
+                              <select 
+                                value={form.categoryId} 
+                                onChange={e => setForm({ ...form, categoryId: e.target.value })}
+                                disabled={isLocked}
+                                required={!isLocked}
+                                className={`w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black text-emerald-800 appearance-none outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                              >
+                                <option value="">
+                                  {!selectedParentId 
+                                    ? 'Select Category First' 
+                                    : children.length === 0 
+                                      ? 'No Sub Categories' 
+                                      : 'Select Sub Category'}
+                                </option>
+                                {children.map(child => (
+                                  <option key={child.id} value={child.id}>
+                                    {child.name.split(' | ')[1]}
+                                  </option>
+                                ))}
+                              </select>
                             );
-                          });
-                        })()}
-                      </select>
+                          })()}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -2895,35 +2986,74 @@ export default function AdminAssets() {
               <button onClick={() => { setShowEditModal(false); setEditForm(null); }} className="p-1 hover:bg-gray-100 rounded-full text-gray-400"><X size={18} /></button>
             </div>
             <form onSubmit={handleUpdate} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Asset Category</label>
-                <select value={editForm.categoryId} onChange={e => setEditForm({ ...editForm, categoryId: e.target.value })} required
-                  className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20">
-                  <option value="">Select Category</option>
-                  {(() => {
-                    const parents = assetCategories.filter(c => !c.name.includes(' | '));
-                    const subs = assetCategories.filter(c => c.name.includes(' | '));
-                    return parents.map(parent => {
-                      const children = subs.filter(sub => sub.name.startsWith(parent.name + ' | '));
-                      if (children.length > 0) {
-                        return (
-                          <optgroup key={parent.id} label={parent.name}>
-                            {children.map(child => (
-                              <option key={child.id} value={child.id}>
-                                {child.name.split(' | ')[1]}
-                              </option>
-                            ))}
-                          </optgroup>
-                        );
+              <div className="grid grid-cols-2 gap-4">
+                {/* Parent Category Select */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Asset Category</label>
+                  <select 
+                    value={editSelectedParentId} 
+                    onChange={e => {
+                      const pId = e.target.value;
+                      setEditSelectedParentId(pId);
+                      if (!pId) {
+                        setEditForm({ ...editForm, categoryId: '' });
+                        return;
                       }
-                      return (
+                      const parentCat = assetCategories.find(c => c.id === pId);
+                      if (parentCat) {
+                        const hasChildren = assetCategories.some(c => c.name.includes(' | ') && c.name.startsWith(parentCat.name + ' | '));
+                        setEditForm({ ...editForm, categoryId: hasChildren ? '' : pId });
+                      }
+                    }} 
+                    required
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
+                  >
+                    <option value="">Select Category</option>
+                    {(() => {
+                      const parents = assetCategories.filter(c => !c.name.includes(' | '));
+                      return parents.map(parent => (
                         <option key={parent.id} value={parent.id}>
                           {parent.name}
                         </option>
-                      );
-                    });
+                      ));
+                    })()}
+                  </select>
+                </div>
+
+                {/* Sub Category Select */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sub Category</label>
+                  {(() => {
+                    const parentCat = assetCategories.find(c => c.id === editSelectedParentId);
+                    const children = parentCat 
+                      ? assetCategories.filter(c => c.name.includes(' | ') && c.name.startsWith(parentCat.name + ' | '))
+                      : [];
+                    const isLocked = !editSelectedParentId || children.length === 0;
+
+                    return (
+                      <select 
+                        value={editForm.categoryId} 
+                        onChange={e => setEditForm({ ...editForm, categoryId: e.target.value })}
+                        disabled={isLocked}
+                        required={!isLocked}
+                        className={`w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <option value="">
+                          {!editSelectedParentId 
+                            ? 'Select Category First' 
+                            : children.length === 0 
+                              ? 'No Sub Categories' 
+                              : 'Select Sub Category'}
+                        </option>
+                        {children.map(child => (
+                          <option key={child.id} value={child.id}>
+                            {child.name.split(' | ')[1]}
+                          </option>
+                        ))}
+                      </select>
+                    );
                   })()}
-                </select>
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nature (Behavior)</label>
