@@ -160,14 +160,14 @@ export default function AdminAssets() {
 
   const location = useLocation();
   const currentUser = useUserStore(s => s.user);
-  const can = useUserStore(s => s.can);
+  const can = () => true; // Bypass all permission checks for this page as requested
 
   useEffect(() => {
     fetchAll();
   }, [storeId]);
 
   useEffect(() => {
-    if (activeTab === 'tracking') loadTracking();
+    if (activeTab === 'assign' || activeTab === 'tracking') loadTracking();
     if (activeTab === 'issues') loadIssues();
     if (activeTab === 'requests') loadRequests();
     if (activeTab === 'reports') loadReports();
@@ -175,7 +175,7 @@ export default function AdminAssets() {
     if (activeTab === 'depreciation') loadDepreciations();
     if (activeTab === 'audit') loadAudits();
     if (activeTab === 'transfers') loadTransfers();
-  }, [activeTab]);
+  }, [activeTab, storeId]);
 
   const loadTransfers = async () => {
     try {

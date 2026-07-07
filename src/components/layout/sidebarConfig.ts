@@ -216,12 +216,9 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isProductsOpen",
     activeCheck: activeCheckers.isProductActive,
     subItems: [
-      {
-        path: "/products/manage",
-        label: "Manage Products",
-        icon: Package,
-        activeCheck: activeCheckers.isManageProductsActive,
-      },
+      { path: "/products/manage", label: "Manage Products", icon: Package, activeCheck: activeCheckers.isManageProductsActive },
+      { path: "/products/bundles", label: "Bundle Deals", icon: Tag },
+      { path: "/marketing/promos", label: "Homepage Promos", icon: Percent },
       { path: "/products/media", label: "Media", icon: Film },
       { path: "/products/bulk-upload", label: "Bulk Upload", icon: Upload },
       { path: "/products/bulk-update", label: "Bulk Update", icon: RefreshCw },

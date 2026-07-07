@@ -235,6 +235,12 @@ export const adminAPI = {
   // Asset Transfers
   getAssetTransfers: (params) => api.get('/admin/assets/transfers', { params }),
   createAssetTransfer: (data) => api.post('/admin/assets/transfers', data),
+
+  // Bundle Deals (Partner Scope)
+  getBundles: (params) => api.get('/partner/bundles', { params }),
+  createBundle: (data) => api.post('/partner/bundles', data),
+  updateBundle: (id, data) => api.put(`/partner/bundles/${id}`, data),
+  deleteBundle: (id) => api.delete(`/partner/bundles/${id}`),
 };
 
 export default adminAPI;

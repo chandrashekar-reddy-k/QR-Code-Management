@@ -79,6 +79,12 @@ const BulkUpload = lazy(
 const BulkUpdate = lazy(
   () => import("../pages/admin_pages/products/BulkUpdate")
 );
+const BundleDeals = lazy(
+  () => import("../pages/admin_pages/products/BundleDeals")
+);
+const HomepagePromos = lazy(
+  () => import("../pages/admin_pages/products/HomepagePromos")
+);
 const ImportProducts = lazy(
   () => import("../pages/admin_pages/products/ImportProducts")
 );
@@ -677,6 +683,16 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/products/manage",
     component: ManageProducts,
+    requiresAuth: true,
+  },
+  {
+    path: "/products/bundles",
+    component: BundleDeals,
+    requiresAuth: true,
+  },
+  {
+    path: "/marketing/promos",
+    component: HomepagePromos,
     requiresAuth: true,
   },
   {
