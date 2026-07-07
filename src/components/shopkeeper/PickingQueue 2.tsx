@@ -30,7 +30,10 @@ export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
     try {
       const res = await api.get('/orders');
       // Filter for accepted or picking statuses
-      const orders = res.data.filter((o: any) => o.status === 'accepted' || o.status === 'picking');
+      const orders = res.data.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'accepted' || s === 'picking' || s === 'confirmed';
+      });
       
       // Calculate mock items data if backend doesn't return full details in this endpoint yet
       const processedOrders = orders.map((o: any) => ({

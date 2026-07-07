@@ -15,8 +15,10 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
   const fetchOrders = async () => {
     try {
       const res = await api.get('/orders');
-      // Filter for packing statuses
-      const orders = res.data.filter((o: any) => o.status === 'packing');
+      const orders = res.data.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'packing' || s === 'packed' || s === 'processing';
+      });
 
       // Use tray_number from DB as source of truth.
       // For any legacy order missing a tray, assign sequentially (NOT in parallel)

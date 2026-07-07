@@ -174,9 +174,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <CountdownTimer minutes={order.sla_minutes} />
-                      {order.allocation_status === 'Pending' && order.allocation_started_at && (
-                        <AllocationCountdown startedAt={order.allocation_started_at} timeoutMinutes={order.allocation_timeout_minutes} />
-                      )}
+                      {/* AllocationCountdown removed */}
                     </div>
                   </div>
 

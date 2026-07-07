@@ -183,7 +183,7 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
             </div>
 
             <button
-              onClick={() => onNavigate("dashboard")}
+              onClick={onBack}
               className="w-full flex items-center justify-center gap-2 rounded-xl py-4"
               style={{ backgroundColor: "#2E7D32" }}
             >
