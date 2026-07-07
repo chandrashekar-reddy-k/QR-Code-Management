@@ -237,17 +237,17 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       const breached = allOrders.filter((o: any) => {
         const acceptedAtStr = o.shopkeeperAcceptedAt || o.shopkeeper_accepted_at || o.acceptedByShopkeeperAt;
         if (!acceptedAtStr) return false;
-        
+
         const s = o.status?.toLowerCase();
         if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
           return false;
         }
-        
+
         const acceptedAt = new Date(acceptedAtStr).getTime();
         const elapsedMinutes = (Date.now() - acceptedAt) / 60000;
         const slaMinutes = o.sla_minutes ?? 30;
         const remaining = slaMinutes - elapsedMinutes;
-        
+
         return remaining < 15;
       }).length;
 
@@ -312,17 +312,17 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
         const breached = orders.filter((o: any) => {
           const acceptedAtStr = o.shopkeeperAcceptedAt || o.shopkeeper_accepted_at || o.acceptedByShopkeeperAt;
           if (!acceptedAtStr) return false;
-          
+
           const s = o.status?.toLowerCase();
           if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
             return false;
           }
-          
+
           const acceptedAt = new Date(acceptedAtStr).getTime();
           const elapsedMinutes = (Date.now() - acceptedAt) / 60000;
           const slaMinutes = o.sla_minutes ?? 30;
           const remaining = slaMinutes - elapsedMinutes;
-          
+
           return remaining < 15;
         }).length;
 
@@ -634,7 +634,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                 {shopkeepers.length} Active
               </span>
             </div>
-            
+
             <div className="flex flex-col gap-3">
               {shopkeepers.length === 0 ? (
                 <p className="text-gray-500 text-center text-xs py-4">No active shopkeepers found.</p>
@@ -644,7 +644,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                     ? sk.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
                     : "SK";
                   const isBusy = (sk.activeOrderCount || 0) > 0;
-                  
+
                   return (
                     <div key={sk.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-50 bg-gray-50/30">
                       <div className="flex items-center gap-3">
@@ -658,7 +658,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-4">
                         <div className="text-right hidden sm:block">
                           <p className="text-xs font-medium text-gray-600">
@@ -668,7 +668,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                             {sk.activeOrderCount || 0} active orders
                           </p>
                         </div>
-                        <span 
+                        <span
                           className="px-2.5 py-1 rounded-full text-[11px] font-bold text-center min-w-[75px]"
                           style={{
                             backgroundColor: isBusy ? "#FFF3E0" : "#E8F5E9",
