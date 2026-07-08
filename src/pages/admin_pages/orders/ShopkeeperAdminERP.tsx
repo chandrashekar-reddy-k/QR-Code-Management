@@ -18,6 +18,9 @@ import { Settings } from "../../../components/shopkeeper/Settings";
 import { AllOrders } from "../../../components/shopkeeper/AllOrders";
 import { StaffTracker } from "../../../components/shopkeeper/StaffTracker";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
+import { SharedOrdersContext } from "../../../components/shopkeeper/SharedOrdersContext";
+import { useSocket } from "../../../hooks/useSocket";
+import api from "../../../api/axios";
 
 type Screen =
   | "dashboard"
@@ -45,6 +48,48 @@ export default function ShopkeeperAdminERP() {
   const [history, setHistory] = useState<Screen[]>([]);
   const location = useLocation();
   const reactNavigate = useReactNavigate();
+
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const socket = useSocket(1);
+
+  const fetchOrders = async () => {
+    try {
+      const res = await api.get('/orders');
+      const resData = res.data;
+      let allOrders: any[] = [];
+      if (Array.isArray(resData)) {
+        allOrders = resData;
+      } else if (resData && Array.isArray(resData.data)) {
+        allOrders = resData.data;
+      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
+        allOrders = resData.data.orders;
+      } else if (resData && Array.isArray(resData.orders)) {
+        allOrders = resData.orders;
+      }
+      setOrders(allOrders);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to fetch orders in parent:", err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 30000);
+    if (socket.current) {
+      socket.current.on('order:status', fetchOrders);
+      socket.current.on('order:new', fetchOrders);
+    }
+    return () => {
+      clearInterval(interval);
+      if (socket.current) {
+        socket.current.off('order:status', fetchOrders);
+        socket.current.off('order:new', fetchOrders);
+      }
+    };
+  }, [socket.current]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -126,10 +171,12 @@ export default function ShopkeeperAdminERP() {
 
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      <div className="flex-1 w-full">
-        {renderScreen()}
+    <SharedOrdersContext.Provider value={{ orders, loading, refreshOrders: fetchOrders }}>
+      <div className="flex flex-col gap-6 w-full">
+        <div className="flex-1 w-full">
+          {renderScreen()}
+        </div>
       </div>
-    </div>
+    </SharedOrdersContext.Provider>
   );
 }

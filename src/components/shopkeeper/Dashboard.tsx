@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSharedOrders } from "./SharedOrdersContext";
 
 import {
   ShoppingBag,
@@ -29,7 +30,6 @@ adminApi.interceptors.request.use((config) => {
   return config;
 });
 
-import { useSocket } from "../../hooks/useSocket";
 import {
   BarChart,
   Bar,
@@ -119,6 +119,11 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
 
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
+
   const fetchShopkeepers = async () => {
     if (!isAdmin) return;
     try {
@@ -147,6 +152,8 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [userName, setUserName] = useState("Shopkeeper");
 
+  const { orders: sharedOrders } = useSharedOrders();
+
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
@@ -160,150 +167,112 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       console.error("Failed to load user name in Dashboard", err);
     }
   }, []);
-  // Using store ID 1 as defined in our DB schema
-  const socket = useSocket(1);
 
-  const fetchDashboardData = async () => {
-    try {
-      // In a real app we would have an endpoint specifically for this,
-      // Since we only have /orders right now, let's derive it or fetch /orders and aggregate locally for demo
-      const res = await adminApi.get('/orders');
-      const resData = res.data;
-      let allOrders: any[] = [];
-      if (Array.isArray(resData)) {
-        allOrders = resData;
-      } else if (resData && Array.isArray(resData.data)) {
-        allOrders = resData.data;
-      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
-        allOrders = resData.data.orders;
-      } else if (resData && Array.isArray(resData.orders)) {
-        allOrders = resData.orders;
+  const calculateStats = () => {
+    let allOrders = [...sharedOrders];
+
+    // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
+    if (!isAdmin) {
+      const storedUser = localStorage.getItem("user");
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const userPhone = user?.phone;
+      if (userPhone) {
+        allOrders = allOrders.filter(
+          (o: any) =>
+            o.assignedShopkeeper?.phone === userPhone ||
+            o.assigned_shopkeeper?.phone === userPhone ||
+            o.shopkeeper_phone === userPhone
+        );
       }
-
-      // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
-      if (!isAdmin) {
-        const storedUser = localStorage.getItem("user");
-        const user = storedUser ? JSON.parse(storedUser) : null;
-        const userPhone = user?.phone;
-        if (userPhone) {
-          allOrders = allOrders.filter(
-            (o: any) =>
-              o.assignedShopkeeper?.phone === userPhone ||
-              o.assigned_shopkeeper?.phone === userPhone ||
-              o.shopkeeper_phone === userPhone
-          );
-        }
-      }
-
-      setOrders(allOrders);
-
-      const newOrders = allOrders.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'new';
-      }).length;
-      const picking = allOrders.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'accepted' || s === 'picking' || s === 'confirmed';
-      }).length;
-      const packing = allOrders.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'packing' || s === 'processing';
-      }).length;
-      const ready = allOrders.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'ready';
-      }).length;
-
-      const completed = allOrders.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'delivered' || s === 'completed';
-      }).length;
-
-      const inProgress = allOrders.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'picking' || s === 'packing';
-      }).length;
-
-      const dispatched = allOrders.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'dispatched';
-      }).length;
-
-      const rejected = allOrders.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'rejected' || s === 'cancelled';
-      }).length;
-
-      const breached = allOrders.filter((o: any) => {
-        const acceptedAtStr = o.shopkeeperAcceptedAt || o.shopkeeper_accepted_at || o.acceptedByShopkeeperAt;
-        if (!acceptedAtStr) return false;
-
-        const s = o.status?.toLowerCase();
-        if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
-          return false;
-        }
-
-        const acceptedAt = new Date(acceptedAtStr).getTime();
-        const elapsedMinutes = (Date.now() - acceptedAt) / 60000;
-        const slaMinutes = o.sla_minutes ?? 30;
-        const remaining = slaMinutes - elapsedMinutes;
-
-        return remaining < 15;
-      }).length;
-
-      setStats({
-        newOrders,
-        picking,
-        packing,
-        ready,
-        slaAlerts: breached,
-        todaySummary: {
-          total: allOrders.length,
-          completed: completed,
-          inProgress: inProgress,
-          dispatched: dispatched,
-          rejected: rejected,
-          breached: breached
-        }
-      });
-
-      const sortedOrders = [...allOrders].sort((a, b) => getLatestActivityTime(b) - getLatestActivityTime(a));
-      setRecentOrders(sortedOrders.slice(0, 5));
-      if (isAdmin) {
-        fetchShopkeepers();
-      }
-    } catch (err) {
-      console.error("Failed to load dashboard data", err);
     }
+
+    setOrders(allOrders);
+
+    const newOrders = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'new';
+    }).length;
+    const picking = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'accepted' || s === 'picking' || s === 'confirmed';
+    }).length;
+    const packing = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'packing' || s === 'processing';
+    }).length;
+    const ready = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'ready';
+    }).length;
+
+    const completed = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'delivered' || s === 'completed';
+    }).length;
+
+    const inProgress = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'picking' || s === 'packing';
+    }).length;
+
+    const dispatched = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'dispatched';
+    }).length;
+
+    const rejected = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'rejected' || s === 'cancelled';
+    }).length;
+
+    const breached = allOrders.filter((o: any) => {
+      const acceptedAtStr = o.shopkeeperAcceptedAt || o.shopkeeper_accepted_at || o.acceptedByShopkeeperAt;
+      if (!acceptedAtStr) return false;
+
+      const s = o.status?.toLowerCase();
+      if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
+        return false;
+      }
+
+      const acceptedAt = new Date(acceptedAtStr).getTime();
+      const elapsedMinutes = (Date.now() - acceptedAt) / 60000;
+      const slaMinutes = o.sla_minutes ?? 30;
+      const remaining = slaMinutes - elapsedMinutes;
+
+      return remaining < 15;
+    }).length;
+
+    setStats({
+      newOrders,
+      picking,
+      packing,
+      ready,
+      slaAlerts: breached,
+      todaySummary: {
+        total: allOrders.length,
+        completed: completed,
+        inProgress: inProgress,
+        dispatched: dispatched,
+        rejected: rejected,
+        breached: breached
+      }
+    });
+
+    const sortedOrders = [...allOrders].sort((a, b) => getLatestActivityTime(b) - getLatestActivityTime(a));
+    setRecentOrders(sortedOrders.slice(0, 5));
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    calculateStats();
+  }, [sharedOrders]);
+
+  useEffect(() => {
     if (isAdmin) {
       fetchShopkeepers();
+      const interval = setInterval(fetchShopkeepers, 30000);
+      return () => clearInterval(interval);
     }
-
-    const slaTimer = setInterval(() => {
-      fetchDashboardData();
-      if (isAdmin) {
-        fetchShopkeepers();
-      }
-    }, 30000);
-
-    if (socket.current) {
-      socket.current.on('order:new', fetchDashboardData);
-      socket.current.on('order:status', fetchDashboardData);
-    }
-    return () => {
-
-      clearInterval(slaTimer);
-
-      if (socket.current) {
-        socket.current.off('order:new');
-        socket.current.off('order:status');
-      }
-    };
-  }, [socket.current, isAdmin]);
+  }, [isAdmin]);
 
   useEffect(() => {
     const localSlaTimer = setInterval(() => {
@@ -337,7 +306,6 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
         };
       });
     }, 60000);
-
     return () => clearInterval(localSlaTimer);
   }, [orders]);
 
@@ -352,11 +320,6 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
   const todayOrders = orders.filter((o: any) => isToday(o.createdAt || o.created_at));
 
-  const dispatchedTodayOrders = orders.filter((o: any) => {
-    const isDispatched = o.status?.toLowerCase() === 'dispatched';
-    const dispatchTime = o.deliveredAt || o.delivered_at || o.dispatchedAt || o.dispatched_at || o.createdAt || o.created_at;
-    return isDispatched && isToday(dispatchTime);
-  });
 
   const rejectedToday = todayOrders.filter((o: any) => {
     const s = o.status?.toLowerCase();
@@ -368,9 +331,23 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     return s === 'return' || s === 'returned';
   }).length;
 
-  const todayRevenue = dispatchedTodayOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
+  const allDispatchedOrders = orders.filter((o: any) => o.status?.toLowerCase() === 'dispatched');
 
-  const totalDispatched = orders.filter((o: any) => o.status?.toLowerCase() === 'dispatched').length;
+  useEffect(() => {
+    if (allDispatchedOrders.length > 0) {
+      console.log("Dispatched orders amount check:", allDispatchedOrders.map((o: any) => ({
+        id: o.id,
+        order_number: o.order_number,
+        total_value: o.total_value,
+        totalAmount: o.totalAmount,
+        total_amount: o.total_amount
+      })));
+    }
+  }, [orders]);
+
+  const todayRevenue = allDispatchedOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
+
+  const totalDispatched = allDispatchedOrders.length;
 
   const kpiCards = [
     { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "all-orders" },
@@ -529,7 +506,11 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
         </div>
         <div className="flex items-center gap-1.5 mt-2">
           <div className="w-2 h-2 rounded-full bg-green-400"></div>
-          <span className="text-white/80 text-xs">Store Open · Avg Processing 18 min</span>
+          <span className="text-white/80 text-xs">
+            {isAdmin
+              ? `${shopkeepers.filter((s: any) => s.status?.toLowerCase() !== 'offline').length} Shopkeepers Active · Avg Processing 18 min`
+              : "Store Open · Avg Processing 18 min"}
+          </span>
         </div>
       </div>
 
@@ -725,9 +706,16 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-800" style={{ fontWeight: 600, fontSize: "13px" }}>{order.order_number}</span>
-                    <span className="rounded-full px-2 py-0.5 uppercase" style={{ backgroundColor: statusBg, color: statusColor, fontSize: "10px", fontWeight: 600 }}>
-                      {order.status}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="rounded-full px-2 py-0.5 uppercase" style={{ backgroundColor: statusBg, color: statusColor, fontSize: "10px", fontWeight: 600 }}>
+                        {order.status}
+                      </span>
+                      {shouldShowShopkeeper && (
+                        <span className="text-[10px] text-gray-400 mt-0.5">
+                          {order.shopkeeper_name || "Unassigned"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
                     <span className="text-gray-500" style={{ fontSize: "11px" }}>{order.order_type} · ₹{order.total_value}</span>

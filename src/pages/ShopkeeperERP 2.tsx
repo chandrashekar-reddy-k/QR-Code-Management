@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, ShoppingBag, Package, PackageCheck, User } from "lucide-react";
 import { Dashboard } from "../components/shopkeeper/Dashboard";
 import { NewOrders } from "../components/shopkeeper/NewOrders";
 import { OrderDetails } from "../components/shopkeeper/OrderDetails";
@@ -60,11 +59,20 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
       try {
         const res = await api.get('/orders');
         const allOrders = res.data;
-        const total = allOrders.length;
-        const completed = allOrders.filter((o: any) => o.status === 'dispatched' || o.status === 'delivered').length;
-        const breached = allOrders.filter((o: any) => o.sla_breach).length;
+
+        const storedUser = localStorage.getItem("user");
+        const userObj = storedUser ? JSON.parse(storedUser) : null;
+        const skId = userObj?.shopkeeper_id || userObj?.shopkeeperId || userObj?.id;
+
+        const shopkeeperOrders = skId
+          ? allOrders.filter((o: any) => o.assignedShopkeeperId === skId || o.assigned_shopkeeper_id === skId)
+          : [];
+
+        const total = shopkeeperOrders.length;
+        const completed = shopkeeperOrders.filter((o: any) => o.status?.toLowerCase() === 'dispatched').length;
+        const breached = shopkeeperOrders.filter((o: any) => o.sla_breach).length;
         const slaPercent = total > 0 ? Math.round(((total - breached) / total) * 100) : 100;
-        const selfPickup = allOrders.filter((o: any) => o.order_type === 'Self Pickup' && o.status === 'ready').length;
+        const selfPickup = shopkeeperOrders.filter((o: any) => o.order_type === 'Self Pickup' && o.status === 'ready').length;
 
         setStats({ orders: total, completed, sla: slaPercent, selfPickup });
       } catch (err) {

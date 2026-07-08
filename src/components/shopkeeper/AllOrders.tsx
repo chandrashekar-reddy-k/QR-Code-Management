@@ -1,21 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { ArrowLeft, Clock, Search, ShoppingBag, X } from "lucide-react";
-import axios from "axios";
-import api from "../../api/axios";
-
-const adminApi = axios.create({
-  baseURL: import.meta.env.VITE_ADMIN_URL || "http://localhost:3001/api/v1",
-});
-
-adminApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-import { useSocket } from "../../hooks/useSocket";
 
 interface AllOrdersProps {
   onBack: () => void;
@@ -58,10 +42,16 @@ const tabMap: Record<string, string> = {
   RETURNS: "Returns",
 };
 
+import { useSharedOrders } from "./SharedOrdersContext";
+
 export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }: AllOrdersProps) {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (initialStatus) {
       return tabMap[initialStatus.toUpperCase()] ?? "All";
@@ -69,62 +59,25 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
     return "All";
   });
 
-  const socket = useSocket(1);
+  const orders = useMemo(() => {
+    let allOrders = [...sharedOrders];
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const res = await adminApi.get('/orders');
-      const resData = res.data;
-      let allOrders: any[] = [];
-      if (Array.isArray(resData)) {
-        allOrders = resData;
-      } else if (resData && Array.isArray(resData.data)) {
-        allOrders = resData.data;
-      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
-        allOrders = resData.data.orders;
-      } else if (resData && Array.isArray(resData.orders)) {
-        allOrders = resData.orders;
+    // Staff view client-side shopkeeper filter
+    if (!isAdmin) {
+      const storedUser = localStorage.getItem("user");
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const skId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
+      const skPhone = user?.phone;
+      if (skId || skPhone) {
+        allOrders = allOrders.filter((o: any) => {
+          const matchesId = skId && (o.assignedShopkeeperId === skId || o.assigned_shopkeeper_id === skId);
+          const matchesPhone = skPhone && (o.assignedShopkeeper?.phone === skPhone || o.assigned_shopkeeper_phone === skPhone || o.shopkeeper_phone === skPhone);
+          return matchesId || matchesPhone;
+        });
       }
-
-      // Staff view client-side shopkeeper filter
-      if (!isAdmin) {
-        const storedUser = localStorage.getItem("user");
-        const user = storedUser ? JSON.parse(storedUser) : null;
-        const skId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
-        const skPhone = user?.phone;
-        if (skId || skPhone) {
-          allOrders = allOrders.filter((o: any) => {
-            const matchesId = skId && (o.assignedShopkeeperId === skId || o.assigned_shopkeeper_id === skId);
-            const matchesPhone = skPhone && (o.assignedShopkeeper?.phone === skPhone || o.assigned_shopkeeper_phone === skPhone || o.shopkeeper_phone === skPhone);
-            return matchesId || matchesPhone;
-          });
-        }
-      }
-
-      setOrders(allOrders);
-    } catch (err) {
-      console.error("Failed to fetch orders", err);
-    } finally {
-      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-
-    if (socket.current) {
-      socket.current.on('order:new', fetchOrders);
-      socket.current.on('order:status', fetchOrders);
-    }
-
-    return () => {
-      if (socket.current) {
-        socket.current.off('order:new');
-        socket.current.off('order:status');
-      }
-    };
-  }, [socket.current]);
+    return allOrders;
+  }, [sharedOrders, isAdmin]);
 
   const filteredOrders = useMemo(() => {
     let result = orders;
@@ -223,7 +176,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
 
       {/* Orders List */}
       <div className="px-4 mt-4 flex flex-col gap-3">
-        {loading ? (
+        {sharedLoading && filteredOrders.length === 0 ? (
           <div className="py-10 text-center text-gray-500 text-sm">Loading orders...</div>
         ) : filteredOrders.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-sm border border-gray-100 text-center">
@@ -252,6 +205,14 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                       {order.status}
                     </span>
                   </div>
+                  {shouldShowShopkeeper && (
+                    <div className="mt-0.5">
+                      <span className="text-gray-400 text-xs">Shopkeeper: </span>
+                      <span className={order.shopkeeper_name ? "text-gray-600 text-xs font-medium" : "text-gray-400 text-xs"}>
+                        {order.shopkeeper_name || "Unassigned"}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mt-1 text-xs">
                     <span className="text-gray-500">{order.order_type || "Home Delivery"} · ₹{order.total_value || order.totalAmount}</span>
                     <span className="text-gray-400">

@@ -1,17 +1,22 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, User } from "lucide-react";
 import api from "../../api/axios";
-import { useSocket } from "../../hooks/useSocket";
 
 interface ReadyOrdersProps {
   onNavigate: (screen: string, data?: any) => void;
   onBack: () => void;
 }
 
+import { useMemo } from "react";
+import { useSharedOrders } from "./SharedOrdersContext";
+
 export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const socket = useSocket(1);
+  const { orders: sharedOrders, refreshOrders, loading: sharedLoading } = useSharedOrders();
+
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
 
   const [agents, setAgents] = useState<any[]>([]);
   const [assigningId, setAssigningId] = useState<string | null>(null);
@@ -27,7 +32,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
     setAssigningId(orderId);
     try {
       await api.post(`/orders/${orderId}/assign-rider`, { agentId });
-      fetchOrders();
+      await refreshOrders();
     } catch (err) {
       console.error("Failed to assign rider", err);
     } finally {
@@ -35,33 +40,11 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
     }
   };
 
-  const fetchOrders = () => {
-    api.get('/orders?status=ready').then(res => {
-      setOrders(res.data.filter((o: any) => o.order_type !== 'Self Pickup'));
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setLoading(false);
-    });
-  };
+  const orders = useMemo(() => {
+    return sharedOrders.filter((o: any) => o.status?.toLowerCase() === 'ready' && o.order_type !== 'Self Pickup');
+  }, [sharedOrders]);
 
-  useEffect(() => {
-    fetchOrders();
-
-    if (socket.current) {
-      socket.current.on('order:status', () => {
-        fetchOrders();
-      });
-    }
-
-    return () => {
-      if (socket.current) {
-        socket.current.off('order:status');
-      }
-    };
-  }, [socket]);
-
-  if (loading) {
+  if (sharedLoading && orders.length === 0) {
     return (
       <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
         <Loader2 className="animate-spin text-[#2E7D32]" size={40} />
@@ -126,6 +109,11 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                       <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "15px" }}>#{order.order_number}</span>
                       <span className="bg-green-100 text-green-700 rounded-full px-2 py-0.5" style={{ fontSize: "10px", fontWeight: 600 }}>READY</span>
                     </div>
+                    {shouldShowShopkeeper && (
+                      <p className="text-gray-500 text-xs mb-1">
+                        {order.shopkeeper_name || "Unassigned"}
+                      </p>
+                    )}
                     <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.order_type} · Tray: {order.tray_number || 'N/A'}</span>
                   </div>
                   <button 
@@ -137,7 +125,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                   </button>
                 </div>
 
-                {order.shopkeeper_name && (
+                {shouldShowShopkeeper && order.shopkeeper_name && (
                   <div className="flex items-center gap-2 mb-2 bg-blue-50 p-2 rounded-xl border border-blue-100">
                     <User size={14} color="#1976D2" />
                     <span className="text-blue-800" style={{ fontSize: "12px", fontWeight: 600 }}>

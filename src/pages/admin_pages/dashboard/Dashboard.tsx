@@ -1,17 +1,7 @@
 import { useState, useEffect } from "react";
 import {
-  ArrowUpRight,
-  ArrowDownRight,
-  ShoppingCart,
-  Users,
-  DollarSign,
-  Package,
   TrendingUp,
   TrendingDown,
-  Store,
-  Clock,
-  RotateCcw,
-  BarChart3,
   Eye,
   ChevronUp,
   ChevronDown,
@@ -19,9 +9,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
-  BarChart,
-  Bar,
-  LineChart,
   Line,
   Area,
   ComposedChart,
@@ -48,25 +35,16 @@ const KPI_CARD_CLASSES = `bg-white dark:bg-gray-800 rounded-xl shadow-md border 
 const SECONDARY_KPI_CARD_HEIGHT = "125px";
 const SECONDARY_KPI_CARD_CLASSES = `bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 flex flex-col justify-between`;
 
-interface DashboardStats {
-  totalOrders: { value: string; change: string; isPositive: boolean };
-  totalRevenue: { value: string; change: string; isPositive: boolean };
-  totalCustomers: { value: string; change: string; isPositive: boolean };
-  totalProducts: { value: string; change: string; isPositive: boolean };
-}
+
 
 const Dashboard = () => {
   usePartnerRealtimeSocket();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [monthlyOrdersData, setMonthlyOrdersData] = useState<any[]>([]);
-  const [revenueData, setRevenueData] = useState<any[]>([]);
   const [orderStatusData, setOrderStatusData] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [topProducts, setTopProducts] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [totalOrdersCount, setTotalOrdersCount] = useState(100);
+  const totalOrdersCount = 100;
 
   // Chart states
   const [timeFilter, setTimeFilter] = useState<
@@ -77,31 +55,7 @@ const Dashboard = () => {
   const [totalOrders, setTotalOrders] = useState<number>(38);
   const [showBusinessSettings, setShowBusinessSettings] = useState(false);
 
-  // Mock data
-  const mockStats = {
-    totalOrders: { value: "1,234", change: "+12.5%", isPositive: true },
-    totalRevenue: { value: "₹2,45,678", change: "+8.3%", isPositive: true },
-    totalCustomers: { value: "5,678", change: "+15.2%", isPositive: true },
-    totalProducts: { value: "3,456", change: "+5.7%", isPositive: true },
-  };
 
-  const mockMonthlyData = [
-    { month: "Jan", orders: 120, revenue: 45000 },
-    { month: "Feb", orders: 150, revenue: 52000 },
-    { month: "Mar", orders: 180, revenue: 61000 },
-    { month: "Apr", orders: 200, revenue: 68000 },
-    { month: "May", orders: 220, revenue: 75000 },
-    { month: "Jun", orders: 250, revenue: 82000 },
-  ];
-
-  const mockRevenueData = [
-    { month: "Jan", revenue: 45000 },
-    { month: "Feb", revenue: 52000 },
-    { month: "Mar", revenue: 61000 },
-    { month: "Apr", revenue: 68000 },
-    { month: "May", revenue: 75000 },
-    { month: "Jun", revenue: 82000 },
-  ];
 
   const mockOrderStatusData = [
     { name: "Delivered", value: 45, color: "#00891D" },
@@ -164,13 +118,6 @@ const Dashboard = () => {
     },
   ];
 
-  const mockTopProducts = [
-    { name: "Wireless Headphones", sales: "1,234", revenue: "₹30,78,666" },
-    { name: "Smart Watch", sales: "987", revenue: "₹88,83,013" },
-    { name: "Laptop Bag", sales: "756", revenue: "₹9,82,044" },
-    { name: "Power Bank", sales: "654", revenue: "₹10,45,746" },
-    { name: "USB Cable", sales: "543", revenue: "₹1,62,357" },
-  ];
 
   useEffect(() => {
     fetchDashboardData();
@@ -203,79 +150,18 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      setStats(mockStats);
-      setMonthlyOrdersData(mockMonthlyData);
-      setRevenueData(mockRevenueData);
       setOrderStatusData(mockOrderStatusData);
       setRecentOrders(mockRecentOrders);
-      setTopProducts(mockTopProducts);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      setStats(mockStats);
-      setMonthlyOrdersData(mockMonthlyData);
-      setRevenueData(mockRevenueData);
       setOrderStatusData(mockOrderStatusData);
       setRecentOrders(mockRecentOrders);
-      setTopProducts(mockTopProducts);
       setOrdersChartData(mockOrdersChartData);
       setTotalOrders(38);
     } finally {
       setLoading(false);
     }
   };
-
-  const statsConfig = stats
-    ? [
-        {
-          title: "Total Orders",
-          value: stats.totalOrders.value,
-          change: stats.totalOrders.change,
-          isPositive: stats.totalOrders.isPositive,
-          icon: ShoppingCart,
-          bgGradient: "from-green-50 to-green-100",
-          textColor: "text-green-700",
-          valueColor: "text-green-800",
-          iconBg: "bg-green-100",
-          iconColor: "text-green-600",
-        },
-        {
-          title: "Total Revenue",
-          value: stats.totalRevenue.value,
-          change: stats.totalRevenue.change,
-          isPositive: stats.totalRevenue.isPositive,
-          icon: DollarSign,
-          bgGradient: "from-green-50 to-green-100",
-          textColor: "text-blue-700",
-          valueColor: "text-blue-800",
-          iconBg: "bg-blue-100",
-          iconColor: "text-blue-600",
-        },
-        {
-          title: "Total Customers",
-          value: stats.totalCustomers.value,
-          change: stats.totalCustomers.change,
-          isPositive: stats.totalCustomers.isPositive,
-          icon: Users,
-          bgGradient: "from-purple-50 to-pink-50",
-          textColor: "text-purple-700",
-          valueColor: "text-purple-800",
-          iconBg: "bg-purple-100",
-          iconColor: "text-purple-600",
-        },
-        {
-          title: "Total Products",
-          value: stats.totalProducts.value,
-          change: stats.totalProducts.change,
-          isPositive: stats.totalProducts.isPositive,
-          icon: Package,
-          bgGradient: "from-amber-50 to-orange-50",
-          textColor: "text-amber-700",
-          valueColor: "text-amber-800",
-          iconBg: "bg-amber-100",
-          iconColor: "text-amber-600",
-        },
-      ]
-    : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -298,24 +184,6 @@ const Dashboard = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-  };
 
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
@@ -720,41 +588,37 @@ const Dashboard = () => {
                   <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-700 rounded-lg p-1 flex-wrap">
                     <button
                       onClick={() => setTimeFilter("hourly")}
-                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${
-                        timeFilter === "hourly"
+                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${timeFilter === "hourly"
                           ? "bg-orange-500 text-white"
                           : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
-                      }`}
+                        }`}
                     >
                       Hourly
                     </button>
                     <button
                       onClick={() => setTimeFilter("daily")}
-                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${
-                        timeFilter === "daily"
+                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${timeFilter === "daily"
                           ? "bg-orange-500 text-white"
                           : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
-                      }`}
+                        }`}
                     >
                       Daily
                     </button>
                     <button
                       onClick={() => setTimeFilter("weekly")}
-                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${
-                        timeFilter === "weekly"
+                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${timeFilter === "weekly"
                           ? "bg-orange-500 text-white"
                           : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
-                      }`}
+                        }`}
                     >
                       Weekly
                     </button>
                     <button
                       onClick={() => setTimeFilter("monthly")}
-                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${
-                        timeFilter === "monthly"
+                      className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded transition-colors ${timeFilter === "monthly"
                           ? "bg-orange-500 text-white"
                           : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
-                      }`}
+                        }`}
                     >
                       Monthly
                     </button>
@@ -862,8 +726,7 @@ const Dashboard = () => {
                       wrapperStyle={{
                         backgroundColor: "transparent",
                       }}
-                      className="dark:[&_.recharts-tooltip-wrapper]:bg-gray-800 dark:[&_.recharts-tooltip-wrapper]:border-gray-700"
-                      formatter={(value: number, name: string) => {
+                      formatter={(value: any, name: any) => {
                         if (name === "Revenue") {
                           return [`₹${(value * 100).toFixed(1)}`, name];
                         }
@@ -938,7 +801,7 @@ const Dashboard = () => {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => `${value}%`}
+                      formatter={(value: any) => `${value}%`}
                       contentStyle={{
                         backgroundColor: "white",
                         border: "1px solid #e5e7eb",
@@ -948,7 +811,6 @@ const Dashboard = () => {
                       wrapperStyle={{
                         backgroundColor: "transparent",
                       }}
-                      className="dark:[&_.recharts-tooltip-wrapper]:bg-gray-800 dark:[&_.recharts-tooltip-wrapper]:border-gray-700"
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1183,11 +1045,10 @@ const Dashboard = () => {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                      currentPage === page
+                    className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${currentPage === page
                         ? "bg-orange-500 text-white"
                         : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>

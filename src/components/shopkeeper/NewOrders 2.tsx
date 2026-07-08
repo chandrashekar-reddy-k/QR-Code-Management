@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, MapPin, Zap, ShoppingCart, Phone, AlertCircle, CheckCircle, XCircle, ChevronRight, Loader2, User } from "lucide-react";
 import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
-import { AllocationCountdown } from "./AllocationCountdown";
 import { ShopkeeperModal } from "./ShopkeeperModal";
 
 interface NewOrdersProps {

@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
-import { X, Phone, CheckCircle, Clock, Activity } from "lucide-react";
+import { X, Phone, CheckCircle, Activity } from "lucide-react";
 import api from "../../api/axios";
 
 interface ShopkeeperModalProps {
   shopkeeperId: number;
   assignedAt: string;
-  timeLeft: number;
+  timeLeft?: number;
   onClose: () => void;
 }
 
-export function ShopkeeperModal({ shopkeeperId, assignedAt, timeLeft, onClose }: ShopkeeperModalProps) {
+export function ShopkeeperModal({ shopkeeperId, assignedAt, onClose }: ShopkeeperModalProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [localTimeLeft, setLocalTimeLeft] = useState(timeLeft);
 
   useEffect(() => {
     api.get(`/shopkeepers/${shopkeeperId}`)
@@ -25,19 +24,6 @@ export function ShopkeeperModal({ shopkeeperId, assignedAt, timeLeft, onClose }:
         setLoading(false);
       });
   }, [shopkeeperId]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLocalTimeLeft(prev => Math.max(0, prev - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -94,16 +80,9 @@ export function ShopkeeperModal({ shopkeeperId, assignedAt, timeLeft, onClose }:
               </div>
 
               <div className="flex flex-col p-3 bg-blue-50/50 rounded-xl border border-blue-100 mt-2">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500 font-medium">Assigned At</span>
                   <span className="text-xs text-gray-700 font-semibold">{new Date(assignedAt).toLocaleTimeString()}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 font-medium">Allocation Timeout</span>
-                <div className="flex items-center gap-1 text-red-600 font-bold">
-                  <Clock size={12} />
-                  <span className="text-xs">{formatTime(localTimeLeft)} left</span>
-                </div>
                 </div>
               </div>
             </div>

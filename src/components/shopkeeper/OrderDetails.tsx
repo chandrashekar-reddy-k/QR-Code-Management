@@ -15,6 +15,11 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
   // Tick every minute so SLA elapsed/remaining updates automatically
   const [now, setNow] = useState(new Date());
 
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
+
   // Log fetched order for debugging
   useEffect(() => {
     console.log('Fetched full order:', fullOrder);
@@ -197,6 +202,16 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
             <MapPin size={14} color="#00891D" className="mt-0.5 flex-shrink-0" />
             <span className="text-gray-600" style={{ fontSize: "12px" }}>{fullOrder.customer_address || "No address provided"}</span>
           </div>
+          {shouldShowShopkeeper && (
+            <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+              <span className="text-gray-500" style={{ fontSize: "12px" }}>Processed By:</span>
+              <span className="text-gray-800 font-semibold" style={{ fontSize: "12px" }}>
+                {fullOrder.shopkeeper_name 
+                  ? `${fullOrder.shopkeeper_name}${fullOrder.assignedShopkeeper?.phone ? ` (${fullOrder.assignedShopkeeper.phone})` : ''}`
+                  : 'Unassigned'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* SLA Tracking Card */}

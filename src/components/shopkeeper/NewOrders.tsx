@@ -1,22 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowLeft, Clock, MapPin, Zap, ShoppingCart, Phone, AlertCircle, CheckCircle, XCircle, ChevronRight, Loader2, User } from "lucide-react";
-import axios from "axios";
 import api from "../../api/axios";
-
-const adminApi = axios.create({
-  baseURL: import.meta.env.VITE_ADMIN_URL || "http://localhost:3001/api/v1",
-});
-
-adminApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-import { useSocket } from "../../hooks/useSocket";
-import { AllocationCountdown } from "./AllocationCountdown";
 import { ShopkeeperModal } from "./ShopkeeperModal";
 
 interface NewOrdersProps {
@@ -48,71 +32,18 @@ function CountdownTimer({ minutes }: { minutes: number }) {
   );
 }
 
+import { useSharedOrders } from "./SharedOrdersContext";
+
 export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { orders: sharedOrders, refreshOrders, loading: sharedLoading } = useSharedOrders();
   const [selectedShopkeeper, setSelectedShopkeeper] = useState<{ id: number; assignedAt: string; timeoutMinutes: number } | null>(null);
-  
-  // Real-time integration using storeId 1 as per dummy data
-  const socket = useSocket(1);
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const res = await adminApi.get('/orders');
-      const resData = res.data;
-      let allOrders: any[] = [];
-      if (Array.isArray(resData)) {
-        allOrders = resData;
-      } else if (resData && Array.isArray(resData.data)) {
-        allOrders = resData.data;
-      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
-        allOrders = resData.data.orders;
-      } else if (resData && Array.isArray(resData.orders)) {
-        allOrders = resData.orders;
-      }
-      const newOrders = allOrders.filter((o: any) => o.status?.toLowerCase() === 'new');
-      setOrders(newOrders);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch new orders.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-
-    if (socket.current) {
-      socket.current.on('order:new', () => {
-        fetchOrders();
-      });
-      socket.current.on('order:assigned', () => {
-        fetchOrders();
-      });
-      socket.current.on('order:status', ({ orderId, status }: any) => {
-        if (status !== 'new') {
-          setOrders(prev => prev.filter(o => o.id !== Number(orderId)));
-        }
-      });
-    }
-
-    return () => {
-      if (socket.current) {
-        socket.current.off('order:new');
-        socket.current.off('order:assigned');
-        socket.current.off('order:status');
-      }
-    };
-  }, [socket.current]);
+  const orders = sharedOrders.filter((o: any) => o.status?.toLowerCase() === 'new');
 
   const handleAccept = async (orderId: number) => {
     try {
       await api.put(`/orders/${orderId}/accept`);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
+      await refreshOrders();
       onNavigate("picking-queue");
     } catch (err) {
       console.error(err);
@@ -122,13 +53,13 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   const handleReject = async (orderId: number) => {
     try {
       await api.put(`/orders/${orderId}/reject`);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
+      await refreshOrders();
     } catch (err) {
       console.error(err);
     }
   };
 
-  if (loading) {
+  if (sharedLoading && orders.length === 0) {
     return (
       <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
@@ -157,11 +88,6 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
         </div>
       </div>
 
-      {error && (
-        <div className="p-4 bg-red-50 text-red-700 m-4 rounded-xl border border-red-200">
-          {error}
-        </div>
-      )}
 
       {/* Order Cards */}
       <div className="flex flex-col gap-3 p-4">
@@ -281,7 +207,6 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
         <ShopkeeperModal 
           shopkeeperId={selectedShopkeeper.id} 
           assignedAt={selectedShopkeeper.assignedAt}
-          timeLeft={Math.floor(Math.max(0, new Date(selectedShopkeeper.assignedAt).getTime() + (selectedShopkeeper.timeoutMinutes || 5) * 60 * 1000 - new Date().getTime()) / 1000)}
           onClose={() => setSelectedShopkeeper(null)} 
         />
       )}

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowLeft, Clock, Package, Play, AlertCircle } from "lucide-react";
 import api from "../../api/axios";
-import { useSocket } from "../../hooks/useSocket";
+import { useSharedOrders } from "./SharedOrdersContext";
 
 interface PackingQueueProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -9,38 +9,68 @@ interface PackingQueueProps {
 }
 
 export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
-  const [packingOrders, setPackingOrders] = useState<any[]>([]);
-  const socket = useSocket(1);
+  const { orders: sharedOrders, refreshOrders } = useSharedOrders();
 
-  const fetchOrders = async () => {
-    try {
-      const res = await api.get('/orders');
-      const orders = res.data.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'packing' || s === 'packed' || s === 'processing';
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
+
+  const packingOrders = useMemo(() => {
+    const orders = sharedOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'packing' || s === 'packed' || s === 'processing';
+    });
+
+    const allTrays = ["P01", "P02", "P03", "P04", "P05"];
+    const assignedTrays = new Set<string>(
+      orders.filter((o: any) => o.tray_number).map((o: any) => o.tray_number as string)
+    );
+
+    const processedOrders: any[] = [];
+    for (const o of orders) {
+      let tray = o.tray_number;
+      if (!tray) {
+        const nextFreeTray = allTrays.find(t => !assignedTrays.has(t));
+        tray = nextFreeTray || 'P??';
+        if (nextFreeTray) {
+          assignedTrays.add(tray);
+        }
+      }
+      const pickedCount = o.picked_count ?? o.item_count ?? 0;
+      const acceptedMs = o.shopkeeper_accepted_at
+        ? new Date(o.shopkeeper_accepted_at).getTime()
+        : null;
+      const pkElapsed = acceptedMs ? (Date.now() - acceptedMs) / 60000 : 0;
+      const pkRemaining = o.sla_minutes - pkElapsed;
+      processedOrders.push({
+        ...o,
+        items: pickedCount,
+        tray,
+        urgent: acceptedMs ? pkRemaining <= 10 : o.sla_minutes < 15
       });
+    }
+    return processedOrders;
+  }, [sharedOrders]);
 
-      // Use tray_number from DB as source of truth.
-      // For any legacy order missing a tray, assign sequentially (NOT in parallel)
-      // so each order picks the next truly-free tray one at a time.
-      const allTrays = ["P01", "P02", "P03", "P04", "P05"];
-      const assignedTrays = new Set<string>(
-        orders.filter((o: any) => o.tray_number).map((o: any) => o.tray_number as string)
-      );
+  useEffect(() => {
+    const ordersToAssign = sharedOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return (s === 'packing' || s === 'packed' || s === 'processing') && !o.tray_number;
+    });
 
-      const processedOrders: any[] = [];
-      for (const o of orders) {
-        // Trust the tray_number already assigned atomically by the backend.
-        // If for some reason it's missing (legacy / edge case), pick the next
-        // truly-free slot sequentially and persist it — but do NOT fall back
-        // silently to 'P01' which masks duplicate-tray bugs.
-        let tray: string = o.tray_number;
-        if (!tray) {
+    if (ordersToAssign.length > 0) {
+      const assignTrays = async () => {
+        const allTrays = ["P01", "P02", "P03", "P04", "P05"];
+        const assignedTrays = new Set<string>(
+          sharedOrders.filter((o: any) => o.tray_number).map((o: any) => o.tray_number as string)
+        );
+
+        for (const o of ordersToAssign) {
           const nextFreeTray = allTrays.find(t => !assignedTrays.has(t));
-          tray = nextFreeTray || 'P??'; // 'P??' is intentionally visible so the bug is noticed
+          const tray = nextFreeTray || 'P??';
           if (nextFreeTray) {
             assignedTrays.add(tray);
-            // Persist so it's stable across refreshes
             try {
               await api.put(`/orders/${o.id}/status`, { status: 'packing', tray_number: tray });
             } catch (e) {
@@ -48,37 +78,11 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
             }
           }
         }
-        // Use picked_count from the DB — rejected items don't need to be packed
-        const pickedCount = o.picked_count ?? o.item_count ?? 0;
-        // Compute urgency based on shopkeeper_accepted_at if available, else fall back to sla_minutes < 15
-        const acceptedMs = o.shopkeeper_accepted_at
-          ? new Date(o.shopkeeper_accepted_at).getTime()
-          : null;
-        const pkElapsed = acceptedMs ? (Date.now() - acceptedMs) / 60000 : 0;
-        const pkRemaining = o.sla_minutes - pkElapsed;
-        processedOrders.push({
-          ...o,
-          items: pickedCount,
-          tray,
-          urgent: acceptedMs ? pkRemaining <= 10 : o.sla_minutes < 15
-        });
-      }
-
-      setPackingOrders(processedOrders);
-    } catch (err) {
-      console.error(err);
+        await refreshOrders();
+      };
+      assignTrays();
     }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    if (socket.current) {
-      socket.current.on('order:status', fetchOrders);
-    }
-    return () => {
-      if (socket.current) socket.current.off('order:status');
-    };
-  }, [socket.current]);
+  }, [sharedOrders]);
 
   const stats = {
     awaiting: packingOrders.length,
@@ -169,6 +173,11 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                       Tray {order.tray}
                     </span>
                   </div>
+                  {shouldShowShopkeeper && (
+                    <p className="text-gray-500 text-xs mb-1">
+                      {order.shopkeeper_name || "Unassigned"}
+                    </p>
+                  )}
                   <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.order_type}</span>
                 </div>
                 <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: order.urgent ? "#FFEBEE" : "#FFF3E0" }}>

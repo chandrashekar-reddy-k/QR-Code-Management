@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { ArrowLeft, Clock, Package, Play, AlertCircle, CheckCircle2, ChevronRight } from "lucide-react";
-import api from "../../api/axios";
-import { useSocket } from "../../hooks/useSocket";
+import { useSharedOrders } from "./SharedOrdersContext";
 
 interface PickingQueueProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -23,39 +22,24 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
-  const [pickingOrders, setPickingOrders] = useState<any[]>([]);
-  const socket = useSocket(1);
+  const { orders: sharedOrders } = useSharedOrders();
 
-  const fetchOrders = async () => {
-    try {
-      const res = await api.get('/orders');
-      // Filter for accepted or picking statuses
-      const orders = res.data.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'accepted' || s === 'picking' || s === 'confirmed';
-      });
-      
-      // Calculate mock items data if backend doesn't return full details in this endpoint yet
-      const processedOrders = orders.map((o: any) => ({
-        ...o,
-        items: o.item_count || 0,
-        picked: o.picked_count || 0
-      }));
-      setPickingOrders(processedOrders);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
 
-  useEffect(() => {
-    fetchOrders();
-    if (socket.current) {
-      socket.current.on('order:status', fetchOrders);
-    }
-    return () => {
-      if (socket.current) socket.current.off('order:status');
-    };
-  }, [socket.current]);
+  const pickingOrders = useMemo(() => {
+    const filtered = sharedOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'accepted' || s === 'picking' || s === 'confirmed';
+    });
+    return filtered.map((o: any) => ({
+      ...o,
+      items: o.item_count || 0,
+      picked: o.picked_count || 0
+    }));
+  }, [sharedOrders]);
 
   const stats = {
     pending: pickingOrders.filter(o => o.picked === 0).length,
@@ -144,6 +128,11 @@ export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
                       <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number}</span>
                       <PriorityBadge priority={order.priority} />
                     </div>
+                    {shouldShowShopkeeper && (
+                      <p className="text-gray-500 text-xs mb-1">
+                        {order.shopkeeper_name || "Unassigned"}
+                      </p>
+                    )}
                     <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.order_type}</span>
                   </div>
                   <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: slaBg }}>
