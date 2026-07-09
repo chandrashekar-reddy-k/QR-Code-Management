@@ -1,19 +1,34 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Clock, MapPin, CreditCard, Package, CheckCircle, XCircle, Phone, Zap, Loader2, User } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Package, CheckCircle, XCircle, Phone, Loader2, Copy, Check } from "lucide-react";
 import api from "../../api/axios";
+import Breadcrumbs from "../common/Breadcrumbs";
+import { OrderDetails as MobileOrderDetails } from "./OrderDetailsMobile";
 
 interface OrderDetailsProps {
   onBack: () => void;
   onNavigate: (screen: string, data?: any) => void;
   order?: any;
+  isAdmin?: boolean;
 }
 
-export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
+export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: OrderDetailsProps) {
+  if (!isAdmin) {
+    return <MobileOrderDetails onBack={onBack} onNavigate={onNavigate} order={order} />;
+  }
   const [fullOrder, setFullOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Tick every minute so SLA elapsed/remaining updates automatically
   const [now, setNow] = useState(new Date());
+  const [copiedOrderNumber, setCopiedOrderNumber] = useState(false);
+
+  const handleCopyOrderNumber = () => {
+    if (!fullOrder?.order_number) return;
+    navigator.clipboard.writeText(String(fullOrder.order_number)).then(() => {
+      setCopiedOrderNumber(true);
+      setTimeout(() => setCopiedOrderNumber(false), 2000);
+    });
+  };
 
   const storedUser = localStorage.getItem("user");
   const userObj = storedUser ? JSON.parse(storedUser) : null;
@@ -83,13 +98,13 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
         <XCircle className="text-red-500 mb-3" size={48} />
         <p className="text-gray-800 text-center font-medium mb-4">{error}</p>
         <div className="flex gap-3">
-          <button 
-            onClick={onBack} 
+          <button
+            onClick={onBack}
             className="px-4 py-2 bg-gray-200 text-gray-800 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
           >
             Go Back
           </button>
-          <button 
+          <button
             onClick={() => {
               if (order?.id) {
                 setLoading(true);
@@ -103,7 +118,7 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
                   setLoading(false);
                 });
               }
-            }} 
+            }}
             className="px-4 py-2 bg-[#00891D] text-white rounded-xl font-semibold hover:bg-[#006614] transition-colors"
           >
             Retry
@@ -162,274 +177,370 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
-      <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-4">
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-            <ArrowLeft size={20} color="white" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Order #{fullOrder.order_number}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <Zap size={12} color="white" opacity={0.7} />
-              <span className="text-white/70" style={{ fontSize: "12px" }}>{fullOrder.order_type}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5" style={{ backgroundColor: isUrgent ? "#FFCDD2" : "#C8E6C9" }}>
-            <Clock size={12} color={isUrgent ? "#D32F2F" : "#2E7D32"} />
-            <span style={{ color: isUrgent ? "#D32F2F" : "#2E7D32", fontWeight: 700, fontSize: "12px" }}>{fullOrder.sla_minutes}m SLA</span>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#F3F4F6] p-[32px] pb-10 flex flex-col">
+      {/* Breadcrumbs */}
+      <div className="mb-6">
+        <Breadcrumbs />
       </div>
 
-      <div className="flex flex-col gap-3 p-4 pb-6">
-        {/* Customer Information */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h3 className="text-gray-700 mb-3" style={{ fontWeight: 600, fontSize: "13px" }}>Customer Information</h3>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <User size={22} color="#00891D" />
-            </div>
-            <div>
-              <p className="text-gray-900" style={{ fontWeight: 600, fontSize: "15px" }}>{fullOrder.customer_name}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Phone size={11} color="#9E9E9E" />
-                <span className="text-gray-500" style={{ fontSize: "12px" }}>{fullOrder.customer_phone}</span>
-              </div>
-            </div>
+      {/* Page Header */}
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <h1 className="text-[32px] font-bold text-[#111827] leading-none">Order #{fullOrder.order_number}</h1>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 uppercase tracking-wider">
+              {fullOrder.order_type || "Home Delivery"}
+            </span>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${isUrgent
+                ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+              }`}>
+              <Clock size={12} />
+              <span>{fullOrder.sla_minutes}m SLA</span>
+            </span>
           </div>
-          <div className="flex items-start gap-2 bg-gray-50 rounded-xl p-2.5">
-            <MapPin size={14} color="#00891D" className="mt-0.5 flex-shrink-0" />
-            <span className="text-gray-600" style={{ fontSize: "12px" }}>{fullOrder.customer_address || "No address provided"}</span>
-          </div>
-          {shouldShowShopkeeper && (
-            <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
-              <span className="text-gray-500" style={{ fontSize: "12px" }}>Processed By:</span>
-              <span className="text-gray-800 font-semibold" style={{ fontSize: "12px" }}>
-                {fullOrder.shopkeeper_name 
-                  ? `${fullOrder.shopkeeper_name}${fullOrder.assignedShopkeeper?.phone ? ` (${fullOrder.assignedShopkeeper.phone})` : ''}`
-                  : 'Unassigned'}
-              </span>
-            </div>
-          )}
+          <p className="text-[14px] text-[#9EA3AE]">Order ID: {fullOrder.id}</p>
         </div>
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+          <ArrowLeft size={16} /> Back
+        </button>
+      </div>
 
-        {/* SLA Tracking Card */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock
-              size={16}
-              color={
-                slaIsBreached
-                  ? "#D32F2F"
-                  : slaState === "waiting"
-                    ? "#F59E0B"
-                    : slaState === "completed"
-                      ? "#2E7D32"
-                      : "#00891D"
-              }
-            />
-            <h3 className="text-gray-700" style={{ fontWeight: 600, fontSize: "13px" }}>SLA Tracking</h3>
-          </div>
+      <div className="flex flex-col gap-6">
+        {/* Row 1: Order Information & Customer Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Order Information */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+            <h3 className="text-gray-950 dark:text-gray-550 font-bold text-lg border-b border-gray-100 dark:border-gray-700 pb-3 mb-4">Order Information</h3>
 
-          <div className="flex flex-col gap-2.5">
-            {/* Target SLA — always visible */}
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500" style={{ fontSize: "13px" }}>Target SLA:</span>
-              <span
-                className="rounded-full px-2.5 py-0.5"
-                style={{ backgroundColor: "#FFF3E0", color: "#EF5A06", fontWeight: 700, fontSize: "13px" }}
-              >
-                {slaMinutes} min
-              </span>
-            </div>
+            <div className="flex flex-col gap-4">
+              {/* Order Number */}
+              <div className="flex items-center gap-3">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Order Number</span>
+                <span className="text-[14px] font-bold text-gray-900 dark:text-gray-100">{fullOrder.order_number || "—"}</span>
+                {fullOrder.order_number && (
+                  <button
+                    onClick={handleCopyOrderNumber}
+                    title={copiedOrderNumber ? "Copied!" : "Copy order number"}
+                    className="relative ml-1 p-1 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+                  >
+                    {copiedOrderNumber ? (
+                      <Check size={14} className="text-green-600 dark:text-green-400" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                    {copiedOrderNumber && (
+                      <span className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap bg-gray-900 dark:bg-gray-700 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md shadow-lg pointer-events-none">
+                        Copied!
+                      </span>
+                    )}
+                  </button>
+                )}
+              </div>
 
-            {/* Waiting state */}
-            {slaState === "waiting" && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500" style={{ fontSize: "13px" }}>Status:</span>
-                <span className="text-orange-500" style={{ fontWeight: 600, fontSize: "13px" }}>
-                  {slaStatusLabel}
+              {/* Order ID */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Order ID</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">{fullOrder.id || "—"}</span>
+              </div>
+
+              {/* Order Date */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Order Date</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
+                  {fullOrder.created_at || fullOrder.createdAt ? new Date(fullOrder.created_at || fullOrder.createdAt).toLocaleString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true
+                  }) : "—"}
                 </span>
               </div>
-            )}
 
-            {/* In-progress state */}
-            {slaState === "inprogress" && (
-              <>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500" style={{ fontSize: "13px" }}>Status:</span>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      fontSize: "13px",
-                      color: slaIsBreached ? "#D32F2F" : "#2E7D32",
-                    }}
-                  >
-                    {slaStatusLabel}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500" style={{ fontSize: "13px" }}>Elapsed:</span>
-                  <span className="text-gray-800" style={{ fontWeight: 600, fontSize: "13px" }}>
-                    {formatSeconds(slaElapsedSeconds)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500" style={{ fontSize: "13px" }}>Remaining:</span>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      fontSize: "13px",
-                      color: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#EF5A06" : "#2E7D32",
-                    }}
-                  >
-                    {slaIsBreached ? `Overdue by ${formatSeconds(slaRemainingSeconds)}` : formatSeconds(slaRemainingSeconds)}
-                  </span>
-                </div>
-                {/* Progress bar */}
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${Math.min((slaElapsedSeconds / (slaMinutes * 60)) * 100, 100)}%`,
-                      backgroundColor: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#EF5A06" : "#00891D",
-                    }}
-                  />
-                </div>
-              </>
-            )}
+              {/* Delivery Date & Time */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Date & Time</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
+                  {fullOrder.delivered_at || fullOrder.deliveredAt ? new Date(fullOrder.delivered_at || fullOrder.deliveredAt).toLocaleString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true
+                  }) : "—"}
+                </span>
+              </div>
 
-            {/* Completed state */}
-            {slaState === "completed" && (
-              <>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500" style={{ fontSize: "13px" }}>Actual SLA:</span>
-                  <span className="text-gray-800" style={{ fontWeight: 600, fontSize: "13px" }}>
-                    {formatSeconds(slaActualSeconds)}
+              {/* Processed By */}
+              {shouldShowShopkeeper && (
+                <div className="flex items-center">
+                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Processed By</span>
+                  <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
+                    {fullOrder.shopkeeper_name
+                      ? `${fullOrder.shopkeeper_name}${fullOrder.assignedShopkeeper?.phone ? ` (${fullOrder.assignedShopkeeper.phone})` : ''}`
+                      : 'Unassigned'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500" style={{ fontSize: "13px" }}>Status:</span>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      fontSize: "13px",
-                      color: slaIsBreached ? "#D32F2F" : "#2E7D32",
-                    }}
-                  >
-                    {slaStatusLabel}
-                  </span>
-                </div>
-              </>
-            )}
+              )}
+            </div>
+          </div>
+
+          {/* Customer Information */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-gray-950 dark:text-gray-550 font-bold text-lg">Customer Information</h3>
+              <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+                <Phone size={18} className="cursor-pointer hover:text-gray-900 dark:hover:text-white" />
+                <MapPin size={18} className="cursor-pointer hover:text-gray-900 dark:hover:text-white" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              {/* Name */}
+              <div className="flex items-start">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Name</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">{fullOrder.customer_name || "—"}</span>
+              </div>
+
+              {/* Mobile Number */}
+              <div className="flex items-start">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Mobile Number</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">{fullOrder.customer_phone || "—"}</span>
+              </div>
+
+              {/* Delivery Type */}
+              <div className="flex items-start">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Type</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">{fullOrder.order_type || "—"}</span>
+              </div>
+
+              {/* Address */}
+              <div className="flex items-start">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Address</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200 break-words flex-1">
+                  {fullOrder.customer_address || "No address provided"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Order Summary */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-gray-700" style={{ fontWeight: 600, fontSize: "13px" }}>Order Summary</h3>
-            <span className="text-gray-500" style={{ fontSize: "12px" }}>{mergedItems.length} items</span>
+        {/* Row 2: Ordered Products Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <Package size={20} className="text-[#00891D]" />
+            <h3 className="text-gray-900 dark:text-gray-100 font-bold text-lg">Ordered Products</h3>
+            <span className="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+              {mergedItems.length} items
+            </span>
           </div>
-          <div className="grid grid-cols-3 gap-3 mb-3">
-            <div className="bg-green-50 rounded-xl p-2.5 text-center">
-              <p className="text-green-700" style={{ fontWeight: 700, fontSize: "16px" }}>{mergedItems.length}</p>
-              <p className="text-green-500" style={{ fontSize: "10px" }}>Items</p>
-            </div>
-            <div className="bg-green-50 rounded-xl p-2.5 text-center">
-              <p className="text-green-700" style={{ fontWeight: 700, fontSize: "14px" }}>₹{fullOrder.total_value}</p>
-              <p className="text-green-500" style={{ fontSize: "10px" }}>Total Value</p>
-            </div>
 
-            {/* SLA box — dynamic */}
-            {slaState === "waiting" && (
-              <div className="bg-orange-50 rounded-xl p-2.5 text-center">
-                <p className="text-orange-700" style={{ fontWeight: 700, fontSize: "16px" }}>{slaMinutes}m</p>
-                <p className="text-orange-500" style={{ fontSize: "10px" }}>Target SLA</p>
-              </div>
-            )}
-            {slaState === "inprogress" && (
-              <div className="rounded-xl p-2.5 text-center"
-                style={{ backgroundColor: slaIsBreached ? "#FFEBEE" : (slaRemainingSeconds <= 300) ? "#FFF3E0" : "#E8F5E9" }}>
-                <p style={{ fontWeight: 700, fontSize: "13px", color: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#E65100" : "#2E7D32" }}>
-                  {slaIsBreached ? `+${formatSeconds(slaRemainingSeconds)}` : formatSeconds(slaRemainingSeconds)}
-                </p>
-                <p style={{ fontSize: "10px", color: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#E65100" : "#2E7D32" }}>
-                  {slaStatusLabel}
-                </p>
-              </div>
-            )}
-            {slaState === "completed" && (
-              <div className="rounded-xl p-2.5 text-center"
-                style={{ backgroundColor: slaIsBreached ? "#FFEBEE" : "#E8F5E9" }}>
-                <p style={{ fontWeight: 700, fontSize: "13px", color: slaIsBreached ? "#D32F2F" : "#2E7D32" }}>
-                  {formatSeconds(slaActualSeconds)}
-                </p>
-                <p style={{ fontSize: "10px", color: slaIsBreached ? "#D32F2F" : "#2E7D32" }}>
-                  {slaStatusLabel}
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2.5">
-            <CreditCard size={14} color="#9E9E9E" />
-            <span className="text-gray-600" style={{ fontSize: "12px" }}>Payment: {fullOrder.payment_method}</span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-700">
+                  <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Name</th>
+                  <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Quantity</th>
+                  <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Unit Price</th>
+                  <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total Price</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {mergedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-sm text-gray-500">
+                      No items found for this order.
+                    </td>
+                  </tr>
+                ) : (
+                  mergedItems.map((item: any) => {
+                    const name = item.name || item.product?.name || "Unknown Product";
+                    const qty = item.quantity || 1;
+                    const price = Number(item.price ?? item.product?.price ?? 0);
+                    const total = price * qty;
+
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="py-3.5 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center text-xl overflow-hidden shadow-sm flex-shrink-0">
+                            {item.image_url ? <img src={item.image_url} alt={name} className="w-full h-full object-cover" /> : '📦'}
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{name}</span>
+                        </td>
+                        <td className="py-3.5 text-sm font-bold text-gray-800 dark:text-gray-200 text-center">{qty}</td>
+                        <td className="py-3.5 text-sm font-semibold text-gray-700 dark:text-gray-300 text-right">₹{price.toFixed(2)}</td>
+                        <td className="py-3.5 text-sm font-bold text-gray-900 dark:text-gray-100 text-right">₹{total.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Item List */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Package size={16} color="#00891D" />
-            <h3 className="text-gray-700" style={{ fontWeight: 600, fontSize: "13px" }}>Item List ({mergedItems.length})</h3>
-          </div>
-          <div className="flex flex-col gap-2">
-            {mergedItems.length === 0 ? (
-              <p className="text-gray-500" style={{ fontSize: "12px" }}>No items found for this order.</p>
-            ) : (
-              mergedItems.map((item: any) => (
-                <div key={item.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                  <div className="w-10 h-10 rounded bg-white flex items-center justify-center text-xl overflow-hidden shadow-sm">
-                    {item.image_url ? <img src={item.image_url} alt="" /> : '📦'}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-gray-800" style={{ fontWeight: 600, fontSize: "14px" }}>{item.name || item.product?.name}</p>
-                    <p className="text-gray-500" style={{ fontSize: "13px", fontWeight: 500, marginTop: "2px" }}>Qty: {item.quantity} · Location: <span style={{ color: "#D32F2F", fontWeight: 700 }}>{(item.aisle_location || item.product?.aisle_location) ?? ''}</span></p>
-                  </div>
-                  <span className="text-gray-700" style={{ fontWeight: 600, fontSize: "13px" }}>₹{item.price ?? item.product?.price}</span>
+        {/* Row 3: SLA Tracking & Payment Summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* SLA Tracking Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+            <h3 className="text-gray-950 dark:text-gray-550 font-bold text-lg border-b border-gray-100 dark:border-gray-700 pb-3 mb-4">SLA Tracking</h3>
+
+            <div className="flex flex-col gap-4">
+              {/* Target SLA */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Target SLA</span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFF3E0] text-[#EF5A06]">
+                  {slaMinutes} min
+                </span>
+              </div>
+
+              {/* Waiting state */}
+              {slaState === "waiting" && (
+                <div className="flex items-center">
+                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
+                  <span className="text-xs font-bold text-yellow-600 dark:text-yellow-450 bg-yellow-50 dark:bg-yellow-950/30 px-2.5 py-1 rounded-full">
+                    {slaStatusLabel}
+                  </span>
                 </div>
-              ))
-            )}
+              )}
+
+              {/* In-progress state */}
+              {slaState === "inprogress" && (
+                <>
+                  <div className="flex items-center">
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${slaIsBreached
+                        ? "bg-red-550/10 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                        : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                      }`}>
+                      {slaStatusLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Elapsed Time</span>
+                    <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
+                      {formatSeconds(slaElapsedSeconds)}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Remaining Time</span>
+                    <span className={`text-[14px] font-bold ${slaIsBreached
+                        ? "text-red-600 dark:text-red-400"
+                        : (slaRemainingSeconds <= 300)
+                          ? "text-orange-600 dark:text-orange-400"
+                          : "text-green-600 dark:text-green-400"
+                      }`}>
+                      {slaIsBreached ? `Overdue by ${formatSeconds(slaRemainingSeconds)}` : formatSeconds(slaRemainingSeconds)}
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="flex items-center">
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">SLA Progress</span>
+                    <div className="flex-1 max-w-[240px] h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.min((slaElapsedSeconds / (slaMinutes * 60)) * 100, 100)}%`,
+                          backgroundColor: slaIsBreached ? "#D32F2F" : (slaRemainingSeconds <= 300) ? "#EF5A06" : "#00891D",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Completed state */}
+              {slaState === "completed" && (
+                <>
+                  <div className="flex items-center">
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Actual Processing Time</span>
+                    <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
+                      {formatSeconds(slaActualSeconds)}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${slaIsBreached
+                        ? "bg-red-550/10 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                        : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                      }`}>
+                      {slaStatusLabel}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500" style={{ fontSize: "13px" }}>Subtotal</span>
-              <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>
-                ₹{Number(
-                  (fullOrder.total_value || fullOrder.totalAmount || 0) -
-                  (fullOrder.delivery_charge || fullOrder.deliveryCharge || 0) -
-                  (fullOrder.additional_charges || fullOrder.additionalCharges || 0)
-                ).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500" style={{ fontSize: "13px" }}>Delivery Charges</span>
-              <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>
-                ₹{Number(fullOrder.delivery_charge || fullOrder.deliveryCharge || 0).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500" style={{ fontSize: "13px" }}>Additional Charges</span>
-              <span className="text-gray-700" style={{ fontWeight: 500, fontSize: "13.5px" }}>
-                ₹{Number(fullOrder.additional_charges || fullOrder.additionalCharges || 0).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between border-t border-gray-50 pt-2">
-              <span className="text-gray-900" style={{ fontWeight: 600, fontSize: "13.5px" }}>Total</span>
-              <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>
-                ₹{Number(fullOrder.total_value || fullOrder.totalAmount || 0).toFixed(2)}
-              </span>
+
+          {/* Payment Summary */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+            <h3 className="text-gray-950 dark:text-gray-550 font-bold text-lg border-b border-gray-100 dark:border-gray-700 pb-3 mb-4">Payment Summary</h3>
+
+            <div className="flex flex-col gap-4">
+              {/* Total Items */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Total Items</span>
+                <span className="text-[14px] font-bold text-gray-800 dark:text-gray-200">{mergedItems.length}</span>
+              </div>
+
+              {/* Subtotal */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Subtotal</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
+                  ₹{Number(
+                    (fullOrder.total_value || fullOrder.totalAmount || 0) -
+                    (fullOrder.delivery_charge || fullOrder.deliveryCharge || 0) -
+                    (fullOrder.additional_charges || fullOrder.additionalCharges || 0)
+                  ).toFixed(2)}
+                </span>
+              </div>
+
+              {/* Delivery Charges */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Charges</span>
+                <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
+                  ₹{Number(fullOrder.delivery_charge || fullOrder.deliveryCharge || 0).toFixed(2)}
+                </span>
+              </div>
+
+              {/* Additional Charges */}
+              {(fullOrder.additional_charges || fullOrder.additionalCharges) ? (
+                <div className="flex items-center">
+                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Additional Charges</span>
+                  <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
+                    ₹{Number(fullOrder.additional_charges || fullOrder.additionalCharges || 0).toFixed(2)}
+                  </span>
+                </div>
+              ) : null}
+
+              {/* Payment Method */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Payment Method</span>
+                <span className="text-[14px] font-bold text-blue-700 dark:text-blue-400 uppercase">
+                  {fullOrder.payment_method || "COD"}
+                </span>
+              </div>
+
+              {/* Payment Status */}
+              <div className="flex items-center">
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Payment Status</span>
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${fullOrder.payment_status?.toLowerCase() === "paid" || fullOrder.payment_status?.toLowerCase() === "completed"
+                    ? "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                    : "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400"
+                  }`}>
+                  {fullOrder.payment_status || "Pending"}
+                </span>
+              </div>
+
+              {/* Total Amount */}
+              <div className="flex items-center border-t border-gray-100 dark:border-gray-700 pt-4">
+                <span className="w-[180px] text-[12px] font-bold text-gray-900 dark:text-white uppercase tracking-wider flex-shrink-0">Total Amount</span>
+                <span className="text-xl font-black text-gray-950 dark:text-white">
+                  ₹{Number(fullOrder.total_value || fullOrder.totalAmount || 0).toFixed(2)}
+                </span>
+              </div>
             </div>
           </div>
         </div>

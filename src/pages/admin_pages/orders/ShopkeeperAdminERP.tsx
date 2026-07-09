@@ -148,10 +148,10 @@ export default function ShopkeeperAdminERP() {
     return (
       <div className="w-full">
         {screen === "dashboard" && <Dashboard onNavigate={navigate} isAdmin={true} />}
-        {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} />}
+        {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} isAdmin={true} />}
         {screen === "all-orders" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} isAdmin={true} />}
-        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} />}
-        {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} />}
+        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} isAdmin={true} />}
+        {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} isAdmin={true} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
         {screen === "barcode-verification" && <BarcodeVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
         {screen === "picking-complete" && <PickingComplete onNavigate={navigate} data={orderData as any} />}

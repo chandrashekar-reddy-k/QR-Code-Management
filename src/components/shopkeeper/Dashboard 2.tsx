@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import api from "../../api/axios";
+import { ViewIconButton } from "../ui";
 
 const adminApi = axios.create({
   baseURL: import.meta.env.VITE_ADMIN_URL || "http://localhost:3001/api/v1",
@@ -714,98 +715,132 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                 View All <ChevronRight size={16} />
               </button>
             </div>
-            <div className="overflow-x-auto rounded-[16px] border border-gray-100">
+                       <div className="overflow-x-auto rounded-[16px] border border-gray-100 dark:border-gray-700">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100" style={{ height: "64px" }}>
-                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Order Number</th>
-                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Customer</th>
-                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Shopkeeper</th>
-                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Status</th>
-                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Amount</th>
-                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Time</th>
+                  <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Order Number</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Customer</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Shopkeeper</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Status</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Amount</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Time</th>
+                    <th className="text-center px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {recentOrders.map((order) => {
                     const statusStyles: Record<string, { color: string; bg: string }> = {
                       new: { color: "#1D4ED8", bg: "#DBEAFE" },
+                      placed: { color: "#1D4ED8", bg: "#DBEAFE" },
+                      pending: { color: "#1D4ED8", bg: "#DBEAFE" },
                       picking: { color: "#7C3AED", bg: "#EDE9FE" },
+                      confirmed: { color: "#7C3AED", bg: "#EDE9FE" },
+                      accepted: { color: "#7C3AED", bg: "#EDE9FE" },
                       packing: { color: "#D97706", bg: "#FEF3C7" },
+                      processing: { color: "#D97706", bg: "#FEF3C7" },
                       ready: { color: "#0F766E", bg: "#CCFBF1" },
+                      ready_for_pickup: { color: "#0F766E", bg: "#CCFBF1" },
                       dispatched: { color: "#15803D", bg: "#DCFCE7" },
+                      out_for_delivery: { color: "#15803D", bg: "#DCFCE7" },
+                      in_transit: { color: "#15803D", bg: "#DCFCE7" },
                       delivered: { color: "#1B5E20", bg: "#C8E6C9" },
+                      completed: { color: "#1B5E20", bg: "#C8E6C9" },
                       cancelled: { color: "#D32F2F", bg: "#FFEBEE" },
+                      rejected: { color: "#D32F2F", bg: "#FFEBEE" },
                     };
-                    const statusColor = statusStyles[order.status?.toLowerCase()]?.color || "#757575";
-                    const statusBg = statusStyles[order.status?.toLowerCase()]?.bg || "#F5F5F5";
+                    const lowerStatus = (order.status || "").toLowerCase();
+                    const statusColor = statusStyles[lowerStatus]?.color || "#757575";
+                    const statusBg = statusStyles[lowerStatus]?.bg || "#F5F5F5";
+
+                    const formatStatusDisplay = (status: string) => {
+                      const statusUpper = (status || "").toUpperCase();
+                      const statusMap: Record<string, string> = {
+                        PENDING: "Pending",
+                        CONFIRMED: "Confirmed",
+                        PROCESSING: "Processing",
+                        READY_FOR_PICKUP: "Ready for Pickup",
+                        OUT_FOR_DELIVERY: "Out for Delivery",
+                        ASSIGNED_TO_AGENT: "Out for Delivery",
+                        PICKED_UP: "Picked Up",
+                        IN_TRANSIT: "In Transit",
+                        DELIVERED: "Delivered",
+                        CANCELLED: "Cancelled",
+                        FAILED: "Failed",
+                        RETURNED: "Returned",
+                        NEW: "Placed",
+                        ACCEPTED: "Accepted",
+                        PICKING: "Picking",
+                        PACKING: "Packing",
+                        READY: "Ready",
+                        DISPATCHED: "Dispatched",
+                        COMPLETED: "Completed",
+                        REJECTED: "Rejected",
+                      };
+                      return statusMap[statusUpper] || status;
+                    };
 
                     // Calculate time text
                     const timeText = (() => {
-                      const statusTimeMap: Record<string, { label: string; fields: string[] }> = {
-                        new: { label: "Placed", fields: ["createdAt", "created_at"] },
-                        accepted: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
-                        confirmed: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
-                        picking: { label: "Picking", fields: ["pickedAt", "picking_started_at", "pickingStartedAt"] },
-                        packing: { label: "Packing", fields: ["packedAt", "picking_started_at", "packingStartedAt"] },
-                        ready: { label: "Ready", fields: ["packedAt", "packing_completed_at", "packingCompletedAt"] },
-                        dispatched: { label: "Dispatched", fields: ["dispatchedAt", "dispatched_at", "deliveredAt", "delivered_at"] },
-                        delivered: { label: "Delivered", fields: ["dispatchedAt", "dispatched_at", "deliveredAt", "delivered_at"] },
-                        cancelled: { label: "Cancelled", fields: ["updatedAt", "updated_at"] },
-                      };
-                      const entry = statusTimeMap[order.status?.toLowerCase()];
-                      const fields = entry ? entry.fields : ["createdAt", "created_at"];
-
-                      let ts = null;
-                      for (const f of fields) {
-                        if (order[f] !== undefined && order[f] !== null) {
-                          ts = order[f];
-                          break;
-                        }
-                      }
-
+                      const ts = getRecentOrderTime(order);
                       if (!ts) return "—";
                       const date = new Date(ts);
                       if (isNaN(date.getTime())) return "—";
-                      return date.toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', hour12: true });
+                      
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const year = date.getFullYear();
+                      
+                      let hours = date.getHours();
+                      const minutes = String(date.getMinutes()).padStart(2, '0');
+                      const ampm = hours >= 12 ? 'PM' : 'AM';
+                      hours = hours % 12;
+                      hours = hours ? hours : 12; // the hour '0' should be '12'
+                      
+                      return `${day}-${month}-${year}, ${hours}:${minutes} ${ampm}`;
                     })();
 
                     return (
                       <tr
                         key={order.id}
-                        onClick={() => onNavigate("order-details", order)}
-                        className="hover:bg-[#F9FAFB] cursor-pointer transition-colors"
-                        style={{ height: "72px" }}
+                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
-                        <td className="px-[24px] py-[16px] whitespace-nowrap text-sm font-semibold text-gray-900">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
                           {order.order_number}
                         </td>
-                        <td className="px-[24px] py-[16px] whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">{order.customer_name || order.user}</div>
-                          <div className="text-xs text-[#9EA3AE]">{order.phone}</div>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
+                          <div className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">{order.customer_name || order.user}</div>
+                          <div className="text-[10px] sm:text-xs text-[#9EA3AE]">{order.phone}</div>
                         </td>
-                        <td className="px-[24px] py-[16px] whitespace-nowrap text-sm text-gray-700">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                           {order.shopkeeper_name ? (
                             order.shopkeeper_name
                           ) : (
-                            <span className="px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#FEF3C7] text-[#D97706]">
+                            <span className="text-gray-400 dark:text-gray-500">
                               Unassigned
                             </span>
                           )}
                         </td>
-                        <td className="px-[24px] py-[16px] whitespace-nowrap">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                           <span
-                            className="px-2.5 py-1 rounded-full text-[12px] font-semibold uppercase tracking-wider inline-flex items-center justify-center"
+                            className="px-2 py-0.5 text-[10px] sm:text-xs rounded-full font-medium inline-flex items-center justify-center uppercase tracking-wider"
                             style={{ backgroundColor: statusBg, color: statusColor }}
                           >
-                            {order.status}
+                            {formatStatusDisplay(order.status)}
                           </span>
                         </td>
-                        <td className="px-[24px] py-[16px] whitespace-nowrap text-sm font-bold text-gray-900">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
                           ₹{order.total_value}
                         </td>
-                        <td className="px-[24px] py-[16px] whitespace-nowrap text-xs text-[#9EA3AE]">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                           {timeText}
+                        </td>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-center">
+                          <ViewIconButton
+                            onClick={() => onNavigate("order-details", order)}
+                            size={14}
+                            className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          />
                         </td>
                       </tr>
                     );

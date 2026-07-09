@@ -1,5 +1,7 @@
-import { useState, useMemo } from "react";
-import { ArrowLeft, Clock, Search, ShoppingBag, X } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { ArrowLeft, ShoppingBag, Filter, RotateCcw, ChevronDown } from "lucide-react";
+import Breadcrumbs from "../common/Breadcrumbs";
+import { SelectInput, SearchInput, ViewIconButton } from "../ui";
 
 interface AllOrdersProps {
   onBack: () => void;
@@ -30,8 +32,6 @@ const getLatestActivityTime = (order: any): number => {
   return latest;
 };
 
-const tabs = ["All", "New", "Picking", "Packing", "Ready", "Dispatched", "Rejected", "Returns"];
-
 const tabMap: Record<string, string> = {
   NEW: "New",
   PICKING: "Picking",
@@ -44,20 +44,35 @@ const tabMap: Record<string, string> = {
 
 import { useSharedOrders } from "./SharedOrdersContext";
 
+import { AllOrders as MobileAllOrders } from "./AllOrdersMobile";
+
 export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }: AllOrdersProps) {
+  if (!isAdmin) {
+    return <MobileAllOrders onBack={onBack} onNavigate={onNavigate} initialStatus={initialStatus} />;
+  }
+
   const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
   const [searchQuery, setSearchQuery] = useState("");
-
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
-  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
-  const [activeTab, setActiveTab] = useState<string>(() => {
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
     if (initialStatus) {
       return tabMap[initialStatus.toUpperCase()] ?? "All";
     }
     return "All";
   });
+  const [deliveryTypeFilter, setDeliveryTypeFilter] = useState("");
+  const [dateRangeType, setDateRangeType] = useState("");
+  const [customDate, setCustomDate] = useState("");
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("All");
+    setDeliveryTypeFilter("");
+    setDateRangeType("");
+    setCustomDate("");
+  };
+
+
 
   const orders = useMemo(() => {
     let allOrders = [...sharedOrders];
@@ -82,16 +97,60 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
   const filteredOrders = useMemo(() => {
     let result = orders;
 
-    if (activeTab !== "All") {
+    if (statusFilter !== "All") {
       result = orders.filter((o: any) => {
         const s = o.status?.toLowerCase();
-        if (activeTab === "New") return s === "new" || s === "placed";
-        if (activeTab === "Picking") return s === "picking" || s === "accepted" || s === "confirmed";
-        if (activeTab === "Packing") return s === "packing" || s === "processing";
-        if (activeTab === "Ready") return s === "ready";
-        if (activeTab === "Dispatched") return s === "dispatched";
-        if (activeTab === "Rejected") return s === "rejected" || s === "cancelled";
-        if (activeTab === "Returns") return s === "return" || s === "returned";
+        if (statusFilter === "Picking") return s === "picking" || s === "accepted" || s === "confirmed";
+        if (statusFilter === "Packing") return s === "packing" || s === "processing";
+        if (statusFilter === "Ready") return s === "ready";
+        if (statusFilter === "Dispatched") return s === "dispatched";
+        if (statusFilter === "Delivered") return s === "delivered" || s === "completed";
+        if (statusFilter === "Cancelled") return s === "cancelled" || s === "rejected";
+        if (statusFilter === "Returned") return s === "return" || s === "returned";
+        return true;
+      });
+    }
+
+    if (deliveryTypeFilter) {
+      result = result.filter((o: any) => {
+        const type = (o.order_type || o.deliveryType || "").toLowerCase();
+        return type === deliveryTypeFilter.toLowerCase();
+      });
+    }
+
+    if (dateRangeType) {
+      result = result.filter((o: any) => {
+        const orderDateStr = o.createdAt || o.created_at;
+        if (!orderDateStr) return false;
+        const orderDate = new Date(orderDateStr);
+        const orderDateStart = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate()).getTime();
+        
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        
+        if (dateRangeType === "today") {
+          return orderDateStart === todayStart;
+        } else if (dateRangeType === "yesterday") {
+          const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
+          return orderDateStart === yesterdayStart;
+        } else if (dateRangeType === "last7") {
+          const sevenDaysAgoStart = todayStart - 7 * 24 * 60 * 60 * 1000;
+          return orderDateStart >= sevenDaysAgoStart && orderDateStart <= todayStart;
+        } else if (dateRangeType === "week") {
+          const dayOfWeek = now.getDay();
+          const weekStart = todayStart - dayOfWeek * 24 * 60 * 60 * 1000;
+          return orderDateStart >= weekStart;
+        } else if (dateRangeType === "month") {
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+          return orderDateStart >= monthStart;
+        } else if (dateRangeType === "custom") {
+          if (customDate) {
+            const selectedCustomStart = new Date(customDate);
+            const customStartTime = new Date(selectedCustomStart.getFullYear(), selectedCustomStart.getMonth(), selectedCustomStart.getDate()).getTime();
+            return orderDateStart === customStartTime;
+          }
+          return false;
+        }
         return true;
       });
     }
@@ -101,161 +160,310 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
       result = result.filter((o: any) => {
         const orderNum = String(o.order_number || o.orderNumber || "").toLowerCase();
         const orderId = String(o.id || "").toLowerCase();
-        return orderNum.includes(q) || orderId.includes(q);
+        const custName = String(o.customer_name || o.user || "").toLowerCase();
+        const phone = String(o.customer_phone || o.phone || "").toLowerCase();
+        return orderNum.includes(q) || orderId.includes(q) || custName.includes(q) || phone.includes(q);
       });
     }
 
     return [...result].sort((a, b) => getLatestActivityTime(b) - getLatestActivityTime(a));
-  }, [orders, activeTab, searchQuery]);
+  }, [orders, statusFilter, deliveryTypeFilter, dateRangeType, customDate, searchQuery]);
 
-  const statusStyles: Record<string, { color: string; bg: string }> = {
-    new: { color: "#1565C0", bg: "#E3F2FD" },
-    picking: { color: "#6A1B9A", bg: "#F3E5F5" },
-    packing: { color: "#E65100", bg: "#FFF3E0" },
-    ready: { color: "#14B8A6", bg: "#E8F5E9" },
-    dispatched: { color: "#2E7D32", bg: "#E0F2F1" },
-    delivered: { color: "#1B5E20", bg: "#C8E6C9" },
-    cancelled: { color: "#D32F2F", bg: "#FFEBEE" },
-    rejected: { color: "#D32F2F", bg: "#FFEBEE" },
+  const getStatusChipStyles = (status: string) => {
+    const s = (status || "").toLowerCase();
+    const styleMap: Record<string, { bg: string; text: string }> = {
+      new: { bg: "#E3F2FD", text: "#1D4ED8" },
+      placed: { bg: "#E3F2FD", text: "#1D4ED8" },
+      pending: { bg: "#F3E5F5", text: "#7C3AED" },
+      picking: { bg: "#FFF3E0", text: "#D97706" },
+      accepted: { bg: "#FFF3E0", text: "#D97706" },
+      confirmed: { bg: "#FFF3E0", text: "#D97706" },
+      packing: { bg: "#E0F2F1", text: "#0F766E" },
+      processing: { bg: "#E0F2F1", text: "#0F766E" },
+      ready: { bg: "#E8F5E9", text: "#15803D" },
+      dispatched: { bg: "#E8F5E9", text: "#1B5E20" },
+      delivered: { bg: "#C8E6C9", text: "#1B5E20" },
+      cancelled: { bg: "#FFEBEE", text: "#D32F2F" },
+      rejected: { bg: "#FFEBEE", text: "#D32F2F" },
+      returns: { bg: "#FFEBEE", text: "#D32F2F" },
+      returned: { bg: "#FFEBEE", text: "#D32F2F" },
+    };
+    return styleMap[s] || { bg: "#F5F5F5", text: "#757575" };
+  };
+
+  const getDisplayStatus = (status: string) => {
+    const statusUpper = (status || "").toUpperCase();
+    const statusMap: Record<string, string> = {
+      PENDING: "Pending",
+      CONFIRMED: "Confirmed",
+      PROCESSING: "Processing",
+      READY_FOR_PICKUP: "Ready for Pickup",
+      OUT_FOR_DELIVERY: "Out for Delivery",
+      ASSIGNED_TO_AGENT: "Out for Delivery",
+      PICKED_UP: "Picked Up",
+      IN_TRANSIT: "In Transit",
+      DELIVERED: "Delivered",
+      CANCELLED: "Cancelled",
+      FAILED: "Failed",
+      RETURNED: "Returned",
+      NEW: "Placed",
+      ACCEPTED: "Accepted",
+      PICKING: "Picking",
+      PACKING: "Packing",
+      READY: "Ready",
+      DISPATCHED: "Dispatched",
+      COMPLETED: "Completed",
+      REJECTED: "Rejected",
+    };
+    return statusMap[statusUpper] || status;
+  };
+
+  const formatOrderDateTime = (order: any): string => {
+    const ts = getLatestActivityTime(order);
+    if (!ts) return "—";
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return "—";
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    
+    return `${day}-${month}-${year}, ${hours}:${minutes} ${ampm}`;
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA] pb-10">
-      {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-6 flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
-        >
-          <ArrowLeft size={20} color="white" />
-        </button>
-        <div>
-          <h1 className="text-white text-xl font-bold">Order History</h1>
-          <p className="text-white/80 text-xs">{filteredOrders.length} orders total</p>
-        </div>
+    <div className="min-h-screen bg-[#F3F4F6] p-[32px] pb-10">
+      {/* Breadcrumbs */}
+      <div className="mb-6">
+        <Breadcrumbs />
       </div>
 
-      {/* Search Bar */}
-      <div className="px-4 mt-4">
-        <div className="relative">
-          <Search className="absolute left-3.5 top-3.5 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search by Order ID / Number..."
+      {/* Page Header */}
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-[32px] font-bold text-[#111827] leading-none mb-2">Order History</h1>
+          <p className="text-[14px] text-[#9EA3AE]">View and track all processed orders</p>
+        </div>
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+          <ArrowLeft size={16} /> Back to Dashboard
+        </button>
+      </div>
+
+      {/* Filters + Search */}
+      <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-stretch divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full sm:w-auto overflow-x-auto">
+          {/* Filter icon */}
+          <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
+            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+          </div>
+
+          {/* Status Filter */}
+          <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex-shrink-0">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+              <SelectInput
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={[
+                  { value: "All", label: "Status" },
+                  { value: "Picking", label: "Picking" },
+                  { value: "Packing", label: "Packing" },
+                  { value: "Ready", label: "Ready" },
+                  { value: "Dispatched", label: "Dispatched" },
+                  { value: "Delivered", label: "Delivered" },
+                  { value: "Cancelled", label: "Cancelled" },
+                  { value: "Returned", label: "Returned" },
+                ]}
+              />
+            </div>
+            <ChevronDown
+              size={16}
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+            />
+          </div>
+
+          {/* Delivery Type Dropdown */}
+          <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+              <SelectInput
+                value={deliveryTypeFilter}
+                onChange={(e) => setDeliveryTypeFilter(e.target.value)}
+                options={[
+                  { value: "", label: "Delivery Type" },
+                  { value: "Quick Commerce", label: "Quick Commerce" },
+                  { value: "E-Commerce", label: "E-Commerce" },
+                  { value: "WhatsApp", label: "WhatsApp" },
+                  { value: "Call Center", label: "Call Center" },
+                ]}
+              />
+            </div>
+            <ChevronDown
+              size={16}
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+            />
+          </div>
+
+          {/* Date Filter */}
+          <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex-shrink-0">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+              <SelectInput
+                value={dateRangeType}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDateRangeType(val);
+                  if (val === "custom") {
+                    setTimeout(() => {
+                      try {
+                        dateInputRef.current?.showPicker();
+                      } catch (err) {
+                        dateInputRef.current?.focus();
+                        dateInputRef.current?.click();
+                      }
+                    }, 50);
+                  } else {
+                    setCustomDate("");
+                  }
+                }}
+                options={[
+                  { value: "", label: "Date" },
+                  { value: "today", label: "Today" },
+                  { value: "yesterday", label: "Yesterday" },
+                  { value: "last7", label: "Last 7 Days" },
+                  { value: "week", label: "This Week" },
+                  { value: "month", label: "This Month" },
+                  { value: "custom", label: customDate ? new Date(customDate).toLocaleDateString('en-GB').replace(/\//g, '-') : "Custom Range" },
+                ]}
+              />
+            </div>
+            <ChevronDown
+              size={16}
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+            />
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={customDate}
+              onChange={(e) => setCustomDate(e.target.value)}
+              className="absolute inset-0 opacity-0 pointer-events-none w-full h-full"
+            />
+          </div>
+
+          {/* Reset button */}
+          <div className="px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0 flex items-center !border-l-0">
+            <div className="hidden sm:block h-6 w-[1px] bg-gray-300 dark:bg-gray-600 mr-4"></div>
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center gap-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap hover:opacity-80 text-orange-600 dark:text-orange-400 w-full sm:w-auto justify-center"
+            >
+              <RotateCcw
+                size={14}
+                className="sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400"
+              />
+              <span>Reset Filter</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Search beside filters */}
+        <div className="w-full lg:w-auto lg:min-w-[200px] lg:flex-shrink-0">
+          <SearchInput
+            placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-3 rounded-2xl border border-gray-100 shadow-sm focus:outline-none focus:border-green-500 bg-white text-sm"
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3.5 top-3.5 text-gray-400 hover:text-gray-600"
-            >
-              <X size={18} />
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="px-4 mt-4 overflow-x-auto scrollbar-none flex gap-2 pb-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
-              activeTab === tab
-                ? "bg-[#00891D] border-[#00891D] text-white shadow-sm"
-                : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Orders List */}
-      <div className="px-4 mt-4 flex flex-col gap-3">
+      {/* Orders Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-[16px] overflow-hidden" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
         {sharedLoading && filteredOrders.length === 0 ? (
-          <div className="py-10 text-center text-gray-500 text-sm">Loading orders...</div>
+          <div className="py-20 text-center text-gray-500 text-sm">Loading orders...</div>
         ) : filteredOrders.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-sm border border-gray-100 text-center">
-            <ShoppingBag size={48} className="text-gray-300" />
-            <p className="text-gray-700 font-semibold text-sm">No orders found</p>
-            <p className="text-gray-400 text-xs">Try adjusting your filters or search query.</p>
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+              <ShoppingBag size={32} className="text-gray-400" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800 mb-1">No order history available</h3>
+            <p className="text-sm text-gray-500">Processed orders will appear here once orders move through the workflow.</p>
           </div>
         ) : (
-          filteredOrders.map((order) => {
-            const statusColor = statusStyles[order.status?.toLowerCase()]?.color || "#757575";
-            const statusBg = statusStyles[order.status?.toLowerCase()]?.bg || "#F5F5F5";
-
-            return (
-              <div
-                key={order.id}
-                onClick={() => onNavigate && onNavigate("order-details", order)}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-left flex items-start gap-3 cursor-pointer hover:border-green-300 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: statusBg }}>
-                  <ShoppingBag size={18} color={statusColor} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-800 font-bold text-sm">{order.order_number || order.orderNumber}</span>
-                    <span className="rounded-full px-2 py-0.5 uppercase text-[10px] font-bold" style={{ backgroundColor: statusBg, color: statusColor }}>
-                      {order.status}
-                    </span>
-                  </div>
-                  {shouldShowShopkeeper && (
-                    <div className="mt-0.5">
-                      <span className="text-gray-400 text-xs">Shopkeeper: </span>
-                      <span className={order.shopkeeper_name ? "text-gray-600 text-xs font-medium" : "text-gray-400 text-xs"}>
-                        {order.shopkeeper_name || "Unassigned"}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between mt-1 text-xs">
-                    <span className="text-gray-500">{order.order_type || "Home Delivery"} · ₹{order.total_value || order.totalAmount}</span>
-                    <span className="text-gray-400">
-                      {(() => {
-                        const statusTimeMap: Record<string, { label: string; fields: string[] }> = {
-                          new: { label: "Placed", fields: ["createdAt", "created_at"] },
-                          accepted: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
-                          confirmed: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
-                          picking: { label: "Picking", fields: ["pickedAt", "picking_started_at", "pickingStartedAt"] },
-                          packing: { label: "Packing", fields: ["packedAt", "packing_started_at", "packingStartedAt"] },
-                          ready: { label: "Ready", fields: ["packedAt", "packing_completed_at", "packingCompletedAt"] },
-                          dispatched: { label: "Dispatched", fields: ["dispatchedAt", "dispatched_at", "deliveredAt", "delivered_at"] },
-                          delivered: { label: "Delivered", fields: ["dispatchedAt", "dispatched_at", "deliveredAt", "delivered_at"] },
-                          cancelled: { label: "Cancelled", fields: ["updatedAt", "updated_at"] },
-                          rejected: { label: "Rejected", fields: ["updatedAt", "updated_at"] },
-                        };
-                        const entry = statusTimeMap[order.status?.toLowerCase()];
-                        const fields = entry ? entry.fields : ["createdAt", "created_at"];
-                        const label = entry?.label ?? "Placed";
-
-                        let ts = null;
-                        for (const f of fields) {
-                          if (order[f] !== undefined && order[f] !== null) {
-                            ts = order[f];
-                            break;
-                          }
-                        }
-
-                        if (!ts) return `${label}: —`;
-                        const date = new Date(ts);
-                        if (isNaN(date.getTime())) return `${label}: —`;
-                        return `${label}: ${date.toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', hour12: true })}`;
-                      })()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-1.5">
-                    <Clock size={10} className="text-gray-400" />
-                    <span className="text-gray-400 text-[10px]">SLA: {order.sla_minutes || 30} min</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ height: "64px" }}>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Order ID</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Customer</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Delivery Type</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Amount</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Shopkeeper</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Status</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Completed At</th>
+                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredOrders.map((order) => {
+                  const chipStyle = getStatusChipStyles(order.status);
+                  const displayStatus = getDisplayStatus(order.status);
+                  return (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-[#F9FAFB] dark:hover:bg-gray-750 transition-colors"
+                      style={{ height: "72px" }}
+                    >
+                      <td className="px-[24px] py-[16px] text-[14px] font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                        {order.order_number || order.orderNumber}
+                      </td>
+                      <td className="px-[24px] py-[16px] text-[14px] text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                        <div className="font-bold text-gray-900 dark:text-gray-100">
+                          {order.customer_name || order.user || "—"}
+                        </div>
+                        <div className="text-[12px] text-gray-500 font-medium">
+                          {order.customer_phone || order.phone || "—"}
+                        </div>
+                      </td>
+                      <td className="px-[24px] py-[16px] text-[14px] text-gray-600 dark:text-gray-400 whitespace-nowrap font-medium">
+                        {order.order_type || order.deliveryType || "Home Delivery"}
+                      </td>
+                      <td className="px-[24px] py-[16px] text-[14px] text-gray-900 dark:text-gray-100 whitespace-nowrap font-bold">
+                        ₹{order.total_price || order.total_value || order.totalAmount || 0}
+                      </td>
+                      <td className="px-[24px] py-[16px] text-[14px] whitespace-nowrap">
+                        {order.shopkeeper_name ? (
+                          <span className="text-gray-700 dark:text-gray-300 font-semibold">{order.shopkeeper_name}</span>
+                        ) : (
+                          <span className="text-gray-400">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="px-[24px] py-[16px] text-[14px] whitespace-nowrap">
+                        <span
+                          className="px-[10px] py-[4px] text-[12px] font-bold rounded-full inline-block text-center"
+                          style={{ backgroundColor: chipStyle.bg, color: chipStyle.text }}
+                        >
+                          {displayStatus}
+                        </span>
+                      </td>
+                      <td className="px-[24px] py-[16px] text-[14px] text-gray-600 dark:text-gray-400 whitespace-nowrap font-medium">
+                        {formatOrderDateTime(order)}
+                      </td>
+                      <td className="px-[24px] py-[16px] text-[14px] whitespace-nowrap">
+                        <div className="flex justify-center">
+                          <ViewIconButton
+                            onClick={() => onNavigate && onNavigate("order-details", order)}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
