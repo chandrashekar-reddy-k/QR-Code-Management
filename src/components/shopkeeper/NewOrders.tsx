@@ -1,10 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, CheckCircle, Loader2, Filter, RotateCcw, ChevronDown, X, UserPlus } from "lucide-react";
+import { useState, useRef } from "react";
+import { ArrowLeft, CheckCircle, Loader2, Filter, RotateCcw, ChevronDown } from "lucide-react";
 import { useSharedOrders } from "./SharedOrdersContext";
 import Breadcrumbs from "../common/Breadcrumbs";
 import { ViewIconButton, SelectInput, SearchInput } from "../ui";
-import api from "../../api/axios";
-import toast from "react-hot-toast";
 
 import { NewOrders as MobileNewOrders } from "./NewOrdersMobile";
 
@@ -85,17 +83,17 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
     if (statusFilter && order.status?.toLowerCase() !== statusFilter.toLowerCase()) {
       return false;
     }
-    
+
     // Date filter logic
     if (dateRangeType) {
       const orderDateStr = order.createdAt || order.created_at;
       if (!orderDateStr) return false;
       const orderDate = new Date(orderDateStr);
       const orderDateStart = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate()).getTime();
-      
+
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      
+
       if (dateRangeType === "today") {
         if (orderDateStart !== todayStart) return false;
       } else if (dateRangeType === "yesterday") {
@@ -154,73 +152,20 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
     if (!placedTimeStr) return "—";
     const date = new Date(placedTimeStr);
     if (isNaN(date.getTime())) return "—";
-    
+
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    
+
     let hours = date.getHours();
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12;
     hours = hours ? hours : 12;
-    
+
     return `${day}-${month}-${year}, ${hours}:${minutes} ${ampm}`;
   };
 
-  const statusStyles: Record<string, { color: string; bg: string }> = {
-    new: { color: "#1D4ED8", bg: "#DBEAFE" },
-    placed: { color: "#1D4ED8", bg: "#DBEAFE" },
-    pending: { color: "#1D4ED8", bg: "#DBEAFE" },
-    picking: { color: "#7C3AED", bg: "#EDE9FE" },
-    confirmed: { color: "#7C3AED", bg: "#EDE9FE" },
-    accepted: { color: "#7C3AED", bg: "#EDE9FE" },
-    packing: { color: "#D97706", bg: "#FEF3C7" },
-    processing: { color: "#D97706", bg: "#FEF3C7" },
-    ready: { color: "#0F766E", bg: "#CCFBF1" },
-    ready_for_pickup: { color: "#0F766E", bg: "#CCFBF1" },
-    dispatched: { color: "#15803D", bg: "#DCFCE7" },
-    out_for_delivery: { color: "#15803D", bg: "#DCFCE7" },
-    in_transit: { color: "#15803D", bg: "#DCFCE7" },
-    delivered: { color: "#1B5E20", bg: "#C8E6C9" },
-    completed: { color: "#1B5E20", bg: "#C8E6C9" },
-    cancelled: { color: "#D32F2F", bg: "#FFEBEE" },
-    rejected: { color: "#D32F2F", bg: "#FFEBEE" },
-  };
-
-  const getStatusStyle = (status: string) => {
-    const s = (status || "").toLowerCase();
-    const color = statusStyles[s]?.color || "#757575";
-    const bg = statusStyles[s]?.bg || "#F5F5F5";
-    return { color, backgroundColor: bg };
-  };
-
-  const formatStatusDisplay = (status: string) => {
-    const statusUpper = (status || "").toUpperCase();
-    const statusMap: Record<string, string> = {
-      PENDING: "Pending",
-      CONFIRMED: "Confirmed",
-      PROCESSING: "Processing",
-      READY_FOR_PICKUP: "Ready for Pickup",
-      OUT_FOR_DELIVERY: "Out for Delivery",
-      ASSIGNED_TO_AGENT: "Out for Delivery",
-      PICKED_UP: "Picked Up",
-      IN_TRANSIT: "In Transit",
-      DELIVERED: "Delivered",
-      CANCELLED: "Cancelled",
-      FAILED: "Failed",
-      RETURNED: "Returned",
-      NEW: "Placed",
-      ACCEPTED: "Accepted",
-      PICKING: "Picking",
-      PACKING: "Packing",
-      READY: "Ready",
-      DISPATCHED: "Dispatched",
-      COMPLETED: "Completed",
-      REJECTED: "Rejected",
-    };
-    return statusMap[statusUpper] || status;
-  };
 
   if (sharedLoading && orders.length === 0) {
     return (

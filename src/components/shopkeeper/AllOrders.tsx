@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { ArrowLeft, ShoppingBag, Filter, RotateCcw, ChevronDown } from "lucide-react";
 import Breadcrumbs from "../common/Breadcrumbs";
-import { SelectInput, SearchInput, ViewIconButton } from "../ui";
+import { SelectInput, SearchInput, ViewIconButton, Pagination } from "../ui";
 
 interface AllOrdersProps {
   onBack: () => void;
@@ -64,12 +64,16 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
   const [customDate, setCustomDate] = useState("");
   const dateInputRef = useRef<HTMLInputElement>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const handleResetFilters = () => {
     setSearchQuery("");
     setStatusFilter("All");
     setDeliveryTypeFilter("");
     setDateRangeType("");
     setCustomDate("");
+    setCurrentPage(1);
   };
 
 
@@ -83,7 +87,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
     } else if (storedU) {
       try {
         const u = JSON.parse(storedU);
-        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id || "";
+        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
       } catch (e) {}
     }
 
@@ -199,6 +203,27 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
 
     return [...result].sort((a, b) => getLatestActivityTime(b) - getLatestActivityTime(a));
   }, [orders, statusFilter, deliveryTypeFilter, dateRangeType, customDate, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, deliveryTypeFilter, dateRangeType, customDate]);
+
+  // Pagination logic
+  const totalItems = filteredOrders.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredOrders.slice(start, start + rowsPerPage);
+  }, [filteredOrders, currentPage, rowsPerPage]);
+
+  const paginationObj = {
+    page: currentPage,
+    limit: rowsPerPage,
+    total: totalItems,
+    totalPages,
+    hasNext: currentPage < totalPages,
+    hasPrev: currentPage > 1,
+  };
 
   const getStatusChipStyles = (status: string) => {
     const s = (status || "").toLowerCase();
@@ -433,7 +458,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredOrders.map((order) => {
+                {paginatedOrders.map((order) => {
                   const chipStyle = getStatusChipStyles(order.status);
                   const displayStatus = getDisplayStatus(order.status);
                   return (
@@ -489,6 +514,36 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                 })}
               </tbody>
             </table>
+            
+            {/* Pagination Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-800">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span>Rows per page:</span>
+                <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-semibold">
+                  <select
+                    value={rowsPerPage.toString()}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="w-16 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+                <span className="ml-2 font-medium">
+                  Showing {totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, totalItems)} of {totalItems}
+                </span>
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                pagination={paginationObj}
+                onPageChange={setCurrentPage}
+              />
+            </div>
           </div>
         )}
       </div>

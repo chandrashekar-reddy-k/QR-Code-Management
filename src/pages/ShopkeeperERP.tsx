@@ -235,7 +235,7 @@ export default function ShopkeeperERP() {
       } else if (storedU) {
         try {
           const u = JSON.parse(storedU);
-          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id || "";
+          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
         } catch (e) {}
       }
 

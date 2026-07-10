@@ -13,9 +13,6 @@ interface PackingQueueProps {
 export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
   const { orders: sharedOrders, refreshOrders } = useSharedOrders();
 
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
 
   const packingOrders = useMemo(() => {
     const orders = sharedOrders.filter((o: any) => {

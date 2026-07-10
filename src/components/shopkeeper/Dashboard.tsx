@@ -58,43 +58,7 @@ const isSLABreached = (order: any): boolean => {
   return elapsed > (order.sla_minutes ?? 30);
 };
 
-const getRecentOrderTime = (order: any): number => {
-  const fields = [
-    order.dispatched_at,
-    order.dispatchedAt,
-    order.packing_completed_at,
-    order.packingCompletedAt,
-    order.packing_started_at,
-    order.packingStartedAt,
-    order.picking_started_at,
-    order.pickingStartedAt,
-    order.pickedAt,
-    order.acceptedByShopkeeperAt,
-    order.shopkeeperAcceptedAt,
-    order.confirmedAt,
-    order.acceptedAt,
-    order.accepted_at,
-    order.confirmed_at,
-    order.deliveredAt,
-    order.delivered_at,
-    order.cancelledAt,
-    order.cancelled_at,
-    order.updated_at,
-    order.updatedAt,
-    order.created_at,
-    order.createdAt
-  ];
-  let latest = 0;
-  for (const val of fields) {
-    if (val) {
-      const ms = new Date(val).getTime();
-      if (!isNaN(ms) && ms > latest) {
-        latest = ms;
-      }
-    }
-  }
-  return latest;
-};
+
 
 const getPlacementTime = (order: any): number => {
   const val = order.createdAt || order.created_at || order.placedAt || order.placed_at;

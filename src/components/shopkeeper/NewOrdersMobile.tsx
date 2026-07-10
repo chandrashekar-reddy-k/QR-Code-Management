@@ -38,7 +38,18 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedShopkeeper, setSelectedShopkeeper] = useState<{ id: number; assignedAt: string; timeoutMinutes: number } | null>(null);
-  
+
+  // User & role info for staff UI filtering
+  const storedU = localStorage.getItem("user");
+  let userRole: string | null = null;
+  if (storedU) {
+    try {
+      const u = JSON.parse(storedU);
+      userRole = u.role;
+    } catch (e) {}
+  }
+  const isStaff = userRole && !["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole.toUpperCase());
+
   // Real-time integration using storeId 1 as per dummy data
   const socket = useSocket(1);
 
@@ -146,7 +157,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
         ) : (
           orders.map((order) => {
             const config = getTypeConfig(order.order_type);
-            
+
             return (
               <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 {/* Priority Banner */}
@@ -197,25 +208,27 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
                     <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.customer_address || "No address provided"}</span>
                   </div>
 
-                  {/* Assignment Info */}
-                  <button 
-                    onClick={() => {
-                      if (order.assigned_shopkeeper_id) {
-                        setSelectedShopkeeper({
-                          id: order.assigned_shopkeeper_id,
-                          assignedAt: order.allocation_started_at,
-                          timeoutMinutes: order.allocation_timeout_minutes
-                        });
-                      }
-                    }}
-                    disabled={!order.assigned_shopkeeper_id}
-                    className="flex items-start gap-2 mb-3 bg-blue-50 p-2.5 rounded-xl border border-blue-100 w-full text-left transition-colors hover:bg-blue-100"
-                  >
-                    <User size={14} color="#1976D2" className="mt-0.5 flex-shrink-0" />
-                    <span className="text-blue-800" style={{ fontSize: "12px", fontWeight: 600 }}>
-                      Assigned to: {order.shopkeeper_name || "Unassigned"}
-                    </span>
-                  </button>
+                  {/* Assignment Info - Hidden for Staff */}
+                  {!isStaff && (
+                    <button
+                      onClick={() => {
+                        if (order.assigned_shopkeeper_id) {
+                          setSelectedShopkeeper({
+                            id: order.assigned_shopkeeper_id,
+                            assignedAt: order.allocation_started_at,
+                            timeoutMinutes: order.allocation_timeout_minutes
+                          });
+                        }
+                      }}
+                      disabled={!order.assigned_shopkeeper_id}
+                      className="flex items-start gap-2 mb-3 bg-blue-50 p-2.5 rounded-xl border border-blue-100 w-full text-left transition-colors hover:bg-blue-100"
+                    >
+                      <User size={14} color="#1976D2" className="mt-0.5 flex-shrink-0" />
+                      <span className="text-blue-800" style={{ fontSize: "12px", fontWeight: 600 }}>
+                        Assigned to: {order.shopkeeper_name || "Unassigned"}
+                      </span>
+                    </button>
+                  )}
 
                   {/* View Details */}
                   <button
@@ -252,11 +265,11 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
       </div>
 
       {selectedShopkeeper && (
-        <ShopkeeperModal 
-          shopkeeperId={selectedShopkeeper.id} 
+        <ShopkeeperModal
+          shopkeeperId={selectedShopkeeper.id}
           assignedAt={selectedShopkeeper.assignedAt}
           timeLeft={Math.floor(Math.max(0, new Date(selectedShopkeeper.assignedAt).getTime() + (selectedShopkeeper.timeoutMinutes || 5) * 60 * 1000 - new Date().getTime()) / 1000)}
-          onClose={() => setSelectedShopkeeper(null)} 
+          onClose={() => setSelectedShopkeeper(null)}
         />
       )}
     </div>
