@@ -116,7 +116,15 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
     }
 
     if (deliveryTypeFilter) {
-      result = result.filter(o => o.order_type === deliveryTypeFilter);
+      result = result.filter(o => {
+        const type = (o.order_type || o.deliveryType || "").toLowerCase();
+        if (deliveryTypeFilter.toLowerCase() === "home delivery") {
+          return type.includes("home") || type.includes("quick") || type.includes("e-commerce") || type.includes("whatsapp") || type.includes("call");
+        } else if (deliveryTypeFilter.toLowerCase() === "self pickup") {
+          return type.includes("pickup") || type.includes("self") || type.includes("store");
+        }
+        return type === deliveryTypeFilter.toLowerCase();
+      });
     }
 
     if (pickingStatusFilter !== "All") {
@@ -397,11 +405,9 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
                 options={[
-                  { value: "", label: "Delivery Type" },
-                  { value: "Quick Commerce", label: "Quick Commerce" },
-                  { value: "E-Commerce", label: "E-Commerce" },
-                  { value: "WhatsApp", label: "WhatsApp" },
-                  { value: "Call Center", label: "Call Center" },
+                  { value: "", label: "Delivery Type: All" },
+                  { value: "Home Delivery", label: "Home Delivery" },
+                  { value: "Self Pickup", label: "Self Pickup" },
                 ]}
               />
             </div>

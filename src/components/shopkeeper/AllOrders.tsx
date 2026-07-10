@@ -75,7 +75,33 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
 
 
   const orders = useMemo(() => {
+    const cachedWh = localStorage.getItem("warehouseId");
+    const storedU = localStorage.getItem("user");
+    let userWarehouseId = "";
+    if (cachedWh && cachedWh !== "undefined") {
+      userWarehouseId = cachedWh;
+    } else if (storedU) {
+      try {
+        const u = JSON.parse(storedU);
+        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id || "";
+      } catch (e) {}
+    }
+
     let allOrders = [...sharedOrders];
+
+    // Filter to valid orders: must have a warehouse and must match user's warehouseId if set
+    allOrders = allOrders.filter((o: any) => {
+      const oWh = o.warehouseId || o.warehouse_id;
+      if (!oWh) return false;
+      if (userWarehouseId && oWh !== userWarehouseId) return false;
+      return true;
+    });
+
+    // Filter to completed/finalized operational records only (including dispatched)
+    allOrders = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return ['delivered', 'completed', 'cancelled', 'rejected', 'return', 'returned', 'dispatched'].includes(s);
+    });
 
     // Staff view client-side shopkeeper filter
     if (!isAdmin) {
@@ -114,6 +140,11 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
     if (deliveryTypeFilter) {
       result = result.filter((o: any) => {
         const type = (o.order_type || o.deliveryType || "").toLowerCase();
+        if (deliveryTypeFilter.toLowerCase() === "home delivery") {
+          return type.includes("home") || type.includes("quick") || type.includes("e-commerce") || type.includes("whatsapp") || type.includes("call");
+        } else if (deliveryTypeFilter.toLowerCase() === "self pickup") {
+          return type.includes("pickup") || type.includes("self") || type.includes("store");
+        }
         return type === deliveryTypeFilter.toLowerCase();
       });
     }
@@ -271,9 +302,6 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                 onChange={(e) => setStatusFilter(e.target.value)}
                 options={[
                   { value: "All", label: "Status" },
-                  { value: "Picking", label: "Picking" },
-                  { value: "Packing", label: "Packing" },
-                  { value: "Ready", label: "Ready" },
                   { value: "Dispatched", label: "Dispatched" },
                   { value: "Delivered", label: "Delivered" },
                   { value: "Cancelled", label: "Cancelled" },
@@ -294,11 +322,9 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
                 options={[
-                  { value: "", label: "Delivery Type" },
-                  { value: "Quick Commerce", label: "Quick Commerce" },
-                  { value: "E-Commerce", label: "E-Commerce" },
-                  { value: "WhatsApp", label: "WhatsApp" },
-                  { value: "Call Center", label: "Call Center" },
+                  { value: "", label: "Delivery Type: All" },
+                  { value: "Home Delivery", label: "Home Delivery" },
+                  { value: "Self Pickup", label: "Self Pickup" },
                 ]}
               />
             </div>

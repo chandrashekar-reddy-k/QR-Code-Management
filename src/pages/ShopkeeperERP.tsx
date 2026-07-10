@@ -227,19 +227,48 @@ export default function ShopkeeperERP() {
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get('/orders');
-      const resData = res.data;
-      let allOrders: any[] = [];
-      if (Array.isArray(resData)) {
-        allOrders = resData;
-      } else if (resData && Array.isArray(resData.data)) {
-        allOrders = resData.data;
-      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
-        allOrders = resData.data.orders;
-      } else if (resData && Array.isArray(resData.orders)) {
-        allOrders = resData.orders;
+      const cachedWh = localStorage.getItem("warehouseId");
+      const storedU = localStorage.getItem("user");
+      let userWarehouseId = "";
+      if (cachedWh && cachedWh !== "undefined") {
+        userWarehouseId = cachedWh;
+      } else if (storedU) {
+        try {
+          const u = JSON.parse(storedU);
+          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id || "";
+        } catch (e) {}
       }
-      setOrders(allOrders);
+
+      const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}` : '/orders';
+      const res = await api.get(endpoint);
+      const resData = res.data;
+      let rawOrders: any[] = [];
+      if (Array.isArray(resData)) {
+        rawOrders = resData;
+      } else if (resData && Array.isArray(resData.data)) {
+        rawOrders = resData.data;
+      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
+        rawOrders = resData.data.orders;
+      } else if (resData && Array.isArray(resData.orders)) {
+        rawOrders = resData.orders;
+      }
+
+      // Deduplicate and filter out any orders with missing or mismatching warehouseId
+      const seenIds = new Set();
+      const filteredOrders = [];
+      for (const o of rawOrders) {
+        const id = o.id || o.order_number;
+        if (id && !seenIds.has(id)) {
+          const oWh = o.warehouseId || o.warehouse_id;
+          if (!oWh) continue; // Exclude orders with no warehouse (like test orders)
+          if (userWarehouseId && oWh !== userWarehouseId) continue; // Exclude mismatching warehouses
+
+          seenIds.add(id);
+          filteredOrders.push(o);
+        }
+      }
+
+      setOrders(filteredOrders);
       setLoading(false);
     } catch (err) {
       console.error("Failed to fetch orders in parent:", err);

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { ArrowLeft, Clock, Search, ShoppingBag, X } from "lucide-react";
 
 interface AllOrdersProps {
@@ -60,7 +60,27 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
   });
 
   const orders = useMemo(() => {
+    const cachedWh = localStorage.getItem("warehouseId");
+    const storedU = localStorage.getItem("user");
+    let userWarehouseId = "";
+    if (cachedWh && cachedWh !== "undefined") {
+      userWarehouseId = cachedWh;
+    } else if (storedU) {
+      try {
+        const u = JSON.parse(storedU);
+        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id || "";
+      } catch (e) {}
+    }
+
     let allOrders = [...sharedOrders];
+
+    // Filter to valid orders: must have a warehouse and must match user's warehouseId if set
+    allOrders = allOrders.filter((o: any) => {
+      const oWh = o.warehouseId || o.warehouse_id;
+      if (!oWh) return false;
+      if (userWarehouseId && oWh !== userWarehouseId) return false;
+      return true;
+    });
 
     // Staff view client-side shopkeeper filter
     if (!isAdmin) {

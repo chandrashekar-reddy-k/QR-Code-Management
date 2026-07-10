@@ -1,8 +1,10 @@
-import { useState, useRef } from "react";
-import { ArrowLeft, CheckCircle, Loader2, Filter, RotateCcw, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ArrowLeft, CheckCircle, Loader2, Filter, RotateCcw, ChevronDown, X, UserPlus } from "lucide-react";
 import { useSharedOrders } from "./SharedOrdersContext";
 import Breadcrumbs from "../common/Breadcrumbs";
 import { ViewIconButton, SelectInput, SearchInput } from "../ui";
+import api from "../../api/axios";
+import toast from "react-hot-toast";
 
 import { NewOrders as MobileNewOrders } from "./NewOrdersMobile";
 
@@ -56,7 +58,7 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
   }
 
   const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
-  
+
   // State for filters
   const [statusFilter, setStatusFilter] = useState("");
   const [dateRangeType, setDateRangeType] = useState("today");
@@ -120,8 +122,19 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
       }
     }
 
-    if (deliveryTypeFilter && order.order_type?.toLowerCase() !== deliveryTypeFilter.toLowerCase()) {
-      return false;
+    if (deliveryTypeFilter) {
+      const type = (order.order_type || order.deliveryType || "").toLowerCase();
+      if (deliveryTypeFilter.toLowerCase() === "home delivery") {
+        if (!type.includes("home") && !type.includes("quick") && !type.includes("e-commerce") && !type.includes("whatsapp") && !type.includes("call")) {
+          return false;
+        }
+      } else if (deliveryTypeFilter.toLowerCase() === "self pickup") {
+        if (!type.includes("pickup") && !type.includes("self") && !type.includes("store")) {
+          return false;
+        }
+      } else if (type !== deliveryTypeFilter.toLowerCase()) {
+        return false;
+      }
     }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -137,9 +150,9 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
   }).sort((a, b) => getRecentOrderTime(b) - getRecentOrderTime(a));
 
   const formatOrderDateTime = (order: any): string => {
-    const ts = getRecentOrderTime(order);
-    if (!ts) return "—";
-    const date = new Date(ts);
+    const placedTimeStr = order.createdAt || order.created_at;
+    if (!placedTimeStr) return "—";
+    const date = new Date(placedTimeStr);
     if (isNaN(date.getTime())) return "—";
     
     const day = String(date.getDate()).padStart(2, '0');
@@ -252,11 +265,9 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
                 options={[
-                  { value: "", label: "Delivery Type" },
-                  { value: "Quick Commerce", label: "Quick Commerce" },
-                  { value: "E-Commerce", label: "E-Commerce" },
-                  { value: "WhatsApp", label: "WhatsApp" },
-                  { value: "Call Center", label: "Call Center" },
+                  { value: "", label: "Delivery Type: All" },
+                  { value: "Home Delivery", label: "Home Delivery" },
+                  { value: "Self Pickup", label: "Self Pickup" },
                 ]}
               />
             </div>
@@ -348,18 +359,15 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse table-auto text-left text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ height: "64px" }}>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Order Number</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Customer</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Delivery Address</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Payment Method</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Delivery Type</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Status</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Date and Time</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Shopkeeper</th>
-                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Action</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[20%]">Order Number</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[25%]">Customer</th>
+                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[15%]">Total Items</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[20%]">Delivery Type</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[20%]">Date and Time</th>
+                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[10%]">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -377,34 +385,14 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
                         <div className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">{order.customer_name || order.user}</div>
                         <div className="text-[10px] sm:text-xs text-[#9EA3AE]">{order.customer_phone || order.phone}</div>
                       </td>
-                      <td className="px-[24px] py-[16px] text-xs sm:text-sm text-gray-800 dark:text-gray-200 max-w-[200px] truncate">
-                        {order.customer_address || "No address provided"}
-                      </td>
-                      <td className="px-[24px] py-[16px] whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
-                        {order.payment_method || order.PaymentMethod || "COD"}
+                      <td className="px-[24px] py-[16px] whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200 text-center font-bold">
+                        {order.item_count ?? order.items?.length ?? 0}
                       </td>
                       <td className="px-[24px] py-[16px] whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                         {order.order_type || order.deliveryType || "Standard"}
                       </td>
-                      <td className="px-[24px] py-[16px] whitespace-nowrap">
-                        <span
-                          className="px-2 py-0.5 text-[10px] sm:text-xs rounded-full font-medium inline-flex items-center justify-center uppercase tracking-wider"
-                          style={getStatusStyle(order.status)}
-                        >
-                          {formatStatusDisplay(order.status)}
-                        </span>
-                      </td>
                       <td className="px-[24px] py-[16px] whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                         {formatOrderDateTime(order)}
-                      </td>
-                      <td className="px-[24px] py-[16px] whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
-                        {order.shopkeeper_name ? (
-                          order.shopkeeper_name
-                        ) : (
-                          <span className="text-gray-400 dark:text-gray-500">
-                            Unassigned
-                          </span>
-                        )}
                       </td>
                       <td className="px-[24px] py-[16px] whitespace-nowrap text-center">
                         <ViewIconButton

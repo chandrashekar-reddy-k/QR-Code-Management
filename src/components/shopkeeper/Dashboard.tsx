@@ -96,6 +96,13 @@ const getRecentOrderTime = (order: any): number => {
   return latest;
 };
 
+const getPlacementTime = (order: any): number => {
+  const val = order.createdAt || order.created_at || order.placedAt || order.placed_at;
+  if (!val) return 0;
+  const ms = new Date(val).getTime();
+  return isNaN(ms) ? 0 : ms;
+};
+
 interface KPICardProps {
   label: string;
   value: string | number;
@@ -218,7 +225,44 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   }, []);
 
   const calculateStats = () => {
-    let allOrders = [...sharedOrders];
+    const seenIds = new Set();
+    const distinctOrders = [];
+    for (const o of sharedOrders) {
+      const id = o.id || o.order_number;
+      if (id && !seenIds.has(id)) {
+        seenIds.add(id);
+        distinctOrders.push(o);
+      }
+    }
+
+    // Retrieve current user's warehouseId to scope dashboard orders to this store only
+    const cachedWh = localStorage.getItem("warehouseId");
+    const storedU = localStorage.getItem("user");
+    let userWarehouseId: string | null = null;
+    if (cachedWh && cachedWh !== "undefined") {
+      userWarehouseId = cachedWh;
+    } else if (storedU) {
+      try {
+        const u = JSON.parse(storedU);
+        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
+      } catch (e) {}
+    }
+
+    // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, and must not be pre-payment PENDING status
+    let allOrders = distinctOrders.filter((o: any) => {
+      const oWh = o.warehouseId || o.warehouse_id;
+      if (!oWh) return false;
+
+      if (userWarehouseId && oWh !== userWarehouseId) {
+        return false;
+      }
+
+      const status = (o.status || "").toUpperCase();
+      if (status === 'PENDING') {
+        return false;
+      }
+      return true;
+    });
 
     // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
     if (!isAdmin) {
@@ -307,7 +351,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       }
     });
 
-    const sortedOrders = [...allOrders].sort((a, b) => getRecentOrderTime(b) - getRecentOrderTime(a));
+    const sortedOrders = [...allOrders].sort((a, b) => getPlacementTime(b) - getPlacementTime(a));
     setRecentOrders(sortedOrders.slice(0, 5));
   };
 
@@ -634,7 +678,34 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                           const initials = sk.name
                             ? sk.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
                             : "SK";
-                          const isBusy = (sk.activeOrderCount || 0) > 0;
+
+                          // Calculate active order count dynamically based on current orders state
+                          const activeOrdersForSk = orders.filter((o: any) => {
+                            const isAssigned = 
+                              o.shopkeeper_phone === sk.phone ||
+                              o.assignedShopkeeper?.phone === sk.phone ||
+                              o.assigned_shopkeeper?.phone === sk.phone ||
+                              (o.shopkeeper_name && o.shopkeeper_name.toLowerCase() === sk.name?.toLowerCase());
+
+                            if (!isAssigned) return false;
+
+                            const s = o.status?.toLowerCase();
+                             return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
+                           });
+                          
+                          const activeOrderCount = activeOrdersForSk.length;
+                          const isOffline = sk.status?.toLowerCase() === 'offline';
+                          const isBusy = !isOffline && activeOrderCount > 0;
+
+                          let badgeText = "Available";
+                          let badgeStyle = { backgroundColor: "#E8F5E9", color: "#00891D" };
+                          if (isOffline) {
+                            badgeText = "Offline";
+                            badgeStyle = { backgroundColor: "#F3F4F6", color: "#6B7280" };
+                          } else if (isBusy) {
+                            badgeText = "Busy";
+                            badgeStyle = { backgroundColor: "#FFEACC", color: "#EA580C" };
+                          }
 
                           return (
                             <tr key={sk.id} className="hover:bg-[#F9FAFB] transition-colors" style={{ height: "72px" }}>
@@ -651,17 +722,14 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                                 {sk.phone}
                               </td>
                               <td className="px-[12px] py-[16px] whitespace-nowrap text-sm text-gray-900 font-medium">
-                                {sk.activeOrderCount || 0}
+                                {activeOrderCount}
                               </td>
                               <td className="px-[12px] py-[16px] whitespace-nowrap">
                                 <span
                                   className="inline-flex items-center justify-center px-2 py-1 rounded-full text-[11px] font-semibold w-full text-center"
-                                  style={{
-                                    backgroundColor: isBusy ? "#FFEACC" : "#E8F5E9",
-                                    color: isBusy ? "#EA580C" : "#00891D"
-                                  }}
+                                  style={badgeStyle}
                                 >
-                                  {isBusy ? "Busy" : "Available"}
+                                  {badgeText}
                                 </span>
                               </td>
                             </tr>
@@ -737,7 +805,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                     <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Shopkeeper</th>
                     <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Status</th>
                     <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Amount</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Time</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Date & Time</th>
                     <th className="text-center px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Action</th>
                   </tr>
                 </thead>
@@ -795,22 +863,23 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
                     // Calculate time text
                     const timeText = (() => {
-                      const ts = getRecentOrderTime(order);
+                      const ts = order.createdAt || order.created_at || order.placedAt || order.placed_at;
                       if (!ts) return "—";
                       const date = new Date(ts);
                       if (isNaN(date.getTime())) return "—";
                       
                       const day = String(date.getDate()).padStart(2, '0');
-                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                      const month = months[date.getMonth()];
                       const year = date.getFullYear();
                       
                       let hours = date.getHours();
                       const minutes = String(date.getMinutes()).padStart(2, '0');
                       const ampm = hours >= 12 ? 'PM' : 'AM';
                       hours = hours % 12;
-                      hours = hours ? hours : 12; // the hour '0' should be '12'
+                      hours = hours ? hours : 12;
                       
-                      return `${day}-${month}-${year}, ${hours}:${minutes} ${ampm}`;
+                      return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
                     })();
 
                     return (
