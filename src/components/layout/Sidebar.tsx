@@ -87,6 +87,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isPricingOpen, setIsPricingOpen] = useState(
     initialStateCheckers.isPricingOpen(location.pathname)
   );
+  const [isBarcodeOpen, setIsBarcodeOpen] = useState(
+    initialStateCheckers.isBarcodeOpen(location.pathname)
+  );
   const [isShopkeeperOpen, setIsShopkeeperOpen] = useState(
     location.pathname.startsWith("/shopkeeper")
   );
@@ -124,6 +127,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen: setIsAssetsOpen,
       isProcurementOpen: setIsProcurementOpen,
       isPricingOpen: setIsPricingOpen,
+      isBarcodeOpen: setIsBarcodeOpen,
       isShopkeeperOpen: setIsShopkeeperOpen,
       isShopkeeperErpAdminOpen: setIsShopkeeperErpAdminOpen,
     }),
@@ -156,6 +160,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
       isProcurementOpen,
       isPricingOpen,
+      isBarcodeOpen,
       isShopkeeperOpen,
       isShopkeeperErpAdminOpen,
     }),
@@ -179,6 +184,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
       isProcurementOpen,
       isPricingOpen,
+      isBarcodeOpen,
       isShopkeeperOpen,
       isShopkeeperErpAdminOpen,
     ]
@@ -230,6 +236,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     setIsAssetsOpen(initialStateCheckers.isAssetsOpen(location.pathname));
     setIsProcurementOpen(initialStateCheckers.isProcurementOpen(location.pathname));
     setIsPricingOpen(initialStateCheckers.isPricingOpen(location.pathname));
+    setIsBarcodeOpen(initialStateCheckers.isBarcodeOpen(location.pathname));
     setIsShopkeeperErpAdminOpen(location.pathname.startsWith("/shopkeeper-erp"));
   }, [location.pathname]);
 

@@ -80,6 +80,21 @@ export const adminAPI = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
 
+  // Returns management
+  getReturnRequests: (params) => api.get('/admin/inventory/returns', { params }),
+  approveReturnRequest: (id) => api.put(`/admin/inventory/returns/${id}/approve`),
+  rejectReturnRequest: (id) => api.put(`/admin/inventory/returns/${id}/reject`),
+
+  // Agent Transfers
+  getAgentTransfers: (params) => api.get('/admin/agent-transfers', { params }),
+  createAgentTransfer: (data) => api.post('/admin/agent-transfers', data),
+  getAgentTransferById: (id) => api.get(`/admin/agent-transfers/${id}`),
+  approveAgentTransfer: (id, data) => api.post(`/admin/agent-transfers/${id}/approve`, data),
+  rejectAgentTransfer: (id, data) => api.post(`/agent-transfers/${id}/reject`, data),
+
+  // Brands
+  getBrands: (params) => api.get('/admin/brands', { params }),
+
   // Sales
   getSales: (params) => api.get('/admin/sales', { params }),
   createManualSale: (data) => api.post('/admin/sales', data),

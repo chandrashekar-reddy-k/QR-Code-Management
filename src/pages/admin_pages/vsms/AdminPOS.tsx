@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
@@ -21,7 +20,9 @@ import {
   Users,
   Truck,
   ArrowRight,
-  Pause
+  Pause,
+  FileText,
+  WifiOff
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { productsAPI, ordersAPI } from './services/api';
@@ -29,6 +30,7 @@ import adminAPI from './services/adminService';
 import { damageAPI } from './services/damageService';
 import { useCartStore } from './store/cartStore';
 import { useUserStore } from './store/userStore';
+import { useOfflineStore } from './store/offlineStore';
 import {
   Banknote,
   CreditCard,
@@ -58,12 +60,13 @@ import {
   RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { format } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import villagKartLogo from '../../../assets/vk.png';
-// BarcodeScannerOverlay is inlined below
-// useBarcodeScanner is inlined below
-// clsx inlined
-// twMerge inlined
+import BarcodeScannerOverlay from '../../../components/BarcodeScannerOverlay';
+import { useBarcodeScanner } from './agent/hooks/useBarcodeScanner';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 const containsUnicode = (str) => /[^\x00-\x7F]/.test(str);
 
@@ -135,83 +138,161 @@ const drawUnicodeText = (pdf, text, x, y, options = {}) => {
 };
 
 function cn(...inputs) {
-  return inputs.filter(Boolean).join(' ');
-}
-
-
-// ── Inline useBarcodeScanner hook ──
-function useBarcodeScanner(onScan) {
-  useEffect(() => {
-    let buffer = '';
-    let lastKeyTime = Date.now();
-    const handleKeyDown = (e) => {
-      const now = Date.now();
-      if (now - lastKeyTime > 300) {
-        buffer = '';
-      }
-      lastKeyTime = now;
-      if (e.key === 'Enter') {
-        if (buffer.length > 3) {
-          onScan(buffer);
-        }
-        buffer = '';
-      } else if (e.key.length === 1) {
-        buffer += e.key;
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onScan]);
-}
-
-// ── Inline BarcodeScannerOverlay component ──
-function BarcodeScannerOverlay({ onClose, onScan }) {
-  const [input, setInput] = React.useState('');
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl p-10 w-full max-w-md shadow-2xl text-center">
-        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <Scan size={40} />
-        </div>
-        <h3 className="text-2xl font-black text-slate-900 mb-2">Barcode Scanner</h3>
-        <p className="text-sm font-bold text-slate-400 mb-6 uppercase tracking-widest">Scan or type barcode below</p>
-        <input
-          autoFocus
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && input.length > 2) {
-              onScan(input);
-              setInput('');
-              onClose();
-            }
-          }}
-          className="w-full border-2 border-emerald-200 rounded-2xl px-6 py-4 text-xl font-black text-slate-900 outline-none focus:border-emerald-500 text-center"
-          placeholder="Scan barcode..."
-        />
-        <button onClick={onClose} className="mt-6 w-full bg-slate-100 text-slate-600 font-black py-4 rounded-2xl hover:bg-slate-200 transition-all">
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
+  return twMerge(clsx(inputs));
 }
 
 export default function AdminPOS() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const rawStoreId = searchParams.get('storeId');
-  const storeId = rawStoreId && rawStoreId !== 'null' && rawStoreId !== 'undefined' && rawStoreId !== '' ? rawStoreId : null;
-  const rawStoreName = searchParams.get('storeName');
-  const storeName = rawStoreName && rawStoreName !== 'null' && rawStoreName !== 'undefined' ? rawStoreName : null;
-  const rawTerminalId = searchParams.get('terminalId');
-  const terminalId = rawTerminalId && rawTerminalId !== 'null' && rawTerminalId !== 'undefined' && rawTerminalId !== '' ? rawTerminalId : null;
-  const rawTerminalName = searchParams.get('terminalName');
-  const terminalName = rawTerminalName && rawTerminalName !== 'null' && rawTerminalName !== 'undefined' ? rawTerminalName : null;
+  const storeId = searchParams.get('storeId');
+  const storeName = searchParams.get('storeName');
+  const terminalId = searchParams.get('terminalId');
+  const terminalName = searchParams.get('terminalName');
 
   const { user } = useUserStore();
-  const { items, addItem, removeItem, updateQuantity, clearCart, totalAmount, customerName, setCustomerName, customerMobile, setCustomerMobile } = useCartStore();
+  const { items, addItem, removeItem, updateQuantity, clearCart, totalAmount, deliveryCharge, promotionDiscount, customerName, setCustomerName, customerMobile, setCustomerMobile } = useCartStore();
+  const { addOrderToQueue } = useOfflineStore();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // --- CUSTOMER HISTORY POPUP IN POS ---
+  const [showPOSHistoryModal, setShowPOSHistoryModal] = useState(false);
+  const [posCustomerData, setPosCustomerData] = useState(null);
+  const [posCustomerHistory, setPosCustomerHistory] = useState([]);
+  const [loadingPOSHistory, setLoadingPOSHistory] = useState(false);
+  const [duesPaymentAmount, setDuesPaymentAmount] = useState('');
+  const [payingDues, setPayingDues] = useState(false);
+
+  // Inline Dues Payment State
+  const [payingOrderId, setPayingOrderId] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [duesPayMode, setDuesPayMode] = useState('CASH');
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  useEffect(() => {
+    const lookupCustomer = async () => {
+      if (customerMobile?.trim().length === 10) {
+        try {
+          const profileRes = await adminAPI.loginCustomer({ mobile: customerMobile });
+          const customer = profileRes.data?.data || profileRes.data;
+          setPosCustomerData(customer);
+          if (customer?.name) {
+            setCustomerName(customer.name);
+          }
+        } catch (err) {
+          console.error('[POS Customer Lookup Error]:', err);
+          setPosCustomerData(null);
+        }
+      } else if (!customerMobile?.trim()) {
+        setPosCustomerData(null);
+      }
+    };
+    lookupCustomer();
+  }, [customerMobile]);
+
+  const openCustomerHistoryPOS = async () => {
+    if (!customerMobile?.trim()) {
+      toast.error('Please enter a mobile number first');
+      return;
+    }
+    setShowPOSHistoryModal(true);
+    setLoadingPOSHistory(true);
+    try {
+      // 1. Lookup customer profile by mobile
+      const profileRes = await adminAPI.loginCustomer({ mobile: customerMobile, name: customerName || undefined });
+      const customer = profileRes.data?.data || profileRes.data;
+      setPosCustomerData(customer);
+
+      if (customer) {
+        if (customer.name && (!customerName || customerName.trim() === '')) {
+          setCustomerName(customer.name);
+        }
+        
+        if (customer.id) {
+          // 2. Fetch history
+          const historyRes = await adminAPI.getCustomerHistory(customer.id);
+          setPosCustomerHistory(historyRes.data?.data || historyRes.data || []);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load customer profile or history');
+    } finally {
+      setLoadingPOSHistory(false);
+    }
+  };
+
+  const handlePayDues = async (e) => {
+    e.preventDefault();
+    if (!posCustomerData?.id) return;
+    const amount = parseFloat(duesPaymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+    setPayingDues(true);
+    try {
+      await adminAPI.adjustCreditBalance(posCustomerData.id, {
+        amount,
+        action: 'DEDUCT' // pay/clear credit
+      });
+      toast.success('Dues updated successfully');
+      setDuesPaymentAmount('');
+      // Reload profile and history
+      const profileRes = await adminAPI.loginCustomer({ mobile: customerMobile });
+      const customer = profileRes.data?.data || profileRes.data;
+      setPosCustomerData(customer);
+      if (customer?.id) {
+        const historyRes = await adminAPI.getCustomerHistory(customer.id);
+        setPosCustomerHistory(historyRes.data?.data || historyRes.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update dues payment');
+    } finally {
+      setPayingDues(false);
+    }
+  };
+
+  const handlePayCreditOrder = async (orderId, paymentMode, amount) => {
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+      toast.error('Please enter a valid positive amount');
+      return;
+    }
+    setProcessingPayment(true);
+    try {
+      const res = await ordersAPI.payCreditOrder(orderId, { paymentMode, amount: parseFloat(amount) });
+      toast.success(res.data?.message || 'Dues paid successfully');
+      setPayingOrderId(null);
+      setPayAmount('');
+      
+      // Reload profile and history
+      const profileRes = await adminAPI.loginCustomer({ mobile: customerMobile });
+      const customer = profileRes.data?.data || profileRes.data;
+      setPosCustomerData(customer);
+      
+      if (customer?.id) {
+        const historyRes = await adminAPI.getCustomerHistory(customer.id);
+        setPosCustomerHistory(historyRes.data?.data || historyRes.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Payment failed');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
 
   // --- STORE SELECTOR STATE ---
   const [stores, setStores] = useState([]);
@@ -248,7 +329,7 @@ export default function AdminPOS() {
           setIsManagingTerminals(true);
         } else if (data.data.length === 1) {
           const t = data.data[0];
-          navigate(`/vsms/pos?storeId=${s.id}&storeName=${encodeURIComponent(s.name)}&terminalId=${t.id}&terminalName=${encodeURIComponent(t.name)}`);
+          navigate(`/admin/pos?storeId=${s.id}&storeName=${encodeURIComponent(s.name)}&terminalId=${t.id}&terminalName=${encodeURIComponent(t.name)}`);
         } else {
           setTerminalList(data.data);
           setTerminalSelectionStore(s);
@@ -265,11 +346,8 @@ export default function AdminPOS() {
     try {
       setFetchingStores(true);
       const { data } = await adminAPI.getStores();
-      if (data.success && data.data && data.data.length > 0) {
+      if (data.success) {
         setStores(data.data);
-        // Automatically select the first store to bypass selection screen
-        const firstStore = data.data[0];
-        handleOpenPOS(firstStore);
       }
     } catch (err) {
       console.error('Failed to fetch stores:', err);
@@ -279,15 +357,15 @@ export default function AdminPOS() {
   };
 
   useEffect(() => {
-    if (isGlobal && !storeId) {
+    if (isGlobal) {
       fetchStores();
     }
-  }, [isGlobal, storeId]);
+  }, [isGlobal]);
 
   // Auto-redirect fixed-store users
   useEffect(() => {
     if (!storeId && !isGlobal && user?.storeId) {
-      navigate(`/vsms/pos?storeId=${user.storeId}&storeName=${encodeURIComponent(user.storeName || 'My Store')}`, { replace: true });
+      navigate(`/admin/pos?storeId=${user.storeId}&storeName=${encodeURIComponent(user.storeName || 'My Store')}`, { replace: true });
     }
   }, [storeId, isGlobal, user]);
 
@@ -305,7 +383,6 @@ export default function AdminPOS() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [variantSelectionProduct, setVariantSelectionProduct] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [unavailableCode, setUnavailableCode] = useState(null);
   const [scannedProduct, setScannedProduct] = useState(null);
@@ -329,9 +406,10 @@ export default function AdminPOS() {
 
   // --- SUSPENDED ORDERS DATABASE SYNC ---
   const fetchSuspendedOrders = async () => {
+    if (!storeId) return;
     try {
       setIsSuspendedLoading(true);
-      const { data } = await adminAPI.getSuspendedSales();
+      const { data } = await adminAPI.getSuspendedSales({ storeId, terminalId });
       if (data.success) {
         setSuspendedOrders(data.data);
       }
@@ -343,8 +421,10 @@ export default function AdminPOS() {
   };
 
   useEffect(() => {
-    fetchSuspendedOrders();
-  }, []);
+    if (storeId) {
+      fetchSuspendedOrders();
+    }
+  }, [storeId, terminalId]);
 
   const handleSuspendSale = async () => {
     if (items.length === 0) return toast.error('Cannot suspend an empty cart');
@@ -352,8 +432,8 @@ export default function AdminPOS() {
     try {
       setActionLoading(true);
       const payload = {
-        storeId: storeId || user?.storeId || null,
-        terminalId: terminalId || null,
+        storeId,
+        terminalId,
         customerName,
         customerMobile,
         totalAmount,
@@ -474,9 +554,8 @@ export default function AdminPOS() {
         const { data } = await adminAPI.getSettings({ storeId });
         if (data?.success) {
           setSettings(data.data);
-          if (data.data.deliverySlabs) {
-            useCartStore.getState().setDeliverySlabs(data.data.deliverySlabs);
-          }
+          // Force zero delivery charges in POS
+          useCartStore.getState().setDeliverySlabs([]);
         }
       } catch (err) {
         console.warn('Failed to load settings');
@@ -536,6 +615,27 @@ export default function AdminPOS() {
       return toast.error('Customer name or mobile required for Credit sales');
     }
 
+    // --- OFFLINE FALLBACK ---
+    if (!navigator.onLine) {
+      const offlinePayload = {
+        mobile: customerMobile || undefined,
+        customerName: customerName || undefined,
+        items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+        storeId,
+        terminalId,
+        paymentMode: selectedPaymentMode,
+        cashAmount: selectedPaymentMode === 'CASH_UPI' ? parseFloat(splitAmounts.cash) : undefined,
+        upiAmount: selectedPaymentMode === 'CASH_UPI' ? parseFloat(splitAmounts.upi) : undefined,
+        totalAmount,
+      };
+      const tempId = addOrderToQueue(offlinePayload);
+      setLastOrder({ _offline: true, tempId, ...offlinePayload });
+      setCheckoutStep('SUCCESS');
+      clearCart();
+      toast('Offline bill saved. Will sync when network is restored.', { icon: '📶', duration: 4000 });
+      return;
+    }
+
     setActionLoading(true);
     try {
       const { data: order } = await ordersAPI.createFromCart({
@@ -562,7 +662,27 @@ export default function AdminPOS() {
       // Refresh products to show updated stock levels
       fetchProducts();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Payment failed');
+      // Network error: queue offline
+      if (!err.response) {
+        const offlinePayload = {
+          mobile: customerMobile || undefined,
+          customerName: customerName || undefined,
+          items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+          storeId,
+          terminalId,
+          paymentMode: selectedPaymentMode,
+          cashAmount: selectedPaymentMode === 'CASH_UPI' ? parseFloat(splitAmounts.cash) : undefined,
+          upiAmount: selectedPaymentMode === 'CASH_UPI' ? parseFloat(splitAmounts.upi) : undefined,
+          totalAmount,
+        };
+        const tempId = addOrderToQueue(offlinePayload);
+        setLastOrder({ _offline: true, tempId, ...offlinePayload });
+        setCheckoutStep('SUCCESS');
+        clearCart();
+        toast('Offline bill saved. Will sync when network is restored.', { icon: '📶', duration: 4000 });
+      } else {
+        toast.error(err.response?.data?.message || 'Payment failed');
+      }
     } finally {
       setActionLoading(false);
     }
@@ -864,12 +984,12 @@ export default function AdminPOS() {
 
     const items = order.items || [];
     items.forEach((item, index) => {
-      const itemName = item.product?.name || item.productName || item.name || `Product ${item.productId?.slice(-6) || ''}`;
+      const itemName = item.product?.name || `Product ${item.productId?.slice(-6) || ''}`;
       const qty = item.quantity || 0;
-      const price = item.unitPrice !== undefined && item.unitPrice !== null ? item.unitPrice : (item.price || 0);
-      const mrpValue = item.mrp !== undefined && item.mrp !== null ? item.mrp : price;
-      const amount = item.totalPrice !== undefined && item.totalPrice !== null ? item.totalPrice : (qty * price);
-      const gstRate = item.gst || item.product?.taxRate || 0;
+      const price = item.price || 0;
+      const mrpValue = item.mrp || price;
+      const amount = qty * price;
+      const gstRate = item.gst || 0;
       const itemTaxable = amount / (1 + gstRate / 100);
       const itemGstAmt = amount - itemTaxable;
 
@@ -934,11 +1054,7 @@ export default function AdminPOS() {
     const startY = y;
     let rightY = startY;
 
-    const subTotalMRP = order.items?.reduce((sum, i) => {
-      const price = i.unitPrice !== undefined && i.unitPrice !== null ? i.unitPrice : (i.price || 0);
-      const mrp = i.mrp !== undefined && i.mrp !== null ? i.mrp : price;
-      return sum + mrp * i.quantity;
-    }, 0) || order.totalAmount;
+    const subTotalMRP = order.items?.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0) || order.totalAmount;
     const savings = subTotalMRP - order.totalAmount;
 
     pdf.setTextColor(...grayText);
@@ -962,11 +1078,10 @@ export default function AdminPOS() {
     }
 
     const totalTax = order.items?.reduce((sum, item) => {
-      const rate = item.gst || item.product?.taxRate || 0;
+      const rate = item.gst || 0;
       if (rate === 0) return sum;
-      const price = item.unitPrice !== undefined && item.unitPrice !== null ? item.unitPrice : (item.price || 0);
-      const taxable = (price * item.quantity) / (1 + rate / 100);
-      return sum + ((price * item.quantity) - taxable);
+      const taxable = (item.price * item.quantity) / (1 + rate / 100);
+      return sum + ((item.price * item.quantity) - taxable);
     }, 0) || 0;
 
     pdf.setTextColor(...grayText);
@@ -1082,22 +1197,14 @@ export default function AdminPOS() {
       timeStyle: 'short'
     });
 
-    const subTotalMRP = lastOrder.items?.reduce((sum, i) => {
-      const price = i.unitPrice !== undefined && i.unitPrice !== null ? i.unitPrice : (i.price || 0);
-      const mrp = i.mrp !== undefined && i.mrp !== null ? i.mrp : price;
-      return sum + mrp * i.quantity;
-    }, 0) || lastOrder.totalAmount;
-    
+    const subTotalMRP = lastOrder.items?.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0) || lastOrder.totalAmount;
     const savings = subTotalMRP - lastOrder.totalAmount;
-    
     const totalTax = lastOrder.items?.reduce((sum, item) => {
-      const rate = item.gst || item.product?.taxRate || 0;
+      const rate = item.gst || 0;
       if (rate === 0) return sum;
-      const price = item.unitPrice !== undefined && item.unitPrice !== null ? item.unitPrice : (item.price || 0);
-      const taxable = (price * item.quantity) / (1 + rate / 100);
-      return sum + ((price * item.quantity) - taxable);
+      const taxable = (item.price * item.quantity) / (1 + rate / 100);
+      return sum + ((item.price * item.quantity) - taxable);
     }, 0) || 0;
-    
     const deliveryFee = lastOrder.deliveryCharge || 0;
     const taxableValue = lastOrder.totalAmount - totalTax - deliveryFee;
 
@@ -1168,18 +1275,13 @@ export default function AdminPOS() {
           </div>
           <div class="divider"></div>
           
-          ${lastOrder.items.map(item => {
-            const name = item.product?.name || item.productName || item.name || 'Product';
-            const price = item.unitPrice !== undefined && item.unitPrice !== null ? item.unitPrice : (item.price || 0);
-            const total = item.totalPrice !== undefined && item.totalPrice !== null ? item.totalPrice : (price * item.quantity);
-            return `
-              <div class="item-name">${name}</div>
-              <div class="item-details">
-                <span>${item.quantity} Qty x Rs.${price.toFixed(2)}</span>
-                <span>Rs.${total.toFixed(2)}</span>
-              </div>
-            `;
-          }).join('')}
+          ${lastOrder.items.map(item => `
+            <div class="item-name">${item.product?.name || 'Product'}</div>
+            <div class="item-details">
+              <span>${item.quantity} Qty x Rs.${item.price.toFixed(2)}</span>
+              <span>Rs.${(item.price * item.quantity).toFixed(2)}</span>
+            </div>
+          `).join('')}
           
           <div class="divider"></div>
           
@@ -1279,20 +1381,48 @@ export default function AdminPOS() {
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Bypassed: Render the POS workspace directly. If storeId is missing, we use a placeholder or let the API calls handle it.
-  const activeStoreId = storeId || 'default-store';
-  const activeStoreName = storeName || 'Main Store';
+  if (false) {
+    return (
+      <StoreSelectionScreen 
+        stores={stores} 
+        fetchingStores={fetchingStores} 
+        searchTerm={storeSearchTerm} 
+        setSearchTerm={setStoreSearchTerm} 
+        navigate={navigate} 
+        storeId={storeId}
+        onRefresh={fetchStores}
+        handleOpenPOS={handleOpenPOS}
+        fetchingTerminals={fetchingTerminals}
+        isManagingTerminals={isManagingTerminals}
+        setIsManagingTerminals={setIsManagingTerminals}
+        terminalStore={terminalStore}
+        setTerminalStore={setTerminalStore}
+        terminalSelectionStore={terminalSelectionStore}
+        setTerminalSelectionStore={setTerminalSelectionStore}
+        terminalList={terminalList}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-900">
       {/* ── NEW PREMIUM HEADER ── */}
       <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 shrink-0 z-30 shadow-sm">
         <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2.5">
-            <div className="h-10 px-3 bg-white rounded-xl flex items-center justify-center border border-slate-100 shadow-sm">
-              <img src={villagKartLogo} alt="Logo" className="h-7 object-contain" />
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate('/admin')}
+              className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-emerald-600 transition-all group"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft size={22} className="group-hover:-translate-x-1 transition-transform" />
+            </button>
+            <div className="flex items-center gap-2.5">
+              <div className="h-10 px-3 bg-white rounded-xl flex items-center justify-center border border-slate-100 shadow-sm">
+                <img src={villagKartLogo} alt="Logo" className="h-7 object-contain" />
+              </div>
+              <h1 className="text-xl font-black tracking-tight text-slate-900 hidden sm:block">Villag<span className="text-emerald-600">Kart</span></h1>
             </div>
-            <h1 className="text-xl font-black tracking-tight text-slate-900 hidden sm:block">Villag<span className="text-emerald-600">Kart</span></h1>
           </div>
 
           <div className="h-8 w-px bg-slate-100 mx-2 hidden lg:block" />
@@ -1303,7 +1433,16 @@ export default function AdminPOS() {
           </div>
         </div>
 
-
+        {/* Store Selector Button (For Global Admins) */}
+        {isGlobal && (
+          <button
+            onClick={() => navigate('/admin/pos')}
+            className="flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-all ml-4"
+          >
+            <Store size={16} />
+            <span className="text-xs font-bold uppercase tracking-wider">Switch Branch</span>
+          </button>
+        )}
 
         {/* Central Search */}
         <div className="flex-1 max-w-xl mx-8 relative hidden md:block">
@@ -1343,7 +1482,7 @@ export default function AdminPOS() {
           </div>
 
           <button 
-            onClick={() => navigate('/vsms/sales')}
+            onClick={() => navigate('/admin/sales')}
             className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-colors"
             title="Sales History"
           >
@@ -1452,10 +1591,6 @@ export default function AdminPOS() {
                             toast.error('Please click DONE to start a new sale');
                             return;
                           }
-                          if (product.variants && product.variants.length > 0) {
-                            // Do nothing on card click. Only the "Add" button triggers variant selection.
-                            return;
-                          }
                           if (product.stock <= 0) {
                             toast.error('Product out of stock');
                             return;
@@ -1549,11 +1684,7 @@ export default function AdminPOS() {
                                 if (checkoutStep === 'SUCCESS') {
                                   toast.error('Please click DONE to start a new sale');
                                   return;
-                                }
-                                if (product.variants && product.variants.length > 0) {
-                                  setVariantSelectionProduct(product);
-                                  return;
-                                }
+                                  }
                                 addItem(product);
                               }}
                               className={`w-full py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 border ${
@@ -1606,6 +1737,18 @@ export default function AdminPOS() {
 
                   {/* Sticky Customer Details */}
                   <div className="px-6 py-4 border-b border-slate-50 bg-white shrink-0 z-10">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Customer Details</p>
+                      {customerMobile?.trim() && (
+                        <button
+                          type="button"
+                          onClick={openCustomerHistoryPOS}
+                          className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 border text-slate-600 hover:bg-slate-100 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                        >
+                          <History size={10} /> View History
+                        </button>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
@@ -1632,6 +1775,22 @@ export default function AdminPOS() {
                         />
                       </div>
                     </div>
+
+                    {posCustomerData && posCustomerData.creditBalance > 0 && (
+                      <div className="mt-3 px-3 py-2 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-between text-[10px] font-black uppercase text-rose-800 tracking-wider">
+                        <span className="flex items-center gap-1.5 animate-pulse">
+                          <AlertTriangle size={12} className="text-rose-600 shrink-0" /> 
+                          Customer has outstanding dues: <span className="font-extrabold text-rose-700 bg-rose-100/50 px-1 rounded ml-1 border border-rose-200/40">₹{posCustomerData.creditBalance.toFixed(2)}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={openCustomerHistoryPOS}
+                          className="px-2 py-0.5 bg-white hover:bg-rose-100 text-rose-900 rounded border border-rose-200 transition-all text-[8px] tracking-widest uppercase font-black"
+                        >
+                          Settle Dues
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Items List Section */}
@@ -1646,7 +1805,7 @@ export default function AdminPOS() {
                         </div>
                       ) : (
                         items.map(item => (
-                          <div key={`${item.productId}-${item.productVariantId || ''}`} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 group hover:border-emerald-200 transition-all">
+                          <div key={item.productId} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 group hover:border-emerald-200 transition-all">
                             <div className="w-12 h-12 bg-slate-50 rounded-xl overflow-hidden shrink-0 border border-slate-100">
                               {item.image ? (
                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -1660,21 +1819,21 @@ export default function AdminPOS() {
                             </div>
                             <div className="flex flex-col items-end gap-1.5">
                               <button 
-                                onClick={() => removeItem(item.productId, item.productVariantId)}
+                                onClick={() => removeItem(item.productId)}
                                 className="p-1 text-slate-300 hover:text-rose-500 transition-colors"
                               >
                                 <Trash2 size={12} />
                               </button>
                               <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
                                 <button
-                                  onClick={() => updateQuantity(item.productId, item.quantity - 1, item.productVariantId)}
+                                  onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                                   className="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-400 hover:text-rose-500 shadow-sm"
                                 >
                                   <Minus size={10} strokeWidth={3} />
                                 </button>
                                 <span className="w-4 text-center text-[10px] font-black">{item.quantity}</span>
                                 <button
-                                  onClick={() => updateQuantity(item.productId, item.quantity + 1, item.productVariantId)}
+                                  onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                                   className="w-5 h-5 flex items-center justify-center bg-white rounded text-emerald-600 hover:bg-emerald-50 shadow-sm"
                                 >
                                   <Plus size={10} strokeWidth={3} />
@@ -1693,16 +1852,37 @@ export default function AdminPOS() {
                   {/* Totals Section */}
                   <div className="p-6 bg-slate-50/50 border-t border-slate-100 space-y-4 shrink-0">
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center text-slate-500">
-                        <span className="text-xs font-bold uppercase tracking-widest">Subtotal</span>
-                        <span className="text-sm font-black text-slate-900">₹{totalAmount.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-slate-500">
-                        <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5">
-                          Discount <CheckCircle size={12} className="text-emerald-500" />
-                        </span>
-                        <span className="text-sm font-black text-rose-500">- ₹{(items.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0) - totalAmount).toFixed(2)}</span>
-                      </div>
+                      {(() => {
+                        const itemsSubtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                        const totalMrp = items.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0);
+                        const itemsSavings = Math.max(0, totalMrp - itemsSubtotal);
+                        const totalSavings = itemsSavings + (promotionDiscount || 0);
+
+                        return (
+                          <>
+                            <div className="flex justify-between items-center text-slate-500">
+                              <span className="text-xs font-bold uppercase tracking-widest">Subtotal</span>
+                              <span className="text-sm font-black text-slate-900">₹{itemsSubtotal.toFixed(2)}</span>
+                            </div>
+                            
+                            {deliveryCharge > 0 && (
+                              <div className="flex justify-between items-center text-slate-500">
+                                <span className="text-xs font-bold uppercase tracking-widest">Delivery Charge</span>
+                                <span className="text-sm font-black text-slate-900">₹{deliveryCharge.toFixed(2)}</span>
+                              </div>
+                            )}
+
+                            {totalSavings > 0 && (
+                              <div className="flex justify-between items-center text-slate-500">
+                                <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                  Discount <CheckCircle size={12} className="text-emerald-500" />
+                                </span>
+                                <span className="text-sm font-black text-rose-500">- ₹{totalSavings.toFixed(2)}</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
 
                     <div className="pt-4 border-t border-slate-200/60">
@@ -1712,16 +1892,23 @@ export default function AdminPOS() {
                       </div>
                     </div>
 
-                    {items.some(i => i.mrp > i.price) && (
-                      <div className="bg-emerald-50/80 px-4 py-3 rounded-2xl border border-emerald-100 flex items-center gap-3">
-                        <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-                          <CheckCircle size={14} />
+                    {(() => {
+                      const itemsSubtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                      const totalMrp = items.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0);
+                      const itemsSavings = Math.max(0, totalMrp - itemsSubtotal);
+                      const totalSavings = itemsSavings + (promotionDiscount || 0);
+
+                      return totalSavings > 0 && (
+                        <div className="bg-emerald-50/80 px-4 py-3 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                          <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+                            <CheckCircle size={14} />
+                          </div>
+                          <p className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">
+                            You saved <span className="text-emerald-600 font-black">₹{totalSavings.toFixed(2)}</span> on this order
+                          </p>
                         </div>
-                        <p className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">
-                          You saved <span className="text-emerald-600 font-black">₹{(items.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0) - totalAmount).toFixed(2)}</span> on this order
-                        </p>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     <button
                       onClick={handleCheckout}
@@ -1747,6 +1934,14 @@ export default function AdminPOS() {
                       </button>
                       <h3 className="text-lg font-black text-slate-900 tracking-tight">Payment</h3>
                     </div>
+                    {customerMobile?.trim() && (
+                      <button
+                        onClick={openCustomerHistoryPOS}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border text-slate-700 hover:bg-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                      >
+                        <History size={12} /> History
+                      </button>
+                    )}
                   </div>
 
                   {/* Payment Method Selection */}
@@ -1844,14 +2039,33 @@ export default function AdminPOS() {
                       </div>
                     )}
                     {selectedPaymentMode === 'CREDIT' && (!customerName?.trim() || !customerMobile?.trim()) && (
-                      <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 animate-in fade-in slide-in-from-top-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-rose-500 rounded-lg flex items-center justify-center text-white">
-                            <AlertTriangle size={16} />
+                      <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-rose-500 rounded-md flex items-center justify-center text-white shrink-0">
+                            <AlertTriangle size={12} />
                           </div>
-                          <div>
-                            <p className="text-[10px] font-black text-rose-900 uppercase tracking-wider">Required Info Missing</p>
-                            <p className="text-[9px] font-bold text-rose-500 uppercase">Name & Mobile needed for Credit</p>
+                          <p className="text-[10px] font-black text-rose-900 uppercase tracking-wider">Customer info required for Credit</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-rose-700 uppercase tracking-widest block">Customer Name</label>
+                            <input
+                              type="text"
+                              placeholder="Enter name..."
+                              value={customerName || ''}
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              className="w-full bg-white border border-rose-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-rose-400/30 placeholder:text-gray-300"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-rose-700 uppercase tracking-widest block">Mobile Number</label>
+                            <input
+                              type="tel"
+                              placeholder="10-digit mobile..."
+                              value={customerMobile || ''}
+                              onChange={(e) => setCustomerMobile(e.target.value)}
+                              className="w-full bg-white border border-rose-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-rose-400/30 placeholder:text-gray-300"
+                            />
                           </div>
                         </div>
                       </div>
@@ -1874,40 +2088,82 @@ export default function AdminPOS() {
               {checkoutStep === 'SUCCESS' && lastOrder && (
                 <div className="flex flex-col h-full animate-in zoom-in-95 duration-500">
                   <div className="flex-1 overflow-y-auto p-8 flex flex-col items-center justify-center text-center space-y-8">
-                    <div className="relative">
-                      <div className="w-28 h-28 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-600/30 rotate-12 group-hover:rotate-0 transition-transform">
-                        <CheckCircle size={56} strokeWidth={3} />
-                      </div>
-                      <div className="absolute -top-2 -right-2 w-10 h-10 bg-white rounded-2xl shadow-lg flex items-center justify-center text-emerald-600 animate-bounce">
-                        <Zap size={20} fill="currentColor" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h3 className="text-3xl font-black text-slate-900 tracking-tight">Order Success!</h3>
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Transaction Verified Successfully</p>
-                    </div>
-
-                    <div className="w-full space-y-4">
-                      <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 space-y-4">
-                        <div className="flex justify-between items-center text-slate-500">
-                          <span className="text-[10px] font-black uppercase tracking-widest">Order Number</span>
-                          <span className="text-xs font-black text-slate-900">#VK-{getInvoiceNumber(lastOrder)}</span>
+                    {lastOrder._offline ? (
+                      /* === OFFLINE SUCCESS CARD === */
+                      <>
+                        <div className="relative">
+                          <div className="w-28 h-28 bg-gradient-to-br from-orange-400 to-amber-500 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-orange-500/30 rotate-12">
+                            <WifiOff size={52} strokeWidth={2.5} />
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-10 h-10 bg-white rounded-2xl shadow-lg flex items-center justify-center text-amber-500 animate-pulse">
+                            <Clock size={20} />
+                          </div>
                         </div>
-                        <div className="h-px bg-slate-200/50" />
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paid Amount</span>
-                          <span className="text-2xl font-black text-slate-900 tracking-tighter">₹{lastOrder.totalAmount?.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Method</span>
-                          <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-900 uppercase">
-                            {selectedPaymentMode}
-                          </span>
-                        </div>
-                      </div>
 
-                      <div className="flex flex-col gap-3">
+                        <div className="space-y-2">
+                          <h3 className="text-3xl font-black text-slate-900 tracking-tight">Bill Saved Offline</h3>
+                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Will sync automatically when back online</p>
+                        </div>
+
+                        <div className="w-full space-y-4">
+                          <div className="bg-orange-50 rounded-[2rem] p-6 border border-orange-100 space-y-4">
+                            <div className="flex justify-between items-center text-slate-500">
+                              <span className="text-[10px] font-black uppercase tracking-widest">Temp Reference</span>
+                              <span className="text-xs font-black text-orange-800 font-mono">{lastOrder.tempId?.toUpperCase()}</span>
+                            </div>
+                            <div className="h-px bg-orange-100" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</span>
+                              <span className="text-2xl font-black text-slate-900 tracking-tighter">₹{parseFloat(lastOrder.totalAmount || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment</span>
+                              <span className="px-3 py-1 bg-white border border-orange-200 rounded-lg text-[9px] font-black text-orange-800 uppercase">{lastOrder.paymentMode}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 bg-amber-100 text-amber-700 rounded-2xl p-3">
+                              <Clock size={12} className="animate-pulse shrink-0" />
+                              <span className="text-[9px] font-black uppercase tracking-widest">Pending Sync — Reconnect to Upload</span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      /* === NORMAL SUCCESS CARD === */
+                      <>
+                        <div className="relative">
+                          <div className="w-28 h-28 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-600/30 rotate-12 group-hover:rotate-0 transition-transform">
+                            <CheckCircle size={56} strokeWidth={3} />
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-10 h-10 bg-white rounded-2xl shadow-lg flex items-center justify-center text-emerald-600 animate-bounce">
+                            <Zap size={20} fill="currentColor" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <h3 className="text-3xl font-black text-slate-900 tracking-tight">Order Success!</h3>
+                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Transaction Verified Successfully</p>
+                        </div>
+
+                        <div className="w-full space-y-4">
+                          <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 space-y-4">
+                            <div className="flex justify-between items-center text-slate-500">
+                              <span className="text-[10px] font-black uppercase tracking-widest">Order Number</span>
+                              <span className="text-xs font-black text-slate-900">#VK-{getInvoiceNumber(lastOrder)}</span>
+                            </div>
+                            <div className="h-px bg-slate-200/50" />
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Method</span>
+                              <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-900 uppercase">
+                                {selectedPaymentMode}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="w-full flex flex-col gap-3">
+                      {!lastOrder._offline && (
                         <div className="grid grid-cols-2 gap-3">
                           <button
                             onClick={handlePrintReceipt}
@@ -1925,18 +2181,18 @@ export default function AdminPOS() {
                             A4 Invoice
                           </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            clearCart();
-                            setCheckoutStep('CART');
-                            setLastOrder(null);
-                          }}
-                          className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 text-xs"
-                        >
-                          <ShoppingCart size={16} />
-                          New Sale
-                        </button>
-                      </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          clearCart();
+                          setCheckoutStep('CART');
+                          setLastOrder(null);
+                        }}
+                        className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 text-xs"
+                      >
+                        <ShoppingCart size={16} />
+                        New Sale
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -2006,6 +2262,22 @@ export default function AdminPOS() {
                     />
                   </div>
                 </div>
+
+                {posCustomerData && posCustomerData.creditBalance > 0 && (
+                  <div className="mt-3 px-3 py-2 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-between text-[10px] font-black uppercase text-rose-800 tracking-wider">
+                    <span className="flex items-center gap-1.5 animate-pulse">
+                      <AlertTriangle size={12} className="text-rose-600 shrink-0" /> 
+                      Customer has outstanding dues: <span className="font-extrabold text-rose-700 bg-rose-100/50 px-1 rounded ml-1 border border-rose-200/40">₹{posCustomerData.creditBalance.toFixed(2)}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={openCustomerHistoryPOS}
+                      className="px-2 py-0.5 bg-white hover:bg-rose-100 text-rose-900 rounded border border-rose-200 transition-all text-[8px] tracking-widest uppercase font-black"
+                    >
+                      Settle Dues
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="px-6 pb-6 border-b border-slate-50 flex items-center justify-between shrink-0">
@@ -2033,9 +2305,20 @@ export default function AdminPOS() {
               {checkoutStep === 'CART' && (
                 <div className="p-6 space-y-8">
                   <div className="space-y-4">
-                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                      <User size={16} className="text-emerald-500" /> Customer Info
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <User size={16} className="text-emerald-500" /> Customer Info
+                      </p>
+                      {customerMobile?.trim() && (
+                        <button
+                          type="button"
+                          onClick={openCustomerHistoryPOS}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border text-slate-700 hover:bg-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                        >
+                          <History size={10} /> View History
+                        </button>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Name</label>
@@ -2377,101 +2660,258 @@ export default function AdminPOS() {
         </div>
       )}
 
-      {/* Variant Selection Modal */}
-      {variantSelectionProduct && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white rounded-[3rem] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in-95 relative overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="absolute top-0 left-0 w-full h-2 bg-emerald-600" />
-            
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-2xl font-black text-gray-900 leading-tight">{variantSelectionProduct.name}</h3>
-                <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mt-1">Select Variant</p>
+      {/* Customer History & Dues Modal */}
+      {showPOSHistoryModal && (() => {
+        const pendingDuesMap = {};
+        const creditOrders = [...posCustomerHistory]
+          .filter(o => o.paymentMode === 'CREDIT' || o.payment?.paymentMode === 'CREDIT')
+          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); // Oldest first
+
+        let remaining = posCustomerData?.creditBalance || 0;
+        for (const ord of creditOrders) {
+          const dues = Math.min(remaining, ord.totalAmount);
+          pendingDuesMap[ord.id] = dues;
+          remaining = Math.max(0, remaining - dues);
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Header Modal */}
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 font-black rounded-2xl flex items-center justify-center text-lg border border-emerald-100 shrink-0">
+                  {customerName ? customerName.charAt(0).toUpperCase() : 'C'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">{customerName || 'Walk-in'}</h2>
+                    {posCustomerData && (
+                      <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
+                        {posCustomerData.segment || 'REGULAR'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">
+                    Phone: {customerMobile}
+                  </p>
+                </div>
               </div>
+
               <button 
-                onClick={() => setVariantSelectionProduct(null)}
-                className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                onClick={() => setShowPOSHistoryModal(false)}
+                className="w-9 h-9 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 transition-all shadow-sm"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2 mb-6">
-              {variantSelectionProduct.variants.map((v) => {
-                const inCart = items.find(i => i.productId === variantSelectionProduct.id && i.productVariantId === v.id);
-                const quantity = inCart ? inCart.quantity : 0;
-                const price = v.price || v.sellingPrice || variantSelectionProduct.price;
-                const mrp = v.mrp || variantSelectionProduct.mrp || price;
-
-                return (
-                  <div key={v.id} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
-                    quantity > 0 ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-100 hover:border-slate-200'
-                  }`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-slate-800 uppercase tracking-wide">{v.name || `${v.unitValue} ${v.unit}`}</p>
-                      <p className="text-xs font-bold text-slate-400 mt-1">
-                        MRP: ₹{mrp.toFixed(2)} | Price: <span className="text-slate-800 font-extrabold">₹{price.toFixed(2)}</span>
-                      </p>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
-                        Stock: {v.stockQuantity || v.stock || 0} left
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {quantity > 0 ? (
-                        <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
-                          <button
-                            onClick={() => updateQuantity(variantSelectionProduct.id, quantity - 1, v.id)}
-                            className="w-7 h-7 flex items-center justify-center bg-white rounded text-slate-400 hover:text-rose-500 shadow-sm transition-all"
-                          >
-                            <Minus size={12} strokeWidth={3} />
-                          </button>
-                          <span className="w-5 text-center text-xs font-black text-slate-700">{quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(variantSelectionProduct.id, quantity + 1, v.id)}
-                            className="w-7 h-7 flex items-center justify-center bg-white rounded text-emerald-600 hover:bg-emerald-50 shadow-sm transition-all"
-                          >
-                            <Plus size={12} strokeWidth={3} />
-                          </button>
+            {/* Main Content Pane */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {loadingPOSHistory ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <Loader2 className="animate-spin text-emerald-600" size={32} />
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Loading history & credit status...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column: Credit/Dues Summary & Quick Pay */}
+                  <div className="lg:col-span-1 space-y-6">
+                    <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 space-y-4">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Outstanding Dues</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-black text-slate-900">₹{(posCustomerData?.creditBalance || 0).toFixed(2)}</span>
                         </div>
-                      ) : (
-                        <button
-                          disabled={(v.stockQuantity || v.stock || 0) <= 0}
-                          onClick={() => {
-                            const variantProductObj = {
-                              ...variantSelectionProduct,
-                              name: `${variantSelectionProduct.name} - ${v.name || `${v.unitValue} ${v.unit}`}`,
-                              price: price,
-                              mrp: mrp,
-                              stock: v.stockQuantity || v.stock || 0
-                            };
-                            addItem(variantProductObj, 1, v.id);
-                            toast.success(`${v.name} Added to cart`);
-                          }}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                            (v.stockQuantity || v.stock || 0) <= 0
-                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                              : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-100 hover:border-emerald-600'
-                          }`}
-                        >
-                          Add
-                        </button>
-                      )}
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">This is how much they currently have to pay</p>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            <button
-              onClick={() => setVariantSelectionProduct(null)}
-              className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 active:scale-95 transition-all text-xs uppercase tracking-widest"
-            >
-              Done
-            </button>
+                  {/* Right Column: Historical Sales list */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Direct Sales Log ({posCustomerHistory.length})</span>
+
+                    {posCustomerHistory.length === 0 ? (
+                      <div className="text-center py-12 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                        <FileText size={32} className="mx-auto text-slate-300 mb-2" />
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No order log history found for this mobile</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+                        {posCustomerHistory.map(ord => {
+                          const payMode = ord.paymentMode || ord.payment?.paymentMode;
+                          const cashAmt = ord.cashAmount || ord.payment?.cashAmount || 0;
+                          const upiAmt = ord.upiAmount || ord.payment?.upiAmount || 0;
+                          const totalRefunded = ord.returns?.reduce((s, r) => s + (r.returnAmount || 0), 0) || 0;
+
+                          const payModeColor = {
+                            CASH: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                            UPI: 'bg-purple-50 text-purple-700 border-purple-100',
+                            CARD: 'bg-blue-50 text-blue-700 border-blue-100',
+                            CASH_UPI: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+                            CREDIT: 'bg-rose-50 text-rose-700 border-rose-100',
+                          }[payMode] || 'bg-slate-50 text-slate-600 border-slate-100';
+
+                          const statusColor = {
+                            COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                            PENDING: 'bg-amber-50 text-amber-700 border-amber-100',
+                            CANCELLED: 'bg-slate-50 text-slate-500 border-slate-100',
+                            RETURNED: 'bg-rose-50 text-rose-700 border-rose-100',
+                            PARTIALLY_RETURNED: 'bg-orange-50 text-orange-700 border-orange-100',
+                          }[ord.status] || 'bg-slate-50 text-slate-600 border-slate-100';
+
+                          let displayStatus = ord.status;
+                          let displayStatusColor = statusColor;
+
+                          if (payMode === 'CREDIT') {
+                            const dues = pendingDuesMap[ord.id] || 0;
+                            if (dues > 0) {
+                              if (dues < ord.totalAmount) {
+                                displayStatus = 'PARTIALLY PAID';
+                                displayStatusColor = 'bg-orange-50 text-orange-700 border-orange-100';
+                              } else {
+                                displayStatus = 'UNPAID DUES';
+                                displayStatusColor = 'bg-rose-50 text-rose-700 border-rose-100';
+                              }
+                            }
+                          }
+
+                          return (
+                            <div key={ord.id} className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden text-xs">
+                              {/* Order details header */}
+                              <div className="flex justify-between items-center px-4 py-3 bg-slate-50/50 border-b border-slate-100/60 font-black">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-800 uppercase">#{ord.displayId || ord.orderNumber}</span>
+                                  <span className={`text-[8px] uppercase px-1.5 py-0.5 rounded border ${displayStatusColor}`}>{displayStatus}</span>
+                                  {payMode && (
+                                    <span className={`text-[8px] uppercase px-1.5 py-0.5 rounded border ${payModeColor}`}>{payMode}</span>
+                                  )}
+                                  {ord.vehicleId || ord.vehicle ? (
+                                    <span className="text-[8px] uppercase px-1.5 py-0.5 rounded border border-blue-100 bg-blue-50 text-blue-700 font-black flex items-center gap-1">
+                                      <Truck size={8} /> {ord.vehicle?.vehicleNumber || ord.vehicle?.vehicleName || 'Vehicle'}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[8px] uppercase px-1.5 py-0.5 rounded border border-amber-100 bg-amber-50 text-amber-700 font-black flex items-center gap-1">
+                                      <Store size={8} /> POS
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-right flex items-center gap-2">
+                                  <span className="text-emerald-700">₹{ord.totalAmount.toFixed(0)}</span>
+                                  <span className="text-[9px] font-bold text-slate-400">{format(new Date(ord.createdAt), 'dd MMM yy')}</span>
+                                </div>
+                              </div>
+
+                              {/* Breakdown strip */}
+                              {(cashAmt > 0 || upiAmt > 0 || ord.discountAmount > 0 || totalRefunded > 0) && (
+                                <div className="px-4 py-1.5 bg-slate-50/30 border-b border-slate-100/30 text-[9px] font-black uppercase text-slate-500 flex flex-wrap gap-2">
+                                  {cashAmt > 0 && <span className="text-emerald-600">Cash: ₹{cashAmt.toFixed(0)}</span>}
+                                  {upiAmt > 0 && <span className="text-purple-600">UPI: ₹{upiAmt.toFixed(0)}</span>}
+                                  {ord.discountAmount > 0 && <span className="text-rose-600">Discount: -₹{ord.discountAmount.toFixed(0)}</span>}
+                                  {totalRefunded > 0 && <span className="text-orange-600">Refunded: ₹{totalRefunded.toFixed(0)}</span>}
+                                </div>
+                              )}
+
+                              {/* Payable section for CREDIT orders */}
+                              {payMode === 'CREDIT' && (pendingDuesMap[ord.id] || 0) > 0 && (
+                                <div className="flex flex-col gap-2 px-4 py-2 bg-rose-50/50 border-b border-slate-100/30 text-[9px] font-black uppercase text-rose-800">
+                                  <div className="flex justify-between items-center">
+                                    <span>Credit Order Dues: ₹{(pendingDuesMap[ord.id] || 0).toFixed(0)}</span>
+                                    {payingOrderId !== ord.id ? (
+                                      <div className="flex gap-1.5">
+                                        <button
+                                          onClick={() => {
+                                            setPayingOrderId(ord.id);
+                                            setDuesPayMode('CASH');
+                                            setPayAmount((pendingDuesMap[ord.id] || 0).toString());
+                                          }}
+                                          className="px-2 py-0.5 bg-white hover:bg-amber-100 text-amber-800 border border-amber-200 rounded transition-all uppercase tracking-widest text-[8px]"
+                                        >
+                                          Pay Cash
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setPayingOrderId(ord.id);
+                                            setDuesPayMode('UPI');
+                                            setPayAmount((pendingDuesMap[ord.id] || 0).toString());
+                                          }}
+                                          className="px-2 py-0.5 bg-white hover:bg-purple-100 text-purple-800 border border-purple-200 rounded transition-all uppercase tracking-widest text-[8px]"
+                                        >
+                                          Pay UPI
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setPayingOrderId(null)}
+                                        className="text-slate-400 hover:text-slate-600 font-bold uppercase text-[8px]"
+                                      >
+                                        Cancel
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {payingOrderId === ord.id && (
+                                    <div className="flex flex-col gap-2 pt-1.5 border-t border-rose-200/40">
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex-1 space-y-0.5">
+                                          <span className="text-[7px] font-bold text-rose-600 block">Amount to Pay (via {duesPayMode})</span>
+                                          <div className="relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-rose-700 font-black">₹</span>
+                                            <input
+                                              type="number"
+                                              step="0.01"
+                                              max={pendingDuesMap[ord.id]}
+                                              value={payAmount}
+                                              onChange={(e) => setPayAmount(e.target.value)}
+                                              placeholder="0.00"
+                                              className="w-full bg-white border border-rose-200 rounded pl-5 pr-1.5 py-0.5 text-[10px] font-bold text-slate-900 outline-none"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <div className="flex-1 space-y-0.5">
+                                          <span className="text-[7px] font-bold text-slate-500 block">Balance Remaining</span>
+                                          <div className="bg-slate-100 border border-slate-200 rounded px-2 py-1 text-[10px] font-black text-slate-700">
+                                            ₹{Math.max(0, (pendingDuesMap[ord.id] || 0) - parseFloat(payAmount || 0)).toFixed(2)}
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          onClick={() => handlePayCreditOrder(ord.id, duesPayMode, payAmount)}
+                                          disabled={processingPayment || !payAmount}
+                                          className="bg-rose-600 text-white font-black px-3 py-1.5 rounded text-[8px] uppercase tracking-widest hover:bg-rose-700 disabled:opacity-50 transition-all flex items-center gap-1 shrink-0 self-end"
+                                        >
+                                          {processingPayment ? <Loader2 size={8} className="animate-spin" /> : <CheckCircle size={8} />}
+                                          Confirm
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Items list */}
+                              <div className="p-4 space-y-1.5">
+                                {ord.items?.map((item, i) => (
+                                  <div key={i} className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                                    <span className="uppercase">{item.product?.name || item.productName} (x{item.quantity})</span>
+                                    <span className="text-slate-900 font-black">₹{(item.price * item.quantity).toFixed(0)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      )})()}
     </div>
   );
 }
@@ -2510,7 +2950,7 @@ function StoreSelectionScreen({
         terminals={terminalList}
         onClose={() => setTerminalSelectionStore(null)}
         onSelect={(t) => {
-          navigate(`/vsms/pos?storeId=${terminalSelectionStore.id}&storeName=${encodeURIComponent(terminalSelectionStore.name)}&terminalId=${t.id}&terminalName=${encodeURIComponent(t.name)}`);
+          navigate(`/admin/pos?storeId=${terminalSelectionStore.id}&storeName=${encodeURIComponent(terminalSelectionStore.name)}&terminalId=${t.id}&terminalName=${encodeURIComponent(t.name)}`);
           setTerminalSelectionStore(null);
         }}
         navigate={navigate}
@@ -2523,7 +2963,7 @@ function StoreSelectionScreen({
       {/* Top Left Back Button */}
       <div className="absolute top-8 left-8">
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/admin')}
           className="p-3 bg-white hover:bg-slate-50 rounded-2xl text-slate-400 hover:text-emerald-600 transition-all group shadow-sm border border-slate-100 flex items-center gap-2"
           title="Back to Dashboard"
         >
@@ -2582,7 +3022,7 @@ function StoreSelectionScreen({
                     <tr 
                       key={s.id} 
                       className="group hover:bg-emerald-50/40 transition-colors cursor-pointer whitespace-nowrap"
-                      onClick={() => navigate(`/vsms/pos?storeId=${s.id}&storeName=${encodeURIComponent(s.name)}`)}
+                      onClick={() => navigate(`/admin/pos?storeId=${s.id}&storeName=${encodeURIComponent(s.name)}`)}
                     >
                       <td className="px-6 py-3">
                         <span className="text-[11px] font-black text-slate-400 group-hover:text-emerald-600 transition-colors">{s.code}</span>
@@ -2653,7 +3093,7 @@ function StoreSelectionScreen({
         {/* Footer Navigation */}
         <div className="mt-16 flex items-center justify-center gap-12">
           <button 
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/admin')}
             className="flex items-center gap-2 text-sm font-black text-slate-400 hover:text-slate-800 transition-all group"
           >
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
@@ -2761,7 +3201,7 @@ function TerminalSelectionScreen({ store, terminals, onClose, onSelect, navigate
 
         <div className="mt-12 text-center">
           <button 
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/admin')}
             className="text-sm font-black text-slate-400 hover:text-slate-800 transition-all flex items-center justify-center gap-2 mx-auto group"
           >
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />

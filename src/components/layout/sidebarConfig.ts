@@ -39,6 +39,7 @@ import {
   Star as StarIcon,
   AlertTriangle,
   ScanLine,
+  Printer,
   Receipt,
   Database,
   ArrowRightLeft,
@@ -167,6 +168,8 @@ export const initialStateCheckers = {
     pathname.startsWith("/procurement"),
   isPricingOpen: (pathname: string) =>
     pathname.startsWith("/pricing"),
+  isBarcodeOpen: (pathname: string) =>
+    pathname.startsWith("/vsms/barcodes"),
 };
 
 // Menu configuration
@@ -259,6 +262,17 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/pricing/product-pricing", label: "Product Pricing", icon: Tag },
       { path: "/pricing/price-comparison", label: "Price Comparison", icon: BarChart3 }
     ]
+  },
+  {
+    type: "collapsible",
+    label: "Barcode Management",
+    icon: ScanLine,
+    stateKey: "isBarcodeOpen",
+    activeCheck: (pathname: string) => pathname.startsWith("/vsms/barcodes"),
+    subItems: [
+      { path: '/vsms/barcodes?tab=master', label: 'Barcode Master', icon: ScanLine },
+      { path: '/vsms/barcodes?tab=printing', label: 'Barcode Printing', icon: Printer },
+    ],
   },
 
   // ORDERS & DELIVERY Section
