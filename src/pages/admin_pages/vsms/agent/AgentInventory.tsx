@@ -129,21 +129,14 @@ export default function AgentInventory() {
       }
 
       const newRefillItems: Record<string, number> = {};
-      let hasItemsToRefill = false;
 
       inventory.forEach(item => {
         const targetCapacity = Math.max(item.openingQuantity || 0, item.quantity);
         const diff = targetCapacity - item.quantity;
         if (diff > 0) {
           newRefillItems[item.product?.id || item.productId] = diff;
-          hasItemsToRefill = true;
         }
       });
-
-      if (!hasItemsToRefill) {
-        toast.error('Inventory is already at full capacity');
-        return;
-      }
 
       setRefillItems(newRefillItems);
       setShowRefillModal(true);
@@ -183,13 +176,7 @@ export default function AgentInventory() {
                 onClick={refillToInitial}
                 className="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors rounded-xl font-black text-xs flex items-center gap-2 shadow-sm border border-emerald-100"
               >
-                <Package size={16} /> Original
-              </button>
-              <button
-                onClick={fetchAllProductsForRefill}
-                className="px-3 py-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors rounded-xl font-black text-xs flex items-center gap-2 shadow-sm"
-              >
-                <Plus size={16} /> Custom
+                <Package size={16} /> Refill
               </button>
             </div>
           )}
@@ -487,7 +474,14 @@ export default function AgentInventory() {
               </div>
             </div>
             <div className="overflow-y-auto p-5 space-y-3 flex-1">
-              {allProducts.filter(p => p.name?.toLowerCase().includes(refillSearchQuery.toLowerCase())).map(p => {
+              {allProducts.filter(p => p.name?.toLowerCase().includes(refillSearchQuery.toLowerCase())).sort((a, b) => {
+                const aStock = inventory.find(i => i.productId === a.id)?.quantity || 0;
+                const bStock = inventory.find(i => i.productId === b.id)?.quantity || 0;
+                if (aStock > 0 && bStock === 0) return -1;
+                if (aStock === 0 && bStock > 0) return 1;
+                if (aStock !== bStock) return bStock - aStock;
+                return (a.name || '').localeCompare(b.name || '');
+              }).map(p => {
                 const currentStock = inventory.find(i => i.productId === p.id)?.quantity || 0;
                 const reqQty = refillItems[p.id] || 0;
                 return (
