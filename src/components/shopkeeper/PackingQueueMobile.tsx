@@ -3,12 +3,12 @@ import { ArrowLeft, Clock, Package, Play, AlertCircle } from "lucide-react";
 import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
 
-interface PackingQueueProps {
+interface PackingQueueMobileProps {
   onNavigate: (screen: string, data?: any) => void;
   onBack: () => void;
 }
 
-export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
+export function PackingQueueMobile({ onNavigate, onBack }: PackingQueueMobileProps) {
   const [packingOrders, setPackingOrders] = useState<any[]>([]);
   const socket = useSocket(1);
 

@@ -328,6 +328,7 @@ export default function ShopkeeperERP() {
     const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "all-orders"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper?tab=${dest}`);
+      setScreen(dest as Screen);
     } else {
       setScreen(dest as Screen);
     }

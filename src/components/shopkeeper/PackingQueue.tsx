@@ -5,12 +5,23 @@ import { useSharedOrders } from "./SharedOrdersContext";
 import Breadcrumbs from "../common/Breadcrumbs";
 import { SelectInput, SearchInput } from "../ui";
 
+import { PackingQueueMobile } from "./PackingQueueMobile";
+
 interface PackingQueueProps {
   onNavigate: (screen: string, data?: any) => void;
   onBack: () => void;
 }
 
 export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+
+  if (isStaffLogin) {
+    return <PackingQueueMobile onNavigate={onNavigate} onBack={onBack} />;
+  }
+
   const { orders: sharedOrders, refreshOrders } = useSharedOrders();
 
 
@@ -44,6 +55,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
       const pkRemaining = o.sla_minutes - pkElapsed;
       processedOrders.push({
         ...o,
+        itemsList: o.items,
         items: pickedCount,
         tray,
         urgent: acceptedMs ? pkRemaining <= 10 : o.sla_minutes < 15
@@ -396,8 +408,9 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                   <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[20%]">Assigned Shopkeeper</th>
                   <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Packing Tray</th>
                   <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Total Items</th>
+                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Packing Progress</th>
                   <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">SLA Status</th>
-                  <th style={{ width: "220px", minWidth: "220px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  <th style={{ width: "165px", minWidth: "165px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -453,6 +466,12 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                     slaBadgeClass = "bg-green-50 text-green-700 border-green-200";
                   }
 
+                  const itemsList = order.itemsList || [];
+                  const totalToPack = itemsList.filter((i: any) => i.is_picked).length || order.items || 0;
+                  const isCompletedVal = ["packed", "ready", "dispatched"].includes((order.status || "").toLowerCase());
+                  const packedCountVal = isCompletedVal ? totalToPack : (itemsList.filter((i: any) => i.is_picked && i.is_verified).length || 0);
+                  const pctVal = totalToPack > 0 ? Math.round((packedCountVal / totalToPack) * 100) : 0;
+
                   return (
                     <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors h-[64px]">
                       <td className="px-4 py-4 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
@@ -473,27 +492,47 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                         {order.items}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="font-bold text-gray-900 dark:text-gray-100 text-xs">{packedCountVal}/{totalToPack}</span>
+                          <div className="w-20 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
+                            <div
+                              className="h-full bg-green-500 rounded-full transition-all duration-300"
+                              style={{ width: `${pctVal}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${slaBadgeClass}`}>
                           {slaStatusText}
                         </span>
                       </td>
-                      <td style={{ width: "260px", minWidth: "260px" }} className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-2">
+                      <td style={{ width: "165px", minWidth: "165px" }} className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => onNavigate("order-details", order)}
-                            className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-255 transition-colors px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            className="flex items-center gap-1 text-[11px] font-bold text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-255 transition-colors px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                             title="View Details"
                           >
-                            <Eye size={14} />
+                            <Eye size={12} />
                             <span>View</span>
                           </button>
-                          <button
-                            onClick={() => onNavigate("packing-screen", order)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#EF5A06] hover:bg-[#D44F05] transition-colors px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap"
-                          >
-                            <Play size={12} fill="white" />
-                            <span>{isStarted ? "Resume Packing" : "Start Packing"}</span>
-                          </button>
+                          {(() => {
+                            const isFullVal = (packedCountVal === totalToPack && totalToPack > 0) || isCompletedVal;
+                            const isPartialVal = packedCountVal > 0 && packedCountVal < totalToPack;
+
+                            if (isFullVal) return null;
+
+                            return (
+                              <button
+                                onClick={() => onNavigate("packing-screen", order)}
+                                className="flex items-center gap-1 text-[11px] font-bold text-white bg-[#EF5A06] hover:bg-[#D44F05] transition-colors px-2.5 py-1 rounded-lg shadow-sm whitespace-nowrap"
+                              >
+                                <Play size={10} fill="white" />
+                                <span>{isPartialVal ? "Resume Packing" : "Start Packing"}</span>
+                              </button>
+                            );
+                          })()}
                         </div>
                       </td>
                     </tr>
@@ -530,8 +569,8 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                       <td className="px-4 py-2">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${isActive
-                              ? "bg-orange-50 text-orange-700 border-orange-200"
-                              : "bg-green-50 text-green-700 border-green-200"
+                            ? "bg-orange-50 text-orange-700 border-orange-200"
+                            : "bg-green-50 text-green-700 border-green-200"
                             }`}
                         >
                           {isActive ? "Occupied" : "Available"}

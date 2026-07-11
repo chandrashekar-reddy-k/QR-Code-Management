@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, CheckCircle, Scan, Package, Loader2, XCircle } from "lucide-react";
+import { ArrowLeft, MapPin, CheckCircle, Scan, Package, Loader2, XCircle, ChevronRight } from "lucide-react";
 import api from "../../api/axios";
+import { PickingScreenMobile } from "./PickingScreenMobile";
 
 interface PickingScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -23,18 +24,109 @@ function LocationBadge({ location }: { location: string }) {
 }
 
 export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps) {
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+
+  // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile green banner UI
+  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+
+  if (isStaffLogin) {
+    return <PickingScreenMobile onNavigate={onNavigate} onBack={onBack} order={order} />;
+  }
+
+  // Partner / Admin login uses the standard portal desktop header
   const [items, setItems] = useState<any[]>([]);
+  const currentIdx = items.findIndex(item => !item.is_picked && !item.is_rejected);
+  const currentItem = currentIdx >= 0 ? items[currentIdx] : null;
+
   const [loading, setLoading] = useState(true);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRejectReason, setSelectedRejectReason] = useState<string>("");
   const [rejectRemarks, setRejectRemarks] = useState<string>("");
   const [rejectingItem, setRejectingItem] = useState<any>(null);
   const [validationError, setValidationError] = useState<string>("");
+  const [elapsedTime, setElapsedTime] = useState("");
+  const [lastActivity, setLastActivity] = useState<string>("—");
+  const [barcodeInput, setBarcodeInput] = useState("");
+
+  useEffect(() => {
+    setBarcodeInput("");
+  }, [currentItem?.id]);
+
+  const formatTimeOnly = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatOrderDateTime = (dateStr?: string): string => {
+    if (!dateStr) return "—";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "—";
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+
+    return `${day}-${month}-${year}, ${hours}:${minutes} ${ampm}`;
+  };
+
+  useEffect(() => {
+    const startVal = order?.picking_started_at || order?.pickingStartedAt || order?.accepted_at || order?.createdAt || order?.created_at;
+    if (!startVal) {
+      setElapsedTime("—");
+      return;
+    }
+    const startTime = new Date(startVal).getTime();
+    if (isNaN(startTime)) {
+      setElapsedTime("—");
+      return;
+    }
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diffMs = now - startTime;
+      if (diffMs < 0) {
+        setElapsedTime("0s");
+        return;
+      }
+      const totalSecs = Math.floor(diffMs / 1000);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      const hrs = Math.floor(mins / 60);
+
+      if (hrs > 0) {
+        setElapsedTime(`${hrs}h ${mins % 60}m ${secs}s`);
+      } else if (mins > 0) {
+        setElapsedTime(`${mins}m ${secs}s`);
+      } else {
+        setElapsedTime(`${secs}s`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [order]);
 
   useEffect(() => {
     if (!order?.id) return;
     api.get(`/orders/${order.id}`).then(async res => {
       setItems(res.data.items || []);
+
+      const activityVal = res.data.updated_at || res.data.updatedAt || order?.updated_at || order?.updatedAt;
+      if (activityVal) {
+        setLastActivity(formatTimeOnly(activityVal));
+      }
 
       // If the order is still "accepted", mark it as "picking" to trigger picking_started_at
       if (res.data.status === 'accepted') {
@@ -54,7 +146,6 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
   const handlePick = async (itemId: number) => {
     try {
-      // Local state update immediately
       const newItems = items.map(item =>
         item.id === itemId ? { ...item, is_picked: true, picked_qty: item.quantity } : item
       );
@@ -62,6 +153,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
       // 1. Wait for the API call to complete so backend updates the db and sets timestamps
       await api.put(`/orders/${order.id}/items/${itemId}/pick`);
+      setLastActivity(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
       // 2. Check if all items are now processed
       const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
@@ -70,7 +162,6 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
           const updatedOrderRes = await api.get(`/orders/${order.id}`);
           onNavigate("picking-complete", { ...updatedOrderRes.data, items: newItems });
         } catch (e) {
-          // fallback
           onNavigate("picking-complete", {
             ...order,
             items: newItems,
@@ -91,15 +182,14 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
     }
 
     try {
-      // Local state update immediately
       const newItems = items.map(item =>
         item.id === rejectingItem.id
           ? {
-              ...item,
-              is_rejected: true,
-              reject_reason: selectedRejectReason,
-              reject_remarks: rejectRemarks
-            }
+            ...item,
+            is_rejected: true,
+            reject_reason: selectedRejectReason,
+            reject_remarks: rejectRemarks
+          }
           : item
       );
       setItems(newItems);
@@ -110,6 +200,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
         reason: selectedRejectReason,
         remarks: rejectRemarks
       });
+      setLastActivity(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
       // 2. Check if all items are now processed
       const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
@@ -118,7 +209,6 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
           const updatedOrderRes = await api.get(`/orders/${order.id}`);
           onNavigate("picking-complete", { ...updatedOrderRes.data, items: newItems });
         } catch (e) {
-          // fallback
           onNavigate("picking-complete", {
             ...order,
             items: newItems,
@@ -139,7 +229,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F3F4F6] items-center justify-center">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
       </div>
     );
@@ -147,165 +237,271 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
   const completedItems = items.filter(i => i.is_picked || i.is_rejected);
   const totalCompleted = completedItems.length;
-  const currentIdx = items.findIndex(item => !item.is_picked && !item.is_rejected);
-  const currentItem = currentIdx >= 0 ? items[currentIdx] : null;
   const percentCompleted = items.length ? Math.round((totalCompleted / items.length) * 100) : 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
-      <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-            <ArrowLeft size={20} color="white" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Picking — #{order?.order_number}</h1>
-            <p className="text-white/70" style={{ fontSize: "12px" }}>{order?.order_type} · SLA: {order?.sla_minutes}m</p>
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6]">
+      {/* Standard Partner Portal Header */}
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200">
+        {/* Inline breadcrumb nav */}
+        <nav className="text-xs text-gray-500 flex items-center gap-1 mb-3">
+          <button onClick={() => onNavigate("dashboard")} className="hover:text-green-600 transition-colors">Home</button>
+          <ChevronRight size={12} />
+          <button onClick={() => onNavigate("picking-queue")} className="hover:text-green-600 transition-colors">Picking Queue</button>
+          <ChevronRight size={12} />
+          <span className="font-medium text-orange-600">Order #{order?.order_number}</span>
+        </nav>
+        <div className="mt-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Picking Order #{order?.order_number}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <span className="text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-md">
+                Delivery: {order?.order_type || 'STANDARD'}
+              </span>
+              <span className="text-xs font-semibold bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 rounded-md">
+                SLA: {order?.sla_minutes || 30} mins
+              </span>
+              <span className={`text-xs font-semibold border px-2 py-0.5 rounded-md ${
+                (order?.priority || 'NORMAL').toUpperCase() === 'HIGH' 
+                  ? 'bg-orange-50 text-orange-700 border-orange-100' 
+                  : 'bg-gray-50 text-gray-700 border-gray-100'
+              }`}>
+                Priority: {order?.priority || 'NORMAL'}
+              </span>
+              <span className="text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-md">
+                Placed: {formatOrderDateTime(order?.created_at || order?.createdAt)}
+              </span>
+            </div>
           </div>
+          <button onClick={onBack} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm">
+            <ArrowLeft size={16} /> Back
+          </button>
         </div>
 
-        <div className="bg-white/10 rounded-2xl p-3">
+        {/* Progress bar directly below the header */}
+        <div className="mt-6 bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Processed: {totalCompleted} / {items.length}</span>
-            <span className="text-white/70" style={{ fontSize: "12px" }}>{percentCompleted}%</span>
+            <div className="flex items-center gap-4 text-gray-700 font-semibold text-sm">
+              <span>Items Picked: <span className="text-[#00891D]">{totalCompleted} / {items.length} ({percentCompleted}%)</span></span>
+              <span className="text-gray-300">|</span>
+              <span>Remaining Items: <span className="text-orange-600">{items.length - totalCompleted}</span></span>
+            </div>
+            <span className="text-[#00891D] font-extrabold text-sm">{percentCompleted}%</span>
           </div>
-          <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${percentCompleted}%`, backgroundColor: "#4CAF50" }}
+              className="h-full bg-[#00891D] transition-all duration-500"
+              style={{ width: `${percentCompleted}%` }}
             />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 p-4">
+      <div className="flex flex-col gap-3 p-4 sm:p-6 lg:p-8">
+        {/* Order Summary Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 grid grid-cols-5 gap-4 divide-x divide-gray-100">
+          <div className="flex flex-col items-center justify-center text-center">
+            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Shopkeeper</span>
+            <span className="text-gray-900 font-bold text-xs sm:text-sm mt-1 truncate max-w-full">
+              {order?.shopkeeper_name || order?.shopkeeper?.name || "Unassigned"}
+            </span>
+          </div>
+          <div className="flex flex-col items-center justify-center text-center pl-4">
+            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Started At</span>
+            <span className="text-gray-900 font-bold text-xs sm:text-sm mt-1">
+              {formatTimeOnly(order?.picking_started_at || order?.pickingStartedAt || order?.accepted_at)}
+            </span>
+          </div>
+          <div className="flex flex-col items-center justify-center text-center pl-4">
+            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Last Activity</span>
+            <span className="text-gray-900 font-bold text-xs sm:text-sm mt-1">{lastActivity}</span>
+          </div>
+          <div className="flex flex-col items-center justify-center text-center pl-4">
+            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Remaining</span>
+            <span className="text-gray-900 font-bold text-xs sm:text-sm mt-1">
+              {items.filter(i => !i.is_picked && !i.is_rejected).length}
+            </span>
+          </div>
+          <div className="flex flex-col items-center justify-center text-center pl-4">
+            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Elapsed Time</span>
+            <span className="text-green-600 font-bold text-xs sm:text-sm mt-1">{elapsedTime}</span>
+          </div>
+        </div>
+
         {currentItem && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-2 border-green-300">
-            <div className="bg-green-600 px-4 py-2 flex items-center gap-2">
-              <span className="text-white" style={{ fontWeight: 600, fontSize: "12px" }}>CURRENT ITEM — Pick this next</span>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-green-600 px-4 py-2 flex items-center justify-between">
+              <span className="text-white font-bold text-xs tracking-wider uppercase">Current Item to Pick</span>
+              {barcodeInput === currentItem.barcode ? (
+                <span className="bg-white text-green-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">Verified</span>
+              ) : (
+                <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Pending Verification</span>
+              )}
             </div>
-            <div className="p-4">
-              <div className="flex items-start gap-4">
-                <div className="w-20 h-20 rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden">
+            <div className="p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6">
+              {/* Product Image & Info */}
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-100 flex-shrink-0">
                   {currentItem.image_url ? (
                     <img src={currentItem.image_url} alt={currentItem.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span style={{ fontSize: "40px" }}>📦</span>
+                    <span className="text-3xl">📦</span>
                   )}
                 </div>
-                <div className="flex-1">
-                  <p className="text-gray-900 mb-1" style={{ fontWeight: 700, fontSize: "16px" }}>{currentItem.name}</p>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Package size={13} color="#00891D" />
-                    <span className="text-green-700" style={{ fontWeight: 600, fontSize: "13px" }}>Qty: {currentItem.quantity}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin size={13} color="#9E9E9E" />
-                    <LocationBadge location={currentItem.aisle_location} />
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-gray-900 font-extrabold text-base truncate">{currentItem.name}</h4>
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-500">
+                    {currentItem.sku && (
+                      <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600 font-mono text-[11px]">SKU: {currentItem.sku}</span>
+                    )}
+                    <span className="flex items-center gap-1 font-semibold text-green-700">
+                      <Package size={12} /> Qty: {currentItem.quantity}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <MapPin size={12} className="text-gray-400" />
+                      <LocationBadge location={currentItem.aisle_location} />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-3 bg-gray-50 rounded-xl p-2.5 flex items-center justify-between">
-                <span className="text-gray-400" style={{ fontSize: "11px", fontFamily: "monospace" }}>Barcode: {currentItem.barcode}</span>
-
+              {/* Barcode Input & Status */}
+              <div className="w-full lg:w-64 flex-shrink-0">
+                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Barcode Input</label>
+                <div className="relative">
+                  <Scan size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Scan or Enter Barcode"
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    className={`w-full pl-9 pr-8 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all ${
+                      barcodeInput === currentItem.barcode 
+                        ? "border-green-500 focus:ring-green-200 bg-green-50/30" 
+                        : barcodeInput 
+                          ? "border-red-300 focus:ring-red-100 bg-red-50/10" 
+                          : "border-gray-300 focus:ring-green-100"
+                    }`}
+                  />
+                  {barcodeInput && (
+                    <button 
+                      onClick={() => setBarcodeInput("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="flex gap-2.5 mt-3">
-                <button
-                  onClick={() => onNavigate("barcode-verification", { ...order, currentItem })}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-3 border-2 border-green-200 hover:bg-green-50 transition-colors"
-                >
-                  <Scan size={15} color="#00891D" />
-                  <span style={{ color: "#00891D", fontWeight: 600, fontSize: "13px" }}>Verify</span>
-                </button>
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => {
                     setRejectingItem(currentItem);
                     setShowRejectModal(true);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-3 bg-[#D32F2F] hover:bg-red-700 transition-colors"
+                  className="px-4 py-2 bg-red-50 hover:bg-red-100 text-[#D32F2F] rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 border border-red-200"
                 >
-                  <XCircle size={15} color="white" />
-                  <span className="text-white" style={{ fontWeight: 600, fontSize: "13px" }}>Reject</span>
+                  <XCircle size={15} /> Reject
+                </button>
+                <button
+                  onClick={() => onNavigate("barcode-verification", { ...order, currentItem })}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-1.5 shadow-sm"
+                >
+                  <Scan size={15} /> Verify
                 </button>
                 <button
                   onClick={() => handlePick(currentItem.id)}
-                  className="flex-[1.5] flex items-center justify-center gap-1.5 rounded-xl py-3 bg-[#00891D] hover:bg-[#006614] transition-colors"
+                  className="px-5 py-2 bg-[#00891D] hover:bg-[#006614] text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
                 >
-                  <CheckCircle size={15} color="white" />
-                  <span className="text-white" style={{ fontWeight: 600, fontSize: "13px" }}>
-                    Mark Picked
-                  </span>
+                  <CheckCircle size={15} /> Mark Picked
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm p-4">
-          <h3 className="text-gray-700 mb-3" style={{ fontWeight: 600, fontSize: "13px" }}>All Items</h3>
-          <div className="flex flex-col gap-2">
-            {items.map((item) => {
-              const isPicked = item.is_picked;
-              const isRejected = item.is_rejected;
-              const isCurrent = item.id === currentItem?.id;
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 py-2.5 px-3 rounded-xl border border-gray-100"
-                  style={{
-                    backgroundColor: isRejected
-                      ? "#FFEBEE"
-                      : isPicked
-                      ? "#E8F5E9"
-                      : isCurrent
-                      ? "#EDE7F6"
-                      : "#FFFFFF"
-                  }}
-                >
-                  <div className="w-10 h-10 rounded bg-white flex items-center justify-center text-xl overflow-hidden shadow-sm">
-                    {item.image_url ? <img src={item.image_url} alt="" /> : '📦'}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <p
-                        style={{
-                          fontWeight: 600,
-                          fontSize: "14px",
-                          color: isRejected
-                            ? "#C62828"
-                            : isPicked
-                            ? "#2E7D32"
-                            : "#212121"
-                        }}
-                      >
-                        {item.name}
-                      </p>
-                    </div>
-                    <p style={{ fontSize: "13px", color: "#757575", fontWeight: 500, marginTop: "2px" }}>
-                      Qty: {item.quantity} · Location: <span style={{ color: "#D32F2F", fontWeight: 700 }}>{item.aisle_location}</span>
-                    </p>
-                    {isRejected && (
-                      <p style={{ fontSize: "12px", color: "#C62828", fontWeight: 600, marginTop: "4px" }}>
-                        Rejected: {item.reject_reason}
-                      </p>
-                    )}
-                  </div>
-                  {isPicked ? (
-                    <span style={{ color: "#2E7D32", fontWeight: 800, fontSize: "18px" }}>✓</span>
-                  ) : isRejected ? (
-                    <span style={{ color: "#C62828", fontWeight: 800, fontSize: "16px" }}>✕</span>
-                  ) : isCurrent ? (
-                    <span className="bg-[#673AB7] text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
-                      Current
-                    </span>
-                  ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
-                  )}
-                </div>
-              );
-            })}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-gray-900 font-extrabold text-sm uppercase tracking-wider">All Items</h3>
+            <span className="text-xs text-gray-500 font-medium">{items.length} items total</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                  <th className="px-6 py-3">Product</th>
+                  <th className="px-6 py-3 text-center">Quantity</th>
+                  <th className="px-6 py-3">Picking Location</th>
+                  <th className="px-6 py-3 text-right">Picking Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {items.map((item) => {
+                  const isPicked = item.is_picked;
+                  const isRejected = item.is_rejected;
+                  const isCurrent = item.id === currentItem?.id;
+
+                  let statusBadge = (
+                    <span className="bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 text-[11px] font-semibold">Pending</span>
+                  );
+                  if (isPicked) {
+                    statusBadge = (
+                      <span className="bg-green-100 text-green-800 rounded-full px-2.5 py-1 text-[11px] font-bold">Picked</span>
+                    );
+                  } else if (isRejected) {
+                    statusBadge = (
+                      <span className="bg-red-100 text-red-800 rounded-full px-2.5 py-1 text-[11px] font-bold">Rejected</span>
+                    );
+                  } else if (isCurrent) {
+                    statusBadge = (
+                      <span className="bg-[#00891D] text-white rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm animate-pulse">Current</span>
+                    );
+                  }
+
+                  return (
+                    <tr
+                      key={item.id}
+                      className={`transition-colors ${
+                        isCurrent 
+                          ? "bg-green-50/40 hover:bg-green-50/60 font-semibold" 
+                          : isPicked 
+                            ? "bg-gray-50/20 hover:bg-gray-50/40" 
+                            : isRejected 
+                              ? "bg-red-50/10 hover:bg-red-50/20" 
+                              : "hover:bg-gray-50/50"
+                      }`}
+                    >
+                      <td className="px-6 py-3.5 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded bg-gray-50 flex items-center justify-center text-lg overflow-hidden border border-gray-100 flex-shrink-0">
+                          {item.image_url ? <img src={item.image_url} alt="" className="w-full h-full object-cover" /> : '📦'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`text-sm font-bold truncate ${isPicked ? "text-gray-400 line-through font-medium" : "text-gray-900"}`}>
+                            {item.name}
+                          </p>
+                          {isRejected && (
+                            <p className="text-red-600 text-xs font-semibold mt-0.5">Reason: {item.reject_reason}</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5 text-center text-sm font-extrabold text-gray-700">
+                        {item.quantity}
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <LocationBadge location={item.aisle_location} />
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        {statusBadge}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -333,11 +529,10 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                 ].map((reason) => (
                   <label
                     key={reason}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                      selectedRejectReason === reason
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${selectedRejectReason === reason
                         ? "border-[#D32F2F] bg-red-50/50"
                         : "border-gray-200 hover:border-gray-300 bg-gray-50"
-                    }`}
+                      }`}
                   >
                     <input
                       type="radio"

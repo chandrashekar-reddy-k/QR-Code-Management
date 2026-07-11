@@ -641,7 +641,7 @@ const Dashboard = () => {
                 className="w-full min-w-[280px] min-h-[180px]"
                 style={{ height: 220 }}
               >
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={220} minWidth={1}>
                   <ComposedChart
                     data={ordersChartData}
                     margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
@@ -785,7 +785,7 @@ const Dashboard = () => {
                 className="relative flex w-full min-w-[280px] min-h-[180px] items-center justify-center"
                 style={{ height: 200 }}
               >
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={200} minWidth={1}>
                   <PieChart>
                     <Pie
                       data={orderStatusData}

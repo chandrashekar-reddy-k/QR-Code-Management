@@ -714,7 +714,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                   <p className="text-[#9EA3AE] text-[12px] mt-0.5">This Week · Mon–Sun</p>
                 </div>
                 <div className="w-full outline-none focus:outline-none" style={{ outline: 'none' }}>
-                  <ResponsiveContainer width="100%" height={260}>
+                  <ResponsiveContainer width="100%" height={260} minWidth={1}>
                     <BarChart
                       data={weeklyData}
                       margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
@@ -983,7 +983,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
             </span>
           </div>
           <div className="w-full outline-none focus:outline-none" style={{ outline: 'none' }}>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={260} minWidth={1}>
               <BarChart
                 data={weeklyData}
                 margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
