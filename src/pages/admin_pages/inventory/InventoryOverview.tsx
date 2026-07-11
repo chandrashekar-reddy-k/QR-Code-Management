@@ -568,16 +568,16 @@ const InventoryOverview = () => {
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8 pb-6">
       {isCreatingBatch ? (
-        <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6 mt-6">
-          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="w-full bg-white rounded-xl shadow-md border border-gray-200 p-6 mt-6">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
             <button
               onClick={() => setIsCreatingBatch(false)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center text-gray-500 dark:text-gray-400"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center text-gray-500"
               type="button"
             >
               <ArrowLeft size={20} />
             </button>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            <h2 className="text-lg font-bold text-gray-900">
               Create New Inventory Batch
             </h2>
           </div>
@@ -585,7 +585,7 @@ const InventoryOverview = () => {
           <form onSubmit={handleCreateBatchSubmit} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Batch Number *
                 </label>
                 <input
@@ -594,12 +594,12 @@ const InventoryOverview = () => {
                   value={batchNumber}
                   onChange={(e) => setBatchNumber(e.target.value)}
                   placeholder="e.g. BAT-2026-001"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Lot Number
                 </label>
                 <input
@@ -607,12 +607,12 @@ const InventoryOverview = () => {
                   value={lotNumber}
                   onChange={(e) => setLotNumber(e.target.value)}
                   placeholder="e.g. LOT-AB-12"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:text-white"
                 />
               </div>
 
               <div className="col-span-1 sm:col-span-2 relative" ref={productDropdownRef}>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Product *
                 </label>
                 <div className="relative">
@@ -632,7 +632,7 @@ const InventoryOverview = () => {
                       setIsProductDropdownOpen(true);
                     }}
                     placeholder="Search and select a product..."
-                    className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:text-white"
                   />
                   <ChevronDown size={16} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
@@ -641,7 +641,7 @@ const InventoryOverview = () => {
                 <input type="text" required value={batchProductId} readOnly className="sr-only" tabIndex={-1} />
 
                 {isProductDropdownOpen && (
-                  <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
                     {filteredProductsList.length > 0 ? (
                       filteredProductsList.map((prod: any) => (
                         <div
@@ -654,7 +654,7 @@ const InventoryOverview = () => {
                           }}
                           className={`px-3 py-2 text-sm cursor-pointer hover:bg-orange-50 dark:hover:bg-gray-600 ${batchProductId === prod.id
                             ? 'bg-orange-100 dark:bg-gray-600 font-semibold text-orange-700 dark:text-orange-300'
-                            : 'text-gray-700 dark:text-gray-200'
+                            : 'text-gray-700'
                             }`}
                         >
                           {prod.name}
@@ -669,7 +669,7 @@ const InventoryOverview = () => {
 
               {variantsList.length > 0 ? (
                 <div className="col-span-1 sm:col-span-2 relative" ref={variantDropdownRef}>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
                     Variant
                   </label>
                   <div className="relative">
@@ -691,13 +691,13 @@ const InventoryOverview = () => {
                         setIsVariantDropdownOpen(true);
                       }}
                       placeholder="Search and select a variant..."
-                      className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:text-white"
                     />
                     <ChevronDown size={16} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
 
                   {isVariantDropdownOpen && (
-                    <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
                       <div
                         onClick={() => {
                           setBatchVariantId('');
@@ -706,7 +706,7 @@ const InventoryOverview = () => {
                         }}
                         className={`px-3 py-2 text-sm cursor-pointer hover:bg-orange-50 dark:hover:bg-gray-600 ${batchVariantId === ''
                           ? 'bg-orange-100 dark:bg-gray-600 font-semibold text-orange-700 dark:text-orange-300'
-                          : 'text-gray-700 dark:text-gray-200'
+                          : 'text-gray-700'
                           }`}
                       >
                         Standard / None
@@ -722,7 +722,7 @@ const InventoryOverview = () => {
                             }}
                             className={`px-3 py-2 text-sm cursor-pointer hover:bg-orange-50 dark:hover:bg-gray-600 ${batchVariantId === v.id
                               ? 'bg-orange-100 dark:bg-gray-600 font-semibold text-orange-700 dark:text-orange-300'
-                              : 'text-gray-700 dark:text-gray-200'
+                              : 'text-gray-700'
                               }`}
                           >
                             {v.variantName}
@@ -739,14 +739,14 @@ const InventoryOverview = () => {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Location *
                 </label>
                 <select
                   required
                   value={batchLocationId}
                   onChange={(e) => setBatchLocationId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:text-white"
                 >
                   <option value="">Select Location</option>
                   {apiLocationsList.map((loc: any) => (
@@ -758,7 +758,7 @@ const InventoryOverview = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Quantity *
                 </label>
                 <input
@@ -768,40 +768,40 @@ const InventoryOverview = () => {
                   value={batchQuantity}
                   onChange={(e) => setBatchQuantity(e.target.value === '' ? '' : Number(e.target.value))}
                   placeholder="e.g. 100"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Mfg Date
                 </label>
                 <input
                   type="date"
                   value={batchMfgDate}
                   onChange={(e) => setBatchMfgDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Expiry Date
                 </label>
                 <input
                   type="date"
                   value={batchExpDate}
                   onChange={(e) => setBatchExpDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 dark:text-white"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => setIsCreatingBatch(false)}
-                className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -819,7 +819,7 @@ const InventoryOverview = () => {
         <div className="w-full">
           {/* Page Title */}
           <div className="mb-4 mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
               Inventory Command Center
             </h1>
           </div>
@@ -830,7 +830,7 @@ const InventoryOverview = () => {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
+          <div className="flex flex-wrap gap-2 border-b border-gray-200 mb-6">
             <button
               onClick={() => setActiveTab('overview')}
               className={`flex items-center gap-2 px-4 py-2.5 font-medium text-sm border-b-2 transition-all ${activeTab === 'overview'
@@ -885,9 +885,9 @@ const InventoryOverview = () => {
 
               {/* Filters and Search */}
               <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-wrap items-stretch divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-wrap items-stretch divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 overflow-hidden">
                   <div className="px-3 py-3 flex items-center justify-center flex-shrink-0">
-                    <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+                    <Filter size={18} className="text-gray-700" />
                   </div>
 
                   {/* Loc Type Filter */}
@@ -980,7 +980,7 @@ const InventoryOverview = () => {
               </div>
 
               {/* Table */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <div className="min-w-[1300px]">
                     <DataTable
@@ -990,7 +990,7 @@ const InventoryOverview = () => {
                           key: 'thumbnail',
                           label: 'IMAGE',
                           render: (snapshot: InventorySnapshot) => (
-                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-400 dark:text-gray-500 shrink-0">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-400 shrink-0">
                               {(snapshot as any).image ? (
                                 <img src={(snapshot as any).image} className="w-full h-full object-cover" alt="" />
                               ) : (
@@ -1004,8 +1004,8 @@ const InventoryOverview = () => {
                           label: 'PRODUCT + VARIANT',
                           render: (snapshot: InventorySnapshot) => (
                             <div>
-                              <div className="font-semibold text-gray-800 dark:text-gray-200">{snapshot.productName}</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">{snapshot.variantLabel}</div>
+                              <div className="font-semibold text-gray-800">{snapshot.productName}</div>
+                              <div className="text-xs text-gray-600">{snapshot.variantLabel}</div>
                             </div>
                           ),
                         },
@@ -1013,42 +1013,42 @@ const InventoryOverview = () => {
                           key: 'sku',
                           label: 'SKU',
                           render: (snapshot: InventorySnapshot) => (
-                            <span className="font-mono text-xs text-gray-700 dark:text-gray-300">{snapshot.sku}</span>
+                            <span className="font-mono text-xs text-gray-700">{snapshot.sku}</span>
                           ),
                         },
                         {
                           key: 'locationName',
                           label: 'LOCATION',
                           render: (snapshot: InventorySnapshot) => (
-                            <span className="text-gray-700 dark:text-gray-300">{snapshot.locationName}</span>
+                            <span className="text-gray-700">{snapshot.locationName}</span>
                           ),
                         },
                         {
                           key: 'onHand',
                           label: 'ON HAND',
                           render: (snapshot: InventorySnapshot) => (
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{snapshot.onHand}</span>
+                            <span className="font-semibold text-gray-900">{snapshot.onHand}</span>
                           ),
                         },
                         {
                           key: 'reserved',
                           label: 'RESERVED',
                           render: (snapshot: InventorySnapshot) => (
-                            <span className="text-gray-600 dark:text-gray-400">{snapshot.reserved}</span>
+                            <span className="text-gray-600">{snapshot.reserved}</span>
                           ),
                         },
                         {
                           key: 'vehicleStock',
                           label: 'VEHICLE STOCK',
                           render: (snapshot: InventorySnapshot) => (
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">{(snapshot as any).vehicleStock || 0}</span>
+                            <span className="font-semibold text-gray-700">{(snapshot as any).vehicleStock || 0}</span>
                           ),
                         },
                         {
                           key: 'inbound',
                           label: 'INBOUND',
                           render: (snapshot: InventorySnapshot) => (
-                            <span className="text-gray-700 dark:text-gray-300">{snapshot.inbound || 0}</span>
+                            <span className="text-gray-700">{snapshot.inbound || 0}</span>
                           ),
                         },
                         {
@@ -1105,9 +1105,9 @@ const InventoryOverview = () => {
 
                 {/* Pagination */}
                 {filteredAndSorted.length > 0 && (
-                  <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="px-4 py-3 border-t border-gray-200">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                         <span>Show</span>
                         <select
                           value={itemsPerPage}
@@ -1115,7 +1115,7 @@ const InventoryOverview = () => {
                             setItemsPerPage(Number(e.target.value));
                             setCurrentPage(1);
                           }}
-                          className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
+                          className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white text-gray-800 focus:outline-none"
                         >
                           <option value={5}>5</option>
                           <option value={10}>10</option>
@@ -1147,16 +1147,16 @@ const InventoryOverview = () => {
           )}
 
           {activeTab === 'locations' && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
-              <h3 className="text-md font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <h3 className="text-md font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Layers size={18} className="text-orange-500" />
                 Location Hierarchy Tree
               </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-xs text-gray-600 mb-6">
                 Manage your nested spaces. Stock is allocated at the leaf level (e.g. Rack, Bin, or Vehicle) and aggregates up the node chain.
               </p>
 
-              <div className="space-y-2 max-w-lg border border-gray-150 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/40">
+              <div className="space-y-2 max-w-lg border border-gray-150 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/40">
                 {/* Tree Root */}
                 {apiLocationsList.length > 0 && apiLocationsList.some(l => l.parentId !== undefined) ? (
                   apiLocationsList.filter((loc: any) => !loc.parentId).map((rootLoc: any) => {
@@ -1169,10 +1169,10 @@ const InventoryOverview = () => {
                             {childLocs.length > 0 ? (rootExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />) : <span className="w-4" />}
                           </span>
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">{rootLoc.type}</span>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{rootLoc.name}</span>
+                          <span className="text-sm font-semibold text-gray-800">{rootLoc.name}</span>
                         </div>
                         {rootExpanded && childLocs.length > 0 && (
-                          <div className="pl-6 border-l border-gray-200 dark:border-gray-700 ml-5 mt-1 space-y-1">
+                          <div className="pl-6 border-l border-gray-200 ml-5 mt-1 space-y-1">
                             {childLocs.map((childLoc: any) => {
                               const childExpanded = expandedNodes[childLoc.code] ?? true;
                               const grandChildLocs = apiLocationsList.filter((l: any) => l.parentId === childLoc.code);
@@ -1183,15 +1183,15 @@ const InventoryOverview = () => {
                                       {grandChildLocs.length > 0 ? (childExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />) : <span className="w-4" />}
                                     </span>
                                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">{childLoc.type}</span>
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{childLoc.name}</span>
+                                    <span className="text-sm font-medium text-gray-700">{childLoc.name}</span>
                                   </div>
                                   {childExpanded && grandChildLocs.length > 0 && (
-                                    <div className="pl-6 border-l border-gray-200 dark:border-gray-700 ml-5 mt-1 space-y-1">
+                                    <div className="pl-6 border-l border-gray-200 ml-5 mt-1 space-y-1">
                                       {grandChildLocs.map((grandChildLoc: any) => (
                                         <div className="flex items-center gap-2 py-1 px-3" key={grandChildLoc.code}>
                                           <span className="w-1.5 h-1.5 bg-orange-400 rounded-full" />
                                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{grandChildLoc.type}</span>
-                                          <span className="text-xs text-gray-600 dark:text-gray-400">{grandChildLoc.name}</span>
+                                          <span className="text-xs text-gray-600">{grandChildLoc.name}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -1211,26 +1211,26 @@ const InventoryOverview = () => {
                         {expandedNodes['root-wh'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                       </span>
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">WH</span>
-                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Central Warehouse A (Primary WH)</span>
+                      <span className="text-sm font-semibold text-gray-800">Central Warehouse A (Primary WH)</span>
                     </div>
 
                     {expandedNodes['root-wh'] && (
-                      <div className="pl-6 border-l border-gray-200 dark:border-gray-700 ml-5 mt-1 space-y-1">
+                      <div className="pl-6 border-l border-gray-200 ml-5 mt-1 space-y-1">
                         {/* Store Child */}
                         <div className="flex items-center gap-2 py-1.5 px-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer" onClick={() => toggleNode('store-1')}>
                           <span className="text-gray-400">
                             {expandedNodes['store-1'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           </span>
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">STORE</span>
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Store Branch 1 (Vijayawada)</span>
+                          <span className="text-sm font-medium text-gray-700">Store Branch 1 (Vijayawada)</span>
                         </div>
 
                         {expandedNodes['store-1'] && (
-                          <div className="pl-6 border-l border-gray-200 dark:border-gray-700 ml-5 mt-1 space-y-1">
+                          <div className="pl-6 border-l border-gray-200 ml-5 mt-1 space-y-1">
                             <div className="flex items-center gap-2 py-1 px-3">
                               <span className="w-1.5 h-1.5 bg-orange-400 rounded-full" />
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">VEHICLE</span>
-                              <span className="text-xs text-gray-600 dark:text-gray-400">Delivery Vehicle AP-16-TX (Active)</span>
+                              <span className="text-xs text-gray-600">Delivery Vehicle AP-16-TX (Active)</span>
                             </div>
                           </div>
                         )}
@@ -1238,8 +1238,8 @@ const InventoryOverview = () => {
                         {/* Standard Rack */}
                         <div className="flex items-center gap-2 py-1 px-3">
                           <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">RACK</span>
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Receiving Staging Zone</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-800">RACK</span>
+                          <span className="text-xs text-gray-600">Receiving Staging Zone</span>
                         </div>
                       </div>
                     )}
@@ -1250,9 +1250,9 @@ const InventoryOverview = () => {
           )}
 
           {activeTab === 'ledger' && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h3 className="text-md font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="text-md font-bold text-gray-900 flex items-center gap-2">
                   <History size={18} className="text-orange-500" />
                   Immutable Stock Ledger
                 </h3>
@@ -1265,21 +1265,21 @@ const InventoryOverview = () => {
                       key: 'dateTime',
                       label: 'TIMESTAMP',
                       render: (entry: StockLedgerEntry) => (
-                        <span className="text-xs text-gray-600 dark:text-gray-400">{new Date(entry.dateTime).toLocaleString()}</span>
+                        <span className="text-xs text-gray-600">{new Date(entry.dateTime).toLocaleString()}</span>
                       ),
                     },
                     {
                       key: 'variantId',
                       label: 'SKU / ITEM',
                       render: (entry: StockLedgerEntry) => (
-                        <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">{entry.variantId}</span>
+                        <span className="font-mono text-xs font-semibold text-gray-800">{entry.variantId}</span>
                       ),
                     },
                     {
                       key: 'locationCode',
                       label: 'LOCATION',
                       render: (entry: StockLedgerEntry) => (
-                        <span className="text-xs text-gray-700 dark:text-gray-300">{entry.locationCode}</span>
+                        <span className="text-xs text-gray-700">{entry.locationCode}</span>
                       ),
                     },
                     {
@@ -1295,21 +1295,21 @@ const InventoryOverview = () => {
                       key: 'reason',
                       label: 'TRANSACTION TYPE',
                       render: (entry: StockLedgerEntry) => (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{entry.reason}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">{entry.reason}</span>
                       ),
                     },
                     {
                       key: 'reference',
                       label: 'REFERENCE',
                       render: (entry: StockLedgerEntry) => (
-                        <span className="font-mono text-xs text-gray-600 dark:text-gray-400">{entry.reference || 'N/A'}</span>
+                        <span className="font-mono text-xs text-gray-600">{entry.reference || 'N/A'}</span>
                       ),
                     },
                     {
                       key: 'performedBy',
                       label: 'OPERATOR',
                       render: (entry: StockLedgerEntry) => (
-                        <span className="text-xs text-gray-700 dark:text-gray-300">{entry.performedBy}</span>
+                        <span className="text-xs text-gray-700">{entry.performedBy}</span>
                       ),
                     },
                   ]}
@@ -1321,9 +1321,9 @@ const InventoryOverview = () => {
           )}
 
           {activeTab === 'batches' && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h3 className="text-md font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="text-md font-bold text-gray-900 flex items-center gap-2">
                   <Calendar size={18} className="text-orange-500" />
                   Batch & Expiry Tracker
                 </h3>
@@ -1338,15 +1338,15 @@ const InventoryOverview = () => {
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs sm:text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-900/40">
                     <tr>
-                      <th className="px-6 py-3 text-left font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Batch Info</th>
-                      <th className="px-6 py-3 text-left font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
-                      <th className="px-6 py-3 text-left font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</th>
-                      <th className="px-6 py-3 text-left font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
-                      <th className="px-6 py-3 text-left font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expiry Date</th>
-                      <th className="px-6 py-3 text-left font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left font-bold text-gray-500 uppercase tracking-wider">Batch Info</th>
+                      <th className="px-6 py-3 text-left font-bold text-gray-500 uppercase tracking-wider">Product</th>
+                      <th className="px-6 py-3 text-left font-bold text-gray-500 uppercase tracking-wider">Location</th>
+                      <th className="px-6 py-3 text-left font-bold text-gray-500 uppercase tracking-wider">Qty</th>
+                      <th className="px-6 py-3 text-left font-bold text-gray-500 uppercase tracking-wider">Expiry Date</th>
+                      <th className="px-6 py-3 text-left font-bold text-gray-500 uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white">
                     {apiBatchesList.length > 0 ? (
                       apiBatchesList.map((batch: any) => (
                         <tr key={batch.id}>
@@ -1354,13 +1354,13 @@ const InventoryOverview = () => {
                             <div className="font-bold text-gray-900 dark:text-white">{batch.batchNumber}</div>
                             <div className="text-[10px] text-gray-500">Lot: {batch.lotNumber || 'N/A'}</div>
                           </td>
-                          <td className="px-6 py-4 text-gray-800 dark:text-gray-200">
+                          <td className="px-6 py-4 text-gray-800">
                             {batch.product?.name || 'Unknown Product'}
                             {batch.productVariant?.variantName ? ` (${batch.productVariant.variantName})` : ''}
                           </td>
-                          <td className="px-6 py-4 text-gray-800 dark:text-gray-200">{batch.location?.name || 'Unknown'}</td>
-                          <td className="px-6 py-4 font-semibold text-gray-800 dark:text-gray-200">{batch.quantity}</td>
-                          <td className="px-6 py-4 text-gray-700 dark:text-gray-300">
+                          <td className="px-6 py-4 text-gray-800">{batch.location?.name || 'Unknown'}</td>
+                          <td className="px-6 py-4 font-semibold text-gray-800">{batch.quantity}</td>
+                          <td className="px-6 py-4 text-gray-700">
                             {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-6 py-4">
@@ -1378,10 +1378,10 @@ const InventoryOverview = () => {
                             <div className="font-bold text-gray-900 dark:text-white">BAT-APP-2026A</div>
                             <div className="text-[10px] text-gray-500">Lot: LOT-00123</div>
                           </td>
-                          <td className="px-6 py-4 text-gray-800 dark:text-gray-200">Fresh Apples</td>
-                          <td className="px-6 py-4 text-gray-800 dark:text-gray-200">Main Warehouse</td>
-                          <td className="px-6 py-4 font-semibold text-gray-800 dark:text-gray-200">150</td>
-                          <td className="px-6 py-4 text-gray-700 dark:text-gray-300">2026-07-15</td>
+                          <td className="px-6 py-4 text-gray-800">Fresh Apples</td>
+                          <td className="px-6 py-4 text-gray-800">Main Warehouse</td>
+                          <td className="px-6 py-4 font-semibold text-gray-800">150</td>
+                          <td className="px-6 py-4 text-gray-700">2026-07-15</td>
                           <td className="px-6 py-4">
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800">Active</span>
                           </td>
@@ -1391,10 +1391,10 @@ const InventoryOverview = () => {
                             <div className="font-bold text-gray-900 dark:text-white">BAT-MILK-09</div>
                             <div className="text-[10px] text-gray-500">Lot: LOT-0982</div>
                           </td>
-                          <td className="px-6 py-4 text-gray-800 dark:text-gray-200">Amul Milk</td>
-                          <td className="px-6 py-4 text-gray-800 dark:text-gray-200">Distribution Center</td>
-                          <td className="px-6 py-4 font-semibold text-gray-800 dark:text-gray-200">30</td>
-                          <td className="px-6 py-4 text-gray-700 dark:text-gray-300">2026-06-12 (In 4 days)</td>
+                          <td className="px-6 py-4 text-gray-800">Amul Milk</td>
+                          <td className="px-6 py-4 text-gray-800">Distribution Center</td>
+                          <td className="px-6 py-4 font-semibold text-gray-800">30</td>
+                          <td className="px-6 py-4 text-gray-700">2026-06-12 (In 4 days)</td>
                           <td className="px-6 py-4">
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Near Expiry</span>
                           </td>

@@ -86,7 +86,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
 
   if (loading || !fullOrder) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900 items-center justify-center">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
       </div>
     );
@@ -94,13 +94,13 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
 
   if (error) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center p-4">
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900 items-center justify-center p-4">
         <XCircle className="text-red-500 mb-3" size={48} />
-        <p className="text-gray-800 text-center font-medium mb-4">{error}</p>
+        <p className="text-gray-800 dark:text-gray-200 text-center font-medium mb-4">{error}</p>
         <div className="flex gap-3">
           <button
             onClick={onBack}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+            className="px-4 py-2 bg-gray-200 text-gray-800 dark:text-gray-200 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
           >
             Go Back
           </button>
@@ -177,7 +177,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] p-[32px] pb-10 flex flex-col">
+    <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10 flex flex-col">
       {/* Breadcrumbs */}
       <div className="mb-6">
         <Breadcrumbs />
@@ -187,7 +187,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
       <div className="mb-6 flex justify-between items-center">
         <div>
           <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <h1 className="text-[32px] font-bold text-[#111827] leading-none">Order #{fullOrder.order_number}</h1>
+            <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none">Order #{fullOrder.order_number}</h1>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 uppercase tracking-wider">
               {fullOrder.order_type || "Home Delivery"}
             </span>
@@ -199,9 +199,9 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
               <span>{fullOrder.sla_minutes}m SLA</span>
             </span>
           </div>
-          <p className="text-[14px] text-[#9EA3AE]">Order ID: {fullOrder.id}</p>
+          <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500">Order ID: {fullOrder.id}</p>
         </div>
-        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors">
           <ArrowLeft size={16} /> Back
         </button>
       </div>
@@ -216,13 +216,13 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
             <div className="flex flex-col gap-4">
               {/* Order Number */}
               <div className="flex items-center gap-3">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Order Number</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Order Number</span>
                 <span className="text-[14px] font-bold text-gray-900 dark:text-gray-100">{fullOrder.order_number || "—"}</span>
                 {fullOrder.order_number && (
                   <button
                     onClick={handleCopyOrderNumber}
                     title={copiedOrderNumber ? "Copied!" : "Copy order number"}
-                    className="relative ml-1 p-1 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+                    className="relative ml-1 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-700 transition-all"
                   >
                     {copiedOrderNumber ? (
                       <Check size={14} className="text-green-600 dark:text-green-400" />
@@ -240,13 +240,13 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
 
               {/* Order ID */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Order ID</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Order ID</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">{fullOrder.id || "—"}</span>
               </div>
 
               {/* Order Date */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Order Date</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Order Date</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
                   {fullOrder.created_at || fullOrder.createdAt ? new Date(fullOrder.created_at || fullOrder.createdAt).toLocaleString("en-IN", {
                     day: "2-digit",
@@ -261,7 +261,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
 
               {/* Delivery Date & Time */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Date & Time</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Date & Time</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
                   {fullOrder.delivered_at || fullOrder.deliveredAt ? new Date(fullOrder.delivered_at || fullOrder.deliveredAt).toLocaleString("en-IN", {
                     day: "2-digit",
@@ -277,7 +277,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
               {/* Processed By */}
               {shouldShowShopkeeper && (
                 <div className="flex items-center">
-                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Processed By</span>
+                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Processed By</span>
                   <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
                     {fullOrder.shopkeeper_name
                       ? `${fullOrder.shopkeeper_name}${fullOrder.assignedShopkeeper?.phone ? ` (${fullOrder.assignedShopkeeper.phone})` : ''}`
@@ -292,33 +292,33 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-gray-950 dark:text-gray-550 font-bold text-lg">Customer Information</h3>
-              <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
-                <Phone size={18} className="cursor-pointer hover:text-gray-900 dark:hover:text-white" />
-                <MapPin size={18} className="cursor-pointer hover:text-gray-900 dark:hover:text-white" />
+              <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                <Phone size={18} className="cursor-pointer hover:text-gray-900 dark:text-gray-100 dark:hover:text-white" />
+                <MapPin size={18} className="cursor-pointer hover:text-gray-900 dark:text-gray-100 dark:hover:text-white" />
               </div>
             </div>
             <div className="flex flex-col gap-4">
               {/* Name */}
               <div className="flex items-start">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Name</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Name</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">{fullOrder.customer_name || "—"}</span>
               </div>
 
               {/* Mobile Number */}
               <div className="flex items-start">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Mobile Number</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Mobile Number</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">{fullOrder.customer_phone || "—"}</span>
               </div>
 
               {/* Delivery Type */}
               <div className="flex items-start">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Type</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Type</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">{fullOrder.order_type || "—"}</span>
               </div>
 
               {/* Address */}
               <div className="flex items-start">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Address</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Address</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200 break-words flex-1">
                   {fullOrder.customer_address || "No address provided"}
                 </span>
@@ -332,7 +332,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
           <div className="flex items-center gap-2 mb-6">
             <Package size={20} className="text-[#00891D]" />
             <h3 className="text-gray-900 dark:text-gray-100 font-bold text-lg">Ordered Products</h3>
-            <span className="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
               {mergedItems.length} items
             </span>
           </div>
@@ -341,16 +341,16 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-700">
-                  <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Name</th>
-                  <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Quantity</th>
-                  <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Unit Price</th>
-                  <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total Price</th>
+                  <th className="pb-3 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Product Name</th>
+                  <th className="pb-3 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Quantity</th>
+                  <th className="pb-3 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">Unit Price</th>
+                  <th className="pb-3 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">Total Price</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                 {mergedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-sm text-gray-500">
+                    <td colSpan={4} className="py-6 text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                       No items found for this order.
                     </td>
                   </tr>
@@ -362,9 +362,9 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
                     const total = price * qty;
 
                     return (
-                      <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                      <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50/50 dark:hover:bg-gray-800/50 transition-colors">
                         <td className="py-3.5 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded border border-gray-100 dark:border-gray-700 bg-white flex items-center justify-center text-xl overflow-hidden shadow-sm flex-shrink-0">
+                          <div className="w-10 h-10 rounded border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center text-xl overflow-hidden shadow-sm flex-shrink-0">
                             {item.image_url ? <img src={item.image_url} alt={name} className="w-full h-full object-cover" /> : '📦'}
                           </div>
                           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{name}</span>
@@ -390,7 +390,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
             <div className="flex flex-col gap-4">
               {/* Target SLA */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Target SLA</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Target SLA</span>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFF3E0] text-[#EF5A06]">
                   {slaMinutes} min
                 </span>
@@ -399,7 +399,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
               {/* Waiting state */}
               {slaState === "waiting" && (
                 <div className="flex items-center">
-                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
+                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
                   <span className="text-xs font-bold text-yellow-600 dark:text-yellow-450 bg-yellow-50 dark:bg-yellow-950/30 px-2.5 py-1 rounded-full">
                     {slaStatusLabel}
                   </span>
@@ -410,7 +410,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
               {slaState === "inprogress" && (
                 <>
                   <div className="flex items-center">
-                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${slaIsBreached
                         ? "bg-red-550/10 text-red-700 dark:bg-red-950/30 dark:text-red-400"
                         : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
@@ -419,13 +419,13 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Elapsed Time</span>
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Elapsed Time</span>
                     <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
                       {formatSeconds(slaElapsedSeconds)}
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Remaining Time</span>
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Remaining Time</span>
                     <span className={`text-[14px] font-bold ${slaIsBreached
                         ? "text-red-600 dark:text-red-400"
                         : (slaRemainingSeconds <= 300)
@@ -437,7 +437,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
                   </div>
                   {/* Progress bar */}
                   <div className="flex items-center">
-                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">SLA Progress</span>
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">SLA Progress</span>
                     <div className="flex-1 max-w-[240px] h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
@@ -455,13 +455,13 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
               {slaState === "completed" && (
                 <>
                   <div className="flex items-center">
-                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Actual Processing Time</span>
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Actual Processing Time</span>
                     <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
                       {formatSeconds(slaActualSeconds)}
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
+                    <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${slaIsBreached
                         ? "bg-red-550/10 text-red-700 dark:bg-red-950/30 dark:text-red-400"
                         : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
@@ -481,13 +481,13 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
             <div className="flex flex-col gap-4">
               {/* Total Items */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Total Items</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Total Items</span>
                 <span className="text-[14px] font-bold text-gray-800 dark:text-gray-200">{mergedItems.length}</span>
               </div>
 
               {/* Subtotal */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Subtotal</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Subtotal</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
                   ₹{Number(
                     (fullOrder.total_value || fullOrder.totalAmount || 0) -
@@ -499,7 +499,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
 
               {/* Delivery Charges */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Charges</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Delivery Charges</span>
                 <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
                   ₹{Number(fullOrder.delivery_charge || fullOrder.deliveryCharge || 0).toFixed(2)}
                 </span>
@@ -508,7 +508,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
               {/* Additional Charges */}
               {(fullOrder.additional_charges || fullOrder.additionalCharges) ? (
                 <div className="flex items-center">
-                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Additional Charges</span>
+                  <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Additional Charges</span>
                   <span className="text-[14px] font-semibold text-gray-800 dark:text-gray-200">
                     ₹{Number(fullOrder.additional_charges || fullOrder.additionalCharges || 0).toFixed(2)}
                   </span>
@@ -517,7 +517,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
 
               {/* Payment Method */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Payment Method</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Payment Method</span>
                 <span className="text-[14px] font-bold text-blue-700 dark:text-blue-400 uppercase">
                   {fullOrder.payment_method || "COD"}
                 </span>
@@ -525,7 +525,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
 
               {/* Payment Status */}
               <div className="flex items-center">
-                <span className="w-[180px] text-[12px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0">Payment Status</span>
+                <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Payment Status</span>
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${fullOrder.payment_status?.toLowerCase() === "paid" || fullOrder.payment_status?.toLowerCase() === "completed"
                     ? "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
                     : "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400"
@@ -547,7 +547,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
       </div>
 
       {fullOrder.status === 'new' && (
-        <div className="bg-white border-t border-gray-100 p-4 flex gap-3 mt-auto">
+        <div className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 p-4 flex gap-3 mt-auto">
           <button
             onClick={handleReject}
             className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"

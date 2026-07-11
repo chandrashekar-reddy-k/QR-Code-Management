@@ -80,7 +80,7 @@ const ViewResource: React.FC = () => {
       {/* Header */}
       <div className="mb-4 mt-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">
             Resource ID #{resource.id}
           </h1>
           <Breadcrumbs />
@@ -116,61 +116,61 @@ const ViewResource: React.FC = () => {
       </div>
 
       {/* Basic Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4">
-        <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-4">
+        <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
           Basic Information
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div className="space-y-3">
-            <div className="flex text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex text-xs sm:text-sm text-gray-700">
               <span className="font-medium w-32 sm:w-40">Name</span>
               <span className="mx-2">:</span>
-              <span className="text-gray-900 dark:text-gray-100">
+              <span className="text-gray-900">
                 {resource.name}
               </span>
             </div>
-            <div className="flex text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex text-xs sm:text-sm text-gray-700">
               <span className="font-medium w-32 sm:w-40">Category</span>
               <span className="mx-2">:</span>
-              <span className="text-gray-900 dark:text-gray-100">
+              <span className="text-gray-900">
                 {resource.category}
               </span>
             </div>
-            <div className="flex text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex text-xs sm:text-sm text-gray-700">
               <span className="font-medium w-32 sm:w-40">Resource Type</span>
               <span className="mx-2">:</span>
-              <span className="text-gray-900 dark:text-gray-100">
+              <span className="text-gray-900">
                 {resource.resourceType}
               </span>
             </div>
-            <div className="flex text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex text-xs sm:text-sm text-gray-700">
               <span className="font-medium w-32 sm:w-40">Resource Code</span>
               <span className="mx-2">:</span>
-              <span className="text-gray-900 dark:text-gray-100">
+              <span className="text-gray-900">
                 {resource.resourceCode}
               </span>
             </div>
           </div>
 
           <div className="space-y-3">
-            <div className="flex text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex text-xs sm:text-sm text-gray-700">
               <span className="font-medium w-32 sm:w-40">Purchase date</span>
               <span className="mx-2">:</span>
-              <span className="text-gray-900 dark:text-gray-100">
+              <span className="text-gray-900">
                 {resource.purchaseDate}
               </span>
             </div>
-            <div className="flex text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex text-xs sm:text-sm text-gray-700">
               <span className="font-medium w-32 sm:w-40">Warrenty Period</span>
               <span className="mx-2">:</span>
-              <span className="text-gray-900 dark:text-gray-100">
+              <span className="text-gray-900">
                 {resource.warrantyPeriod}
               </span>
             </div>
-            <div className="flex text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex text-xs sm:text-sm text-gray-700">
               <span className="font-medium w-32 sm:w-40">Purchase cost</span>
               <span className="mx-2">:</span>
-              <span className="text-gray-900 dark:text-gray-100">
+              <span className="text-gray-900">
                 {resource.purchaseCost}
               </span>
             </div>
@@ -199,13 +199,13 @@ const ViewResource: React.FC = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">
                 Transfer from
               </p>
               <TextInput value={resource.assignedTo} disabled className="text-xs sm:text-sm" />
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">
                 Transfer To
               </p>
               <div className="relative">
@@ -235,7 +235,7 @@ const ViewResource: React.FC = () => {
       </Modal>
 
       {/* Tabs */}
-      <div className="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="mb-4 bg-white rounded-xl shadow-md border border-gray-200 overflow-x-auto">
         <div className="flex min-w-max">
           {tabs.map((tab) => (
             <button
@@ -244,8 +244,8 @@ const ViewResource: React.FC = () => {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap relative ${
                 activeTab === tab
-                  ? "text-gray-900 dark:text-gray-100"
-                  : "text-gray-500 dark:text-gray-400"
+                  ? "text-gray-900"
+                  : "text-gray-500"
               }`}
             >
               {tab}
@@ -261,22 +261,22 @@ const ViewResource: React.FC = () => {
       {activeTab === "Location and assignment Details" && (
         <div className="space-y-4">
           {/* Location and assignment Details card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">
               Location and assignment Details
             </h3>
-            <div className="space-y-3 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="space-y-3 text-xs sm:text-sm text-gray-700">
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Assigned to</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.assignedTo}
                 </span>
               </div>
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Address</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.address}
                 </span>
               </div>
@@ -284,22 +284,22 @@ const ViewResource: React.FC = () => {
           </div>
 
           {/* Transfer Details card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">
               Transfer Details
             </h3>
-            <div className="space-y-3 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="space-y-3 text-xs sm:text-sm text-gray-700">
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Transfered from</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.transferredFrom}
                 </span>
               </div>
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Transfer Date</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.transferDate}
                 </span>
               </div>
@@ -307,11 +307,11 @@ const ViewResource: React.FC = () => {
           </div>
 
           {/* Current Status */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-xs sm:text-sm text-gray-700">
                 Current Status :{" "}
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                <span className="font-semibold text-gray-900">
                   {currentStatus}
                 </span>
               </p>
@@ -335,29 +335,29 @@ const ViewResource: React.FC = () => {
       {activeTab === "Supplier Details" && (
         <div className="space-y-4">
           {/* Supplier Details card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">
               Supplier Details
             </h3>
-            <div className="space-y-3 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="space-y-3 text-xs sm:text-sm text-gray-700">
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Supplier Name</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.supplierName}
                 </span>
               </div>
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Mobile Number</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.supplierMobile}
                 </span>
               </div>
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Supplier Address</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.supplierAddress}
                 </span>
               </div>
@@ -365,11 +365,11 @@ const ViewResource: React.FC = () => {
           </div>
 
           {/* Current Status */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-xs sm:text-sm text-gray-700">
                 Current Status :{" "}
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                <span className="font-semibold text-gray-900">
                   {currentStatus}
                 </span>
               </p>
@@ -392,22 +392,22 @@ const ViewResource: React.FC = () => {
       {activeTab === "Maintainance details" && (
         <div className="space-y-4">
           {/* Maintenance details card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">
               Supplier Details
             </h3>
-            <div className="space-y-3 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+            <div className="space-y-3 text-xs sm:text-sm text-gray-700">
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Last Service Date</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.lastServiceDate}
                 </span>
               </div>
               <div className="flex">
                 <span className="font-medium w-32 sm:w-40">Maintenance Notes</span>
                 <span className="mx-2">:</span>
-                <span className="text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900">
                   {resource.maintenanceNotes}
                 </span>
               </div>
@@ -415,11 +415,11 @@ const ViewResource: React.FC = () => {
           </div>
 
           {/* Current Status */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-xs sm:text-sm text-gray-700">
                 Current Status :{" "}
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                <span className="font-semibold text-gray-900">
                   {currentStatus}
                 </span>
               </p>
@@ -442,8 +442,8 @@ const ViewResource: React.FC = () => {
       {activeTab === "Documents" && (
         <div className="space-y-4">
           {/* Documents card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">
               Documents
             </h3>
             <div className="flex flex-wrap gap-4">
@@ -453,8 +453,8 @@ const ViewResource: React.FC = () => {
                 { label: "Bill Copy" },
               ].map((doc) => (
                 <div key={doc.label} className="flex flex-col items-center gap-2">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-gray-100 dark:bg-gray-700" />
-                  <span className="text-[11px] sm:text-xs text-gray-700 dark:text-gray-300">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-gray-100" />
+                  <span className="text-[11px] sm:text-xs text-gray-700">
                     {doc.label}
                   </span>
                 </div>
@@ -463,11 +463,11 @@ const ViewResource: React.FC = () => {
           </div>
 
           {/* Current Status */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-xs sm:text-sm text-gray-700">
                 Current Status :{" "}
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                <span className="font-semibold text-gray-900">
                   {currentStatus}
                 </span>
               </p>

@@ -169,14 +169,14 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
 
   if (sharedLoading && orders.length === 0) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F3F4F6] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900 items-center justify-center">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] p-[32px]">
+    <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px]">
       {/* Breadcrumbs */}
       <div className="mb-6">
         <Breadcrumbs />
@@ -185,10 +185,10 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-[32px] font-bold text-[#111827] leading-none mb-2">New Orders ({filteredOrders.length})</h1>
-          <p className="text-[14px] text-[#9EA3AE]">Incoming orders waiting for shopkeeper assignment</p>
+          <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">New Orders ({filteredOrders.length})</h1>
+          <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500">Incoming orders waiting for shopkeeper assignment</p>
         </div>
-        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors">
           <ArrowLeft size={16} /> Back to Dashboard
         </button>
       </div>
@@ -205,7 +205,7 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
 
           {/* Delivery Type Dropdown */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
@@ -218,13 +218,13 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           {/* Date Filter */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={dateRangeType}
                 onChange={(e) => {
@@ -255,7 +255,7 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
             <input
               ref={dateInputRef}
@@ -296,23 +296,23 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
       <div className="bg-white dark:bg-gray-800 rounded-[16px] overflow-hidden" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
         {filteredOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
-              <CheckCircle size={32} className="text-gray-400" />
+            <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center mb-4">
+              <CheckCircle size={32} className="text-gray-400 dark:text-gray-500" />
             </div>
-            <h3 className="text-lg font-bold text-gray-800 mb-1">No New Orders Available</h3>
-            <p className="text-sm text-gray-500">Incoming customer orders waiting for processing will automatically appear here.</p>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">No New Orders Available</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Incoming customer orders waiting for processing will automatically appear here.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse table-auto text-left text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ height: "64px" }}>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[20%]">Order Number</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[25%]">Customer</th>
-                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[15%]">Total Items</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[20%]">Delivery Type</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[20%]">Date and Time</th>
-                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[10%]">Action</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[20%]">Order Number</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[25%]">Customer</th>
+                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">Total Items</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[20%]">Delivery Type</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[20%]">Date and Time</th>
+                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[10%]">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -320,7 +320,7 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
                   return (
                     <tr
                       key={order.id}
-                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-[#F9FAFB] transition-colors"
+                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-[#F9FAFB] dark:bg-gray-900 transition-colors"
                       style={{ height: "72px" }}
                     >
                       <td className="px-[24px] py-[16px] whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -328,7 +328,7 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
                       </td>
                       <td className="px-[24px] py-[16px] whitespace-nowrap">
                         <div className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">{order.customer_name || order.user}</div>
-                        <div className="text-[10px] sm:text-xs text-[#9EA3AE]">{order.customer_phone || order.phone}</div>
+                        <div className="text-[10px] sm:text-xs text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500">{order.customer_phone || order.phone}</div>
                       </td>
                       <td className="px-[24px] py-[16px] whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200 text-center font-bold">
                         {order.item_count ?? order.items?.length ?? 0}

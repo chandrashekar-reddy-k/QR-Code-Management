@@ -31,7 +31,7 @@ export function BarcodeVerification({ onBack, onNavigate, data }: BarcodeVerific
     <div className="flex flex-col min-h-screen bg-gray-900">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-10 px-4 pt-12 pb-4 flex items-center gap-3">
-        <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+        <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
           <ArrowLeft size={20} color="white" />
         </button>
         <div>
@@ -97,19 +97,19 @@ export function BarcodeVerification({ onBack, onNavigate, data }: BarcodeVerific
       </div>
 
       {/* Bottom Panel */}
-      <div className="bg-white rounded-t-3xl p-4 pb-8">
+      <div className="bg-white dark:bg-gray-800 rounded-t-3xl p-4 pb-8">
         {/* Expected Product */}
-        <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-4">
+        <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 mb-4">
           <div className="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center" style={{ fontSize: "32px" }}>
             {expectedProduct.img}
           </div>
           <div className="flex-1">
-            <p className="text-gray-500 mb-0.5" style={{ fontSize: "11px" }}>EXPECTED PRODUCT</p>
-            <p className="text-gray-900" style={{ fontWeight: 700, fontSize: "14px" }}>{expectedProduct.name}</p>
-            <p className="text-gray-400" style={{ fontSize: "11px", fontFamily: "monospace" }}>{expectedProduct.barcode}</p>
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5" style={{ fontSize: "11px" }}>EXPECTED PRODUCT</p>
+            <p className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "14px" }}>{expectedProduct.name}</p>
+            <p className="text-gray-400 dark:text-gray-500" style={{ fontSize: "11px", fontFamily: "monospace" }}>{expectedProduct.barcode}</p>
           </div>
           <div className="text-right">
-            <p className="text-gray-500" style={{ fontSize: "11px" }}>Required</p>
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>Required</p>
             <p className="text-green-700" style={{ fontWeight: 700, fontSize: "20px" }}>×{expectedProduct.qty}</p>
           </div>
         </div>
@@ -139,7 +139,7 @@ export function BarcodeVerification({ onBack, onNavigate, data }: BarcodeVerific
               <p className="text-green-500" style={{ fontSize: "11px" }}>Remaining quantity: {expectedProduct.qty - 1}</p>
             </div>
             <div className="flex gap-3">
-              <button onClick={handleReset} className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border border-gray-200">
+              <button onClick={handleReset} className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border border-gray-200 dark:border-gray-700">
                 <RefreshCw size={16} color="#757575" />
                 <span style={{ color: "#757575", fontWeight: 600, fontSize: "14px" }}>Scan Next</span>
               </button>
@@ -159,20 +159,20 @@ export function BarcodeVerification({ onBack, onNavigate, data }: BarcodeVerific
                 <span style={{ color: "#D32F2F", fontWeight: 700, fontSize: "15px" }}>Product Mismatch!</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white rounded-xl p-2.5">
-                  <p className="text-gray-400 mb-1" style={{ fontSize: "10px" }}>EXPECTED</p>
-                  <p className="text-gray-800" style={{ fontWeight: 600, fontSize: "12px" }}>{expectedProduct.name}</p>
-                  <p className="text-gray-400" style={{ fontSize: "10px", fontFamily: "monospace" }}>{expectedProduct.barcode}</p>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5">
+                  <p className="text-gray-400 dark:text-gray-500 mb-1" style={{ fontSize: "10px" }}>EXPECTED</p>
+                  <p className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "12px" }}>{expectedProduct.name}</p>
+                  <p className="text-gray-400 dark:text-gray-500" style={{ fontSize: "10px", fontFamily: "monospace" }}>{expectedProduct.barcode}</p>
                 </div>
-                <div className="bg-white rounded-xl p-2.5 border border-red-200">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5 border border-red-200">
                   <p className="text-red-400 mb-1" style={{ fontSize: "10px" }}>SCANNED</p>
-                  <p className="text-gray-800" style={{ fontWeight: 600, fontSize: "12px" }}>{mismatchProduct.name}</p>
-                  <p className="text-gray-400" style={{ fontSize: "10px", fontFamily: "monospace" }}>{mismatchProduct.barcode}</p>
+                  <p className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "12px" }}>{mismatchProduct.name}</p>
+                  <p className="text-gray-400 dark:text-gray-500" style={{ fontSize: "10px", fontFamily: "monospace" }}>{mismatchProduct.barcode}</p>
                 </div>
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={handleReset} className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border border-gray-200">
+              <button onClick={handleReset} className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border border-gray-200 dark:border-gray-700">
                 <RefreshCw size={16} color="#757575" />
                 <span style={{ color: "#757575", fontWeight: 600, fontSize: "14px" }}>Rescan</span>
               </button>

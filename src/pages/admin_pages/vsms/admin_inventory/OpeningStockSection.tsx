@@ -32,7 +32,7 @@ const OpeningStockSection = ({
 
   return (
     <div className="space-y-6 sm:px-2">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-xl shadow-emerald-600/20">
             <ClipboardList size={28} />
@@ -48,7 +48,7 @@ const OpeningStockSection = ({
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="w-full sm:w-72 flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 border border-transparent rounded-lg focus-within:bg-white dark:bg-gray-800 focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:border-emerald-500 transition-all px-4">
+          <div className="w-full sm:w-72 flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 border border-transparent rounded-lg focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:border-emerald-500 transition-all px-4">
             <Search size={16} className="text-gray-400" />
             <input
               type="text"
@@ -75,7 +75,7 @@ const OpeningStockSection = ({
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -94,21 +94,21 @@ const OpeningStockSection = ({
                 <tr key={`opening-${item.id}`} className="hover:bg-gray-50 dark:bg-gray-900/50/30 transition-all group">
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 overflow-hidden shadow-inner group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 flex items-center justify-center text-gray-400 overflow-hidden shadow-inner group-hover:scale-110 transition-transform">
                         {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <Package size={18} />}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200 leading-tight">{item.name}</span>
+                        <span className="text-sm font-bold text-gray-800 leading-tight">{item.name}</span>
                         <span className="text-[10px] font-bold text-gray-400">ID: {item.displayId || item.id.substring(0, 8)}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-5 text-center">
-                    <span className="px-3 py-1 bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 rounded-xl text-[9px] font-bold uppercase tracking-wider border border-gray-200 dark:border-gray-700">{item.category?.name}</span>
+                    <span className="px-3 py-1 bg-gray-50 dark:bg-gray-900/50 text-gray-500 rounded-xl text-[9px] font-bold uppercase tracking-wider border border-gray-200">{item.category?.name}</span>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{item.stock || 0}</span>
+                      <span className="text-sm font-bold text-gray-700">{item.stock || 0}</span>
                       <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">In Warehouse</span>
                     </div>
                   </td>
@@ -119,7 +119,7 @@ const OpeningStockSection = ({
                           <input
                             type="number"
                             min="0"
-                            className="w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-center font-bold text-emerald-600 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm group-hover:shadow-md"
+                            className="w-28 bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-center font-bold text-emerald-600 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm group-hover:shadow-md"
                             placeholder="0"
                             value={stockInputs[item.id] || ''}
                             onChange={(e) => {
@@ -160,7 +160,7 @@ const OpeningStockSection = ({
 
         {/* Pagination */}
         {totalOpeningPages > 1 && (
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-8 px-8 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50/20">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-8 px-8 border-t border-gray-200 bg-gray-50 dark:bg-gray-900/50/20">
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
               Showing {Math.min(filteredOpeningItems.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(filteredOpeningItems.length, currentPage * itemsPerPage)} of {filteredOpeningItems.length} Products
             </div>
@@ -168,7 +168,7 @@ const OpeningStockSection = ({
               <button
                 disabled={currentPage === 1}
                 onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
+                className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
               >
                 <ArrowLeft size={14} /> Previous
               </button>
@@ -184,7 +184,7 @@ const OpeningStockSection = ({
                       <button
                         key={i}
                         onClick={() => { setCurrentPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                        className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === i ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'}`}
+                        className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === i ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border border-gray-200 text-gray-400 hover:border-emerald-200'}`}
                       >
                         {i}
                       </button>
@@ -196,7 +196,7 @@ const OpeningStockSection = ({
               <button
                 disabled={currentPage === totalOpeningPages}
                 onClick={() => { setCurrentPage(p => Math.min(totalOpeningPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
+                className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
               >
                 Next <ArrowLeft size={14} className="rotate-180" />
               </button>

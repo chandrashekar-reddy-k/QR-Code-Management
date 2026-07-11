@@ -65,10 +65,10 @@ const StoreSettingTab = ({
 
       {/* Logo */}
       <div>
-        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
           Logo
         </label>
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center bg-gray-50 dark:bg-gray-700">
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center bg-gray-50">
           {logoPreview ? (
             <div className="relative">
               <img
@@ -88,9 +88,9 @@ const StoreSettingTab = ({
             <div>
               <Upload
                 size={24}
-                className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                className="mx-auto text-gray-400 mb-2"
               />
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+              <p className="text-xs text-gray-600 mb-2">
                 Drop Files here or click to upload
               </p>
               <label className="cursor-pointer">
@@ -111,10 +111,10 @@ const StoreSettingTab = ({
 
       {/* FSSAI Lic Image */}
       <div>
-        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
           Fssai Lic Image
         </label>
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center bg-gray-50 dark:bg-gray-700">
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center bg-gray-50">
           {fssaiPreview ? (
             <div className="relative">
               <img
@@ -134,9 +134,9 @@ const StoreSettingTab = ({
             <div>
               <Upload
                 size={24}
-                className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                className="mx-auto text-gray-400 mb-2"
               />
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+              <p className="text-xs text-gray-600 mb-2">
                 Drop Files here or click to upload
               </p>
               <label className="cursor-pointer">
@@ -157,10 +157,10 @@ const StoreSettingTab = ({
 
       {/* Panel Login Background Image */}
       <div>
-        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
           Panel Login Background Image
         </label>
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center bg-gray-50 dark:bg-gray-700">
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center bg-gray-50">
           {backgroundPreview ? (
             <div className="relative">
               <img
@@ -180,9 +180,9 @@ const StoreSettingTab = ({
             <div>
               <Upload
                 size={24}
-                className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                className="mx-auto text-gray-400 mb-2"
               />
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+              <p className="text-xs text-gray-600 mb-2">
                 Drop Files here or click to upload
               </p>
               <label className="cursor-pointer">
@@ -203,7 +203,7 @@ const StoreSettingTab = ({
 
       {/* Copyright Details */}
       <div className="md:col-span-2">
-        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
           Copyright Details
         </label>
         <textarea
@@ -211,7 +211,7 @@ const StoreSettingTab = ({
           value={formData.copyrightDetails}
           onChange={onChange}
           rows={4}
-          className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white text-gray-900"
           placeholder="Enter copyright details"
         />
       </div>

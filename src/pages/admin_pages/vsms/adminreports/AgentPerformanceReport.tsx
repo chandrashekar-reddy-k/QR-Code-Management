@@ -29,7 +29,7 @@ export default function AgentPerformanceReport() {
 
   return (
     <ReportLayout title="Agent Performance" icon={Users} activeTab="agent-performance" reportData={reportData} isLoading={isLoading}>
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm animate-in fade-in duration-500">
+      <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm animate-in fade-in duration-500">
           <div className="flex items-center justify-between mb-10">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight uppercase">Agent Performance vs Targets</h3>
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-50 text-cyan-600 text-[10px] font-bold uppercase tracking-widest">
@@ -38,7 +38,7 @@ export default function AgentPerformanceReport() {
           </div>
           <div className="space-y-8">
               {Array.isArray(reportData) && reportData.map((agent, idx) => (
-                  <div key={idx} className="space-y-3 p-6 rounded-lg bg-gray-50 dark:bg-gray-900/50/50 border border-gray-200 dark:border-gray-700 hover:bg-white dark:bg-gray-800 hover:shadow-md transition-all">
+                  <div key={idx} className="space-y-3 p-6 rounded-lg bg-gray-50 dark:bg-gray-900/50/50 border border-gray-200 hover:bg-white hover:shadow-md transition-all">
                       <div className="flex justify-between items-end">
                           <div>
                               <h4 className="text-base font-bold text-gray-900 dark:text-white">{agent.name}</h4>
@@ -52,7 +52,7 @@ export default function AgentPerformanceReport() {
                               </span>
                           </div>
                       </div>
-                      <div className="h-2.5 bg-white dark:bg-gray-800 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 p-0.5 shadow-inner">
+                      <div className="h-2.5 bg-white rounded-full overflow-hidden border border-gray-200 p-0.5 shadow-inner">
                           <motion.div 
                               initial={{ width: 0 }}
                               animate={{ width: `${Math.min(agent.percentage, 100)}%` }}

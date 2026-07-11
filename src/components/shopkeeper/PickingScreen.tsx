@@ -24,12 +24,15 @@ function LocationBadge({ location }: { location: string }) {
 }
 
 export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps) {
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
-
-  // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile green banner UI
-  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  const [userRole] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    return userObj?.role;
+  });
+  
+  const [isStaffLogin] = useState(() => {
+    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  });
 
   if (isStaffLogin) {
     return <PickingScreenMobile onNavigate={onNavigate} onBack={onBack} order={order} />;
@@ -229,7 +232,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F3F4F6] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900 items-center justify-center">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
       </div>
     );
@@ -240,11 +243,11 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
   const percentCompleted = items.length ? Math.round((totalCompleted / items.length) * 100) : 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F3F4F6]">
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900">
       {/* Standard Partner Portal Header */}
-      <div className="bg-white px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200 dark:border-gray-700">
         {/* Inline breadcrumb nav */}
-        <nav className="text-xs text-gray-500 flex items-center gap-1 mb-3">
+        <nav className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-3">
           <button onClick={() => onNavigate("dashboard")} className="hover:text-green-600 transition-colors">Home</button>
           <ChevronRight size={12} />
           <button onClick={() => onNavigate("picking-queue")} className="hover:text-green-600 transition-colors">Picking Queue</button>
@@ -253,7 +256,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
         </nav>
         <div className="mt-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Picking Order #{order?.order_number}
             </h1>
             <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -266,7 +269,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
               <span className={`text-xs font-semibold border px-2 py-0.5 rounded-md ${
                 (order?.priority || 'NORMAL').toUpperCase() === 'HIGH' 
                   ? 'bg-orange-50 text-orange-700 border-orange-100' 
-                  : 'bg-gray-50 text-gray-700 border-gray-100'
+                  : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-gray-100 dark:border-gray-700'
               }`}>
                 Priority: {order?.priority || 'NORMAL'}
               </span>
@@ -275,15 +278,15 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
               </span>
             </div>
           </div>
-          <button onClick={onBack} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm">
+          <button onClick={onBack} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors flex items-center gap-2 shadow-sm">
             <ArrowLeft size={16} /> Back
           </button>
         </div>
 
         {/* Progress bar directly below the header */}
-        <div className="mt-6 bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="mt-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-4 text-gray-700 font-semibold text-sm">
+            <div className="flex items-center gap-4 text-gray-700 dark:text-gray-300 font-semibold text-sm">
               <span>Items Picked: <span className="text-[#00891D]">{totalCompleted} / {items.length} ({percentCompleted}%)</span></span>
               <span className="text-gray-300">|</span>
               <span>Remaining Items: <span className="text-orange-600">{items.length - totalCompleted}</span></span>
@@ -301,49 +304,49 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
       <div className="flex flex-col gap-3 p-4 sm:p-6 lg:p-8">
         {/* Order Summary Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 grid grid-cols-5 gap-4 divide-x divide-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 grid grid-cols-5 gap-4 divide-x divide-gray-100">
           <div className="flex flex-col items-center justify-center text-center">
-            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Shopkeeper</span>
-            <span className="text-gray-900 font-bold text-xs sm:text-sm mt-1 truncate max-w-full">
+            <span className="text-gray-400 dark:text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Shopkeeper</span>
+            <span className="text-gray-900 dark:text-gray-100 font-bold text-xs sm:text-sm mt-1 truncate max-w-full">
               {order?.shopkeeper_name || order?.shopkeeper?.name || "Unassigned"}
             </span>
           </div>
           <div className="flex flex-col items-center justify-center text-center pl-4">
-            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Started At</span>
-            <span className="text-gray-900 font-bold text-xs sm:text-sm mt-1">
+            <span className="text-gray-400 dark:text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Started At</span>
+            <span className="text-gray-900 dark:text-gray-100 font-bold text-xs sm:text-sm mt-1">
               {formatTimeOnly(order?.picking_started_at || order?.pickingStartedAt || order?.accepted_at)}
             </span>
           </div>
           <div className="flex flex-col items-center justify-center text-center pl-4">
-            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Last Activity</span>
-            <span className="text-gray-900 font-bold text-xs sm:text-sm mt-1">{lastActivity}</span>
+            <span className="text-gray-400 dark:text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Last Activity</span>
+            <span className="text-gray-900 dark:text-gray-100 font-bold text-xs sm:text-sm mt-1">{lastActivity}</span>
           </div>
           <div className="flex flex-col items-center justify-center text-center pl-4">
-            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Remaining</span>
-            <span className="text-gray-900 font-bold text-xs sm:text-sm mt-1">
+            <span className="text-gray-400 dark:text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Remaining</span>
+            <span className="text-gray-900 dark:text-gray-100 font-bold text-xs sm:text-sm mt-1">
               {items.filter(i => !i.is_picked && !i.is_rejected).length}
             </span>
           </div>
           <div className="flex flex-col items-center justify-center text-center pl-4">
-            <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Elapsed Time</span>
+            <span className="text-gray-400 dark:text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Elapsed Time</span>
             <span className="text-green-600 font-bold text-xs sm:text-sm mt-1">{elapsedTime}</span>
           </div>
         </div>
 
         {currentItem && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="bg-green-600 px-4 py-2 flex items-center justify-between">
               <span className="text-white font-bold text-xs tracking-wider uppercase">Current Item to Pick</span>
               {barcodeInput === currentItem.barcode ? (
-                <span className="bg-white text-green-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">Verified</span>
+                <span className="bg-white dark:bg-gray-800 text-green-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">Verified</span>
               ) : (
-                <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Pending Verification</span>
+                <span className="bg-white dark:bg-gray-800/20 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Pending Verification</span>
               )}
             </div>
             <div className="p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6">
               {/* Product Image & Info */}
               <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-100 flex-shrink-0">
+                <div className="w-16 h-16 rounded-xl bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center overflow-hidden border border-gray-100 dark:border-gray-700 flex-shrink-0">
                   {currentItem.image_url ? (
                     <img src={currentItem.image_url} alt={currentItem.name} className="w-full h-full object-cover" />
                   ) : (
@@ -351,16 +354,16 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-gray-900 font-extrabold text-base truncate">{currentItem.name}</h4>
-                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-500">
+                  <h4 className="text-gray-900 dark:text-gray-100 font-extrabold text-base truncate">{currentItem.name}</h4>
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                     {currentItem.sku && (
-                      <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600 font-mono text-[11px]">SKU: {currentItem.sku}</span>
+                      <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-400 dark:text-gray-500 font-mono text-[11px]">SKU: {currentItem.sku}</span>
                     )}
                     <span className="flex items-center gap-1 font-semibold text-green-700">
                       <Package size={12} /> Qty: {currentItem.quantity}
                     </span>
                     <div className="flex items-center gap-1">
-                      <MapPin size={12} className="text-gray-400" />
+                      <MapPin size={12} className="text-gray-400 dark:text-gray-500" />
                       <LocationBadge location={currentItem.aisle_location} />
                     </div>
                   </div>
@@ -369,9 +372,9 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
               {/* Barcode Input & Status */}
               <div className="w-full lg:w-64 flex-shrink-0">
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Barcode Input</label>
+                <label className="block text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Barcode Input</label>
                 <div className="relative">
-                  <Scan size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Scan size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                   <input
                     type="text"
                     placeholder="Scan or Enter Barcode"
@@ -388,7 +391,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                   {barcodeInput && (
                     <button 
                       onClick={() => setBarcodeInput("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs"
                     >
                       Clear
                     </button>
@@ -409,7 +412,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                 </button>
                 <button
                   onClick={() => onNavigate("barcode-verification", { ...order, currentItem })}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-1.5 shadow-sm"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors flex items-center gap-1.5 shadow-sm"
                 >
                   <Scan size={15} /> Verify
                 </button>
@@ -424,15 +427,15 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-gray-900 font-extrabold text-sm uppercase tracking-wider">All Items</h3>
-            <span className="text-xs text-gray-500 font-medium">{items.length} items total</span>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h3 className="text-gray-900 dark:text-gray-100 font-extrabold text-sm uppercase tracking-wider">All Items</h3>
+            <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{items.length} items total</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                <tr className="bg-gray-50 dark:bg-gray-700/50 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
                   <th className="px-6 py-3">Product</th>
                   <th className="px-6 py-3 text-center">Quantity</th>
                   <th className="px-6 py-3">Picking Location</th>
@@ -446,7 +449,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                   const isCurrent = item.id === currentItem?.id;
 
                   let statusBadge = (
-                    <span className="bg-gray-100 text-gray-500 rounded-full px-2.5 py-1 text-[11px] font-semibold">Pending</span>
+                    <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-500 rounded-full px-2.5 py-1 text-[11px] font-semibold">Pending</span>
                   );
                   if (isPicked) {
                     statusBadge = (
@@ -469,18 +472,18 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                         isCurrent 
                           ? "bg-green-50/40 hover:bg-green-50/60 font-semibold" 
                           : isPicked 
-                            ? "bg-gray-50/20 hover:bg-gray-50/40" 
+                            ? "bg-gray-50 dark:bg-gray-700/50/20 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50/40" 
                             : isRejected 
                               ? "bg-red-50/10 hover:bg-red-50/20" 
-                              : "hover:bg-gray-50/50"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50/50"
                       }`}
                     >
                       <td className="px-6 py-3.5 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded bg-gray-50 flex items-center justify-center text-lg overflow-hidden border border-gray-100 flex-shrink-0">
+                        <div className="w-9 h-9 rounded bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center text-lg overflow-hidden border border-gray-100 dark:border-gray-700 flex-shrink-0">
                           {item.image_url ? <img src={item.image_url} alt="" className="w-full h-full object-cover" /> : '📦'}
                         </div>
                         <div className="min-w-0">
-                          <p className={`text-sm font-bold truncate ${isPicked ? "text-gray-400 line-through font-medium" : "text-gray-900"}`}>
+                          <p className={`text-sm font-bold truncate ${isPicked ? "text-gray-400 dark:text-gray-500 line-through font-medium" : "text-gray-900 dark:text-gray-100"}`}>
                             {item.name}
                           </p>
                           {isRejected && (
@@ -488,7 +491,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-3.5 text-center text-sm font-extrabold text-gray-700">
+                      <td className="px-6 py-3.5 text-center text-sm font-extrabold text-gray-700 dark:text-gray-300">
                         {item.quantity}
                       </td>
                       <td className="px-6 py-3.5">
@@ -508,14 +511,14 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
       {showRejectModal && rejectingItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-gray-900 font-bold text-lg mb-1">Reject Item</h2>
-            <p className="text-gray-500 text-sm mb-4">
-              Item: <span className="font-semibold text-gray-800">{rejectingItem.name}</span>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="text-gray-900 dark:text-gray-100 font-bold text-lg mb-1">Reject Item</h2>
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm mb-4">
+              Item: <span className="font-semibold text-gray-800 dark:text-gray-200">{rejectingItem.name}</span>
             </p>
 
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
+              <label className="block text-gray-700 dark:text-gray-300 text-sm font-semibold mb-2">
                 Select Rejection Reason <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -531,7 +534,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                     key={reason}
                     className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${selectedRejectReason === reason
                         ? "border-[#D32F2F] bg-red-50/50"
-                        : "border-gray-200 hover:border-gray-300 bg-gray-50"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300 bg-gray-50 dark:bg-gray-700/50"
                       }`}
                   >
                     <input
@@ -545,7 +548,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                       }}
                       className="text-red-600 focus:ring-red-500 w-4 h-4"
                     />
-                    <span className="text-gray-700 text-xs font-semibold">{reason}</span>
+                    <span className="text-gray-700 dark:text-gray-300 text-xs font-semibold">{reason}</span>
                   </label>
                 ))}
               </div>
@@ -556,14 +559,14 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
             )}
 
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
+              <label className="block text-gray-700 dark:text-gray-300 text-sm font-semibold mb-2">
                 Additional Remarks (Optional)
               </label>
               <textarea
                 value={rejectRemarks}
                 onChange={(e) => setRejectRemarks(e.target.value)}
                 placeholder="e.g. Shelf is empty"
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 min-h-[80px] resize-none"
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 min-h-[80px] resize-none"
               />
             </div>
 
@@ -576,7 +579,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                   setValidationError("");
                   setRejectingItem(null);
                 }}
-                className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2.5 border border-gray-300 text-gray-700 dark:text-gray-300 font-semibold rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors"
               >
                 Cancel
               </button>

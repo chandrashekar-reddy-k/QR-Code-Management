@@ -139,7 +139,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                     value={order.agentId || ""}
                     onChange={(e) => handleAssignRider(order.id, e.target.value)}
                     disabled={assigningId === order.id}
-                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900 dark:text-gray-100"
+                    className="w-full bg-white border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900"
                   >
                     <option value="">Select Rider...</option>
                     {agents.map((agent) => (

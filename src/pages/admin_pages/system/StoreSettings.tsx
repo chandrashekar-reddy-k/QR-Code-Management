@@ -349,7 +349,7 @@ const StoreSettings = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Store Settings</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Store Settings</h1>
       </div>
 
       {/* Breadcrumbs */}
@@ -358,8 +358,8 @@ const StoreSettings = () => {
       </div>
 
       {/* Tabs - Separate Container */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mb-4 overflow-hidden">
-        <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-4 overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-gray-200">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -370,7 +370,7 @@ const StoreSettings = () => {
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors relative flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'text-orange-600'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    : 'text-gray-600 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
                 <Icon size={16} className="flex-shrink-0" />
@@ -386,7 +386,7 @@ const StoreSettings = () => {
 
       {/* Tab Content */}
       <form onSubmit={handleSubmit}>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-3 md:p-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-3 md:p-6">
           {renderTabContent()}
         </div>
         <div className="mt-4 flex justify-end">

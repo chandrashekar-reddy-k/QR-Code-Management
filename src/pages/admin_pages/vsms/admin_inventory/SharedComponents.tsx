@@ -21,9 +21,9 @@ export const StockItemRow = React.memo(({ item, quantity, onChange, isFree, curr
   const totalStock = item.totalStock ?? (warehouseStock + vehicleStock);
 
   return (
-    <div className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-200 animate-in fade-in ${isFree ? 'bg-emerald-50/50 border-emerald-100' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 group hover:border-emerald-200'}`}>
+    <div className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-200 animate-in fade-in ${isFree ? 'bg-emerald-50/50 border-emerald-100' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 group hover:border-emerald-200'}`}>
       <div className="flex flex-col flex-1">
-        <span className={`text-sm font-bold ${isFree ? 'text-emerald-900' : 'text-gray-700 dark:text-gray-300'}`}>{item.name}</span>
+        <span className={`text-sm font-bold ${isFree ? 'text-emerald-900' : 'text-gray-700'}`}>{item.name}</span>
         <div className="flex items-center gap-3 mt-1">
           <div className="flex items-center gap-1.5">
             <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest">Store</span>
@@ -41,7 +41,7 @@ export const StockItemRow = React.memo(({ item, quantity, onChange, isFree, curr
           </div>
           
           {isReturn && (
-            <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-3 ml-1">
+            <div className="flex items-center gap-2 border-l border-gray-200 pl-3 ml-1">
               <span className="text-[9px] text-blue-600 font-bold uppercase tracking-tighter">In This Vehicle: {currentStock || 0}</span>
             </div>
           )}
@@ -59,7 +59,7 @@ export const StockItemRow = React.memo(({ item, quantity, onChange, isFree, curr
             step="any"
             min="0"
             onWheel={(e) => e.target.blur()}
-            className={`w-16 bg-white dark:bg-gray-800 border rounded-lg px-2 py-1.5 text-sm text-center font-bold focus:ring-2 outline-none transition-all shadow-sm ${qty > (isReturn ? (currentStock || 0) : warehouseStock) ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-gray-200 dark:border-gray-700 focus:ring-emerald-500/20 focus:border-emerald-300'}`}
+            className={`w-16 bg-white border rounded-lg px-2 py-1.5 text-sm text-center font-bold focus:ring-2 outline-none transition-all shadow-sm ${qty > (isReturn ? (currentStock || 0) : warehouseStock) ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-gray-200 focus:ring-emerald-500/20 focus:border-emerald-300'}`}
             value={quantity || ''}
             onChange={(e) => {
               const val = Math.max(0, parseFloat(e.target.value) || 0);
@@ -67,7 +67,7 @@ export const StockItemRow = React.memo(({ item, quantity, onChange, isFree, curr
             }}
           />
         ) : (
-          <div className="w-16 h-10 flex items-center justify-center bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-400">
+          <div className="w-16 h-10 flex items-center justify-center bg-white/50 rounded-lg border border-gray-200 text-sm font-bold text-gray-400">
             {quantity || 0}
           </div>
         )}

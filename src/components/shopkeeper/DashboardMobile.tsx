@@ -58,29 +58,13 @@ const isSLABreached = (order: any): boolean => {
   return elapsed > (order.sla_minutes ?? 30);
 };
 
-const getRecentOrderTime = (order: any): number => {
-  const fields = [
-    order.dispatched_at,
-    order.dispatchedAt,
-    order.packing_completed_at,
-    order.packingCompletedAt,
-    order.picking_started_at,
-    order.pickingStartedAt,
-    order.updated_at,
-    order.updatedAt,
-    order.created_at,
-    order.createdAt
-  ];
-  let latest = 0;
-  for (const val of fields) {
-    if (val) {
-      const ms = new Date(val).getTime();
-      if (!isNaN(ms) && ms > latest) {
-        latest = ms;
-      }
-    }
-  }
-  return latest;
+
+
+const getPlacementTime = (order: any): number => {
+  const val = order.createdAt || order.created_at || order.placedAt || order.placed_at;
+  if (!val) return 0;
+  const ms = new Date(val).getTime();
+  return isNaN(ms) ? 0 : ms;
 };
 
 interface KPICardProps {
@@ -107,7 +91,7 @@ function KPICard({ label, value, icon: Icon, color, bg, onClick, isAdmin = false
         <div className="flex justify-between items-start w-full">
           <div className="flex-1 min-w-0 pr-2">
             <p className="text-[12px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{label}</p>
-            <h3 className="text-[28px] font-bold text-slate-800 dark:text-slate-100 mt-2 leading-none">
+            <h3 className="text-[24px] font-bold text-slate-800 dark:text-slate-100 mt-2 leading-none">
               {value}
             </h3>
           </div>
@@ -151,7 +135,7 @@ function KPICard({ label, value, icon: Icon, color, bg, onClick, isAdmin = false
   );
 }
 
-export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
+export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
 
@@ -205,7 +189,44 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   }, []);
 
   const calculateStats = () => {
-    let allOrders = [...sharedOrders];
+    const seenIds = new Set();
+    const distinctOrders = [];
+    for (const o of sharedOrders) {
+      const id = o.id || o.order_number;
+      if (id && !seenIds.has(id)) {
+        seenIds.add(id);
+        distinctOrders.push(o);
+      }
+    }
+
+    // Retrieve current user's warehouseId to scope dashboard orders to this store only
+    const cachedWh = localStorage.getItem("warehouseId");
+    const storedU = localStorage.getItem("user");
+    let userWarehouseId: string | null = null;
+    if (cachedWh && cachedWh !== "undefined") {
+      userWarehouseId = cachedWh;
+    } else if (storedU) {
+      try {
+        const u = JSON.parse(storedU);
+        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
+      } catch (e) {}
+    }
+
+    // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, and must not be pre-payment PENDING status
+    let allOrders = distinctOrders.filter((o: any) => {
+      const oWh = o.warehouseId || o.warehouse_id;
+      if (!oWh) return false;
+
+      if (userWarehouseId && oWh !== userWarehouseId) {
+        return false;
+      }
+
+      const status = (o.status || "").toUpperCase();
+      if (status === 'PENDING') {
+        return false;
+      }
+      return true;
+    });
 
     // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
     if (!isAdmin) {
@@ -294,7 +315,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       }
     });
 
-    const sortedOrders = [...allOrders].sort((a, b) => getRecentOrderTime(b) - getRecentOrderTime(a));
+    const sortedOrders = [...allOrders].sort((a, b) => getPlacementTime(b) - getPlacementTime(a));
     setRecentOrders(sortedOrders.slice(0, 5));
   };
 
@@ -621,7 +642,34 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                           const initials = sk.name
                             ? sk.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
                             : "SK";
-                          const isBusy = (sk.activeOrderCount || 0) > 0;
+
+                          // Calculate active order count dynamically based on current orders state
+                          const activeOrdersForSk = orders.filter((o: any) => {
+                            const isAssigned = 
+                              o.shopkeeper_phone === sk.phone ||
+                              o.assignedShopkeeper?.phone === sk.phone ||
+                              o.assigned_shopkeeper?.phone === sk.phone ||
+                              (o.shopkeeper_name && o.shopkeeper_name.toLowerCase() === sk.name?.toLowerCase());
+
+                            if (!isAssigned) return false;
+
+                            const s = o.status?.toLowerCase();
+                             return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
+                           });
+                          
+                          const activeOrderCount = activeOrdersForSk.length;
+                          const isOffline = sk.status?.toLowerCase() === 'offline';
+                          const isBusy = !isOffline && activeOrderCount > 0;
+
+                          let badgeText = "Available";
+                          let badgeStyle = { backgroundColor: "#E8F5E9", color: "#00891D" };
+                          if (isOffline) {
+                            badgeText = "Offline";
+                            badgeStyle = { backgroundColor: "#F3F4F6", color: "#6B7280" };
+                          } else if (isBusy) {
+                            badgeText = "Busy";
+                            badgeStyle = { backgroundColor: "#FFEACC", color: "#EA580C" };
+                          }
 
                           return (
                             <tr key={sk.id} className="hover:bg-[#F9FAFB] transition-colors" style={{ height: "72px" }}>
@@ -638,17 +686,14 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                                 {sk.phone}
                               </td>
                               <td className="px-[12px] py-[16px] whitespace-nowrap text-sm text-gray-900 font-medium">
-                                {sk.activeOrderCount || 0}
+                                {activeOrderCount}
                               </td>
                               <td className="px-[12px] py-[16px] whitespace-nowrap">
                                 <span
                                   className="inline-flex items-center justify-center px-2 py-1 rounded-full text-[11px] font-semibold w-full text-center"
-                                  style={{
-                                    backgroundColor: isBusy ? "#FFEACC" : "#E8F5E9",
-                                    color: isBusy ? "#EA580C" : "#00891D"
-                                  }}
+                                  style={badgeStyle}
                                 >
-                                  {isBusy ? "Busy" : "Available"}
+                                  {badgeText}
                                 </span>
                               </td>
                             </tr>
@@ -715,17 +760,17 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                 View All <ChevronRight size={16} />
               </button>
             </div>
-                       <div className="overflow-x-auto rounded-[16px] border border-gray-100 dark:border-gray-700">
+            <div className="overflow-x-auto rounded-[16px] border border-gray-100">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Order Number</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Customer</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Shopkeeper</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Amount</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Time</th>
-                    <th className="text-center px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Action</th>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Order Number</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Customer</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Shopkeeper</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Status</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Amount</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Date & Time</th>
+                    <th className="text-center px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -782,41 +827,42 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
                     // Calculate time text
                     const timeText = (() => {
-                      const ts = getRecentOrderTime(order);
+                      const ts = order.createdAt || order.created_at || order.placedAt || order.placed_at;
                       if (!ts) return "—";
                       const date = new Date(ts);
                       if (isNaN(date.getTime())) return "—";
                       
                       const day = String(date.getDate()).padStart(2, '0');
-                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                      const month = months[date.getMonth()];
                       const year = date.getFullYear();
                       
                       let hours = date.getHours();
                       const minutes = String(date.getMinutes()).padStart(2, '0');
                       const ampm = hours >= 12 ? 'PM' : 'AM';
                       hours = hours % 12;
-                      hours = hours ? hours : 12; // the hour '0' should be '12'
+                      hours = hours ? hours : 12;
                       
-                      return `${day}-${month}-${year}, ${hours}:${minutes} ${ampm}`;
+                      return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
                     })();
 
                     return (
                       <tr
                         key={order.id}
-                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800">
                           {order.order_number}
                         </td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
-                          <div className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">{order.customer_name || order.user}</div>
+                          <div className="text-xs sm:text-sm font-medium text-gray-800">{order.customer_name || order.user}</div>
                           <div className="text-[10px] sm:text-xs text-[#9EA3AE]">{order.phone}</div>
                         </td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
                           {order.shopkeeper_name ? (
                             order.shopkeeper_name
                           ) : (
-                            <span className="text-gray-400 dark:text-gray-500">
+                            <span className="text-gray-400">
                               Unassigned
                             </span>
                           )}
@@ -829,10 +875,10 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                             {formatStatusDisplay(order.status)}
                           </span>
                         </td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800">
                           ₹{order.total_value}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
                           {timeText}
                         </td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-center">
@@ -848,6 +894,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                 </tbody>
               </table>
             </div>
+
           </div>
 
         </div>

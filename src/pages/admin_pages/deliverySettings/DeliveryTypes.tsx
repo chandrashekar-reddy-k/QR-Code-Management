@@ -167,7 +167,7 @@ const DeliveryTypes = () => {
         <div className="mb-4">
           <Breadcrumbs />
         </div>
-        <div className="flex items-center justify-center min-h-[200px] text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-center min-h-[200px] text-gray-500">
           Loading...
         </div>
       </div>
@@ -177,7 +177,7 @@ const DeliveryTypes = () => {
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       <div className="mb-3 mt-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Delivery Types
         </h1>
       </div>
@@ -188,12 +188,12 @@ const DeliveryTypes = () => {
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-base font-medium text-gray-900 dark:text-gray-100">
+              <p className="text-base font-medium text-gray-900">
                 Express Delivery
               </p>
               <ToggleSwitch
@@ -252,7 +252,7 @@ const DeliveryTypes = () => {
           </div>
 
           <div className="flex items-center justify-between">
-            <p className="text-base font-medium text-gray-900 dark:text-gray-100">
+            <p className="text-base font-medium text-gray-900">
               Self Pickup
             </p>
             <ToggleSwitch
@@ -265,7 +265,7 @@ const DeliveryTypes = () => {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-base font-medium text-gray-900 dark:text-gray-100">
+              <p className="text-base font-medium text-gray-900">
                 Scheduled Delivery
               </p>
               <ToggleSwitch
@@ -302,7 +302,7 @@ const DeliveryTypes = () => {
           </div>
 
           {/* <div className="flex items-center justify-between">
-            <p className="text-base font-medium text-gray-900 dark:text-gray-100">
+            <p className="text-base font-medium text-gray-900">
               Pick up At Vehicle
             </p>
             <ToggleSwitch

@@ -194,7 +194,7 @@ const PosReports: React.FC = () => {
       sortable: true,
       render: (row: typeof mockPosReports[0]) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">
+          <span className="text-xs sm:text-sm text-gray-800 font-medium">
             {row.id}
           </span>
         </div>
@@ -206,7 +206,7 @@ const PosReports: React.FC = () => {
       sortable: true,
       render: (row: typeof mockPosReports[0]) => (
         <div className="text-left">
-          <div className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">
+          <div className="text-xs sm:text-sm text-gray-800 font-medium">
             {row.customerName}
           </div>
           <button
@@ -224,7 +224,7 @@ const PosReports: React.FC = () => {
       sortable: true,
       render: (row: typeof mockPosReports[0]) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {new Date(row.dateTime).toLocaleString()}
           </span>
         </div>
@@ -236,7 +236,7 @@ const PosReports: React.FC = () => {
       sortable: true,
       render: (row: typeof mockPosReports[0]) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <span className="text-xs sm:text-sm font-semibold text-gray-900">
             {formatCurrency(row.totalPrice)}
           </span>
         </div>
@@ -248,7 +248,7 @@ const PosReports: React.FC = () => {
       sortable: true,
       render: (row: typeof mockPosReports[0]) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {row.paymentMethod}
           </span>
         </div>
@@ -281,7 +281,7 @@ const PosReports: React.FC = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-2 mt-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
           POS Reports
         </h1>
         <Breadcrumbs />
@@ -317,10 +317,10 @@ const PosReports: React.FC = () => {
 
       {/* Filters + Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-[520px] overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-[520px] overflow-hidden">
           {/* Filter icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* Date Filter */}
@@ -339,7 +339,7 @@ const PosReports: React.FC = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -357,7 +357,7 @@ const PosReports: React.FC = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -387,7 +387,7 @@ const PosReports: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginated}
@@ -406,10 +406,10 @@ const PosReports: React.FC = () => {
 
         {/* Pagination */}
         {filteredAndSorted.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
@@ -428,7 +428,7 @@ const PosReports: React.FC = () => {
                     className="w-16 sm:w-20 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing results{" "}
                   <span className="text-orange-600 dark:text-orange-500 font-medium">
                     {pageSize}

@@ -976,7 +976,7 @@ export default function AdminCashManagementContent() {
           {headerTab !== 'POS HISTORY' && availableTabs.length > 0 && (
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex gap-2 bg-gray-100/50 p-1.5 rounded-2xl w-fit border border-gray-100">
+                <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl w-fit border border-gray-100">
                   {availableTabs.map(tab => (
                     <button 
                       key={tab.key} onClick={() => setActiveTab(tab.key)}

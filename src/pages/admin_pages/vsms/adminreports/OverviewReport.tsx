@@ -43,7 +43,7 @@ export default function OverviewReport() {
             <StatCard label="Orders Today" value={reportData.daily?.totalOrders || 0} icon={ShoppingCart} colorClass="text-blue-600 bg-blue-50" />
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Performance Analytics</h3>
@@ -87,13 +87,13 @@ export default function OverviewReport() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-6">Top Contributing Products</h3>
             <div className="space-y-4">
               {reportData.topProducts?.map((p, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:bg-gray-900/50 transition-colors border border-transparent hover:border-gray-200 dark:border-gray-700">
+                <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:bg-gray-900/50 transition-colors border border-transparent hover:border-gray-200">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center border border-gray-200">
                       {p.image ? <img src={p.image} className="w-full h-full object-cover rounded-xl" /> : <Package className="text-gray-300" />}
                     </div>
                     <div>

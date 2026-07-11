@@ -103,7 +103,7 @@ const AddAttribute = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Add Attribute</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Add Attribute</h1>
         <BackButton to="/master-setup/attributes" />
       </div>
       
@@ -113,12 +113,12 @@ const AddAttribute = () => {
       </div>
 
       {/* Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <form onSubmit={handleSubmit(onSubmit, onError)}>
           <FormSectionWithDots title="Attribute Information">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Attribute Name <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <Controller
@@ -136,7 +136,7 @@ const AddAttribute = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Attribute Type <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <Controller
@@ -160,7 +160,7 @@ const AddAttribute = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Display Order <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <Controller
@@ -185,7 +185,7 @@ const AddAttribute = () => {
           {(attributeType === 'SINGLE_SELECT' || attributeType === 'MULTI_SELECT') && (
             <FormSectionWithDots title="Attribute Values">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Values <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <div className="flex gap-2 mb-2">
@@ -247,7 +247,7 @@ const AddAttribute = () => {
                       onChange={field.onChange}
                       className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                     />
-                    <span className="text-xs text-gray-700 dark:text-gray-300">Required</span>
+                    <span className="text-xs text-gray-700">Required</span>
                   </label>
                 )}
               />
@@ -263,7 +263,7 @@ const AddAttribute = () => {
                       onChange={field.onChange}
                       className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                     />
-                    <span className="text-xs text-gray-700 dark:text-gray-300">Filterable</span>
+                    <span className="text-xs text-gray-700">Filterable</span>
                   </label>
                 )}
               />
@@ -279,7 +279,7 @@ const AddAttribute = () => {
                       onChange={field.onChange}
                       className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                     />
-                    <span className="text-xs text-gray-700 dark:text-gray-300">Searchable</span>
+                    <span className="text-xs text-gray-700">Searchable</span>
                   </label>
                 )}
               />

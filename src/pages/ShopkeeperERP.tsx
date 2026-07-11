@@ -128,17 +128,17 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-8 flex flex-col items-center relative">
         <div className="absolute top-12 left-4">
           <button
             onClick={onBack}
-            className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+            className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center hover:bg-white dark:bg-gray-800/30 transition-colors"
           >
             <ArrowLeft size={20} color="white" />
           </button>
         </div>
-        <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-3">
+        <div className="w-20 h-20 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center mb-3">
           <span className="text-white font-bold text-2xl">{initials}</span>
         </div>
         <h1 className="text-white font-bold text-xl">{name}</h1>
@@ -149,7 +149,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
             { label: "Completed", value: stats.completed.toString() },
             { label: "SLA %", value: `${stats.sla}%` },
           ].map(s => (
-            <div key={s.label} className="bg-white/10 rounded-xl px-4 py-2 text-center">
+            <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl px-4 py-2 text-center">
               <p className="text-white font-bold text-base">{s.value}</p>
               <p className="text-white/60 text-[10px]">{s.label}</p>
             </div>
@@ -159,9 +159,9 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
       <div className="flex flex-col gap-4 p-4 max-w-3xl mx-auto w-full">
         {profileSections.map((section) => (
-          <div key={section.title} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-              <span className="text-gray-500 font-semibold text-[11px] uppercase tracking-wider">
+          <div key={section.title} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold text-[11px] uppercase tracking-wider">
                 {section.title}
               </span>
             </div>
@@ -169,19 +169,19 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
               <button
                 key={item.label}
                 onClick={() => "screen" in item ? onNavigate((item as { screen: string }).screen) : undefined}
-                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 last:border-0 text-left hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 last:border-0 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors"
               >
                 <span className="text-xl">{item.icon}</span>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-gray-800 font-medium text-sm">{item.label}</p>
+                    <p className="text-gray-800 dark:text-gray-200 font-medium text-sm">{item.label}</p>
                     {("badge" in item && (item as any).badge > 0) && (
                       <span className="bg-[#EF5A06] text-white rounded-full px-2 py-0.5 text-[10px] font-bold">
                         {(item as any).badge}
                       </span>
                     )}
                   </div>
-                  {"desc" in item && <p className="text-gray-400 mt-0.5 text-[11px]">{(item as { desc: string }).desc}</p>}
+                  {"desc" in item && <p className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5 text-[11px]">{(item as { desc: string }).desc}</p>}
                 </div>
                 {"screen" in item && (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BDBDBD" strokeWidth="2">
@@ -197,7 +197,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
             localStorage.clear();
             window.location.href = "/login";
           }}
-          className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-center gap-2 border border-red-100 hover:bg-red-50 transition-colors w-full"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 flex items-center justify-center gap-2 border border-red-100 hover:bg-red-50 transition-colors w-full"
         >
           <span className="text-red-600 font-semibold text-sm">Sign Out</span>
         </button>
@@ -409,9 +409,9 @@ export default function ShopkeeperERP() {
 
   return (
     <SharedOrdersContext.Provider value={{ orders, loading, refreshOrders: fetchOrders }}>
-      <div className="min-h-screen bg-[#F5F7FA] flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
+      <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 flex-shrink-0 h-screen sticky top-0">
+        <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex-shrink-0 h-screen sticky top-0">
           {/* Logo or Brand */}
           <div className="p-6 border-b border-gray-50 flex items-center gap-3 justify-center">
             <img
@@ -446,7 +446,7 @@ export default function ShopkeeperERP() {
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                     isActive
                       ? "bg-[#00891D]/10 text-[#00891D]"
-                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                      : "text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
                   }`}
                 >
                   {item.icon}
@@ -475,7 +475,7 @@ export default function ShopkeeperERP() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile Header / Navigation */}
-          <header className="md:hidden bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+          <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
             <img
               src="/villagkart_logo_name_new.svg"
               alt="VillagKart"
@@ -496,7 +496,7 @@ export default function ShopkeeperERP() {
           </main>
   
           {/* Mobile Bottom Navigation */}
-          <nav className="md:hidden bg-white border-t border-gray-100 flex justify-around py-2 sticky bottom-0 z-30">
+          <nav className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-around py-2 sticky bottom-0 z-30">
             {[
               { id: "dashboard", label: "Home", icon: <LayoutDashboard size={18} /> },
               { id: "new-orders", label: "Inbox", icon: <ShoppingBag size={18} /> },
@@ -516,7 +516,7 @@ export default function ShopkeeperERP() {
                   key={item.id}
                   onClick={() => navigate(item.id)}
                   className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold transition-all ${
-                    isActive ? "text-[#00891D]" : "text-gray-400"
+                    isActive ? "text-[#00891D]" : "text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
                   }`}
                 >
                   {item.icon}

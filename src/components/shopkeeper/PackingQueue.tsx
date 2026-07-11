@@ -13,10 +13,15 @@ interface PackingQueueProps {
 }
 
 export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
-  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  const [userRole] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    return userObj?.role;
+  });
+  
+  const [isStaffLogin] = useState(() => {
+    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  });
 
   if (isStaffLogin) {
     return <PackingQueueMobile onNavigate={onNavigate} onBack={onBack} />;
@@ -195,7 +200,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
   }, [packingOrders, searchQuery, statusFilter, deliveryTypeFilter, trayFilter, dateRangeType, customDate]);
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] p-[32px] pb-10 flex flex-col">
+    <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10 flex flex-col">
       {/* Breadcrumbs */}
       <div className="mb-6">
         <Breadcrumbs />
@@ -204,10 +209,10 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-[32px] font-bold text-[#111827] leading-none mb-2">Packing Queue</h1>
-          <p className="text-[14px] text-[#9EA3AE]">Orders ready for packing</p>
+          <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Packing Queue</h1>
+          <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500">Orders ready for packing</p>
         </div>
-        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors">
           <ArrowLeft size={16} /> Back to Dashboard
         </button>
       </div>
@@ -246,7 +251,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
             </div>
             <div>
               <p className={`text-2xl font-black leading-none mb-0.5 ${card.text}`}>{card.value}</p>
-              <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">{card.label}</p>
+              <p className="text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">{card.label}</p>
             </div>
           </div>
         ))}
@@ -262,7 +267,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
 
           {/* Delivery Type Dropdown */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
@@ -275,13 +280,13 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           {/* Packing Status Dropdown */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -295,13 +300,13 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           {/* Tray Dropdown */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[130px] sm:w-[140px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={trayFilter}
                 onChange={(e) => setTrayFilter(e.target.value)}
@@ -317,13 +322,13 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           {/* Date Filter */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={dateRangeType}
                 onChange={(e) => {
@@ -355,7 +360,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
             <input
               ref={dateInputRef}
@@ -397,20 +402,20 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
         {filteredPackingOrders.length === 0 ? (
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <Package size={48} className="text-gray-300 mb-4" />
-            <p className="text-lg font-semibold text-gray-500">No orders in packing queue</p>
+            <p className="text-lg font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">No orders in packing queue</p>
           </div>
         ) : (
           <div className="w-full overflow-x-hidden">
             <table className="w-full border-collapse table-auto text-[14px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[56px] whitespace-nowrap">
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[20%]">Order Number</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[20%]">Assigned Shopkeeper</th>
-                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Packing Tray</th>
-                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Total Items</th>
-                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Packing Progress</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">SLA Status</th>
-                  <th style={{ width: "165px", minWidth: "165px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[20%]">Order Number</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[20%]">Assigned Shopkeeper</th>
+                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">Packing Tray</th>
+                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">Total Items</th>
+                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">Packing Progress</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">SLA Status</th>
+                  <th style={{ width: "165px", minWidth: "165px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -473,7 +478,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                   const pctVal = totalToPack > 0 ? Math.round((packedCountVal / totalToPack) * 100) : 0;
 
                   return (
-                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors h-[64px]">
+                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-750 transition-colors h-[64px]">
                       <td className="px-4 py-4 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
                         {order.order_number}
                       </td>
@@ -482,7 +487,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                         {order.shopkeeper_name ? (
                           <span className="text-gray-700 dark:text-gray-300 font-semibold">{order.shopkeeper_name}</span>
                         ) : (
-                          <span className="text-gray-400">Unassigned</span>
+                          <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">Unassigned</span>
                         )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-center font-bold text-[#EF5A06]">
@@ -511,7 +516,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => onNavigate("order-details", order)}
-                            className="flex items-center gap-1 text-[11px] font-bold text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-255 transition-colors px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            className="flex items-center gap-1 text-[11px] font-bold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:hover:text-gray-255 transition-colors px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700"
                             title="View Details"
                           >
                             <Eye size={12} />
@@ -545,15 +550,15 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
       </div>
 
       {/* Packing Tray Overview - Desktop Table style */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 overflow-hidden">
-        <h3 className="text-[#111827] mb-4 font-bold text-[16px]">Packing Trays Overview</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <h3 className="text-[#111827] dark:text-gray-100 mb-4 font-bold text-[16px]">Packing Trays Overview</h3>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse table-auto text-left text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 h-10">
-                <th className="px-4 py-2 font-semibold text-gray-500 uppercase tracking-wider text-xs">Tray ID</th>
-                <th className="px-4 py-2 font-semibold text-gray-500 uppercase tracking-wider text-xs">Status</th>
-                <th className="px-4 py-2 font-semibold text-gray-500 uppercase tracking-wider text-xs">Assigned Order</th>
+              <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 h-10">
+                <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider text-xs">Tray ID</th>
+                <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider text-xs">Status</th>
+                <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider text-xs">Assigned Order</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150">
@@ -564,8 +569,8 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                   const isActive = activeTraySet.has(tray);
                   const matchedOrder = packingOrders.find(o => o.tray === tray);
                   return (
-                    <tr key={tray} className="hover:bg-gray-50 h-12">
-                      <td className="px-4 py-2 font-bold text-gray-900">{tray}</td>
+                    <tr key={tray} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 h-12">
+                      <td className="px-4 py-2 font-bold text-gray-900 dark:text-gray-100">{tray}</td>
                       <td className="px-4 py-2">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${isActive
@@ -576,11 +581,11 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                           {isActive ? "Occupied" : "Available"}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-gray-600 font-semibold">
+                      <td className="px-4 py-2 text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">
                         {isActive && matchedOrder ? (
-                          <span className="text-gray-900">{matchedOrder.order_number}</span>
+                          <span className="text-gray-900 dark:text-gray-100">{matchedOrder.order_number}</span>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">—</span>
                         )}
                       </td>
                     </tr>

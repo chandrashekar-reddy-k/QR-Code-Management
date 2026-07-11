@@ -12,12 +12,16 @@ interface ReadyOrdersProps {
 }
 
 export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
+  const [userRole] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    return userObj?.role;
+  });
 
   // Staff login (SHOPKEEPER / STORE_STAFF) uses the original green mobile ready orders screen UI
-  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  const [isStaffLogin] = useState(() => {
+    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  });
 
   if (isStaffLogin) {
     return <ReadyOrdersMobile onNavigate={onNavigate} onBack={onBack} />;
@@ -126,7 +130,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
 
   if (sharedLoading && orders.length === 0) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F3F4F6] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900 items-center justify-center">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
       </div>
     );
@@ -141,7 +145,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   const waitingForRiderCount = orders.filter(o => !o.agentId).length;
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] p-[32px] pb-10 flex flex-col">
+    <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10 flex flex-col">
       {/* Breadcrumbs */}
       <div className="mb-6">
         <Breadcrumbs />
@@ -150,10 +154,10 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-[32px] font-bold text-[#111827] leading-none mb-2">Ready for Dispatch</h1>
-          <p className="text-[14px] text-[#9EA3AE]">Orders packed, assigned, and ready for rider handover</p>
+          <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Ready for Dispatch</h1>
+          <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500">Orders packed, assigned, and ready for rider handover</p>
         </div>
-        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors">
           <ArrowLeft size={16} /> Back to Dashboard
         </button>
       </div>
@@ -192,7 +196,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             </div>
             <div>
               <p className={`text-2xl font-black leading-none mb-0.5 ${card.text}`}>{card.value}</p>
-              <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">{card.label}</p>
+              <p className="text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">{card.label}</p>
             </div>
           </div>
         ))}
@@ -208,7 +212,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
 
           {/* Delivery Type Dropdown */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
@@ -222,13 +226,13 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           {/* SLA Status Dropdown */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={slaStatusFilter}
                 onChange={(e) => setSlaStatusFilter(e.target.value)}
@@ -241,13 +245,13 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           {/* Date Dropdown */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
@@ -261,7 +265,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
@@ -301,21 +305,21 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
         {filteredOrders.length === 0 ? (
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <Package size={48} className="text-gray-300 mb-4" />
-            <p className="text-lg font-semibold text-gray-500">No orders ready for dispatch</p>
+            <p className="text-lg font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">No orders ready for dispatch</p>
           </div>
         ) : (
           <div className="w-full overflow-x-hidden">
             <table className="w-full border-collapse table-auto text-[14px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[56px] whitespace-nowrap">
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order Number</th>
-                  {shouldShowShopkeeper && <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Shopkeeper</th>}
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivery Type</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tray</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rider</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ready Since</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">SLA Status</th>
-                  <th style={{ width: "200px", minWidth: "200px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Order Number</th>
+                  {shouldShowShopkeeper && <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shopkeeper</th>}
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Delivery Type</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Tray</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Rider</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Ready Since</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">SLA Status</th>
+                  <th style={{ width: "200px", minWidth: "200px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -347,26 +351,26 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                   })();
 
                   return (
-                    <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 font-bold text-gray-900">
+                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50/50 transition-colors">
+                      <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">
                         <div>
                           <span>#{order.order_number}</span>
                         </div>
                       </td>
                       {shouldShowShopkeeper && (
-                        <td className="px-4 py-3 text-gray-700 font-semibold text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-semibold text-xs whitespace-nowrap">
                           {order.shopkeeper_name || "Unassigned"}
                         </td>
                       )}
-                      <td className="px-4 py-3 text-gray-500 font-semibold text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold text-xs whitespace-nowrap">
                         <span className="px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-100 inline-block whitespace-nowrap">
                           {order.order_type || "Quick Commerce"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-bold text-gray-900">
+                      <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">
                         {order.tray_number || order.tray || 'N/A'}
                       </td>
-                      <td className="px-4 py-3 text-xs font-semibold text-gray-700 whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
                         {(() => {
                           const rider = agents.find(a => a.id === order.agentId);
                           return rider ? (
@@ -374,17 +378,17 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                               {rider.name}
                             </span>
                           ) : (
-                            <span className="text-gray-400 font-normal">Not Assigned</span>
+                            <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-normal">Not Assigned</span>
                           );
                         })()}
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">
                         {(() => {
                           const readyAt = order.packing_completed_at || order.packedAt || order.packingCompletedAt || order.updated_at || order.updatedAt;
-                          if (!readyAt) return <span className="text-gray-400">—</span>;
+                          if (!readyAt) return <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">—</span>;
                           const mins = Math.round((Date.now() - new Date(readyAt).getTime()) / 60000);
-                          if (mins < 1) return <span className="font-semibold text-gray-600">Just now</span>;
-                          if (mins < 60) return <span className="font-semibold text-gray-600">{mins} min ago</span>;
+                          if (mins < 1) return <span className="font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">Just now</span>;
+                          if (mins < 60) return <span className="font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">{mins} min ago</span>;
                           const h = Math.floor(mins / 60);
                           const m = mins % 60;
                           if (h < 24) return <span className="font-semibold text-orange-600">{h}h {m > 0 ? `${m}m` : ''} ago</span>;
@@ -409,10 +413,10 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => onNavigate("order-details", order)}
-                            className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
+                            className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-700 transition-colors"
                           >
-                            <Package size={12} className="text-gray-600" />
-                            <span className="text-gray-600 font-bold text-xs">View</span>
+                            <Package size={12} className="text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" />
+                            <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-bold text-xs">View</span>
                           </button>
 
                           {(() => {
@@ -469,9 +473,9 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
       {/* Assign Rider Modal */}
       {selectedOrderForRider && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-gray-900 font-bold text-lg mb-2">Assign Rider</h3>
-            <p className="text-gray-500 text-xs mb-4">Select a delivery partner for Order #{selectedOrderForRider.order_number}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-gray-900 dark:text-gray-100 font-bold text-lg mb-2">Assign Rider</h3>
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs mb-4">Select a delivery partner for Order #{selectedOrderForRider.order_number}</p>
 
             <select
               value={selectedOrderForRider.agentId || ""}
@@ -479,7 +483,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                 handleAssignRider(selectedOrderForRider.id, e.target.value);
                 setSelectedOrderForRider(null);
               }}
-              className="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-sm text-gray-955 focus:border-[#00891D] focus:outline-none mb-4"
+              className="w-full bg-white dark:bg-gray-800 border border-gray-300 rounded-lg p-2.5 text-sm text-gray-955 focus:border-[#00891D] focus:outline-none mb-4"
             >
               <option value="">Select Rider...</option>
               {agents.map((agent) => (
@@ -492,7 +496,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setSelectedOrderForRider(null)}
-                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-100 rounded-lg"
+                className="px-4 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg"
               >
                 Cancel
               </button>

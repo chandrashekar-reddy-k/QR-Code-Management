@@ -34,7 +34,7 @@ export default function WarehouseDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 mt-4">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
             Warehouse Ops Control Center
             <Activity className="text-indigo-500 animate-pulse" size={24} />
           </h1>

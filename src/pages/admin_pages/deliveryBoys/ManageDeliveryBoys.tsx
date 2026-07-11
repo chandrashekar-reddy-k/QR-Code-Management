@@ -413,7 +413,7 @@ const ManageDeliveryBoys = () => {
           idString.length > 8 ? `${idString.slice(0, 8)}...` : idString;
         return (
           <div className="text-center">
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+            <span className="text-xs sm:text-sm text-gray-800">
               {truncatedId}
             </span>
           </div>
@@ -437,7 +437,7 @@ const ManageDeliveryBoys = () => {
         return (
           <div className="text-center">
             <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <img
                   src={agent.avatar || defaultAvatar}
                   alt={agent.name}
@@ -452,7 +452,7 @@ const ManageDeliveryBoys = () => {
                 />
               </div>
               <div className="text-left min-w-0">
-                <div className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 truncate">
+                <div className="text-xs sm:text-sm text-gray-800 truncate">
                   {agent.name || "N/A"}
                 </div>
                 <div className="text-[10px] sm:text-xs text-orange-600 dark:text-orange-500 truncate">
@@ -470,7 +470,7 @@ const ManageDeliveryBoys = () => {
       sortable: true,
       render: (agent: ApiDeliveryAgent) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 break-words">
+          <span className="text-xs sm:text-sm text-gray-800 break-words">
             {agent.email || "N/A"}
           </span>
         </div>
@@ -506,8 +506,8 @@ const ManageDeliveryBoys = () => {
     //   render: (agent: ApiDeliveryAgent) => (
     //     <div className="text-center">
     //       <div className="flex items-center justify-center gap-1.5">
-    //         <Percent size={12} className="text-gray-400 dark:text-gray-500" />
-    //         <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+    //         <Percent size={12} className="text-gray-400" />
+    //         <span className="text-xs sm:text-sm text-gray-800">
     //           {agent.bonus || 0}%
     //         </span>
     //       </div>
@@ -521,8 +521,8 @@ const ManageDeliveryBoys = () => {
     //   render: (agent: ApiDeliveryAgent) => (
     //     <div className="text-center">
     //       <div className="flex items-center justify-center gap-1.5">
-    //         <FileText size={12} className="text-gray-400 dark:text-gray-500" />
-    //         <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+    //         <FileText size={12} className="text-gray-400" />
+    //         <span className="text-xs sm:text-sm text-gray-800">
     //           {agent.documents?.length || 0}{" "}
     //           {agent.documents?.length === 1 ? "doc" : "docs"}
     //         </span>
@@ -537,8 +537,8 @@ const ManageDeliveryBoys = () => {
     //   render: (agent: ApiDeliveryAgent) => (
     //     <div className="text-center">
     //       <div className="flex items-center justify-center gap-1.5">
-    //         <Calendar size={12} className="text-gray-400 dark:text-gray-500" />
-    //         <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">
+    //         <Calendar size={12} className="text-gray-400" />
+    //         <span className="text-xs sm:text-sm text-gray-800 whitespace-nowrap">
     //           {agent.dateOfBirth
     //             ? formatDate(agent.dateOfBirth, "DD-MM-YYYY")
     //             : "N/A"}
@@ -553,7 +553,7 @@ const ManageDeliveryBoys = () => {
       sortable: true,
       render: (agent: ApiDeliveryAgent) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {agent.city || "N/A"}
           </span>
         </div>
@@ -594,7 +594,7 @@ const ManageDeliveryBoys = () => {
               size="sm"
               customColor={
                 statusColorMap[normalizedStatus] ||
-                "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                "bg-gray-100 text-gray-800"
               }
               className="rounded"
             />
@@ -608,7 +608,7 @@ const ManageDeliveryBoys = () => {
       sortable: true,
       render: (agent: ApiDeliveryAgent) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">
+          <span className="text-xs sm:text-sm text-gray-800 whitespace-nowrap">
             {agent.date || "N/A"}
           </span>
         </div>
@@ -696,7 +696,7 @@ const ManageDeliveryBoys = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Action Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Delivery Agents
         </h1>
         <PrimaryButton
@@ -752,10 +752,10 @@ const ManageDeliveryBoys = () => {
 
       {/* Filters and Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
           {/* Filter Icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* Date Dropdown */}
@@ -774,7 +774,7 @@ const ManageDeliveryBoys = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -793,7 +793,7 @@ const ManageDeliveryBoys = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -811,7 +811,7 @@ const ManageDeliveryBoys = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div> */}
 
@@ -842,7 +842,7 @@ const ManageDeliveryBoys = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedAgents}
@@ -858,10 +858,10 @@ const ManageDeliveryBoys = () => {
 
         {/* Pagination */}
         {filteredAndSortedAgents.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-14 [&_select]:sm:w-16 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">

@@ -64,18 +64,18 @@ export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
             <ArrowLeft size={20} color="white" />
           </button>
           <div className="flex-1">
             <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Picking Queue</h1>
             <p className="text-white/70" style={{ fontSize: "12px" }}>{pickingOrders.length} orders to pick</p>
           </div>
-          <div className="bg-white/20 rounded-full px-3 py-1">
+          <div className="bg-white dark:bg-gray-800/20 rounded-full px-3 py-1">
             <span className="text-white" style={{ fontWeight: 600, fontSize: "13px" }}>{pickingOrders.reduce((sum, o) => sum + (o.items || 0), 0)} items total</span>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
             { label: "In Progress", value: stats.inProgress, color: "#EF5A06" },
             { label: "Completed", value: stats.completed, color: "#00891D" },
           ].map(s => (
-            <div key={s.label} className="bg-white/10 rounded-xl p-2 text-center">
+            <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl p-2 text-center">
               <p style={{ color: s.color, fontWeight: 700, fontSize: "18px" }}>{s.value}</p>
               <p className="text-white/70" style={{ fontSize: "10px" }}>{s.label}</p>
             </div>
@@ -120,7 +120,7 @@ export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
           const slaBg = slaBreached ? "#FFEBEE" : isUrgent ? "#FFEBEE" : "#FFF3E0";
 
           return (
-            <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div key={order.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
               {/* SLA Alert Banner */}
               {(slaBreached || isUrgent) && !isCompleted && (
                 <div className="bg-red-50 border-b border-red-100 px-4 py-1.5 flex items-center gap-1.5">
@@ -141,10 +141,10 @@ export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number}</span>
+                      <span className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number}</span>
                       <PriorityBadge priority={order.priority} />
                     </div>
-                    <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.order_type}</span>
+                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "12px" }}>{order.order_type}</span>
                   </div>
                   <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: slaBg }}>
                     <Clock size={11} color={slaColor} />
@@ -157,13 +157,13 @@ export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5">
                       <Package size={13} color="#9E9E9E" />
-                      <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.picked}/{order.items} items picked</span>
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "12px" }}>{order.picked}/{order.items} items picked</span>
                     </div>
                     <span style={{ color: isCompleted ? "#00891D" : "#EF5A06", fontWeight: 600, fontSize: "12px" }}>
                       {Math.round(progress)}%
                     </span>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{ width: `${progress}%`, backgroundColor: isCompleted ? "#00891D" : "#EF5A06" }}

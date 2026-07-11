@@ -204,7 +204,7 @@ const AddCashCollection = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title + Back */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Add Cash Collection
         </h1>
         <BackButton to="/delivery-boys/cash-collections" />
@@ -216,13 +216,13 @@ const AddCashCollection = () => {
       </div>
 
       {/* Form Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <form onSubmit={handleSubmit}>
           <FormSectionWithDots title="Cash Collection Information">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Delivery Boy search select */}
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Delivery Boy <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <div className="relative">
@@ -245,7 +245,7 @@ const AddCashCollection = () => {
                       }
                     }}
                     onFocus={() => setShowDropdown(true)}
-                    className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
+                    className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 ${
                       errors.deliveryBoyId
                         ? "border-red-300 dark:border-red-600 focus:ring-red-500 dark:focus:ring-red-400"
                         : "border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500"
@@ -257,9 +257,9 @@ const AddCashCollection = () => {
                         className="fixed inset-0 z-10"
                         onClick={() => setShowDropdown(false)}
                       />
-                      <div className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                         {filteredDeliveryBoys.length === 0 ? (
-                          <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="px-3 py-2 text-xs text-gray-500">
                             No delivery boys found
                           </div>
                         ) : (
@@ -281,7 +281,7 @@ const AddCashCollection = () => {
                                   }));
                                 }
                               }}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
+                              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-800"
                             >
                               {db.name} - {db.mobile}
                             </button>
@@ -323,7 +323,7 @@ const AddCashCollection = () => {
               <div>
                 <div className="relative">
                   <Calendar
-                    className="absolute left-3 top-[34px] -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10"
+                    className="absolute left-3 top-[34px] -translate-y-1/2 text-gray-400 z-10"
                     size={16}
                   />
                   <TextInput
@@ -344,7 +344,7 @@ const AddCashCollection = () => {
                   />
                 </div>
                 {formData.dateTime && (
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-[10px] text-gray-500 mt-1">
                     Selected: {formatDateTimeForDisplay(formData.dateTime)}
                   </p>
                 )}
@@ -352,7 +352,7 @@ const AddCashCollection = () => {
 
               {/* Message */}
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Message
                 </label>
                 <textarea
@@ -365,7 +365,7 @@ const AddCashCollection = () => {
                     }))
                   }
                   rows={3}
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>

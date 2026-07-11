@@ -294,7 +294,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
   };
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] p-[32px] pb-10">
+    <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10">
       {/* Breadcrumbs */}
       <div className="mb-6">
         <Breadcrumbs />
@@ -303,10 +303,10 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-[32px] font-bold text-[#111827] leading-none mb-2">Order History</h1>
-          <p className="text-[14px] text-[#9EA3AE]">View and track all processed orders</p>
+          <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Order History</h1>
+          <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500">View and track all processed orders</p>
         </div>
-        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors">
           <ArrowLeft size={16} /> Back to Dashboard
         </button>
       </div>
@@ -321,7 +321,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
 
           {/* Status Filter */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -336,13 +336,13 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           {/* Delivery Type Dropdown */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
@@ -355,13 +355,13 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           {/* Date Filter */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={dateRangeType}
                 onChange={(e) => {
@@ -393,7 +393,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
             <input
               ref={dateInputRef}
@@ -433,28 +433,28 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
       {/* Orders Table */}
       <div className="bg-white dark:bg-gray-800 rounded-[16px] overflow-hidden" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
         {sharedLoading && filteredOrders.length === 0 ? (
-          <div className="py-20 text-center text-gray-500 text-sm">Loading orders...</div>
+          <div className="py-20 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Loading orders...</div>
         ) : filteredOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
-              <ShoppingBag size={32} className="text-gray-400" />
+            <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center mb-4">
+              <ShoppingBag size={32} className="text-gray-400 dark:text-gray-500" />
             </div>
-            <h3 className="text-lg font-bold text-gray-800 mb-1">No order history available</h3>
-            <p className="text-sm text-gray-500">Processed orders will appear here once orders move through the workflow.</p>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">No order history available</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Processed orders will appear here once orders move through the workflow.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ height: "64px" }}>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Order ID</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Customer</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Delivery Type</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Amount</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Shopkeeper</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Status</th>
-                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Completed At</th>
-                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Order ID</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Customer</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Delivery Type</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shopkeeper</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Completed At</th>
+                  <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -464,7 +464,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                   return (
                     <tr
                       key={order.id}
-                      className="hover:bg-[#F9FAFB] dark:hover:bg-gray-750 transition-colors"
+                      className="hover:bg-[#F9FAFB] dark:bg-gray-900 dark:hover:bg-gray-750 transition-colors"
                       style={{ height: "72px" }}
                     >
                       <td className="px-[24px] py-[16px] text-[14px] font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
@@ -474,11 +474,11 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                         <div className="font-bold text-gray-900 dark:text-gray-100">
                           {order.customer_name || order.user || "—"}
                         </div>
-                        <div className="text-[12px] text-gray-500 font-medium">
+                        <div className="text-[12px] text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">
                           {order.customer_phone || order.phone || "—"}
                         </div>
                       </td>
-                      <td className="px-[24px] py-[16px] text-[14px] text-gray-600 dark:text-gray-400 whitespace-nowrap font-medium">
+                      <td className="px-[24px] py-[16px] text-[14px] text-gray-600 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap font-medium">
                         {order.order_type || order.deliveryType || "Home Delivery"}
                       </td>
                       <td className="px-[24px] py-[16px] text-[14px] text-gray-900 dark:text-gray-100 whitespace-nowrap font-bold">
@@ -488,7 +488,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                         {order.shopkeeper_name ? (
                           <span className="text-gray-700 dark:text-gray-300 font-semibold">{order.shopkeeper_name}</span>
                         ) : (
-                          <span className="text-gray-400">Unassigned</span>
+                          <span className="text-gray-400 dark:text-gray-500">Unassigned</span>
                         )}
                       </td>
                       <td className="px-[24px] py-[16px] text-[14px] whitespace-nowrap">
@@ -499,7 +499,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                           {displayStatus}
                         </span>
                       </td>
-                      <td className="px-[24px] py-[16px] text-[14px] text-gray-600 dark:text-gray-400 whitespace-nowrap font-medium">
+                      <td className="px-[24px] py-[16px] text-[14px] text-gray-600 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap font-medium">
                         {formatOrderDateTime(order)}
                       </td>
                       <td className="px-[24px] py-[16px] text-[14px] whitespace-nowrap">
@@ -517,7 +517,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
             
             {/* Pagination Footer */}
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-800">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
                 <span>Rows per page:</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-semibold">
                   <select

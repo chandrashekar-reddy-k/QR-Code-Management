@@ -927,7 +927,7 @@ const ManageProducts = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Manage Products
         </h1>
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -985,10 +985,10 @@ const ManageProducts = () => {
 
       {/* Filters and Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
           {/* Filter Icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* Category Dropdown */}
@@ -1005,7 +1005,7 @@ const ManageProducts = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -1023,7 +1023,7 @@ const ManageProducts = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -1057,7 +1057,7 @@ const ManageProducts = () => {
       </div>
 
       {/* Products Table: S.NO, IMAGE, NAME, UNIT, UNIT TYPE, PRICE, D.PRICE, VARIANTS, SKU, STATUS, ACTIONS */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -1073,16 +1073,16 @@ const ManageProducts = () => {
               </button>
             </div>
           ) : paginatedProducts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-sm">No products found</div>
+            <div className="text-center py-12 text-gray-500 text-sm">No products found</div>
           ) : (
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-2 sm:px-6 py-3 sm:py-4 text-center">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">S.NO</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">S.NO</span>
                   </th>
                   <th className="px-2 sm:px-6 py-3 sm:py-4 text-center">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">IMAGE</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">IMAGE</span>
                   </th>
                   <SortableTableHeader field="name" label="NAME" currentField={sortField} direction={sortDirection} onSort={handleSort} />
                   <SortableTableHeader field="unit" label="UNIT" currentField={sortField} direction={sortDirection} onSort={handleSort} />
@@ -1093,7 +1093,7 @@ const ManageProducts = () => {
                   <SortableTableHeader field="sku" label="SKU" currentField={sortField} direction={sortDirection} onSort={handleSort} />
                   <SortableTableHeader field="status" label="STATUS" currentField={sortField} direction={sortDirection} onSort={handleSort} />
                   <th className="px-2 sm:px-6 py-3 sm:py-4 text-center">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">ACTIONS</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">ACTIONS</span>
                   </th>
                 </tr>
               </thead>
@@ -1107,26 +1107,26 @@ const ManageProducts = () => {
                   const rowSerial = (currentPage - 1) * itemsPerPage + index + 1;
                   return (
                     <React.Fragment key={product.id}>
-                      <tr className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 text-center">{rowSerial}</td>
+                      <tr className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 text-center">{rowSerial}</td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
                           {product.image ? (
-                            <img src={product.image} alt={product.name} className="w-10 h-10 object-cover rounded mx-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-[10px] text-gray-400 dark:text-gray-500">No image</span>'; }} />
+                            <img src={product.image} alt={product.name} className="w-10 h-10 object-cover rounded mx-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-[10px] text-gray-400">No image</span>'; }} />
                           ) : (
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500">No image</span>
+                            <span className="text-[10px] text-gray-400">No image</span>
                           )}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">{product.name}</td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 text-center">{product.unit}</td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 text-center">{product.unitType}</td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">{formatPrice(product.price)}</td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 text-center">{formatPrice(product.discountedPrice)}</td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-800 dark:text-gray-200 text-center">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-800 text-center">{product.name}</td>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 text-center">{product.unit}</td>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 text-center">{product.unitType}</td>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-800 text-center">{formatPrice(product.price)}</td>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 text-center">{formatPrice(product.discountedPrice)}</td>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-800 text-center">
                           <button type="button" onClick={() => toggleRowExpansion(product.id, product)} className="font-semibold cursor-pointer hover:text-green-600 dark:hover:text-green-400 transition-colors underline decoration-dotted" title="Click to view variant details">
                             {product.variantsCount}
                           </button>
                         </td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 text-center">{product.sku}</td>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 text-center">{product.sku}</td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
@@ -1151,7 +1151,7 @@ const ManageProducts = () => {
                         <tr key={`${product.id}-variants`}>
                           <td colSpan={11} className="px-0 py-0 bg-gray-50 dark:bg-gray-900">
                             <div className="px-4 py-4">
-                              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                                 <div className="overflow-x-auto">
                                   <table className="w-full border-collapse table-fixed">
                                     <tbody>
@@ -1169,18 +1169,18 @@ const ManageProducts = () => {
                                           const isVariantActive = variantActiveOverrides[variantIdStr] !== undefined ? variantActiveOverrides[variantIdStr] : baseActive;
                                           const cellClass = "px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-center align-middle";
                                           return (
-                                            <tr key={variant.id ?? idx} className="border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                                              <td className={`${cellClass} text-gray-800 dark:text-gray-200`}>{idx + 1}</td>
+                                            <tr key={variant.id ?? idx} className="border-b border-gray-100 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+                                              <td className={`${cellClass} text-gray-800`}>{idx + 1}</td>
                                               <td className={cellClass}>
-                                                {vImg ? <img src={vImg} alt={vName} className="w-10 h-10 object-cover rounded mx-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-[10px] text-gray-400 dark:text-gray-500">No image</span>'; }} /> : <span className="text-[10px] text-gray-400 dark:text-gray-500">No image</span>}
+                                                {vImg ? <img src={vImg} alt={vName} className="w-10 h-10 object-cover rounded mx-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-[10px] text-gray-400">No image</span>'; }} /> : <span className="text-[10px] text-gray-400">No image</span>}
                                               </td>
-                                              <td className={`${cellClass} font-semibold text-gray-800 dark:text-gray-200`}>{vName}</td>
-                                              <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>{variant.unit || product.unit || "N/A"}</td>
-                                              <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>{variant.unitType || "N/A"}</td>
-                                              <td className={`${cellClass} font-semibold text-gray-800 dark:text-gray-200`}>{formatPrice(vMrp)}</td>
-                                              <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>{formatPrice(vFinalSelling)}</td>
+                                              <td className={`${cellClass} font-semibold text-gray-800`}>{vName}</td>
+                                              <td className={`${cellClass} text-gray-700`}>{variant.unit || product.unit || "N/A"}</td>
+                                              <td className={`${cellClass} text-gray-700`}>{variant.unitType || "N/A"}</td>
+                                              <td className={`${cellClass} font-semibold text-gray-800`}>{formatPrice(vMrp)}</td>
+                                              <td className={`${cellClass} text-gray-700`}>{formatPrice(vFinalSelling)}</td>
                                               <td className={cellClass} />
-                                              <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>{variant.sku || "N/A"}</td>
+                                              <td className={`${cellClass} text-gray-700`}>{variant.sku || "N/A"}</td>
                                               <td className={cellClass}>
                                                 <div className="flex items-center justify-center">
                                                   <button
@@ -1205,7 +1205,7 @@ const ManageProducts = () => {
                                         })
                                       ) : expandedProductIdForFetch === product.id && isLoadingExpandedProduct ? (
                                         <tr>
-                                          <td colSpan={11} className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                                          <td colSpan={11} className="px-4 py-12 text-center text-sm text-gray-500">
                                             <div className="flex items-center justify-center gap-2">
                                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600 dark:border-green-400" /> Loading variants...
                                             </div>
@@ -1213,7 +1213,7 @@ const ManageProducts = () => {
                                         </tr>
                                       ) : (
                                         <tr>
-                                          <td colSpan={11} className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No variants available</td>
+                                          <td colSpan={11} className="px-4 py-12 text-center text-sm text-gray-500">No variants available</td>
                                         </tr>
                                       )}
                                     </tbody>
@@ -1234,10 +1234,10 @@ const ManageProducts = () => {
 
         {/* Pagination */}
         {filteredAndSortedProducts.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
@@ -1247,7 +1247,7 @@ const ManageProducts = () => {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                   >
                     <option value="10">10</option>
                     <option value="25">25</option>
@@ -1255,7 +1255,7 @@ const ManageProducts = () => {
                     <option value="100">100</option>
                   </select>
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                   {Math.min(
                     currentPage * itemsPerPage,

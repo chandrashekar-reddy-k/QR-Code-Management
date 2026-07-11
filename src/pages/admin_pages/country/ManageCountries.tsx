@@ -251,7 +251,7 @@ const bValue = b[sortField] ?? "";
             sortable: true,
             render: (c: TableCountry) => (
                   <div className="text-center">
-                    <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                    <span className="text-xs sm:text-sm text-gray-800">
                       {c.id.slice(0, 8)}...
                     </span>
                   </div>
@@ -265,8 +265,8 @@ const bValue = b[sortField] ?? "";
                (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <MapPin size={12} className="text-gray-400 dark:text-gray-500" />
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 break-words">{c.name}</span>
+            <MapPin size={12} className="text-gray-400" />
+            <span className="text-xs sm:text-sm text-gray-800 break-words">{c.name}</span>
           </div>
         </div>
       ),
@@ -278,7 +278,7 @@ const bValue = b[sortField] ?? "";
             render: (c: TableCountry) =>
               (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{c.region}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{c.region}</span>
         </div>
       ),
        
@@ -292,7 +292,7 @@ const bValue = b[sortField] ?? "";
           <Badge
             status={c.status}
             size="sm"
-            customColor={c.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}
+            customColor={c.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 text-gray-800'}
             className="rounded"
           />
         </div>
@@ -338,7 +338,7 @@ const bValue = b[sortField] ?? "";
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Action Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Manage Countries</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Manage Countries</h1>
         <PrimaryButton
           onClick={() => navigate('/master-setup/countries/create')}
           size="sm"
@@ -383,7 +383,7 @@ const bValue = b[sortField] ?? "";
           <Button
             onClick={handleExport}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
           >
             <Download size={14} className="sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">Export</span>
@@ -391,7 +391,7 @@ const bValue = b[sortField] ?? "";
           <Button
             onClick={handleImport}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
           >
             <FileUp size={14} className="sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">Import</span>
@@ -400,7 +400,7 @@ const bValue = b[sortField] ?? "";
             onClick={handleRefresh}
             disabled={isLoading}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
           >
             <RefreshCw size={14} className={`sm:w-4 sm:h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
@@ -422,7 +422,7 @@ const bValue = b[sortField] ?? "";
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedCountries}
@@ -437,10 +437,10 @@ const bValue = b[sortField] ?? "";
 
         {/* Pagination */}
         {filteredAndSortedCountries.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
                   <SelectInput
                     value={itemsPerPage.toString()}
@@ -457,7 +457,7 @@ const bValue = b[sortField] ?? "";
                     className="w-14 sm:w-16 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing <span className="text-orange-600 dark:text-orange-500 font-medium">{((currentPage - 1) * itemsPerPage + 1).toLocaleString()}</span> of{' '}
                   <span className="text-orange-600 dark:text-orange-500 font-medium">{filteredAndSortedCountries.length.toLocaleString()}</span>
                 </span>

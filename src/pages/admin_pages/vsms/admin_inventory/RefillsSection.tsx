@@ -131,7 +131,7 @@ const RefillsSection = ({
           <div className="flex items-center gap-6">
             <button
               onClick={() => setViewingAgentId(null)}
-              className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-400 hover:text-emerald-500 hover:border-emerald-100 transition-all active:scale-90 shadow-sm"
+              className="p-3 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-emerald-500 hover:border-emerald-100 transition-all active:scale-90 shadow-sm"
             >
               <X size={20} />
             </button>
@@ -166,7 +166,7 @@ const RefillsSection = ({
 
 
         {/* Refill Timeline */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center gap-3 mb-8 px-2">
             <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
             <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Refill Timeline</h4>
@@ -185,7 +185,7 @@ const RefillsSection = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col">
-                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 dark:bg-gray-900/50 px-2 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700 w-fit">
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 dark:bg-gray-900/50 px-2 py-0.5 rounded-lg border border-gray-200 w-fit">
                           {new Date(req.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </span>
                         <span className="text-xl font-bold text-emerald-950 font-mono tracking-tighter mt-1">
@@ -251,7 +251,7 @@ const RefillsSection = ({
 
                       const isSelected = !unselectedRefillItems.includes(item.id);
                       return (
-                        <div key={item.id} className={`bg-white dark:bg-gray-800 p-3.5 rounded-lg border transition-all duration-300 ${!isSelected ? 'border-gray-200 dark:border-gray-700 opacity-40 grayscale' : 'border-emerald-100 shadow-sm'}`}>
+                        <div key={item.id} className={`bg-white p-3.5 rounded-lg border transition-all duration-300 ${!isSelected ? 'border-gray-200 opacity-40 grayscale' : 'border-emerald-100 shadow-sm'}`}>
                           {/* Integrated Top: Info + Toggle */}
                           <div className="flex items-center gap-3 mb-2.5">
                             {req.status === 'PENDING' && canApprove && (
@@ -306,7 +306,7 @@ const RefillsSection = ({
                           {req.status === 'PENDING' && isSelected ? (
                             <div className="flex items-center gap-2">
                               {/* Qty Adj */}
-                              <div className="flex-1 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50 rounded-xl px-2 py-1.5 border border-gray-200 dark:border-gray-700">
+                              <div className="flex-1 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50 rounded-xl px-2 py-1.5 border border-gray-200">
                                 {canApprove ? (
                                   <>
                                     <button onClick={() => setEditedQuantities(p => ({ ...p, [item.id]: Math.max(0, (editedQuantities[item.id] ?? item.quantity) - 1) }))} className="p-1 text-gray-400 hover:text-emerald-600"><Minus size={14} /></button>
@@ -319,7 +319,7 @@ const RefillsSection = ({
                                     <button onClick={() => setEditedQuantities(p => ({ ...p, [item.id]: (editedQuantities[item.id] ?? item.quantity) + 1 }))} className="p-1 text-emerald-600"><Plus size={14} /></button>
                                   </>
                                 ) : (
-                                  <span className="flex-1 text-center font-bold text-xs text-gray-500 dark:text-gray-400">
+                                  <span className="flex-1 text-center font-bold text-xs text-gray-500">
                                     {editedQuantities[item.id] ?? item.quantity}
                                   </span>
                                 )}
@@ -358,11 +358,11 @@ const RefillsSection = ({
 
                   {/* Action Controls */}
                   {req.status === 'PENDING' && canApprove && (
-                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 mt-2">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-gray-200 mt-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleRejectRefill(req.id); }}
                         disabled={isSubmitting}
-                        className="w-full sm:w-auto px-6 py-4 sm:py-2.5 rounded-lg bg-white dark:bg-gray-800 border border-red-200 text-red-600 font-bold text-[10px] uppercase tracking-widest hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-6 py-4 sm:py-2.5 rounded-lg bg-white border border-red-200 text-red-600 font-bold text-[10px] uppercase tracking-widest hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         <X size={16} strokeWidth={3} />
                         Reject Session
@@ -398,11 +398,11 @@ const RefillsSection = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 max-w-fit overflow-x-auto">
-        <button onClick={() => setActiveTab('active')} className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'active' ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow-sm border border-gray-200 dark:border-gray-700' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}>
+      <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 max-w-fit overflow-x-auto">
+        <button onClick={() => setActiveTab('active')} className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'active' ? 'bg-white text-emerald-600 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
           <ArrowUpCircle size={14} className="inline mr-2 mb-0.5" /> Pending Requests
         </button>
-        <button onClick={() => setActiveTab('history')} className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'history' ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow-sm border border-gray-200 dark:border-gray-700' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}>
+        <button onClick={() => setActiveTab('history')} className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'history' ? 'bg-white text-emerald-600 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
           <History size={14} className="inline mr-2 mb-0.5" /> Refill History
         </button>
         <div className="ml-auto relative w-full sm:w-64">
@@ -410,7 +410,7 @@ const RefillsSection = ({
           <input
             type="text"
             placeholder="Search agents or vehicles..."
-            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-2 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
+            className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
             value={refillSearch}
             onChange={(e) => setRefillSearch(e.target.value)}
           />
@@ -423,11 +423,11 @@ const RefillsSection = ({
           {loadingRefills ? (
             <div className="space-y-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-20 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm animate-pulse" />
+                <div key={i} className="h-20 bg-white rounded-lg border border-gray-200 shadow-sm animate-pulse" />
               ))}
             </div>
           ) : groupedRefills.length === 0 ? (
-            <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-200 shadow-sm">
               <Truck size={48} className="mx-auto text-gray-200 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">No Refill Requests</h3>
               <p className="text-xs text-gray-400 mt-2 font-bold uppercase tracking-widest">Everything is up to date.</p>
@@ -437,7 +437,7 @@ const RefillsSection = ({
 
 
               {/* Desktop Table View */}
-              <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -473,7 +473,7 @@ const RefillsSection = ({
                               </div>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{group.requests.length} Sessions</span>
+                              <span className="text-sm font-bold text-gray-700">{group.requests.length} Sessions</span>
                             </td>
                             <td className="px-6 py-4 text-center">
                               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${pendingCount > 0 ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
@@ -507,7 +507,7 @@ const RefillsSection = ({
                     <div
                       key={group.id || 'unknown'}
                       onClick={() => setViewingAgentId(group.id || 'unknown')}
-                      className="bg-white dark:bg-gray-800 group/card cursor-pointer rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-emerald-500/5 hover:border-emerald-200 transition-all active:scale-[0.98] relative overflow-hidden flex flex-col gap-5"
+                      className="bg-white group/card cursor-pointer rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl hover:shadow-emerald-500/5 hover:border-emerald-200 transition-all active:scale-[0.98] relative overflow-hidden flex flex-col gap-5"
                     >
                       <div className="absolute top-0 right-0 p-4 opacity-0 group-hover/card:opacity-100 transition-opacity">
                         <div className="p-2 bg-emerald-50 rounded-xl text-emerald-500">
@@ -529,9 +529,9 @@ const RefillsSection = ({
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 mt-1">
-                        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-200 dark:border-gray-700/50">
+                        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-200/50">
                           <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-0.5">History</span>
-                          <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{group.requests.length} Sessions</span>
+                          <span className="text-sm font-bold text-gray-800">{group.requests.length} Sessions</span>
                         </div>
                         <div className={`${pendingCount > 0 ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'} rounded-lg p-3 border`}>
                           <span className={`text-[9px] font-bold uppercase tracking-widest block mb-0.5 ${pendingCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>Status</span>
@@ -552,7 +552,7 @@ const RefillsSection = ({
           )}
         </>
       ) : (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4 min-h-[400px]">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 min-h-[400px]">
           {selectedSession ? (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300 print:p-0">
               <style dangerouslySetInnerHTML={{
@@ -581,11 +581,11 @@ const RefillsSection = ({
                 }
                 .print-header { display: none; }
               `}} />
-              <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700 no-print">
+              <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 no-print">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setSelectedSession(null)}
-                    className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700"
+                    className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 hover:bg-gray-100 transition-all border border-gray-200"
                   >
                     <ArrowLeft size={18} />
                   </button>
@@ -598,7 +598,7 @@ const RefillsSection = ({
                   <button onClick={exportRefillDetailToExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm">
                     <FileDown size={14} /> Excel
                   </button>
-                  <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900/50 text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 shadow-sm">
                     <Printer size={14} /> Print
                   </button>
                 </div>
@@ -618,18 +618,18 @@ const RefillsSection = ({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-start gap-x-12 gap-y-6 mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex flex-wrap items-start gap-x-12 gap-y-6 mb-8 pb-6 border-b border-gray-200">
                   <div className="flex flex-col min-w-[150px]">
                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Truck size={10} className="text-emerald-400" /> Vehicle</span>
-                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">{selectedSession.vehicle?.vehicleNumber || 'Unknown'}</span>
+                    <span className="text-xs font-bold text-gray-800 uppercase">{selectedSession.vehicle?.vehicleNumber || 'Unknown'}</span>
                   </div>
                   <div className="flex flex-col min-w-[150px]">
                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Check size={10} className="text-emerald-400" /> Authorized By</span>
-                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{selectedSession.user?.name || 'System Admin'}</span>
+                    <span className="text-xs font-bold text-gray-800">{selectedSession.user?.name || 'System Admin'}</span>
                   </div>
                   <div className="flex flex-col min-w-[150px]">
                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><RefreshCw size={10} className="text-emerald-400" /> Timestamp</span>
-                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                    <span className="text-xs font-bold text-gray-800">
                       {new Date(selectedSession.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                     </span>
                   </div>
@@ -639,7 +639,7 @@ const RefillsSection = ({
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -653,7 +653,7 @@ const RefillsSection = ({
                         <tr key={`det-ref-${i}`} className="hover:bg-emerald-50/10 transition-colors group">
                           <td className="px-3 py-1.5">
                             <div className="flex flex-col">
-                              <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200 group-hover:text-emerald-600 transition-colors uppercase truncate max-w-[150px] leading-tight">{item.product?.name}</span>
+                              <span className="text-[10px] font-bold text-gray-800 group-hover:text-emerald-600 transition-colors uppercase truncate max-w-[150px] leading-tight">{item.product?.name}</span>
                               <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">{item.product?.category?.name || 'General'}</span>
                             </div>
                           </td>
@@ -672,12 +672,12 @@ const RefillsSection = ({
                   <div className="flex justify-between px-10 gap-20">
                     <div className="text-center flex-1">
                       <div className="border-t border-gray-400 pt-2">
-                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Authorized Signatory</p>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Authorized Signatory</p>
                       </div>
                     </div>
                     <div className="text-center flex-1">
                       <div className="border-t border-gray-400 pt-2">
-                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Receiver's Signature</p>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Receiver's Signature</p>
                       </div>
                     </div>
                   </div>
@@ -717,7 +717,7 @@ const RefillsSection = ({
                 <div className="flex justify-between items-center">
                   <div>
                     <h1 className="text-2xl font-bold text-emerald-600">REFILL HISTORY LOGS</h1>
-                    <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">VillageKart Sales Tracker</p>
+                    <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">VillageKart Sales Tracker</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-gray-400 uppercase">Export Date</p>
@@ -725,7 +725,7 @@ const RefillsSection = ({
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between no-print mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between no-print mb-6 pb-4 border-b border-gray-200">
                 <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-widest">
                   <History size={18} className="text-emerald-500" />
                   Refill History
@@ -734,7 +734,7 @@ const RefillsSection = ({
                   <button onClick={exportHistoryToExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm">
                     <FileDown size={14} /> Export Excel
                   </button>
-                  <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 shadow-sm">
                     <Printer size={14} /> Print History
                   </button>
                 </div>
@@ -743,13 +743,13 @@ const RefillsSection = ({
               {isLoadingHistory ? (
                 <div className="flex items-center justify-center py-12"><Loader2 size={32} className="animate-spin text-emerald-500" /></div>
               ) : historyData.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200">
                   <Clock size={32} className="mx-auto text-gray-300 mb-3" />
                   <p className="text-sm font-bold text-gray-400">No refill history found.</p>
                 </div>
               ) : (
                 <>
-                  <div className="no-print bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                  <div className="no-print bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -788,7 +788,7 @@ const RefillsSection = ({
                               </div>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <span className="text-[11px] font-bold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700">
+                              <span className="text-[11px] font-bold text-gray-600 bg-gray-50 dark:bg-gray-900/50 px-3 py-1 rounded-lg border border-gray-200">
                                 {session.user?.name || 'System'}
                               </span>
                             </td>
@@ -821,26 +821,26 @@ const RefillsSection = ({
                       <tbody>
                         {historyData.map((session, idx) => (
                           <tr key={`print-ref-${idx}`} className="page-break-inside-avoid">
-                            <td className="border border-gray-200 dark:border-gray-700 p-2 text-[10px]">
+                            <td className="border border-gray-200 p-2 text-[10px]">
                               {new Date(session.date).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
                             </td>
-                            <td className="border border-gray-200 dark:border-gray-700 p-2 text-[10px] font-bold uppercase">
+                            <td className="border border-gray-200 p-2 text-[10px] font-bold uppercase">
                               {session.vehicle?.vehicleNumber || '---'}
                             </td>
-                            <td className="border border-gray-200 dark:border-gray-700 p-2 text-[10px]">
+                            <td className="border border-gray-200 p-2 text-[10px]">
                               {session.user?.name || 'System'}
                             </td>
-                            <td className="border border-gray-200 dark:border-gray-700 p-2 text-[10px] text-center font-bold">
+                            <td className="border border-gray-200 p-2 text-[10px] text-center font-bold">
                               {session.items.length}
                             </td>
-                            <td className="border border-gray-200 dark:border-gray-700 p-2 text-[10px] text-right font-bold">
+                            <td className="border border-gray-200 p-2 text-[10px] text-right font-bold">
                               {session.items.reduce((acc, item) => acc + item.quantity, 0)}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 text-right text-[8px] font-bold text-gray-400 uppercase tracking-widest">
+                    <div className="mt-8 pt-4 border-t border-gray-200 text-right text-[8px] font-bold text-gray-400 uppercase tracking-widest">
                       End of Refill History Report • Total Sessions: {historyData.length}
                     </div>
                   </div>

@@ -81,7 +81,7 @@ const BusinessSettings = () => {
       <div className="mt-6">
         {/* Header with Title and Edit Icon */}
         <div className="flex items-center gap-2 mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-semibold text-gray-900">
             Business Settings
           </h1>
           <button
@@ -89,17 +89,17 @@ const BusinessSettings = () => {
             className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             title="Edit Business Settings"
           >
-            <Pencil size={18} className="text-gray-600 dark:text-gray-300" />
+            <Pencil size={18} className="text-gray-600" />
           </button>
         </div>
 
         {/* Category Cards */}
         {isLoading ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-12 text-gray-500">
             <p>Loading categories...</p>
           </div>
         ) : categoryGroups.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-12 text-gray-500">
             <p>No business categories selected.</p>
             <button
               onClick={() => setIsEditModalOpen(true)}
@@ -113,16 +113,16 @@ const BusinessSettings = () => {
             {categoryGroups.map((group) => (
               <div
                 key={group.mainCategory.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
               >
                 {/* Main Category */}
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">
                   {group.mainCategory.categoryName}
                 </h2>
 
                 {/* Sub Categories */}
                 {group.subCategories.length > 0 ? (
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-sm text-gray-600">
                     <span className="font-medium">Sub Categories : </span>
                     <span>
                       {group.subCategories.map((sub, index) => (
@@ -134,7 +134,7 @@ const BusinessSettings = () => {
                     </span>
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500 dark:text-gray-500">
+                  <div className="text-sm text-gray-500">
                     No sub-categories selected
                   </div>
                 )}

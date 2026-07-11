@@ -51,10 +51,15 @@ function PriorityBadge({ priority }: { priority: string }) {
 export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQueueProps) {
   const { orders: sharedOrders } = useSharedOrders();
 
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
-  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
+  const [userRole] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    return userObj?.role;
+  });
+  
+  const [shouldShowShopkeeper] = useState(() => {
+    return ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
+  });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [deliveryTypeFilter, setDeliveryTypeFilter] = useState("");
@@ -182,18 +187,18 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
   // ─── Mobile / Staff View ───────────────────────────────────────────────────
   if (!isAdmin) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
         {/* Header */}
         <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-4">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+            <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
               <ArrowLeft size={20} color="white" />
             </button>
             <div className="flex-1">
               <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Picking Queue</h1>
               <p className="text-white/70" style={{ fontSize: "12px" }}>{pickingOrders.length} orders to pick</p>
             </div>
-            <div className="bg-white/20 rounded-full px-3 py-1">
+            <div className="bg-white dark:bg-gray-800/20 rounded-full px-3 py-1">
               <span className="text-white" style={{ fontWeight: 600, fontSize: "13px" }}>{totalItems} items total</span>
             </div>
           </div>
@@ -205,7 +210,7 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
               { label: "In Progress", value: stats.inProgress, color: "#EF5A06" },
               { label: "Completed", value: stats.completed, color: "#00891D" },
             ].map(s => (
-              <div key={s.label} className="bg-white/10 rounded-xl p-2 text-center">
+              <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl p-2 text-center">
                 <p style={{ color: s.color, fontWeight: 700, fontSize: "18px" }}>{s.value}</p>
                 <p className="text-white/70" style={{ fontSize: "10px" }}>{s.label}</p>
               </div>
@@ -237,7 +242,7 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
             const slaBg = slaBreached ? "#FFEBEE" : isUrgent ? "#FFEBEE" : "#FFF3E0";
 
             return (
-              <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div key={order.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 {/* SLA Alert Banner */}
                 {(slaBreached || isUrgent) && !isCompleted && (
                   <div className="bg-red-550/15 border-b border-red-100 px-4 py-1.5 flex items-center gap-1.5">
@@ -258,15 +263,15 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number}</span>
+                        <span className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number}</span>
                         <PriorityBadge priority={order.priority} />
                       </div>
                       {shouldShowShopkeeper && (
-                        <p className="text-gray-500 text-xs mb-1">
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs mb-1">
                           {order.shopkeeper_name || "Unassigned"}
                         </p>
                       )}
-                      <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.order_type}</span>
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "12px" }}>{order.order_type}</span>
                     </div>
                     <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: slaBg }}>
                       <Clock size={11} color={slaColor} />
@@ -279,13 +284,13 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-1.5">
                         <Package size={13} color="#9E9E9E" />
-                        <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.picked}/{order.items} items picked</span>
+                        <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "12px" }}>{order.picked}/{order.items} items picked</span>
                       </div>
                       <span style={{ color: isCompleted ? "#00891D" : "#EF5A06", fontWeight: 600, fontSize: "12px" }}>
                         {Math.round(progress)}%
                       </span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{ width: `${progress}%`, backgroundColor: isCompleted ? "#00891D" : "#EF5A06" }}
@@ -326,7 +331,7 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
 
   // ─── Desktop / Partner Portal View ────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F3F4F6] p-[32px] pb-10">
+    <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10">
       {/* Breadcrumbs */}
       <div className="mb-6">
         <Breadcrumbs />
@@ -335,10 +340,10 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-[32px] font-bold text-[#111827] leading-none mb-2">Picking Queue</h1>
-          <p className="text-[14px] text-[#9EA3AE]">Orders assigned for picking</p>
+          <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Picking Queue</h1>
+          <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500">Orders assigned for picking</p>
         </div>
-        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors">
           <ArrowLeft size={16} /> Back
         </button>
       </div>
@@ -384,7 +389,7 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
             </div>
             <div>
               <p className={`text-2xl font-black leading-none mb-0.5 ${card.text}`}>{card.value}</p>
-              <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">{card.label}</p>
+              <p className="text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">{card.label}</p>
             </div>
           </div>
         ))}
@@ -395,12 +400,12 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700 w-full sm:w-auto overflow-x-auto">
           {/* Filter Icon */}
           <div className="px-4 py-3 flex items-center justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-500 dark:text-gray-400" />
+            <Filter size={18} className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" />
           </div>
 
           {/* Delivery Type Dropdown */}
           <div className="px-4 py-3 w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
@@ -411,12 +416,12 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                 ]}
               />
             </div>
-            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
+            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" />
           </div>
 
           {/* Picking Status Dropdown */}
           <div className="px-4 py-3 w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={pickingStatusFilter}
                 onChange={(e) => setPickingStatusFilter(e.target.value)}
@@ -428,12 +433,12 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                 ]}
               />
             </div>
-            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
+            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" />
           </div>
 
           {/* Date Picker Input / Quick-Select */}
           <div className="px-4 py-3 w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={dateRangeType}
                 onChange={(e) => {
@@ -455,7 +460,7 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                 options={dateOptions}
               />
             </div>
-            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
+            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" />
             <input
               type="date"
               ref={dateInputRef}
@@ -492,21 +497,21 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
         {filteredOrders.length === 0 ? (
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <Package size={48} className="text-gray-300 mb-4" />
-            <p className="text-lg font-semibold text-gray-500">No matching orders found</p>
-            <p className="text-sm text-gray-400 mt-1">Try adjusting your filters or search query</p>
+            <p className="text-lg font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">No matching orders found</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">Try adjusting your filters or search query</p>
           </div>
         ) : (
           <div className="w-full overflow-x-hidden">
             <table className="w-full border-collapse table-auto text-[14px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[56px] whitespace-nowrap">
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Order Number</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Delivery Type</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">Assigned Shopkeeper</th>
-                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[10%]">Total Items</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[20%]">Pick Progress</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">SLA Status</th>
-                  <th style={{ width: "220px", minWidth: "220px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">Order Number</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">Delivery Type</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">Assigned Shopkeeper</th>
+                  <th className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[10%]">Total Items</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[20%]">Pick Progress</th>
+                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[15%]">SLA Status</th>
+                  <th style={{ width: "220px", minWidth: "220px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -545,19 +550,19 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                   return (
                     <tr
                       key={order.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors h-[64px]"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-750 transition-colors h-[64px]"
                     >
                       <td className="px-4 py-4 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
                         {order.order_number}
                       </td>
-                      <td className="px-4 py-4 text-gray-600 dark:text-gray-400 whitespace-nowrap font-semibold">
+                      <td className="px-4 py-4 text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap font-semibold">
                         {order.order_type || "Home Delivery"}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         {order.shopkeeper_name ? (
                           <span className="text-gray-700 dark:text-gray-300 font-semibold">{order.shopkeeper_name}</span>
                         ) : (
-                          <span className="text-gray-400 dark:text-gray-500">Unassigned</span>
+                          <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">Unassigned</span>
                         )}
                       </td>
                       <td className="px-4 py-4 text-gray-900 dark:text-gray-100 whitespace-nowrap text-center font-bold">
@@ -588,7 +593,7 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                         <div className="flex items-center justify-center gap-2 flex-nowrap whitespace-nowrap">
                           <button
                             onClick={() => onNavigate("order-details", order)}
-                            className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            className="flex items-center gap-1 text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:hover:text-gray-200 transition-colors px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700"
                             title="View Details"
                           >
                             <Eye size={14} />

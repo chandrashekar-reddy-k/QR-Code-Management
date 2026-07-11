@@ -10,12 +10,16 @@ interface PackingScreenProps {
 }
 
 export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps) {
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
+  const [userRole] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    return userObj?.role;
+  });
 
   // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile packing screen UI
-  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  const [isStaffLogin] = useState(() => {
+    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  });
 
   if (isStaffLogin) {
     return <PackingScreenMobile onNavigate={onNavigate} onBack={onBack} order={order} />;
@@ -64,18 +68,18 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F3F4F6] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900 items-center justify-center">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F3F4F6] pb-24">
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900 pb-24">
       {/* 1. Page Header with Desktop Layout */}
-      <div className="bg-white px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto">
-          <nav className="text-xs text-gray-500 flex items-center gap-1 mb-2">
+          <nav className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-2">
             <button onClick={() => onNavigate("dashboard")} className="hover:text-[#00891D] transition-colors">Home</button>
             <ChevronRight size={12} />
             <button onClick={() => onNavigate("packing-queue")} className="hover:text-[#00891D] transition-colors">Packing Queue</button>
@@ -85,7 +89,7 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 Packing Order — #{order?.order_number}
               </h1>
               
@@ -104,7 +108,7 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
             
             <button 
               onClick={onBack}
-              className="self-start md:self-auto flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
+              className="self-start md:self-auto flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50"
             >
               <ArrowLeft size={14} />
               <span>Back to Queue</span>
@@ -114,14 +118,14 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
       </div>
 
       {/* 2. Progress Section directly below header */}
-      <div className="bg-white px-4 sm:px-6 lg:px-8 py-2.5 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 px-4 sm:px-6 lg:px-8 py-2.5 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <div className="flex-1">
-            <div className="flex justify-between items-center mb-1 text-xs sm:text-sm font-semibold text-gray-500">
+            <div className="flex justify-between items-center mb-1 text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500">
               <div>
-                Packed: <span className="text-gray-900 font-bold">{totalChecked}/{totalToPack}</span>
+                Packed: <span className="text-gray-900 dark:text-gray-100 font-bold">{totalChecked}/{totalToPack}</span>
                 <span className="mx-2">•</span>
-                Remaining: <span className="text-gray-900 font-bold">{remainingToPack}</span>
+                Remaining: <span className="text-gray-900 dark:text-gray-100 font-bold">{remainingToPack}</span>
                 <span className="mx-2">•</span>
                 <span className={`font-bold ${allChecked ? "text-[#00891D]" : "text-orange-600"}`}>
                   {totalToPack ? Math.round((totalChecked / totalToPack) * 100) : 0}%
@@ -142,25 +146,25 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
       <div className="max-w-4xl mx-auto w-full p-4 space-y-4">
         
         {/* Packing Summary Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-150 py-2.5 px-4 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2 font-bold text-gray-900">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-150 py-2.5 px-4 flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2 font-bold text-gray-900 dark:text-gray-100">
             <span>📦</span>
             <span>Tray {order?.tray_number || order?.tray || 'TBA'}</span>
           </div>
-          <div className="flex items-center gap-4 text-gray-500 font-semibold text-xs sm:text-sm">
+          <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold text-xs sm:text-sm">
             <span>|</span>
-            <span>Expected: <span className="text-gray-900 font-bold">{totalToPack}</span></span>
+            <span>Expected: <span className="text-gray-900 dark:text-gray-100 font-bold">{totalToPack}</span></span>
             <span>|</span>
             <span>Packed: <span className="text-orange-600 font-bold">{totalChecked}</span></span>
             <span>|</span>
-            <span>Remaining: <span className="text-gray-900 font-bold">{remainingToPack}</span></span>
+            <span>Remaining: <span className="text-gray-900 dark:text-gray-100 font-bold">{remainingToPack}</span></span>
           </div>
         </div>
 
         {/* Verification Checklist */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-150 p-4 overflow-hidden">
-          <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
-            <h3 className="text-gray-900 font-bold text-sm sm:text-base">Product Verification Checklist</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-150 p-4 overflow-hidden">
+          <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
+            <h3 className="text-gray-900 dark:text-gray-100 font-bold text-sm sm:text-base">Product Verification Checklist</h3>
             {allChecked ? (
               <span className="text-[#00891D] text-xs sm:text-sm font-bold flex items-center gap-1">
                 ✓ All Verified
@@ -178,7 +182,7 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
           <div className="overflow-x-auto">
             <table className="w-full border-collapse table-auto text-left text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold text-xs uppercase tracking-wider h-8">
+                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold text-xs uppercase tracking-wider h-8">
                   <th className="px-4 py-1.5">Product</th>
                   <th className="px-4 py-1.5 text-center">Quantity</th>
                   <th className="px-4 py-1.5 text-center w-36">Status</th>
@@ -191,10 +195,10 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
                     <tr
                       key={item.id}
                       onClick={() => toggle(item.id)}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer h-12"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors cursor-pointer h-12"
                     >
                       <td className="px-4 py-1.5 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 flex-shrink-0">
+                        <div className="w-8 h-8 rounded bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
                           {item.image_url ? (
                             <img src={item.image_url} alt="" className="object-cover w-full h-full" />
                           ) : (
@@ -202,13 +206,13 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className={`font-semibold text-xs sm:text-sm truncate ${isChecked ? "text-green-800" : "text-gray-900"}`}>
+                          <p className={`font-semibold text-xs sm:text-sm truncate ${isChecked ? "text-green-800" : "text-gray-900 dark:text-gray-100"}`}>
                             {item.name}
                           </p>
                           {item.sku && <p className="text-[9px] text-gray-450 mt-0.5">SKU: {item.sku}</p>}
                         </div>
                       </td>
-                      <td className="px-4 py-1.5 text-center font-bold text-gray-900 text-xs sm:text-sm">
+                      <td className="px-4 py-1.5 text-center font-bold text-gray-900 dark:text-gray-100 text-xs sm:text-sm">
                         {item.quantity}
                       </td>
                       <td className="px-4 py-1.5 text-center">
@@ -235,11 +239,11 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
       </div>
 
       {/* Sticky Bottom Actions Bar */}
-      <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-200 p-4 shadow-md z-10">
+      <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 shadow-md z-10">
         <div className="max-w-4xl mx-auto flex gap-4">
           <button
             onClick={() => setLabelPrinted(true)}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-3 border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-3 border border-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors"
           >
             <Printer size={16} className={labelPrinted ? "text-[#00891D]" : "text-[#EF5A06]"} />
             <span className={`font-bold text-sm ${labelPrinted ? "text-[#00891D]" : "text-[#EF5A06]"}`}>

@@ -59,7 +59,7 @@ const RequestCategoryPage = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
+          <p className="text-xs text-gray-500 animate-pulse">
             Loading categories...
           </p>
         </div>
@@ -72,7 +72,7 @@ const RequestCategoryPage = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* HEADER */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Request Category
         </h1>
         <BackButton />
@@ -86,7 +86,7 @@ const RequestCategoryPage = () => {
       {/* FORM */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
           <FormSectionWithDots title="Select Categories">
@@ -105,7 +105,7 @@ const RequestCategoryPage = () => {
                 return (
                   <span
                     key={cat.id}
-                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-300 dark:border-gray-600 text-xs"
+                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full border border-gray-300 dark:border-gray-600 text-xs"
                   >
                     {cat.image ? (
                       <img
@@ -141,21 +141,21 @@ const RequestCategoryPage = () => {
                 placeholder="Search Category"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-white border-gray-300 dark:border-gray-600 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
 
             {/* CATEGORY LIST */}
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+            <div className="border border-gray-200 rounded-lg overflow-hidden max-h-96 overflow-y-auto">
               {filteredCategories.length === 0 ? (
-                <div className="p-4 text-center text-sm text-gray-500 bg-white dark:bg-gray-800">
+                <div className="p-4 text-center text-sm text-gray-500 bg-white">
                   No categories found
                 </div>
               ) : (
                 filteredCategories.map((cat) => (
                   <div
                     key={cat.id}
-                    className="flex items-center px-4 py-3 border-b last:border-b-0 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                    className="flex items-center px-4 py-3 border-b last:border-b-0 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                   >
                     <input
                       type="checkbox"
@@ -174,12 +174,12 @@ const RequestCategoryPage = () => {
                         }}
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full mr-3 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] text-gray-400">
+                      <div className="w-8 h-8 rounded-full mr-3 bg-gray-200 flex items-center justify-center text-[10px] text-gray-400">
                         N/A
                       </div>
                     )}
 
-                    <span className="text-sm text-gray-800 dark:text-gray-200">
+                    <span className="text-sm text-gray-800">
                       {cat.name}
                     </span>
                   </div>

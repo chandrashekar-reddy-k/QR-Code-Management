@@ -1134,7 +1134,7 @@ export default function AdminInventory() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => { setIsRegistryView(false); setSelectedRegistryIds([]); }}
-                className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-400 flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
+                className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-400 flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-all border border-gray-200 shadow-sm"
               >
                 <ChevronLeft size={20} />
               </button>
@@ -1144,7 +1144,7 @@ export default function AdminInventory() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all w-full max-w-md">
+            <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-lg border border-gray-200 shadow-sm focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all w-full max-w-md">
               <Search size={16} className="text-gray-400" />
               <input
                 type="text"
@@ -1157,7 +1157,7 @@ export default function AdminInventory() {
           </div>
 
           {/* Registry Table Content */}
-          <div className="flex-1 overflow-auto bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative no-scrollbar">
+          <div className="flex-1 overflow-auto bg-white rounded-xl border border-gray-200 shadow-sm relative no-scrollbar">
             {loadingRegistry ? (
               <div className="flex flex-col items-center justify-center h-64 gap-4">
                 <Loader2 size={40} className="animate-spin text-emerald-500" />
@@ -1165,7 +1165,7 @@ export default function AdminInventory() {
               </div>
             ) : registryItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
-                <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900/50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-gray-200 dark:border-gray-700">
+                <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900/50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-gray-200">
                   <Package size={32} className="text-gray-200" />
                 </div>
                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Everything is in sync</h4>
@@ -1174,8 +1174,8 @@ export default function AdminInventory() {
             ) : (
               <div className="min-w-[800px] p-6 pb-32">
                 <table className="w-full border-separate border-spacing-y-2">
-                  <thead className="sticky top-0 bg-white dark:bg-gray-800/80 backdrop-blur-md z-10">
-                    <tr className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-200 dark:border-gray-700">
+                  <thead className="sticky top-0 bg-white/80 backdrop-blur-md z-10">
+                    <tr className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-200">
                       <th className="px-6 py-4 text-left w-16">
                         <button
                           onClick={() => {
@@ -1223,14 +1223,14 @@ export default function AdminInventory() {
                             }}
                             className={`group cursor-pointer transition-all ${isSelected ? 'bg-emerald-50/50' : 'hover:bg-gray-50 dark:bg-gray-900/50'}`}
                           >
-                            <td className="px-6 py-4 rounded-l-[1.5rem] border-y border-l border-gray-200 dark:border-gray-700 group-hover:border-emerald-100 transition-colors">
-                              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-gray-200 dark:border-gray-700'}`}>
+                            <td className="px-6 py-4 rounded-l-[1.5rem] border-y border-l border-gray-200 group-hover:border-emerald-100 transition-colors">
+                              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-gray-200'}`}>
                                 {isSelected && <Check size={14} className="text-white" strokeWidth={4} />}
                               </div>
                             </td>
-                            <td className="px-4 py-4 border-y border-gray-200 dark:border-gray-700 group-hover:border-emerald-100">
+                            <td className="px-4 py-4 border-y border-gray-200 group-hover:border-emerald-100">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 overflow-hidden shrink-0">
                                   {item.image ? (
                                     <img src={item.image} className="w-full h-full object-cover" />
                                   ) : (
@@ -1245,7 +1245,7 @@ export default function AdminInventory() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-4 border-y border-gray-200 dark:border-gray-700 group-hover:border-emerald-100">
+                            <td className="px-4 py-4 border-y border-gray-200 group-hover:border-emerald-100">
                               <div className="flex flex-col gap-2">
                                 {/* Store Badge */}
                                 <div className="flex items-center gap-1.5">
@@ -1261,7 +1261,7 @@ export default function AdminInventory() {
                                 <div className="flex flex-col">
                                   <div className="flex items-center gap-1.5 text-gray-400">
                                     <Barcode size={12} className="opacity-50" />
-                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 tracking-tight">{item.barcode || 'NO-BARCODE'}</span>
+                                    <span className="text-[10px] font-bold text-gray-600 tracking-tight">{item.barcode || 'NO-BARCODE'}</span>
                                   </div>
                                   <div className="ml-[18px]">
                                     <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest leading-none">ID: {item.displayId || 'NEW'}</span>
@@ -1269,20 +1269,20 @@ export default function AdminInventory() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-4 border-y border-gray-200 dark:border-gray-700 group-hover:border-emerald-100 text-center">
+                            <td className="px-4 py-4 border-y border-gray-200 group-hover:border-emerald-100 text-center">
                               <span className="text-[11px] font-bold text-gray-400 line-through">₹{item.mrp || 0}</span>
                             </td>
-                            <td className="px-4 py-4 border-y border-gray-200 dark:border-gray-700 group-hover:border-emerald-100 text-center">
+                            <td className="px-4 py-4 border-y border-gray-200 group-hover:border-emerald-100 text-center">
                               <span className="text-[12px] font-bold text-emerald-600">₹{item.price || 0}</span>
                             </td>
-                            <td className="px-4 py-4 border-y border-gray-200 dark:border-gray-700 group-hover:border-emerald-100 text-center">
+                            <td className="px-4 py-4 border-y border-gray-200 group-hover:border-emerald-100 text-center">
                               <div className="flex flex-col items-center">
                                 <span className={`text-[11px] font-bold ${item.stock > 0 ? 'text-gray-900 dark:text-white' : 'text-rose-500'}`}>{item.stock || 0}</span>
                                 <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Source</span>
                               </div>
                             </td>
-                            <td className="px-4 py-4 border-y border-r border-gray-200 dark:border-gray-700 rounded-r-[1.5rem] group-hover:border-emerald-100 text-center" onClick={(e) => e.stopPropagation()}>
-                              <div className={`flex items-center gap-2 bg-white dark:bg-gray-800 border-2 rounded-xl p-1 transition-all ${isSelected ? ((registryQuantities[item.id] || 0) > (item.stock || 0) ? 'border-rose-500 ring-4 ring-rose-500/10' : 'border-emerald-500 ring-4 ring-emerald-500/10') : 'border-gray-200 dark:border-gray-700 group-hover:border-emerald-200'}`}>
+                            <td className="px-4 py-4 border-y border-r border-gray-200 rounded-r-[1.5rem] group-hover:border-emerald-100 text-center" onClick={(e) => e.stopPropagation()}>
+                              <div className={`flex items-center gap-2 bg-white border-2 rounded-xl p-1 transition-all ${isSelected ? ((registryQuantities[item.id] || 0) > (item.stock || 0) ? 'border-rose-500 ring-4 ring-rose-500/10' : 'border-emerald-500 ring-4 ring-emerald-500/10') : 'border-gray-200 group-hover:border-emerald-200'}`}>
                                 <input
                                   type="number"
                                   min="0"
@@ -1312,7 +1312,7 @@ export default function AdminInventory() {
 
           {/* Sticky Footer for Registry - TRULY FIXED TO VIEWPORT */}
           <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-sm px-6 z-[200] transition-all duration-500 ${selectedRegistryIds.length > 0 ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-20 opacity-0 scale-95 pointer-events-none'}`}>
-            <div className="bg-white dark:bg-gray-800/90 backdrop-blur-2xl p-1.5 rounded-xl border-4 border-white shadow-[0_20px_50px_-12px_rgba(16,185,129,0.4)]">
+            <div className="bg-white/90 backdrop-blur-2xl p-1.5 rounded-xl border-4 border-white shadow-[0_20px_50px_-12px_rgba(16,185,129,0.4)]">
               <button
                 onClick={handleBulkImport}
                 disabled={isUploading || hasInvalidRegistryQuantities}
@@ -1323,7 +1323,7 @@ export default function AdminInventory() {
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
                   <>
-                    <div className="w-8 h-8 bg-white dark:bg-gray-800/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <CheckCircle2 size={16} />
                     </div>
                     <div className="flex flex-col items-start text-left leading-tight">
@@ -1619,7 +1619,7 @@ export default function AdminInventory() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 dark:text-gray-400 font-medium tracking-wide">Loading Inventory...</p>
+        <p className="text-gray-500 font-medium tracking-wide">Loading Inventory...</p>
       </div>
     );
   }
@@ -1697,7 +1697,7 @@ export default function AdminInventory() {
       <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto px-4 py-8">
         <div className="flex flex-col gap-1">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Organization Inventory</h2>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-widest italic">Global Stock Distribution & Branch Oversight</p>
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-widest italic">Global Stock Distribution & Branch Oversight</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 max-w-5xl">
@@ -1714,7 +1714,7 @@ export default function AdminInventory() {
                   if (subTab) params.sub = subTab;
                   setSearchParams(params);
                 }}
-                className="group bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:border-emerald-100 transition-all cursor-pointer relative overflow-hidden"
+                className="group bg-white p-8 rounded-xl border border-gray-200 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:border-emerald-100 transition-all cursor-pointer relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
                   <Package size={120} />
@@ -1743,7 +1743,7 @@ export default function AdminInventory() {
                       <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">Revenue & Sales</span>
                       <span className="text-sm font-bold text-gray-900 dark:text-white mt-1">₹{totalRevenue.toLocaleString()} <span className="text-[10px] text-gray-400 ml-1">({totalOrders} Orders)</span></span>
                     </div>
-                    <div className="hidden md:flex flex-col items-end border-l border-gray-200 dark:border-gray-700 pl-12">
+                    <div className="hidden md:flex flex-col items-end border-l border-gray-200 pl-12">
                       <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">Team size</span>
                       <span className="text-sm font-bold text-gray-900 dark:text-white mt-1">{personnelCount} Members</span>
                     </div>
@@ -1779,7 +1779,7 @@ export default function AdminInventory() {
                       if (subTab) params.sub = subTab;
                       setSearchParams(params);
                     }}
-                    className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-90"
+                    className="p-3 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-90"
                     title="Back to Organizational Overview"
                   >
                     <ChevronLeft size={20} />
@@ -1832,14 +1832,14 @@ export default function AdminInventory() {
               <div className="flex items-center gap-2">
                 {activeTab === 'inventory' ? (
                   <div className="flex items-center gap-3 w-full">
-                    <div className="flex-1 min-w-[350px] md:min-w-[500px] flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all focus-within:ring-2 focus-within:ring-emerald-500/20">
+                    <div className="flex-1 min-w-[350px] md:min-w-[500px] flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm transition-all focus-within:ring-2 focus-within:ring-emerald-500/20">
                       <Search size={14} className="text-gray-400" />
                       <input
                         type="text"
                         placeholder="Search stock by name or barcode..."
                         value={warehouseSearch}
                         onChange={(e) => setWarehouseSearch(e.target.value)}
-                        className="bg-transparent text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:outline-none w-full"
+                        className="bg-transparent text-[10px] font-bold text-gray-700 focus:outline-none w-full"
                       />
                       <button
                         onClick={() => {
@@ -1854,7 +1854,7 @@ export default function AdminInventory() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Track your items and vehicle stocks</p>
+                  <p className="text-sm text-gray-500">Track your items and vehicle stocks</p>
                 )}
               </div>
             </div>
@@ -1923,7 +1923,7 @@ export default function AdminInventory() {
 
           {/* Sub-tab Navigation (Enterprise ERP Style) */}
           {activeTab === 'return' && (
-            <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+            <div className="border-b border-gray-200 mb-6">
               <div className="flex gap-8 overflow-x-auto no-scrollbar">
                 {[
                   { id: 'loading', label: 'Loading', icon: ArrowUpCircle },
@@ -1941,7 +1941,7 @@ export default function AdminInventory() {
                       onClick={() => setSubTab(tab.id)}
                       className={`flex items-center gap-2 py-3.5 border-b-2 text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap outline-none ${isActive
                         ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
+                        : 'border-transparent text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
                         }`}
                     >
                       <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'} />
@@ -1969,7 +1969,7 @@ export default function AdminInventory() {
                         }}
                         className={`whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${(subTab === 'loading' ? opsCategory : returnCategory) === 'ALL'
                           ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
+                          : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
                           }`}
                       >
                         All Items
@@ -1983,7 +1983,7 @@ export default function AdminInventory() {
                           }}
                           className={`whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${(subTab === 'loading' ? opsCategory : returnCategory) === cat.name
                             ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
+                            : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
                             }`}
                         >
                           {cat.name}
@@ -2003,7 +2003,7 @@ export default function AdminInventory() {
                           }}
                           className={`whitespace-nowrap px-4 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all border ${(subTab === 'loading' ? opsSubCategory : returnSubCategory) === 'ALL'
                             ? 'bg-emerald-500 border-emerald-500 text-white shadow-md'
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'
+                            : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200'
                             }`}
                         >
                           All {subTab === 'loading' ? opsCategory : returnCategory}
@@ -2022,7 +2022,7 @@ export default function AdminInventory() {
                               }}
                               className={`whitespace-nowrap px-4 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all border ${(subTab === 'loading' ? opsSubCategory : returnSubCategory) === sub.name
                                 ? 'bg-emerald-500 border-emerald-500 text-white shadow-md'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'
+                                : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200'
                                 }`}
                             >
                               {sub.name}
@@ -2044,10 +2044,10 @@ export default function AdminInventory() {
           )}
 
           {activeTab === 'damage' && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
               <AlertCircle size={64} className="mx-auto text-red-500 mb-6" />
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Redirecting to Damage Management</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">You will be redirected to the specialized Damage & Deductions module for this branch.</p>
+              <p className="text-gray-500 mb-8 max-w-md mx-auto">You will be redirected to the specialized Damage & Deductions module for this branch.</p>
               <button
                 onClick={() => navigate(`/admin/damage?storeId=${storeFilterId}`)}
                 className="px-8 py-3 bg-red-600 text-white rounded-xl font-bold uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all"
@@ -2060,7 +2060,7 @@ export default function AdminInventory() {
           {/* Bulk Upload Modal */}
           {showBulkUploadModal && (
             <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+              <div className="bg-white w-full max-w-sm rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <FileText className="text-emerald-500" />
@@ -2080,7 +2080,7 @@ export default function AdminInventory() {
                     className="w-full border-2 border-dashed border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors group"
                     style={{ pointerEvents: isUploading ? 'none' : 'auto' }}
                   >
-                    <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-lg shadow-sm flex items-center justify-center mb-3 text-emerald-600 group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 text-emerald-600 group-hover:scale-110 transition-transform">
                       {isUploading ? <Loader2 size={24} className="animate-spin" /> : <ArrowUpCircle size={28} />}
                     </div>
                     <span className="font-bold text-emerald-800 text-sm">Upload Excel File</span>
@@ -2088,16 +2088,16 @@ export default function AdminInventory() {
                   </div>
 
                   <div className="relative flex items-center py-2">
-                    <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                    <div className="flex-grow border-t border-gray-200"></div>
                     <span className="flex-shrink-0 mx-4 text-[10px] font-bold text-gray-300 uppercase tracking-widest">Or</span>
-                    <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                    <div className="flex-grow border-t border-gray-200"></div>
                   </div>
 
                   <button
                     onClick={handleDownloadSample}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 text-gray-700 dark:text-gray-300 font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-gray-200 dark:border-gray-700 text-sm"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 text-gray-700 font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-gray-200 text-sm"
                   >
-                    <ArrowDownCircle size={18} className="text-gray-500 dark:text-gray-400" />
+                    <ArrowDownCircle size={18} className="text-gray-500" />
                     Download Sample Excel
                   </button>
                 </div>
@@ -2108,7 +2108,7 @@ export default function AdminInventory() {
           {/* Zip Import Modal */}
           {showZipImportModal && (
             <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+              <div className="bg-white w-full max-w-sm rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Package className="text-emerald-500" />
@@ -2128,7 +2128,7 @@ export default function AdminInventory() {
                     className="w-full border-2 border-dashed border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors group"
                     style={{ pointerEvents: isUploading ? 'none' : 'auto' }}
                   >
-                    <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-lg shadow-sm flex items-center justify-center mb-3 text-emerald-600 group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 text-emerald-600 group-hover:scale-110 transition-transform">
                       {isUploading ? <Loader2 size={24} className="animate-spin" /> : <ArrowUpCircle size={28} />}
                     </div>
                     <span className="font-bold text-emerald-800 text-sm">Upload ZIP File</span>
@@ -2136,16 +2136,16 @@ export default function AdminInventory() {
                   </div>
 
                   <div className="relative flex items-center py-2">
-                    <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                    <div className="flex-grow border-t border-gray-200"></div>
                     <span className="flex-shrink-0 mx-4 text-[10px] font-bold text-gray-300 uppercase tracking-widest">Or</span>
-                    <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                    <div className="flex-grow border-t border-gray-200"></div>
                   </div>
 
                   <button
                     onClick={handleDownloadSample}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 text-gray-700 dark:text-gray-300 font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-gray-200 dark:border-gray-700 text-sm"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 text-gray-700 font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-gray-200 text-sm"
                   >
-                    <ArrowDownCircle size={18} className="text-gray-500 dark:text-gray-400" />
+                    <ArrowDownCircle size={18} className="text-gray-500" />
                     Download Zip Template
                   </button>
                 </div>
@@ -2156,20 +2156,20 @@ export default function AdminInventory() {
           {/* Load Confirmation Modal */}
           {showLoadConfirmModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-2xl animate-in fade-in duration-200 flex flex-col max-h-[85vh]">
-                <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl animate-in fade-in duration-200 flex flex-col max-h-[85vh]">
+                <div className="p-5 border-b border-gray-200 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
                       <ArrowUpCircle size={20} />
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight leading-none">Confirm Loading</h3>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Please review before confirming</span>
+                      <span className="text-xs text-gray-500 font-medium">Please review before confirming</span>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowLoadConfirmModal(false)}
-                    className="p-2 bg-gray-50 dark:bg-gray-900/50 rounded-full text-gray-400 hover:text-gray-600 dark:text-gray-400 hover:bg-gray-100 transition-colors"
+                    className="p-2 bg-gray-50 dark:bg-gray-900/50 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                     disabled={isSubmitting}
                   >
                     <X size={18} />
@@ -2180,31 +2180,31 @@ export default function AdminInventory() {
                   {pendingLoadItems.map((item, idx) => {
                     const totalValue = item.quantity * (item.price || 0);
                     return (
-                      <div key={idx} className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between">
+                      <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${item.isFree ? 'bg-emerald-50 text-emerald-500' : 'bg-gray-50 dark:bg-gray-900/50 text-gray-400'}`}>
                             <Package size={16} />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-gray-800 dark:text-gray-200 leading-tight">{item.name}</span>
+                            <span className="text-sm font-bold text-gray-800 leading-tight">{item.name}</span>
                             {item.unitValue && item.unitType && (
                               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.unitValue} {item.unitType}</span>
                             )}
-                            {!item.isFree && <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Rate: ₹{item.price}</span>}
+                            {!item.isFree && <span className="text-[10px] text-gray-500 mt-0.5">Rate: ₹{item.price}</span>}
                             {item.isFree && <span className="text-[10px] font-bold text-emerald-500 mt-0.5">Free Item</span>}
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
                           <span className="text-lg font-bold text-emerald-600">{item.quantity}</span>
                           <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Qty</span>
-                          {!item.isFree && <span className="text-xs font-bold text-gray-600 dark:text-gray-400 mt-1 block">₹{totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>}
+                          {!item.isFree && <span className="text-xs font-bold text-gray-600 mt-1 block">₹{totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>}
                         </div>
                       </div>
                     );
                   })}
                 </div>
 
-                <div className="p-5 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-3xl">
+                <div className="p-5 border-t border-gray-200 bg-white rounded-b-3xl">
                   <div className="flex justify-between items-center mb-4 px-2">
                     <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Total Items: <span className="text-gray-900 dark:text-white">{pendingLoadItems.length}</span></span>
                     <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Total Value: <span className="text-emerald-600">₹{pendingLoadItems.reduce((acc, item) => acc + (item.quantity * (item.price || 0)), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></span>
@@ -2213,7 +2213,7 @@ export default function AdminInventory() {
                     <button
                       onClick={() => setShowLoadConfirmModal(false)}
                       disabled={isSubmitting}
-                      className="flex-1 py-3 px-4 rounded-xl font-bold text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900/50 transition-colors"
+                      className="flex-1 py-3 px-4 rounded-xl font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 dark:bg-gray-900/50 transition-colors"
                     >
                       Cancel
                     </button>
@@ -2233,7 +2233,7 @@ export default function AdminInventory() {
           {/* Load Success Modal */}
           {showLoadSuccessModal && loadSuccessSummary && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-              <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center text-center animate-in scale-in duration-300">
+              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 p-6 flex flex-col items-center text-center animate-in scale-in duration-300">
                 <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4 ring-8 ring-emerald-500/10 dark:ring-emerald-500/5 animate-bounce">
                   <CheckCircle2 size={36} strokeWidth={2.5} />
                 </div>
@@ -2243,11 +2243,11 @@ export default function AdminInventory() {
 
                 {/* Summary Card */}
                 <div className="w-full bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800/80 mb-6 space-y-3 text-left">
-                  <div className="flex justify-between items-center pb-2 border-b border-gray-200/50 dark:border-gray-700/50">
+                  <div className="flex justify-between items-center pb-2 border-b border-gray-200/50/50">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Vehicle</span>
                     <span className="text-xs font-bold text-gray-900 dark:text-white uppercase flex items-center gap-1.5"><Truck size={12} className="text-emerald-500" /> {loadSuccessSummary.vehicleNumber}</span>
                   </div>
-                  <div className="flex justify-between items-center pb-2 border-b border-gray-200/50 dark:border-gray-700/50">
+                  <div className="flex justify-between items-center pb-2 border-b border-gray-200/50/50">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Items Loaded</span>
                     <span className="text-xs font-bold text-gray-900 dark:text-white">{loadSuccessSummary.items.length} SKUs ({loadSuccessSummary.totalQty} Units)</span>
                   </div>
@@ -2265,7 +2265,7 @@ export default function AdminInventory() {
                         <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                           <Package size={12} />
                         </div>
-                        <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
+                        <span className="text-[11px] font-bold text-gray-700 truncate">{item.name}</span>
                       </div>
                       <span className="text-xs font-extrabold text-emerald-600 shrink-0 font-mono">+{item.quantity}</span>
                     </div>

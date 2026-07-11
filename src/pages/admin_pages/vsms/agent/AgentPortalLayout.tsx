@@ -76,9 +76,9 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   };
 
   const renderSidebarContent = () => (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+    <div className="flex flex-col h-full bg-white text-gray-800">
       {/* Sidebar Header */}
-      <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 flex items-center justify-between">
+      <div className="p-6 border-b border-gray-100 flex-shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200 dark:shadow-none">
             <Store size={20} strokeWidth={2.5} />
@@ -118,7 +118,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
                   className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-xs font-bold uppercase tracking-wider ${
                     isActive
                       ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-none'
-                      : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-750 hover:text-slate-900 dark:hover:text-white'
+                      : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-gray-750 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <Icon size={16} strokeWidth={isActive ? 3 : 2.5} className={isActive ? 'text-white' : 'text-emerald-500'} />
@@ -131,8 +131,8 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       </div>
 
       {/* User Footer */}
-      <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 flex-shrink-0">
-        <div className="mx-2 p-3 rounded-2xl bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 shadow-sm flex items-center gap-3">
+      <div className="p-4 border-t border-gray-100 bg-slate-50/50/50 flex-shrink-0">
+        <div className="mx-2 p-3 rounded-2xl bg-white border border-gray-100 dark:border-gray-600 shadow-sm flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 font-black text-sm border border-emerald-100 dark:border-emerald-900/30 shrink-0">
             {agentName.charAt(0).toUpperCase()}
           </div>
@@ -140,7 +140,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
             <p className="text-[11px] font-black text-slate-900 dark:text-white truncate tracking-tight uppercase leading-none">
               {agentName}
             </p>
-            <p className="text-[9px] font-bold text-slate-400 dark:text-gray-400 uppercase tracking-wider truncate mt-1">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate mt-1">
               Field Agent
             </p>
           </div>
@@ -177,16 +177,16 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       {/* Main Content Area (Header + Main Page Content) */}
       <div className="flex-1 min-w-0 flex flex-col md:ml-72 min-h-screen">
         {/* Header Bar */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 flex-shrink-0">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-30 flex-shrink-0">
           <div className="px-4 py-3 flex items-center justify-between md:justify-end">
             <button
               onClick={() => setIsOpen(true)}
-              className="md:hidden p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+              className="md:hidden p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
             >
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider">
+              <span className="hidden sm:inline text-xs font-black text-slate-700 uppercase tracking-wider">
                 Welcome back, {agentName}
               </span>
               <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-black">

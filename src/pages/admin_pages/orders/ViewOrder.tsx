@@ -45,7 +45,7 @@ const OrderDetails = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-8">
           <div className="flex-1">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
               Order ID #123
             </h1>
             <Breadcrumbs />
@@ -61,8 +61,8 @@ const OrderDetails = () => {
         </div>
 
         {/* Status Progress */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 md:p-8 mb-6 relative z-0">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 sm:mb-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 mb-6 relative z-0">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-6 sm:mb-8">
             Status
           </h2>
 
@@ -82,7 +82,7 @@ const OrderDetails = () => {
                     />
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mt-2 sm:mt-3 font-medium text-center">
+                <p className="text-xs sm:text-sm text-gray-700 mt-2 sm:mt-3 font-medium text-center">
                   Order Placed
                 </p>
               </div>
@@ -109,10 +109,10 @@ const OrderDetails = () => {
                     />
                   )}
                   {currentLevel === 1 && (
-                    <div className="w-3 h-3 rounded-full bg-white dark:bg-gray-800"></div>
+                    <div className="w-3 h-3 rounded-full bg-white"></div>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mt-2 sm:mt-3 font-medium text-center">
+                <p className="text-xs sm:text-sm text-gray-700 mt-2 sm:mt-3 font-medium text-center">
                   Processing
                 </p>
               </div>
@@ -133,7 +133,7 @@ const OrderDetails = () => {
                   }`}
                 >
                   {currentLevel === 2 && (
-                    <div className="w-3 h-3 rounded-full bg-white dark:bg-gray-800"></div>
+                    <div className="w-3 h-3 rounded-full bg-white"></div>
                   )}
                   {currentLevel > 2 && (
                     <Check
@@ -142,7 +142,7 @@ const OrderDetails = () => {
                     />
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mt-2 sm:mt-3 font-medium text-center">
+                <p className="text-xs sm:text-sm text-gray-700 mt-2 sm:mt-3 font-medium text-center">
                   Shipped
                 </p>
               </div>
@@ -161,7 +161,7 @@ const OrderDetails = () => {
                   className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center border-2 ${
                     currentLevel >= 3
                       ? "bg-green-500 border-green-500"
-                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                      : "bg-white border-gray-300 dark:border-gray-600"
                   }`}
                 >
                   {currentLevel >= 3 && (
@@ -171,7 +171,7 @@ const OrderDetails = () => {
                     />
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mt-2 sm:mt-3 font-medium text-center">
+                <p className="text-xs sm:text-sm text-gray-700 mt-2 sm:mt-3 font-medium text-center">
                   Delivered
                 </p>
               </div>
@@ -184,32 +184,32 @@ const OrderDetails = () => {
           {/* Left Column */}
           <div className="space-y-4 sm:space-y-6">
             {/* Order Information */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">
                 Order Information
               </h2>
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex flex-col sm:flex-row">
-                  <span className="text-gray-700 dark:text-gray-300 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
+                  <span className="text-gray-700 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
                     Order ID
                   </span>
-                  <span className="text-gray-900 dark:text-gray-200 text-sm sm:text-base">
+                  <span className="text-gray-900 text-sm sm:text-base">
                     : 123
                   </span>
                 </div>
                 <div className="flex flex-col sm:flex-row">
-                  <span className="text-gray-700 dark:text-gray-300 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
+                  <span className="text-gray-700 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
                     Order Date
                   </span>
-                  <span className="text-gray-900 dark:text-gray-200 text-sm sm:text-base">
+                  <span className="text-gray-900 text-sm sm:text-base">
                     : 300
                   </span>
                 </div>
                 <div className="flex flex-col sm:flex-row">
-                  <span className="text-gray-700 dark:text-gray-300 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
+                  <span className="text-gray-700 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
                     Delivery Date & Time
                   </span>
-                  <span className="text-gray-900 dark:text-gray-200 text-sm sm:text-base">
+                  <span className="text-gray-900 text-sm sm:text-base">
                     : PAN00123
                   </span>
                 </div>
@@ -217,32 +217,32 @@ const OrderDetails = () => {
             </div>
 
             {/* Customer Information */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">
                 Customer Information
               </h2>
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex flex-col sm:flex-row">
-                  <span className="text-gray-700 dark:text-gray-300 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
+                  <span className="text-gray-700 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
                     User ID
                   </span>
-                  <span className="text-gray-900 dark:text-gray-200 text-sm sm:text-base">
+                  <span className="text-gray-900 text-sm sm:text-base">
                     : 123
                   </span>
                 </div>
                 <div className="flex flex-col sm:flex-row">
-                  <span className="text-gray-700 dark:text-gray-300 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
+                  <span className="text-gray-700 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
                     Name
                   </span>
-                  <span className="text-gray-900 dark:text-gray-200 text-sm sm:text-base">
+                  <span className="text-gray-900 text-sm sm:text-base">
                     : 300
                   </span>
                 </div>
                 <div className="flex flex-col sm:flex-row">
-                  <span className="text-gray-700 dark:text-gray-300 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
+                  <span className="text-gray-700 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
                     Mobile Number
                   </span>
-                  <span className="text-gray-900 dark:text-gray-200 text-sm sm:text-base">
+                  <span className="text-gray-900 text-sm sm:text-base">
                     : PAN00123
                   </span>
                 </div>
@@ -250,24 +250,24 @@ const OrderDetails = () => {
             </div>
 
             {/* Seller Information */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">
                 Seller Information
               </h2>
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex flex-col sm:flex-row">
-                  <span className="text-gray-700 dark:text-gray-300 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
+                  <span className="text-gray-700 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
                     Seller ID
                   </span>
-                  <span className="text-gray-900 dark:text-gray-200 text-sm sm:text-base">
+                  <span className="text-gray-900 text-sm sm:text-base">
                     : 123
                   </span>
                 </div>
                 <div className="flex flex-col sm:flex-row">
-                  <span className="text-gray-700 dark:text-gray-300 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
+                  <span className="text-gray-700 sm:w-48 mb-1 sm:mb-0 text-sm sm:text-base">
                     Name
                   </span>
-                  <span className="text-gray-900 dark:text-gray-200 text-sm sm:text-base">
+                  <span className="text-gray-900 text-sm sm:text-base">
                     : 300
                   </span>
                 </div>
@@ -278,8 +278,8 @@ const OrderDetails = () => {
           {/* Right Column */}
           <div className="space-y-4 sm:space-y-6">
             {/* Products */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">
                 Products
               </h2>
               <div className="space-y-4">
@@ -292,10 +292,10 @@ const OrderDetails = () => {
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover flex-shrink-0 border border-gray-200 dark:border-gray-700"
+                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover flex-shrink-0 border border-gray-200"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-200 truncate">
+                        <p className="text-sm sm:text-base font-medium text-gray-900 truncate">
                           {product.name}
                         </p>
                         <p className="text-xs sm:text-sm text-green-500 dark:text-green-400">
@@ -303,7 +303,7 @@ const OrderDetails = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="text-gray-900 dark:text-gray-200 font-medium text-sm sm:text-base flex-shrink-0 whitespace-nowrap">
+                    <div className="text-gray-900 font-medium text-sm sm:text-base flex-shrink-0 whitespace-nowrap">
                       ₹ {product.price}
                     </div>
                   </div>
@@ -312,33 +312,33 @@ const OrderDetails = () => {
             </div>
 
             {/* Payment */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">
                 Payment
               </h2>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm sm:text-base">
-                  <span className="text-gray-700 dark:text-gray-300">Subtotal</span>
-                  <span className="text-gray-900 dark:text-gray-200">: ₹ 2500.00</span>
+                  <span className="text-gray-700">Subtotal</span>
+                  <span className="text-gray-900">: ₹ 2500.00</span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-base">
-                  <span className="text-gray-700 dark:text-gray-300">Delivery Charges</span>
-                  <span className="text-gray-900 dark:text-gray-200">: ₹ 2500.00</span>
+                  <span className="text-gray-700">Delivery Charges</span>
+                  <span className="text-gray-900">: ₹ 2500.00</span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-base">
-                  <span className="text-gray-700 dark:text-gray-300">Additional Charges</span>
-                  <span className="text-gray-900 dark:text-gray-200">: ₹ 2500.00</span>
+                  <span className="text-gray-700">Additional Charges</span>
+                  <span className="text-gray-900">: ₹ 2500.00</span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-base">
-                  <span className="text-gray-700 dark:text-gray-300">Wallet Used</span>
-                  <span className="text-gray-900 dark:text-gray-200">: -₹100.00</span>
+                  <span className="text-gray-700">Wallet Used</span>
+                  <span className="text-gray-900">: -₹100.00</span>
                 </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-3 border-t border-gray-200">
                   <div className="flex justify-between text-sm sm:text-base">
-                    <span className="text-gray-900 dark:text-gray-200 font-semibold">
+                    <span className="text-gray-900 font-semibold">
                       Final Total
                     </span>
-                    <span className="text-gray-900 dark:text-gray-200 font-bold">: ₹2475.00</span>
+                    <span className="text-gray-900 font-bold">: ₹2475.00</span>
                   </div>
                 </div>
               </div>

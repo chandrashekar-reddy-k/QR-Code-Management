@@ -249,7 +249,7 @@ const AddEditAdmin = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             Loading admin...
           </p>
         </div>
@@ -261,7 +261,7 @@ const AddEditAdmin = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Back Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditMode ? "Edit Admin" : "Add Admin"}
         </h1>
         <div className="flex items-center justify-end">
@@ -276,7 +276,7 @@ const AddEditAdmin = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit(onSubmit, onError)}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-6"
       >
         <div className="max-w-4xl">
           {/* Personal Information Section */}
@@ -364,14 +364,14 @@ const AddEditAdmin = () => {
                 control={control}
                 render={({ field }) => (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Role <span className="text-red-500 dark:text-red-400">*</span>
                     </label>
                     <select
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
-                      className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                     >
                       <option value="Super Admin">Super Admin</option>
                       <option value="Admin">Admin</option>
@@ -395,7 +395,7 @@ const AddEditAdmin = () => {
                 control={control}
                 render={({ field }) => (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
                       Status{" "}
                       <span className="text-red-500 dark:text-red-400">*</span>
                     </label>
@@ -432,7 +432,7 @@ const AddEditAdmin = () => {
               type="button"
               onClick={() => navigate("/user-management/admins")}
               variant="ghost"
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white dark:bg-gray-800"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white"
               disabled={isPending || loading}
             >
               Cancel

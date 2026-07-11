@@ -548,7 +548,7 @@ const ManageLanguages: React.FC = () => {
       sortable: true,
       render: (lang: Language) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{lang.id}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{lang.id}</span>
         </div>
       ),
     },
@@ -558,10 +558,10 @@ const ManageLanguages: React.FC = () => {
       sortable: true,
       render: (lang: Language) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-semibold">
+          <span className="text-xs sm:text-sm text-gray-800 font-semibold">
             {lang.name}
           </span>
-          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+          <div className="text-[10px] text-gray-500 mt-0.5">
             ({lang.supportedLanguage})
           </div>
         </div>
@@ -573,7 +573,7 @@ const ManageLanguages: React.FC = () => {
       sortable: true,
       render: (lang: Language) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{lang.code}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{lang.code}</span>
         </div>
       ),
     },
@@ -583,7 +583,7 @@ const ManageLanguages: React.FC = () => {
       sortable: true,
       render: (lang: Language) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 capitalize">
+          <span className="text-xs sm:text-sm text-gray-800 capitalize">
             {lang.type}
           </span>
         </div>
@@ -595,7 +595,7 @@ const ManageLanguages: React.FC = () => {
       sortable: true,
       render: (lang: Language) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {getSystemLabel(lang.systemType)}
           </span>
         </div>
@@ -610,7 +610,7 @@ const ManageLanguages: React.FC = () => {
           {lang.default ? (
             <Badge status="active" size="sm" />
           ) : (
-            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">—</span>
+            <span className="text-xs sm:text-sm text-gray-500">—</span>
           )}
         </div>
       ),
@@ -651,7 +651,7 @@ const ManageLanguages: React.FC = () => {
       {/* Page Title */}
       <div className="mb-2 mt-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-1">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
             {showForm
               ? editingId
                 ? "Edit Language"
@@ -682,7 +682,7 @@ const ManageLanguages: React.FC = () => {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-6">
           <form onSubmit={handleSubmit}>
             <div className="max-w-4xl">
               <FormSectionWithDots
@@ -733,7 +733,7 @@ const ManageLanguages: React.FC = () => {
                       onChange={handleChange}
                       className="w-4 h-4 border-gray-300 rounded focus:ring-gray-400"
                     />
-                    <span className="text-gray-700 dark:text-gray-300">Default language for selected system type</span>
+                    <span className="text-gray-700">Default language for selected system type</span>
                   </label>
                 </div>
               </FormSectionWithDots>
@@ -788,7 +788,7 @@ const ManageLanguages: React.FC = () => {
             <Button
               onClick={handleExport}
               variant="ghost"
-              className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+              className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
             >
               <Download size={14} className="sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Export</span>
@@ -796,7 +796,7 @@ const ManageLanguages: React.FC = () => {
             <Button
               onClick={handleImport}
               variant="ghost"
-              className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+              className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
             >
               <FileUp size={14} className="sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Import</span>
@@ -805,7 +805,7 @@ const ManageLanguages: React.FC = () => {
               onClick={() => setLanguages(mockLanguages)}
               disabled={loading}
               variant="ghost"
-              className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800 disabled:opacity-50"
+              className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
             >
               <RefreshCw
                 size={14}
@@ -830,10 +830,10 @@ const ManageLanguages: React.FC = () => {
       {/* Filters */}
       {!showForm && (
         <div className="mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-[720px] overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-[720px] overflow-hidden">
             {/* Filter icon */}
             <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
-              <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+              <Filter size={18} className="text-gray-700" />
             </div>
 
             {/* Status Filter */}
@@ -851,7 +851,7 @@ const ManageLanguages: React.FC = () => {
               </div>
               <ChevronDown
                 size={16}
-                className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
               />
             </div>
 
@@ -872,7 +872,7 @@ const ManageLanguages: React.FC = () => {
               </div>
               <ChevronDown
                 size={16}
-                className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
               />
             </div>
 
@@ -892,7 +892,7 @@ const ManageLanguages: React.FC = () => {
 
       {/* Table */}
       {!showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <DataTable
               data={paginatedLanguages}
@@ -912,10 +912,10 @@ const ManageLanguages: React.FC = () => {
 
           {/* Pagination */}
           {filteredAndSortedLanguages.length > 0 && (
-            <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
                 <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                  <span className="text-gray-600 dark:text-gray-300 whitespace-nowrap">Show</span>
+                  <span className="text-gray-600 whitespace-nowrap">Show</span>
                   <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
                     <SelectInput
                       value={itemsPerPage.toString()}
@@ -932,7 +932,7 @@ const ManageLanguages: React.FC = () => {
                       className="w-16 sm:w-20 h-7 text-xs"
                     />
                   </div>
-                  <span className="text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                  <span className="text-gray-600 whitespace-nowrap">
                     Showing results{" "}
                     <span className="text-orange-600 dark:text-orange-500 font-medium">
                       {itemsPerPage}

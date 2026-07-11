@@ -75,7 +75,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEdit ? "Edit Route Map" : "Create Route Map"}
         </h1>
         <BackButton to="/delivery-settings/scheduled-delivery" />
@@ -89,7 +89,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 flex justify-center"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 flex justify-center"
       >
         <div className="w-full max-w-xl">
           <FormSectionWithDots title="Route Map Details">
@@ -111,7 +111,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>

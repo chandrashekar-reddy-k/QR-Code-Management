@@ -504,7 +504,7 @@ export default function AdminVehicles() {
         );
       case 'driver_mapping':
         return (
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Driver Mapping Status</h3>
               <div className="relative group w-full md:w-72">
@@ -514,7 +514,7 @@ export default function AdminVehicles() {
                   placeholder="Search vehicle or driver..."
                   value={mappingSearch}
                   onChange={(e) => setMappingSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                 />
               </div>
             </div>
@@ -526,9 +526,9 @@ export default function AdminVehicles() {
                   v.assignedUsers[0].name.toLowerCase().includes(mappingSearch.toLowerCase())
                 )
                 .map(v => (
-                  <div key={v.id} className="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col gap-4">
+                  <div key={v.id} className="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 flex flex-col gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center text-emerald-600 shadow-sm">
+                      <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center text-emerald-600 shadow-sm">
                         <User size={24} />
                       </div>
                       <div className="flex flex-col">
@@ -912,7 +912,7 @@ export default function AdminVehicles() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 dark:text-gray-400 font-medium tracking-wide">Loading Vehicles...</p>
+        <p className="text-gray-500 font-medium tracking-wide">Loading Vehicles...</p>
       </div>
     );
   }
@@ -930,7 +930,7 @@ export default function AdminVehicles() {
         )}
         <input
           type="file" accept=".jpg,.jpeg,.png,.pdf"
-          className="w-full text-xs text-gray-500 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+          className="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
           onChange={(e) => setFiles(prev => ({ ...prev, [fieldKey]: e.target.files[0] }))}
         />
       </div>
@@ -942,7 +942,7 @@ export default function AdminVehicles() {
     <>
       <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
         {groupVehicles.map((vehicle) => (
-          <div key={vehicle.id} className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col gap-4">
+          <div key={vehicle.id} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-4">
                 <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center',
@@ -952,7 +952,7 @@ export default function AdminVehicles() {
                 <div className="flex flex-col">
                   <h3 className="font-bold text-gray-900 dark:text-white">{vehicle.vehicleNumber}</h3>
                   {vehicle.displayId && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded w-fit tracking-wider">{vehicle.displayId}</span>}
-                  {vehicle.vehicleName && <span className="text-xs text-gray-500 dark:text-gray-400">{vehicle.vehicleName}</span>}
+                  {vehicle.vehicleName && <span className="text-xs text-gray-500">{vehicle.vehicleName}</span>}
                   <div className="flex items-center gap-2 mt-1">
                     {vehicle.status ? (
                       <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase">
@@ -977,7 +977,7 @@ export default function AdminVehicles() {
                     )}
                   >
                     <span className={cn(
-                      "pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white dark:bg-gray-800 shadow-lg ring-0 transition-all duration-300",
+                      "pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-lg ring-0 transition-all duration-300",
                       vehicle.status ? "translate-x-4" : "translate-x-0"
                     )} />
                   </button>
@@ -1008,12 +1008,12 @@ export default function AdminVehicles() {
               </div>
             )}
 
-            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 flex items-center justify-between border border-gray-200 dark:border-gray-700">
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 flex items-center justify-between border border-gray-200">
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Assigned Driver</span>
                 <div className="flex items-center gap-2">
                   <User size={14} className="text-emerald-500" />
-                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{vehicle.assignedUsers?.[0]?.name || 'Not Assigned'}</span>
+                  <span className="text-sm font-bold text-gray-800">{vehicle.assignedUsers?.[0]?.name || 'Not Assigned'}</span>
                 </div>
               </div>
               <button onClick={() => { setSelectedVehicle(vehicle); setShowAssignModal(true); }}
@@ -1025,10 +1025,10 @@ export default function AdminVehicles() {
         ))}
       </div>
 
-      <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border border-gray-150 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-150 shadow-sm overflow-hidden mb-6">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+            <tr className="border-b border-gray-100 bg-gray-50/50 dark:bg-gray-900/50">
               <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">Vehicle Info</th>
               <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500 text-center">Status</th>
               <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">Driver Assignment</th>
@@ -1041,8 +1041,8 @@ export default function AdminVehicles() {
               <tr key={vehicle.id} className="hover:bg-gray-50/40 dark:hover:bg-gray-700/20 transition-colors group">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40',
-                      vehicle.status ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400')}>
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-gray-100 bg-gray-50 dark:bg-gray-900/40',
+                      vehicle.status ? 'text-gray-600' : 'text-gray-400')}>
                       <Truck size={18} />
                     </div>
                     <div className="flex flex-col">
@@ -1072,7 +1072,7 @@ export default function AdminVehicles() {
                     ) : (
                       <span className={cn(
                         "px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest",
-                        vehicle.status ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-gray-50 dark:bg-gray-900/50 text-gray-400 border border-gray-200 dark:border-gray-700"
+                        vehicle.status ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-gray-50 dark:bg-gray-900/50 text-gray-400 border border-gray-200"
                       )}>
                         {vehicle.status ? 'Active' : 'Inactive'}
                       </span>
@@ -1080,12 +1080,12 @@ export default function AdminVehicles() {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center justify-between gap-4 bg-gray-50/70 dark:bg-gray-900/40 p-2 rounded-xl border border-transparent hover:border-gray-200 dark:border-gray-700 transition-all group/driver max-w-[240px]">
+                  <div className="flex items-center justify-between gap-4 bg-gray-50/70 dark:bg-gray-900/40 p-2 rounded-xl border border-transparent hover:border-gray-200 transition-all group/driver max-w-[240px]">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-emerald-500 shadow-xs border border-gray-100 dark:border-gray-700">
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-emerald-500 shadow-xs border border-gray-100">
                         <User size={14} />
                       </div>
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{vehicle.assignedUsers?.[0]?.name || 'Unassigned'}</span>
+                      <span className="text-xs font-bold text-gray-700">{vehicle.assignedUsers?.[0]?.name || 'Unassigned'}</span>
                     </div>
                     <button onClick={() => { setSelectedVehicle(vehicle); setShowAssignModal(true); }}
                       className="text-emerald-600 hover:bg-emerald-100 p-1.5 rounded-full transition-colors">
@@ -1098,15 +1098,15 @@ export default function AdminVehicles() {
                     {vehicle.rcDocument ? (
                       <a href={vehicle.rcDocument} target="_blank" rel="noreferrer" title="RC Document"
                         className="w-8 h-8 flex items-center justify-center text-[10px] font-bold bg-emerald-600/10 text-emerald-700 rounded-lg hover:bg-emerald-600 hover:text-white transition-all">RC</a>
-                    ) : <div className="w-8 h-8 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg" />}
+                    ) : <div className="w-8 h-8 border border-dashed border-gray-200 rounded-lg" />}
                     {vehicle.insuranceDocument ? (
                       <a href={vehicle.insuranceDocument} target="_blank" rel="noreferrer" title="Insurance"
                         className="w-8 h-8 flex items-center justify-center text-[10px] font-bold bg-emerald-600/10 text-emerald-700 rounded-lg hover:bg-emerald-600 hover:text-white transition-all">IN</a>
-                    ) : <div className="w-8 h-8 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg" />}
+                    ) : <div className="w-8 h-8 border border-dashed border-gray-200 rounded-lg" />}
                     {vehicle.permitDocument ? (
                       <a href={vehicle.permitDocument} target="_blank" rel="noreferrer" title="Permit"
                         className="w-8 h-8 flex items-center justify-center text-[10px] font-bold bg-emerald-600/10 text-emerald-700 rounded-lg hover:bg-emerald-600 hover:text-white transition-all">PM</a>
-                    ) : <div className="w-8 h-8 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg" />}
+                    ) : <div className="w-8 h-8 border border-dashed border-gray-200 rounded-lg" />}
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -1156,7 +1156,7 @@ export default function AdminVehicles() {
               <button
                 key={store.id}
                 onClick={() => setSearchParams({ storeId: store.id })}
-                className="group w-full bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all duration-300 flex items-center justify-between gap-6 relative overflow-hidden"
+                className="group w-full bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all duration-300 flex items-center justify-between gap-6 relative overflow-hidden"
               >
                 <div className="absolute left-0 top-0 w-2 h-full bg-emerald-500/10 group-hover:bg-emerald-500 transition-all" />
 
@@ -1190,7 +1190,7 @@ export default function AdminVehicles() {
             );
           })}
           {stores.length === 0 && (
-            <div className="py-12 text-center bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+            <div className="py-12 text-center bg-white rounded-xl border border-dashed border-gray-200">
               <Store size={48} className="mx-auto text-gray-300 mb-4" />
               <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No Active Branches Found</p>
             </div>
@@ -1204,7 +1204,7 @@ export default function AdminVehicles() {
         {renderGroup(paginatedVehicles)}
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center justify-between bg-white px-6 py-4 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center gap-2">
               <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
                 Showing {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, filteredVehicles.length)} of {filteredVehicles.length}
@@ -1215,7 +1215,7 @@ export default function AdminVehicles() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 dark:border-gray-700 disabled:hover:text-gray-400 transition-all"
+                className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 disabled:hover:text-gray-400 transition-all"
               >
                 <ChevronLeft size={16} />
               </button>
@@ -1234,7 +1234,7 @@ export default function AdminVehicles() {
                         onClick={() => setCurrentPage(pageNum)}
                         className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all ${currentPage === pageNum
                           ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
-                          : 'text-gray-400 hover:text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50'
+                          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900/50'
                           }`}
                       >
                         {pageNum}
@@ -1253,7 +1253,7 @@ export default function AdminVehicles() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 dark:border-gray-700 disabled:hover:text-gray-400 transition-all"
+                className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 disabled:hover:text-gray-400 transition-all"
               >
                 <ChevronRight size={16} />
               </button>
@@ -1274,12 +1274,12 @@ export default function AdminVehicles() {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Register New Vehicle</h2>
               <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mt-1 italic">Fleet Expansion & Asset Registration</p>
             </div>
-            <button onClick={() => setShowAddModal(false)} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-sm transition-all hover:border-gray-200 dark:border-gray-700">
+            <button onClick={() => setShowAddModal(false)} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-white border border-gray-200 bg-white px-6 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-sm transition-all hover:border-gray-200">
               <ArrowLeft size={16} /> Back
             </button>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl shadow-slate-200/50 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-2xl shadow-slate-200/50 overflow-hidden">
             <div className="p-8 md:p-12">
               <form onSubmit={handleCreateVehicle} className="max-w-4xl mx-auto space-y-12">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -1289,7 +1289,7 @@ export default function AdminVehicles() {
                         <Truck size={12} className="text-emerald-500" /> Vehicle Number <span className="text-red-500">*</span>
                       </label>
                       <input type="text" required placeholder="e.g. KA 01 AB 1234"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white dark:bg-gray-800 outline-none transition-all font-bold tracking-tight"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight"
                         value={newVehicle.vehicleNumber} onChange={(e) => setNewVehicle({ ...newVehicle, vehicleNumber: e.target.value })} />
                     </div>
 
@@ -1298,7 +1298,7 @@ export default function AdminVehicles() {
                         <Package size={12} className="text-emerald-500" /> Vehicle Model / Name
                       </label>
                       <input type="text" placeholder="e.g. Tata Ace Gold"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white dark:bg-gray-800 outline-none transition-all font-bold tracking-tight"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight"
                         value={newVehicle.vehicleName} onChange={(e) => setNewVehicle({ ...newVehicle, vehicleName: e.target.value })} />
                     </div>
                   </div>
@@ -1308,7 +1308,7 @@ export default function AdminVehicles() {
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                         <User size={12} className="text-emerald-500" /> Driver Assignment
                       </label>
-                      <div className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-sm text-gray-500 dark:text-gray-400 font-medium tracking-tight mt-0.5">
+                      <div className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-sm text-gray-500 font-medium tracking-tight mt-0.5">
                         Register this vehicle first to assign a driver & audit initial stock.
                       </div>
                     </div>
@@ -1322,7 +1322,7 @@ export default function AdminVehicles() {
                       </div>
                       <button type="button" onClick={() => setNewVehicle({ ...newVehicle, status: !newVehicle.status })}
                         className={cn('w-14 h-7 rounded-full relative transition-all shadow-inner', newVehicle.status ? 'bg-emerald-500' : 'bg-slate-300')}>
-                        <div className={cn('absolute top-1.5 w-4 h-4 rounded-full bg-white dark:bg-gray-800 shadow-md transition-all duration-300', newVehicle.status ? 'right-1.5' : 'left-1.5')} />
+                        <div className={cn('absolute top-1.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-300', newVehicle.status ? 'right-1.5' : 'left-1.5')} />
                       </button>
                     </div>
                   </div>
@@ -1342,7 +1342,7 @@ export default function AdminVehicles() {
 
                 <div className="flex flex-col md:flex-row items-center justify-end gap-4 pt-8 border-t border-slate-100">
                   <button type="button" onClick={() => setShowAddModal(false)}
-                    className="w-full md:w-auto px-10 py-5 rounded-lg font-bold text-[10px] uppercase tracking-widest text-gray-400 hover:text-gray-900 dark:text-white transition-all border border-transparent hover:border-gray-200 dark:border-gray-700">
+                    className="w-full md:w-auto px-10 py-5 rounded-lg font-bold text-[10px] uppercase tracking-widest text-gray-400 hover:text-gray-900 dark:text-white transition-all border border-transparent hover:border-gray-200">
                     Discard Changes
                   </button>
                   <button type="submit" disabled={isSubmitting}
@@ -1362,12 +1362,12 @@ export default function AdminVehicles() {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Edit Vehicle</h2>
               <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest mt-1 italic">Update Details & Documents</p>
             </div>
-            <button onClick={() => { setShowEditModal(false); setEditingVehicle(null); }} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-sm transition-all hover:border-gray-200 dark:border-gray-700">
+            <button onClick={() => { setShowEditModal(false); setEditingVehicle(null); }} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-white border border-gray-200 bg-white px-6 py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-sm transition-all hover:border-gray-200">
               <ArrowLeft size={16} /> Back
             </button>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl shadow-slate-200/50 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-2xl shadow-slate-200/50 overflow-hidden">
             <div className="p-8 md:p-12">
               <form onSubmit={handleUpdateVehicle} className="max-w-4xl mx-auto space-y-12">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -1377,7 +1377,7 @@ export default function AdminVehicles() {
                         <Truck size={12} className="text-emerald-500" /> Vehicle Number <span className="text-red-500">*</span>
                       </label>
                       <input type="text" required placeholder="e.g. KA 01 AB 1234"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white dark:bg-gray-800 outline-none transition-all font-bold tracking-tight"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight"
                         value={editingVehicle.vehicleNumber}
                         onChange={(e) => setEditingVehicle({ ...editingVehicle, vehicleNumber: e.target.value })} />
                     </div>
@@ -1387,7 +1387,7 @@ export default function AdminVehicles() {
                         <Package size={12} className="text-emerald-500" /> Vehicle Model / Name
                       </label>
                       <input type="text" placeholder="e.g. Tata Ace Gold"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white dark:bg-gray-800 outline-none transition-all font-bold tracking-tight"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight"
                         value={editingVehicle.vehicleName || ''}
                         onChange={(e) => setEditingVehicle({ ...editingVehicle, vehicleName: e.target.value })} />
                     </div>
@@ -1422,7 +1422,7 @@ export default function AdminVehicles() {
                         </div>
                         <button type="button" onClick={() => setEditingVehicle({ ...editingVehicle, status: !editingVehicle.status })}
                           className={cn('w-14 h-7 rounded-full relative transition-all shadow-inner', editingVehicle.status ? 'bg-emerald-500' : 'bg-slate-300')}>
-                          <div className={cn('absolute top-1.5 w-4 h-4 rounded-full bg-white dark:bg-gray-800 shadow-md transition-all duration-300', editingVehicle.status ? 'right-1.5' : 'left-1.5')} />
+                          <div className={cn('absolute top-1.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-300', editingVehicle.status ? 'right-1.5' : 'left-1.5')} />
                         </button>
                       </div>
                     )}
@@ -1443,7 +1443,7 @@ export default function AdminVehicles() {
 
                 <div className="flex flex-col md:flex-row items-center justify-end gap-4 pt-8 border-t border-slate-100">
                   <button type="button" onClick={() => { setShowEditModal(false); setEditingVehicle(null); }}
-                    className="w-full md:w-auto px-10 py-5 rounded-lg font-bold text-[10px] uppercase tracking-widest text-gray-400 hover:text-gray-900 dark:text-white transition-all border border-transparent hover:border-gray-200 dark:border-gray-700">
+                    className="w-full md:w-auto px-10 py-5 rounded-lg font-bold text-[10px] uppercase tracking-widest text-gray-400 hover:text-gray-900 dark:text-white transition-all border border-transparent hover:border-gray-200">
                     Discard Changes
                   </button>
                   <button type="submit" disabled={isSubmitting}
@@ -1460,7 +1460,7 @@ export default function AdminVehicles() {
         <>
           {/* Navigation and Context Header Card */}
           {/* Breadcrumbs */}
-          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-2 mt-4">
+          <div className="text-xs text-gray-500 flex items-center gap-1 mb-2 mt-4">
             <span>Home</span> &gt; <span>VSMS</span> &gt; <span className="text-emerald-600 font-medium">Fleet Management</span>
           </div>
 
@@ -1472,7 +1472,7 @@ export default function AdminVehicles() {
                 {false && storeFilterId && stores.length > 1 && (
                   <button
                     onClick={() => setSearchParams({ sub: activeSub })}
-                    className="p-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/80 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50/50 transition-all shadow-2xs active:scale-95 mt-0.5"
+                    className="p-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200/80 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50/50 transition-all shadow-2xs active:scale-95 mt-0.5"
                     title="Back to All Branches"
                   >
                     <ChevronLeft size={18} strokeWidth={2.5} />
@@ -1518,13 +1518,13 @@ export default function AdminVehicles() {
                       placeholder="Search fleet or driver..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900/50 border-none rounded-xl text-xs focus:bg-white dark:bg-gray-800 focus:ring-2 focus:ring-emerald-500/20 transition-all w-48 outline-none font-bold"
+                      className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900/50 border-none rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all w-48 outline-none font-bold"
                     />
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={handleExportPDF}
-                      className="flex items-center gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all shadow-2xs text-xs font-bold"
+                      className="flex items-center gap-1.5 px-2.5 py-2 bg-white border border-gray-200 rounded-xl text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all shadow-2xs text-xs font-bold"
                       title="Export PDF Report"
                     >
                       <FileText size={14} strokeWidth={2.5} />
@@ -1532,7 +1532,7 @@ export default function AdminVehicles() {
                     </button>
                     <button
                       onClick={handleExportExcel}
-                      className="flex items-center gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100 transition-all shadow-2xs text-xs font-bold"
+                      className="flex items-center gap-1.5 px-2.5 py-2 bg-white border border-gray-200 rounded-xl text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100 transition-all shadow-2xs text-xs font-bold"
                       title="Export Excel Report"
                     >
                       <Download size={14} strokeWidth={2.5} />
@@ -1559,7 +1559,7 @@ export default function AdminVehicles() {
           {activeSub === 'master' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {/* Card 1: Total Fleet */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Fleet</span>
@@ -1572,7 +1572,7 @@ export default function AdminVehicles() {
               </div>
 
               {/* Card 2: Active Fleet */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Active Fleet</span>
@@ -1587,7 +1587,7 @@ export default function AdminVehicles() {
               </div>
 
               {/* Card 3: Inactive Fleet */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Inactive Fleet</span>
@@ -1602,7 +1602,7 @@ export default function AdminVehicles() {
               </div>
 
               {/* Card 4: Unassigned Vehicles */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+              <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Unassigned</span>
@@ -1621,7 +1621,7 @@ export default function AdminVehicles() {
           {/* Search, Filters & Reset Panel (Theme matching the image) */}
           {activeSub === 'master' && (
             <div className="flex flex-col md:flex-row gap-4 items-stretch justify-between mb-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-wrap items-center divide-x divide-gray-200 dark:divide-gray-700 flex-1 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-wrap items-center divide-x divide-gray-200 dark:divide-gray-700 flex-1 overflow-hidden">
                 <div className="px-3 py-3 flex items-center justify-center flex-shrink-0">
                   <Search size={16} className="text-gray-400" />
                 </div>
@@ -1640,7 +1640,7 @@ export default function AdminVehicles() {
                           setSearchParams({ sub: activeSub });
                         }
                       }}
-                      className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700 dark:text-gray-300 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.25rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat cursor-pointer"
+                      className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.25rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat cursor-pointer"
                     >
                       <option value="">All Branches</option>
                       {stores.map(s => (
@@ -1663,7 +1663,7 @@ export default function AdminVehicles() {
                         setSearchTerm('');
                       }
                     }}
-                    className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700 dark:text-gray-300 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.25rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat cursor-pointer"
+                    className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.25rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat cursor-pointer"
                   >
                     <option value="ALL">All Statuses</option>
                     <option value="ACTIVE">Active</option>
@@ -1678,7 +1678,7 @@ export default function AdminVehicles() {
                     placeholder="Search vehicle or driver..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700 dark:text-gray-300"
+                    className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700"
                   />
                 </div>
               </div>
@@ -1689,7 +1689,7 @@ export default function AdminVehicles() {
                   setSearchTerm('');
                   setSearchParams({ sub: activeSub });
                 }}
-                className="flex items-center justify-center gap-1.5 px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all shadow-sm shrink-0"
+                className="flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all shadow-sm shrink-0"
               >
                 <RotateCcw size={14} />
                 <span>Reset</span>
@@ -1698,7 +1698,7 @@ export default function AdminVehicles() {
           )}
 
           {/* Sub-tab Navigation Bar (Enterprise ERP Style) */}
-          {/* <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+          {/* <div className="border-b border-gray-200 mb-6">
             <div className="flex gap-8 overflow-x-auto no-scrollbar">
               {[
                 { id: 'master', label: 'Fleet Master', icon: Truck },
@@ -1719,7 +1719,7 @@ export default function AdminVehicles() {
                     }}
                     className={`flex items-center gap-2 py-3.5 border-b-2 text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap outline-none ${isActive
                       ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
+                      : 'border-transparent text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
                       }`}
                   >
                     <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'} />
@@ -1733,9 +1733,9 @@ export default function AdminVehicles() {
           {activeSub === 'master' ? (
             <div className="space-y-4">
               {filteredVehicles.length === 0 ? (
-                <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+                <div className="text-center py-12 bg-white rounded-lg border border-dashed border-gray-200">
                   <Truck size={48} className="mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-500 dark:text-gray-400">No vehicles found</p>
+                  <p className="text-gray-500">No vehicles found</p>
                 </div>
               ) : (
                 renderClassifiedVehicles()
@@ -1750,7 +1750,7 @@ export default function AdminVehicles() {
       {/* ── Assign Driver Modal ─────────────────────────────── */}
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[80vh] flex flex-col">
+          <div className="bg-white w-full max-w-md rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between mb-6 shrink-0">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Assign Driver</h3>
@@ -1766,7 +1766,7 @@ export default function AdminVehicles() {
                 placeholder="Search drivers..."
                 value={agentSearch}
                 onChange={(e) => setAgentSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
               />
             </div>
 
@@ -1779,7 +1779,7 @@ export default function AdminVehicles() {
                   <button key={user.id} disabled={isSubmitting} onClick={() => initiateAssignDriver(user)}
                     className="w-full flex items-center justify-between p-4 hover:bg-emerald-50 rounded-lg border border-transparent hover:border-emerald-100 transition-all group disabled:opacity-50">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-colors">
                         {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <User size={20} />}
                       </div>
                       <div className="flex flex-col items-start">
@@ -1803,7 +1803,7 @@ export default function AdminVehicles() {
                 if (window.confirm("Are you sure you want to unassign the current driver?")) {
                   handleUnassignDriver();
                 }
-              }} className="w-full py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 font-bold text-sm uppercase tracking-widest rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors border border-gray-200 dark:border-gray-700 hover:border-rose-100 mt-4">
+              }} className="w-full py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-500 font-bold text-sm uppercase tracking-widest rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors border border-gray-200 hover:border-rose-100 mt-4">
                 Unassign Current Driver
               </button>
             </div>
@@ -1814,11 +1814,11 @@ export default function AdminVehicles() {
       {/* ── Audit Vehicle Stock Modal ───────────────────────── */}
       {showAuditModal && selectedVehicle && auditTargetUser && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-3xl rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[90vh] flex flex-col">
+          <div className="bg-white w-full max-w-3xl rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between mb-6 shrink-0">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Audit & Assign</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium tracking-wide">
+                <p className="text-xs text-gray-500 font-medium tracking-wide">
                   Vehicle: <span className="text-gray-900 dark:text-white font-bold">{selectedVehicle.vehicleNumber}</span> → Driver: <span className="text-emerald-600 font-bold">{auditTargetUser.name}</span>
                 </p>
               </div>
@@ -1834,19 +1834,19 @@ export default function AdminVehicles() {
                     placeholder="Search items in vehicle..."
                     value={auditSearch}
                     onChange={(e) => setAuditSearch(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                   />
                 </div>
               )}
 
               {vehicleInventory.length === 0 ? (
-                <div className="p-8 text-center bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+                <div className="p-8 text-center bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-dashed border-gray-200">
                   <Package size={32} className="mx-auto text-gray-300 mb-3" />
-                  <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">Vehicle has no stock assigned.</p>
+                  <p className="text-gray-500 font-medium text-sm">Vehicle has no stock assigned.</p>
                   <p className="text-gray-400 text-xs mt-1">You can proceed to assign the driver directly.</p>
                 </div>
               ) : (
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                   <table className="w-full text-left">
                     <thead className="bg-gray-50 dark:bg-gray-900/50">
                       <tr>
@@ -1871,7 +1871,7 @@ export default function AdminVehicles() {
                                 <p className="text-[10px] text-gray-400 tracking-wider font-mono mt-0.5">{item.sku}</p>
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 bg-gray-100 px-2 py-1 rounded-md">
+                                <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
                                   {item.oldQuantity} {item.unit}
                                 </span>
                               </td>
@@ -1891,7 +1891,7 @@ export default function AdminVehicles() {
                                       "w-20 px-2 py-1.5 text-center text-sm font-bold border rounded-lg outline-none transition-all focus:ring-2",
                                       item.oldQuantity !== item.newQuantity
                                         ? "border-emerald-200 bg-emerald-50 text-emerald-700 focus:ring-emerald-500/20 focus:border-emerald-500"
-                                        : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 focus:ring-emerald-500/20 focus:border-emerald-500"
+                                        : "border-gray-200 bg-gray-50 dark:bg-gray-900/50 focus:ring-emerald-500/20 focus:border-emerald-500"
                                     )}
                                   />
                                 </div>
@@ -1911,14 +1911,14 @@ export default function AdminVehicles() {
                   placeholder="e.g. Broken items found during handover..."
                   value={auditRemark}
                   onChange={(e) => setAuditRemark(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                 />
               </div>
             </div>
 
-            <div className="pt-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3 shrink-0 mt-4">
+            <div className="pt-6 border-t border-gray-200 flex items-center justify-end gap-3 shrink-0 mt-4">
               <button onClick={() => { setShowAuditModal(false); setAuditTargetUser(null); setVehicleInventory([]); }}
-                className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50 transition-all">
+                className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-gray-500 hover:bg-gray-50 dark:bg-gray-900/50 transition-all">
                 Cancel
               </button>
               <button onClick={handleConfirmAuditAndAssign} disabled={isAuditing}
@@ -1933,12 +1933,12 @@ export default function AdminVehicles() {
       {/* ── Handover Policy Selector Modal ───────────────────────── */}
       {showPolicyModal && selectedVehicle && auditTargetUser && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-xl rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 flex flex-col gap-6">
+          <div className="bg-white w-full max-w-xl rounded-xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 flex flex-col gap-6">
             <div className="flex items-center justify-between shrink-0">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Select Handover Strategy</h3>
                 <p className="text-xs text-gray-400 font-bold mt-1">
-                  Assigning <span className="text-emerald-600">{auditTargetUser.name}</span> to vehicle <span className="text-gray-700 dark:text-gray-300">{selectedVehicle.vehicleNumber}</span>
+                  Assigning <span className="text-emerald-600">{auditTargetUser.name}</span> to vehicle <span className="text-gray-700">{selectedVehicle.vehicleNumber}</span>
                 </p>
               </div>
               <button onClick={() => { setShowPolicyModal(false); setAuditTargetUser(null); }} className="p-2 hover:bg-gray-100 rounded-full text-gray-400">
@@ -1950,32 +1950,32 @@ export default function AdminVehicles() {
               {/* Policy A: Inherit */}
               <div
                 onClick={() => setHandoverPolicy('INHERIT')}
-                className={`p-4 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-between ${handoverPolicy === 'INHERIT' ? 'bg-emerald-50/50 border-emerald-500 shadow-sm' : 'bg-gray-50 dark:bg-gray-900/50/50 border-gray-200 dark:border-gray-700 hover:border-gray-200 dark:border-gray-700'}`}
+                className={`p-4 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-between ${handoverPolicy === 'INHERIT' ? 'bg-emerald-50/50 border-emerald-500 shadow-sm' : 'bg-gray-50 dark:bg-gray-900/50/50 border-gray-200 hover:border-gray-200'}`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${handoverPolicy === 'INHERIT' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-400 shadow-sm'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${handoverPolicy === 'INHERIT' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-400 shadow-sm'}`}>
                     A
                   </div>
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">Assign agent</h4>
                 </div>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${handoverPolicy === 'INHERIT' ? 'border-emerald-600 bg-emerald-600' : 'border-gray-300'}`}>
-                  {handoverPolicy === 'INHERIT' && <div className="w-2 h-2 rounded-full bg-white dark:bg-gray-800" />}
+                  {handoverPolicy === 'INHERIT' && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
               </div>
 
               {/* Policy B: Carry-Over */}
               {/* <div
                 onClick={() => setHandoverPolicy('CARRY_OVER')}
-                className={`p-4 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-between ${handoverPolicy === 'CARRY_OVER' ? 'bg-emerald-50/50 border-emerald-500 shadow-sm' : 'bg-gray-50 dark:bg-gray-900/50/50 border-gray-200 dark:border-gray-700 hover:border-gray-200 dark:border-gray-700'}`}
+                className={`p-4 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-between ${handoverPolicy === 'CARRY_OVER' ? 'bg-emerald-50/50 border-emerald-500 shadow-sm' : 'bg-gray-50 dark:bg-gray-900/50/50 border-gray-200 hover:border-gray-200'}`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${handoverPolicy === 'CARRY_OVER' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-400 shadow-sm'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${handoverPolicy === 'CARRY_OVER' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-400 shadow-sm'}`}>
                     B
                   </div>
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">Assign agent + Stock</h4>
                 </div>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${handoverPolicy === 'CARRY_OVER' ? 'border-emerald-600 bg-emerald-600' : 'border-gray-300'}`}>
-                  {handoverPolicy === 'CARRY_OVER' && <div className="w-2 h-2 rounded-full bg-white dark:bg-gray-800" />}
+                  {handoverPolicy === 'CARRY_OVER' && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
               </div> */}
 
@@ -1989,11 +1989,11 @@ export default function AdminVehicles() {
                   <p className="text-xs font-medium text-amber-900 leading-relaxed">
                     <span className="font-bold">{auditTargetUser.name}</span> brings their stock from <span className="font-bold underline">{auditTargetUser.assignedVehicle?.vehicleNumber || 'Assigned Configuration'}</span>.
                     {loadingDestStocks ? (
-                      <span className="text-gray-500 dark:text-gray-400 inline-flex items-center gap-1 ml-1"><Loader2 className="animate-spin inline" size={12} /> Checking incoming items...</span>
+                      <span className="text-gray-500 inline-flex items-center gap-1 ml-1"><Loader2 className="animate-spin inline" size={12} /> Checking incoming items...</span>
                     ) : destExistingStocks.length > 0 ? (
                       <span className="text-emerald-700 font-bold ml-1">Contains {destExistingStocks.length} line items that will automatically pull into this vehicle.</span>
                     ) : (
-                      <span className="text-gray-500 dark:text-gray-400 ml-1">Currently holds zero existing lines.</span>
+                      <span className="text-gray-500 ml-1">Currently holds zero existing lines.</span>
                     )}
                   </p>
                 </div>
@@ -2008,7 +2008,7 @@ export default function AdminVehicles() {
                   <select
                     value={carryOverTargetVehicleId}
                     onChange={(e) => setCarryOverTargetVehicleId(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-emerald-200 bg-white dark:bg-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 outline-none focus:border-emerald-500 shadow-2xs cursor-pointer"
+                    className="w-full p-3 rounded-xl border border-emerald-200 bg-white text-xs font-bold text-gray-800 outline-none focus:border-emerald-500 shadow-2xs cursor-pointer"
                   >
                     <option value="WAREHOUSE">🏢 Return to Main Branch / Warehouse Reserves</option>
                     {vehicles
@@ -2035,7 +2035,7 @@ export default function AdminVehicles() {
                       <select
                         value={carryOverTargetUserId}
                         onChange={(e) => setCarryOverTargetUserId(e.target.value)}
-                        className="w-full p-3 rounded-xl border border-emerald-200 bg-white dark:bg-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 outline-none focus:border-emerald-500 shadow-2xs cursor-pointer"
+                        className="w-full p-3 rounded-xl border border-emerald-200 bg-white text-xs font-bold text-gray-800 outline-none focus:border-emerald-500 shadow-2xs cursor-pointer"
                       >
                         <option value="">🚫 Do Not Assign / Leave Driverless</option>
                         {users.map(u => (
@@ -2053,10 +2053,10 @@ export default function AdminVehicles() {
               )}
             </div>
 
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
+            <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
               <button
                 onClick={() => { setShowPolicyModal(false); setAuditTargetUser(null); }}
-                className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50 transition-all"
+                className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-gray-500 hover:bg-gray-50 dark:bg-gray-900/50 transition-all"
               >
                 Cancel
               </button>

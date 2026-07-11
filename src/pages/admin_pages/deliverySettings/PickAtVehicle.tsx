@@ -95,7 +95,7 @@ const PickAtVehicle = () => {
           idString.length > 8 ? `${idString.slice(0, 8)}...` : idString;
         return (
           <div className="text-center">
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+            <span className="text-xs sm:text-sm text-gray-800">
               {truncatedId}
             </span>
           </div>
@@ -108,7 +108,7 @@ const PickAtVehicle = () => {
       sortable: true,
       render: (slot: PickupAtVehicleRow) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {slot.vehicleId}
           </span>
         </div>
@@ -120,7 +120,7 @@ const PickAtVehicle = () => {
       sortable: true,
       render: (slot: PickupAtVehicleRow) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {slot.pickupDate}
           </span>
         </div>
@@ -132,7 +132,7 @@ const PickAtVehicle = () => {
       sortable: false,
       render: (slot: PickupAtVehicleRow) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {slot.slotTime}
           </span>
         </div>
@@ -144,7 +144,7 @@ const PickAtVehicle = () => {
       sortable: true,
       render: (slot: PickupAtVehicleRow) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {slot.repeat}
           </span>
         </div>
@@ -156,7 +156,7 @@ const PickAtVehicle = () => {
       sortable: true,
       render: (slot: PickupAtVehicleRow) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {formatDateTime(slot.createdOn)}
           </span>
         </div>
@@ -167,7 +167,7 @@ const PickAtVehicle = () => {
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Pickup At Vehicle
         </h1>
         <PrimaryButton
@@ -191,7 +191,7 @@ const PickAtVehicle = () => {
           <Button
             onClick={handleRefresh}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
             title="Refresh"
             disabled={isFetching}
           >
@@ -210,7 +210,7 @@ const PickAtVehicle = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={slots}
@@ -222,10 +222,10 @@ const PickAtVehicle = () => {
         </div>
 
         {totalCount > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-400 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
@@ -244,7 +244,7 @@ const PickAtVehicle = () => {
                     className="w-16 sm:w-20 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                   {Math.min(currentPage * itemsPerPage, totalCount)} of{" "}
                   {totalCount}

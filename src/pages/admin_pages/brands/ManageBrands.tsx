@@ -274,7 +274,7 @@ const ManageBrands = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-600 dark:text-gray-400">Loading brands...</p>
+          <p className="text-gray-600">Loading brands...</p>
         </div>
       </div>
     );
@@ -287,7 +287,7 @@ const ManageBrands = () => {
       sortable: true,
       render: (brand: TableBrand) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 truncate max-w-[120px] mx-auto block">
+          <span className="text-xs sm:text-sm text-gray-800 truncate max-w-[120px] mx-auto block">
             {brand.id.slice(0, 8)}...
           </span>
         </div>
@@ -299,9 +299,9 @@ const ManageBrands = () => {
       sortable: true,
       render: (brand: TableBrand) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">{brand.name}</span>
+          <span className="text-xs sm:text-sm font-semibold text-gray-800">{brand.name}</span>
           {brand.title && (
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{brand.title}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">{brand.title}</p>
           )}
         </div>
       ),
@@ -321,12 +321,12 @@ const ManageBrands = () => {
                 (e.target as HTMLImageElement).style.display = 'none';
                 const parent = (e.target as HTMLImageElement).parentElement;
                 if (parent) {
-                  parent.innerHTML = '<span class="text-[10px] text-gray-400 dark:text-gray-500">No image</span>';
+                  parent.innerHTML = '<span class="text-[10px] text-gray-400">No image</span>';
                 }
               }}
             />
           ) : (
-            <span className="text-[10px] text-gray-400 dark:text-gray-500">
+            <span className="text-[10px] text-gray-400">
               No image
             </span>
           )}
@@ -342,7 +342,7 @@ const ManageBrands = () => {
           <Badge
             status={brand.status}
             size="sm"
-            customColor={brand.status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800'}
+            customColor={brand.status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 text-gray-800'}
             className="rounded"
           />
         </div>
@@ -354,7 +354,7 @@ const ManageBrands = () => {
       sortable: true,
       render: (brand: TableBrand) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{brand.priority}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{brand.priority}</span>
         </div>
       ),
     },
@@ -390,7 +390,7 @@ const ManageBrands = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Brands</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Brands</h1>
         <PrimaryButton
           onClick={() => navigate('/products/brands/create')}
           size="sm"
@@ -441,7 +441,7 @@ const ManageBrands = () => {
           <Button
             onClick={handleExport}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
             title="Export to CSV"
           >
             <Download size={14} className="sm:w-4 sm:h-4" />
@@ -450,7 +450,7 @@ const ManageBrands = () => {
           <Button
             onClick={handleImport}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
             title="Import from CSV"
           >
             <FileUp size={14} className="sm:w-4 sm:h-4" />
@@ -460,7 +460,7 @@ const ManageBrands = () => {
             onClick={handleRefresh}
             disabled={isLoading}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
             title="Refresh"
           >
             <RefreshCw
@@ -486,7 +486,7 @@ const ManageBrands = () => {
       </div>
 
       {/* Brands Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedBrands}
@@ -502,10 +502,10 @@ const ManageBrands = () => {
 
         {/* Pagination */}
         {filteredAndSortedBrands.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
                   <select
                     value={itemsPerPage.toString()}
@@ -513,7 +513,7 @@ const ManageBrands = () => {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                   >
                     <option value="10">10</option>
                     <option value="25">25</option>
@@ -521,7 +521,7 @@ const ManageBrands = () => {
                     <option value="100">100</option>
                   </select>
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to {' '}
                   {Math.min(currentPage * itemsPerPage, filteredAndSortedBrands.length)}{' '}
                   of {filteredAndSortedBrands.length}

@@ -24,8 +24,8 @@ const SkuDetail = () => {
         <div className="mb-3 mt-3">
           <BackButton onClick={() => navigate('/inventory/overview')} />
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-8 text-center">
-          <p className="text-gray-600 dark:text-gray-400">The requested SKU could not be found.</p>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-8 text-center">
+          <p className="text-gray-600">The requested SKU could not be found.</p>
         </div>
       </div>
     );
@@ -281,10 +281,10 @@ const SkuDetail = () => {
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
             {firstSnapshot.productName}
           </h1>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
             {firstSnapshot.variantLabel} • SKU: {firstSnapshot.sku}
           </p>
         </div>
@@ -292,7 +292,7 @@ const SkuDetail = () => {
           onClick={() => {
             alert('View in Product Catalog - Coming soon');
           }}
-          className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-xs font-medium"
+          className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-xs font-medium"
         >
           <ExternalLink size={14} />
           View in Product Catalog
@@ -305,8 +305,8 @@ const SkuDetail = () => {
       </div>
 
       {/* Tabs - Separate Container */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mb-4 overflow-hidden w-1/2">
-        <div className="flex w-full border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-4 overflow-hidden w-1/2">
+        <div className="flex w-full border-b border-gray-200">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -314,7 +314,7 @@ const SkuDetail = () => {
               className={`flex-1 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors relative ${
                 activeTab === tab.id
                   ? 'text-orange-600 dark:text-orange-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  : 'text-gray-600 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               {tab.label}
@@ -330,7 +330,7 @@ const SkuDetail = () => {
       <div>
         {/* Locations Tab */}
         {activeTab === 'locations' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <DataTable
                 data={variantSnapshots}
@@ -341,7 +341,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (snapshot: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{snapshot.locationName}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{snapshot.locationName}</span>
                       </div>
                     ),
                   },
@@ -351,7 +351,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (snapshot: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{snapshot.onHand}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{snapshot.onHand}</span>
                       </div>
                     ),
                   },
@@ -361,7 +361,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (snapshot: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{snapshot.reserved}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{snapshot.reserved}</span>
                       </div>
                     ),
                   },
@@ -373,7 +373,7 @@ const SkuDetail = () => {
                       const available = calculateAvailable(snapshot);
                       return (
                         <div className="text-center">
-                          <span className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">{available}</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-800">{available}</span>
                         </div>
                       );
                     },
@@ -384,7 +384,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (snapshot: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{snapshot.inbound}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{snapshot.inbound}</span>
                       </div>
                     ),
                   },
@@ -394,7 +394,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (snapshot: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{snapshot.reorderPoint}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{snapshot.reorderPoint}</span>
                       </div>
                     ),
                   },
@@ -404,7 +404,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (snapshot: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{snapshot.safetyStock}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{snapshot.safetyStock}</span>
                       </div>
                     ),
                   },
@@ -463,7 +463,7 @@ const SkuDetail = () => {
 
         {/* Ledger Tab */}
         {activeTab === 'ledger' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <DataTable
                 data={variantLedger}
@@ -474,7 +474,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (entry: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                        <span className="text-xs sm:text-sm text-gray-800">
                           {new Date(entry.dateTime).toLocaleString()}
                         </span>
                       </div>
@@ -486,7 +486,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (entry: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{entry.locationCode}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{entry.locationCode}</span>
                       </div>
                     ),
                   },
@@ -510,7 +510,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (entry: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{entry.reason}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{entry.reason}</span>
                       </div>
                     ),
                   },
@@ -520,7 +520,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (entry: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{entry.reference}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{entry.reference}</span>
                       </div>
                     ),
                   },
@@ -530,7 +530,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (entry: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{entry.performedBy}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{entry.performedBy}</span>
                       </div>
                     ),
                   },
@@ -547,7 +547,7 @@ const SkuDetail = () => {
 
         {/* Reservations Tab */}
         {activeTab === 'reservations' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <DataTable
                 data={variantReservations}
@@ -558,7 +558,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (reservation: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.id}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{reservation.id}</span>
                       </div>
                     ),
                   },
@@ -568,7 +568,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (reservation: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.orderId}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{reservation.orderId}</span>
                       </div>
                     ),
                   },
@@ -578,7 +578,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (reservation: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.customerName}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{reservation.customerName}</span>
                       </div>
                     ),
                   },
@@ -588,7 +588,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (reservation: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.locationCode}</span>
+                        <span className="text-xs sm:text-sm text-gray-800">{reservation.locationCode}</span>
                       </div>
                     ),
                   },
@@ -598,7 +598,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (reservation: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">{reservation.qty}</span>
+                        <span className="text-xs sm:text-sm font-medium text-gray-800">{reservation.qty}</span>
                       </div>
                     ),
                   },
@@ -609,7 +609,7 @@ const SkuDetail = () => {
                     render: (reservation: any) => (
                       <div className="text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          reservation.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                          reservation.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {reservation.status}
                         </span>
@@ -622,7 +622,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (reservation: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                        <span className="text-xs sm:text-sm text-gray-800">
                           {new Date(reservation.createdAt).toLocaleString()}
                         </span>
                       </div>
@@ -634,7 +634,7 @@ const SkuDetail = () => {
                     sortable: true,
                     render: (reservation: any) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                        <span className="text-xs sm:text-sm text-gray-800">
                           {new Date(reservation.expiresAt).toLocaleString()}
                         </span>
                       </div>

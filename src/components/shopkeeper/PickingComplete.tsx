@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle, Package, ArrowRight, Clock, XCircle, ChevronRight } from "lucide-react";
+import { CheckCircle, Package, ArrowRight, ChevronRight } from "lucide-react";
 import { PickingCompleteMobile } from "./PickingCompleteMobile";
 
 interface PickingCompleteProps {
@@ -8,12 +8,16 @@ interface PickingCompleteProps {
 }
 
 export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
+  const [userRole] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    return userObj?.role;
+  });
 
   // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile picking complete UI
-  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  const [isStaffLogin] = useState(() => {
+    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  });
 
   if (isStaffLogin) {
     return <PickingCompleteMobile onNavigate={onNavigate} data={data} />;
@@ -64,10 +68,10 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F3F4F6]">
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900">
       {/* 1. Standard Partner Portal Header */}
-      <div className="bg-white px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200">
-        <nav className="text-xs text-gray-500 flex items-center gap-1 mb-3">
+      <div className="bg-white dark:bg-gray-800 px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200 dark:border-gray-700">
+        <nav className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-3">
           <button onClick={() => onNavigate("dashboard")} className="hover:text-green-600 transition-colors">Home</button>
           <ChevronRight size={12} />
           <button onClick={() => onNavigate("picking-queue")} className="hover:text-green-600 transition-colors">Picking Queue</button>
@@ -75,7 +79,7 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
           <span className="font-medium text-orange-600">Order #{order?.order_number}</span>
         </nav>
         <div className="mt-4">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Picking Complete Summary
           </h1>
         </div>
@@ -92,43 +96,43 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
         </div>
 
         {/* 3. Compact Order Summary Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-gray-900 font-bold text-base mb-4 border-b border-gray-100 pb-3">Order Summary</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h3 className="text-gray-900 dark:text-gray-100 font-bold text-base mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">Order Summary</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             <div className="flex justify-between py-1 border-b border-gray-50">
-              <span className="text-gray-500 text-sm">Order Number</span>
-              <span className="text-gray-900 font-bold text-sm">#{order.order_number || "—"}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Order Number</span>
+              <span className="text-gray-900 dark:text-gray-100 font-bold text-sm">#{order.order_number || "—"}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-gray-50">
-              <span className="text-gray-500 text-sm">Assigned Shopkeeper</span>
-              <span className="text-gray-900 font-semibold text-sm">{order.shopkeeper_name || order.shopkeeper?.name || "Unassigned"}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Assigned Shopkeeper</span>
+              <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm">{order.shopkeeper_name || order.shopkeeper?.name || "Unassigned"}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-gray-50">
-              <span className="text-gray-500 text-sm">Completed By</span>
-              <span className="text-gray-900 font-semibold text-sm">{userObj?.name || userObj?.username || "Store Manager"}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Completed By</span>
+              <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm">{userObj?.name || userObj?.username || "Store Manager"}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-gray-50">
-              <span className="text-gray-500 text-sm">Total Items</span>
-              <span className="text-gray-900 font-semibold text-sm">{totalItems}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Total Items</span>
+              <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm">{totalItems}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-gray-50">
-              <span className="text-gray-500 text-sm">Picked Items</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Picked Items</span>
               <span className="text-green-600 font-bold text-sm">{pickedItems}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-gray-50">
-              <span className="text-gray-500 text-sm">Rejected Items</span>
-              <span className={`font-bold text-sm ${rejectedItems > 0 ? "text-red-600" : "text-gray-900"}`}>{rejectedItems}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Rejected Items</span>
+              <span className={`font-bold text-sm ${rejectedItems > 0 ? "text-red-600" : "text-gray-900 dark:text-gray-100"}`}>{rejectedItems}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-gray-50">
-              <span className="text-gray-500 text-sm">Time Taken</span>
-              <span className="text-gray-900 font-semibold text-sm">{timeTakenMinutes} mins</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Time Taken</span>
+              <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm">{timeTakenMinutes} mins</span>
             </div>
             <div className="flex justify-between py-1 border-b border-gray-50">
-              <span className="text-gray-500 text-sm">Completed At</span>
-              <span className="text-gray-900 font-semibold text-sm">{formatOrderDateTime(endTime)}</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Completed At</span>
+              <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm">{formatOrderDateTime(endTime)}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-gray-50 md:col-span-2">
-              <span className="text-gray-500 text-sm">SLA Status</span>
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">SLA Status</span>
               {isSlaBreached ? (
                 <span className="bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 rounded text-xs font-bold">
                   SLA Breached ({slaMinutes}m SLA)
@@ -153,7 +157,7 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
               return (
                 <button
                   onClick={() => onNavigate("packing-queue")}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-lg py-3 px-4 border border-gray-300 bg-white hover:bg-gray-50 transition-colors text-gray-700 font-semibold text-sm shadow-sm"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-lg py-3 px-4 border border-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors text-gray-700 dark:text-gray-300 font-semibold text-sm shadow-sm"
                 >
                   <span>View</span>
                 </button>
@@ -174,7 +178,7 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
           })()}
           <button
             onClick={() => onNavigate("picking-queue")}
-            className="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors bg-white text-center shadow-sm"
+            className="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors bg-white dark:bg-gray-800 text-center shadow-sm"
           >
             Back to Picking Queue
           </button>

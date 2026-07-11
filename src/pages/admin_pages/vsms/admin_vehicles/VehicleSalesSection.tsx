@@ -62,7 +62,7 @@ export default function VehicleSalesSection({ storeId }) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 dark:text-gray-400 font-bold text-sm uppercase tracking-widest">Loading Route Sales...</p>
+        <p className="text-gray-500 font-bold text-sm uppercase tracking-widest">Loading Route Sales...</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ export default function VehicleSalesSection({ storeId }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-emerald-600 p-6 rounded-xl text-white shadow-xl shadow-emerald-600/20">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-white dark:bg-gray-800/20 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <TrendingUp size={20} />
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Today's Revenue</span>
@@ -83,7 +83,7 @@ export default function VehicleSalesSection({ storeId }) {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
               <ShoppingBag size={20} />
@@ -99,7 +99,7 @@ export default function VehicleSalesSection({ storeId }) {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
               <Map size={20} />
@@ -114,7 +114,7 @@ export default function VehicleSalesSection({ storeId }) {
               return acc;
             }, {})).map(([name, val]) => (
               <div key={name} className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">{name}</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase">{name}</span>
                 <span className="text-[10px] font-bold text-gray-900 dark:text-white">₹{val.toLocaleString('en-IN')}</span>
               </div>
             ))}
@@ -122,7 +122,7 @@ export default function VehicleSalesSection({ storeId }) {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
           <div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Route Sales Log</h3>
@@ -137,7 +137,7 @@ export default function VehicleSalesSection({ storeId }) {
                 placeholder="Search invoices, agents..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-transparent rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all focus:bg-white dark:bg-gray-800"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-transparent rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all focus:bg-white"
               />
             </div>
 
@@ -146,7 +146,7 @@ export default function VehicleSalesSection({ storeId }) {
               <select
                 value={routeFilter}
                 onChange={(e) => setRouteFilter(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-transparent rounded-lg text-sm font-bold text-gray-700 dark:text-gray-300 appearance-none focus:ring-2 focus:ring-emerald-500/20 outline-none cursor-pointer"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-transparent rounded-lg text-sm font-bold text-gray-700 appearance-none focus:ring-2 focus:ring-emerald-500/20 outline-none cursor-pointer"
               >
                 <option value="ALL">ALL ROUTES</option>
                 {routes.map(r => (
@@ -189,7 +189,7 @@ export default function VehicleSalesSection({ storeId }) {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {routeData.map((d, i) => (
-                  <div key={d.name} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <div key={d.name} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter truncate w-32">{d.name}</span>
@@ -205,7 +205,7 @@ export default function VehicleSalesSection({ storeId }) {
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
+              <tr className="border-b border-gray-200">
                 <th className="px-4 py-4 text-[10px] font-bold uppercase text-gray-400 tracking-widest">Invoice</th>
                 <th className="px-4 py-4 text-[10px] font-bold uppercase text-gray-400 tracking-widest">Agent / Vehicle</th>
                 <th className="px-4 py-4 text-[10px] font-bold uppercase text-gray-400 tracking-widest">Route</th>
@@ -225,18 +225,18 @@ export default function VehicleSalesSection({ storeId }) {
                   </td>
                   <td className="px-4 py-5">
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{sale.user?.name || 'System'}</span>
+                      <span className="text-xs font-bold text-gray-700">{sale.user?.name || 'System'}</span>
                       <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-tighter">{sale.vehicle?.vehicleNumber || 'POS'}</span>
                     </div>
                   </td>
                   <td className="px-4 py-5">
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{sale.route?.routeName || sale.villageName || 'Direct'}</span>
+                      <span className="text-xs font-bold text-gray-700">{sale.route?.routeName || sale.villageName || 'Direct'}</span>
                       <span className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-tighter">Route Cluster</span>
                     </div>
                   </td>
                   <td className="px-4 py-5">
-                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{sale.customerName || sale.customer?.name || 'Walk-in'}</span>
+                    <span className="text-xs font-bold text-gray-600">{sale.customerName || sale.customer?.name || 'Walk-in'}</span>
                   </td>
                   <td className="px-4 py-5 text-right">
                     <span className="text-sm font-bold text-gray-900 dark:text-white">₹{sale.totalAmount.toLocaleString('en-IN')}</span>

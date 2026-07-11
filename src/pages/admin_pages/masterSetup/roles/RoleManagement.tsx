@@ -306,7 +306,7 @@ const RoleManagement = () => {
       />
 
       {/* Search and Filters */}
-      <div className="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
+      <div className="mb-4 bg-white rounded-lg shadow-md border border-gray-200 p-4">
         <div className="flex items-center gap-4">
           <div className="flex-1 relative">
             <SearchInput
@@ -317,7 +317,7 @@ const RoleManagement = () => {
           </div>
           <button
             onClick={fetchRoles}
-            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
           >
             <RefreshCw size={14} />
             Refresh
@@ -326,10 +326,10 @@ const RoleManagement = () => {
       </div>
 
       {/* Roles Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-green-50 dark:bg-gray-700 border-b border-green-200 dark:border-gray-600">
+            <thead className="bg-green-50 border-b border-green-200 dark:border-gray-600">
               <tr>
                 <SortableTableHeader
                   field="id"
@@ -337,7 +337,7 @@ const RoleManagement = () => {
                   currentField={sortField}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-gray-600 transition-colors"
+                  className="px-3 py-2 text-left font-semibold text-gray-700 hover:bg-green-100 dark:hover:bg-gray-600 transition-colors"
                 />
                 <SortableTableHeader
                   field="name"
@@ -345,45 +345,45 @@ const RoleManagement = () => {
                   currentField={sortField}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-gray-600 transition-colors"
+                  className="px-3 py-2 text-left font-semibold text-gray-700 hover:bg-green-100 dark:hover:bg-gray-600 transition-colors"
                 />
-                <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Description</th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Permissions</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Description</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Permissions</th>
                 <SortableTableHeader
                   field="status"
                   label="Status"
                   currentField={sortField}
                   direction={sortDirection}
                   onSort={handleSort}
-                  className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-gray-600 transition-colors"
+                  className="px-3 py-2 text-left font-semibold text-gray-700 hover:bg-green-100 dark:hover:bg-gray-600 transition-colors"
                 />
-                <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
                     Loading roles...
                   </td>
                 </tr>
               ) : getSortedRoles().length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
                     No roles found
                   </td>
                 </tr>
               ) : (
                 getSortedRoles().map((role) => (
-                  <tr key={role.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-green-50/50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-3 py-2 text-gray-800 dark:text-gray-200 font-medium">{role.id}</td>
+                  <tr key={role.id} className="border-b border-gray-100 hover:bg-green-50/50 dark:hover:bg-gray-700 transition-colors">
+                    <td className="px-3 py-2 text-gray-800 font-medium">{role.id}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
                         <Shield size={14} className="text-green-600 dark:text-green-400" />
-                        <span className="font-semibold text-gray-800 dark:text-gray-200">{role.name}</span>
+                        <span className="font-semibold text-gray-800">{role.name}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{role.description}</td>
+                    <td className="px-3 py-2 text-gray-600">{role.description}</td>
                     <td className="px-3 py-2">
                       <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-medium">
                         {getPermissionCount(role)} permissions
@@ -394,7 +394,7 @@ const RoleManagement = () => {
                         className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                           role.status === 'active'
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            : 'bg-gray-100 text-gray-700'
                         }`}
                       >
                         {role.status}

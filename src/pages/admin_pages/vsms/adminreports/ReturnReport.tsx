@@ -29,8 +29,8 @@ export default function ReturnReport() {
 
   return (
     <ReportLayout title="Return Report" icon={RotateCcw} activeTab="returns" reportData={reportData} isLoading={isLoading}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in duration-500">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
+          <div className="p-6 border-b border-gray-200 flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-red-50 text-red-600"><RotateCcw size={20} /></div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight uppercase">Product Return Audit</h3>
           </div>
@@ -48,8 +48,8 @@ export default function ReturnReport() {
                   <tbody className="divide-y divide-gray-50">
                       {Array.isArray(reportData) && reportData.map((r, i) => (
                           <tr key={i} className="hover:bg-gray-50 dark:bg-gray-900/50 transition-colors">
-                              <td className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">{r.order?.displayId || 'N/A'}</td>
-                              <td className="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-400">{r.product?.name}</td>
+                              <td className="px-6 py-4 text-sm font-bold text-gray-800">{r.order?.displayId || 'N/A'}</td>
+                              <td className="px-6 py-4 text-sm font-bold text-gray-600">{r.product?.name}</td>
                               <td className="px-6 py-4 text-sm font-bold text-red-600">-{r.quantity}</td>
                               <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white italic">₹{r.amount?.toLocaleString()}</td>
                               <td className="px-6 py-4 text-xs font-bold text-gray-400">

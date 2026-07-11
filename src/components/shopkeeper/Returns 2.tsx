@@ -65,7 +65,7 @@ export function Returns({ onBack }: ReturnsProps) {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900 items-center justify-center">
         <Loader2 className="animate-spin text-[#EF5A06]" size={40} />
       </div>
     );
@@ -82,11 +82,11 @@ export function Returns({ onBack }: ReturnsProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #EF5A06 0%, #C84100 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
             <ArrowLeft size={20} color="white" />
           </button>
           <div className="flex-1">
@@ -96,7 +96,7 @@ export function Returns({ onBack }: ReturnsProps) {
             </p>
           </div>
           {counts.pending > 0 && (
-            <div className="bg-white rounded-full px-2.5 py-1">
+            <div className="bg-white dark:bg-gray-800 rounded-full px-2.5 py-1">
               <span className="text-[#EF5A06]" style={{ fontWeight: 700, fontSize: "12px" }}>{counts.pending}</span>
             </div>
           )}
@@ -109,7 +109,7 @@ export function Returns({ onBack }: ReturnsProps) {
             { label: "Approved", value: counts.approved },
             { label: "Rejected", value: counts.rejected },
           ].map(s => (
-            <div key={s.label} className="bg-white/10 rounded-xl p-2 text-center">
+            <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl p-2 text-center">
               <p style={{ color: "white", fontWeight: 700, fontSize: "18px" }}>{s.value}</p>
               <p className="text-white/70" style={{ fontSize: "10px" }}>{s.label}</p>
             </div>
@@ -143,9 +143,9 @@ export function Returns({ onBack }: ReturnsProps) {
       {/* Return Cards */}
       <div className="flex flex-col gap-3 p-4">
         {filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm p-8 flex flex-col items-center gap-3">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 flex flex-col items-center gap-3">
             <span style={{ fontSize: "40px" }}>✅</span>
-            <p className="text-gray-500" style={{ fontSize: "14px", fontWeight: 500 }}>
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "14px", fontWeight: 500 }}>
               No {activeFilter === "all" ? "" : activeFilter} returns found
             </p>
           </div>
@@ -164,14 +164,14 @@ export function Returns({ onBack }: ReturnsProps) {
             }[status] ?? { bg: "#F5F5F5", color: "#757575", icon: null, label: status };
 
             return (
-              <div key={ret.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div key={ret.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
                 {/* Status banner */}
                 <div className="px-4 py-1.5 flex items-center gap-1.5" style={{ backgroundColor: statusConfig.bg }}>
                   {statusConfig.icon}
                   <span style={{ color: statusConfig.color, fontWeight: 600, fontSize: "11px" }}>
                     {statusConfig.label}
                   </span>
-                  <span className="ml-auto text-gray-400" style={{ fontSize: "10px" }}>
+                  <span className="ml-auto text-gray-400 dark:text-gray-500" style={{ fontSize: "10px" }}>
                     {formatDate(ret.created_at)}
                   </span>
                 </div>
@@ -180,7 +180,7 @@ export function Returns({ onBack }: ReturnsProps) {
                   {/* Order & Customer */}
                   <div className="flex items-start gap-3 mb-3">
                     {/* Product image from first item or fallback icon */}
-                    <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100">
+                    <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100 dark:border-gray-700">
                       {firstItem?.image_url ? (
                         <img src={firstItem.image_url} alt={firstItem.name} className="w-full h-full object-contain p-1" />
                       ) : (
@@ -188,37 +188,37 @@ export function Returns({ onBack }: ReturnsProps) {
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="text-gray-900 mb-0.5" style={{ fontWeight: 700, fontSize: "14px" }}>
+                      <p className="text-gray-900 dark:text-gray-100 mb-0.5" style={{ fontWeight: 700, fontSize: "14px" }}>
                         Order #{ret.order_number}
                       </p>
-                      <p className="text-gray-500" style={{ fontSize: "11px" }}>
+                      <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>
                         {ret.order_type} · {ret.payment_method}
                       </p>
-                      <p className="text-gray-400" style={{ fontSize: "11px" }}>
+                      <p className="text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>
                         Customer: {ret.customer_name}
                       </p>
                       {ret.customer_phone && (
-                        <p className="text-gray-400" style={{ fontSize: "11px" }}>{ret.customer_phone}</p>
+                        <p className="text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>{ret.customer_phone}</p>
                       )}
                     </div>
                     <div className="text-right">
                       <p style={{ color: "#EF5A06", fontWeight: 700, fontSize: "14px" }}>
                         ₹{Number(ret.refund_amount).toFixed(2)}
                       </p>
-                      <p className="text-gray-400" style={{ fontSize: "10px" }}>Refund</p>
+                      <p className="text-gray-400 dark:text-gray-500" style={{ fontSize: "10px" }}>Refund</p>
                     </div>
                   </div>
 
                   {/* Items list */}
                   {items.length > 0 && (
-                    <div className="bg-gray-50 rounded-xl p-2.5 mb-3">
-                      <p className="text-gray-500 mb-2" style={{ fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5 mb-3">
+                      <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-2" style={{ fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                         {items.length} Item{items.length > 1 ? "s" : ""}
                       </p>
                       <div className="flex flex-col gap-1.5">
                         {items.map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {item.image_url ? (
                                 <img src={item.image_url} alt={item.name} className="w-full h-full object-contain p-0.5" />
                               ) : (
@@ -244,16 +244,16 @@ export function Returns({ onBack }: ReturnsProps) {
                       <p style={{ color: "#EF5A06", fontWeight: 600, fontSize: "12px" }}>Return Reason</p>
                       <p style={{ color: "#EF5A06", fontSize: "11px", opacity: 0.8 }}>{reasonMeta.label}</p>
                     </div>
-                    <div className="ml-auto flex items-center gap-1 text-gray-400">
+                    <div className="ml-auto flex items-center gap-1 text-gray-400 dark:text-gray-500">
                       <Clock size={10} />
                       <span style={{ fontSize: "10px" }}>{formatDate(ret.updated_at || ret.created_at)}</span>
                     </div>
                   </div>
 
                   {/* Payment info */}
-                  <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2 mb-3">
+                  <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2 mb-3">
                     <CreditCard size={12} color="#9E9E9E" />
-                    <span className="text-gray-500" style={{ fontSize: "11px" }}>
+                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>
                       Order Total: ₹{Number(ret.total_value || 0).toFixed(2)} · {ret.payment_method}
                     </span>
                   </div>

@@ -74,7 +74,7 @@ const ViewUnit = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Loading unit...</p>
+          <p className="text-xs text-gray-500">Loading unit...</p>
         </div>
       </div>
     );
@@ -84,7 +84,7 @@ const ViewUnit = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Unit not found</p>
+          <p className="text-gray-500 mb-4">Unit not found</p>
           <button
             onClick={() => navigate('/products/units')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -100,7 +100,7 @@ const ViewUnit = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Unit Details</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Unit Details</h1>
         <BackButton to="/products/units" />
       </div>
       
@@ -110,33 +110,33 @@ const ViewUnit = () => {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <Ruler size={18} className="text-green-600 dark:text-green-400" />
               Basic Information
             </h2>
             
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">ID</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{unit.id.slice(0, 8)}...</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">ID</p>
+              <p className="text-sm font-semibold text-gray-800">{unit.id.slice(0, 8)}...</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Unit Name</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{unit.name}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Unit Name</p>
+              <p className="text-sm font-semibold text-gray-800">{unit.name}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Short Code</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{unit.shortCode}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Short Code</p>
+              <p className="text-sm text-gray-700">{unit.shortCode}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Parent Unit</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Parent Unit</p>
+              <p className="text-sm text-gray-700">
                 {parentUnit ? `${parentUnit.name} (${parentUnit.shortCode})` : 'None (Main Unit)'}
               </p>
             </div>
@@ -144,20 +144,20 @@ const ViewUnit = () => {
 
           {/* Conversion Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <Calculator size={18} className="text-green-600 dark:text-green-400" />
               Conversion Information
             </h2>
             
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Conversion Factor</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{unit.conversion || 0}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Conversion Factor</p>
+              <p className="text-sm font-semibold text-gray-800">{unit.conversion || 0}</p>
             </div>
 
             {parentUnit && (
               <div>
-                <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Conversion Formula</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Conversion Formula</p>
+                <p className="text-sm text-gray-700">
                   1 {parentUnit.name} ({parentUnit.shortCode}) = {unit.conversion} {unit.name} ({unit.shortCode})
                 </p>
               </div>

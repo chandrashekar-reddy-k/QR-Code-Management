@@ -118,10 +118,10 @@ const AddDeliveryAgent = () => {
 
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+          <h2 className="text-lg font-bold text-gray-800">
             Add Delivery Agent
           </h2>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-xs text-gray-500">
             Step {currentStep} of {TOTAL_STEPS}
           </span>
         </div>
@@ -152,7 +152,7 @@ const AddDeliveryAgent = () => {
                         ? "bg-green-600 text-white"
                         : completed
                           ? "bg-green-500 text-white"
-                          : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                          : "bg-gray-200 text-gray-600"
                       }
                     `}
                   >
@@ -176,7 +176,7 @@ const AddDeliveryAgent = () => {
                 </button>
 
                 {step < TOTAL_STEPS && (
-                  <div className="flex-1 h-0.5 mx-2 bg-gray-200 dark:bg-gray-700">
+                  <div className="flex-1 h-0.5 mx-2 bg-gray-200">
                     <div
                       className={`h-full transition-all ${step < currentStep || completed
                         ? "bg-green-500 w-full"
@@ -276,7 +276,7 @@ const AddDeliveryAgent = () => {
                         className="max-w-xs"
                         error={errors.dateOfBirth?.message}
                       />
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="text-[10px] text-gray-500 mt-1">
                         dd-mm-yyyy
                       </p>
                     </div>
@@ -480,7 +480,7 @@ const AddDeliveryAgent = () => {
                   name="sameAsPermanent"
                   control={control}
                   render={({ field }) => (
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
                       <span className="inline-flex items-center gap-2">
                         <input
                           type="checkbox"

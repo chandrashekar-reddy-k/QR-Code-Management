@@ -3319,7 +3319,7 @@ const AddProduct = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {shouldShowVariants
             ? isEditVariantMode
               ? "Update Variant"
@@ -3337,11 +3337,11 @@ const AddProduct = () => {
       </div>
 
       {/* Add Product Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         {/* Progress Indicator */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+            <h2 className="text-lg font-bold text-gray-800">
               {shouldShowVariants
                 ? isEditVariantMode
                   ? "Update Variant"
@@ -3350,7 +3350,7 @@ const AddProduct = () => {
                   ? "Edit Product"
                   : "Add Product"}
             </h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-gray-500">
               Step {currentStep} of {totalSteps}
             </span>
           </div>
@@ -3385,7 +3385,7 @@ const AddProduct = () => {
                           : isStepCompleted(step) ||
                             (shouldShowVariants && step < 4)
                             ? "bg-green-500 dark:bg-green-600 text-white"
-                            : "bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300"
+                            : "bg-gray-200 dark:bg-gray-600 text-gray-600"
                         }`}
                     >
                       {isStepCompleted(step) ||
@@ -3401,7 +3401,7 @@ const AddProduct = () => {
                           : isStepCompleted(step) ||
                             (shouldShowVariants && step < 4)
                             ? "text-green-500 dark:text-green-400"
-                            : "text-gray-500 dark:text-gray-400"
+                            : "text-gray-500"
                         }`}
                     >
                       {step === 1 && "Basic Info"}
@@ -3570,7 +3570,7 @@ const AddProduct = () => {
                     name="slug"
                     value={formData.slug || generateSlug(formData.productName)}
                     readOnly
-                    className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+                    className="bg-gray-50 cursor-not-allowed"
                     placeholder="Auto-generated from product name"
                   />
                   <SelectInput
@@ -3651,7 +3651,7 @@ const AddProduct = () => {
                 {/* Description and Short Description side by side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Description{" "}
                       <span className="text-red-500 dark:text-red-400">*</span>
                     </label>
@@ -3676,7 +3676,7 @@ const AddProduct = () => {
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Short Description
                     </label>
                     <textarea
@@ -3685,7 +3685,7 @@ const AddProduct = () => {
                       onChange={handleChange}
                       placeholder="Enter short description"
                       rows={10}
-                      className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${errors.shortDescription
+                      className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 ${errors.shortDescription
                           ? "border-red-500 dark:border-red-600 focus:ring-red-400"
                           : "border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500"
                         }`}
@@ -3703,13 +3703,13 @@ const AddProduct = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Primary Image */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Primary Image{" "}
                       <span className="text-red-500 dark:text-red-400">*</span>
                     </label>
                     {!mainImagePreview ? (
                       <div
-                        className={`border-2 border-dashed rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700/50 w-full ${errors.mainImage
+                        className={`border-2 border-dashed rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 w-full ${errors.mainImage
                             ? "border-red-500 dark:border-red-600"
                             : "border-gray-300 dark:border-gray-600"
                           }`}
@@ -3718,10 +3718,10 @@ const AddProduct = () => {
                         }
                       >
                         <Upload
-                          className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                          className="mx-auto text-gray-400 mb-2"
                           size={20}
                         />
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        <p className="text-xs text-gray-600 mb-1">
                           Click to upload primary image
                         </p>
                         <input
@@ -3733,7 +3733,7 @@ const AddProduct = () => {
                         />
                       </div>
                     ) : (
-                      <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50 w-full">
+                      <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 w-full">
                         <img
                           src={mainImagePreview}
                           alt="Primary preview"
@@ -3766,7 +3766,7 @@ const AddProduct = () => {
                   </div>
                   {/* Second Image */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Second Image{" "}
                       <span className="text-gray-500 text-[10px] ml-1">
                         (Optional)
@@ -3774,7 +3774,7 @@ const AddProduct = () => {
                     </label>
                     {!secondImagePreview ? (
                       <div
-                        className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700/50 w-full"
+                        className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 w-full"
                         onClick={() =>
                           document
                             .getElementById("second-image-upload")
@@ -3782,10 +3782,10 @@ const AddProduct = () => {
                         }
                       >
                         <Upload
-                          className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                          className="mx-auto text-gray-400 mb-2"
                           size={20}
                         />
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        <p className="text-xs text-gray-600 mb-1">
                           Click to upload second image
                         </p>
                         <input
@@ -3797,7 +3797,7 @@ const AddProduct = () => {
                         />
                       </div>
                     ) : (
-                      <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50 w-full">
+                      <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 w-full">
                         <img
                           src={secondImagePreview}
                           alt="Second preview"
@@ -3827,7 +3827,7 @@ const AddProduct = () => {
           {currentStep === 2 && !shouldShowVariants && (
             <FormSection title="Pricing" variant="white">
               <div className="space-y-4">
-                <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                <p className="text-[11px] text-gray-600">
                   Configure different variants for this product (loose, packet,
                   carton). You can add multiple variants with their own price,
                   discount and stock.
@@ -3844,32 +3844,32 @@ const AddProduct = () => {
                   return (
                     <div
                       key={variant.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-5 space-y-4 bg-white dark:bg-gray-800"
+                      className="border border-gray-200 rounded-lg p-4 sm:p-5 space-y-4 bg-white"
                     >
                       {/* 1. Units & Measurement Section */}
-                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <button
                           type="button"
                           onClick={() => toggleSection(variant.id, "type")}
-                          className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                          <span className="text-xs font-semibold text-gray-800">
                             1. Units & Measurement
                           </span>
                           {variantExpanded("type") ? (
                             <ChevronUp
                               size={16}
-                              className="text-gray-600 dark:text-gray-400"
+                              className="text-gray-600"
                             />
                           ) : (
                             <ChevronDown
                               size={16}
-                              className="text-gray-600 dark:text-gray-400"
+                              className="text-gray-600"
                             />
                           )}
                         </button>
                         {variantExpanded("type") && (
-                          <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                          <div className="p-4 space-y-4 bg-white">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <SelectInput
                                 label="Unit Type"
@@ -3941,7 +3941,7 @@ const AddProduct = () => {
                                 disabled={!variant.type}
                                 className={
                                   !variant.type
-                                    ? "bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+                                    ? "bg-gray-50 cursor-not-allowed"
                                     : ""
                                 }
                                 error={vf("measurement")}
@@ -3952,29 +3952,29 @@ const AddProduct = () => {
                       </div>
 
                       {/* 2. Pricing Section */}
-                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <button
                           type="button"
                           onClick={() => toggleSection(variant.id, "pricing")}
-                          className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                          <span className="text-xs font-semibold text-gray-800">
                             2. Pricing
                           </span>
                           {variantExpanded("pricing") ? (
                             <ChevronUp
                               size={16}
-                              className="text-gray-600 dark:text-gray-400"
+                              className="text-gray-600"
                             />
                           ) : (
                             <ChevronDown
                               size={16}
-                              className="text-gray-600 dark:text-gray-400"
+                              className="text-gray-600"
                             />
                           )}
                         </button>
                         {variantExpanded("pricing") && (
-                          <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                          <div className="p-4 space-y-4 bg-white">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                               <TextInput
                                 label="Landing Price ( ₹ )"
@@ -4062,7 +4062,7 @@ const AddProduct = () => {
                                 readOnly
                                 placeholder="Auto-calculated"
                                 step="0.01"
-                                className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+                                className="bg-gray-50 cursor-not-allowed"
                                 error={vf("salePrice")}
                               />
                             </div>
@@ -4071,29 +4071,29 @@ const AddProduct = () => {
                       </div>
 
                       {/* 3. Inventory & Availability Section */}
-                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <button
                           type="button"
                           onClick={() => toggleSection(variant.id, "inventory")}
-                          className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                          <span className="text-xs font-semibold text-gray-800">
                             3. Inventory & Availability
                           </span>
                           {variantExpanded("inventory") ? (
                             <ChevronUp
                               size={16}
-                              className="text-gray-600 dark:text-gray-400"
+                              className="text-gray-600"
                             />
                           ) : (
                             <ChevronDown
                               size={16}
-                              className="text-gray-600 dark:text-gray-400"
+                              className="text-gray-600"
                             />
                           )}
                         </button>
                         {variantExpanded("inventory") && (
-                          <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                          <div className="p-4 space-y-4 bg-white">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               <TextInput
                                 label="Stock Quantity"
@@ -4168,30 +4168,30 @@ const AddProduct = () => {
                       {(() => false)() && !SHOW_VARIANT_BASIC_AND_STATUS_SECTIONS && (
                         <>
                           {/* 4. Basic Information Section */}
-                          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                          <div className="border border-gray-200 rounded-lg overflow-hidden">
                             <button
                               piush
                               type="button"
                               onClick={() => toggleSection(variant.id, "basic")}
-                              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >
-                              <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                              <span className="text-xs font-semibold text-gray-800">
                                 4. Basic Information
                               </span>
                               {variantExpanded("basic") ? (
                                 <ChevronUp
                                   size={16}
-                                  className="text-gray-600 dark:text-gray-400"
+                                  className="text-gray-600"
                                 />
                               ) : (
                                 <ChevronDown
                                   size={16}
-                                  className="text-gray-600 dark:text-gray-400"
+                                  className="text-gray-600"
                                 />
                               )}
                             </button>
                             {variantExpanded("basic") && (
-                              <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                              <div className="p-4 space-y-4 bg-white">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                   <TextInput
                                     label={
@@ -4220,7 +4220,7 @@ const AddProduct = () => {
                                     }
                                     className={
                                       !isEditMode || addVariantOnly
-                                        ? "bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+                                        ? "bg-gray-50 cursor-not-allowed"
                                         : ""
                                     }
                                     error={vf("variantName")}
@@ -4261,7 +4261,7 @@ const AddProduct = () => {
 
                                 {SHOW_VARIANT_BARCODE_SECTION && (
                                   <div>
-                                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                                       Barcode Image
                                       <span className="text-gray-500 text-[10px] ml-1">
                                         (Optional)
@@ -4270,7 +4270,7 @@ const AddProduct = () => {
                                     {!variantImagePreviews[variant.id]
                                       ?.barcode ? (
                                       <div
-                                        className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700/50"
+                                        className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50"
                                         onClick={() =>
                                           document
                                             .getElementById(
@@ -4280,10 +4280,10 @@ const AddProduct = () => {
                                         }
                                       >
                                         <Upload
-                                          className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                                          className="mx-auto text-gray-400 mb-2"
                                           size={16}
                                         />
-                                        <p className="text-[10px] text-gray-600 dark:text-gray-400 mb-1">
+                                        <p className="text-[10px] text-gray-600 mb-1">
                                           Click to upload barcode image
                                         </p>
                                         <input
@@ -4301,7 +4301,7 @@ const AddProduct = () => {
                                         />
                                       </div>
                                     ) : (
-                                      <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50">
+                                      <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50">
                                         <img
                                           src={
                                             variantImagePreviews[variant.id]
@@ -4331,31 +4331,31 @@ const AddProduct = () => {
                           </div>
 
                           {/* 5. Status & Visibility Section */}
-                          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                          <div className="border border-gray-200 rounded-lg overflow-hidden">
                             <button
                               type="button"
                               onClick={() =>
                                 toggleSection(variant.id, "status")
                               }
-                              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >
-                              <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                              <span className="text-xs font-semibold text-gray-800">
                                 5. Status & Visibility
                               </span>
                               {variantExpanded("status") ? (
                                 <ChevronUp
                                   size={16}
-                                  className="text-gray-600 dark:text-gray-400"
+                                  className="text-gray-600"
                                 />
                               ) : (
                                 <ChevronDown
                                   size={16}
-                                  className="text-gray-600 dark:text-gray-400"
+                                  className="text-gray-600"
                                 />
                               )}
                             </button>
                             {variantExpanded("status") && (
-                              <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                              <div className="p-4 space-y-4 bg-white">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <SelectInput
                                     label="Variant Status"
@@ -4399,7 +4399,7 @@ const AddProduct = () => {
                     {/* Product Image */}
                     <div className="w-full md:w-48 flex-shrink-0">
                       {parentProductData.mainImagePreview ? (
-                        <div className="w-full md:w-48 h-48 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden">
+                        <div className="w-full md:w-48 h-48 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
                           <img
                             src={parentProductData.mainImagePreview}
                             alt="Product"
@@ -4407,7 +4407,7 @@ const AddProduct = () => {
                           />
                         </div>
                       ) : (
-                        <div className="w-full md:w-48 h-48 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                        <div className="w-full md:w-48 h-48 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
                           <span className="text-xs text-gray-400">
                             No Image
                           </span>
@@ -4417,18 +4417,18 @@ const AddProduct = () => {
                     {/* Product Details */}
                     <div className="flex-1 space-y-2">
                       <div>
-                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        <span className="text-xs font-semibold text-gray-700">
                           Product Name:
                         </span>
-                        <span className="text-xs text-gray-900 dark:text-gray-100 ml-2">
+                        <span className="text-xs text-gray-900 ml-2">
                           {parentProductData.productName || "N/A"}
                         </span>
                       </div>
                       <div>
-                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        <span className="text-xs font-semibold text-gray-700">
                           Category:
                         </span>
-                        <span className="text-xs text-gray-900 dark:text-gray-100 ml-2">
+                        <span className="text-xs text-gray-900 ml-2">
                           {categories.find(
                             (c: { id: string; name: string }) =>
                               c.id === parentProductData.category,
@@ -4443,10 +4443,10 @@ const AddProduct = () => {
                         </span>
                       </div>
                       <div>
-                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        <span className="text-xs font-semibold text-gray-700">
                           Sub Category:
                         </span>
-                        <span className="text-xs text-gray-900 dark:text-gray-100 ml-2">
+                        <span className="text-xs text-gray-900 ml-2">
                           {parentSubCategoryName}
                         </span>
                       </div>
@@ -4458,7 +4458,7 @@ const AddProduct = () => {
               <FormSection title="Variant Details" variant="white">
                 <div className="space-y-4">
                   {!shouldShowVariants && (
-                    <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                    <p className="text-[11px] text-gray-600">
                       Configure different variants for this product (loose,
                       packet, carton). You can add multiple variants with their
                       own price, discount and stock.
@@ -4478,10 +4478,10 @@ const AddProduct = () => {
                     return (
                       <div
                         key={variant.id}
-                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-5 space-y-4 bg-white dark:bg-gray-800"
+                        className="border border-gray-200 rounded-lg p-4 sm:p-5 space-y-4 bg-white"
                       >
                         {/* Variant Step Progress Indicator */}
-                        <div className="flex items-center justify-center mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-center mb-4 pb-4 border-b border-gray-200">
                           <div className="flex items-center space-x-2">
                             <div
                               className={`flex items-center justify-center w-8 h-8 rounded-full ${variantStep === 1 ? "bg-green-600 dark:bg-green-700 text-white" : "bg-green-500 text-white"}`}
@@ -4492,7 +4492,7 @@ const AddProduct = () => {
                               className={`w-16 h-1 ${variantStep >= 2 ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
                             ></div>
                             <div
-                              className={`flex items-center justify-center w-8 h-8 rounded-full ${variantStep === 2 ? "bg-green-600 dark:bg-green-700 text-white" : variantStep > 2 ? "bg-green-500 text-white" : "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400"}`}
+                              className={`flex items-center justify-center w-8 h-8 rounded-full ${variantStep === 2 ? "bg-green-600 dark:bg-green-700 text-white" : variantStep > 2 ? "bg-green-500 text-white" : "bg-gray-300 dark:bg-gray-600 text-gray-600"}`}
                             >
                               {variantStep > 2 ? "✓" : "2"}
                             </div>
@@ -4503,31 +4503,31 @@ const AddProduct = () => {
                         {variantStep === 1 && (
                           <>
                             {/* 1. Variant Type & Measurement Section - First */}
-                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
                               <button
                                 type="button"
                                 onClick={() =>
                                   toggleSection(variant.id, "type")
                                 }
-                                className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                               >
-                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                <span className="text-xs font-semibold text-gray-800">
                                   1. Unit Type & Measurement
                                 </span>
                                 {variantExpanded("type") ? (
                                   <ChevronUp
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 ) : (
                                   <ChevronDown
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 )}
                               </button>
                               {variantExpanded("type") && (
-                                <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                                <div className="p-4 space-y-4 bg-white">
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <SelectInput
                                       label="Unit Type"
@@ -4604,7 +4604,7 @@ const AddProduct = () => {
                                       disabled={!variant.type}
                                       className={
                                         !variant.type
-                                          ? "bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+                                          ? "bg-gray-50 cursor-not-allowed"
                                           : ""
                                       }
                                       error={vf("measurement")}
@@ -4615,31 +4615,31 @@ const AddProduct = () => {
                             </div>
 
                             {/* 2. Pricing Section */}
-                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
                               <button
                                 type="button"
                                 onClick={() =>
                                   toggleSection(variant.id, "pricing")
                                 }
-                                className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                               >
-                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                <span className="text-xs font-semibold text-gray-800">
                                   2. Pricing
                                 </span>
                                 {variantExpanded("pricing") ? (
                                   <ChevronUp
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 ) : (
                                   <ChevronDown
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 )}
                               </button>
                               {variantExpanded("pricing") && (
-                                <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                                <div className="p-4 space-y-4 bg-white">
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {/* Landing Price */}
                                     <TextInput
@@ -4736,7 +4736,7 @@ const AddProduct = () => {
                                       readOnly
                                       placeholder="Auto-calculated"
                                       step="0.01"
-                                      className="bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+                                      className="bg-gray-50 cursor-not-allowed"
                                       error={vf("salePrice")}
                                     />
                                   </div>
@@ -4745,31 +4745,31 @@ const AddProduct = () => {
                             </div>
 
                             {/* 3. Inventory & Availability Section */}
-                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
                               <button
                                 type="button"
                                 onClick={() =>
                                   toggleSection(variant.id, "inventory")
                                 }
-                                className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                               >
-                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                <span className="text-xs font-semibold text-gray-800">
                                   3. Inventory & Availability
                                 </span>
                                 {variantExpanded("inventory") ? (
                                   <ChevronUp
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 ) : (
                                   <ChevronDown
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 )}
                               </button>
                               {variantExpanded("inventory") && (
-                                <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                                <div className="p-4 space-y-4 bg-white">
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <TextInput
                                       label="Stock Quantity"
@@ -4844,31 +4844,31 @@ const AddProduct = () => {
                             {!SHOW_VARIANT_BASIC_AND_STATUS_SECTIONS && (
                               <>
                                 {/* 4. Basic Information Section */}
-                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <div className="border border-gray-200 rounded-lg overflow-hidden">
                                   <button
                                     type="button"
                                     onClick={() =>
                                       toggleSection(variant.id, "basic")
                                     }
-                                    className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                   >
-                                    <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                    <span className="text-xs font-semibold text-gray-800">
                                       4. Basic Information
                                     </span>
                                     {variantExpanded("basic") ? (
                                       <ChevronUp
                                         size={16}
-                                        className="text-gray-600 dark:text-gray-400"
+                                        className="text-gray-600"
                                       />
                                     ) : (
                                       <ChevronDown
                                         size={16}
-                                        className="text-gray-600 dark:text-gray-400"
+                                        className="text-gray-600"
                                       />
                                     )}
                                   </button>
                                   {variantExpanded("basic") && (
-                                    <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                                    <div className="p-4 space-y-4 bg-white">
                                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         <TextInput
                                           label={
@@ -4910,7 +4910,7 @@ const AddProduct = () => {
                                             shouldShowVariants
                                               ? ""
                                               : !isEditMode || addVariantOnly
-                                                ? "bg-gray-50 dark:bg-gray-700 cursor-not-allowed"
+                                                ? "bg-gray-50 cursor-not-allowed"
                                                 : ""
                                           }
                                           error={vf("variantName")}
@@ -4956,7 +4956,7 @@ const AddProduct = () => {
                                       {!shouldShowVariants &&
                                         SHOW_VARIANT_BARCODE_SECTION && (
                                           <div>
-                                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
                                               Barcode Image
                                               <span className="text-gray-500 text-[10px] ml-1">
                                                 (Optional)
@@ -4965,7 +4965,7 @@ const AddProduct = () => {
                                             {!variantImagePreviews[variant.id]
                                               ?.barcode ? (
                                               <div
-                                                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700/50"
+                                                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50"
                                                 onClick={() =>
                                                   document
                                                     .getElementById(
@@ -4975,10 +4975,10 @@ const AddProduct = () => {
                                                 }
                                               >
                                                 <Upload
-                                                  className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                                                  className="mx-auto text-gray-400 mb-2"
                                                   size={16}
                                                 />
-                                                <p className="text-[10px] text-gray-600 dark:text-gray-400 mb-1">
+                                                <p className="text-[10px] text-gray-600 mb-1">
                                                   Click to upload barcode image
                                                 </p>
                                                 <input
@@ -4996,7 +4996,7 @@ const AddProduct = () => {
                                                 />
                                               </div>
                                             ) : (
-                                              <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50">
+                                              <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50">
                                                 <img
                                                   src={
                                                     variantImagePreviews[
@@ -5029,7 +5029,7 @@ const AddProduct = () => {
                             )}
 
                             {/* Navigation Buttons for Variant Step 1 */}
-                            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -5047,23 +5047,23 @@ const AddProduct = () => {
                         {variantStep === 2 && (
                           <>
                             {/* 6. Shipping & Dimensions Section - COMMENTED OUT */}
-                            {/* <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            {/* <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <button
                           type="button"
                           onClick={() => toggleSection(variant.id, "shipping")}
-                          className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                          <span className="text-xs font-semibold text-gray-800">
                             6. Shipping & Dimensions
                           </span>
                           {variantExpanded("shipping") ? (
-                            <ChevronUp size={16} className="text-gray-600 dark:text-gray-400" />
+                            <ChevronUp size={16} className="text-gray-600" />
                           ) : (
-                            <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" />
+                            <ChevronDown size={16} className="text-gray-600" />
                           )}
                         </button>
                         {variantExpanded("shipping") && (
-                          <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                          <div className="p-4 space-y-4 bg-white">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                               <TextInput
                                 label={isWeightRequired(variant.type) ? "Weight (for shipping) *" : "Weight (for shipping)"}
@@ -5140,31 +5140,31 @@ const AddProduct = () => {
                             {SHOW_VARIANT_BASIC_AND_STATUS_SECTIONS && (
                               <>
                                 {/* 5. Status & Visibility Section */}
-                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <div className="border border-gray-200 rounded-lg overflow-hidden">
                                   <button
                                     type="button"
                                     onClick={() =>
                                       toggleSection(variant.id, "status")
                                     }
-                                    className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                   >
-                                    <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                    <span className="text-xs font-semibold text-gray-800">
                                       5. Status & Visibility
                                     </span>
                                     {variantExpanded("status") ? (
                                       <ChevronUp
                                         size={16}
-                                        className="text-gray-600 dark:text-gray-400"
+                                        className="text-gray-600"
                                       />
                                     ) : (
                                       <ChevronDown
                                         size={16}
-                                        className="text-gray-600 dark:text-gray-400"
+                                        className="text-gray-600"
                                       />
                                     )}
                                   </button>
                                   {variantExpanded("status") && (
-                                    <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                                    <div className="p-4 space-y-4 bg-white">
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <SelectInput
                                           label="Variant Status"
@@ -5191,35 +5191,35 @@ const AddProduct = () => {
                             )}
 
                             {/* 6. Image Section */}
-                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
                               <button
                                 type="button"
                                 onClick={() =>
                                   toggleSection(variant.id, "images")
                                 }
-                                className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                               >
-                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                <span className="text-xs font-semibold text-gray-800">
                                   6. Image
                                 </span>
                                 {variantExpanded("images") ? (
                                   <ChevronUp
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 ) : (
                                   <ChevronDown
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 )}
                               </button>
                               {variantExpanded("images") && (
-                                <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                                <div className="p-4 space-y-4 bg-white">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* Primary Image (Mandatory) */}
                                     <div>
-                                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
                                         Primary Image{" "}
                                         <span className="text-red-500 dark:text-red-400">
                                           *
@@ -5228,7 +5228,7 @@ const AddProduct = () => {
                                       {!variantImagePreviews[variant.id]
                                         ?.primary ? (
                                         <div
-                                          className={`border-2 border-dashed rounded-lg p-3 text-center transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700/50 ${vf("primaryImage")
+                                          className={`border-2 border-dashed rounded-lg p-3 text-center transition-colors cursor-pointer bg-gray-50 ${vf("primaryImage")
                                               ? "border-red-400 dark:border-red-500 hover:border-red-500"
                                               : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
                                             }`}
@@ -5241,10 +5241,10 @@ const AddProduct = () => {
                                           }
                                         >
                                           <Upload
-                                            className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                                            className="mx-auto text-gray-400 mb-2"
                                             size={16}
                                           />
-                                          <p className="text-[10px] text-gray-600 dark:text-gray-400 mb-1">
+                                          <p className="text-[10px] text-gray-600 mb-1">
                                             Click to upload primary image
                                           </p>
                                           <input
@@ -5263,7 +5263,7 @@ const AddProduct = () => {
                                         </div>
                                       ) : (
                                         <div
-                                          className={`relative border rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50 ${vf("primaryImage")
+                                          className={`relative border rounded-lg p-2 bg-gray-50 ${vf("primaryImage")
                                               ? "border-red-400 dark:border-red-500"
                                               : "border-gray-300 dark:border-gray-600"
                                             }`}
@@ -5299,7 +5299,7 @@ const AddProduct = () => {
 
                                     {/* Secondary Image (Optional) */}
                                     <div>
-                                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
                                         Secondary Image{" "}
                                         <span className="text-gray-500 text-[10px] ml-1">
                                           (Optional)
@@ -5308,7 +5308,7 @@ const AddProduct = () => {
                                       {!variantImagePreviews[variant.id]
                                         ?.secondary ? (
                                         <div
-                                          className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700/50"
+                                          className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50"
                                           onClick={() =>
                                             document
                                               .getElementById(
@@ -5318,10 +5318,10 @@ const AddProduct = () => {
                                           }
                                         >
                                           <Upload
-                                            className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                                            className="mx-auto text-gray-400 mb-2"
                                             size={16}
                                           />
-                                          <p className="text-[10px] text-gray-600 dark:text-gray-400 mb-1">
+                                          <p className="text-[10px] text-gray-600 mb-1">
                                             Click to upload secondary image
                                           </p>
                                           <input
@@ -5339,7 +5339,7 @@ const AddProduct = () => {
                                           />
                                         </div>
                                       ) : (
-                                        <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50">
+                                        <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50">
                                           <img
                                             src={
                                               variantImagePreviews[variant.id]
@@ -5369,29 +5369,29 @@ const AddProduct = () => {
                             </div>
 
                             {/* 7. SEO & Settings Section */}
-                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
                               <button
                                 type="button"
                                 onClick={() => toggleSection(variant.id, "seo")}
-                                className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                               >
-                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                <span className="text-xs font-semibold text-gray-800">
                                   7. SEO & Settings
                                 </span>
                                 {variantExpanded("seo") ? (
                                   <ChevronUp
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 ) : (
                                   <ChevronDown
                                     size={16}
-                                    className="text-gray-600 dark:text-gray-400"
+                                    className="text-gray-600"
                                   />
                                 )}
                               </button>
                               {variantExpanded("seo") && (
-                                <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                                <div className="p-4 space-y-4 bg-white">
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <TextInput
                                       label="Meta Title"
@@ -5457,11 +5457,11 @@ const AddProduct = () => {
                             </div>
 
                             {/* Navigation Buttons for Variant Step 2 */}
-                            <div className="flex justify-between gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex justify-between gap-3 mt-6 pt-4 border-t border-gray-200">
                               <button
                                 type="button"
                                 onClick={() => setVariantStep(1)}
-                                className="px-6 py-2.5 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                                className="px-6 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
                               >
                                 Previous
                               </button>
@@ -5482,7 +5482,7 @@ const AddProduct = () => {
               <div className="space-y-6">
                 {/* SEO Settings Section */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-4">
                     SEO Settings
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -5514,7 +5514,7 @@ const AddProduct = () => {
                       error={errors.schemaMarkup}
                     />
                     <div className="md:col-span-3">
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
                         Meta Description
                       </label>
                       <textarea
@@ -5523,7 +5523,7 @@ const AddProduct = () => {
                         onChange={handleChange}
                         placeholder="Enter meta description"
                         rows={3}
-                        className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${errors.metaDescription
+                        className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 ${errors.metaDescription
                             ? "border-red-500 dark:border-red-600 focus:ring-red-400"
                             : "border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500"
                           }`}
@@ -5538,8 +5538,8 @@ const AddProduct = () => {
                 </div>
 
                 {/* Product Settings Section */}
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-4">
                     Product Settings
                   </h3>
                   <div className="space-y-4">
@@ -5576,13 +5576,13 @@ const AddProduct = () => {
 
                     {/* Return & Cancel Settings */}
                     <div className="mt-6 space-y-4">
-                      <h4 className="text-xs font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                      <h4 className="text-xs font-semibold text-gray-800 mb-3">
                         Return & Cancel Settings
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Is Returnable */}
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          <label className="block text-xs font-medium text-gray-700 mb-2">
                             Is Returnable?
                           </label>
                           <div className="flex items-center gap-4">
@@ -5595,7 +5595,7 @@ const AddProduct = () => {
                                 onChange={handleChange}
                                 className="w-4 h-4 text-green-600 dark:text-green-500 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
                               />
-                              <span className="text-xs text-gray-700 dark:text-gray-300">
+                              <span className="text-xs text-gray-700">
                                 Yes
                               </span>
                             </label>
@@ -5608,7 +5608,7 @@ const AddProduct = () => {
                                 onChange={handleChange}
                                 className="w-4 h-4 text-green-600 dark:text-green-500 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
                               />
-                              <span className="text-xs text-gray-700 dark:text-gray-300">
+                              <span className="text-xs text-gray-700">
                                 No
                               </span>
                             </label>
@@ -5629,7 +5629,7 @@ const AddProduct = () => {
 
                         {/* Is Cancelable */}
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          <label className="block text-xs font-medium text-gray-700 mb-2">
                             Is Cancel-able?
                           </label>
                           <div className="flex items-center gap-4">
@@ -5642,7 +5642,7 @@ const AddProduct = () => {
                                 onChange={handleChange}
                                 className="w-4 h-4 text-green-600 dark:text-green-500 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
                               />
-                              <span className="text-xs text-gray-700 dark:text-gray-300">
+                              <span className="text-xs text-gray-700">
                                 Yes
                               </span>
                             </label>
@@ -5655,14 +5655,14 @@ const AddProduct = () => {
                                 onChange={handleChange}
                                 className="w-4 h-4 text-green-600 dark:text-green-500 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
                               />
-                              <span className="text-xs text-gray-700 dark:text-gray-300">
+                              <span className="text-xs text-gray-700">
                                 No
                               </span>
                             </label>
                           </div>
                           {formData.isCancelable === "yes" && (
                             <div className="mt-2">
-                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-xs font-medium text-gray-700 mb-2">
                                 Cancellable order statuses
                               </label>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -5715,7 +5715,7 @@ const AddProduct = () => {
                                         }}
                                         className="w-4 h-4 text-green-600 dark:text-green-500 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 dark:focus:ring-green-400"
                                       />
-                                      <span className="text-xs text-gray-700 dark:text-gray-300">
+                                      <span className="text-xs text-gray-700">
                                         {option.label}
                                       </span>
                                     </label>
@@ -5735,10 +5735,10 @@ const AddProduct = () => {
 
                     {/* Payment Settings */}
                     <div className="mt-6">
-                      <h4 className="text-xs font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                      <h4 className="text-xs font-semibold text-gray-800 mb-3">
                         Payment Settings
                       </h4>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-2">
                         Is COD Allowed?
                       </label>
                       <div className="flex items-center gap-4">
@@ -5751,7 +5751,7 @@ const AddProduct = () => {
                             onChange={handleChange}
                             className="w-4 h-4 text-green-600 dark:text-green-500 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
                           />
-                          <span className="text-xs text-gray-700 dark:text-gray-300">
+                          <span className="text-xs text-gray-700">
                             Yes
                           </span>
                         </label>
@@ -5764,7 +5764,7 @@ const AddProduct = () => {
                             onChange={handleChange}
                             className="w-4 h-4 text-green-600 dark:text-green-500 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400"
                           />
-                          <span className="text-xs text-gray-700 dark:text-gray-300">
+                          <span className="text-xs text-gray-700">
                             No
                           </span>
                         </label>
@@ -5777,13 +5777,13 @@ const AddProduct = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <div className="flex gap-2">
               {!shouldShowVariants && currentStep > 1 && (
                 <button
                   type="button"
                   onClick={handlePrevious}
-                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium"
+                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium"
                 >
                   <ChevronLeft size={14} />
                   Previous
@@ -5792,7 +5792,7 @@ const AddProduct = () => {
               <button
                 type="button"
                 onClick={() => setShowCancelConfirmModal(true)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium"
               >
                 Cancel
               </button>
@@ -5843,7 +5843,7 @@ const AddProduct = () => {
         size="md"
       >
         <div className="space-y-4">
-          <p className="text-sm text-center text-gray-700 dark:text-gray-300">
+          <p className="text-sm text-center text-gray-700">
             Your progress will not be saved. Are you sure you want to leave? You
             can continue editing if you choose to stay.
           </p>
@@ -5851,7 +5851,7 @@ const AddProduct = () => {
             <button
               type="button"
               onClick={() => setShowCancelConfirmModal(false)}
-              className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
+              className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
             >
               No, continue
             </button>
@@ -5885,7 +5885,7 @@ const AddProduct = () => {
               <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
           </div>
-          <p className="text-sm text-center text-gray-700 dark:text-gray-300 mb-6">
+          <p className="text-sm text-center text-gray-700 mb-6">
             Product added successfully.
           </p>
           <div className="flex gap-3">
@@ -5937,7 +5937,7 @@ const AddProduct = () => {
               <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
           </div>
-          <p className="text-sm text-center text-gray-700 dark:text-gray-300 mb-6">
+          <p className="text-sm text-center text-gray-700 mb-6">
             Variant added successfully. You can add another variant, create a
             new product, or finish.
           </p>
@@ -5948,7 +5948,7 @@ const AddProduct = () => {
                   setShowVariantSuccessModal(false);
                   navigate("/products/manage");
                 }}
-                className="flex-1 px-4 py-2.5 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                className="flex-1 px-4 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
               >
                 Finish
               </button>

@@ -226,7 +226,7 @@ const AddHomeSlider = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditing ? "Edit Home Slider Image" : "Add Home Slider Image"}
         </h1>
         <BackButton to="/home-sliders/manage" />
@@ -240,7 +240,7 @@ const AddHomeSlider = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
           {/* Home Slider Information Section */}
@@ -273,10 +273,10 @@ const AddHomeSlider = () => {
 
             {/* Image */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Image <span className="text-red-500 dark:text-red-400">*</span>
               </label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center bg-gray-50 dark:bg-gray-700/50">
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center bg-gray-50">
                 <input
                   type="file"
                   accept="image/*"
@@ -314,9 +314,9 @@ const AddHomeSlider = () => {
                     <div>
                       <Upload
                         size={20}
-                        className="mx-auto text-gray-400 dark:text-gray-500 mb-2"
+                        className="mx-auto text-gray-400 mb-2"
                       />
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-600">
                         Drop Files here or click to upload
                       </p>
                     </div>

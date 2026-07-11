@@ -80,7 +80,7 @@ const EditReturnRequest = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">Loading return request...</p>
+          <p className="text-gray-500">Loading return request...</p>
         </div>
       </div>
     );
@@ -90,7 +90,7 @@ const EditReturnRequest = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Return request not found</p>
+          <p className="text-gray-500 mb-4">Return request not found</p>
           <button
             onClick={() => navigate('/return-requests')}
             className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
@@ -106,7 +106,7 @@ const EditReturnRequest = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Edit Return Request
         </h1>
         <BackButton to="/return-requests" />
@@ -118,38 +118,38 @@ const EditReturnRequest = () => {
       </div>
 
       {/* Request Info Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Request Information</h3>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-4">
+        <h3 className="text-sm font-semibold text-gray-800 mb-4">Request Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Request ID</label>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.id}</p>
+            <label className="text-xs font-medium text-gray-600">Request ID</label>
+            <p className="text-sm font-semibold text-gray-900">{request.id}</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">User ID</label>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.userId}</p>
+            <label className="text-xs font-medium text-gray-600">User ID</label>
+            <p className="text-sm font-semibold text-gray-900">{request.userId}</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Customer Name</label>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.name}</p>
+            <label className="text-xs font-medium text-gray-600">Customer Name</label>
+            <p className="text-sm font-semibold text-gray-900">{request.name}</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Product Name</label>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.productName}</p>
+            <label className="text-xs font-medium text-gray-600">Product Name</label>
+            <p className="text-sm font-semibold text-gray-900">{request.productName}</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Quantity</label>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{request.quantity}</p>
+            <label className="text-xs font-medium text-gray-600">Quantity</label>
+            <p className="text-sm font-semibold text-gray-900">{request.quantity}</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Total Amount</label>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">₹{request.total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <label className="text-xs font-medium text-gray-600">Total Amount</label>
+            <p className="text-sm font-semibold text-gray-900">₹{request.total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
         </div>
       </div>
 
       {/* Edit Form */}
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="max-w-4xl">
           {/* Update Return Request Section */}
           <FormSectionWithDots title="Update Return Request">
@@ -170,7 +170,7 @@ const EditReturnRequest = () => {
 
             {/* Reason */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Reason <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <textarea
@@ -179,7 +179,7 @@ const EditReturnRequest = () => {
                 onChange={handleChange}
                 placeholder="Enter return reason"
                 rows={4}
-                className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
+                className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 ${
                   errors.reason ? 'border-red-300 dark:border-red-600 focus:ring-red-500 dark:focus:ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500'
                 }`}
               />

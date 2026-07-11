@@ -368,7 +368,7 @@ const AddSeller = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditMode ? "Edit Vendor" : "Create Vendor"}
         </h1>
         <BackButton to="/vendors/manage" />
@@ -381,20 +381,20 @@ const AddSeller = () => {
 
       {/* Loading state when fetching vendor data in edit mode */}
       {isEditMode && isLoadingVendor && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Loading vendor details...</p>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-8 text-center">
+          <p className="text-xs text-gray-500">Loading vendor details...</p>
         </div>
       )}
 
       {/* Add Vendor Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         {/* Progress Indicator */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+            <h2 className="text-lg font-bold text-gray-800">
               {isEditMode ? "Edit Vendor" : "Create Vendor"}
             </h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-gray-500">
               Step {currentStep} of {totalSteps}
             </span>
           </div>
@@ -417,7 +417,7 @@ const AddSeller = () => {
                         ? "bg-green-600 text-white"
                         : isStepCompleted(step)
                         ? "bg-green-500 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                        : "bg-gray-200 text-gray-600"
                     }`}
                   >
                     {isStepCompleted(step) ? (
@@ -432,7 +432,7 @@ const AddSeller = () => {
                         ? "text-green-600 dark:text-green-400"
                         : isStepCompleted(step)
                         ? "text-green-500 dark:text-green-400"
-                        : "text-gray-500 dark:text-gray-400"
+                        : "text-gray-500"
                     }`}
                   >
                     {step === 1 && "Basic Info"}
@@ -443,12 +443,12 @@ const AddSeller = () => {
                   </span>
                 </button>
                 {step < totalSteps && (
-                  <div className="flex-1 h-0.5 mx-2 bg-gray-200 dark:bg-gray-700">
+                  <div className="flex-1 h-0.5 mx-2 bg-gray-200">
                     <div
                       className={`h-full transition-all ${
                         step < currentStep || isStepCompleted(step)
                           ? "bg-green-500"
-                          : "bg-gray-200 dark:bg-gray-700"
+                          : "bg-gray-200"
                       }`}
                       style={{
                         width:
@@ -468,9 +468,9 @@ const AddSeller = () => {
           {/* Step 1: Basic Information */}
           {currentStep === 1 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <User size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 1: Personal Information
                 </h3>
                 {isStepCompleted(1) && (
@@ -480,7 +480,7 @@ const AddSeller = () => {
               <FormSection variant="white">
                 {/* Personal Information heading line */}
                 <div className="mb-4 flex items-center">
-                  <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mr-4">
+                  <h4 className="text-sm font-semibold text-gray-800 mr-4">
                     Personal Information
                   </h4>
                   <div className="flex-1 border-t border-dashed border-gray-300 dark:border-gray-600" />
@@ -493,14 +493,14 @@ const AddSeller = () => {
                     control={control}
                     render={({ field }) => (
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
                           Full Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           {...field}
                           placeholder="Enter Name"
-                          className="w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                          className="w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                         />
                         {errors.name?.message && (
                           <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
@@ -517,14 +517,14 @@ const AddSeller = () => {
                     control={control}
                     render={({ field }) => (
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
                           Surname
                         </label>
                         <input
                           type="text"
                           {...field}
                           placeholder="Enter Name"
-                          className="w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                          className="w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                         />
                       </div>
                     )}
@@ -536,7 +536,7 @@ const AddSeller = () => {
                     control={control}
                     render={({ field }) => (
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
                           Mobile Number <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
@@ -545,7 +545,7 @@ const AddSeller = () => {
                             {...field}
                             placeholder="Enter Mobile Number"
                             maxLength={10}
-                            className="w-full pr-16 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                            className="w-full pr-16 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                           />
                           <button
                             type="button"
@@ -569,7 +569,7 @@ const AddSeller = () => {
                     control={control}
                     render={({ field }) => (
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
                           EmailID <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
@@ -577,7 +577,7 @@ const AddSeller = () => {
                             type="email"
                             {...field}
                             placeholder="Enter Email ID"
-                            className="w-full pr-16 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                            className="w-full pr-16 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                           />
                           <button
                             type="button"
@@ -601,14 +601,14 @@ const AddSeller = () => {
                     control={control}
                     render={({ field }) => (
                       <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
                           Vendor designation
                         </label>
                         <input
                           type="text"
                           {...field}
                           placeholder="Enter Name"
-                          className="w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                          className="w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                         />
                       </div>
                     )}
@@ -621,7 +621,7 @@ const AddSeller = () => {
               render={({ field }) => {
                 return (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Password <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -636,15 +636,15 @@ const AddSeller = () => {
                           }
                         }}
                         placeholder={isEditMode ? "••••••••" : "Enter password."}
-                        className={`w-full pr-10 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
-                          isEditMode ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : ""
+                        className={`w-full pr-10 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 ${
+                          isEditMode ? "bg-gray-100 cursor-not-allowed" : ""
                         }`}
                       />
                       {!isEditMode && (
                         <button
                           type="button"
                           onClick={() => setShowPassword((prev) => !prev)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                         >
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
@@ -666,7 +666,7 @@ const AddSeller = () => {
               render={({ field }) => {
                 return (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Confirm Password <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -681,15 +681,15 @@ const AddSeller = () => {
                           }
                         }}
                         placeholder={isEditMode ? "••••••••" : "Enter confirm password."}
-                        className={`w-full pr-10 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
-                          isEditMode ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed" : ""
+                        className={`w-full pr-10 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 ${
+                          isEditMode ? "bg-gray-100 cursor-not-allowed" : ""
                         }`}
                       />
                       {!isEditMode && (
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword((prev) => !prev)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                         >
                           {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
@@ -711,9 +711,9 @@ const AddSeller = () => {
           {/* Step 2: Store Information */}
           {currentStep === 2 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <Store size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 2: Store Information
                 </h3>
                 {isStepCompleted(2) && (
@@ -752,7 +752,7 @@ const AddSeller = () => {
                   />
                 )}
               />
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-[10px] text-gray-500 mt-1">
                 Enter category IDs separated by commas
               </p>
             </div>
@@ -820,7 +820,7 @@ const AddSeller = () => {
                   />
                 )}
               />
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-[10px] text-gray-500 mt-1">
                 How vendor commission works?
               </p>
             </div>
@@ -918,14 +918,14 @@ const AddSeller = () => {
                 control={control}
                 render={({ field }) => (
                   <>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Store Description
                     </label>
                     <textarea
                       {...field}
                       placeholder="Enter store description"
                       rows={4}
-                      className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                      className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                     />
                   </>
                 )}
@@ -939,9 +939,9 @@ const AddSeller = () => {
           {/* Step 3: Store Location Information */}
           {currentStep === 3 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <MapPin size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 3: Store Location Information
                 </h3>
                 {isStepCompleted(3) && (
@@ -1036,14 +1036,14 @@ const AddSeller = () => {
             />
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Search Location
               </label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   placeholder="Search you location on map."
-                  className="flex-1 px-3 py-1.5 text-xs border border-green-300 dark:border-green-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="flex-1 px-3 py-1.5 text-xs border border-green-300 dark:border-green-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
                 <button
                   type="button"
@@ -1053,10 +1053,10 @@ const AddSeller = () => {
                   Search
                 </button>
               </div>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-[10px] text-gray-500 mt-1">
                 *Only Search Location, When Update is necessary
               </p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">
+              <p className="text-[10px] text-gray-500">
                 Search your vendor name and you will get the location
                 points(Latitude & Longitude) below.
               </p>
@@ -1099,11 +1099,11 @@ const AddSeller = () => {
             />
 
             <div className="md:col-span-2">
-              <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                <p className="text-xs text-gray-500">
                   Map will be displayed here
                 </p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 ml-2">
+                <p className="text-[10px] text-gray-400 ml-2">
                   Use ctrl + scroll to zoom the map
                 </p>
               </div>
@@ -1116,9 +1116,9 @@ const AddSeller = () => {
           {/* Step 4: Vendor Bank Information */}
           {currentStep === 4 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <CreditCard size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 4: Vendor Bank Information
                 </h3>
                 {isStepCompleted(4) && (
@@ -1208,9 +1208,9 @@ const AddSeller = () => {
           {/* Step 5: Other Settings */}
           {currentStep === 5 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <Settings size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 5: Other Settings
                 </h3>
                 {isStepCompleted(5) && (
@@ -1228,9 +1228,9 @@ const AddSeller = () => {
                     type="checkbox"
                     checked={field.value}
                     onChange={(e) => field.onChange(e.target.checked)}
-                    className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400 dark:bg-gray-700"
+                    className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400"
                   />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">
+                  <span className="text-xs text-gray-700">
                     Require Product's Approval
                   </span>
                 </label>
@@ -1246,9 +1246,9 @@ const AddSeller = () => {
                     type="checkbox"
                     checked={field.value}
                     onChange={(e) => field.onChange(e.target.checked)}
-                    className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400 dark:bg-gray-700"
+                    className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400"
                   />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">Self Pickup Mode</span>
+                  <span className="text-xs text-gray-700">Self Pickup Mode</span>
                 </label>
               )}
             />
@@ -1258,13 +1258,13 @@ const AddSeller = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <div className="flex gap-2">
               {currentStep > 1 && (
                 <button
                   type="button"
                   onClick={handlePrevious}
-                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white dark:bg-gray-800"
+                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white"
                 >
                   <ChevronLeft size={14} />
                   Previous
@@ -1273,7 +1273,7 @@ const AddSeller = () => {
               <button
                 type="button"
                 onClick={() => navigate("/vendors/manage")}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white dark:bg-gray-800"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white"
               >
                 Cancel
               </button>

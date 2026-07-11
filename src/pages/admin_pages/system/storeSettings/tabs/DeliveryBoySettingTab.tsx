@@ -16,8 +16,8 @@ const DeliveryBoySettingTab = ({ formData, onChange }: DeliveryBoySettingTabProp
   return (
     <div className="space-y-6">
       {/* Bonus Settings Section */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Bonus Settings</h3>
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-800 mb-4">Bonus Settings</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Bonus Type */}
           <div>
@@ -72,7 +72,7 @@ const DeliveryBoySettingTab = ({ formData, onChange }: DeliveryBoySettingTabProp
               min="0"
               step="0.01"
             />
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Set 0 if you want to remove limit.</p>
+            <p className="text-[10px] text-gray-500 mt-1">Set 0 if you want to remove limit.</p>
           </div>
 
           {/* Maximum bonus amount */}
@@ -86,19 +86,19 @@ const DeliveryBoySettingTab = ({ formData, onChange }: DeliveryBoySettingTabProp
               min="0"
               step="0.01"
             />
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Set 0 if you want to remove limit.</p>
+            <p className="text-[10px] text-gray-500 mt-1">Set 0 if you want to remove limit.</p>
           </div>
         </div>
       </div>
 
       {/* Order Delivery OTP System */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
               Order Delivery OTP System
             </label>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Enable OTP verification for order delivery</p>
+            <p className="text-[10px] text-gray-500">Enable OTP verification for order delivery</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input

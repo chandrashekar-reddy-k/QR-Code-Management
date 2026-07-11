@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, QrCode, CheckCircle, Scan, Bike, Loader2 } from "lucide-react";
 import api from "../../api/axios";
 
-interface HandoverVerificationProps {
+interface HandoverVerificationMobileProps {
   onBack: () => void;
   onNavigate: (screen: string) => void;
   data?: any;
@@ -10,7 +10,7 @@ interface HandoverVerificationProps {
 
 type Step = "staff-scan" | "rider-scan" | "complete";
 
-export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerificationProps) {
+export function HandoverVerificationMobile({ onBack, onNavigate, data }: HandoverVerificationMobileProps) {
   const [step, setStep] = useState<Step>("staff-scan");
   const [loading, setLoading] = useState(false);
   const [staffVerifiedAt, setStaffVerifiedAt] = useState<Date | null>(null);

@@ -30,7 +30,7 @@ export default function VehicleWiseReport() {
     <ReportLayout title="Substore (Vehicle)" icon={Truck} activeTab="vehicle-wise" reportData={reportData} isLoading={isLoading}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-500">
           {Array.isArray(reportData) && reportData.map((vh, i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group border-b-4 border-b-slate-200">
+              <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all group border-b-4 border-b-slate-200">
                   <div className="flex justify-between items-start mb-6">
                       <div className="p-3 rounded-lg bg-slate-50 text-slate-600"><Truck size={24} /></div>
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{vh.displayId || 'VH-LOG'}</div>
@@ -38,7 +38,7 @@ export default function VehicleWiseReport() {
                   <h4 className="text-xl font-bold text-gray-900 dark:text-white tracking-tighter mb-4">{vh.vehicleNumber}</h4>
                   <div className="space-y-3">
                       <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-400 uppercase">Revenue Generated</span><span className="text-md font-bold text-emerald-600 italic">₹{(vh.totalSales || 0).toLocaleString()}</span></div>
-                      <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-400 uppercase">Total Orders</span><span className="text-md font-bold text-gray-800 dark:text-gray-200">{(vh.orderCount || 0).toLocaleString()}</span></div>
+                      <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-400 uppercase">Total Orders</span><span className="text-md font-bold text-gray-800">{(vh.orderCount || 0).toLocaleString()}</span></div>
                   </div>
                   <button className="w-full mt-6 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:bg-slate-600 group-hover:text-white transition-all">Detailed Audit</button>
               </div>

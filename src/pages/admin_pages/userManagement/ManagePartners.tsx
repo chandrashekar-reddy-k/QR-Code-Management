@@ -328,7 +328,7 @@ const ManagePartners = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600">
             Loading partners...
           </p>
         </div>
@@ -340,7 +340,7 @@ const ManagePartners = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Action Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Manage Partners
         </h1>
         <PrimaryButton
@@ -387,7 +387,7 @@ const ManagePartners = () => {
           <Button
             onClick={handleExport}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
             title="Export to CSV"
           >
             <Download size={14} className="sm:w-4 sm:h-4" />
@@ -396,7 +396,7 @@ const ManagePartners = () => {
           <Button
             onClick={handleImport}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
             title="Import from CSV"
           >
             <FileUp size={14} className="sm:w-4 sm:h-4" />
@@ -406,7 +406,7 @@ const ManagePartners = () => {
             onClick={handleRefresh}
             disabled={isLoading}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
             title="Refresh"
           >
             <RefreshCw
@@ -432,7 +432,7 @@ const ManagePartners = () => {
       </div>
 
       {/* Partners Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedPartners}
@@ -444,7 +444,7 @@ const ManagePartners = () => {
                 render: (partner: TablePartner) => (
                   <div className="text-center">
                     <span
-                      className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 cursor-help"
+                      className="text-xs sm:text-sm text-gray-800 cursor-help"
                       title={partner.id || ""}
                     >
                       {truncateText(partner.id, 8)}
@@ -459,7 +459,7 @@ const ManagePartners = () => {
                 render: (partner: TablePartner) => (
                   <div className="text-center">
                     <span
-                      className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200"
+                      className="text-xs sm:text-sm font-semibold text-gray-800"
                       title={partner.name || ""}
                     >
                       {partner.name || "N/A"}
@@ -474,7 +474,7 @@ const ManagePartners = () => {
                 render: (partner: TablePartner) => (
                   <div className="text-center">
                     <span
-                      className="text-xs sm:text-sm text-gray-700 dark:text-gray-300"
+                      className="text-xs sm:text-sm text-gray-700"
                       title={partner.company || ""}
                     >
                       {partner.company || "No company"}
@@ -489,7 +489,7 @@ const ManagePartners = () => {
                 render: (partner: TablePartner) => (
                   <div className="text-center">
                     <span
-                      className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 break-words cursor-help"
+                      className="text-xs sm:text-sm text-gray-800 break-words cursor-help"
                       title={partner.email || ""}
                     >
                       {partner.email || "N/A"}
@@ -524,7 +524,7 @@ const ManagePartners = () => {
                       customColor={
                         partner.status === "active"
                           ? "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400"
-                          : "bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800"
+                          : "bg-gray-100 text-gray-800"
                       }
                       className="rounded"
                     />
@@ -539,7 +539,7 @@ const ManagePartners = () => {
                   // API doesn't provide createdAt, show N/A
                   return (
                     <div className="text-center">
-                      <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                      <span className="text-xs sm:text-sm text-gray-800 whitespace-nowrap">
                         N/A
                       </span>
                     </div>
@@ -584,10 +584,10 @@ const ManagePartners = () => {
 
         {/* Pagination */}
         {filteredAndSortedPartners.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
@@ -597,7 +597,7 @@ const ManagePartners = () => {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                   >
                     <option value="10">10</option>
                     <option value="25">25</option>
@@ -605,7 +605,7 @@ const ManagePartners = () => {
                     <option value="100">100</option>
                   </select>
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                   {Math.min(
                     currentPage * itemsPerPage,

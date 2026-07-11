@@ -174,7 +174,7 @@ const CycleCounts = () => {
   return (
     <>
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <DataTable
           data={sortedCycleCounts}
           columns={[
@@ -184,7 +184,7 @@ const CycleCounts = () => {
               sortable: true,
               render: (cc: ApiCycleCount) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{cc.id.slice(0, 8)}...</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{cc.id.slice(0, 8)}...</span>
                 </div>
               ),
             },
@@ -194,7 +194,7 @@ const CycleCounts = () => {
               sortable: true,
               render: (cc: ApiCycleCount) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{getLocationName(cc.location?.name)}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{getLocationName(cc.location?.name)}</span>
                 </div>
               ),
             },
@@ -204,7 +204,7 @@ const CycleCounts = () => {
               sortable: true,
               render: (cc: ApiCycleCount) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{cc.scope.replace("_", " ")}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{cc.scope.replace("_", " ")}</span>
                 </div>
               ),
             },
@@ -235,7 +235,7 @@ const CycleCounts = () => {
               sortable: true,
               render: (cc: ApiCycleCount) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{cc.assignedTo?.name}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{cc.assignedTo?.name}</span>
                 </div>
               ),
             },
@@ -245,7 +245,7 @@ const CycleCounts = () => {
               sortable: true,
               render: (cc: ApiCycleCount) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{formatDate(cc.createdAt)}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{formatDate(cc.createdAt)}</span>
                 </div>
               ),
             },
@@ -261,7 +261,7 @@ const CycleCounts = () => {
 
                 return (
                   <div className="text-center">
-                    <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                    <span className="text-xs sm:text-sm text-gray-800">
                       {value}
                     </span>
                   </div>
@@ -275,7 +275,7 @@ const CycleCounts = () => {
             //   sortable: true,
             //   render: (cc: ApiCycleCount) => (
             //     <div className="text-center">
-            //       <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{cc.completedAt ? formatDate(cc.completedAt) : '--'}</span>
+            //       <span className="text-xs sm:text-sm text-gray-800">{cc.completedAt ? formatDate(cc.completedAt) : '--'}</span>
             //     </div>
             //   ),
             // },
@@ -289,24 +289,24 @@ const CycleCounts = () => {
 
         {/* Pagination */}
         {pagination.total > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Show</span>
+                <span className="text-gray-600">Show</span>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => {
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 bg-white dark:bg-gray-700"
+                  className="w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 bg-white"
                 >
                   <option value="10">10</option>
                   <option value="25">25</option>
                   <option value="50">50</option>
                   <option value="100">100</option>
                 </select>
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-600">
                   Showing{" "}
                   <strong>
                     {Math.min(
@@ -330,17 +330,17 @@ const CycleCounts = () => {
       {/* Create Cycle Count Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">Start Cycle Count</h2>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-800">Start Cycle Count</h2>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Location *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Location *</label>
                 <select
                   value={formData.locationCode}
                   onChange={(e) => setFormData((prev) => ({ ...prev, locationCode: e.target.value }))}
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                 >
                   <option value="">Select location</option>
                   {locations.map((loc) => (
@@ -349,11 +349,11 @@ const CycleCounts = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Scope *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Scope *</label>
                 <select
                   value={formData.scope}
                   onChange={(e) => setFormData((prev) => ({ ...prev, scope: e.target.value as any }))}
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                 >
                   <option value="All SKUs">All SKUs</option>
                   <option value="Category">Category</option>
@@ -361,13 +361,13 @@ const CycleCounts = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Assigned To *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Assigned To *</label>
                 <input
                   type="text"
                   value={formData.assignedTo}
                   onChange={(e) => setFormData((prev) => ({ ...prev, assignedTo: e.target.value }))}
                   placeholder="Enter assignee name"
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
               <div className="flex gap-2 pt-2">
@@ -377,7 +377,7 @@ const CycleCounts = () => {
                     setShowCreateModal(false);
                     setFormData({ locationCode: '', scope: 'All SKUs', assignedTo: '' });
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium"
                 >
                   Cancel
                 </button>

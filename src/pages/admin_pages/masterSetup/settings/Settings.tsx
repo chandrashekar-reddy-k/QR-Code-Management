@@ -204,23 +204,23 @@ const EcommerceSettings = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">E-commerce Settings</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">E-commerce Settings</h1>
+          <p className="text-sm text-gray-500">
             Home &gt; Master Setup &gt; <span className="text-orange-500 dark:text-orange-400">E-Commerce Settings</span>
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
-          <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto tabs-scrollbar">
+        <div className="bg-white rounded-lg shadow-sm mb-6">
+          <div className="flex border-b border-gray-200 overflow-x-auto tabs-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
                   activeTab === tab
-                    ? 'text-gray-900 dark:text-gray-100 border-b-2 border-orange-500 dark:border-orange-400'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                    ? 'text-gray-900 border-b-2 border-orange-500 dark:border-orange-400'
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >
                 {tab}
@@ -231,13 +231,13 @@ const EcommerceSettings = () => {
 
         {/* General Tab Content */}
         {activeTab === 'General' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-8">General</h2>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-8">General</h2>
 
             {/* First Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Store Name
                 </label>
                 <input
@@ -245,12 +245,12 @@ const EcommerceSettings = () => {
                   placeholder="Enter Name"
                   value={formData.storeName}
                   onChange={(e) => handleInputChange('storeName', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Store Email
                 </label>
                 <input
@@ -258,12 +258,12 @@ const EcommerceSettings = () => {
                   placeholder="Enter Name"
                   value={formData.storeEmail}
                   onChange={(e) => handleInputChange('storeEmail', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Store Phone
                 </label>
                 <input
@@ -271,7 +271,7 @@ const EcommerceSettings = () => {
                   placeholder="Enter Name"
                   value={formData.storePhone}
                   onChange={(e) => handleInputChange('storePhone', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -279,73 +279,73 @@ const EcommerceSettings = () => {
             {/* Second Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Timezone
                 </label>
                 <div className="relative">
                   <select
                     value={formData.timezone}
                     onChange={(e) => handleInputChange('timezone', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900"
                   >
                     <option value="">Select</option>
                     <option value="UTC">UTC</option>
                     <option value="EST">EST</option>
                     <option value="PST">PST</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Currency
                 </label>
                 <div className="relative">
                   <select
                     value={formData.currency}
                     onChange={(e) => handleInputChange('currency', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900"
                   >
                     <option value="">Select</option>
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
                     <option value="GBP">GBP</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
-                  Language <span className="text-gray-500 dark:text-gray-400 font-normal">(Optional)</span>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Language <span className="text-gray-500 font-normal">(Optional)</span>
                 </label>
                 <div className="relative">
                   <select
                     value={formData.language}
                     onChange={(e) => handleInputChange('language', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900"
                   >
                     <option value="">Select</option>
                     <option value="en">English</option>
                     <option value="es">Spanish</option>
                     <option value="fr">French</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
             </div>
 
             {/* Store Address */}
             <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Store Address
               </label>
               <textarea
                 value={formData.storeAddress}
                 onChange={(e) => handleInputChange('storeAddress', e.target.value)}
                 rows={6}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
               />
             </div>
 
@@ -359,7 +359,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -369,39 +369,39 @@ const EcommerceSettings = () => {
 
         {/* Payment Tab Content */}
         {activeTab === 'Payment' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Payment <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Payment <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* Payment and Timeout Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 mt-8">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Payment
                 </label>
                 <div className="relative">
                   <select
                     value={paymentData.paymentStatus}
                     onChange={(e) => handlePaymentInputChange('paymentStatus', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Payment Timeout (minutes)
                 </label>
                 <input
                   type="text"
                   value={paymentData.paymentTimeout}
                   onChange={(e) => handlePaymentInputChange('paymentTimeout', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -421,7 +421,7 @@ const EcommerceSettings = () => {
                     }`}
                   />
                 </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Cash on Delivery</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Cash on Delivery</span>
               </div>
 
               <div className="flex items-center">
@@ -437,7 +437,7 @@ const EcommerceSettings = () => {
                     }`}
                   />
                 </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Online Payment</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Online Payment</span>
               </div>
 
               <div className="flex items-center">
@@ -453,7 +453,7 @@ const EcommerceSettings = () => {
                       }`}
                     />
                   </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Wallet Payment</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Wallet Payment</span>
               </div>
             </div>
 
@@ -467,7 +467,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -477,53 +477,53 @@ const EcommerceSettings = () => {
 
         {/* Shipping Tab Content */}
         {activeTab === 'Shipping' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Shipping <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Shipping <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* First Row - Three Columns */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 mt-8">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Default shipping method
                 </label>
                 <div className="relative">
                   <select
                     value={shippingData.defaultShippingMethod}
                     onChange={(e) => handleShippingInputChange('defaultShippingMethod', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900"
                   >
                     <option value="">Select</option>
                     <option value="standard">Standard Delivery</option>
                     <option value="express">Express Delivery</option>
                     <option value="overnight">Overnight Delivery</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Free shipping Threshhold
                 </label>
                 <input
                   type="text"
                   value={shippingData.freeShippingThreshold}
                   onChange={(e) => handleShippingInputChange('freeShippingThreshold', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Shipping Rate per Kg
                 </label>
                 <input
                   type="text"
                   value={shippingData.shippingRatePerKg}
                   onChange={(e) => handleShippingInputChange('shippingRatePerKg', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -543,18 +543,18 @@ const EcommerceSettings = () => {
                     }`}
                   />
                 </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable express delivery</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable express delivery</span>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Express Delivery Charge (₹)
                 </label>
                 <input
                   type="text"
                   value={shippingData.expressDeliveryCharge}
                   onChange={(e) => handleShippingInputChange('expressDeliveryCharge', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -569,7 +569,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -579,9 +579,9 @@ const EcommerceSettings = () => {
 
         {/* Tax Tab Content */}
         {activeTab === 'Tax' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Tax <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Tax <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* Toggle Switches */}
@@ -599,7 +599,7 @@ const EcommerceSettings = () => {
                     }`}
                   />
                 </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Tax Calculation</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Tax Calculation</span>
               </div>
 
               <div className="flex items-center">
@@ -615,13 +615,13 @@ const EcommerceSettings = () => {
                       }`}
                     />
                   </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Order Tracking</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Order Tracking</span>
               </div>
             </div>
 
             {/* Default Tax Rate */}
             <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Default Tax Rate (%)
               </label>
               <div className="max-w-md">
@@ -629,7 +629,7 @@ const EcommerceSettings = () => {
                   type="text"
                   value={taxData.defaultTaxRate}
                   onChange={(e) => handleTaxInputChange('defaultTaxRate', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -644,7 +644,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -654,9 +654,9 @@ const EcommerceSettings = () => {
 
         {/* Order Tab Content */}
         {activeTab === 'Order' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Order <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Order <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* Layout with Toggles and Inputs */}
@@ -676,7 +676,7 @@ const EcommerceSettings = () => {
                       }`}
                     />
                   </button>
-                  <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Auto Confirm Orders</span>
+                  <span className="ml-3 text-sm font-medium text-gray-900">Auto Confirm Orders</span>
                 </div>
 
                 <div className="flex items-center">
@@ -692,33 +692,33 @@ const EcommerceSettings = () => {
                         }`}
                       />
                     </button>
-                  <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Order Tracking</span>
+                  <span className="ml-3 text-sm font-medium text-gray-900">Enable Order Tracking</span>
                 </div>
               </div>
 
               {/* Second Column - Order Cancellation Window */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Order Cancellation Window (hours)
                 </label>
                 <input
                   type="text"
                   value={orderData.orderCancellationWindow}
                   onChange={(e) => handleOrderInputChange('orderCancellationWindow', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
 
               {/* Third Column - Max Order Quantity */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Max Order Quantity
                 </label>
                 <input
                   type="text"
                   value={orderData.maxOrderQuantity}
                   onChange={(e) => handleOrderInputChange('maxOrderQuantity', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -733,7 +733,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -743,9 +743,9 @@ const EcommerceSettings = () => {
 
         {/* Product Tab Content */}
         {activeTab === 'Product' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Product <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Product <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* Toggle Switches */}
@@ -763,7 +763,7 @@ const EcommerceSettings = () => {
                     }`}
                   />
                 </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Auto Confirm Orders</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Auto Confirm Orders</span>
               </div>
 
               <div className="flex items-center">
@@ -779,7 +779,7 @@ const EcommerceSettings = () => {
                       }`}
                     />
                   </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Order Tracking</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Order Tracking</span>
               </div>
 
               <div className="flex items-center">
@@ -795,13 +795,13 @@ const EcommerceSettings = () => {
                       }`}
                     />
                   </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Order Tracking</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Order Tracking</span>
               </div>
             </div>
 
             {/* Low Stock Threshold */}
             <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Low Stock Threshold
               </label>
               <div className="max-w-md">
@@ -809,7 +809,7 @@ const EcommerceSettings = () => {
                   type="text"
                   value={productData.lowStockThreshold}
                   onChange={(e) => handleProductInputChange('lowStockThreshold', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -824,7 +824,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -834,9 +834,9 @@ const EcommerceSettings = () => {
 
         {/* Notification Tab Content */}
         {activeTab === 'Notification' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Notification <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Notification <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* Toggle Switches */}
@@ -854,7 +854,7 @@ const EcommerceSettings = () => {
                     }`}
                   />
                 </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Email Notofications</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Email Notofications</span>
               </div>
 
               <div className="flex items-center">
@@ -870,7 +870,7 @@ const EcommerceSettings = () => {
                       }`}
                     />
                   </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable SMS Notifications</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable SMS Notifications</span>
               </div>
 
               <div className="flex items-center">
@@ -886,7 +886,7 @@ const EcommerceSettings = () => {
                       }`}
                     />
                   </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Push Notifications</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Push Notifications</span>
               </div>
             </div>
 
@@ -900,7 +900,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -910,15 +910,15 @@ const EcommerceSettings = () => {
 
         {/* SEO Tab Content */}
         {activeTab === 'SEO' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              SEO <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              SEO <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* First Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 mt-8">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Meta Title
                 </label>
                 <div className="relative">
@@ -926,34 +926,34 @@ const EcommerceSettings = () => {
                     type="text"
                     value={seoData.metaTitle}
                     onChange={(e) => handleSeoInputChange('metaTitle', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Meta Keywords
                 </label>
                 <input
                   type="text"
                   value={seoData.metaKeywords}
                   onChange={(e) => handleSeoInputChange('metaKeywords', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Facebook Link
                 </label>
                 <input
                   type="text"
                   value={seoData.facebookLink}
                   onChange={(e) => handleSeoInputChange('facebookLink', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="https://facebook.com/villagkart"
                 />
               </div>
@@ -962,27 +962,27 @@ const EcommerceSettings = () => {
             {/* Second Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Twitter Link
                 </label>
                 <input
                   type="text"
                   value={seoData.twitterLink}
                   onChange={(e) => handleSeoInputChange('twitterLink', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="https://twitter.com/villagkart"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Instagram Link
                 </label>
                 <input
                   type="text"
                   value={seoData.instagramLink}
                   onChange={(e) => handleSeoInputChange('instagramLink', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="https://instagram.com/villagkart"
                 />
               </div>
@@ -990,7 +990,7 @@ const EcommerceSettings = () => {
 
             {/* Meta Description */}
             <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
                 Meta Description
               </label>
               <div className="relative">
@@ -998,7 +998,7 @@ const EcommerceSettings = () => {
                   value={seoData.metaDescription}
                   onChange={(e) => handleSeoInputChange('metaDescription', e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="500"
                 />
               </div>
@@ -1014,7 +1014,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -1024,15 +1024,15 @@ const EcommerceSettings = () => {
 
         {/* Security Tab Content */}
         {activeTab === 'Security' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Security <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Security <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* First Row - Session Timeout and Minimum Password Length */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 mt-8">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Session Timeout (minutes)
                 </label>
                 <div className="relative">
@@ -1040,21 +1040,21 @@ const EcommerceSettings = () => {
                     type="text"
                     value={securityData.sessionTimeout}
                     onChange={(e) => handleSecurityInputChange('sessionTimeout', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="10"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Minimum Password Length
                 </label>
                 <input
                   type="text"
                   value={securityData.minimumPasswordLength}
                   onChange={(e) => handleSecurityInputChange('minimumPasswordLength', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="10"
                 />
               </div>
@@ -1075,7 +1075,7 @@ const EcommerceSettings = () => {
                       }`}
                     />
                   </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Auto Confirm Orders</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Auto Confirm Orders</span>
               </div>
             </div>
 
@@ -1089,7 +1089,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -1099,9 +1099,9 @@ const EcommerceSettings = () => {
 
         {/* Commissions Tab Content */}
         {activeTab === 'Commisions' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Commissions <span className="text-gray-500 dark:text-gray-400 font-normal text-base">(Optional)</span>
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Commissions <span className="text-gray-500 font-normal text-base">(Optional)</span>
             </h2>
 
             {/* Enable Commission System Toggle */}
@@ -1119,14 +1119,14 @@ const EcommerceSettings = () => {
                     }`}
                   />
                 </button>
-                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-200">Enable Commission System</span>
+                <span className="ml-3 text-sm font-medium text-gray-900">Enable Commission System</span>
               </div>
             </div>
 
             {/* Vendor Commission Rate and Platform Fee */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Vendor Commission Rate (%)
                 </label>
                 <div className="relative">
@@ -1134,21 +1134,21 @@ const EcommerceSettings = () => {
                     type="text"
                     value={commissionData.vendorCommissionRate}
                     onChange={(e) => handleCommissionInputChange('vendorCommissionRate', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="10"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Platform Fee (%)
                 </label>
                 <input
                   type="text"
                   value={commissionData.platformFee}
                   onChange={(e) => handleCommissionInputChange('platformFee', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="2"
                 />
               </div>
@@ -1164,7 +1164,7 @@ const EcommerceSettings = () => {
               </button>
               <button
                 onClick={handleReset}
-                className="px-12 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
+                className="px-12 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 font-medium rounded-md border border-gray-300 dark:border-gray-600 transition-colors"
               >
                 Reset
               </button>

@@ -64,10 +64,10 @@ export default function AdminDamage() {
 
   if (!can('INVENTORY', 'READ', 'DAMAGE')) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mt-8">
+      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm mt-8">
         <Ban size={48} className="text-gray-300 mb-4" />
         <h2 className="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Access Denied</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-1 font-bold text-sm">You do not have permission to view Damage management.</p>
+        <p className="text-gray-500 mt-1 font-bold text-sm">You do not have permission to view Damage management.</p>
         <button
           onClick={() => window.history.back()}
           className="mt-6 px-6 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all"
@@ -428,9 +428,9 @@ export default function AdminDamage() {
         { label: 'Approved Status', value: stats.approved, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
         { label: 'Total Loss (₹)', value: `₹${stats.totalLoss.toLocaleString()}`, icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30' }
       ].map((s, i) => (
-        <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex items-center justify-between">
+        <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{s.label}</p>
+            <p className="text-xs text-gray-500 font-medium">{s.label}</p>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{s.value}</h3>
           </div>
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${s.bg} ${s.color}`}>
@@ -456,14 +456,14 @@ export default function AdminDamage() {
               placeholder="Search product, agent, ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
           <div className="flex gap-2">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-xs font-semibold text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-xs font-semibold text-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
               <option value="">All Status</option>
               <option value="PENDING">Pending</option>
@@ -474,7 +474,7 @@ export default function AdminDamage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">All Types</option>
               <option value="DAMAGED">Damaged</option>
@@ -491,16 +491,16 @@ export default function AdminDamage() {
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent" />
         </div>
       ) : filteredEntries.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <AlertTriangle size={40} className="text-gray-300 mx-auto mb-3" />
           <p className="text-gray-400 font-medium">No damage entries found</p>
         </div>
       ) : (
         <>
           {/* Desktop Table */}
-          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-xl shadow-slate-200/50">
+          <div className="hidden md:block bg-white rounded-lg border border-gray-200 overflow-hidden shadow-xl shadow-slate-200/50">
             <table className="w-full text-sm border-collapse">
-              <thead className="bg-gray-50 dark:bg-gray-900/50/50 border-b border-gray-200 dark:border-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900/50/50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-gray-400 min-w-[180px]">ID / Date</th>
                   <th className="text-left px-4 py-4 text-[9px] font-bold uppercase tracking-widest text-gray-400">Damage / Location</th>
@@ -531,7 +531,7 @@ export default function AdminDamage() {
                           <Wrench size={18} />
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-800 dark:text-gray-200">{entry.title || 'Unknown Damage'}</span>
+                          <span className="font-bold text-slate-800">{entry.title || 'Unknown Damage'}</span>
                           <span className="text-[10px] text-slate-400">Location: {entry.location || 'N/A'}</span>
                         </div>
                       </div>
@@ -539,13 +539,13 @@ export default function AdminDamage() {
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <Truck size={14} className="text-gray-400" />
-                        <span className="text-xs font-semibold text-slate-600 dark:text-gray-300">
+                        <span className="text-xs font-semibold text-slate-600">
                           {entry.vehicle?.vehicleNumber || 'N/A'}
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="text-xs font-semibold text-slate-600 dark:text-gray-300">
+                      <span className="text-xs font-semibold text-slate-600">
                         {entry.severity || 'N/A'}
                       </span>
                     </td>
@@ -559,7 +559,7 @@ export default function AdminDamage() {
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => openDetail(entry)}
-                          className="p-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 hover:text-emerald-600 hover:bg-white dark:bg-gray-800 hover:shadow-md transition-all"
+                          className="p-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 hover:text-emerald-600 hover:bg-white hover:shadow-md transition-all"
                           title="View Details"
                         >
                           <Eye size={16} />
@@ -575,7 +575,7 @@ export default function AdminDamage() {
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
             {filteredEntries.map(entry => (
-              <div key={entry.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm" onClick={() => openDetail(entry)}>
+              <div key={entry.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm" onClick={() => openDetail(entry)}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center border border-emerald-100 dark:border-emerald-900 text-emerald-600">
@@ -590,14 +590,14 @@ export default function AdminDamage() {
                 </div>
                 <div className="flex items-center gap-3 text-xs">
                   {renderTypeBadge(entry.damageType)}
-                  <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1">
+                  <span className="text-gray-500 font-medium flex items-center gap-1">
                     <Truck size={12} /> {entry.vehicle?.vehicleNumber || 'N/A'}
                   </span>
                   <span className="ml-auto font-bold text-red-600">₹{(entry.estimatedCost || 0).toFixed(0)}</span>
                 </div>
                 {entry.images?.length > 0 && (
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <button onClick={(e) => { e.stopPropagation(); setShowImageModal(entry.images); }} className="py-2 px-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs font-bold hover:bg-gray-100 transition-colors">
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+                    <button onClick={(e) => { e.stopPropagation(); setShowImageModal(entry.images); }} className="py-2 px-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 text-xs font-bold hover:bg-gray-100 transition-colors">
                       <ImageIcon size={14} />
                     </button>
                   </div>
@@ -614,14 +614,14 @@ export default function AdminDamage() {
   const renderDeductions = () => (
     <div>
       {deductions.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <DollarSign size={40} className="text-gray-300 mx-auto mb-3" />
           <p className="text-gray-400 font-medium">No deductions found</p>
         </div>
       ) : (
         <div className="space-y-3">
           {deductions.map(d => (
-            <div key={d.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+            <div key={d.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">{d.user?.name}</p>
@@ -629,18 +629,18 @@ export default function AdminDamage() {
                     {d.damageEntry?.product?.name} · Month: {d.month}
                   </p>
                 </div>
-                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${d.status === 'APPLIED' ? 'bg-emerald-50 text-emerald-600' : d.status === 'DISPUTED' ? 'bg-red-50 text-red-600' : d.status === 'CANCELLED' ? 'bg-gray-100 text-gray-500 dark:text-gray-400' : 'bg-amber-50 text-amber-600'}`}>
+                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${d.status === 'APPLIED' ? 'bg-emerald-50 text-emerald-600' : d.status === 'DISPUTED' ? 'bg-red-50 text-red-600' : d.status === 'CANCELLED' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-600'}`}>
                   {d.status}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-3 mb-3">
                 <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 text-center">
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Mode</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{d.mode}</p>
+                  <p className="text-sm font-bold text-gray-800">{d.mode}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 text-center">
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Percentage</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{d.percentage || 0}%</p>
+                  <p className="text-sm font-bold text-gray-800">{d.percentage || 0}%</p>
                 </div>
                 <div className="bg-red-50 rounded-xl p-3 text-center">
                   <p className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Amount</p>
@@ -648,11 +648,11 @@ export default function AdminDamage() {
                 </div>
               </div>
               {can('INVENTORY', 'UPDATE', 'DAMAGE') && d.status === 'PENDING' && (
-                <div className="flex gap-2 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex gap-2 mt-2 pt-2 border-t border-gray-200">
                   <button onClick={() => handleDeductionStatusChange(d.id, 'APPLIED')} className="flex-1 py-2 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-bold hover:bg-emerald-100 flex items-center justify-center gap-2">
                     <CheckCircle size={14} /> Apply to Payroll
                   </button>
-                  <button onClick={() => handleDeductionStatusChange(d.id, 'CANCELLED')} className="flex-1 py-2 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs font-bold hover:bg-gray-100">
+                  <button onClick={() => handleDeductionStatusChange(d.id, 'CANCELLED')} className="flex-1 py-2 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 text-xs font-bold hover:bg-gray-100">
                     Cancel
                   </button>
                 </div>
@@ -689,7 +689,7 @@ export default function AdminDamage() {
             { label: 'Total Deductions', value: `₹${summary.totalDeductions?.toFixed(0) || 0}`, icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
             { label: 'Recovery Rate', value: summary.totalLoss > 0 ? `${((summary.appliedDeductions / summary.totalLoss) * 100).toFixed(0)}%` : '0%', icon: Percent, color: 'text-emerald-600', bg: 'bg-emerald-50' }
           ].map((s, i) => (
-            <div key={i} className={`${s.bg} rounded-lg p-4 border border-gray-200 dark:border-gray-700`}>
+            <div key={i} className={`${s.bg} rounded-lg p-4 border border-gray-200`}>
               <div className="flex items-center gap-2 mb-2">
                 <s.icon size={16} className={s.color} />
                 <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{s.label}</span>
@@ -700,7 +700,7 @@ export default function AdminDamage() {
         </div>
 
         {/* Loss by Type */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
           <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2 align-bottom">
             <BarChart3 size={14} className="text-gray-300" /> Loss by Damage Type
           </h3>
@@ -709,7 +709,7 @@ export default function AdminDamage() {
               const c = DAMAGE_TYPE_COLORS[type] || DAMAGE_TYPE_COLORS.DAMAGED;
               return (
                 <div key={type} className={`${c.bg} border ${c.border} rounded-xl p-3`}>
-                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-1.5"><c.icon size={12} className={c.text} /> {type}</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1.5"><c.icon size={12} className={c.text} /> {type}</p>
                   <p className={`text-lg font-bold ${c.text}`}>₹{data.loss?.toFixed(0)}</p>
                   <p className="text-[10px] text-gray-400">{data.count} entries</p>
                 </div>
@@ -719,7 +719,7 @@ export default function AdminDamage() {
         </div>
 
         {/* Top Damaged Products */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
           <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
             <TrendingDown size={14} className="text-red-300" /> Top Damaged Products
           </h3>
@@ -729,7 +729,7 @@ export default function AdminDamage() {
                 <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-bold text-gray-400 w-6">#{i + 1}</span>
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{p.name}</span>
+                    <span className="text-sm font-bold text-gray-800">{p.name}</span>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-red-600">₹{p.loss?.toFixed(0)}</p>
@@ -744,7 +744,7 @@ export default function AdminDamage() {
         </div>
 
         {/* VGE Accountability */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
           <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">👤 VGE Accountability Report</h3>
           {vgeReport?.length > 0 ? (
             <div className="overflow-x-auto">
@@ -760,9 +760,9 @@ export default function AdminDamage() {
                 <tbody className="divide-y divide-gray-50">
                   {vgeReport.map((v, i) => (
                     <tr key={i} className="hover:bg-gray-50 dark:bg-gray-900/50">
-                      <td className="px-3 py-2 font-medium text-gray-800 dark:text-gray-200">{v.name}</td>
-                      <td className="px-3 py-2 text-center text-gray-600 dark:text-gray-400">{v.count}</td>
-                      <td className="px-3 py-2 text-center text-gray-600 dark:text-gray-400">{v.totalDamage}</td>
+                      <td className="px-3 py-2 font-medium text-gray-800">{v.name}</td>
+                      <td className="px-3 py-2 text-center text-gray-600">{v.count}</td>
+                      <td className="px-3 py-2 text-center text-gray-600">{v.totalDamage}</td>
                       <td className="px-3 py-2 text-right font-bold text-red-600">₹{v.totalLoss?.toFixed(0)}</td>
                     </tr>
                   ))}
@@ -775,7 +775,7 @@ export default function AdminDamage() {
         </div>
 
         {/* Payroll Deduction Report */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 shadow-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
           <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
             <Coins size={14} className="text-emerald-300" /> Payroll Deduction Report
           </h3>
@@ -793,8 +793,8 @@ export default function AdminDamage() {
                 <tbody className="divide-y divide-gray-50">
                   {payrollReport.map((p, i) => (
                     <tr key={i} className="hover:bg-gray-50 dark:bg-gray-900/50">
-                      <td className="px-3 py-2 font-medium text-gray-800 dark:text-gray-200">{p.name}</td>
-                      <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">₹{p.baseSalary?.toFixed(0)}</td>
+                      <td className="px-3 py-2 font-medium text-gray-800">{p.name}</td>
+                      <td className="px-3 py-2 text-right text-gray-600">₹{p.baseSalary?.toFixed(0)}</td>
                       <td className="px-3 py-2 text-right font-bold text-red-600">-₹{p.totalDeduction?.toFixed(0)}</td>
                       <td className="px-3 py-2 text-right font-bold text-emerald-600">₹{p.netSalary?.toFixed(0)}</td>
                     </tr>
@@ -819,7 +819,7 @@ export default function AdminDamage() {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setShowCreatePage(false)}
-            className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-sm transition-all hover:bg-gray-50 dark:bg-gray-900/50"
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-white border border-gray-200 bg-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-sm transition-all hover:bg-gray-50 dark:bg-gray-900/50"
           >
             <ArrowLeft size={16} /> Cancel & Back
           </button>
@@ -831,7 +831,7 @@ export default function AdminDamage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mx-auto max-w-2xl overflow-visible">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mx-auto max-w-2xl overflow-visible">
           <div className="p-8 md:p-10 space-y-8">
             <form onSubmit={handleCreateSubmit} className="space-y-6">
               <div className="space-y-2 relative">
@@ -847,7 +847,7 @@ export default function AdminDamage() {
                       setVehicleSearch(e.target.value);
                       if (createData.vehicleId) setCreateData({ ...createData, vehicleId: '' });
                     }}
-                    className="w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold focus:bg-white dark:bg-gray-800 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+                    className="w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg text-sm font-bold focus:bg-white focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
                   />
                   {(vehicleSearch || createData.vehicleId) && (
                     <button
@@ -859,7 +859,7 @@ export default function AdminDamage() {
                     </button>
                   )}
                   {vehicleSearch && !createData.vehicleId && (
-                    <div className="absolute z-[100] left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl max-h-64 overflow-y-auto scrollbar-thin">
+                    <div className="absolute z-[100] left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto scrollbar-thin">
                       {vehicles
                         .filter(v =>
                           v.vehicleNumber?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
@@ -871,14 +871,14 @@ export default function AdminDamage() {
                             key={v.id}
                             type="button"
                             onClick={() => { setCreateData({ ...createData, vehicleId: v.id }); setVehicleSearch(v.vehicleNumber); }}
-                            className="w-full px-5 py-4 text-left hover:bg-red-50 dark:hover:bg-gray-700/50 flex items-center justify-between border-b border-gray-100 dark:border-gray-700 last:border-0 transition-colors"
+                            className="w-full px-5 py-4 text-left hover:bg-red-50 flex items-center justify-between border-b border-gray-100 last:border-0 transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center border border-red-100 dark:border-red-900 text-red-600">
                                 <Truck size={18} />
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-tight">{v.vehicleNumber}</span>
+                                <span className="text-xs font-bold text-gray-800 uppercase tracking-tight">{v.vehicleNumber}</span>
                                 <span className="text-[10px] font-bold text-gray-400">{v.vehicleName || 'No Name'}</span>
                               </div>
                             </div>
@@ -906,7 +906,7 @@ export default function AdminDamage() {
 
               {createData.vehicleId && (
                 <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 flex items-center gap-4 animate-in slide-in-from-top-2">
-                  <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center border border-emerald-100 shadow-sm overflow-hidden">
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-emerald-100 shadow-sm overflow-hidden">
                     <Truck size={20} className="text-emerald-500" />
                   </div>
                   <div className="flex-1">
@@ -931,7 +931,7 @@ export default function AdminDamage() {
                   required
                   value={createData.title}
                   onChange={(e) => setCreateData({ ...createData, title: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white dark:bg-gray-800 outline-none"
+                  className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white outline-none"
                   placeholder="e.g. Front bumper dent"
                 />
               </div>
@@ -942,7 +942,7 @@ export default function AdminDamage() {
                   <select
                     value={createData.damageType}
                     onChange={(e) => setCreateData({ ...createData, damageType: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white dark:bg-gray-800 outline-none appearance-none cursor-pointer"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white outline-none appearance-none cursor-pointer"
                   >
                     {VEHICLE_DAMAGE_TYPES.map(t => (
                       <option key={t} value={t}>{t}</option>
@@ -954,7 +954,7 @@ export default function AdminDamage() {
                   <select
                     value={createData.severity}
                     onChange={(e) => setCreateData({ ...createData, severity: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white dark:bg-gray-800 outline-none appearance-none cursor-pointer"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white outline-none appearance-none cursor-pointer"
                   >
                     {VEHICLE_SEVERITIES.map(s => (
                       <option key={s} value={s}>{s}</option>
@@ -969,7 +969,7 @@ export default function AdminDamage() {
                   <select
                     value={createData.location}
                     onChange={(e) => setCreateData({ ...createData, location: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white dark:bg-gray-800 outline-none appearance-none cursor-pointer"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white outline-none appearance-none cursor-pointer"
                   >
                     <option value="">Select Location...</option>
                     {VEHICLE_LOCATIONS.map(l => (
@@ -983,7 +983,7 @@ export default function AdminDamage() {
                     type="number"
                     value={createData.estimatedCost}
                     onChange={(e) => setCreateData({ ...createData, estimatedCost: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white dark:bg-gray-800 outline-none"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white outline-none"
                     placeholder="₹0"
                   />
                 </div>
@@ -995,7 +995,7 @@ export default function AdminDamage() {
                   type="number"
                   value={createData.odometerReading}
                   onChange={(e) => setCreateData({ ...createData, odometerReading: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white dark:bg-gray-800 outline-none"
+                  className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white outline-none"
                   placeholder="e.g. 45000"
                 />
               </div>
@@ -1005,7 +1005,7 @@ export default function AdminDamage() {
                 <textarea
                   value={createData.description}
                   onChange={(e) => setCreateData({ ...createData, description: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white dark:bg-gray-800 outline-none h-24 resize-none"
+                  className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-5 py-4 text-sm font-bold focus:bg-white outline-none h-24 resize-none"
                   placeholder="Provide details about the damage..."
                 />
               </div>
@@ -1014,19 +1014,19 @@ export default function AdminDamage() {
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Evidence Photos (Max 4)</label>
                 <div className="flex flex-wrap gap-3">
                   {createPreviews.map((p, i) => (
-                    <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
+                    <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 group shadow-sm">
                       <img src={p} alt="" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 bg-white dark:bg-gray-800/90 backdrop-blur p-1 rounded-lg text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                        className="absolute top-1 right-1 bg-white/90 backdrop-blur p-1 rounded-lg text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
                       >
                         <Trash size={12} />
                       </button>
                     </div>
                   ))}
                   {createData.images.length < 4 && (
-                    <label className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center text-gray-300 hover:border-red-400 hover:text-red-500 cursor-pointer transition-all hover:bg-red-50/50">
+                    <label className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300 hover:border-red-400 hover:text-red-500 cursor-pointer transition-all hover:bg-red-50/50">
                       <Camera size={20} />
                       <span className="text-[8px] font-bold uppercase mt-1">Upload</span>
                       <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -1058,12 +1058,12 @@ export default function AdminDamage() {
     return (
       <div className="w-full space-y-4 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => setShowDetailModal(false)} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-sm transition-all hover:bg-gray-50 dark:bg-gray-900/50">
+          <button onClick={() => setShowDetailModal(false)} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-white border border-gray-200 bg-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-sm transition-all hover:bg-gray-50 dark:bg-gray-900/50">
             <ArrowLeft size={16} /> Back to List
           </button>
           <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Damage Details</h2>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mx-auto max-w-4xl overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mx-auto max-w-4xl overflow-hidden">
           <div className="p-6 md:p-8 space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -1086,15 +1086,15 @@ export default function AdminDamage() {
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-3">
-                <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                <div className="text-center p-2 bg-white rounded-lg">
                   <p className="text-[9px] font-bold text-gray-400 uppercase">Severity</p>
                   <p className="text-xs font-bold text-gray-900 dark:text-white mt-1">{e.severity}</p>
                 </div>
-                <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                <div className="text-center p-2 bg-white rounded-lg">
                   <p className="text-[9px] font-bold text-gray-400 uppercase">Vehicle</p>
                   <p className="text-xs font-bold text-gray-900 dark:text-white mt-1">{e.vehicle?.vehicleNumber || 'N/A'}</p>
                 </div>
-                <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                <div className="text-center p-2 bg-white rounded-lg">
                   <p className="text-[9px] font-bold text-gray-400 uppercase">Type</p>
                   <p className="text-xs font-bold text-gray-900 dark:text-white mt-1">{e.damageType}</p>
                 </div>
@@ -1129,7 +1129,7 @@ export default function AdminDamage() {
                       key={i}
                       src={img}
                       alt={`Damage ${i + 1}`}
-                      className="rounded-xl object-cover aspect-square border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-80"
+                      className="rounded-xl object-cover aspect-square border border-gray-200 cursor-pointer hover:opacity-80"
                       onClick={() => setShowImageModal([img])}
                     />
                   ))}
@@ -1148,12 +1148,12 @@ export default function AdminDamage() {
     return (
       <div className="w-full space-y-4 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => setShowReviewModal(false)} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-sm transition-all hover:bg-gray-50 dark:bg-gray-900/50">
+          <button onClick={() => setShowReviewModal(false)} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-white border border-gray-200 bg-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-sm transition-all hover:bg-gray-50 dark:bg-gray-900/50">
             <ArrowLeft size={16} /> Back
           </button>
           <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Review Damage</h2>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mx-auto max-w-2xl overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mx-auto max-w-2xl overflow-hidden">
           <div className="p-6 md:p-8 space-y-6">
             {/* Entry summary */}
             <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3">
@@ -1174,7 +1174,7 @@ export default function AdminDamage() {
                   <button
                     key={a.val}
                     onClick={() => setReviewAction(a.val)}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${reviewAction === a.val ? `border-${a.color}-500 bg-${a.color}-50 text-${a.color}-600` : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:border-gray-300'}`}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${reviewAction === a.val ? `border-${a.color}-500 bg-${a.color}-50 text-${a.color}-600` : 'border-gray-200 text-gray-400 hover:border-gray-300'}`}
                   >
                     <a.icon size={20} />
                     <span className="text-[10px] font-bold uppercase">{a.label}</span>
@@ -1189,7 +1189,7 @@ export default function AdminDamage() {
               <select
                 value={adminResponsibility}
                 onChange={(e) => setAdminResponsibility(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">Select Responsibility</option>
                 <option value="VGE_RESPONSIBLE">VGE Responsible</option>
@@ -1207,7 +1207,7 @@ export default function AdminDamage() {
                 value={adminRemarks}
                 onChange={(e) => setAdminRemarks(e.target.value)}
                 placeholder="Optional admin remarks..."
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -1233,12 +1233,12 @@ export default function AdminDamage() {
     return (
       <div className="w-full space-y-4 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => setShowDeductionModal(false)} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-sm transition-all hover:bg-gray-50 dark:bg-gray-900/50">
+          <button onClick={() => setShowDeductionModal(false)} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-white border border-gray-200 bg-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-sm transition-all hover:bg-gray-50 dark:bg-gray-900/50">
             <ArrowLeft size={16} /> Back
           </button>
           <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Apply Deduction</h2>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mx-auto max-w-2xl overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mx-auto max-w-2xl overflow-hidden">
           <div className="p-6 md:p-8 space-y-6">
             {/* Loss Info */}
             <div className="bg-red-50 rounded-xl p-4 border border-red-200">
@@ -1249,7 +1249,7 @@ export default function AdminDamage() {
                 </div>
                 <div className="text-right">
                   <p className="text-[9px] font-bold text-gray-400 uppercase">Product</p>
-                  <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{selectedEntry.product?.name || 'Unknown Product'}</p>
+                  <p className="text-sm font-bold text-gray-700">{selectedEntry.product?.name || 'Unknown Product'}</p>
                   <p className="text-xs text-gray-400">Qty: {selectedEntry.quantity || 0} · {selectedEntry.vehicle?.vehicleNumber || 'Store Stock'}</p>
                 </div>
               </div>
@@ -1267,7 +1267,7 @@ export default function AdminDamage() {
                   <button
                     key={m.val}
                     onClick={() => setDeductionMode(m.val)}
-                    className={`p-3 rounded-xl border-2 text-center transition-all ${deductionMode === m.val ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${deductionMode === m.val ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'}`}
                   >
                     <p className="text-sm font-bold text-gray-900 dark:text-white">{m.label}</p>
                     <p className="text-[10px] text-gray-400">{m.desc}</p>
@@ -1286,7 +1286,7 @@ export default function AdminDamage() {
                   max="100"
                   value={deductionPercentage}
                   onChange={(e) => setDeductionPercentage(Math.min(100, Math.max(1, parseInt(e.target.value) || 0)))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             )}
@@ -1304,7 +1304,7 @@ export default function AdminDamage() {
                 value={deductionRemarks}
                 onChange={(e) => setDeductionRemarks(e.target.value)}
                 placeholder="Optional deduction remarks..."
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -1365,7 +1365,7 @@ export default function AdminDamage() {
                 window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
                 window.location.reload(); // Force reload to trigger useEffects with new storeId
               }}
-              className="group w-full bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-2xl hover:border-red-200 transition-all duration-500 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden"
+              className="group w-full bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-2xl hover:border-red-200 transition-all duration-500 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden"
             >
               <div className="absolute right-0 top-0 w-32 h-32 bg-red-50 rounded-full -mr-16 -mt-16 group-hover:bg-red-100 transition-all duration-500 opacity-50" />
 
@@ -1391,7 +1391,7 @@ export default function AdminDamage() {
           ))}
 
           {stores.length === 0 && !loadingStores && (
-            <div className="py-20 text-center bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
+            <div className="py-20 text-center bg-white rounded-lg border-2 border-dashed border-gray-200">
               <Building2 size={64} className="mx-auto text-gray-200 mb-4" />
               <p className="text-lg font-bold text-gray-400 uppercase tracking-widest">No Branches Configured</p>
               <p className="text-sm text-gray-300 mt-2">Add your first store in Settings to start tracking.</p>
@@ -1457,7 +1457,7 @@ export default function AdminDamage() {
                   window.history.replaceState({}, '', window.location.pathname);
                   window.location.reload();
                 }}
-                className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-400 hover:text-red-600 hover:border-red-100 transition-all shadow-sm active:scale-90"
+                className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-red-600 hover:border-red-100 transition-all shadow-sm active:scale-90"
                 title="Back to All Branches"
               >
                 <ChevronLeft size={18} />
@@ -1497,14 +1497,14 @@ export default function AdminDamage() {
             <div className="ml-auto flex items-center gap-2 no-print">
               <button
                 onClick={handleExportPDF}
-                className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all shadow-sm"
+                className="p-2.5 bg-white border border-gray-200 rounded-xl text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all shadow-sm"
                 title="Export PDF"
               >
                 <FileText size={18} />
               </button>
               <button
                 onClick={handlePrint}
-                className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-blue-500 hover:bg-blue-50 hover:border-blue-100 transition-all shadow-sm"
+                className="p-2.5 bg-white border border-gray-200 rounded-xl text-blue-500 hover:bg-blue-50 hover:border-blue-100 transition-all shadow-sm"
                 title="Print Report"
               >
                 <Printer size={18} />
@@ -1530,13 +1530,13 @@ export default function AdminDamage() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden w-full md:w-1/2 mt-4">
-        <div className="flex w-full border-b border-gray-200 dark:border-gray-700 overflow-x-auto tabs-scrollbar">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden w-full md:w-1/2 mt-4">
+        <div className="flex w-full border-b border-gray-200 overflow-x-auto tabs-scrollbar">
           {TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors relative flex items-center justify-center gap-2 ${activeTab === tab.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}
+              className={`flex-1 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors relative flex items-center justify-center gap-2 ${activeTab === tab.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 hover:text-gray-900 dark:hover:text-gray-200'}`}
             >
               <tab.icon size={16} />
               <span>{tab.label}</span>

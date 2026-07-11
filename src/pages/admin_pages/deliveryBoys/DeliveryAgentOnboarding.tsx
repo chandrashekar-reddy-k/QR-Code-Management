@@ -77,7 +77,7 @@ const YEAR_OF_PASSING_OPTIONS = [
 ];
 
 const STEP3_CARD =
-  "rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md p-4 sm:p-6";
+  "rounded-lg border border-gray-200 bg-white shadow-md p-4 sm:p-6";
 
 /** Same field layout as Add Delivery Agent (deliveryBoys) — composed into API line1 + city/state/pincode */
 type DetailedAddressForm = {
@@ -352,7 +352,7 @@ function toDateInputValue(value?: string | null): string {
 function FilePreview({ url, label }: { url: string; label: string }) {
   const [isError, setIsError] = useState(false);
   return (
-    <div className="mt-2 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2">
+    <div className="mt-2 rounded border border-gray-200 bg-white dark:bg-gray-900 p-2">
       {!isError ? (
         <img
           src={url}
@@ -1537,7 +1537,7 @@ const DeliveryAgentOnboarding = () => {
 
   if (isEditMode && isEditLoading && !hasPrefilledRef.current) {
     return (
-      <div className="w-full px-3 py-8 text-sm text-gray-600 dark:text-gray-300">
+      <div className="w-full px-3 py-8 text-sm text-gray-600">
         Loading delivery agent details...
       </div>
     );
@@ -1546,7 +1546,7 @@ const DeliveryAgentOnboarding = () => {
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-8">
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditMode ? "Edit Delivery Agent" : "Add Delivery Agent"}
         </h1>
         <BackButton to="/delivery-boys/manage" />
@@ -1555,14 +1555,14 @@ const DeliveryAgentOnboarding = () => {
         <Breadcrumbs />
       </div>
 
-      <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="w-full bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         {/* Progress indicator — same pattern as Add Delivery Agent */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+            <h2 className="text-lg font-bold text-gray-800">
               {isEditMode ? "Edit Delivery Agent" : "Add Delivery Agent"}
             </h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+            <span className="text-xs text-gray-500 shrink-0">
               Step {step} of {totalSteps}
             </span>
           </div>
@@ -1583,7 +1583,7 @@ const DeliveryAgentOnboarding = () => {
                       ? "bg-green-600 text-white"
                       : isStepCompleted(stepNum)
                         ? "bg-green-500 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                        : "bg-gray-200 text-gray-600"
                       }`}
                   >
                     {isStepCompleted(stepNum) ? (
@@ -1597,7 +1597,7 @@ const DeliveryAgentOnboarding = () => {
                       ? "text-green-600 dark:text-green-400"
                       : isStepCompleted(stepNum)
                         ? "text-green-500 dark:text-green-400"
-                        : "text-gray-500 dark:text-gray-400"
+                        : "text-gray-500"
                       }`}
                   >
                     {stepNum === 1 && "Personal Info"}
@@ -1608,11 +1608,11 @@ const DeliveryAgentOnboarding = () => {
                   </span>
                 </button>
                 {stepNum < totalSteps && (
-                  <div className="flex-1 h-0.5 mx-1 sm:mx-2 bg-gray-200 dark:bg-gray-700 min-w-[8px]">
+                  <div className="flex-1 h-0.5 mx-1 sm:mx-2 bg-gray-200 min-w-[8px]">
                     <div
                       className={`h-full transition-all ${stepNum < step
                         ? "bg-green-500"
-                        : "bg-gray-200 dark:bg-gray-700"
+                        : "bg-gray-200"
                         }`}
                       style={{
                         width: stepNum < step ? "100%" : "0%",
@@ -1627,12 +1627,12 @@ const DeliveryAgentOnboarding = () => {
 
         {step === 1 && (
           <div>
-            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
               <User
                 size={16}
                 className="text-green-600 dark:text-green-400 shrink-0"
               />
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <h3 className="text-sm font-semibold text-gray-800">
                 Step 1: Personal Information
               </h3>
               {isStepCompleted(1) && (
@@ -1689,7 +1689,7 @@ const DeliveryAgentOnboarding = () => {
                     required
                     error={errors.dob}
                   />
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-[10px] text-gray-500 mt-1">
                     dd-mm-yyyy
                   </p>
                 </div>
@@ -1762,12 +1762,12 @@ const DeliveryAgentOnboarding = () => {
 
         {step === 2 && (
           <div>
-            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
               <MapPin
                 size={16}
                 className="text-green-600 dark:text-green-400 shrink-0"
               />
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <h3 className="text-sm font-semibold text-gray-800">
                 Step 2: Address Information
               </h3>
               {isStepCompleted(2) && (
@@ -1875,7 +1875,7 @@ const DeliveryAgentOnboarding = () => {
 
             <FormSectionWithDots title="Communication Address">
               <div className="mb-4">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-xs font-medium text-gray-700">
                   <span className="inline-flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -2016,12 +2016,12 @@ const DeliveryAgentOnboarding = () => {
 
         {step === 3 && (
           <div className="space-y-8">
-            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
               <GraduationCap
                 size={16}
                 className="text-green-600 dark:text-green-400 shrink-0"
               />
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <h3 className="text-sm font-semibold text-gray-800">
                 Step 3: Education & Experience
               </h3>
               {isStepCompleted(3) && (
@@ -2035,7 +2035,7 @@ const DeliveryAgentOnboarding = () => {
             {/* ================= EDUCATION ================= */}
             <div>
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <h4 className="text-sm font-semibold text-gray-900">
                   Education Details
                 </h4>
                 <div className="mt-1 border-t border-dashed border-gray-300 dark:border-gray-600" />
@@ -2126,18 +2126,18 @@ const DeliveryAgentOnboarding = () => {
             {/* ================= EXPERIENCE ================= */}
             <div>
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <h4 className="text-sm font-semibold text-gray-900">
                   Experience Details
                 </h4>
               </div>
 
               <div className={STEP3_CARD}>
-                <p className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <p className="block text-xs font-medium text-gray-700 mb-2">
                   Do you have work experience?
                 </p>
 
                 <div className="flex gap-4">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
                     <input
                       type="radio"
                       value="yes"
@@ -2147,7 +2147,7 @@ const DeliveryAgentOnboarding = () => {
                     Yes
                   </label>
 
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
                     <input
                       type="radio"
                       value="no"
@@ -2255,14 +2255,14 @@ const DeliveryAgentOnboarding = () => {
             {hasExperience === "yes" && (
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-gray-700 mb-2">
                   Upload last 6 months pay slips (images or PDF)
                 </label>
 
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${isDraggingPaySlips
                     ? "border-[#00891D] dark:border-green-500 bg-green-50/50 dark:bg-green-900/20"
-                    : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:border-gray-400 dark:hover:border-gray-500"
+                    : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                     } ${errors.paySlips ? "border-red-500" : ""}`}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -2302,10 +2302,10 @@ const DeliveryAgentOnboarding = () => {
                       <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#00891D] rounded-full flex items-center justify-center mb-3">
                         <Upload size={24} className="text-white" />
                       </div>
-                      <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                      <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                         Drag and Drop or Choose file to upload
                       </p>
-                      <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-[10px] sm:text-xs text-gray-600">
                         supported formats PNG, JPEG, PDF
                       </p>
                     </div>
@@ -2329,7 +2329,7 @@ const DeliveryAgentOnboarding = () => {
                     {existingPaySlipUrls.map((url, idx) => (
                       <div
                         key={`existing-${idx}`}
-                        className="flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-gray-800/80 rounded px-2 py-2"
+                        className="flex items-center justify-between gap-2 text-xs bg-gray-50/80 rounded px-2 py-2"
                       >
                         <a
                           href={url}
@@ -2357,9 +2357,9 @@ const DeliveryAgentOnboarding = () => {
                     {paySlipFiles.map((f, idx) => (
                       <div
                         key={`new-${idx}`}
-                        className="flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-gray-800/80 rounded px-2 py-2"
+                        className="flex items-center justify-between gap-2 text-xs bg-gray-50/80 rounded px-2 py-2"
                       >
-                        <span className="truncate text-gray-700 dark:text-gray-300">
+                        <span className="truncate text-gray-700">
                           {f.name}
                         </span>
                         <button
@@ -2385,12 +2385,12 @@ const DeliveryAgentOnboarding = () => {
 
         {step === 4 && (
           <div className="w-full space-y-8">
-            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
               <FileText
                 size={16}
                 className="text-green-600 dark:text-green-400 shrink-0"
               />
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <h3 className="text-sm font-semibold text-gray-800">
                 Step 4: Documents
               </h3>
               {isStepCompleted(4) && (
@@ -2401,7 +2401,7 @@ const DeliveryAgentOnboarding = () => {
               )}
             </div>
 
-            <p className="text-xs text-gray-500 dark:text-gray-400 -mt-4 mb-2">
+            <p className="text-xs text-gray-500 -mt-4 mb-2">
               Each file is uploaded immediately using the same image upload API
               as products. All four documents are required to continue.
             </p>
@@ -2412,7 +2412,7 @@ const DeliveryAgentOnboarding = () => {
               return (
                 <div key={slot.id} className="w-full">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                    <span className="text-xs font-medium text-gray-800">
                       {slot.label}
                     </span>
 
@@ -2428,7 +2428,7 @@ const DeliveryAgentOnboarding = () => {
                   <div
                     className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${draggingStep4Id === slot.id
                       ? "border-[#00891D] dark:border-green-500 bg-green-50/50 dark:bg-green-900/20"
-                      : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:border-gray-400 dark:hover:border-gray-500"
+                      : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                       } ${slot.uploading ? "opacity-70 pointer-events-none" : ""} ${errorMsg ? "border-red-500" : ""
                       }`} // ✅ red border if error
                     onDragOver={(e) => {
@@ -2471,13 +2471,13 @@ const DeliveryAgentOnboarding = () => {
                           )}
                         </div>
 
-                        <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                        <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                           {slot.uploading
                             ? "Uploading…"
                             : "Drag and Drop or Choose file to upload"}
                         </p>
 
-                        <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-[10px] sm:text-xs text-gray-600">
                           supported formats PNG, JPEG, PDF
                         </p>
                       </div>
@@ -2491,8 +2491,8 @@ const DeliveryAgentOnboarding = () => {
 
                   {/* File Name */}
                   {slot.fileName && slot.fileUrl && !slot.uploading && (
-                    <div className="mt-2 flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-gray-800/80 rounded px-2 py-2">
-                      <span className="truncate text-gray-700 dark:text-gray-300">
+                    <div className="mt-2 flex items-center justify-between gap-2 text-xs bg-gray-50/80 rounded px-2 py-2">
+                      <span className="truncate text-gray-700">
                         {slot.fileName}
                       </span>
                       <button
@@ -2517,12 +2517,12 @@ const DeliveryAgentOnboarding = () => {
 
         {step === 5 && (
           <div className="max-w-4xl mx-auto w-full space-y-6">
-            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
               <CreditCard
                 size={16}
                 className="text-green-600 dark:text-green-400 shrink-0"
               />
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <h3 className="text-sm font-semibold text-gray-800">
                 Step 5: Bank and settlement Data
               </h3>
               {isStepCompleted(5) && (
@@ -2593,14 +2593,14 @@ const DeliveryAgentOnboarding = () => {
 
             {/* CHEQUE UPLOAD */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs font-medium text-gray-700 mb-2">
                 Cancelled Cheque or Bank Passbook Front Page Upload
               </label>
 
               <div
                 className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${isDraggingCheque
                   ? "border-[#00891D] dark:border-green-500 bg-green-50/50 dark:bg-green-900/20"
-                  : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50"
+                  : "border-gray-300 dark:border-gray-600 bg-gray-50"
                   } ${errors.cancelledCheque ? "border-red-500" : ""}`} // ✅ red border
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -2633,7 +2633,7 @@ const DeliveryAgentOnboarding = () => {
                     <div className="w-12 h-12 bg-[#00891D] rounded-full flex items-center justify-center mb-3">
                       <Upload size={24} className="text-white" />
                     </div>
-                    <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
+                    <p className="text-xs sm:text-sm font-medium text-gray-800">
                       Drag and Drop or Choose file to upload
                     </p>
                   </div>
@@ -2713,7 +2713,7 @@ const DeliveryAgentOnboarding = () => {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-3 mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex flex-wrap gap-3 mt-8 pt-4 border-t border-gray-200">
           {step > 1 && (
             <Button
               type="button"

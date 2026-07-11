@@ -47,7 +47,7 @@ const MasterSection = ({
     return (
       <div
         key={item.id}
-        className={`bg-white dark:bg-gray-800 p-4 rounded-lg border transition-all duration-200 ${isSelected ? 'border-emerald-500 bg-emerald-50/10' : item.isFree ? 'border-emerald-100 bg-emerald-50/20' : 'border-gray-200 dark:border-gray-700'} shadow-sm flex items-center justify-between group relative`}
+        className={`bg-white p-4 rounded-lg border transition-all duration-200 ${isSelected ? 'border-emerald-500 bg-emerald-50/10' : item.isFree ? 'border-emerald-100 bg-emerald-50/20' : 'border-gray-200'} shadow-sm flex items-center justify-between group relative`}
       >
         <div className="flex items-center gap-4">
           <button
@@ -56,7 +56,7 @@ const MasterSection = ({
           >
             {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
           </button>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden border shadow-inner ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden border shadow-inner ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 text-gray-600'}`}>
             {item.image ? (
               <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
             ) : (
@@ -78,7 +78,7 @@ const MasterSection = ({
                   <span className="text-[10px] font-bold text-amber-700">{item.vehicleStock || 0}</span>
                 </div>
                 <div className="w-px h-4 bg-gray-200 mx-0.5" />
-                <div className="flex flex-col items-end bg-gray-50 dark:bg-gray-900/50 px-1.5 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col items-end bg-gray-50 dark:bg-gray-900/50 px-1.5 py-0.5 rounded-lg border border-gray-200">
                   <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">Total</span>
                   <span className={`text-[10px] font-bold ${item.totalStock > (item.minStockAlert || 5) ? 'text-gray-900 dark:text-white' : 'text-rose-600'}`}>
                     {item.totalStock || 0}
@@ -86,7 +86,7 @@ const MasterSection = ({
                 </div>
               </div>
               {item.unit && (
-                <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">
                   {item.unitValue || ''} {item.unit.type}
                 </span>
               )}
@@ -96,7 +96,7 @@ const MasterSection = ({
                   className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${item.status === 'INACTIVE' ? 'bg-gray-200' : 'bg-emerald-500'}`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white dark:bg-gray-800 shadow ring-0 transition duration-200 ease-in-out ${item.status === 'INACTIVE' ? 'translate-x-0' : 'translate-x-4'}`}
+                    className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${item.status === 'INACTIVE' ? 'translate-x-0' : 'translate-x-4'}`}
                   />
                 </button>
                 <span className={`text-[7px] font-bold uppercase tracking-widest ${item.status === 'INACTIVE' ? 'text-gray-400' : 'text-emerald-600'}`}>
@@ -107,7 +107,7 @@ const MasterSection = ({
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[9px] text-gray-400 uppercase font-bold tracking-widest">{item.category?.name || 'Uncategorized'}</span>
               <span className="text-[8px] text-gray-300 font-bold">•</span>
-              <span className="text-[9px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-widest">{item.subCategory?.name || 'General Item'}</span>
+              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-widest">{item.subCategory?.name || 'General Item'}</span>
               {item.storeName && (
                 <>
                   <span className="text-[8px] text-gray-300 font-bold">•</span>
@@ -120,24 +120,24 @@ const MasterSection = ({
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Selling</span>
                 <span className="text-xs font-bold text-emerald-700">₹{item.price}</span>
               </div>
-              <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+              <div className="flex flex-col border-l border-gray-200 pl-3">
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">MRP</span>
                 <span className="text-[10px] text-gray-400 line-through">₹{item.mrp || 0}</span>
               </div>
-              <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+              <div className="flex flex-col border-l border-gray-200 pl-3">
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Discount</span>
                 <span className="text-[10px] text-emerald-600 font-bold">₹{item.discount || 0}</span>
               </div>
-              <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+              <div className="flex flex-col border-l border-gray-200 pl-3">
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Lnd. Price</span>
                 <span className="text-[10px] text-slate-500 font-bold">₹{item.landingPrice || 0}</span>
               </div>
-              <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+              <div className="flex flex-col border-l border-gray-200 pl-3">
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">GST</span>
                 <span className="text-[10px] text-blue-600 font-bold">{item.gst || 0}%</span>
               </div>
               {item.isFree && (
-                <div className="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-3">
+                <div className="flex flex-col border-l border-gray-200 pl-3">
                   <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-tighter">Free Above</span>
                   <span className="text-[10px] text-emerald-600 font-bold">₹{item.minShopAmount || 0}</span>
                 </div>
@@ -155,11 +155,11 @@ const MasterSection = ({
               <RefreshCw size={14} className={item.status === 'INACTIVE' ? 'text-emerald-600' : 'text-emerald-600'} />
             </button>
           )}
-          <div className="w-px h-4 bg-gray-200 mx-1 border-r border-gray-200 dark:border-gray-700" />
+          <div className="w-px h-4 bg-gray-200 mx-1 border-r border-gray-200" />
           {can('INVENTORY', 'UPDATE', 'MASTER') && (
             <button
               onClick={() => openEditModal(item)}
-              className="text-gray-600 dark:text-gray-400 text-xs font-bold p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
+              className="text-gray-600 text-xs font-bold p-2 hover:bg-gray-100 rounded-lg flex items-center gap-1"
             >
               <Pencil size={14} />
             </button>
@@ -184,7 +184,7 @@ const MasterSection = ({
   const allSelected = filteredItems.length > 0 && selectedItems.length === filteredItems.length;
 
   const renderDesktopTable = (itemsToRender) => (
-    <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+    <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
       <table className="w-full text-left border-collapse table-fixed">
         <thead>
           <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -218,7 +218,7 @@ const MasterSection = ({
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border shadow-inner shrink-0 ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border shadow-inner shrink-0 ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 text-gray-600'}`}>
                       {item.image ? (
                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
@@ -265,7 +265,7 @@ const MasterSection = ({
                       <span className="text-[7px] font-bold text-amber-600 uppercase tracking-widest leading-none mt-0.5">Fleet</span>
                     </div>
                     <div className="w-px h-4 bg-emerald-100" />
-                    <div className="flex flex-col items-center bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded-lg border border-emerald-100 shadow-sm">
+                    <div className="flex flex-col items-center bg-white px-1.5 py-0.5 rounded-lg border border-emerald-100 shadow-sm">
                       <span className={`text-[10px] font-bold ${item.totalStock > (item.minStockAlert || 5) ? 'text-gray-900 dark:text-white' : 'text-rose-600'}`}>
                         {item.totalStock || 0}
                       </span>
@@ -281,7 +281,7 @@ const MasterSection = ({
                       title={item.status === 'INACTIVE' ? "Activate Item" : "Deactivate Item"}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white dark:bg-gray-800 shadow ring-0 transition duration-200 ease-in-out ${item.status === 'INACTIVE' ? 'translate-x-0' : 'translate-x-5'}`}
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${item.status === 'INACTIVE' ? 'translate-x-0' : 'translate-x-5'}`}
                       />
                     </button>
                     <span className={`text-[7px] font-bold uppercase tracking-widest ${item.status === 'INACTIVE' ? 'text-gray-400' : 'text-emerald-600'}`}>
@@ -321,7 +321,7 @@ const MasterSection = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex-1 flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
           <div className="flex items-center gap-2 pl-2">
             <button
               onClick={() => handleSelectAll(filteredItems)}
@@ -344,21 +344,21 @@ const MasterSection = ({
               setScannerTarget('master');
               setShowScanner(true);
             }}
-            className="p-1.5 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50 text-gray-400 hover:text-blue-600 transition-all border border-transparent hover:border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0"
+            className="p-1.5 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50 text-gray-400 hover:text-blue-600 transition-all border border-transparent hover:border-gray-200 flex items-center justify-center shrink-0"
             title="Scan Barcode to Search"
           >
             <Barcode size={18} />
           </button>
-          <div className="flex items-center gap-1.5 shrink-0 border-l border-gray-200 dark:border-gray-700 pl-2">
+          <div className="flex items-center gap-1.5 shrink-0 border-l border-gray-200 pl-2">
             <button
               onClick={() => setMasterFreeOnly(!masterFreeOnly)}
-              className={`px-2.5 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold transition-all border ${masterFreeOnly ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100'}`}
+              className={`px-2.5 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold transition-all border ${masterFreeOnly ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 text-gray-500 hover:bg-gray-100'}`}
             >
               {masterFreeOnly ? '✓ Free Only' : 'Free'}
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`p-1.5 rounded-xl transition-colors border ${showFilters ? 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm' : 'bg-white dark:bg-gray-800 border-transparent hover:bg-gray-50 dark:bg-gray-900/50 text-gray-400'}`}
+              className={`p-1.5 rounded-xl transition-colors border ${showFilters ? 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm' : 'bg-white border-transparent hover:bg-gray-50 dark:bg-gray-900/50 text-gray-400'}`}
               title="Advanced Filters"
             >
               <Filter size={16} />
@@ -384,7 +384,7 @@ const MasterSection = ({
             onClick={() => { setMasterCategory('ALL'); setMasterSubCategory('ALL'); }}
             className={`whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${masterCategory === 'ALL'
               ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
+              : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
               }`}
           >
             All Items
@@ -395,7 +395,7 @@ const MasterSection = ({
               onClick={() => { setMasterCategory(cat.name); setMasterSubCategory('ALL'); }}
               className={`flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${masterCategory === cat.name
                 ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
+                : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
                 }`}
             >
               {cat.name}
@@ -416,7 +416,7 @@ const MasterSection = ({
               onClick={() => setMasterSubCategory('ALL')}
               className={`whitespace-nowrap px-4 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all border ${masterSubCategory === 'ALL'
                 ? 'bg-emerald-500 border-emerald-500 text-white shadow-md'
-                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'
+                : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200'
                 }`}
             >
               All {masterCategory}
@@ -432,7 +432,7 @@ const MasterSection = ({
                   onClick={() => setMasterSubCategory(sub.name)}
                   className={`whitespace-nowrap px-4 py-2 rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all border ${masterSubCategory === sub.name
                     ? 'bg-emerald-500 border-emerald-500 text-white shadow-md'
-                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'
+                    : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200'
                     }`}
                 >
                   {sub.name}
@@ -443,10 +443,10 @@ const MasterSection = ({
       )}
 
       {showFilters && (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-200">
+        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-wrap gap-4 animate-in slide-in-from-top-2 duration-200">
           <div className="space-y-1 flex-1 min-w-[150px]">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Additional Filters</label>
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 p-2 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 text-xs font-medium text-gray-500 bg-gray-50 dark:bg-gray-900/50 p-2 rounded-xl border border-gray-200">
               <Check size={14} className="text-emerald-500" />
               Category Filter is active ({masterCategory})
             </div>
@@ -454,7 +454,7 @@ const MasterSection = ({
           <div className="space-y-1 flex-1 min-w-[150px]">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</label>
             <select
-              className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none"
+              className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none"
               value={masterStatus}
               onChange={(e) => setMasterStatus(e.target.value)}
             >
@@ -467,7 +467,7 @@ const MasterSection = ({
           <div className="flex items-end">
             <button
               onClick={() => { setMasterCategory('ALL'); setMasterSubCategory('ALL'); setMasterStatus('ALL'); setMasterSearch(''); setMasterFreeOnly(false); }}
-              className="text-xs font-bold text-gray-400 hover:text-gray-600 dark:text-gray-400 px-3 py-2"
+              className="text-xs font-bold text-gray-400 hover:text-gray-600 px-3 py-2"
             >
               Clear Filters
             </button>
@@ -477,7 +477,7 @@ const MasterSection = ({
 
       <div className="space-y-6">
         {filteredItems.length === 0 ? (
-          <div className="py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-center shadow-sm">
+          <div className="py-12 bg-white rounded-lg border border-gray-200 text-center shadow-sm">
             <Package size={32} className="mx-auto text-gray-200 mb-2" />
             <p className="text-sm font-bold text-gray-400">No items match your filters</p>
           </div>
@@ -517,7 +517,7 @@ const MasterSection = ({
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 px-2 border-t border-gray-200 dark:border-gray-700 pt-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 px-2 border-t border-gray-200 pt-6">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                   Showing {Math.min(filteredItems.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(filteredItems.length, currentPage * itemsPerPage)} of {filteredItems.length} Products
                 </div>
@@ -525,7 +525,7 @@ const MasterSection = ({
                   <button
                     disabled={currentPage === 1}
                     onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
                   >
                     <ArrowLeft size={14} /> Previous
                   </button>
@@ -541,7 +541,7 @@ const MasterSection = ({
                           <button
                             key={i}
                             onClick={() => { setCurrentPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === i ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-200'}`}
+                            className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === i ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border border-gray-200 text-gray-400 hover:border-emerald-200'}`}
                           >
                             {i}
                           </button>
@@ -553,7 +553,7 @@ const MasterSection = ({
                   <button
                     disabled={currentPage === totalPages}
                     onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:bg-gray-900/50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center gap-2"
                   >
                     Next <ArrowLeft size={14} className="rotate-180" />
                   </button>

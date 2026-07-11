@@ -102,9 +102,9 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-14 pb-8 flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-3">
+        <div className="w-20 h-20 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center mb-3">
           <span className="text-white font-bold text-2xl">RS</span>
         </div>
         <h1 className="text-white font-bold text-xl">Rohit Singh</h1>
@@ -115,7 +115,7 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
             { label: "Completed", value: stats.completed.toString() },
             { label: "SLA %", value: `${stats.sla}%` },
           ].map(s => (
-            <div key={s.label} className="bg-white/10 rounded-xl px-4 py-2 text-center">
+            <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl px-4 py-2 text-center">
               <p className="text-white font-bold text-base">{s.value}</p>
               <p className="text-white/60 text-[10px]">{s.label}</p>
             </div>
@@ -125,9 +125,9 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
 
       <div className="flex flex-col gap-4 p-4 max-w-3xl mx-auto w-full">
         {profileSections.map((section) => (
-          <div key={section.title} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-              <span className="text-gray-500 font-semibold text-[11px] uppercase tracking-wider">
+          <div key={section.title} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold text-[11px] uppercase tracking-wider">
                 {section.title}
               </span>
             </div>
@@ -135,19 +135,19 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
               <button
                 key={item.label}
                 onClick={() => "screen" in item ? onNavigate((item as { screen: string }).screen) : undefined}
-                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 last:border-0 text-left hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 last:border-0 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors"
               >
                 <span className="text-xl">{item.icon}</span>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-gray-800 font-medium text-sm">{item.label}</p>
+                    <p className="text-gray-800 dark:text-gray-200 font-medium text-sm">{item.label}</p>
                     {("badge" in item && (item as any).badge > 0) && (
                       <span className="bg-[#EF5A06] text-white rounded-full px-2 py-0.5 text-[10px] font-bold">
                         {(item as any).badge}
                       </span>
                     )}
                   </div>
-                  {"desc" in item && <p className="text-gray-400 mt-0.5 text-[11px]">{(item as { desc: string }).desc}</p>}
+                  {"desc" in item && <p className="text-gray-400 dark:text-gray-500 mt-0.5 text-[11px]">{(item as { desc: string }).desc}</p>}
                 </div>
                 {"screen" in item && (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BDBDBD" strokeWidth="2">
@@ -158,7 +158,7 @@ function ProfileScreen({ onNavigate }: { onNavigate: (screen: string) => void })
             ))}
           </div>
         ))}
-        <button className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-center gap-2 border border-red-100 hover:bg-red-50 transition-colors">
+        <button className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 flex items-center justify-center gap-2 border border-red-100 hover:bg-red-50 transition-colors">
           <span className="text-red-600 font-semibold text-sm">Sign Out</span>
         </button>
       </div>
@@ -242,7 +242,7 @@ export default function ShopkeeperERP() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] p-4 flex flex-col items-center" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 p-4 flex flex-col items-center" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
       {/* Screen container */}
       <div className="w-full max-w-4xl flex-1">
         {renderScreen()}

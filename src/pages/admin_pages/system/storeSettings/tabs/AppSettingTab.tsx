@@ -22,13 +22,13 @@ const AppSettingTab = ({ formData, onChange }: AppSettingTabProps) => {
     <div className="space-y-6">
       {/* Maintenance Mode Section */}
       <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">
+        <h3 className="text-sm font-semibold text-gray-800 mb-4">
           In this mode you can set your app in Maintenance and that Application will not work till not disabled from here
         </h3>
         <div className="space-y-4">
           {/* Customer APP */}
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+            <label className="text-xs font-medium text-gray-700">
               Customer APP ( Enable/Disable )
             </label>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -44,8 +44,8 @@ const AppSettingTab = ({ formData, onChange }: AppSettingTabProps) => {
           </div>
 
           {/* Seller APP */}
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+            <label className="text-xs font-medium text-gray-700">
               Seller APP ( Enable/Disable )
             </label>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -61,8 +61,8 @@ const AppSettingTab = ({ formData, onChange }: AppSettingTabProps) => {
           </div>
 
           {/* Delivery Boy APP */}
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+            <label className="text-xs font-medium text-gray-700">
               Delivery Boy APP( Enable/Disable )
             </label>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -80,8 +80,8 @@ const AppSettingTab = ({ formData, onChange }: AppSettingTabProps) => {
       </div>
 
       {/* Store URLs Section */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Store URLs</h3>
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-800 mb-4">Store URLs</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Play Store Url */}
           <div>
@@ -109,11 +109,11 @@ const AppSettingTab = ({ formData, onChange }: AppSettingTabProps) => {
 
       {/* Android Version Settings */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Android Version System Status</h3>
+        <h3 className="text-sm font-semibold text-gray-800 mb-4">Android Version System Status</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Android Version System Status */}
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+            <label className="text-xs font-medium text-gray-700">
               Android Version System Status
             </label>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -129,8 +129,8 @@ const AppSettingTab = ({ formData, onChange }: AppSettingTabProps) => {
           </div>
 
           {/* Android Required Force Update */}
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+            <label className="text-xs font-medium text-gray-700">
               Android Required Force Update
             </label>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -159,11 +159,11 @@ const AppSettingTab = ({ formData, onChange }: AppSettingTabProps) => {
 
       {/* IOS Version Settings */}
       <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">IOS Version System Status</h3>
+        <h3 className="text-sm font-semibold text-gray-800 mb-4">IOS Version System Status</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* IOS Version System Status */}
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+            <label className="text-xs font-medium text-gray-700">
               IOS Version System Status
             </label>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -179,8 +179,8 @@ const AppSettingTab = ({ formData, onChange }: AppSettingTabProps) => {
           </div>
 
           {/* IOS Required Force Update */}
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+            <label className="text-xs font-medium text-gray-700">
               IOS Required Force Update
             </label>
             <label className="relative inline-flex items-center cursor-pointer">

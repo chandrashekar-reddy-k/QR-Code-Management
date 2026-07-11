@@ -21,7 +21,7 @@ export const formatMinutesToHours = (totalMinutes) => {
 };
 
 export const StatCard = ({ label, value, icon: Icon, colorClass }) => (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
+    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
       <div className="flex justify-between items-start mb-3">
         <div className={`p-3 rounded-lg ${colorClass} bg-opacity-10`}>
           <Icon size={20} className={colorClass} />

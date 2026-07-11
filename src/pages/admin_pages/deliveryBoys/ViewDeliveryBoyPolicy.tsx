@@ -49,7 +49,7 @@ const ViewDeliveryBoyPolicy = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+        <p className="text-sm text-gray-500">Loading...</p>
       </div>
     );
   }
@@ -57,17 +57,17 @@ const ViewDeliveryBoyPolicy = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30">
             <div className="flex items-center gap-3">
               <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg">
                 <FileText size={24} className="text-green-700 dark:text-green-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Delivery Boy {title}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Delivery Boy {title}</h1>
                 {lastUpdated && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Last updated: {lastUpdated}</p>
+                  <p className="text-xs text-gray-600 mt-1">Last updated: {lastUpdated}</p>
                 )}
               </div>
             </div>
@@ -76,14 +76,14 @@ const ViewDeliveryBoyPolicy = () => {
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               title="Close"
             >
-              <X size={20} className="text-gray-500 dark:text-gray-400" />
+              <X size={20} className="text-gray-500" />
             </button>
           </div>
 
           {/* Content */}
           <div className="p-8">
             <div 
-              className="max-w-none text-gray-700 dark:text-gray-300 leading-relaxed"
+              className="max-w-none text-gray-700 leading-relaxed"
               dangerouslySetInnerHTML={{ __html: content || '' }}
               style={{
                 fontSize: '15px',
@@ -121,7 +121,7 @@ const ViewDeliveryBoyPolicy = () => {
           </div>
 
           {/* Footer Actions */}
-          <div className="px-8 pb-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="px-8 pb-6 border-t border-gray-200 pt-4">
             <button
               onClick={() => navigate('/delivery-boys/policies')}
               className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"

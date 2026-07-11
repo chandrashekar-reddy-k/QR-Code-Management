@@ -35,7 +35,7 @@ export default function RouteVillageReport() {
     <ReportLayout title="Route & Village" icon={MapPin} activeTab="route-village" reportData={reportData} isLoading={isLoading}>
       {reportData && (
         <div className="space-y-10 animate-in fade-in duration-500">
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-8 uppercase">Route Leaderboard</h3>
               <div className="h-[250px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -53,8 +53,8 @@ export default function RouteVillageReport() {
               </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-200">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight uppercase">Village Sales Matrix</h3>
               </div>
               <div className="overflow-x-auto">
@@ -70,13 +70,13 @@ export default function RouteVillageReport() {
                       <tbody className="divide-y divide-gray-50">
                           {reportData.villages?.map((v, i) => (
                               <tr key={i} className="hover:bg-gray-50 dark:bg-gray-900/50 transition-colors">
-                                  <td className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">{v.villageName}</td>
+                                  <td className="px-6 py-4 text-sm font-bold text-gray-800">{v.villageName}</td>
                                   <td className="px-6 py-4">
                                       <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${v.coverageType === 'MORNING' ? 'bg-emerald-100 text-emerald-600' : 'bg-emerald-100 text-emerald-600'}`}>
                                           {v.coverageType}
                                       </span>
                                   </td>
-                                  <td className="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-400">{v.orderCount}</td>
+                                  <td className="px-6 py-4 text-sm font-bold text-gray-600">{v.orderCount}</td>
                                   <td className="px-6 py-4 text-sm font-bold text-emerald-600 italic">₹{(v.totalSales || 0).toLocaleString()}</td>
                               </tr>
                           ))}

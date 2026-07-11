@@ -321,7 +321,7 @@ const ManageAreas = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600">
             Loading areas/cities...
           </p>
         </div>
@@ -339,7 +339,7 @@ const ManageAreas = () => {
         return (
           <div className="text-center">
             <span
-              className="text-xs sm:text-sm text-gray-800 dark:text-gray-200"
+              className="text-xs sm:text-sm text-gray-800"
               title={full}
             >
               {display}
@@ -357,7 +357,7 @@ const ManageAreas = () => {
         return (
           <div className="text-center">
             <span
-              className="text-xs sm:text-sm text-gray-800 dark:text-gray-200"
+              className="text-xs sm:text-sm text-gray-800"
               title={full !== display ? full : undefined}
             >
               {display}
@@ -375,7 +375,7 @@ const ManageAreas = () => {
         return (
           <div className="text-center">
             <span
-              className="text-xs sm:text-sm text-gray-800 dark:text-gray-200"
+              className="text-xs sm:text-sm text-gray-800"
               title={full !== display ? full : undefined}
             >
               {display || "—"}
@@ -393,7 +393,7 @@ const ManageAreas = () => {
         return (
           <div className="text-center">
             <span
-              className="text-xs sm:text-sm text-gray-800 dark:text-gray-200"
+              className="text-xs sm:text-sm text-gray-800"
               title={full !== display ? full : undefined}
             >
               {display || "—"}
@@ -414,7 +414,7 @@ const ManageAreas = () => {
             customColor={
               area.status === "active"
                 ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                : "bg-gray-100 text-gray-800"
             }
             className="rounded"
           />
@@ -453,7 +453,7 @@ const ManageAreas = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Action Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Manage Areas/Cities
         </h1>
         <PrimaryButton
@@ -500,7 +500,7 @@ const ManageAreas = () => {
           <Button
             onClick={handleExport}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
             title="Export to CSV"
           >
             <Download size={14} className="sm:w-4 sm:h-4" />
@@ -509,7 +509,7 @@ const ManageAreas = () => {
           <Button
             onClick={handleImport}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white"
             title="Import from CSV"
           >
             <FileUp size={14} className="sm:w-4 sm:h-4" />
@@ -519,7 +519,7 @@ const ManageAreas = () => {
             onClick={handleRefresh}
             disabled={isLoading}
             variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
             title="Refresh"
           >
             <RefreshCw
@@ -545,7 +545,7 @@ const ManageAreas = () => {
       </div>
 
       {/* Areas Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedAreas}
@@ -561,10 +561,10 @@ const ManageAreas = () => {
 
         {/* Pagination */}
         {filteredAndSortedAreas.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
@@ -583,7 +583,7 @@ const ManageAreas = () => {
                     className="w-14 sm:w-16 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing{" "}
                   <span className="text-orange-600 dark:text-orange-500 font-medium">
                     {((currentPage - 1) * itemsPerPage + 1).toLocaleString()}

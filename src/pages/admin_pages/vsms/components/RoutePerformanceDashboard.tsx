@@ -26,7 +26,7 @@ function ProgressRing({ percentage = 0, size = 48, stroke = 4 }) {
           strokeLinecap="round" className="transition-all duration-700"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-800 dark:text-gray-200">
+      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-800">
         {Math.round(percentage)}%
       </span>
     </div>
@@ -163,7 +163,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k, i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-4">
+          <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm px-5 py-4 flex items-center gap-4">
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${k.iconBg} ${k.iconColor}`}>
               {k.icon}
             </div>
@@ -188,12 +188,12 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
               <button
                 key={i}
                 onClick={() => fetchDetail(p.assignmentId)}
-                className="flex items-center justify-between gap-4 bg-white dark:bg-gray-800 rounded-xl border border-red-100 px-4 py-3 shadow-sm min-w-[200px] hover:border-red-300 transition-all"
+                className="flex items-center justify-between gap-4 bg-white rounded-xl border border-red-100 px-4 py-3 shadow-sm min-w-[200px] hover:border-red-300 transition-all"
               >
                 <div className="flex items-start gap-2">
                   <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 animate-pulse shrink-0" />
                   <div className="text-left">
-                    <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                       {p.agentName?.toUpperCase() || 'UNKNOWN AGENT'}
                     </p>
                     <p className="text-xs font-bold text-red-600">{p.missedVillages.length} Village Missed</p>
@@ -219,32 +219,32 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
               <input
                 type="text"
                 placeholder="Search agent by name or route..."
-                className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-10 pr-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium text-gray-700 dark:text-gray-300 placeholder-gray-300"
+                className="w-full bg-white border border-gray-200 pl-10 pr-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium text-gray-700 placeholder-gray-300"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
             </div>
-            <button onClick={fetchData} className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-400 hover:text-emerald-600 transition-all shadow-sm">
+            <button onClick={fetchData} className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-emerald-600 transition-all shadow-sm">
               <RefreshCw size={17} />
             </button>
-            <button className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-400 hover:text-gray-600 dark:text-gray-400 transition-all shadow-sm">
+            <button className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-gray-600 transition-all shadow-sm">
               <Filter size={17} />
             </button>
             {/* Active Only Toggle */}
-            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-sm">
-              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest whitespace-nowrap">Active Only</span>
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Active Only</span>
               <button
                 onClick={() => setShowOnlyActive(v => !v)}
                 className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${showOnlyActive ? 'bg-emerald-500' : 'bg-gray-200'}`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white dark:bg-gray-800 rounded-full shadow transition-transform duration-200 ${showOnlyActive ? 'translate-x-4' : ''}`} />
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${showOnlyActive ? 'translate-x-4' : ''}`} />
               </button>
             </div>
           </div>
 
           {/* Agent Cards */}
           {filteredPerf.length === 0 && (
-            <div className="py-16 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
+            <div className="py-16 bg-white rounded-lg border border-gray-200 flex flex-col items-center gap-3">
               <Users size={36} className="text-gray-200" />
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No agents found</p>
             </div>
@@ -257,7 +257,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
               <button
                 key={p.assignmentId}
                 onClick={() => fetchDetail(p.assignmentId)}
-                className={`w-full bg-white dark:bg-gray-800 rounded-lg border px-5 py-4 flex items-center justify-between gap-4 transition-all shadow-sm hover:shadow-md text-left ${isSelected ? 'border-emerald-400 ring-2 ring-emerald-400/10' : 'border-gray-200 dark:border-gray-700 hover:border-emerald-200'}`}
+                className={`w-full bg-white rounded-lg border px-5 py-4 flex items-center justify-between gap-4 transition-all shadow-sm hover:shadow-md text-left ${isSelected ? 'border-emerald-400 ring-2 ring-emerald-400/10' : 'border-gray-200 hover:border-emerald-200'}`}
               >
                 {/* Left: progress + name */}
                 <div className="flex items-center gap-4">
@@ -300,10 +300,10 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
 
         {/* ── Right Sidebar ── */}
         <div className="lg:col-span-4">
-          <div className="sticky top-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="sticky top-6 bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
 
             {/* Sidebar Header */}
-            <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between">
+            <div className="px-5 py-4 border-b border-gray-200 flex items-start justify-between">
               <div>
                 <p className="text-base font-bold text-gray-900 dark:text-white leading-none">
                   {selectedPerf?.agentName || 'Select an Agent'}
@@ -366,7 +366,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                   <div className="absolute left-[7px] top-2 bottom-2 w-px bg-gray-100" />
                   <div className="space-y-0">
                     {assignmentDetail.breakdown.map((v, i) => (
-                      <div key={i} className="flex gap-4 pl-1 py-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                      <div key={i} className="flex gap-4 pl-1 py-3 border-b border-gray-200 last:border-0">
                         <div className={`w-3.5 h-3.5 rounded-full border-2 border-white shrink-0 mt-1 z-10 ${v.visited ? 'bg-emerald-500' : 'bg-red-400'}`} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
@@ -404,7 +404,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                   </button>
                   <button
                     onClick={() => { setSelectedAssignment(null); setAssignmentDetail(null); }}
-                    className="w-full mt-2 text-[10px] font-bold text-gray-400 hover:text-gray-600 dark:text-gray-400 uppercase tracking-widest transition-colors py-1"
+                    className="w-full mt-2 text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-widest transition-colors py-1"
                   >
                     ← Back to Global View
                   </button>
@@ -414,12 +414,12 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
               <div className="p-5 space-y-3">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] text-center mb-3">Command Center</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <p className="text-[9px] font-bold text-gray-700 dark:text-gray-300 mb-1">Live Status</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200">
+                    <p className="text-[9px] font-bold text-gray-700 mb-1">Live Status</p>
                     <p className="text-[8px] text-gray-400 leading-relaxed">Agents with active GPS are shown live on the map.</p>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <p className="text-[9px] font-bold text-gray-700 dark:text-gray-300 mb-1">Click to Drill</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200">
+                    <p className="text-[9px] font-bold text-gray-700 mb-1">Click to Drill</p>
                     <p className="text-[8px] text-gray-400 leading-relaxed">Click any agent row to see their village timeline.</p>
                   </div>
                 </div>

@@ -63,7 +63,7 @@ const ViewRole = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             Loading role...
           </p>
         </div>
@@ -75,7 +75,7 @@ const ViewRole = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-gray-500 mb-4">
             Role not found
           </p>
           <BackButton to="/master-setup/roles" />
@@ -94,9 +94,9 @@ const ViewRole = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Role Details{" "}
-          <span className="text-gray-500 dark:text-gray-400">
+          <span className="text-gray-500">
             #{role.id?.slice(0, 8)}...
           </span>
         </h1>
@@ -107,7 +107,7 @@ const ViewRole = () => {
             customColor={
               status === "active"
                 ? "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400"
-                : "bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800"
+                : "bg-gray-100 text-gray-800"
             }
             className="rounded"
           />
@@ -121,21 +121,21 @@ const ViewRole = () => {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <Shield size={18} className="text-green-600 dark:text-green-400" />
               Basic Information
             </h2>
             
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <p className="text-xs font-medium text-gray-500 mb-1">
                 Role ID
               </p>
               <p
-                className="text-sm text-gray-800 dark:text-gray-200"
+                className="text-sm text-gray-800"
                 title={role.id}
               >
                 {role.id?.slice(0, 8)}...
@@ -143,42 +143,42 @@ const ViewRole = () => {
             </div>
 
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <p className="text-xs font-medium text-gray-500 mb-1">
                 Role Name
               </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <p className="text-sm font-semibold text-gray-800">
                 {role.name || "N/A"}
               </p>
             </div>
 
             {role.description && (
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Description
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <p className="text-sm text-gray-700">
                   {role.description}
                 </p>
               </div>
             )}
 
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+              <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
                 <Users size={12} />
                 Total Permissions
               </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <p className="text-sm font-semibold text-gray-800">
                 {totalPermissions} module{totalPermissions !== 1 ? "s" : ""}
               </p>
             </div>
 
             {role.createdAt && (
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
                   <Calendar size={12} />
                   Created At
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <p className="text-sm text-gray-700">
                   {formatDateDisplay(role.createdAt)}
                 </p>
               </div>
@@ -186,18 +186,18 @@ const ViewRole = () => {
 
             {role.updatedAt && (
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
                   <Calendar size={12} />
                   Updated At
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <p className="text-sm text-gray-700">
                   {formatDateDisplay(role.updatedAt)}
                 </p>
               </div>
             )}
 
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <p className="text-xs font-medium text-gray-500 mb-1">
                 Status
               </p>
               <Badge
@@ -206,7 +206,7 @@ const ViewRole = () => {
                 customColor={
                   status === "active"
                     ? "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400"
-                    : "bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800"
+                    : "bg-gray-100 text-gray-800"
                 }
                 className="rounded"
               />
@@ -215,7 +215,7 @@ const ViewRole = () => {
 
           {/* Permissions */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <CheckCircle2
                 size={18}
                 className="text-green-600 dark:text-green-400"
@@ -235,7 +235,7 @@ const ViewRole = () => {
                   return (
                     <div
                       key={permission.moduleId || index}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-green-50 dark:bg-green-900/20"
+                      className="border border-gray-200 rounded-lg p-3 bg-green-50 dark:bg-green-900/20"
                     >
                       <div className="flex items-start gap-2">
                         <CheckCircle2
@@ -243,7 +243,7 @@ const ViewRole = () => {
                           className="text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0"
                         />
                         <div className="flex-1">
-                          <p className="text-xs font-medium text-gray-800 dark:text-gray-200 mb-1">
+                          <p className="text-xs font-medium text-gray-800 mb-1">
                             Module ID:{" "}
                             <span
                               className="font-mono"
@@ -263,7 +263,7 @@ const ViewRole = () => {
                                 </span>
                               ))
                             ) : (
-                              <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                              <span className="text-[10px] text-gray-500">
                                 No permissions enabled
                               </span>
                             )}
@@ -274,7 +274,7 @@ const ViewRole = () => {
                   );
                 })
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                <p className="text-sm text-gray-500 text-center py-4">
                   No permissions assigned
                 </p>
               )}

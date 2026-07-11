@@ -78,9 +78,9 @@ export default function DayWiseReport() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.4 }}
-            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
+            className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
           >
-            <div className="p-8 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50/30">
+            <div className="p-8 border-b border-gray-200 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50/30">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight uppercase">Daily Revenue Audit</h3>
                   <div className="flex items-center gap-2 mt-1">
@@ -90,7 +90,7 @@ export default function DayWiseReport() {
                 </div>
                 <button 
                   onClick={fetchData} 
-                  className="p-3 rounded-lg bg-white dark:bg-gray-800 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-gray-200 dark:border-gray-700 active:scale-95 hover:rotate-180 duration-500"
+                  className="p-3 rounded-lg bg-white text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-gray-200 active:scale-95 hover:rotate-180 duration-500"
                 >
                   <RotateCcw size={20} />
                 </button>
@@ -120,7 +120,7 @@ export default function DayWiseReport() {
                             <Calendar size={20} />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{item.date}</span>
+                            <span className="text-sm font-bold text-gray-800">{item.date}</span>
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Business Day</span>
                           </div>
                         </div>
@@ -157,7 +157,7 @@ export default function DayWiseReport() {
               <motion.button 
                 whileHover={{ x: -4 }}
                 onClick={() => setSelectedDate(null)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50 transition-all shadow-sm group"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-900/50 transition-all shadow-sm group"
               >
                 <ArrowLeft size={18} className="text-emerald-500" />
                 <span className="text-xs font-bold uppercase tracking-widest">Back to Overview</span>
@@ -174,8 +174,8 @@ export default function DayWiseReport() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden relative">
-              <div className="p-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50/30 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-2xl overflow-hidden relative">
+              <div className="p-10 border-b border-gray-200 bg-gray-50 dark:bg-gray-900/50/30 flex flex-col md:flex-row md:items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
                   <div className="w-20 h-20 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-2xl shadow-emerald-200 animate-pulse-subtle">
                     <Package size={36} />
@@ -200,7 +200,7 @@ export default function DayWiseReport() {
                     placeholder="Search by product name, SKU or category..."
                     value={detailSearch}
                     onChange={(e) => setDetailSearch(e.target.value)}
-                    className="w-full pl-14 pr-6 py-4.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all shadow-inner placeholder:text-gray-300"
+                    className="w-full pl-14 pr-6 py-4.5 bg-white border-2 border-gray-200 rounded-xl text-sm font-bold focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all shadow-inner placeholder:text-gray-300"
                   />
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-200">
                     <Filter size={18} />
@@ -234,7 +234,7 @@ export default function DayWiseReport() {
                         <td colSpan="5" className="px-10 py-32 text-center">
                           <div className="flex flex-col items-center gap-4 opacity-30">
                             <Search size={48} className="text-gray-400" />
-                            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">No products match your criteria</p>
+                            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">No products match your criteria</p>
                           </div>
                         </td>
                       </tr>
@@ -255,11 +255,11 @@ export default function DayWiseReport() {
                           </div>
                         </td>
                         <td className="px-10 py-6 text-center">
-                          <span className="px-3 py-1 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-bold uppercase tracking-wider">{item.category}</span>
+                          <span className="px-3 py-1 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 text-gray-600 text-[10px] font-bold uppercase tracking-wider">{item.category}</span>
                         </td>
                         <td className="px-10 py-6 text-center">
                            <div className="flex flex-col items-center">
-                              <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{item.quantity}</span>
+                              <span className="text-sm font-bold text-gray-800">{item.quantity}</span>
                               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Units Dispatched</span>
                            </div>
                         </td>

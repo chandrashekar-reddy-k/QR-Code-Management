@@ -784,7 +784,7 @@ const ViewProduct = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-gray-500 mb-4">
             {isError ? (errMsg || 'Error loading product') : 'Product not found'}
           </p>
           <button
@@ -909,7 +909,7 @@ const ViewProduct = () => {
       sortable: true,
       render: (variant: Variant) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {variantSerialById.get(String(variant.id)) ?? '-'}
           </span>
         </div>
@@ -930,12 +930,12 @@ const ViewProduct = () => {
                 const t = e.target as HTMLImageElement;
                 t.style.display = 'none';
                 if (t.parentElement) {
-                  t.parentElement.innerHTML = '<span class="text-[10px] text-gray-400 dark:text-gray-500">No image</span>';
+                  t.parentElement.innerHTML = '<span class="text-[10px] text-gray-400">No image</span>';
                 }
               }}
             />
           ) : (
-            <span className="text-[10px] text-gray-400 dark:text-gray-500">No image</span>
+            <span className="text-[10px] text-gray-400">No image</span>
           )}
         </div>
       ),
@@ -946,7 +946,7 @@ const ViewProduct = () => {
       sortable: true,
       render: (variant: Variant) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{variant.variantName || product.name}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{variant.variantName || product.name}</span>
         </div>
       ),
     },
@@ -956,7 +956,7 @@ const ViewProduct = () => {
       sortable: true,
       render: (variant: Variant) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {variant.type
               ? String(variant.type).charAt(0).toUpperCase() + String(variant.type).slice(1).toLowerCase()
               : 'N/A'}
@@ -970,7 +970,7 @@ const ViewProduct = () => {
       sortable: true,
       render: (variant: Variant) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {variant.unit || 'N/A'}
           </span>
         </div>
@@ -982,7 +982,7 @@ const ViewProduct = () => {
       sortable: true,
       render: (variant: Variant) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {variant.measurement || 'N/A'}
           </span>
         </div>
@@ -994,7 +994,7 @@ const ViewProduct = () => {
       sortable: true,
       render: (variant: Variant) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">₹{parseFloat(variant.price || '0').toFixed(2)}</span>
+          <span className="text-xs sm:text-sm text-gray-800">₹{parseFloat(variant.price || '0').toFixed(2)}</span>
         </div>
       ),
     },
@@ -1004,7 +1004,7 @@ const ViewProduct = () => {
       sortable: true,
       render: (variant: Variant) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">₹{parseFloat(variant.salePrice || '0').toFixed(2)}</span>
+          <span className="text-xs sm:text-sm text-gray-800">₹{parseFloat(variant.salePrice || '0').toFixed(2)}</span>
         </div>
       ),
     },
@@ -1098,7 +1098,7 @@ const ViewProduct = () => {
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           View Product
         </h1>
         <div className="flex items-center gap-2">
@@ -1129,48 +1129,48 @@ const ViewProduct = () => {
       </div>
 
       {/* Product header — matches admin */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 mb-4">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 mb-4">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
           <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0">
             {product.mainImage ? (
               <img
                 src={product.mainImage}
                 alt={product.name}
-                className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                className="w-full h-full object-cover rounded-lg border border-gray-200"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                   (e.target as HTMLImageElement).parentElement!.innerHTML =
-                    '<div class="w-full h-full bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center"><svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
+                    '<div class="w-full h-full bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center"><svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
                 }}
               />
             ) : (
-              <div className="w-full h-full bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                <ImageIcon size={32} className="text-gray-400 dark:text-gray-500" />
+              <div className="w-full h-full bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                <ImageIcon size={32} className="text-gray-400" />
               </div>
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="space-y-2">
               <div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Product Name : </span>
-                <span className="text-sm text-gray-800 dark:text-gray-200">{product.name}</span>
+                <span className="text-xs font-medium text-gray-500">Product Name : </span>
+                <span className="text-sm text-gray-800">{product.name}</span>
               </div>
               <div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Category : </span>
-                <span className="text-xs text-gray-800 dark:text-gray-200">
+                <span className="text-xs font-medium text-gray-500">Category : </span>
+                <span className="text-xs text-gray-800">
                   {getCategoryName(product.categoryId || '', product.category) || 'N/A'}
                 </span>
               </div>
               <div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Sub Category : </span>
-                <span className="text-xs text-gray-800 dark:text-gray-200">
+                <span className="text-xs font-medium text-gray-500">Sub Category : </span>
+                <span className="text-xs text-gray-800">
                   {getSubCategoryName(product.subCategoryId || '', product.subCategory) || 'N/A'}
                 </span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Status :</span>
+            <span className="text-xs font-medium text-gray-500">Status :</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -1180,7 +1180,7 @@ const ViewProduct = () => {
                 className="sr-only peer"
               />
               <div
-                className={`w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300 dark:peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300 dark:peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
                   product.status === 'active' || product.status === 'approved'
                     ? 'peer-checked:bg-green-600 dark:peer-checked:bg-green-500'
                     : 'peer-checked:bg-gray-400 dark:peer-checked:bg-gray-500'
@@ -1192,53 +1192,53 @@ const ViewProduct = () => {
       </div>
 
       {/* Description — partner data, admin-style card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 mb-4">
-        <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-3">Description</h2>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 mb-4">
+        <h2 className="text-sm font-bold text-gray-800 mb-3">Description</h2>
         <div
-          className="text-xs text-gray-800 dark:text-gray-200 break-words min-h-[2rem] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
+          className="text-xs text-gray-800 break-words min-h-[2rem] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
           dangerouslySetInnerHTML={{ __html: product.description || 'N/A' }}
         />
       </div>
 
       {/* Pricing | Images — admin grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">Pricing Information</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+          <h2 className="text-sm font-bold text-gray-800 mb-4">Pricing Information</h2>
           <div className="space-y-3">
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Landing Price : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{pricingCard.landingPrice}</span>
+              <span className="text-xs font-medium text-gray-500">Landing Price : </span>
+              <span className="text-xs text-gray-800">{pricingCard.landingPrice}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Original Price / MRP : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{pricingCard.originalPrice}</span>
+              <span className="text-xs font-medium text-gray-500">Original Price / MRP : </span>
+              <span className="text-xs text-gray-800">{pricingCard.originalPrice}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Discount Type : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{pricingCard.discountType}</span>
+              <span className="text-xs font-medium text-gray-500">Discount Type : </span>
+              <span className="text-xs text-gray-800">{pricingCard.discountType}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Discount : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{pricingCard.discount}</span>
+              <span className="text-xs font-medium text-gray-500">Discount : </span>
+              <span className="text-xs text-gray-800">{pricingCard.discount}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Final Selling Price : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{pricingCard.finalSellingPrice}</span>
+              <span className="text-xs font-medium text-gray-500">Final Selling Price : </span>
+              <span className="text-xs text-gray-800">{pricingCard.finalSellingPrice}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Tax : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{pricingCard.tax}</span>
+              <span className="text-xs font-medium text-gray-500">Tax : </span>
+              <span className="text-xs text-gray-800">{pricingCard.tax}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">Images</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+          <h2 className="text-sm font-bold text-gray-800 mb-4">Images</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Main Image</p>
+              <p className="text-xs font-medium text-gray-500 mb-2">Main Image</p>
               {product.mainImage ? (
-                <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+                <div className="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
                   <img
                     src={product.mainImage}
                     alt="Main"
@@ -1249,16 +1249,16 @@ const ViewProduct = () => {
                   />
                 </div>
               ) : (
-                <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                  <ImageIcon size={24} className="text-gray-400 dark:text-gray-500" />
+                <div className="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                  <ImageIcon size={24} className="text-gray-400" />
                 </div>
               )}
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Other images</p>
+              <p className="text-xs font-medium text-gray-500 mb-2">Other images</p>
               {product.otherImages && product.otherImages.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+                  <div className="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
                     <img
                       src={product.otherImages[0]}
                       alt="Other 1"
@@ -1273,7 +1273,7 @@ const ViewProduct = () => {
                       {product.otherImages.slice(1, 7).map((img, idx) => (
                         <div
                           key={`${img}-${idx}`}
-                          className="w-full h-10 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"
+                          className="w-full h-10 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"
                         >
                           <img src={img} alt={`Other ${idx + 2}`} className="w-full h-full object-cover" />
                         </div>
@@ -1282,8 +1282,8 @@ const ViewProduct = () => {
                   )}
                 </div>
               ) : (
-                <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                  <ImageIcon size={24} className="text-gray-400 dark:text-gray-500" />
+                <div className="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                  <ImageIcon size={24} className="text-gray-400" />
                 </div>
               )}
             </div>
@@ -1293,168 +1293,168 @@ const ViewProduct = () => {
 
       {/* SEO | Product Info — admin bottom grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">Seo Settings</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+          <h2 className="text-sm font-bold text-gray-800 mb-4">Seo Settings</h2>
           <div className="space-y-3 min-w-0">
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Main Title : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200 break-words">{product.metaTitle || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Main Title : </span>
+              <span className="text-xs text-gray-800 break-words">{product.metaTitle || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Schema Markup : </span>
-              <p className="mt-1 text-xs text-gray-800 dark:text-gray-200 break-all whitespace-pre-wrap">
+              <span className="text-xs font-medium text-gray-500">Schema Markup : </span>
+              <p className="mt-1 text-xs text-gray-800 break-all whitespace-pre-wrap">
                 {product.schemaMarkup || 'N/A'}
               </p>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Meta Keywords : </span>
-              <p className="mt-1 text-xs text-gray-800 dark:text-gray-200 break-words whitespace-pre-wrap">
+              <span className="text-xs font-medium text-gray-500">Meta Keywords : </span>
+              <p className="mt-1 text-xs text-gray-800 break-words whitespace-pre-wrap">
                 {product.metaKeywords || 'N/A'}
               </p>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Meta Description : </span>
-              <p className="mt-1 text-xs text-gray-800 dark:text-gray-200 break-words whitespace-pre-wrap">
+              <span className="text-xs font-medium text-gray-500">Meta Description : </span>
+              <p className="mt-1 text-xs text-gray-800 break-words whitespace-pre-wrap">
                 {product.metaDescription || 'N/A'}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">Product Info</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+          <h2 className="text-sm font-bold text-gray-800 mb-4">Product Info</h2>
           <div className="space-y-3">
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Slug : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.slug || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Slug : </span>
+              <span className="text-xs text-gray-800">{product.slug || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Description : </span>
+              <span className="text-xs font-medium text-gray-500">Description : </span>
               <div
-                className="text-xs text-gray-800 dark:text-gray-200 mt-1"
+                className="text-xs text-gray-800 mt-1"
                 dangerouslySetInnerHTML={{ __html: product.description || 'N/A' }}
               />
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Short Description : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.shortDescription || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Short Description : </span>
+              <span className="text-xs text-gray-800">{product.shortDescription || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Brand : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{getBrandName(product.brands)}</span>
+              <span className="text-xs font-medium text-gray-500">Brand : </span>
+              <span className="text-xs text-gray-800">{getBrandName(product.brands)}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Category : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Category : </span>
+              <span className="text-xs text-gray-800">
                 {getCategoryName(product.categoryId || '', product.category)}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Sub Category : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Sub Category : </span>
+              <span className="text-xs text-gray-800">
                 {getSubCategoryName(product.subCategoryId || '', product.subCategory) || 'N/A'}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Product Type : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.productType || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Product Type : </span>
+              <span className="text-xs text-gray-800">{product.productType || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Inventory Type : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{rawStr('inventoryType')}</span>
+              <span className="text-xs font-medium text-gray-500">Inventory Type : </span>
+              <span className="text-xs text-gray-800">{rawStr('inventoryType')}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Unit Type : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{productCardUnitTypeAndUnit.unitType || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Unit Type : </span>
+              <span className="text-xs text-gray-800">{productCardUnitTypeAndUnit.unitType || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Unit : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{productCardUnitTypeAndUnit.unit || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Unit : </span>
+              <span className="text-xs text-gray-800">{productCardUnitTypeAndUnit.unit || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Measurement : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{rawStr('measurement')}</span>
+              <span className="text-xs font-medium text-gray-500">Measurement : </span>
+              <span className="text-xs text-gray-800">{rawStr('measurement')}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Stock : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{rawStr('stock')}</span>
+              <span className="text-xs font-medium text-gray-500">Stock : </span>
+              <span className="text-xs text-gray-800">{rawStr('stock')}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Threshold : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{rawStr('threshold')}</span>
+              <span className="text-xs font-medium text-gray-500">Threshold : </span>
+              <span className="text-xs text-gray-800">{rawStr('threshold')}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Min Order Qty : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Min Order Qty : </span>
+              <span className="text-xs text-gray-800">
                 {rawProduct?.minOrderQty != null || rawProduct?.minOrderQuantity != null
                   ? String(rawProduct.minOrderQty ?? rawProduct.minOrderQuantity)
                   : 'N/A'}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Max Order Qty : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Max Order Qty : </span>
+              <span className="text-xs text-gray-800">
                 {rawProduct?.maxOrderQty != null || rawProduct?.maxOrderQuantity != null
                   ? String(rawProduct.maxOrderQty ?? rawProduct.maxOrderQuantity)
                   : 'N/A'}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Is Active : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Is Active : </span>
+              <span className="text-xs text-gray-800">
                 {product.status === 'active' || product.status === 'approved' ? 'true' : 'false'}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Is Featured : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Is Featured : </span>
+              <span className="text-xs text-gray-800">
                 {String(Boolean(rawProduct?.isFeatured))}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Status : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{String(product.status || 'N/A').toUpperCase()}</span>
+              <span className="text-xs font-medium text-gray-500">Status : </span>
+              <span className="text-xs text-gray-800">{String(product.status || 'N/A').toUpperCase()}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">SKU : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{rawStr('sku')}</span>
+              <span className="text-xs font-medium text-gray-500">SKU : </span>
+              <span className="text-xs text-gray-800">{rawStr('sku')}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Tags : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.tags || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Tags : </span>
+              <span className="text-xs text-gray-800">{product.tags || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Manufacturer : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.manufacturer || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Manufacturer : </span>
+              <span className="text-xs text-gray-800">{product.manufacturer || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Made In : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.madeIn || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">Made In : </span>
+              <span className="text-xs text-gray-800">{product.madeIn || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">FSSAI Lic. No. : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.fssaiLicNo || 'N/A'}</span>
+              <span className="text-xs font-medium text-gray-500">FSSAI Lic. No. : </span>
+              <span className="text-xs text-gray-800">{product.fssaiLicNo || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Is Returnable : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.isReturnable ? 'Yes' : 'No'}</span>
+              <span className="text-xs font-medium text-gray-500">Is Returnable : </span>
+              <span className="text-xs text-gray-800">{product.isReturnable ? 'Yes' : 'No'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Is Cancel-able : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.isCancelable ? 'Yes' : 'No'}</span>
+              <span className="text-xs font-medium text-gray-500">Is Cancel-able : </span>
+              <span className="text-xs text-gray-800">{product.isCancelable ? 'Yes' : 'No'}</span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Is COD allowed : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">{product.isCodAllowed ? 'Yes' : 'No'}</span>
+              <span className="text-xs font-medium text-gray-500">Is COD allowed : </span>
+              <span className="text-xs text-gray-800">{product.isCodAllowed ? 'Yes' : 'No'}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Variants — admin DataTable */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">Product Variants</h2>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-gray-800">Product Variants</h2>
           <PrimaryButton onClick={handleAddVariant} size="sm" className="flex items-center gap-1.5">
             <Plus size={14} />
             Add Variant
