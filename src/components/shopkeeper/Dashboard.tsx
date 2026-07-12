@@ -81,7 +81,7 @@ function KPICard({ label, value, icon: Icon, color, bg, onClick, isAdmin = false
   if (isAdmin) {
     const card = (
       <div
-        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+        className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
         style={{
           boxShadow: "0px 0px 12px rgba(0,0,0,0.05)",
           minHeight: "134px"
@@ -89,13 +89,13 @@ function KPICard({ label, value, icon: Icon, color, bg, onClick, isAdmin = false
       >
         <div className="flex justify-between items-start w-full">
           <div className="flex-1 min-w-0 pr-2">
-            <p className="text-[12px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">{label}</p>
+            <p className="text-[12px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider truncate">{label}</p>
             <h3 className="text-[24px] font-bold text-slate-800 dark:text-slate-100 mt-2 leading-none">
               {value}
             </h3>
           </div>
           <div
-            className="w-[56px] h-[56px] rounded-[16px] flex items-center justify-center flex-shrink-0"
+            className="w-[56px] h-[56px] rounded-[16px] flex items-center justify-center flex-shrink-0 dark:opacity-80"
             style={{ backgroundColor: bg }}
           >
             <Icon size={24} color={color} />
@@ -658,7 +658,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                         <th className="text-left px-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider w-[20%]">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {shopkeepers.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center text-xs py-8">No active shopkeepers found.</td>
@@ -698,7 +698,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                           }
 
                           return (
-                            <tr key={sk.id} className="hover:bg-[#F9FAFB] dark:bg-gray-900 transition-colors" style={{ height: "72px" }}>
+                            <tr key={sk.id} className="hover:bg-[#F9FAFB] dark:hover:bg-gray-700/50 dark:bg-gray-800 transition-colors" style={{ height: "72px" }}>
                               <td className="px-[12px] py-[16px] whitespace-nowrap">
                                 <div className="w-[40px] h-[40px] rounded-full bg-green-50 text-[#00891D] flex items-center justify-center font-bold text-sm border border-green-100">
                                   {initials}

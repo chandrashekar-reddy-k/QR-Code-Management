@@ -1,0 +1,12 @@
+{
+  "src/components/shopkeeper/Dashboard.tsx": [],
+  "src/components/shopkeeper/DashboardMobile.tsx": [],
+  "src/components/shopkeeper/HandoverVerification.tsx": [],
+  "src/components/shopkeeper/HandoverVerificationMobile.tsx": [],
+  "src/components/shopkeeper/PackingQueue.tsx": [],
+  "src/components/shopkeeper/PackingScreen.tsx": [],
+  "src/components/shopkeeper/PickingComplete.tsx": [],
+  "src/components/shopkeeper/PickingQueue.tsx": [],
+  "src/components/shopkeeper/PickingScreen.tsx": [],
+  "src/components/shopkeeper/ReadyOrders.tsx": []
+}

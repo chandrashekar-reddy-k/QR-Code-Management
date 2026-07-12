@@ -10,7 +10,7 @@ import { PackingQueue } from "../components/shopkeeper/PackingQueue";
 import { PackingScreen } from "../components/shopkeeper/PackingScreen";
 import { ReadyOrders } from "../components/shopkeeper/ReadyOrders";
 import { HandoverVerification } from "../components/shopkeeper/HandoverVerification";
-import { SelfPickup } from "../components/shopkeeper/SelfPickup";
+import { SelfPickup } from "../components/shopkeeper/SelfPickupMobile";
 import { Returns } from "../components/shopkeeper/Returns";
 import { SLAMonitoring } from "../components/shopkeeper/SLAMonitoring";
 import { Settings } from "../components/shopkeeper/Settings";

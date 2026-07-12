@@ -321,7 +321,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     return (
       <div className="mt-1">
         <div className="px-3 py-2 mb-2">
-          <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
             {title}
           </span>
         </div>
@@ -350,8 +350,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           <Link
             to={section.path}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isActive
-                ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
+              ? "text-green-600 bg-green-50"
+              : "text-gray-700 hover:bg-gray-100 hover:text-green-600"
               }`}
           >
             <Icon size={16} />
@@ -460,8 +460,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           <button
             onClick={() => setSectionOpen?.(!isSectionOpen)}
             className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalActive
-                ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
+              ? "text-green-600 bg-green-50"
+              : "text-gray-700 hover:bg-gray-100 hover:text-green-600"
               }`}
           >
             {/* Icon and Label */}
@@ -517,8 +517,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                       to={subItem.path}
                       className={`${isSectionOpen ? "dropdown-item" : "dropdown-item-exit"
                         } flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${isActive
-                          ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
+                          ? "text-green-600 bg-green-50"
+                          : "text-gray-700 hover:bg-gray-100 hover:text-green-600"
                         }`}
                       style={{
                         animationDelay: isSectionOpen
@@ -552,7 +552,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
   return (
     <aside
-      className={`w-72 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 h-screen flex flex-col fixed left-0 top-0 z-50 overflow-hidden transition-transform duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700 ${isOpen ? "translate-x-0" : "-translate-x-full"
+      className={`w-72 bg-white text-gray-800 h-screen flex flex-col fixed left-0 top-0 z-50 overflow-hidden transition-transform duration-300 ease-in-out border-r border-gray-200 ${isOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
       style={{ fontFamily: "'Segoe UI', sans-serif" }}
     >
@@ -582,10 +582,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           {setIsOpen && (
             <button
               onClick={() => setIsOpen(false)}
-              className="md:hidden p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              className="md:hidden p-1 hover:bg-gray-100 rounded transition-colors"
               aria-label="Close menu"
             >
-              <X size={18} className="text-gray-700 dark:text-gray-300" />
+              <X size={18} className="text-gray-700" />
             </button>
           )}
         </div>
