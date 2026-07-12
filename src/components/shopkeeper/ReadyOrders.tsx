@@ -1,10 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, User, ChevronRight, Filter, RotateCcw, ChevronDown, Search } from "lucide-react";
+import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, ChevronRight, Filter, RotateCcw, Search } from "lucide-react";
 import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
-import { ReadyOrdersMobile } from "./ReadyOrdersMobile";
-import Breadcrumbs from "../common/Breadcrumbs";
-import { SelectInput, SearchInput } from "../ui";
 
 interface ReadyOrdersProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -20,7 +17,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
 
   const [agents, setAgents] = useState<any[]>([]);
-  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [, setAssigningId] = useState<string | null>(null);
   const [selectedOrderForRider, setSelectedOrderForRider] = useState<any | null>(null);
 
   const [deliveryTypeFilter, setDeliveryTypeFilter] = useState("");

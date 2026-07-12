@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { ArrowLeft, QrCode, CheckCircle, Package, Loader2, ShoppingBag, AlertCircle, Timer, Filter, RotateCcw, ChevronDown, Eye } from "lucide-react";
-import Breadcrumbs from "../common/Breadcrumbs";
 import { SelectInput, SearchInput } from "../ui";
 import api from "../../api/axios";
 
@@ -46,10 +45,6 @@ export function SelfPickup({ onBack, onNavigate }: SelfPickupProps) {
 
   useEffect(() => { fetchOrders(); }, []);
 
-  const handleVerify = (id: string) => {
-    setVerifiedIds(prev => [...prev, id]);
-    setActiveOrder(null);
-  };
 
   const handleCollect = async (id: string) => {
     try {
@@ -137,12 +132,11 @@ export function SelfPickup({ onBack, onNavigate }: SelfPickupProps) {
   return (
     <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10 flex flex-col">
       {/* Breadcrumbs */}
-      <div className="mb-6">
-        <Breadcrumbs items={[
-          { label: "Home", href: "/shopkeeper" },
-          { label: "Self Pickup" },
-        ]} />
-      </div>
+      <nav className="text-xs text-gray-500 flex items-center gap-1 mb-6">
+        <button onClick={onBack} className="hover:text-green-600 dark:hover:text-green-400 transition-colors">Home</button>
+        <span className="mx-1">&gt;</span>
+        <span className="font-medium text-orange-600 dark:text-orange-500">Self Pickup</span>
+      </nav>
 
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">

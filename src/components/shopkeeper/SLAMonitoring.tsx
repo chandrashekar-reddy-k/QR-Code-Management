@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Loader2, Package, TrendingUp, Filter, RotateCcw, ChevronDown, ExternalLink } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, Tooltip } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import api from "../../api/axios";
-import Breadcrumbs from "../common/Breadcrumbs";
 import { SelectInput, SearchInput } from "../ui";
 
 import { useSocket } from "../../hooks/useSocket";
@@ -14,8 +13,6 @@ interface SLAMonitoringProps {
 
 const GREEN = "#00891D";
 const ORANGE = "#EF5A06";
-const GREEN_LIGHT = "#E8F5E9";
-const ORANGE_LIGHT = "#FFF3E0";
 
 export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
   const [orders, setOrders] = useState<any[]>([]);
@@ -160,7 +157,6 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
 
   // 4. SLA data properties
   const hourlyData = slaData?.hourlyData || [];
-  const processingTimes = slaData?.processingTimes || [];
 
   const summary = {
     active_orders: activeOrdersCount,
@@ -202,12 +198,11 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10">
       {/* Breadcrumbs */}
-      <div className="mb-6">
-        <Breadcrumbs items={[
-          { label: "Home", href: "/shopkeeper" },
-          { label: "SLA Monitoring" },
-        ]} />
-      </div>
+      <nav className="text-xs text-gray-500 flex items-center gap-1 mb-6">
+        <button onClick={onBack} className="hover:text-green-600 transition-colors">Home</button>
+        <span className="mx-1">&gt;</span>
+        <span className="font-medium text-orange-600">SLA Monitoring</span>
+      </nav>
 
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">

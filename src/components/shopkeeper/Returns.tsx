@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Clock, CreditCard, Loader2, Package, Timer, Filter, RotateCcw, ChevronDown, Eye } from "lucide-react";
-import Breadcrumbs from "../common/Breadcrumbs";
+import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Loader2, Timer, Filter, RotateCcw, ChevronDown, Eye } from "lucide-react";
 import { SelectInput, SearchInput } from "../ui";
 import api from "../../api/axios";
 
@@ -167,12 +166,11 @@ export function Returns({ onBack }: ReturnsProps) {
   return (
     <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10 flex flex-col">
       {/* Breadcrumbs */}
-      <div className="mb-6">
-        <Breadcrumbs items={[
-          { label: "Home", href: "/shopkeeper" },
-          { label: "Returns" },
-        ]} />
-      </div>
+      <nav className="text-xs text-gray-500 flex items-center gap-1 mb-6">
+        <button onClick={onBack} className="hover:text-green-600 dark:hover:text-green-400 transition-colors">Home</button>
+        <span className="mx-1">&gt;</span>
+        <span className="font-medium text-orange-600 dark:text-orange-500">Returns</span>
+      </nav>
 
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">
