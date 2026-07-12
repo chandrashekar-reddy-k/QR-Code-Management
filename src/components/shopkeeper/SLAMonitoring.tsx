@@ -325,9 +325,9 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
         </div>
       </div>
 
-      <div className="flex justify-end mb-4">
-        {/* Compact Compliance bar */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 w-full lg:w-[400px]">
+      <div className="mb-6">
+        {/* Full-width Compliance bar */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>SLA Compliance Rate</h3>
             <span style={{ fontWeight: 700, fontSize: "14px", color: complianceRate >= 80 ? GREEN : ORANGE }}>
