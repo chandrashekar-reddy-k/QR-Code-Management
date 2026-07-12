@@ -22,7 +22,7 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
-export function PickingQueue({ onNavigate, onBack }: PickingQueueProps) {
+export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
   const [pickingOrders, setPickingOrders] = useState<any[]>([]);
   const socket = useSocket(1);
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, Package, QrCode, AlertCircle, Loader2, Filter, RotateCcw, ChevronDown, Clock } from "lucide-react";
+import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, User, ChevronRight, Filter, RotateCcw, ChevronDown, Search } from "lucide-react";
 import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
 import { ReadyOrdersMobile } from "./ReadyOrdersMobile";
@@ -12,22 +12,11 @@ interface ReadyOrdersProps {
 }
 
 export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
-  const [userRole] = useState(() => {
-    const storedUser = localStorage.getItem("user");
-    const userObj = storedUser ? JSON.parse(storedUser) : null;
-    return userObj?.role;
-  });
-
-  // Staff login (SHOPKEEPER / STORE_STAFF) uses the original green mobile ready orders screen UI
-  const [isStaffLogin] = useState(() => {
-    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
-  });
-
-  if (isStaffLogin) {
-    return <ReadyOrdersMobile onNavigate={onNavigate} onBack={onBack} />;
-  }
-
   const { orders: sharedOrders, refreshOrders, loading: sharedLoading } = useSharedOrders();
+
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
 
   const [agents, setAgents] = useState<any[]>([]);
@@ -145,133 +134,104 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   const waitingForRiderCount = orders.filter(o => !o.agentId).length;
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] dark:bg-gray-900 p-[32px] pb-10 flex flex-col">
-      {/* Breadcrumbs */}
-      <div className="mb-6">
-        <Breadcrumbs />
-      </div>
-
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6] pb-12">
       {/* Page Header */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Ready for Dispatch</h1>
-          <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500">Orders packed, assigned, and ready for rider handover</p>
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <nav className="text-xs text-gray-500 flex items-center gap-1 mb-2">
+              <button onClick={() => onNavigate("dashboard")} className="hover:text-[#00891D] transition-colors">Home</button>
+              <ChevronRight size={12} />
+              <span className="font-medium text-[#00891D]">Ready for Dispatch</span>
+            </nav>
+            <h1 className="text-2xl font-bold text-gray-900">Ready for Dispatch</h1>
+            <p className="text-gray-500 text-sm mt-1">Orders packed, assigned, and ready for rider handover</p>
+          </div>
+          
+          <button 
+            onClick={onBack}
+            className="self-start md:self-auto flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Dashboard</span>
+          </button>
         </div>
-        <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors">
-          <ArrowLeft size={16} /> Back to Dashboard
-        </button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {[
-          {
-            label: "Ready Orders",
-            value: orders.length,
-            icon: <Package size={20} className="text-green-600" />,
-            bg: "bg-green-50 dark:bg-green-950/30",
-            text: "text-gray-900 dark:text-white",
-          },
-          {
-            label: "Waiting for Rider",
-            value: waitingForRiderCount,
-            icon: <Clock size={20} className="text-blue-600" />,
-            bg: "bg-blue-50 dark:bg-blue-950/30",
-            text: "text-gray-900 dark:text-white",
-          },
-          {
-            label: "SLA Alerts",
-            value: overdueCount,
-            icon: <AlertCircle size={20} className="text-orange-600" />,
-            bg: "bg-orange-50 dark:bg-orange-950/30",
-            text: "text-gray-900 dark:text-white",
-          },
-        ].map((card) => (
-          <div
-            key={card.label}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm flex items-center gap-4"
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${card.bg}`}>
-              {card.icon}
-            </div>
-            <div>
-              <p className={`text-2xl font-black leading-none mb-0.5 ${card.text}`}>{card.value}</p>
-              <p className="text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">{card.label}</p>
-            </div>
-          </div>
-        ))}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { label: "Ready Orders", value: orders.length, icon: Package, iconColor: "text-green-600", bgColor: "bg-green-50" },
+            { label: "Waiting for Rider", value: waitingForRiderCount, icon: CheckCircle, iconColor: "text-blue-600", bgColor: "bg-blue-50" },
+            { label: "SLA Alerts", value: overdueCount, icon: AlertCircle, iconColor: "text-red-600", bgColor: "bg-red-50" },
+          ].map(card => {
+            const Icon = card.icon;
+            return (
+              <div key={card.label} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl ${card.bgColor} flex items-center justify-center flex-shrink-0`}>
+                  <Icon size={24} className={card.iconColor} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                  <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mt-0.5">{card.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Filters + Search */}
-      <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-stretch divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full sm:w-auto overflow-x-auto">
-          {/* Filter icon */}
-          <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+      {/* Filters + Search Bar */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-wrap items-center divide-x divide-gray-200">
+          <div className="px-4 py-3 flex items-center justify-center flex-shrink-0">
+            <Filter size={16} className="text-gray-500" />
+          </div>
+          
+          {/* Delivery Type Filter */}
+          <div className="px-4 py-3 w-[180px] relative">
+            <select
+              value={deliveryTypeFilter}
+              onChange={(e) => setDeliveryTypeFilter(e.target.value)}
+              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 focus:outline-none cursor-pointer pr-4"
+            >
+              <option value="">Delivery Type: All</option>
+              <option value="Home Delivery">Home Delivery</option>
+              <option value="Self Pickup">Self Pickup</option>
+              <option value="Quick Commerce">Quick Commerce</option>
+            </select>
           </div>
 
-          {/* Delivery Type Dropdown */}
-          <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
-              <SelectInput
-                value={deliveryTypeFilter}
-                onChange={(e) => setDeliveryTypeFilter(e.target.value)}
-                options={[
-                  { value: "", label: "Delivery Type: All" },
-                  { value: "Home Delivery", label: "Home Delivery" },
-                  { value: "Self Pickup", label: "Self Pickup" },
-                  { value: "Quick Commerce", label: "Quick Commerce" },
-                ]}
-              />
-            </div>
-            <ChevronDown
-              size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
-            />
+          {/* SLA Status Filter */}
+          <div className="px-4 py-3 w-[180px] relative">
+            <select
+              value={slaStatusFilter}
+              onChange={(e) => setSlaStatusFilter(e.target.value)}
+              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 focus:outline-none cursor-pointer pr-4"
+            >
+              <option value="">SLA Status: All</option>
+              <option value="ontrack">On Track</option>
+              <option value="overdue">Overdue</option>
+            </select>
           </div>
 
-          {/* SLA Status Dropdown */}
-          <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
-              <SelectInput
-                value={slaStatusFilter}
-                onChange={(e) => setSlaStatusFilter(e.target.value)}
-                options={[
-                  { value: "", label: "SLA Status: All" },
-                  { value: "ontrack", label: "On Track" },
-                  { value: "overdue", label: "Overdue" },
-                ]}
-              />
-            </div>
-            <ChevronDown
-              size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
-            />
+          {/* Date Filter */}
+          <div className="px-4 py-3 w-[180px] relative">
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 focus:outline-none cursor-pointer pr-4"
+            >
+              <option value="">Date: All</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="last7">Last 7 Days</option>
+            </select>
           </div>
 
-          {/* Date Dropdown */}
-          <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
-              <SelectInput
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                options={[
-                  { value: "", label: "Date" },
-                  { value: "today", label: "Today" },
-                  { value: "yesterday", label: "Yesterday" },
-                  { value: "last7", label: "Last 7 Days" },
-                ]}
-              />
-            </div>
-            <ChevronDown
-              size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
-            />
-          </div>
-
-          {/* Reset button */}
-          <div className="px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0 flex items-center !border-l-0">
-            <div className="hidden sm:block h-6 w-[1px] bg-gray-300 dark:bg-gray-600 mr-4"></div>
+          {/* Reset Filters */}
+          {(deliveryTypeFilter || slaStatusFilter || dateFilter || searchQuery) && (
             <button
               onClick={() => {
                 setDeliveryTypeFilter("");
@@ -279,193 +239,196 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                 setDateFilter("");
                 setSearchQuery("");
               }}
-              className="flex items-center gap-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap hover:opacity-80 text-orange-600 dark:text-orange-400 w-full sm:w-auto justify-center"
+              className="px-4 py-3 text-xs font-bold text-red-650 hover:text-red-800 transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
             >
-              <RotateCcw
-                size={14}
-                className="sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400"
-              />
-              <span>Reset Filter</span>
+              <RotateCcw size={12} />
+              Reset Filters
             </button>
-          </div>
+          )}
         </div>
 
-        {/* Search beside filters */}
-        <div className="w-full lg:w-auto lg:min-w-[200px] lg:flex-shrink-0">
-          <SearchInput
+        {/* Search Bar */}
+        <div className="relative w-full md:w-80 bg-white rounded-xl shadow-sm border border-gray-200 py-2.5 px-4 flex items-center gap-2 flex-shrink-0">
+          <Search size={16} className="text-gray-400 flex-shrink-0" />
+          <input
+            type="text"
             placeholder="Search Order, Tray, Rider..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-transparent border-0 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 p-0"
           />
         </div>
       </div>
 
-      {/* Orders Table - Desktop style */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+      {/* Orders Table view */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-12">
         {filteredOrders.length === 0 ? (
-          <div className="p-12 flex flex-col items-center justify-center text-center">
-            <Package size={48} className="text-gray-300 mb-4" />
-            <p className="text-lg font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">No orders ready for dispatch</p>
+          <div className="bg-white rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm border border-gray-200">
+            <CheckCircle size={48} className="text-green-600 mb-3" />
+            <h3 className="text-gray-900 font-bold mb-1">No Orders Ready</h3>
+            <p className="text-gray-500 text-sm">All packed orders have been dispatched.</p>
           </div>
         ) : (
-          <div className="w-full overflow-x-hidden">
-            <table className="w-full border-collapse table-auto text-[14px]">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[56px] whitespace-nowrap">
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Order Number</th>
-                  {shouldShowShopkeeper && <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shopkeeper</th>}
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Delivery Type</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Tray</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Rider</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Ready Since</th>
-                  <th className="text-left px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">SLA Status</th>
-                  <th style={{ width: "200px", minWidth: "200px" }} className="text-center px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredOrders.map((order) => {
-                  const { isOverdue, timeString } = (() => {
-                    const formatDuration = (totalMinutes: number) => {
-                      const mins = Math.round(Math.abs(totalMinutes));
-                      if (mins < 1) return '<1m';
-                      if (mins < 60) return `${mins}m`;
-                      if (mins < 1440) {
-                        const h = Math.floor(mins / 60);
-                        const m = mins % 60;
-                        return m > 0 ? `${h}h ${m}m` : `${h}h`;
-                      }
-                      const d = Math.floor(mins / 1440);
-                      const h = Math.floor((mins % 1440) / 60);
-                      return h > 0 ? `${d}d ${h}h` : `${d}d`;
-                    };
-                    if (!order.shopkeeper_accepted_at) {
-                      return { isOverdue: false, timeString: `${formatDuration(order.sla_minutes)} Remaining` };
-                    }
-                    const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
-                    const diff = order.sla_minutes - elapsed;
-                    if (diff < 0) {
-                      return { isOverdue: true, timeString: `Overdue • ${formatDuration(diff)}` };
-                    } else {
-                      return { isOverdue: false, timeString: `${formatDuration(diff)} Remaining` };
-                    }
-                  })();
-
-                  return (
-                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50/50 transition-colors">
-                      <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">
-                        <div>
-                          <span>#{order.order_number}</span>
-                        </div>
-                      </td>
-                      {shouldShowShopkeeper && (
-                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-semibold text-xs whitespace-nowrap">
-                          {order.shopkeeper_name || "Unassigned"}
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold text-xs whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-100 inline-block whitespace-nowrap">
-                          {order.order_type || "Quick Commerce"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">
-                        {order.tray_number || order.tray || 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                        {(() => {
-                          const rider = agents.find(a => a.id === order.agentId);
-                          return rider ? (
-                            <span title={`Phone: ${rider.phone}`} className="cursor-help border-b border-dotted border-gray-400">
-                              {rider.name}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-normal">Not Assigned</span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                        {(() => {
-                          const readyAt = order.packing_completed_at || order.packedAt || order.packingCompletedAt || order.updated_at || order.updatedAt;
-                          if (!readyAt) return <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">—</span>;
-                          const mins = Math.round((Date.now() - new Date(readyAt).getTime()) / 60000);
-                          if (mins < 1) return <span className="font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">Just now</span>;
-                          if (mins < 60) return <span className="font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500">{mins} min ago</span>;
+          <div className="bg-white rounded-xl shadow-sm border border-gray-150 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse table-auto text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold text-xs uppercase tracking-wider h-12">
+                    <th className="px-4 py-3">Order Number</th>
+                    {shouldShowShopkeeper && <th className="px-4 py-3">Shopkeeper</th>}
+                    <th className="px-4 py-3">Delivery Type</th>
+                    <th className="px-4 py-3">Tray</th>
+                    <th className="px-4 py-3">Rider</th>
+                    <th className="px-4 py-3">Ready Since</th>
+                    <th className="px-4 py-3">SLA Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredOrders.map((order) => {
+                    const { isOverdue, timeString } = (() => {
+                      const formatDuration = (totalMinutes: number) => {
+                        const mins = Math.round(Math.abs(totalMinutes));
+                        if (mins < 1) return '<1m';
+                        if (mins < 60) return `${mins}m`;
+                        if (mins < 1440) {
                           const h = Math.floor(mins / 60);
                           const m = mins % 60;
-                          if (h < 24) return <span className="font-semibold text-orange-600">{h}h {m > 0 ? `${m}m` : ''} ago</span>;
-                          const d = Math.floor(h / 24);
-                          const rh = h % 24;
-                          return <span className="font-semibold text-red-600">{d}d {rh > 0 ? `${rh}h` : ''} ago</span>;
-                        })()}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isOverdue ? (
-                          <span className="inline-flex items-center gap-1 text-red-650 text-xs font-bold bg-red-50 px-2 py-0.5 rounded-full border border-red-100 whitespace-nowrap">
-                            <AlertCircle size={12} />
-                            {timeString}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2 py-0.5 rounded-full border border-green-100 whitespace-nowrap">
-                            {timeString}
-                          </span>
+                          return m > 0 ? `${h}h ${m}m` : `${h}h`;
+                        }
+                        const d = Math.floor(mins / 1440);
+                        const h = Math.floor((mins % 1440) / 60);
+                        return h > 0 ? `${d}d ${h}h` : `${d}d`;
+                      };
+                      if (!order.shopkeeper_accepted_at) {
+                        return { isOverdue: false, timeString: `${formatDuration(order.sla_minutes)} Remaining` };
+                      }
+                      const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
+                      const diff = order.sla_minutes - elapsed;
+                      if (diff < 0) {
+                        return { isOverdue: true, timeString: `Overdue • ${formatDuration(diff)}` };
+                      } else {
+                        return { isOverdue: false, timeString: `${formatDuration(diff)} Remaining` };
+                      }
+                    })();
+
+                    return (
+                      <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3 font-bold text-gray-900">
+                          <div>
+                            <span>#{order.order_number}</span>
+                          </div>
+                        </td>
+                        {shouldShowShopkeeper && (
+                          <td className="px-4 py-3 text-gray-700 font-semibold text-xs whitespace-nowrap">
+                            {order.shopkeeper_name || "Unassigned"}
+                          </td>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => onNavigate("order-details", order)}
-                            className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:bg-gray-700 transition-colors"
-                          >
-                            <Package size={12} className="text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" />
-                            <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-bold text-xs">View</span>
-                          </button>
-
+                        <td className="px-4 py-3 text-gray-500 font-semibold text-xs whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-100 inline-block whitespace-nowrap">
+                            {order.order_type || "Quick Commerce"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-gray-900">
+                          {order.tray_number || order.tray || 'N/A'}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-semibold text-gray-700 whitespace-nowrap">
                           {(() => {
-                            const isHandedOver = order.status?.toLowerCase() === 'dispatched' || order.status?.toLowerCase() === 'completed';
-                            if (isHandedOver) return null;
-
-                            const hasRider = !!order.agentId;
-                            if (hasRider) {
-                              return (
-                                <>
-                                  <button
-                                    onClick={() => setSelectedOrderForRider(order)}
-                                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 transition-colors font-bold text-xs"
-                                  >
-                                    Change Rider
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const agent = agents.find(a => a.id === order.agentId);
-                                      onNavigate("handover-verification", {
-                                        ...order,
-                                        riderName: agent ? agent.name : "N/A"
-                                      });
-                                    }}
-                                    className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 bg-[#00891D] hover:bg-[#006614] transition-colors text-white font-bold text-xs shadow-sm"
-                                  >
-                                    <QrCode size={12} color="white" />
-                                    <span>Handover</span>
-                                  </button>
-                                </>
-                              );
-                            } else {
-                              return (
-                                <button
-                                  onClick={() => setSelectedOrderForRider(order)}
-                                  className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 transition-colors font-bold text-xs"
-                                >
-                                  Assign Rider
-                                </button>
-                              );
-                            }
+                            const rider = agents.find(a => a.id === order.agentId);
+                            return rider ? (
+                              <span title={`Phone: ${rider.phone}`} className="cursor-help border-b border-dotted border-gray-400">
+                                {rider.name}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 font-normal">Not Assigned</span>
+                            );
                           })()}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                          {(() => {
+                            const readyAt = order.packing_completed_at || order.packedAt || order.packingCompletedAt || order.updated_at || order.updatedAt;
+                            if (!readyAt) return <span className="text-gray-400">—</span>;
+                            const mins = Math.round((Date.now() - new Date(readyAt).getTime()) / 60000);
+                            if (mins < 1) return <span className="font-semibold text-gray-600">Just now</span>;
+                            if (mins < 60) return <span className="font-semibold text-gray-600">{mins} min ago</span>;
+                            const h = Math.floor(mins / 60);
+                            const m = mins % 60;
+                            if (h < 24) return <span className="font-semibold text-orange-600">{h}h {m > 0 ? `${m}m` : ''} ago</span>;
+                            const d = Math.floor(h / 24);
+                            const rh = h % 24;
+                            return <span className="font-semibold text-red-600">{d}d {rh > 0 ? `${rh}h` : ''} ago</span>;
+                          })()}
+                        </td>
+                        <td className="px-4 py-3">
+                          {isOverdue ? (
+                            <span className="inline-flex items-center gap-1 text-red-650 text-xs font-bold bg-red-50 px-2 py-0.5 rounded-full border border-red-100 whitespace-nowrap">
+                              <AlertCircle size={12} />
+                              {timeString}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2 py-0.5 rounded-full border border-green-100 whitespace-nowrap">
+                              {timeString}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button 
+                              onClick={() => onNavigate("order-details", order)}
+                              className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
+                            >
+                              <Package size={12} className="text-gray-600" />
+                              <span className="text-gray-600 font-bold text-xs">View</span>
+                            </button>
+
+                            {(() => {
+                              const isHandedOver = order.status?.toLowerCase() === 'dispatched' || order.status?.toLowerCase() === 'completed';
+                              if (isHandedOver) return null;
+
+                              const hasRider = !!order.agentId;
+                              if (hasRider) {
+                                return (
+                                  <>
+                                    <button 
+                                      onClick={() => setSelectedOrderForRider(order)}
+                                      className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 transition-colors font-bold text-xs"
+                                    >
+                                      Change Rider
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const agent = agents.find(a => a.id === order.agentId);
+                                        onNavigate("handover-verification", {
+                                          ...order,
+                                          riderName: agent ? agent.name : "N/A"
+                                        });
+                                      }}
+                                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 bg-[#00891D] hover:bg-[#006614] transition-colors text-white font-bold text-xs shadow-sm"
+                                    >
+                                      <QrCode size={12} color="white" />
+                                      <span>Handover</span>
+                                    </button>
+                                  </>
+                                );
+                              } else {
+                                return (
+                                  <button 
+                                    onClick={() => setSelectedOrderForRider(order)}
+                                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 transition-colors font-bold text-xs"
+                                  >
+                                    Assign Rider
+                                  </button>
+                                );
+                              }
+                            })()}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -473,10 +436,10 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
       {/* Assign Rider Modal */}
       {selectedOrderForRider && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-gray-900 dark:text-gray-100 font-bold text-lg mb-2">Assign Rider</h3>
-            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs mb-4">Select a delivery partner for Order #{selectedOrderForRider.order_number}</p>
-
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-gray-900 font-bold text-lg mb-2">Assign Rider</h3>
+            <p className="text-gray-500 text-xs mb-4">Select a delivery partner for Order #{selectedOrderForRider.order_number}</p>
+            
             <select
               value={selectedOrderForRider.agentId || ""}
               onChange={(e) => {
@@ -492,7 +455,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                 </option>
               ))}
             </select>
-
+            
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setSelectedOrderForRider(null)}

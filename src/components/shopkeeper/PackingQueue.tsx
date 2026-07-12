@@ -13,20 +13,6 @@ interface PackingQueueProps {
 }
 
 export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
-  const [userRole] = useState(() => {
-    const storedUser = localStorage.getItem("user");
-    const userObj = storedUser ? JSON.parse(storedUser) : null;
-    return userObj?.role;
-  });
-  
-  const [isStaffLogin] = useState(() => {
-    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
-  });
-
-  if (isStaffLogin) {
-    return <PackingQueueMobile onNavigate={onNavigate} onBack={onBack} />;
-  }
-
   const { orders: sharedOrders, refreshOrders } = useSharedOrders();
 
 
@@ -166,10 +152,10 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
         if (!orderDateStr) return false;
         const orderDate = new Date(orderDateStr);
         const orderDateStart = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate()).getTime();
-
+        
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
+        
         if (dateRangeType === "today") {
           return orderDateStart === todayStart;
         } else if (dateRangeType === "yesterday") {
@@ -266,8 +252,8 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
           </div>
 
           {/* Delivery Type Dropdown */}
-          <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex-shrink-0">
-            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:text-gray-100 dark:[&_select]:text-gray-100 [&_select]:pr-6 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
+          <div className="px-3 sm:px-4 py-3 sm:py-4 w-[185px] sm:w-[195px] relative flex-shrink-0">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:text-xs sm:text-sm [&_select]:font-bold [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-8 [&_select]:px-0 [&_select]:py-0 [&_select]:w-full">
               <SelectInput
                 value={deliveryTypeFilter}
                 onChange={(e) => setDeliveryTypeFilter(e.target.value)}
@@ -436,19 +422,19 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                     const absMin = Math.abs(minutes);
                     const suffix = isBreached ? " overdue" : " remaining";
                     const prefix = isBreached ? "Overdue by " : "";
-
+                    
                     if (absMin < 60) {
                       return isBreached ? `${prefix}${absMin}m` : `${absMin}m${suffix}`;
                     }
-
+                    
                     const hours = Math.floor(absMin / 60);
                     const mins = absMin % 60;
-
+                    
                     if (hours < 24) {
                       const timeStr = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
                       return isBreached ? `${prefix}${timeStr}` : `${timeStr}${suffix}`;
                     }
-
+                    
                     const days = Math.floor(hours / 24);
                     const remHours = hours % 24;
                     const timeStr = remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
@@ -476,7 +462,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                   const isCompletedVal = ["packed", "ready", "dispatched"].includes((order.status || "").toLowerCase());
                   const packedCountVal = isCompletedVal ? totalToPack : (itemsList.filter((i: any) => i.is_picked && i.is_verified).length || 0);
                   const pctVal = totalToPack > 0 ? Math.round((packedCountVal / totalToPack) * 100) : 0;
-
+                  
                   return (
                     <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-750 transition-colors h-[64px]">
                       <td className="px-4 py-4 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
@@ -573,10 +559,11 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                       <td className="px-4 py-2 font-bold text-gray-900 dark:text-gray-100">{tray}</td>
                       <td className="px-4 py-2">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${isActive
-                            ? "bg-orange-50 text-orange-700 border-orange-200"
-                            : "bg-green-50 text-green-700 border-green-200"
-                            }`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                            isActive
+                              ? "bg-orange-50 text-orange-700 border-orange-200"
+                              : "bg-green-50 text-green-700 border-green-200"
+                          }`}
                         >
                           {isActive ? "Occupied" : "Available"}
                         </span>

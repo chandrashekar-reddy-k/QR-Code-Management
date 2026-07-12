@@ -1,3 +1,4 @@
+import { DashboardMobile } from "./DashboardMobile";
 import { useState, useEffect } from "react";
 import { useSharedOrders } from "./SharedOrdersContext";
 
@@ -6,8 +7,6 @@ import {
   Package,
   CheckCircle,
   AlertTriangle,
-  Clock,
-  Bell,
   ChevronRight,
   Truck,
   XCircle,
@@ -60,8 +59,8 @@ const isSLABreached = (order: any): boolean => {
 
 
 
-const getPlacementTime = (order: any): number => {
-  const val = order.createdAt || order.created_at || order.placedAt || order.placed_at;
+const getOrderTime = (order: any): number => {
+  const val = order.updatedAt || order.updated_at || order.createdAt || order.created_at || order.placedAt || order.placed_at;
   if (!val) return 0;
   const ms = new Date(val).getTime();
   return isNaN(ms) ? 0 : ms;
@@ -154,7 +153,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     }
   };
   const [stats, setStats] = useState<any>({
-    newOrders: 0,
+    activeOrders: 0,
     picking: 0,
     packing: 0,
     ready: 0,
@@ -209,7 +208,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       try {
         const u = JSON.parse(storedU);
         userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, and must not be pre-payment PENDING status
@@ -249,6 +248,12 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       const s = o.status?.toLowerCase();
       return s === 'new';
     }).length;
+
+    const activeOrdersCount = allOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return ['new', 'accepted', 'confirmed', 'picking', 'packing', 'processing', 'ready'].includes(s);
+    }).length;
+
     const picking = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
       return s === 'accepted' || s === 'picking' || s === 'confirmed';
@@ -301,6 +306,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     setStats({
       newOrders,
+      activeOrders: activeOrdersCount,
       picking,
       packing,
       ready,
@@ -315,7 +321,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       }
     });
 
-    const sortedOrders = [...allOrders].sort((a, b) => getPlacementTime(b) - getPlacementTime(a));
+    const sortedOrders = [...allOrders].sort((a, b) => getOrderTime(b) - getOrderTime(a));
     setRecentOrders(sortedOrders.slice(0, 5));
   };
 
@@ -408,18 +414,34 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
   const kpiCards = [
     { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "all-orders", variant: "purple" as const },
-    { label: "New Orders", value: stats.newOrders, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", screen: "new-orders", variant: "blue" as const },
-    { label: "Picking", value: stats.picking, icon: Package, color: "#6A1B9A", bg: "#F3E5F5", variant: "purple" as const },
-    { label: "Packing", value: stats.packing, icon: Package, color: "#E65100", bg: "#FFF3E0", variant: "yellow" as const },
-    { label: "Ready", value: stats.ready, icon: CheckCircle, color: "#14B8A6", bg: "#E8F5E9", variant: "green" as const },
+    { label: "Active Orders", value: stats.activeOrders, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", screen: "new-orders", variant: "blue" as const },
+    { label: "Picking", value: stats.picking, icon: Package, color: "#6A1B9A", bg: "#F3E5F5", screen: "picking-queue", variant: "purple" as const },
+    { label: "Packing", value: stats.packing, icon: Package, color: "#E65100", bg: "#FFF3E0", screen: "packing-queue", variant: "yellow" as const },
+    { label: "Ready", value: stats.ready, icon: CheckCircle, color: "#14B8A6", bg: "#E8F5E9", screen: "ready-orders", variant: "green" as const },
   ];
 
   const secondRowKpis = [
     { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED", variant: "green" as const },
-    { label: "Rejected", value: rejectedToday, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED", variant: "red" as const },
+    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED", variant: "red" as const },
+    { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", screen: "sla-monitoring", variant: "red" as const },
+    { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns", variant: "gray" as const },
+    { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
+  ];
+
+  const desktopKpiCards = [
+    { label: "Active Orders", value: stats.activeOrders, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", variant: "blue" as const },
+    { label: "Picking", value: stats.picking, icon: Package, color: "#6A1B9A", bg: "#F3E5F5", variant: "purple" as const },
+    { label: "Packing", value: stats.packing, icon: Package, color: "#E65100", bg: "#FFF3E0", variant: "yellow" as const },
+    { label: "Ready for Dispatch", value: stats.ready, icon: CheckCircle, color: "#14B8A6", bg: "#E8F5E9", variant: "green" as const },
+    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED", variant: "green" as const },
+  ];
+
+  const desktopSecondRowKpis = [
+    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", variant: "gray" as const },
     { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
+    { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", variant: "purple" as const },
   ];
 
   const getWeeklyPerformanceData = () => {
@@ -579,13 +601,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
           {/* Row 1 of KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[24px]">
-            {[
-              { label: "Active Orders", value: stats.picking + stats.packing + stats.ready, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", variant: "blue" as const },
-              { label: "Picking", value: stats.picking, icon: Package, color: "#6A1B9A", bg: "#F3E5F5", variant: "purple" as const },
-              { label: "Packing", value: stats.packing, icon: Package, color: "#E65100", bg: "#FFF3E0", variant: "yellow" as const },
-              { label: "Ready for Dispatch", value: stats.ready, icon: CheckCircle, color: "#14B8A6", bg: "#E8F5E9", variant: "green" as const },
-              { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED", variant: "green" as const },
-            ].map((kpi) => (
+            {desktopKpiCards.map((kpi) => (
               <KPICard
                 key={kpi.label}
                 label={kpi.label}
@@ -606,13 +622,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
           {/* Row 2 of KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[24px]">
-            {[
-              { label: "Rejected", value: rejectedToday, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED", variant: "red" as const },
-              { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", variant: "red" as const },
-              { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", variant: "gray" as const },
-              { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
-              { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", variant: "purple" as const },
-            ].map((kpi) => (
+            {desktopSecondRowKpis.map((kpi) => (
               <KPICard
                 key={kpi.label}
                 label={kpi.label}
@@ -661,7 +671,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
                           // Calculate active order count dynamically based on current orders state
                           const activeOrdersForSk = orders.filter((o: any) => {
-                            const isAssigned = 
+                            const isAssigned =
                               o.shopkeeper_phone === sk.phone ||
                               o.assignedShopkeeper?.phone === sk.phone ||
                               o.assigned_shopkeeper?.phone === sk.phone ||
@@ -670,9 +680,9 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                             if (!isAssigned) return false;
 
                             const s = o.status?.toLowerCase();
-                             return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
-                           });
-                          
+                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
+                          });
+
                           const activeOrderCount = activeOrdersForSk.length;
                           const isOffline = sk.status?.toLowerCase() === 'offline';
                           const isBusy = !isOffline && activeOrderCount > 0;
@@ -843,22 +853,22 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
                     // Calculate time text
                     const timeText = (() => {
-                      const ts = order.createdAt || order.created_at || order.placedAt || order.placed_at;
+                      const ts = order.updatedAt || order.updated_at || order.createdAt || order.created_at || order.placedAt || order.placed_at;
                       if (!ts) return "—";
                       const date = new Date(ts);
                       if (isNaN(date.getTime())) return "—";
-                      
+
                       const day = String(date.getDate()).padStart(2, '0');
                       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                       const month = months[date.getMonth()];
                       const year = date.getFullYear();
-                      
+
                       let hours = date.getHours();
                       const minutes = String(date.getMinutes()).padStart(2, '0');
                       const ampm = hours >= 12 ? 'PM' : 'AM';
                       hours = hours % 12;
                       hours = hours ? hours : 12;
-                      
+
                       return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
                     })();
 
@@ -920,221 +930,17 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
   // Original Staff Mobile Dashboard View
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
-      {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-6">
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <p className="text-white/70 text-sm">{getGreeting()}, {userName} 👋</p>
-            <h1 className="text-white text-xl" style={{ fontWeight: 700 }}>Hyderabad Store 01</h1>
-          </div>
-          <button onClick={() => onNavigate("new-orders")}
-            className="w-10 h-10 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center relative hover:bg-white dark:bg-gray-800/30 transition-colors">
-            <Bell size={20} color="white" />
-            {stats.newOrders > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white flex items-center justify-center" style={{ fontSize: "10px", fontWeight: 700 }}>
-                {stats.newOrders}
-              </span>
-            )}
-          </button>
-        </div>
-        <div className="flex items-center gap-1.5 mt-2">
-          <div className="w-2 h-2 rounded-full bg-green-400"></div>
-          <span className="text-white/80 text-xs">
-            Store Open · Avg Processing 18 min
-          </span>
-        </div>
-      </div>
-
-      {/* KPI Cards - horizontal scroll */}
-      <div className="px-4 -mt-3">
-        <div className="grid grid-cols-5 gap-2">
-          {kpiCards.map((kpi) => (
-            <KPICard
-              key={kpi.label}
-              label={kpi.label}
-              value={kpi.value}
-              icon={kpi.icon}
-              color={kpi.color}
-              bg={kpi.bg}
-              onClick={() => onNavigate(kpi.screen)}
-              isAdmin={false}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* KPI Cards Row 2 */}
-      <div className="px-4 mt-2">
-        <div className="grid grid-cols-5 gap-2">
-          {secondRowKpis.map((kpi) => (
-            <KPICard
-              key={kpi.label}
-              label={kpi.label}
-              value={kpi.value}
-              icon={kpi.icon}
-              color={kpi.color}
-              bg={kpi.bg}
-              onClick={
-                kpi.screen
-                  ? () => onNavigate(kpi.screen, (kpi as any).statusFilter)
-                  : undefined
-              }
-              isAdmin={false}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Weekly Performance Chart */}
-      <div className="px-4 mt-4">
-        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 border-l-4 border-l-[#2E7D32]">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm">Weekly Performance</h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">This Week · Mon–Sun</p>
-            </div>
-            <span className="bg-green-50 text-green-700 text-xs font-semibold rounded-full px-2.5 py-0.5">
-              {totalOrdersThisWeek} orders this week
-            </span>
-          </div>
-          <div className="w-full outline-none focus:outline-none" style={{ outline: 'none' }}>
-            <ResponsiveContainer width="100%" height={260} minWidth={1}>
-              <BarChart
-                data={weeklyData}
-                margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
-                style={{ outline: 'none' }}
-              >
-                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#F5F5F5" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={<CustomXAxisTick />}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#BDBDBD', fontSize: 11 }}
-                />
-                <Tooltip content={<WeeklyTooltip />} cursor={{ fill: '#F9FAFB', opacity: 0.4 }} />
-                <Bar
-                  dataKey="total"
-                  isAnimationActive={true}
-                  radius={[6, 6, 0, 0]}
-                  barSize={44}
-                  label={renderBarLabel}
-                >
-                  {weeklyData.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.isToday ? "#22c55e" : "#2E7D32"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Orders */}
-      <div className="px-4 mt-4 mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "14px" }}>Recent Orders</h3>
-          <button onClick={() => onNavigate("all-orders")} className="flex items-center gap-1 text-[#00891D] hover:underline" style={{ fontSize: "12px", fontWeight: 500 }}>
-            View All <ChevronRight size={14} />
-          </button>
-        </div>
-        <div className="flex flex-col gap-2">
-          {recentOrders.map((order) => {
-            const statusStyles: Record<string, { color: string; bg: string }> = {
-              new: { color: "#1565C0", bg: "#E3F2FD" },
-              picking: { color: "#6A1B9A", bg: "#F3E5F5" },
-              packing: { color: "#E65100", bg: "#FFF3E0" },
-              ready: { color: "#14B8A6", bg: "#E8F5E9" },
-              dispatched: { color: "#2E7D32", bg: "#E0F2F1" },
-              delivered: { color: "#1B5E20", bg: "#C8E6C9" },
-              cancelled: { color: "#D32F2F", bg: "#FFEBEE" },
-            };
-
-            const statusColor =
-              statusStyles[order.status?.toLowerCase()]?.color || "#757575";
-
-            const statusBg =
-              statusStyles[order.status?.toLowerCase()]?.bg || "#F5F5F5";
-
-            return (
-              <button
-                key={order.id}
-                onClick={() => onNavigate("order-details", order)}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-3.5 shadow-sm text-left flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 active:scale-98 transition-transform"
-              >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: statusBg }}>
-                  <ShoppingBag size={18} color={statusColor} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "13px" }}>{order.order_number}</span>
-                    <div className="flex flex-col items-end">
-                      <span className="rounded-full px-2 py-0.5 uppercase" style={{ backgroundColor: statusBg, color: statusColor, fontSize: "10px", fontWeight: 600 }}>
-                        {order.status}
-                      </span>
-                      {shouldShowShopkeeper && (
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">
-                          {order.shopkeeper_name || "Unassigned"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>{order.order_type} · ₹{order.total_value}</span>
-                    <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "10px" }}>
-                      {(() => {
-                        const statusTimeMap: Record<string, { label: string; fields: string[] }> = {
-                          new: { label: "Placed", fields: ["createdAt", "created_at"] },
-                          accepted: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
-                          confirmed: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
-                          picking: { label: "Picking", fields: ["pickedAt", "picking_started_at", "pickingStartedAt"] },
-                          packing: { label: "Packing", fields: ["packedAt", "picking_started_at", "packingStartedAt"] },
-                          ready: { label: "Ready", fields: ["packedAt", "packing_completed_at", "packingCompletedAt"] },
-                          dispatched: { label: "Dispatched", fields: ["dispatchedAt", "dispatched_at", "deliveredAt", "delivered_at"] },
-                          delivered: { label: "Delivered", fields: ["dispatchedAt", "dispatched_at", "deliveredAt", "delivered_at"] },
-                          cancelled: { label: "Cancelled", fields: ["updatedAt", "updated_at"] },
-                        };
-                        const entry = statusTimeMap[order.status?.toLowerCase()];
-                        const fields = entry ? entry.fields : ["createdAt", "created_at"];
-                        const label = entry?.label ?? "Placed";
-
-                        let ts = null;
-                        for (const f of fields) {
-                          if (order[f] !== undefined && order[f] !== null) {
-                            ts = order[f];
-                            break;
-                          }
-                        }
-
-                        if (!ts) {
-                          return `${label}: —`;
-                        }
-                        const date = new Date(ts);
-                        if (isNaN(date.getTime())) {
-                          return `${label}: —`;
-                        }
-
-                        const time = date.toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', hour12: true });
-                        return `${label}: ${time}`;
-                      })()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Clock size={10} color="#9E9E9E" />
-                    <span className="text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "10px" }}>SLA: {order.sla_minutes} min</span>
-                  </div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
+    <DashboardMobile
+      userName={userName}
+      stats={stats}
+      kpiCards={kpiCards}
+      secondRowKpis={secondRowKpis}
+      weeklyData={weeklyData}
+      totalOrdersThisWeek={totalOrdersThisWeek}
+      recentOrders={recentOrders}
+      onNavigate={onNavigate}
+      getGreeting={getGreeting}
+    />
   );
+
 }

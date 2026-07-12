@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { CheckCircle, Package, ArrowRight, ChevronRight } from "lucide-react";
+import { useState } from "react";
 import { PickingCompleteMobile } from "./PickingCompleteMobile";
+import { CheckCircle, Package, ArrowRight, ChevronRight } from "lucide-react";
 
 interface PickingCompleteProps {
   onNavigate: (screen: string) => void;
@@ -8,20 +8,8 @@ interface PickingCompleteProps {
 }
 
 export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
-  const [userRole] = useState(() => {
-    const storedUser = localStorage.getItem("user");
-    const userObj = storedUser ? JSON.parse(storedUser) : null;
-    return userObj?.role;
-  });
-
-  // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile picking complete UI
-  const [isStaffLogin] = useState(() => {
-    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
-  });
-
-  if (isStaffLogin) {
-    return <PickingCompleteMobile onNavigate={onNavigate} data={data} />;
-  }
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
 
   const order = data || {};
   const items: any[] = order.items || [];
@@ -40,13 +28,6 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
 
   const slaMinutes = order.sla_minutes || 30;
   const isSlaBreached = timeTakenMinutes > slaMinutes;
-
-  const formatTimeOnly = (dateStr?: string) => {
-    if (!dateStr) return "—";
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return "—";
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   const formatOrderDateTime = (dateStr?: string): string => {
     if (!dateStr) return "—";
@@ -68,10 +49,10 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900">
-      {/* 1. Standard Partner Portal Header */}
-      <div className="bg-white dark:bg-gray-800 px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200 dark:border-gray-700">
-        <nav className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-3">
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6]">
+      {/* 1. Standard Admin Portal Header */}
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200">
+        <nav className="text-xs text-gray-500 flex items-center gap-1 mb-3">
           <button onClick={() => onNavigate("dashboard")} className="hover:text-green-600 transition-colors">Home</button>
           <ChevronRight size={12} />
           <button onClick={() => onNavigate("picking-queue")} className="hover:text-green-600 transition-colors">Picking Queue</button>

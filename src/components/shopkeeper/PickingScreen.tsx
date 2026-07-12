@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, MapPin, CheckCircle, Scan, Package, Loader2, XCircle, ChevronRight } from "lucide-react";
-import api from "../../api/axios";
 import { PickingScreenMobile } from "./PickingScreenMobile";
+import api from "../../api/axios";
 
 interface PickingScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -24,21 +24,6 @@ function LocationBadge({ location }: { location: string }) {
 }
 
 export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps) {
-  const [userRole] = useState(() => {
-    const storedUser = localStorage.getItem("user");
-    const userObj = storedUser ? JSON.parse(storedUser) : null;
-    return userObj?.role;
-  });
-  
-  const [isStaffLogin] = useState(() => {
-    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
-  });
-
-  if (isStaffLogin) {
-    return <PickingScreenMobile onNavigate={onNavigate} onBack={onBack} order={order} />;
-  }
-
-  // Partner / Admin login uses the standard portal desktop header
   const [items, setItems] = useState<any[]>([]);
   const currentIdx = items.findIndex(item => !item.is_picked && !item.is_rejected);
   const currentItem = currentIdx >= 0 ? items[currentIdx] : null;
@@ -106,7 +91,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
       const mins = Math.floor(totalSecs / 60);
       const secs = totalSecs % 60;
       const hrs = Math.floor(mins / 60);
-
+      
       if (hrs > 0) {
         setElapsedTime(`${hrs}h ${mins % 60}m ${secs}s`);
       } else if (mins > 0) {
@@ -188,11 +173,11 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
       const newItems = items.map(item =>
         item.id === rejectingItem.id
           ? {
-            ...item,
-            is_rejected: true,
-            reject_reason: selectedRejectReason,
-            reject_remarks: rejectRemarks
-          }
+              ...item,
+              is_rejected: true,
+              reject_reason: selectedRejectReason,
+              reject_remarks: rejectRemarks
+            }
           : item
       );
       setItems(newItems);
@@ -241,6 +226,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
   const completedItems = items.filter(i => i.is_picked || i.is_rejected);
   const totalCompleted = completedItems.length;
   const percentCompleted = items.length ? Math.round((totalCompleted / items.length) * 100) : 0;
+  const isVerified = currentItem && barcodeInput === currentItem.barcode;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900">
@@ -532,10 +518,11 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                 ].map((reason) => (
                   <label
                     key={reason}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${selectedRejectReason === reason
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                      selectedRejectReason === reason
                         ? "border-[#D32F2F] bg-red-50/50"
-                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300 bg-gray-50 dark:bg-gray-700/50"
-                      }`}
+                        : "border-gray-200 hover:border-gray-300 bg-gray-50"
+                    }`}
                   >
                     <input
                       type="radio"

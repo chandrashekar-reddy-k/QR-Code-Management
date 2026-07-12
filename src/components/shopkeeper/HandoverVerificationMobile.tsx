@@ -10,7 +10,7 @@ interface HandoverVerificationMobileProps {
 
 type Step = "staff-scan" | "rider-scan" | "complete";
 
-export function HandoverVerificationMobile({ onBack, onNavigate, data }: HandoverVerificationMobileProps) {
+export function HandoverVerificationMobile({ onBack, data }: HandoverVerificationProps) {
   const [step, setStep] = useState<Step>("staff-scan");
   const [loading, setLoading] = useState(false);
   const [staffVerifiedAt, setStaffVerifiedAt] = useState<Date | null>(null);

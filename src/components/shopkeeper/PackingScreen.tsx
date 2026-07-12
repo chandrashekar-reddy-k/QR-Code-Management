@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, CheckCircle, Printer, Package, CheckSquare, Square, Loader2, ChevronRight, Eye } from "lucide-react";
-import api from "../../api/axios";
+import { ArrowLeft, CheckCircle, Printer, Package, CheckSquare, Square, Loader2, ChevronRight } from "lucide-react";
 import { PackingScreenMobile } from "./PackingScreenMobile";
+import api from "../../api/axios";
 
 interface PackingScreenProps {
   onNavigate: (screen: string) => void;
@@ -10,21 +10,6 @@ interface PackingScreenProps {
 }
 
 export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps) {
-  const [userRole] = useState(() => {
-    const storedUser = localStorage.getItem("user");
-    const userObj = storedUser ? JSON.parse(storedUser) : null;
-    return userObj?.role;
-  });
-
-  // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile packing screen UI
-  const [isStaffLogin] = useState(() => {
-    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
-  });
-
-  if (isStaffLogin) {
-    return <PackingScreenMobile onNavigate={onNavigate} onBack={onBack} order={order} />;
-  }
-
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
@@ -86,13 +71,13 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
             <ChevronRight size={12} />
             <span className="font-medium text-orange-600">Order #{order?.order_number}</span>
           </nav>
-          
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 Packing Order — #{order?.order_number}
               </h1>
-              
+
               <div className="flex flex-wrap gap-2 mt-1.5">
                 <span className="px-2 py-0.5 text-xs font-bold rounded bg-orange-100 text-orange-700">
                   {order.order_type || "Quick Commerce"}
@@ -105,8 +90,8 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
                 </span>
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={onBack}
               className="self-start md:self-auto flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:text-gray-100 transition-colors px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50"
             >
@@ -144,7 +129,7 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
 
       {/* 3. Main Body */}
       <div className="max-w-4xl mx-auto w-full p-4 space-y-4">
-        
+
         {/* Packing Summary Card */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-150 py-2.5 px-4 flex items-center justify-between text-sm">
           <div className="flex items-center gap-2 font-bold text-gray-900 dark:text-gray-100">
@@ -178,7 +163,7 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
               </button>
             )}
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse table-auto text-left text-sm">
               <thead>
@@ -209,7 +194,7 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
                           <p className={`font-semibold text-xs sm:text-sm truncate ${isChecked ? "text-green-800" : "text-gray-900 dark:text-gray-100"}`}>
                             {item.name}
                           </p>
-                          {item.sku && <p className="text-[9px] text-gray-450 mt-0.5">SKU: {item.sku}</p>}
+                          {item.sku && <p className="text-[9px] text-gray-455 mt-0.5">SKU: {item.sku}</p>}
                         </div>
                       </td>
                       <td className="px-4 py-1.5 text-center font-bold text-gray-900 dark:text-gray-100 text-xs sm:text-sm">
@@ -218,11 +203,10 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
                       <td className="px-4 py-1.5 text-center">
                         <div className="flex justify-center">
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold border transition-colors ${
-                              isChecked
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold border transition-colors ${isChecked
                                 ? "bg-green-50 text-[#00891D] border-green-200"
                                 : "bg-orange-50 text-[#EF5A06] border-orange-200"
-                            }`}
+                              }`}
                           >
                             <span className={`w-1 h-1 rounded-full mr-1 ${isChecked ? "bg-[#00891D]" : "bg-[#EF5A06]"}`}></span>
                             {isChecked ? "Packed" : "Pending"}

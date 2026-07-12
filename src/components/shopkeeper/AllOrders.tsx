@@ -88,7 +88,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
       try {
         const u = JSON.parse(storedU);
         userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
-      } catch (e) {}
+      } catch (e) { }
     }
 
     let allOrders = [...sharedOrders];
@@ -159,10 +159,10 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
         if (!orderDateStr) return false;
         const orderDate = new Date(orderDateStr);
         const orderDateStart = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate()).getTime();
-        
+
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        
+
         if (dateRangeType === "today") {
           return orderDateStart === todayStart;
         } else if (dateRangeType === "yesterday") {
@@ -279,17 +279,17 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
     if (!ts) return "—";
     const date = new Date(ts);
     if (isNaN(date.getTime())) return "—";
-    
+
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    
+
     let hours = date.getHours();
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12;
     hours = hours ? hours : 12; // the hour '0' should be '12'
-    
+
     return `${day}-${month}-${year}, ${hours}:${minutes} ${ampm}`;
   };
 
@@ -514,7 +514,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                 })}
               </tbody>
             </table>
-            
+
             {/* Pagination Footer */}
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-800">
               <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">

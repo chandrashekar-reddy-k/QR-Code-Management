@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { ArrowLeft, QrCode, CheckCircle, Scan, Bike, Loader2, Package, Clock, ChevronRight } from "lucide-react";
-import api from "../../api/axios";
 import { HandoverVerificationMobile } from "./HandoverVerificationMobile";
+
+import { useState, useMemo } from "react";
+import { ArrowLeft, QrCode, CheckCircle, Scan, Bike, Loader2, ChevronRight, Package } from "lucide-react";
+import api from "../../api/axios";
+import toast from "react-hot-toast";
 
 interface HandoverVerificationProps {
   onBack: () => void;
@@ -12,19 +14,18 @@ interface HandoverVerificationProps {
 type Step = "staff-scan" | "rider-scan" | "complete";
 
 export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerificationProps) {
-  const [userRole] = useState(() => {
-    const storedUser = localStorage.getItem("user");
-    const userObj = storedUser ? JSON.parse(storedUser) : null;
-    return userObj?.role;
-  });
 
-  const [isStaffLogin] = useState(() => {
-    return !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
-  });
+  const storedUser = localStorage.getItem("user");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const userRole = userObj?.role;
+
+  // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile handover verification UI
+  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
 
   if (isStaffLogin) {
     return <HandoverVerificationMobile onBack={onBack} onNavigate={onNavigate} data={data} />;
   }
+
 
   const [step, setStep] = useState<Step>("staff-scan");
   const [loading, setLoading] = useState(false);
@@ -41,235 +42,216 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
   const currentStepIdx = steps.findIndex(s => s.key === step);
   const totalItems = order.items?.length || 1;
 
-  // Render desktop view (following Partner Portal design system)
-  return (
-    <div className="flex-1 bg-[#F5F7FA] dark:bg-gray-900 overflow-y-auto w-full min-h-screen">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-4">
-          {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4">
-            <span className="hover:text-gray-700 dark:text-gray-300 cursor-pointer" onClick={() => onNavigate("dashboard")}>Home</span>
-            <ChevronRight size={16} />
-            <span className="hover:text-gray-700 dark:text-gray-300 cursor-pointer" onClick={() => onNavigate("dashboard")}>Shopkeeper ERP</span>
-            <ChevronRight size={16} />
-            <span className="text-[#00891D] font-medium">Handover Verification</span>
-          </div>
+  const handleStaffVerify = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setStaffVerifiedAt(new Date());
+      setStep("rider-scan");
+      setLoading(false);
+    }, 1000);
+  };
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={onBack}
-                className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors bg-white dark:bg-gray-800"
-              >
-                <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Handover Verification</h1>
-                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">Verify and handover order #{order.order_number || "QC100240"} to rider</p>
-              </div>
-            </div>
+  const handleRiderVerify = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setRiderVerifiedAt(new Date());
+      toast.success("Rider verified successfully");
+      setLoading(false);
+    }, 500);
+  };
+
+  const handleCompleteHandover = async () => {
+    if (!order.id) return;
+    setLoading(true);
+    try {
+      await api.put(`/orders/${order.id}/status`, { status: 'dispatched' });
+      setStep("complete");
+    } catch (err) {
+      console.error("Failed to update status", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isSlaBreached = useMemo(() => {
+    if (!order.shopkeeper_accepted_at || !order.sla_minutes) return false;
+    const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
+    return elapsed > order.sla_minutes;
+  }, [order]);
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6] pb-12">
+      {/* Page Header */}
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <nav className="text-xs text-gray-500 flex items-center gap-1 mb-2">
+              <button onClick={() => onNavigate("dashboard")} className="hover:text-[#00891D] transition-colors">Home</button>
+              <ChevronRight size={12} />
+              <button onClick={() => onNavigate("ready-orders")} className="hover:text-[#00891D] transition-colors">Ready for Dispatch</button>
+              <ChevronRight size={12} />
+              <span className="font-medium text-[#00891D]">Handover Verification</span>
+            </nav>
+            <h1 className="text-2xl font-bold text-gray-900">Handover Verification</h1>
+            <p className="text-gray-500 text-sm mt-1">Order #{order.order_number || "—"} · Rider: {order.riderName || "N/A"}</p>
           </div>
+          <button onClick={onBack} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors bg-gray-50 hover:bg-gray-100 px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+            <ArrowLeft size={16} /> Back to Ready Orders
+          </button>
         </div>
       </div>
 
-      <div className="p-6 max-w-5xl mx-auto space-y-6 pb-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Order Summary Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-wrap gap-8 items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-              <Package size={24} className="text-blue-600" />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-100 pb-3 flex items-center gap-2">
+            <Package size={20} className="text-[#00891D]" />
+            Order Summary
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Order Number</p>
+              <p className="font-semibold text-gray-900">{order.order_number || "—"}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Order Number</p>
-              <p className="font-bold text-gray-900 dark:text-gray-100">#{order.order_number || "QC100240"}</p>
-            </div>
-          </div>
-          
-          <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
-
-          <div className="flex flex-col">
-            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Staff Assigned</p>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">{order.staffName || "Alex"}</p>
-          </div>
-
-          <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
-
-          <div className="flex flex-col">
-            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Rider Assigned</p>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">{order.riderName || "N/A"}</p>
-          </div>
-
-          <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
-
-          <div className="flex flex-col">
-            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Items</p>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">{totalItems} Items</p>
-          </div>
-
-          <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
-
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center">
-              <Clock size={20} className="text-[#EF5A06]" />
+              <p className="text-xs text-gray-500 mb-1">Staff</p>
+              <p className="font-medium text-gray-900">Store Manager</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">SLA Status</p>
-              <p className="font-semibold text-[#EF5A06]">5m Remaining</p>
+              <p className="text-xs text-gray-500 mb-1">Rider</p>
+              <p className="font-medium text-gray-900">{order.riderName || "N/A"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Tray</p>
+              <p className="font-medium text-gray-900">{order.tray_number || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Total Items</p>
+              <p className="font-medium text-gray-900">{order.items?.length || 0} items</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">SLA Status</p>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${isSlaBreached ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                {isSlaBreached ? "Breached" : "On Time"}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Main Content Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
-          
-          {/* Stepper */}
-          <div className="mb-10 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between relative">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-100 dark:bg-gray-700 z-0 rounded-full"></div>
-              {steps.map((s, idx) => (
-                <div key={s.key} className="flex flex-col items-center relative z-10 bg-white dark:bg-gray-800 px-4">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-sm transition-colors duration-300 ${
-                      idx < currentStepIdx 
-                        ? "bg-[#00891D] text-white" 
-                        : idx === currentStepIdx 
-                          ? "bg-[#00891D] text-white border-4 border-green-100" 
-                          : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
-                    }`}
-                  >
-                    {idx < currentStepIdx ? (
-                      <CheckCircle size={24} />
-                    ) : (
-                      <span className="font-bold text-lg">{idx + 1}</span>
+        {/* Verification Stepper and Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* Desktop Stepper */}
+          <div className="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
+            <div className="flex items-center justify-between">
+              {steps.map((s, i) => {
+                const isActive = step === s.key;
+                const isPassed = currentStepIdx > i;
+                return (
+                  <div key={s.key} className="flex items-center flex-1 last:flex-none">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
+                        isPassed ? 'bg-[#00891D] text-white' :
+                        isActive ? 'bg-[#00891D] text-white ring-4 ring-[#00891D]/20' :
+                        'bg-gray-200 text-gray-500'
+                      }`}>
+                        {isPassed ? <CheckCircle size={16} /> : (i + 1)}
+                      </div>
+                      <div className="hidden sm:block">
+                        <p className={`text-sm font-semibold ${isActive || isPassed ? 'text-gray-900' : 'text-gray-500'}`}>{s.label}</p>
+                        <p className="text-xs text-gray-500">{s.desc}</p>
+                      </div>
+                    </div>
+                    {i < steps.length - 1 && (
+                      <div className="flex-1 mx-4 h-0.5 bg-gray-200">
+                        <div className="h-full bg-[#00891D] transition-all" style={{ width: isPassed ? '100%' : '0%' }} />
+                      </div>
                     )}
                   </div>
-                  <span className={`text-sm font-semibold ${idx <= currentStepIdx ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"}`}>
-                    {s.label}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1 max-w-[120px] text-center">
-                    {s.desc}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          <div className="max-w-xl mx-auto flex flex-col items-center">
-            {/* QR Code Display */}
-            {step !== "complete" && (
-              <div className="flex flex-col items-center mb-8 bg-gray-50 dark:bg-gray-700/50 p-8 rounded-2xl w-full border border-gray-100 dark:border-gray-700">
-                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4 font-semibold tracking-wider text-sm">ORDER QR CODE</p>
-                {/* Simulated QR Code */}
-                <div className="relative w-56 h-56 bg-white dark:bg-gray-800 border-4 border-gray-900 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
-                  <div className="grid grid-cols-7 gap-0.5 p-2">
-                    {[...Array(49)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-5 h-5 rounded-sm"
-                        style={{ backgroundColor: Math.random() > 0.5 ? "#1a1a1a" : "transparent" }}
-                      />
-                    ))}
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <QrCode size={90} color="#1a1a1a" strokeWidth={1.5} />
-                  </div>
-                </div>
-                <p className="text-gray-900 dark:text-gray-100 mb-1 font-bold text-xl">{order.order_number || "QC100240"}</p>
-                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 font-mono bg-gray-200 px-3 py-1 rounded-md text-sm tracking-wider">HS7K2-9PLM4-QXR82</p>
-              </div>
-            )}
-
-            {/* Step Content */}
+          <div className="p-8">
             {step === "staff-scan" && (
-              <div className="w-full flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
-                <div className="bg-green-50 rounded-2xl p-6 w-full text-center border border-green-100">
-                  <Scan size={40} color="#00891D" className="mx-auto mb-3" />
-                  <p className="text-green-800 font-bold text-lg mb-1">Staff QR Verification</p>
-                  <p className="text-green-600 text-sm">Scan the order QR with the staff scanner</p>
+              <div className="text-center max-w-md mx-auto">
+                <div className="w-24 h-24 bg-[#E8F5E9] rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Scan size={48} className="text-[#00891D]" />
                 </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Staff Verification</h3>
+                <p className="text-gray-500 mb-8">Please scan the QR code on the order receipt to verify that the items match the order.</p>
                 <button
-                  onClick={() => {
-                    setStaffVerifiedAt(new Date());
-                    setStep("rider-scan");
-                  }}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl py-4 bg-[#00891D] hover:bg-[#007317] transition-colors shadow-md shadow-green-200"
+                  onClick={handleStaffVerify}
+                  disabled={loading}
+                  className="w-full bg-[#00891D] text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:bg-[#006614] transition-colors flex items-center justify-center gap-3"
                 >
-                  <CheckCircle size={20} color="white" />
-                  <span className="text-white font-bold text-lg">Verify as Staff</span>
+                  {loading ? <Loader2 className="animate-spin" size={20} /> : <QrCode size={20} />}
+                  <span>Scan Receipt QR</span>
                 </button>
               </div>
             )}
 
             {step === "rider-scan" && (
-              <div className="w-full flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
-                <div className="bg-orange-50 rounded-2xl p-6 w-full text-center border border-orange-100">
-                  <Bike size={40} color="#EF5A06" className="mx-auto mb-3" />
-                  <p className="text-orange-800 font-bold text-lg mb-1">Rider Scan Verification</p>
-                  <p className="text-orange-600 text-sm">Rider <strong>{order.riderName || "N/A"}</strong> scans from their device</p>
+              <div className="text-center max-w-md mx-auto">
+                <div className="w-24 h-24 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Bike size={48} className="text-orange-600" />
                 </div>
-                <button
-                  onClick={async () => {
-                    try {
-                      setLoading(true);
-                      if (order.id) {
-                        await api.put(`/orders/${order.id}/status`, { status: 'dispatched' });
-                      }
-                      setRiderVerifiedAt(new Date());
-                      setStep("complete");
-                    } catch (err) {
-                      console.error(err);
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl py-4 bg-[#EF5A06] hover:bg-[#D54D04] transition-colors shadow-md shadow-orange-200 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {loading ? <Loader2 className="animate-spin text-white" size={20} /> : <CheckCircle size={20} color="white" />}
-                  <span className="text-white font-bold text-lg">Verify as Rider</span>
-                </button>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Rider Verification</h3>
+                <p className="text-gray-500 mb-8">Hand over the order to <strong>{order.riderName || "the rider"}</strong>. They must scan their app to confirm pickup.</p>
+                
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 mb-8 flex flex-col items-center justify-center">
+                  <div className="w-32 h-32 bg-white border border-gray-200 rounded-lg flex items-center justify-center shadow-sm mb-4">
+                     <QrCode size={64} className="text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">Show this QR to the Rider</p>
+                </div>
+
+                {!riderVerifiedAt ? (
+                  <button
+                    onClick={handleRiderVerify}
+                    disabled={loading || !!riderVerifiedAt}
+                    className="w-full bg-orange-600 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-3"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+                    <span>Simulate Rider Scan</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCompleteHandover}
+                    disabled={loading || !staffVerifiedAt}
+                    className="w-full bg-[#00891D] text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:bg-[#006614] transition-colors flex items-center justify-center gap-3"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+                    <span>Complete Handover</span>
+                  </button>
+                )}
               </div>
             )}
 
             {step === "complete" && (
-              <div className="w-full flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-300">
-                {/* Success */}
-                <div className="relative mt-4">
-                  <div className="w-32 h-32 rounded-full flex items-center justify-center bg-green-50">
-                    <div className="w-24 h-24 rounded-full flex items-center justify-center bg-green-100 shadow-inner">
-                      <CheckCircle size={56} className="text-[#00891D]" />
-                    </div>
+              <div className="text-center max-w-md mx-auto py-8">
+                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle size={48} className="text-green-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Handover Complete!</h3>
+                <p className="text-gray-500 mb-8">Order #{order.order_number} has been successfully dispatched.</p>
+                
+                <div className="bg-gray-50 rounded-xl p-6 border border-gray-200 mb-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm text-gray-500">Staff Verified</span>
+                    <span className="text-sm font-medium text-gray-900">{staffVerifiedAt?.toLocaleTimeString() || "—"}</span>
                   </div>
-                  <div className="absolute inset-0 rounded-full border-4 border-green-200 animate-ping opacity-40" />
-                </div>
-
-                <div className="text-center">
-                  <h2 className="text-gray-900 dark:text-gray-100 mb-2 font-extrabold text-3xl">Handover Complete!</h2>
-                  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-base">Order successfully dispatched to rider <strong>{order.riderName || "N/A"}</strong></p>
-                </div>
-
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-6 w-full border border-gray-100 dark:border-gray-700">
-                  {[
-                    { label: "Order Number", value: `#${order.order_number || "QC100240"}` },
-                    { label: "Rider Name", value: order.riderName || "N/A" },
-                    { label: "Staff Verification Time", value: staffVerifiedAt ? staffVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
-                    { label: "Rider Verification Time", value: riderVerifiedAt ? riderVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
-                    { label: "Handover Status", value: <span className="text-[#00891D] font-bold">Dispatched ✓</span> },
-                  ].map(row => (
-                    <div key={row.label} className="flex justify-between py-3 border-b border-gray-200 dark:border-gray-700 last:border-0 items-center">
-                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm font-medium">{row.label}</span>
-                      <span className="text-gray-900 dark:text-gray-100 text-sm font-semibold">{row.value}</span>
-                    </div>
-                  ))}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Rider Verified</span>
+                    <span className="text-sm font-medium text-gray-900">{riderVerifiedAt?.toLocaleTimeString() || "—"}</span>
+                  </div>
                 </div>
 
                 <button
-                  onClick={onBack}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl py-4 bg-[#00891D] hover:bg-[#007317] transition-colors shadow-md"
+                  onClick={() => onNavigate("ready-orders")}
+                  className="w-full bg-white text-gray-900 border border-gray-300 font-bold py-4 px-6 rounded-xl hover:bg-gray-50 transition-colors"
                 >
-                  <ArrowLeft size={20} color="white" />
-                  <span className="text-white font-bold text-lg">Back to Ready Orders</span>
+                  Back to Ready Orders
                 </button>
               </div>
             )}
