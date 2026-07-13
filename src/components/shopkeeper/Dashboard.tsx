@@ -250,6 +250,8 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     }).length;
 
     const activeOrdersCount = allOrders.filter((o: any) => {
+      const isAssigned = o.shopkeeper_phone || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_name;
+      if (!isAssigned) return false;
       const s = o.status?.toLowerCase();
       return ['new', 'accepted', 'confirmed', 'picking', 'packing', 'processing', 'ready'].includes(s);
     }).length;
@@ -421,8 +423,8 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   ];
 
   const secondRowKpis = [
-    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED", variant: "green" as const },
-    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED", variant: "red" as const },
+    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", variant: "green" as const },
+    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", screen: "sla-monitoring", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns", variant: "gray" as const },
     { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
@@ -433,11 +435,11 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     { label: "Picking", value: stats.picking, icon: Package, color: "#6A1B9A", bg: "#F3E5F5", variant: "purple" as const },
     { label: "Packing", value: stats.packing, icon: Package, color: "#E65100", bg: "#FFF3E0", variant: "yellow" as const },
     { label: "Ready for Dispatch", value: stats.ready, icon: CheckCircle, color: "#14B8A6", bg: "#E8F5E9", variant: "green" as const },
-    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED", variant: "green" as const },
+    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", variant: "green" as const },
   ];
 
   const desktopSecondRowKpis = [
-    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED", variant: "red" as const },
+    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", variant: "gray" as const },
     { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },

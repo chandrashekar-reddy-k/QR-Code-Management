@@ -86,7 +86,7 @@ export function Returns({ onBack }: ReturnsProps) {
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #EF5A06 0%, #C84100 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
+          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 dark:bg-gray-800/20 flex items-center justify-center">
             <ArrowLeft size={20} color="white" />
           </button>
           <div className="flex-1">
@@ -109,7 +109,7 @@ export function Returns({ onBack }: ReturnsProps) {
             { label: "Approved", value: counts.approved },
             { label: "Rejected", value: counts.rejected },
           ].map(s => (
-            <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl p-2 text-center">
+            <div key={s.label} className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-2 text-center">
               <p style={{ color: "white", fontWeight: 700, fontSize: "18px" }}>{s.value}</p>
               <p className="text-white/70" style={{ fontSize: "10px" }}>{s.label}</p>
             </div>

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { Users, Search, RefreshCw, AlertCircle, ShoppingBag, CheckCircle, Package, ArrowLeft, Calendar } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Users, Search, RefreshCw, AlertCircle, ShoppingBag, CheckCircle, Package, ArrowLeft, Calendar, Clock } from "lucide-react";
 import api from "../../api/axios";
+import { useSharedOrders } from "./SharedOrdersContext";
 
 interface ActiveOrder {
   orderId: string;
@@ -57,6 +58,82 @@ export function StaffTracker() {
   const [detailedStaff, setDetailedStaff] = useState<DetailedStaff | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  const { orders: sharedOrders } = useSharedOrders();
+
+  const computedStaff = useMemo(() => {
+    return staff.map(s => {
+      // Find orders in sharedOrders assigned to this staff member
+      const skOrders = sharedOrders.filter(o => {
+        const assignedId = o.assigned_shopkeeper_id || o.assignedShopkeeperId || o.shopkeeper_id || o.assignedShopkeeper;
+        const assignedPhone = o.shopkeeper_phone || o.assigned_shopkeeper_phone;
+        return (assignedId && assignedId === s.id) || (assignedPhone && assignedPhone === s.phone);
+      });
+
+      // Find the active orders
+      const activeOrders = skOrders.filter(o => {
+        const status = o.status?.toLowerCase() || '';
+        return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'picked', 'packing', 'packed', 'processing', 'ready'].includes(status);
+      });
+      
+      const isBusy = activeOrders.length > 0;
+      let activeOrder = null;
+      if (isBusy) {
+          // Sort to find the latest created order, or just take first
+          const o = activeOrders[0];
+          activeOrder = {
+              orderId: o.id || o._id,
+              orderNumber: o.order_number || o.orderNumber,
+              fulfillmentType: o.order_type || o.deliveryType || "HOME_DELIVERY",
+              status: o.status || "Unknown",
+              pickingCompletedAt: o.picking_completed_at || null,
+              trayNumber: o.tray_number || o.trayNumber || null,
+              customerName: o.customer_name || o.user || o.userName || "Unknown",
+              itemCount: o.item_count || o.items || 0,
+              pickedCount: o.picked_count || o.picked || 0,
+              slaMinutes: o.sla_minutes || 30,
+              shopkeeperAcceptedAt: o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt || null,
+              createdAt: o.created_at || o.createdAt || null,
+              updatedAt: o.updated_at || o.updatedAt || null,
+              activeOrdersCount: activeOrders.length
+          };
+      }
+      return {
+          ...s,
+          status: isBusy ? "Busy" : "Idle",
+          activeOrder: activeOrder
+      };
+    });
+  }, [staff, sharedOrders]);
+
+  const computedDetailedStaff = useMemo(() => {
+    if (!detailedStaff) return null;
+    
+    const mergedOrders = detailedStaff.orders.map(do_ => {
+        const liveOrder = sharedOrders.find(so => so.id === do_.id || so.order_number === do_.orderNumber || so._id === do_.id);
+        if (liveOrder) {
+            return {
+                ...do_,
+                status: liveOrder.status,
+                pickedCount: liveOrder.picked_count || liveOrder.picked || do_.pickedCount,
+                itemCount: liveOrder.item_count || liveOrder.items || do_.itemCount,
+                trayNumber: liveOrder.tray_number || liveOrder.trayNumber || do_.trayNumber
+            };
+        }
+        return do_;
+    });
+
+    const hasActive = mergedOrders.some(o => {
+       const s = o.status?.toLowerCase() || '';
+       return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'picked', 'packing', 'packed', 'processing', 'ready'].includes(s);
+    });
+
+    return {
+       ...detailedStaff,
+       status: hasActive ? "Busy" : "Idle",
+       orders: mergedOrders
+    };
+  }, [detailedStaff, sharedOrders]);
+
   const fetchStaffData = async () => {
     try {
       setLoading(true);
@@ -95,7 +172,7 @@ export function StaffTracker() {
     }
   }, [selectedStaffId]);
 
-  const filteredStaff = staff.filter((s) => {
+  const filteredStaff = computedStaff.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (s.employeeId && s.employeeId.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -107,12 +184,12 @@ export function StaffTracker() {
   });
 
   const stats = {
-    total: staff.length,
-    busy: staff.filter((s) => s.status === "Busy").length,
-    idle: staff.filter((s) => s.status === "Idle").length,
+    total: computedStaff.length,
+    busy: computedStaff.filter((s) => s.status === "Busy").length,
+    idle: computedStaff.filter((s) => s.status === "Idle").length,
   };
 
-  if (detailedStaff) {
+  if (computedDetailedStaff) { const detailedStaff = computedDetailedStaff;
     return (
       <div className="w-full flex flex-col gap-6" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
         {/* Detail View Header */}
@@ -132,11 +209,11 @@ export function StaffTracker() {
             </div>
           </div>
           <span className={`self-start sm:self-center px-3 py-1 rounded-full text-xs font-bold ${
-            detailedStaff.orders.some(o => ['PENDING', 'CONFIRMED', 'PROCESSING', 'READY_FOR_PICKUP'].includes(o.status))
+            detailedStaff.status === "Busy"
               ? "bg-red-50 text-red-600 border border-red-100" 
               : "bg-green-50 text-green-600 border border-green-100"
           }`}>
-            {detailedStaff.orders.some(o => ['PENDING', 'CONFIRMED', 'PROCESSING', 'READY_FOR_PICKUP'].includes(o.status)) ? "Busy" : "Idle"}
+            {detailedStaff.status === "Busy" ? "Busy" : "Idle"}
           </span>
         </div>
 
@@ -180,7 +257,7 @@ export function StaffTracker() {
 
                   <div className="flex flex-col items-start sm:items-end gap-2">
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
-                      ['DELIVERED', 'OUT_FOR_DELIVERY'].includes(order.status)
+                      ['DELIVERED', 'OUT_FOR_DELIVERY', 'DISPATCHED', 'delivered', 'out_for_delivery', 'dispatched'].includes(order.status)
                         ? "bg-green-50 text-green-600"
                         : order.status === "CANCELLED"
                         ? "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-500"
@@ -303,8 +380,13 @@ export function StaffTracker() {
                       ? "bg-red-50 text-red-600 border border-red-100" 
                       : "bg-green-50 text-green-600 border border-green-100"
                   }`}>
-                    {member.status}
+                                        {member.status}
                   </span>
+                  {member.status === "Busy" && member.activeOrder?.activeOrdersCount > 1 && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap">
+                      {member.activeOrder.activeOrdersCount} Active Orders
+                    </span>
+                  )}
                 </div>
                 <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
                   ID: {member.employeeId || "N/A"} • Phone: {member.phone || "No phone"}
@@ -314,41 +396,129 @@ export function StaffTracker() {
               {/* Active Order Details */}
               <div className="flex-[2] min-w-[300px]">
                 {member.status === "Busy" && member.activeOrder ? (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300">
-                        <ShoppingBag size={13} className="text-[#00891D]" />
-                        #{member.activeOrder.orderNumber}
-                        <span className="text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 font-bold px-1.5 py-0.25 rounded uppercase">
-                          {member.activeOrder.fulfillmentType === "STORE_PICKUP" ? "Self Pickup" : "Home Delivery"}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500">Customer: {member.activeOrder.customerName}</span>
-                    </div>
-
-                    <div className="flex flex-col sm:items-end gap-1.5">
-                      <div className="flex items-center gap-2">
-                        {member.activeOrder.trayNumber && (
-                          <span className="bg-orange-50 text-orange-600 font-bold px-1.5 py-0.25 rounded text-[9px] border border-orange-100">
-                            Tray {member.activeOrder.trayNumber}
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between gap-4">
+                    
+                    {/* Left: Order Info & Progress */}
+                    <div className="flex flex-col gap-2.5 flex-1">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-800 dark:text-gray-200">
+                          <ShoppingBag size={14} className="text-[#00891D]" />
+                          Order #{member.activeOrder.orderNumber}
+                          <span className="text-[9px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 font-bold px-1.5 py-0.5 rounded uppercase">
+                            {member.activeOrder.fulfillmentType === "STORE_PICKUP" ? "Self Pickup" : "Home Delivery"}
                           </span>
-                        )}
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500 font-bold uppercase">{member.activeOrder.status}</span>
+                          {member.activeOrder.trayNumber && (
+                            <span className="bg-orange-50 text-orange-600 font-bold px-1.5 py-0.5 rounded text-[9px] border border-orange-100 uppercase">
+                              Tray {member.activeOrder.trayNumber}
+                            </span>
+                          )}
+                        </div>
+
                       </div>
                       
                       {/* Mini Progress bar */}
-                      <div className="w-32 flex flex-col gap-1">
-                        <div className="flex justify-between text-[8px] text-gray-400 dark:text-gray-500 font-bold">
+                      <div className="w-full max-w-[220px] flex flex-col gap-1.5 mt-0.5 ml-6">
+                        <div className="flex justify-between text-[9px] text-gray-500 dark:text-gray-400 font-bold tracking-wide">
                           <span>PROGRESS</span>
-                          <span>{member.activeOrder.pickedCount}/{member.activeOrder.itemCount}</span>
+                          <span>
+                            {member.activeOrder.pickedCount}/{member.activeOrder.itemCount} • {member.activeOrder.itemCount > 0 ? Math.round((member.activeOrder.pickedCount / member.activeOrder.itemCount) * 100) : 0}%
+                          </span>
                         </div>
-                        <div className="w-full bg-gray-200 h-1 rounded-full overflow-hidden">
+                        <div className="w-full bg-gray-200 dark:bg-gray-600 h-1.5 rounded-full overflow-hidden">
                           <div 
-                            className="bg-[#00891D] h-full rounded-full"
-                            style={{ width: `${(member.activeOrder.pickedCount / member.activeOrder.itemCount) * 100}%` }}
+                            className="bg-[#00891D] h-full rounded-full transition-all duration-500"
+                            style={{ width: `${member.activeOrder.itemCount > 0 ? (member.activeOrder.pickedCount / member.activeOrder.itemCount) * 100 : 0}%` }}
                           />
                         </div>
                       </div>
+                    </div>
+
+                    {/* Right: Status, Timers & Activity */}
+                    <div className="flex flex-col sm:items-end gap-2.5 flex-1 justify-center">
+                      <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                          ['DELIVERED', 'OUT_FOR_DELIVERY', 'DISPATCHED', 'delivered', 'out_for_delivery', 'dispatched'].includes(member.activeOrder.status)
+                            ? "bg-green-50 text-green-600 border border-green-100"
+                            : ['PICKING', 'picking'].includes(member.activeOrder.status)
+                            ? "bg-purple-50 text-purple-600 border border-purple-100"
+                            : ['PACKING', 'packing'].includes(member.activeOrder.status)
+                            ? "bg-orange-50 text-orange-600 border border-orange-100"
+                            : ['READY', 'ready', 'READY_FOR_DISPATCH', 'ready_for_dispatch', 'HANDOVER', 'handover'].includes(member.activeOrder.status)
+                            ? "bg-teal-50 text-teal-600 border border-teal-100"
+                            : ['CANCELLED', 'cancelled', 'REJECTED', 'rejected'].includes(member.activeOrder.status)
+                            ? "bg-red-50 text-red-600 border border-red-100"
+                            : ['ACCEPTED', 'accepted', 'ASSIGNED', 'assigned'].includes(member.activeOrder.status)
+                            ? "bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                            : "bg-blue-50 text-blue-600 border border-blue-100"
+                        }`}>
+                          {member.activeOrder.status === 'ready' || member.activeOrder.status === 'READY' ? 'Ready for Dispatch' : member.activeOrder.status}
+                        </span>
+
+                        {(() => {
+                           const acceptedAt = member.activeOrder.shopkeeperAcceptedAt
+                              ? new Date(member.activeOrder.shopkeeperAcceptedAt).getTime()
+                              : null;
+                           const elapsedMin = acceptedAt
+                              ? Math.floor((Date.now() - acceptedAt) / 60000)
+                              : 0;
+                           const remainingMin = member.activeOrder.slaMinutes - elapsedMin;
+                           const slaBreached = acceptedAt !== null && remainingMin < 0;
+                           
+                           let slaLabel = `${member.activeOrder.slaMinutes}m`;
+                           let workingLabel = 'Not started';
+
+                           if (acceptedAt) {
+                             workingLabel = elapsedMin >= 60 ? `Work: ${Math.floor(elapsedMin/60)}h ${elapsedMin%60}m` : `Work: ${elapsedMin}m`;
+                             if (slaBreached) {
+                               const absMin = Math.abs(remainingMin);
+                               slaLabel = absMin > 60 ? `Overdue ${Math.floor(absMin/60)}h ${absMin%60}m` : `Overdue ${absMin}m`;
+                             } else {
+                               slaLabel = remainingMin > 60 ? `${Math.floor(remainingMin/60)}h ${remainingMin%60}m left` : `${remainingMin}m left`;
+                             }
+                           }
+                           
+                           const isUrgent = remainingMin <= 10 && remainingMin >= 0;
+                           const slaColor = slaBreached ? "#D32F2F" : isUrgent ? "#EF5A06" : "#EF5A06";
+                           const slaBg = slaBreached ? "#FFEBEE" : isUrgent ? "#FFEBEE" : "#FFF3E0";
+                           const slaBorder = slaBreached ? "#FFCDD2" : isUrgent ? "#FFCDD2" : "#FFE0B2";
+
+                           return (
+                             <>
+                               <div className="flex items-center gap-1 rounded-md px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                                 <span className="text-gray-600 dark:text-gray-300 font-bold text-[9px] uppercase tracking-wider">{workingLabel}</span>
+                               </div>
+                               <div className="flex items-center gap-1 rounded-md px-1.5 py-0.5 border" style={{ backgroundColor: slaBg, borderColor: slaBorder }}>
+                                 <Clock size={10} color={slaColor} />
+                                 <span style={{ color: slaColor, fontWeight: 700, fontSize: "9px", textTransform: 'uppercase', letterSpacing: '0.05em' }}>{slaLabel}</span>
+                               </div>
+                             </>
+                           );
+                        })()}
+                      </div>
+
+                      {/* Latest Activity */}
+                      {(() => {
+                        if (!member.activeOrder.updatedAt) return null;
+                        const updatedTime = new Date(member.activeOrder.updatedAt).getTime();
+                        const diffMin = Math.floor((Date.now() - updatedTime) / 60000);
+                        const timeStr = diffMin <= 0 ? 'Just now' : diffMin >= 60 ? `${Math.floor(diffMin/60)}h ${diffMin%60}m ago` : `${diffMin}m ago`;
+                        
+                        const s = member.activeOrder.status.toLowerCase();
+                        let activityStr = '';
+                        if (s === 'picking') activityStr = 'Started Picking';
+                        else if (s === 'packing') activityStr = 'Started Packing';
+                        else if (s === 'picked') activityStr = 'Finished Picking';
+                        else if (s === 'packed' || s === 'ready' || s === 'ready_for_dispatch') activityStr = 'Ready for Dispatch';
+                        else if (s === 'accepted') activityStr = 'Accepted';
+                        else if (s === 'assigned') activityStr = 'Assigned';
+                        else activityStr = member.activeOrder.status;
+
+                        return (
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                            <span className="text-gray-400">Latest:</span> <span className="text-gray-700 dark:text-gray-300">{activityStr}</span> • {timeStr}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 ) : (

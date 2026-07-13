@@ -149,14 +149,14 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
       {/* Header — green gradient */}
       <div style={{ background: `linear-gradient(135deg, ${GREEN} 0%, #005C12 100%)` }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
+          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 dark:bg-gray-800/20 flex items-center justify-center">
             <ArrowLeft size={20} color="white" />
           </button>
           <div className="flex-1">
             <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>SLA Monitoring</h1>
             <p className="text-white/70" style={{ fontSize: "12px" }}>Operations Command Center · Today</p>
           </div>
-          <div className="bg-white dark:bg-gray-800/20 rounded-full px-2.5 py-1 flex items-center gap-1">
+          <div className="bg-white/20 dark:bg-gray-800/20 rounded-full px-2.5 py-1 flex items-center gap-1">
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#4CAF50" }} />
             <span className="text-white" style={{ fontWeight: 600, fontSize: "11px" }}>Live</span>
           </div>
@@ -170,7 +170,7 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
             { label: "At Risk",       value: summary.at_risk,         color: "#FFD54F" },
             { label: "Breached",      value: summary.active_breaches, color: ORANGE },
           ].map(s => (
-            <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl p-2 text-center">
+            <div key={s.label} className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-2 text-center">
               <p style={{ color: s.color, fontWeight: 700, fontSize: "16px" }}>{s.value}</p>
               <p className="text-white/70" style={{ fontSize: "9px" }}>{s.label}</p>
             </div>

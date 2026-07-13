@@ -406,10 +406,10 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-400 flex-shrink-0">
-                            {(o.assigned_staff_name || o.assignedShopkeeperId || "U").charAt(0).toUpperCase()}
+                            {(o.assigned_staff_name || o.shopkeeper_name || o.assignedShopkeeper?.name || "U").charAt(0).toUpperCase()}
                           </div>
                           <span className="font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                            {o.assigned_staff_name || o.assignedShopkeeperId || "Unassigned"}
+                            {o.assigned_staff_name || o.shopkeeper_name || o.assignedShopkeeper?.name || "Unassigned"}
                           </span>
                         </div>
                       </td>

@@ -133,12 +133,12 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
         <div className="absolute top-12 left-4">
           <button
             onClick={onBack}
-            className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center hover:bg-white dark:bg-gray-800/30 transition-colors"
+            className="w-9 h-9 rounded-full bg-white/20 dark:bg-gray-800/20 flex items-center justify-center hover:bg-white/30 dark:hover:bg-gray-800/30 transition-colors"
           >
             <ArrowLeft size={20} color="white" />
           </button>
         </div>
-        <div className="w-20 h-20 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center mb-3">
+        <div className="w-20 h-20 rounded-full bg-white/20 dark:bg-gray-800/20 flex items-center justify-center mb-3">
           <span className="text-white font-bold text-2xl">{initials}</span>
         </div>
         <h1 className="text-white font-bold text-xl">{name}</h1>
@@ -149,7 +149,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
             { label: "Completed", value: stats.completed.toString() },
             { label: "SLA %", value: `${stats.sla}%` },
           ].map(s => (
-            <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl px-4 py-2 text-center">
+            <div key={s.label} className="bg-white/20 dark:bg-gray-800/10 rounded-xl px-4 py-2 text-center">
               <p className="text-white font-bold text-base">{s.value}</p>
               <p className="text-white/60 text-[10px]">{s.label}</p>
             </div>
@@ -412,13 +412,27 @@ export default function ShopkeeperERP() {
       <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex-shrink-0 h-screen sticky top-0">
-          {/* Logo or Brand */}
-          <div className="p-6 border-b border-gray-50 flex items-center gap-3 justify-center">
-            <img
-              src="/villagkart_logo_name_new.svg"
-              alt="VillagKart"
-              className="h-10 w-auto object-contain"
-            />
+                    {/* Logo or Brand */}
+          <div className="py-4 pl-5 pr-3 flex-shrink-0 border-b border-gray-50 dark:border-gray-700">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0 h-12 flex items-center justify-center overflow-hidden">
+                <img
+                  src="/villagekart_svg_icon-2.svg"
+                  alt="VillagKart"
+                  className="max-w-[260px] w-full h-full object-contain object-center"
+                  onError={(e) => {
+                    const target = e.target;
+                    target.style.display = "none";
+                    const parent = target.parentElement;
+                    if (parent) {
+                      const icon = document.createElement("div");
+                      icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
+                      parent.appendChild(icon);
+                    }
+                  }}
+                />
+              </div>
+            </div>
           </div>
           
           {/* Navigation Items */}
@@ -474,12 +488,12 @@ export default function ShopkeeperERP() {
   
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Mobile Header / Navigation */}
+                    {/* Mobile Header / Navigation */}
           <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
             <img
-              src="/villagkart_logo_name_new.svg"
+              src="/villagekart_svg_icon-2.svg"
               alt="VillagKart"
-              className="h-8 w-auto object-contain"
+              className="h-8 w-auto object-contain object-left max-w-[200px]"
             />
             <button
               onClick={() => navigate("all-orders")}

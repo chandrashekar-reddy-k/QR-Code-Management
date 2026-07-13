@@ -113,7 +113,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                     )}
                     <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.order_type} · Tray: {order.tray_number || 'N/A'}</span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => onNavigate("order-details", order)}
                     className="flex items-center gap-1 rounded-full px-3 py-1 bg-gray-100 border border-gray-200"
                   >

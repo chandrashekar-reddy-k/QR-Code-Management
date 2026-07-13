@@ -55,7 +55,7 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
       {/* Header — Orange theme */}
       <div style={{ background: `linear-gradient(135deg, ${ORANGE} 0%, #C84600 100%)` }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
+          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 dark:bg-gray-800/20 flex items-center justify-center">
             <ArrowLeft size={20} color="white" />
           </button>
           <div className="flex-1">
@@ -66,8 +66,8 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
 
         <div className="grid grid-cols-3 gap-2 mt-4">
           {["C01", "C02", "C03"].map((counter, i) => (
-            <div key={counter} className="bg-white dark:bg-gray-800/10 rounded-xl p-3 text-center">
-              <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800/20 flex items-center justify-center mx-auto mb-1">
+            <div key={counter} className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-3 text-center">
+              <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-gray-800/20 flex items-center justify-center mx-auto mb-1">
                 <MapPin size={18} color="white" />
               </div>
               <p className="text-white" style={{ fontWeight: 700, fontSize: "14px" }}>{counter}</p>

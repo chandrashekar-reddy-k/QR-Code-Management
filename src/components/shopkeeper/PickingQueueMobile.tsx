@@ -68,14 +68,14 @@ export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
+          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 dark:bg-gray-800/20 flex items-center justify-center">
             <ArrowLeft size={20} color="white" />
           </button>
           <div className="flex-1">
             <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Picking Queue</h1>
             <p className="text-white/70" style={{ fontSize: "12px" }}>{pickingOrders.length} orders to pick</p>
           </div>
-          <div className="bg-white dark:bg-gray-800/20 rounded-full px-3 py-1">
+          <div className="bg-white/20 dark:bg-gray-800/20 rounded-full px-3 py-1">
             <span className="text-white" style={{ fontWeight: 600, fontSize: "13px" }}>{pickingOrders.reduce((sum, o) => sum + (o.items || 0), 0)} items total</span>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
             { label: "In Progress", value: stats.inProgress, color: "#EF5A06" },
             { label: "Completed", value: stats.completed, color: "#00891D" },
           ].map(s => (
-            <div key={s.label} className="bg-white dark:bg-gray-800/10 rounded-xl p-2 text-center">
+            <div key={s.label} className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-2 text-center">
               <p style={{ color: s.color, fontWeight: 700, fontSize: "18px" }}>{s.value}</p>
               <p className="text-white/70" style={{ fontSize: "10px" }}>{s.label}</p>
             </div>

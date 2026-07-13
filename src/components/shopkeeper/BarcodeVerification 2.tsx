@@ -31,7 +31,7 @@ export function BarcodeVerification({ onBack, onNavigate, data }: BarcodeVerific
     <div className="flex flex-col min-h-screen bg-gray-900">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-10 px-4 pt-12 pb-4 flex items-center gap-3">
-        <button onClick={onBack} className="w-9 h-9 rounded-full bg-white dark:bg-gray-800/20 flex items-center justify-center">
+        <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 dark:bg-gray-800/20 flex items-center justify-center">
           <ArrowLeft size={20} color="white" />
         </button>
         <div>

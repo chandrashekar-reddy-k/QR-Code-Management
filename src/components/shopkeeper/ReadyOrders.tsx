@@ -131,9 +131,9 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   const waitingForRiderCount = orders.filter(o => !o.agentId).length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F3F4F6] pb-12">
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900 pb-12">
       {/* Page Header */}
-      <div className="bg-white px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <nav className="text-xs text-gray-500 flex items-center gap-1 mb-2">
@@ -141,13 +141,13 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
               <ChevronRight size={12} />
               <span className="font-medium text-[#00891D]">Ready for Dispatch</span>
             </nav>
-            <h1 className="text-2xl font-bold text-gray-900">Ready for Dispatch</h1>
-            <p className="text-gray-500 text-sm mt-1">Orders packed, assigned, and ready for rider handover</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Ready for Dispatch</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Orders packed, assigned, and ready for rider handover</p>
           </div>
           
           <button 
             onClick={onBack}
-            className="self-start md:self-auto flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50"
+            className="self-start md:self-auto flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <ArrowLeft size={14} />
             <span>Back to Dashboard</span>
@@ -165,12 +165,12 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
           ].map(card => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-4">
+              <div key={card.label} className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl ${card.bgColor} flex items-center justify-center flex-shrink-0`}>
                   <Icon size={24} className={card.iconColor} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{card.value}</p>
                   <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mt-0.5">{card.label}</p>
                 </div>
               </div>
@@ -181,7 +181,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
 
       {/* Filters + Search Bar */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-wrap items-center divide-x divide-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-wrap items-center divide-x divide-gray-200 dark:divide-gray-700">
           <div className="px-4 py-3 flex items-center justify-center flex-shrink-0">
             <Filter size={16} className="text-gray-500" />
           </div>
@@ -191,7 +191,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             <select
               value={deliveryTypeFilter}
               onChange={(e) => setDeliveryTypeFilter(e.target.value)}
-              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 focus:outline-none cursor-pointer pr-4"
+              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none cursor-pointer pr-4"
             >
               <option value="">Delivery Type: All</option>
               <option value="Home Delivery">Home Delivery</option>
@@ -205,7 +205,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             <select
               value={slaStatusFilter}
               onChange={(e) => setSlaStatusFilter(e.target.value)}
-              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 focus:outline-none cursor-pointer pr-4"
+              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none cursor-pointer pr-4"
             >
               <option value="">SLA Status: All</option>
               <option value="ontrack">On Track</option>
@@ -218,7 +218,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 focus:outline-none cursor-pointer pr-4"
+              className="w-full bg-transparent border-0 shadow-none focus:ring-0 text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none cursor-pointer pr-4"
             >
               <option value="">Date: All</option>
               <option value="today">Today</option>
@@ -245,14 +245,14 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
         </div>
 
         {/* Search Bar */}
-        <div className="relative w-full md:w-80 bg-white rounded-xl shadow-sm border border-gray-200 py-2.5 px-4 flex items-center gap-2 flex-shrink-0">
+        <div className="relative w-full md:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 py-2.5 px-4 flex items-center gap-2 flex-shrink-0">
           <Search size={16} className="text-gray-400 flex-shrink-0" />
           <input
             type="text"
             placeholder="Search Order, Tray, Rider..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent border-0 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 p-0"
+            className="w-full bg-transparent border-0 text-sm font-semibold text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 p-0"
           />
         </div>
       </div>
@@ -260,17 +260,17 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
       {/* Orders Table view */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-12">
         {filteredOrders.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm border border-gray-200 dark:border-gray-700">
             <CheckCircle size={48} className="text-green-600 mb-3" />
-            <h3 className="text-gray-900 font-bold mb-1">No Orders Ready</h3>
+            <h3 className="text-gray-900 dark:text-gray-100 font-bold mb-1">No Orders Ready</h3>
             <p className="text-gray-500 text-sm">All packed orders have been dispatched.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-150 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse table-auto text-left text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold text-xs uppercase tracking-wider h-12">
+                  <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wider h-12">
                     <th className="px-4 py-3">Order Number</th>
                     {shouldShowShopkeeper && <th className="px-4 py-3">Shopkeeper</th>}
                     <th className="px-4 py-3">Delivery Type</th>
@@ -281,7 +281,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {filteredOrders.map((order) => {
                     const { isOverdue, timeString } = (() => {
                       const formatDuration = (totalMinutes: number) => {
@@ -310,26 +310,26 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                     })();
 
                     return (
-                      <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-3 font-bold text-gray-900">
+                      <tr key={order.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">
                           <div>
                             <span>#{order.order_number}</span>
                           </div>
                         </td>
                         {shouldShowShopkeeper && (
-                          <td className="px-4 py-3 text-gray-700 font-semibold text-xs whitespace-nowrap">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-semibold text-xs whitespace-nowrap">
                             {order.shopkeeper_name || "Unassigned"}
                           </td>
                         )}
                         <td className="px-4 py-3 text-gray-500 font-semibold text-xs whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-100 inline-block whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border border-orange-100 dark:border-orange-800 inline-block whitespace-nowrap">
                             {order.order_type || "Quick Commerce"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-bold text-gray-900">
+                        <td className="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">
                           {order.tray_number || order.tray || 'N/A'}
                         </td>
-                        <td className="px-4 py-3 text-xs font-semibold text-gray-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
                           {(() => {
                             const rider = agents.find(a => a.id === order.agentId);
                             return rider ? (
@@ -372,10 +372,10 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                           <div className="flex items-center justify-end gap-1.5">
                             <button 
                               onClick={() => onNavigate("order-details", order)}
-                              className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
+                              className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                             >
-                              <Package size={12} className="text-gray-600" />
-                              <span className="text-gray-600 font-bold text-xs">View</span>
+                              <Package size={12} className="text-gray-600 dark:text-gray-400" />
+                              <span className="text-gray-600 dark:text-gray-300 font-bold text-xs">View</span>
                             </button>
 
                             {(() => {
@@ -388,7 +388,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                                   <>
                                     <button 
                                       onClick={() => setSelectedOrderForRider(order)}
-                                      className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 transition-colors font-bold text-xs"
+                                      className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 transition-colors font-bold text-xs"
                                     >
                                       Change Rider
                                     </button>
@@ -411,7 +411,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                                 return (
                                   <button 
                                     onClick={() => setSelectedOrderForRider(order)}
-                                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 transition-colors font-bold text-xs"
+                                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 transition-colors font-bold text-xs"
                                   >
                                     Assign Rider
                                   </button>
@@ -433,8 +433,8 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
       {/* Assign Rider Modal */}
       {selectedOrderForRider && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-gray-900 font-bold text-lg mb-2">Assign Rider</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-gray-900 dark:text-gray-100 font-bold text-lg mb-2">Assign Rider</h3>
             <p className="text-gray-500 text-xs mb-4">Select a delivery partner for Order #{selectedOrderForRider.order_number}</p>
             
             <select

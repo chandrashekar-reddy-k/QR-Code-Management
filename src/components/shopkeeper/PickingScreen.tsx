@@ -326,7 +326,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
               {barcodeInput === currentItem.barcode ? (
                 <span className="bg-white dark:bg-gray-800 text-green-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">Verified</span>
               ) : (
-                <span className="bg-white dark:bg-gray-800/20 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Pending Verification</span>
+                <span className="bg-white/20 dark:bg-gray-800/20 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Pending Verification</span>
               )}
             </div>
             <div className="p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6">
