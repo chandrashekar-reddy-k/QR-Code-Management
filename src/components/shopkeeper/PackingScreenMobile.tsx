@@ -52,14 +52,14 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center dark:bg-gray-900">
         <Loader2 className="animate-spin text-[#EF5A06]" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       <div style={{ background: "linear-gradient(135deg, #EF5A06 0%, #D84315 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
@@ -88,35 +88,35 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
       </div>
 
       <div className="flex flex-col gap-3 p-4 pb-36">
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 shadow-sm dark:bg-gray-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center">
                 <Package size={28} color="#EF5A06" />
               </div>
               <div>
-                <p className="text-gray-500" style={{ fontSize: "11px" }}>PACKING TRAY</p>
-                <p className="text-gray-900" style={{ fontWeight: 700, fontSize: "22px" }}>{order?.tray_number || order?.tray || 'TBA'}</p>
+                <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "11px" }}>PACKING TRAY</p>
+                <p className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "22px" }}>{order?.tray_number || order?.tray || 'TBA'}</p>
               </div>
             </div>
             <div className="text-right">
               <div className="flex gap-3">
                 <div className="text-center">
-                  <p className="text-gray-900" style={{ fontWeight: 700, fontSize: "18px" }}>{totalToPack}</p>
-                  <p className="text-gray-500" style={{ fontSize: "10px" }}>Expected</p>
+                  <p className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "18px" }}>{totalToPack}</p>
+                  <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "10px" }}>Expected</p>
                 </div>
                 <div className="text-center">
                   <p className="text-orange-600" style={{ fontWeight: 700, fontSize: "18px" }}>{totalChecked}</p>
-                  <p className="text-gray-500" style={{ fontSize: "10px" }}>Packed</p>
+                  <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "10px" }}>Packed</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 shadow-sm dark:bg-gray-800">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-gray-700" style={{ fontWeight: 600, fontSize: "13px" }}>Product Verification Checklist</h3>
+            <h3 className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>Product Verification Checklist</h3>
             <button
               onClick={() => setCheckedIds(pickedItems.map((i) => i.id))}
               className="text-green-600"
@@ -143,7 +143,7 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
                   ) : (
                     <Square size={20} color="#BDBDBD" />
                   )}
-                  <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm">
+                  <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm dark:bg-gray-800">
                     {item.image_url ? <img src={item.image_url} alt="" /> : <span style={{ fontSize: "20px" }}>📦</span>}
                   </div>
                   <div className="flex-1">
@@ -158,7 +158,7 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-100 p-2.5">
+      <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-100 p-2.5 dark:bg-gray-800 dark:border-gray-700">
         <div className="flex gap-2">
           <button
             onClick={() => setLabelPrinted(true)}

@@ -114,14 +114,14 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center dark:bg-gray-900">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
@@ -150,16 +150,16 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
       {/* Order Cards */}
       <div className="flex flex-col gap-3 p-4">
         {orders.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-sm">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-sm dark:bg-gray-800">
             <CheckCircle size={48} color="#00891D" />
-            <p className="text-gray-700 font-semibold">All orders processed!</p>
+            <p className="text-gray-700 font-semibold dark:text-gray-300">All orders processed!</p>
           </div>
         ) : (
           orders.map((order) => {
             const config = getTypeConfig(order.order_type);
 
             return (
-              <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden dark:bg-gray-800">
                 {/* Priority Banner */}
                 {order.priority === "HIGH" && (
                   <div className="bg-red-50 border-b border-red-100 px-4 py-1.5 flex items-center gap-1.5">
@@ -173,13 +173,13 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number}</span>
+                        <span className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number}</span>
                         <span className="rounded-full px-2 py-0.5" style={{ backgroundColor: config.bg, color: config.color, fontSize: "10px", fontWeight: 600 }}>
                           {order.order_type}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-gray-600" style={{ fontSize: "13px" }}>₹{order.total_value}</span>
+                        <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: "13px" }}>₹{order.total_value}</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -189,23 +189,23 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
                   </div>
 
                   {/* Customer Info */}
-                  <div className="flex items-center gap-2 mb-3 bg-gray-50 rounded-xl p-2.5">
+                  <div className="flex items-center gap-2 mb-3 bg-gray-50 rounded-xl p-2.5 dark:bg-gray-900">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E8F5E9' }}>
                       <span style={{ color: '#00891D', fontWeight: 700, fontSize: "12px" }}>
                         {order.customer_name?.split(" ").map((n: string) => n[0]).join("") || 'C'}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-gray-800" style={{ fontWeight: 600, fontSize: "12px" }}>{order.customer_name}</p>
-                      <p className="text-gray-500" style={{ fontSize: "11px" }}>{order.customer_phone}</p>
+                      <p className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "12px" }}>{order.customer_name}</p>
+                      <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "11px" }}>{order.customer_phone}</p>
                     </div>
-                    <span className="rounded-full px-2 py-0.5 bg-gray-100 text-gray-600" style={{ fontSize: "10px" }}>{order.payment_method}</span>
+                    <span className="rounded-full px-2 py-0.5 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" style={{ fontSize: "10px" }}>{order.payment_method}</span>
                   </div>
 
                   {/* Address */}
                   <div className="flex items-start gap-2 mb-3">
                     <MapPin size={14} color="#9E9E9E" className="mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.customer_address || "No address provided"}</span>
+                    <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "12px" }}>{order.customer_address || "No address provided"}</span>
                   </div>
 
                   {/* Assignment Info - Hidden for Staff */}

@@ -163,7 +163,7 @@ export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
                       {Math.round(progress)}%
                     </span>
                   </div>
-                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden dark:bg-gray-800">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{ width: `${progress}%`, backgroundColor: isCompleted ? "#00891D" : "#EF5A06" }}

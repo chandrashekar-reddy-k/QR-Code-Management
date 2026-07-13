@@ -14,10 +14,13 @@ import {
   RotateCcw,
   IndianRupee,
   ClipboardList,
+  Moon,
+  Sun,
 } from "lucide-react";
 import axios from "axios";
 import api from "../../api/axios";
 import { ViewIconButton } from "../ui";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const adminApi = axios.create({
   baseURL: import.meta.env.VITE_ADMIN_URL || "http://localhost:3001/api/v1",
@@ -82,7 +85,7 @@ function KPICard({ label, value, icon: Icon, color, bg, onClick, isAdmin = false
   if (isAdmin) {
     const card = (
       <div
-        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between dark:bg-gray-800"
         style={{
           boxShadow: "0px 0px 12px rgba(0,0,0,0.05)",
           minHeight: "134px"
@@ -124,18 +127,19 @@ function KPICard({ label, value, icon: Icon, color, bg, onClick, isAdmin = false
     <button
       onClick={onClick}
       disabled={!onClick}
-      className={`rounded-2xl p-2.5 flex flex-col items-center gap-1 shadow-sm border border-gray-100 bg-white w-full ${onClick ? 'hover:scale-105 active:scale-95 transition-transform' : 'cursor-default'}`}
+      className={`rounded-2xl p-2.5 flex flex-col items-center gap-1 shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 w-full ${onClick ? 'hover:scale-105 active:scale-95 transition-transform' : 'cursor-default'}`}
     >
       <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: bg }}>
         <Icon size={18} color={color} />
       </div>
-      <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "15px", lineHeight: 1 }}>{value}</span>
-      <span className="text-gray-500 text-center leading-tight" style={{ fontSize: "9px" }}>{label}</span>
+      <span className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "15px", lineHeight: 1 }}>{value}</span>
+      <span className="text-gray-500 text-center leading-tight dark:text-gray-400" style={{ fontSize: "9px" }}>{label}</span>
     </button>
   );
 }
 
 export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps) {
+  const { theme, toggleTheme } = useTheme();
   const [orders, setOrders] = useState<any[]>([]);
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
 
@@ -209,7 +213,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       try {
         const u = JSON.parse(storedU);
         userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, and must not be pre-payment PENDING status
@@ -479,7 +483,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       const data = payload[0].payload;
       return (
         <div
-          className="bg-white p-3 shadow-sm text-left flex flex-col gap-1 border-0"
+          className="bg-white p-3 shadow-sm text-left flex flex-col gap-1 border-0 dark:bg-gray-800"
           style={{
             borderRadius: "10px",
             border: "none",
@@ -487,8 +491,8 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
             fontSize: "12px"
           }}
         >
-          <p className="font-semibold text-gray-800">{data.name}</p>
-          <p className="text-gray-600">{data.total} orders</p>
+          <p className="font-semibold text-gray-800 dark:text-gray-200">{data.name}</p>
+          <p className="text-gray-600 dark:text-gray-400">{data.total} orders</p>
         </div>
       );
     }
@@ -504,7 +508,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
         x={x}
         y={y + 16}
         textAnchor="middle"
-        fill={isToday ? "#2E7D32" : "#9E9E9E"}
+        fill={isToday ? "#2E7D32" : (theme === 'dark' ? '#9CA3AF' : '#9E9E9E')}
         fontSize={11}
         fontWeight={isToday ? 700 : undefined}
       >
@@ -544,31 +548,31 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
   if (isAdmin) {
     return (
-      <div className="min-h-screen bg-[#F3F4F6] p-[32px] flex justify-center">
+      <div className="min-h-screen bg-[#F3F4F6] p-[32px] flex justify-center dark:bg-gray-900">
         <div className="w-full max-w-[1440px] flex flex-col gap-[24px]" style={{ fontFamily: "Segoe UI, Inter, sans-serif" }}>
 
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm text-[#9EA3AE] font-normal">
+          <div className="flex items-center gap-2 text-sm text-[#9EA3AE] font-normal dark:text-gray-400">
             <span>Home</span>
             <span>→</span>
             <span>Shopkeeper ERP</span>
             <span>→</span>
-            <span className="text-[#111827]">Dashboard</span>
+            <span className="text-[#111827] dark:text-gray-100">Dashboard</span>
           </div>
 
           {/* Page Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-[#111827] font-bold text-[32px] leading-tight">
+              <h1 className="text-[#111827] font-bold text-[32px] leading-tight dark:text-gray-100">
                 Shopkeeper Dashboard
               </h1>
-              <p className="text-[#9EA3AE] text-[14px] mt-1 font-normal">
+              <p className="text-[#9EA3AE] text-[14px] mt-1 font-normal dark:text-gray-400">
                 Real-time store operations overview
               </p>
             </div>
             <div className="flex items-center gap-4">
               {/* Active / Store status badge */}
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-gray-100 shadow-sm text-xs font-semibold text-gray-700">
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-gray-100 shadow-sm text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 <span>
                   {shopkeepers.filter((s: any) => s.status?.toLowerCase() !== 'offline').length} Shopkeepers Active
@@ -618,24 +622,24 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
           {/* Active Shopkeepers and Weekly Performance Chart Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px] items-stretch">
             {/* Active Shopkeepers Status */}
-            <div className="bg-white rounded-[16px] p-[24px] flex flex-col justify-between h-full" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
+            <div className="bg-white rounded-[16px] p-[24px] flex flex-col justify-between h-full dark:bg-gray-800" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
               <div>
-                <h3 className="text-[#111827] text-[16px] font-semibold mb-4">Active Shopkeepers Status</h3>
-                <div className="overflow-x-hidden rounded-[16px] border border-gray-100">
+                <h3 className="text-[#111827] text-[16px] font-semibold mb-4 dark:text-gray-100">Active Shopkeepers Status</h3>
+                <div className="overflow-x-hidden rounded-[16px] border border-gray-100 dark:border-gray-700">
                   <table className="w-full border-collapse table-fixed">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-100" style={{ height: "64px" }}>
-                        <th className="text-left pl-[12px] pr-[4px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[10%]">Avatar</th>
-                        <th className="text-left pl-[32px] pr-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[30%]">Name</th>
-                        <th className="text-left px-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[25%]">Phone</th>
-                        <th className="text-left px-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[15%]">Active</th>
-                        <th className="text-left px-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[20%]">Status</th>
+                      <tr className="bg-gray-50 border-b border-gray-100 dark:bg-gray-900 dark:border-gray-700" style={{ height: "64px" }}>
+                        <th className="text-left pl-[12px] pr-[4px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[10%] dark:text-gray-400">Avatar</th>
+                        <th className="text-left pl-[32px] pr-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[30%] dark:text-gray-400">Name</th>
+                        <th className="text-left px-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[25%] dark:text-gray-400">Phone</th>
+                        <th className="text-left px-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[15%] dark:text-gray-400">Active</th>
+                        <th className="text-left px-[12px] py-[16px] text-[12px] font-medium text-[#9EA3AE] uppercase tracking-wider w-[20%] dark:text-gray-400">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                       {shopkeepers.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="text-gray-500 text-center text-xs py-8">No active shopkeepers found.</td>
+                          <td colSpan={5} className="text-gray-500 text-center text-xs py-8 dark:text-gray-400">No active shopkeepers found.</td>
                         </tr>
                       ) : (
                         shopkeepers.map((sk) => {
@@ -645,7 +649,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
                           // Calculate active order count dynamically based on current orders state
                           const activeOrdersForSk = orders.filter((o: any) => {
-                            const isAssigned = 
+                            const isAssigned =
                               o.shopkeeper_phone === sk.phone ||
                               o.assignedShopkeeper?.phone === sk.phone ||
                               o.assigned_shopkeeper?.phone === sk.phone ||
@@ -654,9 +658,9 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                             if (!isAssigned) return false;
 
                             const s = o.status?.toLowerCase();
-                             return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
-                           });
-                          
+                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
+                          });
+
                           const activeOrderCount = activeOrdersForSk.length;
                           const isOffline = sk.status?.toLowerCase() === 'offline';
                           const isBusy = !isOffline && activeOrderCount > 0;
@@ -679,13 +683,13 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                                 </div>
                               </td>
                               <td className="py-[16px] whitespace-nowrap pl-[32px] pr-[12px]">
-                                <div className="text-sm font-semibold text-gray-900 truncate max-w-full">{sk.name}</div>
-                                <div className="text-[10px] text-[#9EA3AE]">ID: {sk.employeeId || "N/A"}</div>
+                                <div className="text-sm font-semibold text-gray-900 truncate max-w-full dark:text-gray-100">{sk.name}</div>
+                                <div className="text-[10px] text-[#9EA3AE] dark:text-gray-400">ID: {sk.employeeId || "N/A"}</div>
                               </td>
-                              <td className="px-[12px] py-[16px] whitespace-nowrap text-sm text-gray-600">
+                              <td className="px-[12px] py-[16px] whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                                 {sk.phone}
                               </td>
-                              <td className="px-[12px] py-[16px] whitespace-nowrap text-sm text-gray-900 font-medium">
+                              <td className="px-[12px] py-[16px] whitespace-nowrap text-sm text-gray-900 font-medium dark:text-gray-100">
                                 {activeOrderCount}
                               </td>
                               <td className="px-[12px] py-[16px] whitespace-nowrap">
@@ -707,11 +711,11 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
             </div>
 
             {/* Weekly Performance Chart */}
-            <div className="bg-white rounded-[16px] p-[24px] flex flex-col justify-between h-full" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
+            <div className="bg-white rounded-[16px] p-[24px] flex flex-col justify-between h-full dark:bg-gray-800" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
               <div>
                 <div className="mb-4">
-                  <h3 className="text-[#111827] text-[16px] font-semibold">Weekly Performance</h3>
-                  <p className="text-[#9EA3AE] text-[12px] mt-0.5">This Week · Mon–Sun</p>
+                  <h3 className="text-[#111827] text-[16px] font-semibold dark:text-gray-100">Weekly Performance</h3>
+                  <p className="text-[#9EA3AE] text-[12px] mt-0.5 dark:text-gray-400">This Week · Mon–Sun</p>
                 </div>
                 <div className="w-full outline-none focus:outline-none" style={{ outline: 'none' }}>
                   <ResponsiveContainer width="100%" height={260} minWidth={1}>
@@ -753,27 +757,27 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
           </div>
 
           {/* Recent Orders */}
-          <div className="bg-white rounded-[16px] p-[24px] flex flex-col" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
+          <div className="bg-white rounded-[16px] p-[24px] flex flex-col dark:bg-gray-800" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[#111827] text-[16px] font-semibold">Recent Orders</h3>
+              <h3 className="text-[#111827] text-[16px] font-semibold dark:text-gray-100">Recent Orders</h3>
               <button onClick={() => onNavigate("all-orders")} className="text-[#00891D] hover:underline text-sm font-semibold flex items-center gap-1">
                 View All <ChevronRight size={16} />
               </button>
             </div>
-            <div className="overflow-x-auto rounded-[16px] border border-gray-100">
+            <div className="overflow-x-auto rounded-[16px] border border-gray-100 dark:border-gray-700">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Order Number</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Customer</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Shopkeeper</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Amount</th>
-                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Date & Time</th>
-                    <th className="text-center px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">Action</th>
+                  <tr className="bg-gray-50 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide dark:text-gray-300">Order Number</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide dark:text-gray-300">Customer</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide dark:text-gray-300">Shopkeeper</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide dark:text-gray-300">Status</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide dark:text-gray-300">Amount</th>
+                    <th className="text-left px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide dark:text-gray-300">Date & Time</th>
+                    <th className="text-center px-2 sm:px-4 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide dark:text-gray-300">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:divide-gray-800">
                   {recentOrders.map((order) => {
                     const statusStyles: Record<string, { color: string; bg: string }> = {
                       new: { color: "#1D4ED8", bg: "#DBEAFE" },
@@ -831,34 +835,34 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                       if (!ts) return "—";
                       const date = new Date(ts);
                       if (isNaN(date.getTime())) return "—";
-                      
+
                       const day = String(date.getDate()).padStart(2, '0');
                       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                       const month = months[date.getMonth()];
                       const year = date.getFullYear();
-                      
+
                       let hours = date.getHours();
                       const minutes = String(date.getMinutes()).padStart(2, '0');
                       const ampm = hours >= 12 ? 'PM' : 'AM';
                       hours = hours % 12;
                       hours = hours ? hours : 12;
-                      
+
                       return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
                     })();
 
                     return (
                       <tr
                         key={order.id}
-                        className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors dark:border-gray-700 dark:hover:bg-gray-700"
                       >
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
                           {order.order_number}
                         </td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
-                          <div className="text-xs sm:text-sm font-medium text-gray-800">{order.customer_name || order.user}</div>
-                          <div className="text-[10px] sm:text-xs text-[#9EA3AE]">{order.phone}</div>
+                          <div className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">{order.customer_name || order.user}</div>
+                          <div className="text-[10px] sm:text-xs text-[#9EA3AE] dark:text-gray-400">{order.phone}</div>
                         </td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                           {order.shopkeeper_name ? (
                             order.shopkeeper_name
                           ) : (
@@ -875,10 +879,10 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                             {formatStatusDisplay(order.status)}
                           </span>
                         </td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
                           ₹{order.total_value}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800">
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                           {timeText}
                         </td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-center">
@@ -904,7 +908,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
   // Original Staff Mobile Dashboard View
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-6">
         <div className="flex items-center justify-between mb-1">
@@ -912,15 +916,28 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
             <p className="text-white/70 text-sm">{getGreeting()}, {userName} 👋</p>
             <h1 className="text-white text-xl" style={{ fontWeight: 700 }}>Hyderabad Store 01</h1>
           </div>
-          <button onClick={() => onNavigate("new-orders")}
-            className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center relative hover:bg-white/30 transition-colors">
-            <Bell size={20} color="white" />
-            {stats.newOrders > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white flex items-center justify-center" style={{ fontSize: "10px", fontWeight: 700 }}>
-                {stats.newOrders}
-              </span>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+              title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            >
+              {theme === "light" ? (
+                <Moon size={20} color="white" />
+              ) : (
+                <Sun size={20} color="white" />
+              )}
+            </button>
+            <button onClick={() => onNavigate("new-orders")}
+              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center relative hover:bg-white/30 transition-colors">
+              <Bell size={20} color="white" />
+              {stats.newOrders > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white flex items-center justify-center" style={{ fontSize: "10px", fontWeight: 700 }}>
+                  {stats.newOrders}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 mt-2">
           <div className="w-2 h-2 rounded-full bg-green-400"></div>
@@ -972,13 +989,13 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
       {/* Weekly Performance Chart */}
       <div className="px-4 mt-4">
-        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#2E7D32]">
+        <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 border-l-4 border-l-[#2E7D32]">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-gray-800 text-sm">Weekly Performance</h3>
+              <h3 className="font-bold text-gray-800 text-sm dark:text-gray-200">Weekly Performance</h3>
               <p className="text-xs text-gray-400 mt-0.5">This Week · Mon–Sun</p>
             </div>
-            <span className="bg-green-50 text-green-700 text-xs font-semibold rounded-full px-2.5 py-0.5">
+            <span className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-full px-2.5 py-0.5">
               {totalOrdersThisWeek} orders this week
             </span>
           </div>
@@ -989,7 +1006,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                 margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
                 style={{ outline: 'none' }}
               >
-                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#F5F5F5" />
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke={theme === 'dark' ? '#374151' : '#F5F5F5'} />
                 <XAxis
                   dataKey="name"
                   axisLine={false}
@@ -1000,9 +1017,9 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                   allowDecimals={false}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#BDBDBD', fontSize: 11 }}
+                  tick={{ fill: theme === 'dark' ? '#9CA3AF' : '#BDBDBD', fontSize: 11 }}
                 />
-                <Tooltip content={<WeeklyTooltip />} cursor={{ fill: '#F9FAFB', opacity: 0.4 }} />
+                <Tooltip content={<WeeklyTooltip />} cursor={{ fill: theme === 'dark' ? '#374151' : '#F9FAFB', opacity: 0.4 }} />
                 <Bar
                   dataKey="total"
                   isAnimationActive={true}
@@ -1023,7 +1040,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       {/* Recent Orders */}
       <div className="px-4 mt-4 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-gray-700" style={{ fontWeight: 600, fontSize: "14px" }}>Recent Orders</h3>
+          <h3 className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "14px" }}>Recent Orders</h3>
           <button onClick={() => onNavigate("all-orders")} className="flex items-center gap-1 text-[#00891D] hover:underline" style={{ fontSize: "12px", fontWeight: 500 }}>
             View All <ChevronRight size={14} />
           </button>
@@ -1050,14 +1067,14 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
               <button
                 key={order.id}
                 onClick={() => onNavigate("order-details", order)}
-                className="bg-white rounded-2xl p-3.5 shadow-sm text-left flex items-center gap-3 hover:bg-gray-50 active:scale-98 transition-transform"
+                className="bg-white rounded-2xl p-3.5 shadow-sm text-left flex items-center gap-3 hover:bg-gray-50 active:scale-98 transition-transform dark:bg-gray-800 dark:hover:bg-gray-700"
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: statusBg }}>
                   <ShoppingBag size={18} color={statusColor} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-800" style={{ fontWeight: 600, fontSize: "13px" }}>{order.order_number}</span>
+                    <span className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "13px" }}>{order.order_number}</span>
                     <div className="flex flex-col items-end">
                       <span className="rounded-full px-2 py-0.5 uppercase" style={{ backgroundColor: statusBg, color: statusColor, fontSize: "10px", fontWeight: 600 }}>
                         {order.status}
@@ -1070,7 +1087,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-gray-500" style={{ fontSize: "11px" }}>{order.order_type} · ₹{order.total_value}</span>
+                    <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "11px" }}>{order.order_type} · ₹{order.total_value}</span>
                     <span className="text-gray-400" style={{ fontSize: "10px" }}>
                       {(() => {
                         const statusTimeMap: Record<string, { label: string; fields: string[] }> = {

@@ -135,7 +135,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center dark:bg-gray-900">
         <Loader2 className="animate-spin text-[#00891D]" size={40} />
       </div>
     );
@@ -148,7 +148,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
   const percentCompleted = items.length ? Math.round((totalCompleted / items.length) * 100) : 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       {/* Original green banner header for staff login */}
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3 mb-4">
@@ -177,13 +177,13 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
 
       <div className="flex flex-col gap-3 p-4">
         {currentItem && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-2 border-green-300">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-2 border-green-300 dark:bg-gray-800">
             <div className="bg-green-600 px-4 py-2 flex items-center gap-2">
               <span className="text-white" style={{ fontWeight: 600, fontSize: "12px" }}>CURRENT ITEM — Pick this next</span>
             </div>
             <div className="p-4">
               <div className="flex items-start gap-4">
-                <div className="w-20 h-20 rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden">
+                <div className="w-20 h-20 rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden dark:bg-gray-900">
                   {currentItem.image_url ? (
                     <img src={currentItem.image_url} alt={currentItem.name} className="w-full h-full object-cover" />
                   ) : (
@@ -191,7 +191,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-gray-900 mb-1" style={{ fontWeight: 700, fontSize: "16px" }}>{currentItem.name}</p>
+                  <p className="text-gray-900 mb-1 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "16px" }}>{currentItem.name}</p>
                   <div className="flex items-center gap-1.5 mb-2">
                     <Package size={13} color="#00891D" />
                     <span className="text-green-700" style={{ fontWeight: 600, fontSize: "13px" }}>Qty: {currentItem.quantity}</span>
@@ -203,7 +203,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
                 </div>
               </div>
 
-              <div className="mt-3 bg-gray-50 rounded-xl p-2.5 flex items-center justify-between">
+              <div className="mt-3 bg-gray-50 rounded-xl p-2.5 flex items-center justify-between dark:bg-gray-900">
                 <span className="text-gray-400" style={{ fontSize: "11px", fontFamily: "monospace" }}>Barcode: {currentItem.barcode}</span>
               </div>
 
@@ -239,8 +239,8 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm p-4">
-          <h3 className="text-gray-700 mb-3" style={{ fontWeight: 600, fontSize: "13px" }}>All Items</h3>
+        <div className="bg-white rounded-2xl shadow-sm p-4 dark:bg-gray-800">
+          <h3 className="text-gray-700 mb-3 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>All Items</h3>
           <div className="flex flex-col gap-2">
             {items.map((item) => {
               const isPicked = item.is_picked;
@@ -249,7 +249,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 py-2.5 px-3 rounded-xl border border-gray-100"
+                  className="flex items-center gap-3 py-2.5 px-3 rounded-xl border border-gray-100 dark:border-gray-700"
                   style={{
                     backgroundColor: isRejected
                       ? "#FFEBEE"
@@ -260,7 +260,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
                       : "#FFFFFF"
                   }}
                 >
-                  <div className="w-10 h-10 rounded bg-white flex items-center justify-center text-xl overflow-hidden shadow-sm">
+                  <div className="w-10 h-10 rounded bg-white flex items-center justify-center text-xl overflow-hidden shadow-sm dark:bg-gray-800">
                     {item.image_url ? <img src={item.image_url} alt="" /> : '📦'}
                   </div>
                   <div className="flex-1">
@@ -297,7 +297,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
                       Current
                     </span>
                   ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                   )}
                 </div>
               );
@@ -308,14 +308,14 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
 
       {showRejectModal && rejectingItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-gray-900 font-bold text-lg mb-1">Reject Item</h2>
-            <p className="text-gray-500 text-sm mb-4">
-              Item: <span className="font-semibold text-gray-800">{rejectingItem.name}</span>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-gray-800">
+            <h2 className="text-gray-900 font-bold text-lg mb-1 dark:text-gray-100">Reject Item</h2>
+            <p className="text-gray-500 text-sm mb-4 dark:text-gray-400">
+              Item: <span className="font-semibold text-gray-800 dark:text-gray-200">{rejectingItem.name}</span>
             </p>
 
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
+              <label className="block text-gray-700 text-sm font-semibold mb-2 dark:text-gray-300">
                 Select Rejection Reason <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -346,7 +346,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
                       }}
                       className="text-red-600 focus:ring-red-500 w-4 h-4"
                     />
-                    <span className="text-gray-700 text-xs font-semibold">{reason}</span>
+                    <span className="text-gray-700 text-xs font-semibold dark:text-gray-300">{reason}</span>
                   </label>
                 ))}
               </div>
@@ -357,14 +357,14 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
             )}
 
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
+              <label className="block text-gray-700 text-sm font-semibold mb-2 dark:text-gray-300">
                 Additional Remarks (Optional)
               </label>
               <textarea
                 value={rejectRemarks}
                 onChange={(e) => setRejectRemarks(e.target.value)}
                 placeholder="e.g. Shelf is empty"
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 min-h-[80px] resize-none"
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 min-h-[80px] resize-none dark:border-gray-700"
               />
             </div>
 
@@ -377,7 +377,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
                   setValidationError("");
                   setRejectingItem(null);
                 }}
-                className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-50 transition-colors dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>

@@ -140,7 +140,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA] pb-10">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] pb-10 dark:bg-gray-900">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #00891D 0%, #006614 100%)" }} className="px-4 pt-12 pb-6 flex items-center gap-3">
         <button
@@ -164,7 +164,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
             placeholder="Search by Order ID / Number..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-3 rounded-2xl border border-gray-100 shadow-sm focus:outline-none focus:border-green-500 bg-white text-sm"
+            className="w-full pl-10 pr-10 py-3 rounded-2xl border border-gray-100 shadow-sm focus:outline-none focus:border-green-500 bg-white text-sm dark:border-gray-700 dark:bg-gray-800"
           />
           {searchQuery && (
             <button
@@ -196,11 +196,11 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
       {/* Orders List */}
       <div className="px-4 mt-4 flex flex-col gap-3">
         {sharedLoading && filteredOrders.length === 0 ? (
-          <div className="py-10 text-center text-gray-500 text-sm">Loading orders...</div>
+          <div className="py-10 text-center text-gray-500 text-sm dark:text-gray-400">Loading orders...</div>
         ) : filteredOrders.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-sm border border-gray-100 text-center">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-sm border border-gray-100 text-center dark:bg-gray-800 dark:border-gray-700">
             <ShoppingBag size={48} className="text-gray-300" />
-            <p className="text-gray-700 font-semibold text-sm">No orders found</p>
+            <p className="text-gray-700 font-semibold text-sm dark:text-gray-300">No orders found</p>
             <p className="text-gray-400 text-xs">Try adjusting your filters or search query.</p>
           </div>
         ) : (
@@ -212,14 +212,14 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
               <div
                 key={order.id}
                 onClick={() => onNavigate && onNavigate("order-details", order)}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-left flex items-start gap-3 cursor-pointer hover:border-green-300 transition-colors"
+                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-left flex items-start gap-3 cursor-pointer hover:border-green-300 transition-colors dark:bg-gray-800 dark:border-gray-700"
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: statusBg }}>
                   <ShoppingBag size={18} color={statusColor} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-800 font-bold text-sm">{order.order_number || order.orderNumber}</span>
+                    <span className="text-gray-800 font-bold text-sm dark:text-gray-200">{order.order_number || order.orderNumber}</span>
                     <span className="rounded-full px-2 py-0.5 uppercase text-[10px] font-bold" style={{ backgroundColor: statusBg, color: statusColor }}>
                       {order.status}
                     </span>
@@ -233,7 +233,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                     </div>
                   )}
                   <div className="flex items-center justify-between mt-1 text-xs">
-                    <span className="text-gray-500">{order.order_type || "Home Delivery"} · ₹{order.total_value || order.totalAmount}</span>
+                    <span className="text-gray-500 dark:text-gray-400">{order.order_type || "Home Delivery"} · ₹{order.total_value || order.totalAmount}</span>
                     <span className="text-gray-400">
                       {(() => {
                         const statusTimeMap: Record<string, { label: string; fields: string[] }> = {

@@ -44,7 +44,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
 
   if (sharedLoading && orders.length === 0) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center">
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center dark:bg-gray-900">
         <Loader2 className="animate-spin text-[#2E7D32]" size={40} />
       </div>
     );
@@ -58,7 +58,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
   const riderAssignedCount = orders.filter(o => !!o.agentId).length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       <div style={{ background: "linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
@@ -92,7 +92,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
             return elapsed > order.sla_minutes;
           })();
           return (
-            <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden dark:bg-gray-800">
               {isOverdue && (
                 <div className="bg-red-50 border-b border-red-100 px-4 py-1.5 flex items-center gap-1.5">
                   <AlertCircle size={12} color="#D32F2F" />
@@ -103,19 +103,19 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "15px" }}>#{order.order_number}</span>
+                      <span className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "15px" }}>#{order.order_number}</span>
                       <span className="bg-green-100 text-green-700 rounded-full px-2 py-0.5" style={{ fontSize: "10px", fontWeight: 600 }}>READY</span>
                     </div>
                     {shouldShowShopkeeper && (
-                      <p className="text-gray-500 text-xs mb-1">
+                      <p className="text-gray-500 text-xs mb-1 dark:text-gray-400">
                         {order.shopkeeper_name || "Unassigned"}
                       </p>
                     )}
-                    <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.order_type} · Tray: {order.tray_number || 'N/A'}</span>
+                    <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "12px" }}>{order.order_type} · Tray: {order.tray_number || 'N/A'}</span>
                   </div>
                   <button
                     onClick={() => onNavigate("order-details", order)}
-                    className="flex items-center gap-1 rounded-full px-3 py-1 bg-gray-100 border border-gray-200"
+                    className="flex items-center gap-1 rounded-full px-3 py-1 bg-gray-100 border border-gray-200 dark:bg-gray-800 dark:border-gray-700"
                   >
                     <Package size={11} color="#616161" />
                     <span style={{ color: "#616161", fontWeight: 700, fontSize: "11px" }}>View Items</span>
@@ -132,14 +132,14 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                 )}
 
                 <div className="mb-3">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-gray-500 mb-1 dark:text-gray-400">
                     Assign Rider
                   </label>
                   <select
                     value={order.agentId || ""}
                     onChange={(e) => handleAssignRider(order.id, e.target.value)}
                     disabled={assigningId === order.id}
-                    className="w-full bg-white border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900"
+                    className="w-full bg-white border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-xs text-gray-900 dark:bg-gray-800 dark:text-gray-100"
                   >
                     <option value="">Select Rider...</option>
                     {agents.map((agent) => (
@@ -169,10 +169,10 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
           );
         })}
         {orders.length === 0 && (
-          <div className="bg-white rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-sm">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-sm dark:bg-gray-800">
             <CheckCircle size={48} color="#4CAF50" className="mb-3" />
-            <h3 className="text-gray-900 font-bold mb-1">No Orders Ready</h3>
-            <p className="text-gray-500 text-sm">All packed orders have been dispatched.</p>
+            <h3 className="text-gray-900 font-bold mb-1 dark:text-gray-100">No Orders Ready</h3>
+            <p className="text-gray-500 text-sm dark:text-gray-400">All packed orders have been dispatched.</p>
           </div>
         )}
       </div>
