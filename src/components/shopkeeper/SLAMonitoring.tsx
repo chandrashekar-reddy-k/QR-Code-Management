@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Loader2, Package, TrendingUp, Filter, RotateCcw, ChevronDown, ExternalLink } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Loader2, Package, TrendingUp, Filter, RotateCcw, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import api from "../../api/axios";
 import { SelectInput, SearchInput } from "../ui";
@@ -200,7 +200,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
       {/* Breadcrumbs */}
       <nav className="text-xs text-gray-500 flex items-center gap-1 mb-6">
         <button onClick={onBack} className="hover:text-green-600 transition-colors">Home</button>
-        <span className="mx-1">&gt;</span>
+        <ChevronRight size={12} className="text-gray-400" />
         <span className="font-medium text-orange-600">SLA Monitoring</span>
       </nav>
 
@@ -398,6 +398,23 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
 
                   const rowClass = isBreached ? "bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20" : isAtRisk ? "bg-yellow-50/50 dark:bg-yellow-900/10 hover:bg-yellow-50 dark:hover:bg-yellow-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-700/50";
 
+                  // Dynamic priority derived from SLA state
+                  let dynamicPriority: string;
+                  let priorityBadgeCls: string;
+                  if (isBreached) {
+                    dynamicPriority = "Critical";
+                    priorityBadgeCls = "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800";
+                  } else if (isAtRisk) {
+                    dynamicPriority = "High";
+                    priorityBadgeCls = "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800";
+                  } else if (remainingRaw <= 20) {
+                    dynamicPriority = "Medium";
+                    priorityBadgeCls = "bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800";
+                  } else {
+                    dynamicPriority = "Low";
+                    priorityBadgeCls = "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800";
+                  }
+
                   return (
                     <tr key={o.id || o.order_number} className={`transition-colors h-14 ${rowClass}`}>
                       <td className="px-4 py-2 whitespace-nowrap">
@@ -425,8 +442,8 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                         </span>
                       </td>
                       <td className="px-4 py-2 text-center whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700">
-                          {o.priority || "Normal"}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${priorityBadgeCls}`}>
+                          {dynamicPriority}
                         </span>
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-right">
@@ -439,7 +456,26 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                             <span className="lg:hidden">👁</span>
                           </button>
                           <button
-                            onClick={() => window.open(`/shopkeeper?tab=new-orders`, '_self')}
+                            onClick={() => {
+                              if (!onNavigate) return;
+                              const s = (o.status || '').toLowerCase();
+                              if (s === 'dispatched' || s === 'delivered' || s === 'rejected' || s === 'cancelled') {
+                                onNavigate('order-details', o);
+                              } else if (s === 'packing' || s === 'packing_started') {
+                                onNavigate('packing-screen', o);
+                              } else if (s === 'packed' || s === 'ready' || s === 'ready_for_dispatch') {
+                                onNavigate('ready-orders');
+                              } else if (s === 'picking' || s === 'picking_started') {
+                                onNavigate('picking-screen', o);
+                              } else if (s === 'picked' || s === 'picking_completed') {
+                                onNavigate('packing-queue');
+                              } else if (s === 'self_pickup' || s === 'self-pickup') {
+                                onNavigate('self-pickup');
+                              } else {
+                                // assigned / accepted → picking queue
+                                onNavigate('picking-queue');
+                              }
+                            }}
                             className="flex items-center gap-1 text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap"
                           >
                             <ExternalLink size={12} />

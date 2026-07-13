@@ -574,9 +574,9 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 font-normal">
             <span>Home</span>
-            <span>→</span>
+            <ChevronRight size={14} className="text-gray-400" />
             <span>Shopkeeper ERP</span>
-            <span>→</span>
+            <ChevronRight size={14} className="text-gray-400" />
             <span className="text-[#111827] dark:text-gray-100">Dashboard</span>
           </div>
 
