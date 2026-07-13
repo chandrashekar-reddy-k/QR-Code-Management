@@ -138,10 +138,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
 
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
-  const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
+
 
   const fetchShopkeepers = async () => {
     if (!isAdmin) return;
@@ -169,23 +166,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   });
 
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [userName, setUserName] = useState("Shopkeeper");
-
   const { orders: sharedOrders } = useSharedOrders();
-
-  useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        if (parsed?.name) {
-          setUserName(parsed.name);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load user name in Dashboard", err);
-    }
-  }, []);
 
   const calculateStats = () => {
     const seenIds = new Set();
@@ -386,10 +367,6 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const todayOrders = orders.filter((o: any) => isToday(o.createdAt || o.created_at));
 
 
-  const rejectedToday = todayOrders.filter((o: any) => {
-    const s = o.status?.toLowerCase();
-    return s === 'rejected' || s === 'cancelled';
-  }).length;
 
   const returnsToday = todayOrders.filter((o: any) => {
     const s = o.status?.toLowerCase();
@@ -414,21 +391,6 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
   const totalDispatched = allDispatchedOrders.length;
 
-  const kpiCards = [
-    { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "all-orders", variant: "purple" as const },
-    { label: "Active Orders", value: stats.activeOrders, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", screen: "new-orders", variant: "blue" as const },
-    { label: "Picking", value: stats.picking, icon: Package, color: "#6A1B9A", bg: "#F3E5F5", screen: "picking-queue", variant: "purple" as const },
-    { label: "Packing", value: stats.packing, icon: Package, color: "#E65100", bg: "#FFF3E0", screen: "packing-queue", variant: "yellow" as const },
-    { label: "Ready", value: stats.ready, icon: CheckCircle, color: "#14B8A6", bg: "#E8F5E9", screen: "ready-orders", variant: "green" as const },
-  ];
-
-  const secondRowKpis = [
-    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", variant: "green" as const },
-    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", variant: "red" as const },
-    { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", screen: "sla-monitoring", variant: "red" as const },
-    { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns", variant: "gray" as const },
-    { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
-  ];
 
   const desktopKpiCards = [
     { label: "Active Orders", value: stats.activeOrders, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", variant: "blue" as const },
@@ -496,7 +458,6 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   };
 
   const weeklyData = getWeeklyPerformanceData();
-  const totalOrdersThisWeek = weeklyData.reduce((sum: number, item: any) => sum + item.total, 0);
 
   const WeeklyTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -559,12 +520,6 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     );
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  };
 
   if (isAdmin) {
     return (
@@ -612,8 +567,8 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                 color={kpi.color}
                 bg={kpi.bg}
                 onClick={
-                  kpi.screen
-                    ? () => onNavigate(kpi.screen, (kpi as any).statusFilter)
+                  (kpi as any).screen
+                    ? () => onNavigate((kpi as any).screen, (kpi as any).statusFilter)
                     : undefined
                 }
                 variant={kpi.variant}
@@ -633,8 +588,8 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                 color={kpi.color}
                 bg={kpi.bg}
                 onClick={
-                  kpi.screen
-                    ? () => onNavigate(kpi.screen, (kpi as any).statusFilter)
+                  (kpi as any).screen
+                    ? () => onNavigate((kpi as any).screen, (kpi as any).statusFilter)
                     : undefined
                 }
                 variant={kpi.variant}
@@ -933,15 +888,8 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   // Original Staff Mobile Dashboard View
   return (
     <DashboardMobile
-      userName={userName}
-      stats={stats}
-      kpiCards={kpiCards}
-      secondRowKpis={secondRowKpis}
-      weeklyData={weeklyData}
-      totalOrdersThisWeek={totalOrdersThisWeek}
-      recentOrders={recentOrders}
       onNavigate={onNavigate}
-      getGreeting={getGreeting}
+      isAdmin={isAdmin}
     />
   );
 

@@ -69,7 +69,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
       try {
         const u = JSON.parse(storedU);
         userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id || "";
-      } catch (e) {}
+      } catch (e) { }
     }
 
     let allOrders = [...sharedOrders];
@@ -183,11 +183,10 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
-              activeTab === tab
+            className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${activeTab === tab
                 ? "bg-[#00891D] border-[#00891D] text-white shadow-sm"
                 : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50"
-            }`}
+              }`}
           >
             {tab}
           </button>
@@ -234,7 +233,7 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                     </div>
                   )}
                   <div className="flex items-center justify-between mt-1 text-xs">
-                    <span className="text-gray-500">{order.order_type || "Home Delivery"} ┬╖ Γé╣{order.total_value || order.totalAmount}</span>
+                    <span className="text-gray-500">{order.order_type || "Home Delivery"} · ₹{order.total_value || order.totalAmount}</span>
                     <span className="text-gray-400">
                       {(() => {
                         const statusTimeMap: Record<string, { label: string; fields: string[] }> = {

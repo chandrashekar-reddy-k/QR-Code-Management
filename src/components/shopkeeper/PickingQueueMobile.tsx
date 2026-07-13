@@ -84,8 +84,8 @@ export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
         <div className="grid grid-cols-3 gap-2 mt-4">
           {[
             { label: "Pending", value: stats.pending, color: "white" },
-            { label: "In Progress", value: stats.inProgress, color: "#EF5A06" },
-            { label: "Completed", value: stats.completed, color: "#00891D" },
+            { label: "In Progress", value: stats.inProgress, color: "white" },
+            { label: "Completed", value: stats.completed, color: "white" },
           ].map(s => (
             <div key={s.label} className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-2 text-center">
               <p style={{ color: s.color, fontWeight: 700, fontSize: "18px" }}>{s.value}</p>

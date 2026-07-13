@@ -102,8 +102,8 @@ export function PackingQueueMobile({ onNavigate, onBack }: PackingQueueMobilePro
         <div className="grid grid-cols-3 gap-2 mt-4">
           {[
             { label: "Awaiting", value: stats.awaiting, color: "white" },
-            { label: "Urgent", value: stats.urgent, color: "#FFF3E0" },
-            { label: "Avg SLA", value: "13m", color: "#E8F5E9" },
+            { label: "Urgent", value: stats.urgent, color: "white" },
+            { label: "Avg SLA", value: "13m", color: "white" },
           ].map(s => (
             <div key={s.label} className="bg-white/10 rounded-xl p-2 text-center">
               <p style={{ color: s.color, fontWeight: 700, fontSize: "18px" }}>{s.value}</p>
