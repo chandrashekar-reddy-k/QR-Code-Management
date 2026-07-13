@@ -278,7 +278,7 @@ const Login = () => {
             {loginType !== "agent" ? (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-500 mb-1.5">
+                <label className="block text-sm font-medium text-gray-500 mb-1.5">
                   Enter your Email Address here
                 </label>
                 <Controller
@@ -307,7 +307,7 @@ const Login = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-500 mb-1.5">
+                <label className="block text-sm font-medium text-gray-500 mb-1.5">
                   Password
                 </label>
                 <Controller
@@ -330,7 +330,7 @@ const Login = () => {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-600 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-600 transition-colors"
                       >
                         {showPassword ? (
                           <EyeOff size={20} />
@@ -369,7 +369,7 @@ const Login = () => {
             ) : (
             <form onSubmit={handleAgentSubmit(onAgentSubmit)} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-500 mb-1.5">
+                <label className="block text-sm font-medium text-gray-500 mb-1.5">
                   Enter your Mobile Number here
                 </label>
                 <input
@@ -392,7 +392,7 @@ const Login = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-500 mb-1.5">
+                <label className="block text-sm font-medium text-gray-500 mb-1.5">
                   Password
                 </label>
                 <div className="relative">
@@ -411,7 +411,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-600 transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff size={20} />

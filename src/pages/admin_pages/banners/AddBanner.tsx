@@ -209,7 +209,7 @@ const AddBanner = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditing ? "Edit Banner" : "Add Banner"}
         </h1>
         <BackButton to="/banners" />
@@ -223,7 +223,7 @@ const AddBanner = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
           {/* Banner Information Section */}
@@ -284,7 +284,7 @@ const AddBanner = () => {
               {/* Start Date */}
               <div className="relative">
                 <Calendar
-                  className="absolute left-3 top-[34px] -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10 pointer-events-none"
+                  className="absolute left-3 top-[34px] -translate-y-1/2 text-gray-400 z-10 pointer-events-none"
                   size={16}
                 />
                 <TextInput
@@ -314,7 +314,7 @@ const AddBanner = () => {
               {/* End Date */}
               <div className="relative">
                 <Calendar
-                  className="absolute left-3 top-[34px] -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10 pointer-events-none"
+                  className="absolute left-3 top-[34px] -translate-y-1/2 text-gray-400 z-10 pointer-events-none"
                   size={16}
                 />
                 <TextInput
@@ -339,7 +339,7 @@ const AddBanner = () => {
 
             {/* Upload Image */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Upload Image
                 {!isEditing && (
                   <span className="text-red-500 dark:text-red-400">*</span>
@@ -348,8 +348,8 @@ const AddBanner = () => {
               <div
                 className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                   isDragging
-                    ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
-                    : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                    ? "border-gray-400 dark:border-gray-500 bg-gray-50"
+                    : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -380,7 +380,7 @@ const AddBanner = () => {
                     </div>
                     <label
                       htmlFor="image-upload"
-                      className="cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                      className="cursor-pointer text-xs text-gray-600 hover:text-gray-800 dark:hover:text-gray-200"
                     >
                       Change Image
                     </label>
@@ -394,10 +394,10 @@ const AddBanner = () => {
                       <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600 rounded-full flex items-center justify-center mb-3">
                         <Upload size={24} className="text-white" />
                       </div>
-                      <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                      <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                         Drag and Drop or Choose file to upload
                       </p>
-                      <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-[10px] sm:text-xs text-gray-600">
                         supported formats PNG, JPEG, PDF
                       </p>
                     </div>

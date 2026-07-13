@@ -102,14 +102,14 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/30 backdrop-blur-[2px] p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div className="bg-white rounded-lg w-full max-w-md overflow-hidden shadow-2xl border border-gray-200">
                 {/* Header */}
-                <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200 bg-white">
                     <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${action === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                             {action === 'APPROVED' ? <Banknote size={20} /> : <XCircle size={20} />}
                         </div>
-                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 tracking-tight">
+                        <h3 className="text-lg font-bold text-gray-800 tracking-tight">
                             {action === 'APPROVED' ? 'Confirm Approval' : (isReturn ? 'Return Expense' : 'Reject Expense')}
                         </h3>
                     </div>
@@ -130,7 +130,7 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
                                         setPayingAmount(expense.amount);
                                         setBalance(0);
                                     }}
-                                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${approvalType === 'FULL' ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
+                                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${approvalType === 'FULL' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     <CheckCircle2 size={14} /> Full Approval
                                 </button>
@@ -141,7 +141,7 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
                                         setPayingAmount('');
                                         setBalance(0);
                                     }}
-                                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${approvalType === 'PARTIAL' ? 'bg-white dark:bg-gray-800 text-emerald-500 shadow-sm border border-emerald-100' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
+                                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${approvalType === 'PARTIAL' ? 'bg-white text-emerald-500 shadow-sm border border-emerald-100' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     <Clock size={14} /> Partial Approval
                                 </button>
@@ -150,7 +150,7 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
 
                         {/* Voucher Summary Card - Restored & Refined */}
                         <div className="px-6 pb-4">
-                            <div className="bg-gray-50 dark:bg-gray-900/50/50 border border-gray-200 dark:border-gray-700 rounded-lg p-5 relative">
+                            <div className="bg-gray-50 dark:bg-gray-900/50/50 border border-gray-200 rounded-lg p-5 relative">
                                 <div className="absolute top-5 right-5">
                                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-500 text-[9px] font-bold uppercase border border-emerald-100/50">Pending</span>
                                 </div>
@@ -164,25 +164,25 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
 
                                     <div className="space-y-0.5">
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">CATEGORY</p>
-                                        <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate">{expense.type?.split(' | ')[0] || expense.type}</p>
+                                        <p className="text-[11px] font-bold text-gray-700 truncate">{expense.type?.split(' | ')[0] || expense.type}</p>
                                     </div>
                                     <div className="space-y-0.5">
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">DATE</p>
-                                        <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300">{expense.billDate ? format(new Date(expense.billDate), 'dd-MM-yyyy') : '—'}</p>
+                                        <p className="text-[11px] font-bold text-gray-700">{expense.billDate ? format(new Date(expense.billDate), 'dd-MM-yyyy') : '—'}</p>
                                     </div>
 
                                     <div className="space-y-0.5">
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">PAID TO</p>
-                                        <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate">{expense.paidTo || '—'}</p>
+                                        <p className="text-[11px] font-bold text-gray-700 truncate">{expense.paidTo || '—'}</p>
                                     </div>
                                     <div className="space-y-0.5">
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">MODE</p>
-                                        <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">{expense.paymentMode || '—'}</p>
+                                        <p className="text-[11px] font-bold text-gray-700 uppercase">{expense.paymentMode || '—'}</p>
                                     </div>
 
                                     <div className="space-y-0.5">
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">CREATED BY</p>
-                                        <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate">{expense.user?.name || '—'}</p>
+                                        <p className="text-[11px] font-bold text-gray-700 truncate">{expense.user?.name || '—'}</p>
                                     </div>
                                     <div className="space-y-0.5">
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">BILL AMOUNT</p>
@@ -190,9 +190,9 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
                                     </div>
 
                                     {getRemarksOriginal(expense.description) && (
-                                        <div className="col-span-2 space-y-0.5 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                        <div className="col-span-2 space-y-0.5 pt-3 border-t border-gray-200">
                                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">REMARKS</p>
-                                            <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed italic line-clamp-2">{getRemarksOriginal(expense.description)}</p>
+                                            <p className="text-[10px] text-gray-500 leading-relaxed italic line-clamp-2">{getRemarksOriginal(expense.description)}</p>
                                         </div>
                                     )}
                                 </div>
@@ -204,7 +204,7 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
                             {approvalType === 'PARTIAL' && (
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between items-center px-1">
-                                        <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Approved Amount</label>
+                                        <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Approved Amount</label>
                                         <span className={`text-[10px] font-bold ${isOverApproved ? 'text-rose-500 animate-pulse' : 'text-gray-400'}`}>
                                             Bill: ₹{expense.amount.toLocaleString()}
                                         </span>
@@ -221,7 +221,7 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
                                                 const paid = Number(payingAmount || 0);
                                                 setBalance(approved - paid);
                                             }}
-                                            className={`w-full bg-gray-50 dark:bg-gray-900/50 border rounded-xl pl-8 pr-4 py-3 text-sm font-bold outline-none transition-all ${isOverApproved ? 'border-rose-300 focus:border-rose-500 bg-rose-50/10' : 'border-gray-200 dark:border-gray-700 focus:border-emerald-500'}`}
+                                            className={`w-full bg-gray-50 dark:bg-gray-900/50 border rounded-xl pl-8 pr-4 py-3 text-sm font-bold outline-none transition-all ${isOverApproved ? 'border-rose-300 focus:border-rose-500 bg-rose-50/10' : 'border-gray-200 focus:border-emerald-500'}`}
                                         />
                                     </div>
                                     {isOverApproved && (
@@ -232,7 +232,7 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
 
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center px-1">
-                                    <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Pay Now</label>
+                                    <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Pay Now</label>
                                     <span className={`text-[10px] font-bold ${isOverPaid ? 'text-rose-500 animate-pulse' : 'text-gray-400'}`}>
                                         Max: ₹{Number(approvedAmount || 0).toLocaleString()}
                                     </span>
@@ -250,7 +250,7 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
                                             setBalance(approved - paid);
                                         }}
                                         placeholder="0.00"
-                                        className={`w-full bg-gray-50 dark:bg-gray-900/50 border rounded-xl pl-8 pr-4 py-3 text-sm font-bold outline-none transition-all ${isOverPaid ? 'border-rose-300 focus:border-rose-500 bg-rose-50/10' : 'border-gray-200 dark:border-gray-700 focus:border-emerald-500'}`}
+                                        className={`w-full bg-gray-50 dark:bg-gray-900/50 border rounded-xl pl-8 pr-4 py-3 text-sm font-bold outline-none transition-all ${isOverPaid ? 'border-rose-300 focus:border-rose-500 bg-rose-50/10' : 'border-gray-200 focus:border-emerald-500'}`}
                                     />
                                 </div>
                                 {isOverPaid && (
@@ -259,19 +259,19 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider ml-1">Optional Remarks</label>
+                                <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider ml-1">Optional Remarks</label>
                                 <textarea
                                     rows={2}
                                     value={remarks}
                                     onChange={e => setRemarks(e.target.value)}
                                     placeholder="Add any internal notes..."
-                                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-xs font-medium resize-none outline-none focus:bg-white dark:bg-gray-800 focus:border-emerald-500 transition-all"
+                                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-medium resize-none outline-none focus:bg-white focus:border-emerald-500 transition-all"
                                 />
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="p-6 bg-gray-50 dark:bg-gray-900/50/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <div className="p-6 bg-gray-50 dark:bg-gray-900/50/50 border-t border-gray-200 flex items-center justify-between">
                             <div className="flex flex-col">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-1.5">Pending Balance</p>
                                 <p className={`text-lg font-bold leading-none ${balance > 0 ? 'text-emerald-500' : (balance < 0 ? 'text-rose-500' : 'text-emerald-600')}`}>
@@ -296,11 +296,11 @@ function ExpenseActionModal({ isOpen, onClose, actionData, onAction, registerBal
                                 value={remarks}
                                 onChange={e => setRemarks(e.target.value)}
                                 placeholder={`Please explain why this is being ${isReturn ? 'returned' : 'rejected'}...`}
-                                className="w-full bg-rose-50/20 border border-rose-100 rounded-xl px-4 py-3 text-xs font-medium resize-none outline-none focus:bg-white dark:bg-gray-800 focus:border-rose-300 transition-all"
+                                className="w-full bg-rose-50/20 border border-rose-100 rounded-xl px-4 py-3 text-xs font-medium resize-none outline-none focus:bg-white focus:border-rose-300 transition-all"
                             />
                         </div>
                         <div className="flex gap-4">
-                            <button onClick={onClose} className="flex-1 py-3.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50 transition-all">
+                            <button onClick={onClose} className="flex-1 py-3.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50 transition-all">
                                 Cancel
                             </button>
                             <button
@@ -592,10 +592,10 @@ export default function AdminExpenses() {
             <div className="space-y-6 animate-in fade-in duration-700">
                 <div className="flex flex-col gap-1">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Organization Expenses</h1>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-widest italic">Global Expenditure Monitoring & Approval Pipeline</p>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-widest italic">Global Expenditure Monitoring & Approval Pipeline</p>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -630,7 +630,7 @@ export default function AdminExpenses() {
                                             <span className="text-sm font-bold text-gray-900 dark:text-white">₹{stats.total.toLocaleString()}</span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 px-2.5 py-1 rounded-md">{stats.count} REQS</span>
+                                            <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-md">{stats.count} REQS</span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`text-[9px] font-bold uppercase px-3 py-1 rounded-full border ${stats.pending > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
@@ -658,7 +658,7 @@ export default function AdminExpenses() {
     if (showAddExpense) {
         return (
             <div className="max-w-4xl mx-auto flex flex-col animate-in fade-in duration-300">
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden flex flex-col">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col">
                     <form onSubmit={handleCreateExpense} className="flex flex-col">
                         {/* Header with Back Button */}
                         <div className="px-8 py-6 bg-emerald-600 text-white flex items-center justify-between shrink-0 rounded-t-xl">
@@ -683,9 +683,9 @@ export default function AdminExpenses() {
                             {/* Row 1: Categories */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Category <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-bold text-gray-700">Category <span className="text-rose-500">*</span></label>
                                     <select required value={newExpense.mainCategory} onChange={e => setNewExpense({ ...newExpense, mainCategory: e.target.value, subCategory: '' })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all">
+                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all">
                                         <option value="">Select category</option>
                                         {expenseCategories.map(cat => (
                                             <option key={cat.id} value={cat.rawName}>{cat.name}</option>
@@ -693,7 +693,7 @@ export default function AdminExpenses() {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Sub Category {(() => {
+                                    <label className="text-sm font-bold text-gray-700">Sub Category {(() => {
                                         const currentCategoryObj = expenseCategories.find(c => c.rawName === newExpense.mainCategory);
                                         const hasSubCategories = (currentCategoryObj?.subCategories || []).length > 0;
                                         return hasSubCategories && <span className="text-rose-500">*</span>;
@@ -705,7 +705,7 @@ export default function AdminExpenses() {
                                         })()}
                                         value={newExpense.subCategory}
                                         onChange={e => setNewExpense({ ...newExpense, subCategory: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
                                     >
                                         <option value="">Select sub category</option>
                                         {(expenseCategories.find(c => c.rawName === newExpense.mainCategory)?.subCategories || []).map(sub => (
@@ -717,41 +717,41 @@ export default function AdminExpenses() {
 
                             {/* Row 2: Paid To */}
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Paid To <span className="text-rose-500">*</span></label>
+                                <label className="text-sm font-bold text-gray-700">Paid To <span className="text-rose-500">*</span></label>
                                 <input required type="text" value={newExpense.paidTo} onChange={e => setNewExpense({ ...newExpense, paidTo: e.target.value })}
                                     placeholder="Enter vendor or person name"
-                                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
+                                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
                             </div>
 
                             {/* Row 3: Dates */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Paid Date <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-bold text-gray-700">Paid Date <span className="text-rose-500">*</span></label>
                                     <input required type="date" value={newExpense.paidDate} onChange={e => setNewExpense({ ...newExpense, paidDate: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
+                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Bill Date <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-bold text-gray-700">Bill Date <span className="text-rose-500">*</span></label>
                                     <input required type="date" value={newExpense.billDate} onChange={e => setNewExpense({ ...newExpense, billDate: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
+                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
                                 </div>
                             </div>
 
                             {/* Row 4: Amount & Mode */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Bill Amount <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-bold text-gray-700">Bill Amount <span className="text-rose-500">*</span></label>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                                         <input required type="number" value={newExpense.amount} onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })}
                                             placeholder="0.00"
-                                            className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl pl-8 pr-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
+                                            className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl pl-8 pr-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Payment Mode <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-bold text-gray-700">Payment Mode <span className="text-rose-500">*</span></label>
                                     <select required value={newExpense.paymentMode} onChange={e => setNewExpense({ ...newExpense, paymentMode: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all">
+                                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all">
                                         <option value="CASH">Cash</option>
                                         <option value="UPI">UPI</option>
                                         <option value="CARD">Card</option>
@@ -772,7 +772,7 @@ export default function AdminExpenses() {
                                             setBillPreview(URL.createObjectURL(file));
                                         }
                                     }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                    <div className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center transition-all ${billFile ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 dark:border-gray-700 group-hover:border-emerald-400 bg-gray-50 dark:bg-gray-900/50'}`}>
+                                    <div className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center transition-all ${billFile ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 group-hover:border-emerald-400 bg-gray-50 dark:bg-gray-900/50'}`}>
                                         {billPreview ? (
                                             <div className="relative">
                                                 {billFile.type === 'application/pdf' ? (
@@ -790,10 +790,10 @@ export default function AdminExpenses() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl shadow-sm flex items-center justify-center text-gray-400 mb-3 group-hover:text-emerald-500 transition-all">
+                                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-400 mb-3 group-hover:text-emerald-500 transition-all">
                                                     <Upload size={24} />
                                                 </div>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium text-center">Drag and Drop or <span className="text-emerald-600 font-bold">Choose file</span> to upload</p>
+                                                <p className="text-sm text-gray-500 font-medium text-center">Drag and Drop or <span className="text-emerald-600 font-bold">Choose file</span> to upload</p>
                                                 <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">PDF or IMAGE</p>
                                             </>
                                         )}
@@ -803,15 +803,15 @@ export default function AdminExpenses() {
 
                             {/* Row 6: Description */}
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Bill Description</label>
+                                <label className="text-sm font-bold text-gray-700">Bill Description</label>
                                 <textarea rows={3} value={newExpense.description} onChange={e => setNewExpense({ ...newExpense, description: e.target.value })}
                                     placeholder="Enter the bill description here..."
-                                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all resize-none" />
+                                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all resize-none" />
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="px-8 py-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50/30 flex justify-end shrink-0 rounded-b-xl">
+                        <div className="px-8 py-6 border-t border-gray-200 bg-gray-50 dark:bg-gray-900/50/30 flex justify-end shrink-0 rounded-b-xl">
                             <button type="submit" disabled={submitting}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:scale-95">
                                 {submitting ? <Loader2 size={18} className="animate-spin" /> : <Receipt size={18} />}
@@ -829,7 +829,7 @@ export default function AdminExpenses() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 {/* Breadcrumbs */}
-                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-2 mt-4">
+                <div className="text-xs text-gray-500 flex items-center gap-1 mb-2 mt-4">
                     <span>Home</span> &gt; <span>VSMS</span> &gt; <span className="text-emerald-600 font-medium">Expense Monitoring</span>
                 </div>
 
@@ -838,7 +838,7 @@ export default function AdminExpenses() {
                         {false && storeId && stores.length > 1 && (
                             <button
                                 onClick={() => setSearchParams({})}
-                                className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-90"
+                                className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-90"
                                 title="Back to All Branches"
                             >
                                 <ChevronLeft size={18} />
@@ -870,13 +870,13 @@ export default function AdminExpenses() {
                             </select>
                         )}
                     </div>
-                    {/* <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Fleet expenses, fuel, maintenance, and trips</p> */}
+                    {/* <p className="text-sm text-gray-500 mt-0.5">Fleet expenses, fuel, maintenance, and trips</p> */}
                 </div>
 
             </div>
 
             {/* Sub-tab Navigation Bar (Enterprise ERP Style) */}
-            <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+            <div className="border-b border-gray-200 mb-6">
                 <div className="flex gap-8 overflow-x-auto no-scrollbar">
                     {[
                         { id: 'trips', label: 'Trips', icon: MapPin },
@@ -893,7 +893,7 @@ export default function AdminExpenses() {
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-2 py-3.5 border-b-2 text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap outline-none ${isActive
                                     ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
-                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
+                                    : 'border-transparent text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
                                     }`}
                             >
                                 <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'} />
@@ -914,7 +914,7 @@ export default function AdminExpenses() {
                         <select
                             value={statusFilter}
                             onChange={e => setStatusFilter(e.target.value)}
-                            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold text-gray-600 dark:text-gray-400 shadow-sm outline-none cursor-pointer"
+                            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-600 shadow-sm outline-none cursor-pointer"
                         >
                             <option value="">All Statuses</option>
                             <option value="PENDING">Pending</option>
@@ -923,10 +923,10 @@ export default function AdminExpenses() {
                             <option value="PAID">Paid</option>
                         </select>
 
-                        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 shadow-sm relative group">
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm relative group">
                             <Calendar size={16} className="text-emerald-500" />
                             <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                                className="bg-transparent border-none focus:outline-none text-sm font-bold text-gray-700 dark:text-gray-300" />
+                                className="bg-transparent border-none focus:outline-none text-sm font-bold text-gray-700" />
                             {date && (
                                 <button onClick={() => setDate('')} className="ml-1 p-1 hover:bg-rose-50 text-gray-300 hover:text-rose-500 rounded-lg transition-all">
                                     <X size={12} strokeWidth={3} />
@@ -935,7 +935,7 @@ export default function AdminExpenses() {
                         </div>
 
                         <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}
-                            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs font-bold text-gray-600 dark:text-gray-400 shadow-sm outline-none cursor-pointer">
+                            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-600 shadow-sm outline-none cursor-pointer">
                             <option value="">All Modes</option>
                             <option value="CASH">Cash</option>
                             <option value="PERSONAL_CASH">Personal Cash</option>
@@ -946,7 +946,7 @@ export default function AdminExpenses() {
                         </select>
 
                         <button onClick={() => exportExpensesToExcel(expenses)}
-                            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 shadow-sm active:scale-[0.98] transition-all flex items-center gap-2">
+                            className="bg-white border border-gray-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 shadow-sm active:scale-[0.98] transition-all flex items-center gap-2">
                             <Download size={16} /> Export Excel
                         </button>
 
@@ -973,7 +973,7 @@ export default function AdminExpenses() {
                                             className="px-4 py-1.5 bg-emerald-600 rounded-xl text-[10px] font-bold uppercase hover:bg-emerald-500 transition-all">Pay All</button>
                                     </>
                                 )}
-                                <button onClick={() => setSelected([])} className="p-1.5 hover:bg-white dark:bg-gray-800/10 rounded-lg"><X size={14} /></button>
+                                <button onClick={() => setSelected([])} className="p-1.5 hover:bg-white/10 rounded-lg"><X size={14} /></button>
                             </div>
                         </div>
                     )}
@@ -984,7 +984,7 @@ export default function AdminExpenses() {
                             <p className="font-bold text-xs uppercase tracking-widest italic">Loading expenses...</p>
                         </div>
                     ) : expenses.length === 0 ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-xl p-24 border border-dashed border-gray-200 dark:border-gray-700 text-center shadow-inner">
+                        <div className="bg-white rounded-xl p-24 border border-dashed border-gray-200 text-center shadow-inner">
                             <Receipt size={56} className="mx-auto text-gray-100 mb-4" />
                             <h3 className="text-xl font-bold text-gray-200">No Expenses</h3>
                         </div>
@@ -993,96 +993,96 @@ export default function AdminExpenses() {
                             <table className="w-full text-left border-separate border-spacing-0">
                                 <thead>
                                     <tr className="bg-gray-50 dark:bg-gray-900/50/50">
-                                        <th className="sticky left-0 bg-gray-50 dark:bg-gray-900/50/50 z-10 px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                                        <th className="sticky left-0 bg-gray-50 dark:bg-gray-900/50/50 z-10 px-4 py-3 border-b border-gray-200 whitespace-nowrap">
                                             <input type="checkbox" checked={selected.length === expenses.length && expenses.length > 0}
                                                 onChange={toggleAll} className="rounded" />
                                         </th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Voucher ID</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Category</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Sub Category</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Bill Date</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Paid Date</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Paid To</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Bill Amt</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Approved By</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Created By</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-emerald-600">Paid Amt</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-emerald-500">Balance</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Mode</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Bill</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Status</th>
-                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">Remarks</th>
-                                        <th className="sticky right-0 bg-white dark:bg-gray-800 z-10 px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 text-right whitespace-nowrap">Actions</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Voucher ID</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Category</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Sub Category</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Bill Date</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Paid Date</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Paid To</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Bill Amt</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Approved By</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Created By</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap text-emerald-600">Paid Amt</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap text-emerald-500">Balance</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Mode</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Bill</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Status</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 whitespace-nowrap">Remarks</th>
+                                        <th className="sticky right-0 bg-white z-10 px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 text-right whitespace-nowrap">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50 bg-white dark:bg-gray-800">
+                                <tbody className="divide-y divide-gray-50 bg-white">
                                     {expenses.map((exp) => {
                                         const meta = getMeta(exp);
                                         const payInfo = getPaymentInfo(exp.description);
                                         const remarks = getRemarks(exp.description);
                                         return (
                                             <tr key={exp.id} className="hover:bg-gray-50 dark:bg-gray-900/50/50 transition-colors group">
-                                                <td className="sticky left-0 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:bg-gray-900/50/50 z-10 px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                                                <td className="sticky left-0 bg-white group-hover:bg-gray-50 dark:bg-gray-900/50/50 z-10 px-4 py-3 border-b border-gray-200 whitespace-nowrap">
                                                     <input type="checkbox" checked={selected.includes(exp.id)} onChange={() => toggleSelect(exp.id)}
                                                         className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[11px] font-bold text-gray-600 dark:text-gray-400">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[11px] font-bold text-gray-600">
                                                     <span className="text-[10px] font-bold text-emerald-600 font-mono tracking-tighter bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">{exp.displayId || '—'}</span>
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[11px] font-bold text-gray-900 dark:text-white">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[11px] font-bold text-gray-900 dark:text-white">
                                                     {(exp.type?.split(' | ')[0] || '-').replace(/^\[(AGENT|STORE)\]\s*/i, '')}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[11px] font-bold text-gray-600 dark:text-gray-400">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[11px] font-bold text-gray-600">
                                                     {(exp.type?.split(' | ')[1] || '-').replace(/^\[(AGENT|STORE)\]\s*/i, '')}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[10px] font-bold text-gray-600 dark:text-gray-400">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[10px] font-bold text-gray-600">
                                                     {meta.billDate || exp.billDate || exp.date || '—'}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[10px] font-bold text-gray-600 dark:text-gray-400">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[10px] font-bold text-gray-600">
                                                     {meta.paidDate || exp.paidDate || '—'}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[10px] font-bold text-gray-700 dark:text-gray-300 capitalize">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[10px] font-bold text-gray-700 capitalize">
                                                     {meta.paidTo || exp.paidTo || '—'}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[11px] font-bold text-gray-900 dark:text-white">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[11px] font-bold text-gray-900 dark:text-white">
                                                     ₹{exp.amount.toLocaleString()}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[10px] font-bold text-gray-500">
                                                     {getApprovedBy(exp.description)}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap">
                                                     <div className="flex items-center gap-1.5">
                                                         <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-500">
                                                             {exp.user?.name?.[0]}
                                                         </div>
-                                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400">{exp.user?.name || 'System'}</span>
+                                                        <span className="text-[10px] font-bold text-gray-600">{exp.user?.name || 'System'}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[10px] font-bold text-emerald-600">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[10px] font-bold text-emerald-600">
                                                     ₹{payInfo ? Number(payInfo.paid).toLocaleString() : (exp.status === 'PAID' ? exp.amount.toLocaleString() : '0')}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[10px] font-bold text-emerald-500">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[10px] font-bold text-emerald-500">
                                                     ₹{payInfo ? Number(payInfo.balance).toLocaleString() : '0'}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[9px] font-bold text-gray-400 uppercase">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[9px] font-bold text-gray-400 uppercase">
                                                     {exp.paymentMode}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap">
                                                     {exp.billImage ? (
                                                         <button onClick={() => setSelectedExpense(exp)} className="p-1 bg-slate-50 text-slate-400 rounded-md hover:bg-slate-900 hover:text-white transition-all border border-slate-100">
                                                             <FileText size={10} />
                                                         </button>
                                                     ) : '—'}
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold uppercase border ${STATUS_STYLES[exp.status] || 'bg-gray-50 dark:bg-gray-900/50 text-gray-400 border-gray-200 dark:border-gray-700'}`}>
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold uppercase border ${STATUS_STYLES[exp.status] || 'bg-gray-50 dark:bg-gray-900/50 text-gray-400 border-gray-200'}`}>
                                                         {exp.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap text-[9px] font-bold text-gray-500 dark:text-gray-400 max-w-[150px] truncate">
+                                                <td className="px-4 py-3 border-b border-gray-200 whitespace-nowrap text-[9px] font-bold text-gray-500 max-w-[150px] truncate">
                                                     {remarks}
                                                 </td>
-                                                <td className="sticky right-0 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:bg-gray-900/50/50 z-10 px-4 py-3 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                                                <td className="sticky right-0 bg-white group-hover:bg-gray-50 dark:bg-gray-900/50/50 z-10 px-4 py-3 border-b border-gray-200 whitespace-nowrap">
                                                     <div className="flex items-center justify-end gap-1">
                                                         {can('EXPENSES', 'UPDATE', 'APPROVAL') && exp.status === 'PENDING' && (
                                                             <>
@@ -1136,15 +1136,15 @@ export default function AdminExpenses() {
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-4" onClick={() => setSelectedExpense(null)}>
                     <div className="relative max-w-4xl w-full max-h-screen flex flex-col items-center justify-center gap-4">
                         {selectedExpense.billImage?.toLowerCase().endsWith('.pdf') ? (
-                            <iframe src={selectedExpense.billImage} className="w-full h-[80vh] rounded-lg bg-white dark:bg-gray-800" title="Bill PDF" />
+                            <iframe src={selectedExpense.billImage} className="w-full h-[80vh] rounded-lg bg-white" title="Bill PDF" />
                         ) : (
                             <img src={selectedExpense.billImage} alt="Bill" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
                         )}
-                        <div className="flex items-center gap-4 bg-white dark:bg-gray-800/10 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md px-6 py-3 rounded-lg border border-white/20" onClick={e => e.stopPropagation()}>
                             <p className="text-white text-xs font-bold uppercase tracking-widest">{selectedExpense.type}</p>
-                            <span className="w-px h-4 bg-white dark:bg-gray-800/20"></span>
+                            <span className="w-px h-4 bg-white/20"></span>
                             <p className="text-emerald-400 font-bold">₹{selectedExpense.amount}</p>
-                            <button onClick={() => setSelectedExpense(null)} className="ml-4 p-2 bg-white dark:bg-gray-800/10 hover:bg-rose-500 text-white rounded-xl transition-all">
+                            <button onClick={() => setSelectedExpense(null)} className="ml-4 p-2 bg-white/10 hover:bg-rose-500 text-white rounded-xl transition-all">
                                 <X size={20} />
                             </button>
                         </div>

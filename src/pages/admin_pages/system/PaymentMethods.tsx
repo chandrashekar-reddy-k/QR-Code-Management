@@ -150,7 +150,7 @@ const PaymentMethods = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Payment Gateways & Methods Settings
         </h1>
       </div>
@@ -161,12 +161,12 @@ const PaymentMethods = () => {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {/* COD Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   COD Payments
                 </h3>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -205,10 +205,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* PayPal Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Paypal Payments
                   </h3>
                 </div>
@@ -268,10 +268,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* Razorpay Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Razorpay Payments
                   </h3>
                 </div>
@@ -310,10 +310,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* Paystack Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Paystack Payments
                   </h3>
                 </div>
@@ -363,10 +363,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* Stripe Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Stripe Payments
                   </h3>
                 </div>
@@ -438,10 +438,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* Paytm Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Paytm Payments
                   </h3>
                 </div>
@@ -493,10 +493,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* Midtrans Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Midtrans Payments
                   </h3>
                 </div>
@@ -551,7 +551,7 @@ const PaymentMethods = () => {
                         handleMidtransChange("returnUrl", e.target.value)
                       }
                     />
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-[10px] text-gray-500 mt-1">
                       ( Note ** : Confirm you added website url in Web
                       Setting/General Web Settings)
                     </p>
@@ -561,10 +561,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* Phonepe Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Phonepe Payments
                   </h3>
                 </div>
@@ -634,10 +634,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* Cashfree Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Cashfree Payments
                   </h3>
                 </div>
@@ -697,10 +697,10 @@ const PaymentMethods = () => {
             </div>
 
             {/* Paytabs Payments */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">
                     Paytabs Payments
                   </h3>
                 </div>

@@ -84,7 +84,7 @@ refetch();
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Loading category...</p>
+          <p className="text-xs text-gray-500">Loading category...</p>
         </div>
       </div>
     );
@@ -94,7 +94,7 @@ refetch();
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Category not found</p>
+          <p className="text-gray-500 mb-4">Category not found</p>
           <button
             onClick={() => navigate('/categories/manage')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -112,12 +112,12 @@ refetch();
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Category Details</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Category Details</h1>
         <div className="flex items-center gap-3">
           <Badge
             status={status}
             size="sm"
-            customColor={status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800'}
+            customColor={status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 text-gray-800'}
             className="rounded"
           />
           <BackButton to="/categories/manage" />
@@ -130,60 +130,60 @@ refetch();
       </div>
 
       {/* Details Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <FolderTree size={18} className="text-green-600 dark:text-green-400" />
               Basic Information
             </h2>
             
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">ID</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{category.id || 'N/A'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">ID</p>
+              <p className="text-sm font-semibold text-gray-800">{category.id || 'N/A'}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Parent ID</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{category.parentId || 'None (Main Category)'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Parent ID</p>
+              <p className="text-sm text-gray-700">{category.parentId || 'None (Main Category)'}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Name</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{category.name || 'N/A'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Name</p>
+              <p className="text-sm font-semibold text-gray-800">{category.name || 'N/A'}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Slug</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{category.slug || 'N/A'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Slug</p>
+              <p className="text-sm text-gray-700">{category.slug || 'N/A'}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Subtitle</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{category.categorySubtitle || category.subtitle || 'N/A'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Subtitle</p>
+              <p className="text-sm text-gray-700">{category.categorySubtitle || category.subtitle || 'N/A'}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Display Order</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{category.displayOrder !== undefined ? category.displayOrder : 'N/A'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Display Order</p>
+              <p className="text-sm text-gray-700">{category.displayOrder !== undefined ? category.displayOrder : 'N/A'}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Description</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{category.description || 'N/A'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Description</p>
+              <p className="text-sm text-gray-700">{category.description || 'N/A'}</p>
             </div>
           </div>
 
           {/* Image & Status */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <ImageIcon size={18} className="text-green-600 dark:text-green-400" />
               Image & Status
             </h2>
             
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Category Image</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-2">Category Image</p>
               {category.image ? (
                 <img
                   src={category.image}
@@ -191,19 +191,19 @@ refetch();
                   className="w-48 h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                 />
               ) : (
-                <div className="w-48 h-48 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                  <ImageIcon size={48} className="text-gray-400 dark:text-gray-500" />
+                <div className="w-48 h-48 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                  <ImageIcon size={48} className="text-gray-400" />
                 </div>
               )}
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Status</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Status</p>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-medium ${
                   status === 'active'
                     ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                    : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-700'
+                    : 'bg-gray-100 text-gray-700'
                 }`}
               >
                 {status}
@@ -212,67 +212,67 @@ refetch();
 
             {category.colorCode && (
               <div>
-                <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Color Code</p>
+                <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Color Code</p>
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-6 h-6 rounded border border-gray-200 dark:border-gray-600"
                     style={{ backgroundColor: category.colorCode }}
                   />
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{category.colorCode}</p>
+                  <p className="text-sm text-gray-700">{category.colorCode}</p>
                 </div>
               </div>
             )}
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Created At</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(category.createdAt)}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Created At</p>
+              <p className="text-sm text-gray-700">{formatDate(category.createdAt)}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Updated At</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(category.updatedAt)}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Updated At</p>
+              <p className="text-sm text-gray-700">{formatDate(category.updatedAt)}</p>
             </div>
           </div>
         </div>
 
         {/* SEO Information */}
-        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">
             SEO Information
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Meta Title</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{category.metaTitle || 'N/A'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Meta Title</p>
+              <p className="text-sm text-gray-700">{category.metaTitle || 'N/A'}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Meta Description</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{category.metaDescription || 'N/A'}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Meta Description</p>
+              <p className="text-sm text-gray-700">{category.metaDescription || 'N/A'}</p>
             </div>
 
             <div className="md:col-span-2">
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Meta Keywords</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Meta Keywords</p>
               <div className="flex flex-wrap gap-1">
                 {category.metaKeywords && category.metaKeywords.length > 0 ? (
                   category.metaKeywords.map((keyword, index) => (
                     <span 
                       key={index} 
-                      className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs"
+                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
                     >
                       {keyword}
                     </span>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-700 dark:text-gray-300">N/A</p>
+                  <p className="text-sm text-gray-700">N/A</p>
                 )}
               </div>
             </div>
 
             <div className="md:col-span-2">
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Schema Markup</p>
-              <pre className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg overflow-auto max-h-40">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Schema Markup</p>
+              <pre className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg overflow-auto max-h-40">
                 {category.schemaMarkup ? 
                   (typeof category.schemaMarkup === 'object' ? 
                     JSON.stringify(category.schemaMarkup, null, 2) : 

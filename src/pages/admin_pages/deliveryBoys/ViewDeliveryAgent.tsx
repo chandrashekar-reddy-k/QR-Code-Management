@@ -497,7 +497,7 @@ const ViewDeliveryAgent = () => {
     <div className="w-full px-2 pb-6">
       {/* Header */}
       <div className="flex items-center justify-between mt-4 mb-3">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-xl font-bold text-gray-900">
           View Delivery Agent
         </h1>
         <BackButton />
@@ -506,10 +506,10 @@ const ViewDeliveryAgent = () => {
       <Breadcrumbs />
 
       {/* ================= PROFILE CARD ================= */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-6">
         <div className="flex gap-6">
           {/* User Icon */}
-          <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
             <User size={32} className="text-gray-400" />
           </div>
 
@@ -519,21 +519,21 @@ const ViewDeliveryAgent = () => {
               {/* Row 1 */}
               <div className="grid grid-cols-2 gap-x-10">
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Full Name
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {valueOrDash(deliveryBoy.name)}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Email ID
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {valueOrDash(deliveryBoy.email)}
                   </span>
                 </div>
@@ -542,21 +542,21 @@ const ViewDeliveryAgent = () => {
               {/* Row 2 */}
               <div className="grid grid-cols-2 gap-x-10">
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Surname
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {valueOrDash(deliveryBoy.surname)}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Phone Number
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {valueOrDash(deliveryBoy.phone)}
                   </span>
                 </div>
@@ -565,21 +565,21 @@ const ViewDeliveryAgent = () => {
               {/* Row 3 */}
               <div className="grid grid-cols-2 gap-x-10">
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Father / Spouse Name
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {valueOrDash(deliveryBoy.fatherOrSpouseName)}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Alternate Phone
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {valueOrDash(deliveryBoy.alternatePhone)}
                   </span>
                 </div>
@@ -588,21 +588,21 @@ const ViewDeliveryAgent = () => {
               {/* Row 4 */}
               <div className="grid grid-cols-2 gap-x-10">
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Gender
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {valueOrDash(deliveryBoy.gender)}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Nationality
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {valueOrDash(deliveryBoy.nationality)}
                   </span>
                 </div>
@@ -611,11 +611,11 @@ const ViewDeliveryAgent = () => {
               {/* Row 5 */}
               <div className="grid grid-cols-2 gap-x-10">
                 <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-xs font-medium text-gray-500">
                     Date of Birth
                   </span>
                   <span>:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="font-semibold text-gray-800">
                     {deliveryBoy.dob ? deliveryBoy.dob : "---"}
                   </span>
                 </div>
@@ -626,15 +626,15 @@ const ViewDeliveryAgent = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
-        <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto tabs-scrollbar">
+      <div className="bg-white rounded-lg shadow-sm mb-6">
+        <div className="flex border-b border-gray-200 overflow-x-auto tabs-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab
-                ? "text-gray-900 dark:text-gray-100 border-b-2 border-orange-500 dark:border-orange-400"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                ? "text-gray-900 border-b-2 border-orange-500 dark:border-orange-400"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 }`}
             >
               {tab}
@@ -645,7 +645,7 @@ const ViewDeliveryAgent = () => {
 
       {activeTab === "Orders" && (
         <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <DataTable
                 data={ordersData}
@@ -660,7 +660,7 @@ const ViewDeliveryAgent = () => {
 
       {activeTab === "Transactions" && (
         <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <DataTable
                 data={transactionData}
@@ -709,16 +709,16 @@ const ViewDeliveryAgent = () => {
               deliveryBoy.deliveryAgentDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className="rounded-lg border border-gray-200 dark:border-gray-700 
-                       bg-white dark:bg-gray-800 
+                  className="rounded-lg border border-gray-200 
+                       bg-white 
                        p-3 transition-shadow hover:shadow-md"
                 >
                   <div
                     className="h-24 mb-2 rounded-md 
-                         bg-gray-100 dark:bg-gray-700 
+                         bg-gray-100 
                          border border-dashed border-gray-300 dark:border-gray-600 
                          flex items-center justify-center 
-                         text-xs font-medium text-gray-400 dark:text-gray-300"
+                         text-xs font-medium text-gray-400"
                   >
                     {doc.fileUrl ? (
                       <img
@@ -730,7 +730,7 @@ const ViewDeliveryAgent = () => {
                       "No Image"
                     )}
                   </div>
-                  <p className="font-medium text-gray-700 dark:text-gray-200">
+                  <p className="font-medium text-gray-700">
                     {doc.documentType
                       .replace(/_/g, " ")
                       .replace(/\b\w/g, (l) => l.toUpperCase())}
@@ -754,20 +754,20 @@ const ViewDeliveryAgent = () => {
                 {/* Row 1 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
                   <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-xs font-medium text-gray-500">
                       Account Holder Name
                     </span>
                     <span>:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    <span className="font-semibold text-gray-800">
                       {valueOrDash(deliveryBoy.agentBank.accountHolderName)}
                     </span>
                   </div>
                   <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-xs font-medium text-gray-500">
                       Bank Account Number
                     </span>
                     <span>:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    <span className="font-semibold text-gray-800">
                       {valueOrDash(deliveryBoy.agentBank.accountNumber)}
                     </span>
                   </div>
@@ -775,20 +775,20 @@ const ViewDeliveryAgent = () => {
                 {/* Row 2 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
                   <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-xs font-medium text-gray-500">
                       Bank Name
                     </span>
                     <span>:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    <span className="font-semibold text-gray-800">
                       {valueOrDash(deliveryBoy.agentBank.bankName)}
                     </span>
                   </div>
                   <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-xs font-medium text-gray-500">
                       IFSC Code
                     </span>
                     <span>:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    <span className="font-semibold text-gray-800">
                       {valueOrDash(deliveryBoy.agentBank.ifscCode)}
                     </span>
                   </div>
@@ -796,20 +796,20 @@ const ViewDeliveryAgent = () => {
                 {/* Row 3 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
                   <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-xs font-medium text-gray-500">
                       Branch Name
                     </span>
                     <span>:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    <span className="font-semibold text-gray-800">
                       {valueOrDash(deliveryBoy.agentBank.branchName)}
                     </span>
                   </div>
                   <div className="grid grid-cols-[180px_10px_1fr] items-center">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span className="text-xs font-medium text-gray-500">
                       UPI ID
                     </span>
                     <span>:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    <span className="font-semibold text-gray-800">
                       {valueOrDash(deliveryBoy.agentBank.upiId)}
                     </span>
                   </div>
@@ -817,14 +817,14 @@ const ViewDeliveryAgent = () => {
               </div>
               {/* Cancelled Cheque */}
               <div className="mt-6">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <p className="text-sm font-semibold text-gray-700 mb-2">
                   Cancelled Cheque
                 </p>
                 <div
                   className="h-36 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 
-                          bg-gray-100 dark:bg-gray-700 
+                          bg-gray-100 
                           flex items-center justify-center 
-                          text-gray-400 dark:text-gray-300"
+                          text-gray-400"
                 >
                   {deliveryBoy.agentBank.passbookFile ? (
                     <img
@@ -846,11 +846,11 @@ const ViewDeliveryAgent = () => {
 
       {/* ================= CURRENT STATUS ================= */}
       <div className="mt-8 flex justify-center">
-        <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
+        <div className="w-full max-w-lg bg-white rounded-xl shadow-md border border-gray-200 p-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Left: Current Status */}
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-gray-600 dark:text-gray-400">
+              <span className="text-sm font-bold text-gray-600">
                 Current Status :
               </span>
               <span
@@ -875,9 +875,9 @@ const ViewDeliveryAgent = () => {
               </button>
 
               {statusUpdateOpen && (
-                <div className="absolute right-0 mt-2 w-[220px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 mt-2 w-[220px] bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                   <div className="p-4">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
                       Select Status
                     </label>
 
@@ -928,10 +928,10 @@ const ViewDeliveryAgent = () => {
 
 const Detail = ({ label, value }: { label: string; value?: string }) => (
   <div>
-    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+    <p className="text-xs font-medium text-gray-500 mb-1">
       {label}
     </p>
-    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+    <p className="text-sm font-semibold text-gray-800">
       {value || "---"}
     </p>
   </div>
@@ -944,8 +944,8 @@ const Section = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-    <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+  <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+    <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
       {title}
     </h2>
     {children}

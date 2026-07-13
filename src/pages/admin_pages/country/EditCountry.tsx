@@ -122,7 +122,7 @@ const EditCountry = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             Loading country...
           </p>
         </div>
@@ -134,7 +134,7 @@ const EditCountry = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Edit Country
         </h1>
         <BackButton to="/master-setup/countries" />
@@ -148,7 +148,7 @@ const EditCountry = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <FormSectionWithDots title="Country Information">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

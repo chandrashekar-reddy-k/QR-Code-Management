@@ -345,7 +345,7 @@ const AddSubCategory = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             Loading sub category...
           </p>
         </div>
@@ -363,7 +363,7 @@ const AddSubCategory = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditMode ? "Edit Sub Category" : "Add Sub Category"}
         </h1>
         <BackButton to="/categories/sub-categories" />
@@ -377,7 +377,7 @@ const AddSubCategory = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit(onSubmit, onError)}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
           {/* Basic Information Section */}
@@ -441,7 +441,7 @@ const AddSubCategory = () => {
                       onChange={field.onChange}
                       onBlur={field.onBlur}
                       placeholder="Auto-generated from sub category name"
-                      className="bg-gray-50 dark:bg-gray-700"
+                      className="bg-gray-50"
                       error={errors.slug?.message}
                     />
                   </div>
@@ -478,24 +478,24 @@ const AddSubCategory = () => {
               control={control}
               render={({ field }) => (
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
                     Image {!isEditMode && <span className="text-red-500 dark:text-red-400">*</span>}
                   </label>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="text-[10px] text-gray-500 mb-2">
                     Supports: JPEG, PNG, JPG, GIF, WEBP (Max 10MB)
                   </p>
                   {!imagePreview ? (
                     <div
                       onDragOver={handleDragOver}
                       onDrop={handleDrop}
-                      className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700/50"
+                      className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <Upload className="mx-auto text-gray-400 dark:text-gray-500 mb-2" size={20} />
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <Upload className="mx-auto text-gray-400 mb-2" size={20} />
+                      <p className="text-xs text-gray-600 mb-1">
                         Drop Files here or click to upload
                       </p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                      <p className="text-[10px] text-gray-500">
                         PNG, JPG, GIF up to 10MB
                       </p>
                       <input
@@ -512,7 +512,7 @@ const AddSubCategory = () => {
                       />
                     </div>
                   ) : (
-                    <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50">
+                    <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50">
                       <img
                         src={imagePreview}
                         alt="Preview"
@@ -585,7 +585,7 @@ const AddSubCategory = () => {
                 control={control}
                 render={({ field }) => (
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Schema Markup
                     </label>
                     <textarea
@@ -594,7 +594,7 @@ const AddSubCategory = () => {
                       onBlur={field.onBlur}
                       placeholder="Enter schema markup (JSON format)"
                       rows={3}
-                      className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-gray-300 dark:focus:border-gray-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                      className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-gray-300 dark:focus:border-gray-500 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                     />
                     {errors.schemaMarkup && (
                       <p className="text-red-500 dark:text-red-400 text-[10px] mt-0.5">
@@ -611,7 +611,7 @@ const AddSubCategory = () => {
                 control={control}
                 render={({ field }) => (
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Meta Description
                     </label>
                     <textarea
@@ -620,7 +620,7 @@ const AddSubCategory = () => {
                       onBlur={field.onBlur}
                       placeholder="Enter meta description"
                       rows={3}
-                      className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-gray-300 dark:focus:border-gray-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                      className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-gray-300 dark:focus:border-gray-500 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                     />
                     {errors.metaDescription && (
                       <p className="text-red-500 dark:text-red-400 text-[10px] mt-0.5">

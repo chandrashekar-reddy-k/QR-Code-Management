@@ -222,7 +222,7 @@ const DeliverySettings = () => {
       sortable: true,
       render: (slot: TimeSlot) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{slot.id}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{slot.id}</span>
         </div>
       ),
     },
@@ -232,7 +232,7 @@ const DeliverySettings = () => {
       sortable: true,
       render: (slot: TimeSlot) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm font-semibold text-gray-800">
             {slot.title}
           </span>
         </div>
@@ -244,7 +244,7 @@ const DeliverySettings = () => {
       sortable: true,
       render: (slot: TimeSlot) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {slot.fromTime}
           </span>
         </div>
@@ -256,7 +256,7 @@ const DeliverySettings = () => {
       sortable: true,
       render: (slot: TimeSlot) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {slot.toTime}
           </span>
         </div>
@@ -268,7 +268,7 @@ const DeliverySettings = () => {
       sortable: true,
       render: (slot: TimeSlot) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {slot.lastOrderTime}
           </span>
         </div>
@@ -325,7 +325,7 @@ const DeliverySettings = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {showAddForm
             ? editingId
               ? "Edit Time Slot"
@@ -376,7 +376,7 @@ const DeliverySettings = () => {
 
       {/* Time Slot Config */}
       {!showAddForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-6">
           <h2 className="text-sm sm:text-base font-bold text-blue-900 dark:text-blue-300 mb-4">
             Time Slot Config
           </h2>
@@ -394,7 +394,7 @@ const DeliverySettings = () => {
               min="0"
             />
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Enable / Disable Time Slots
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -407,9 +407,9 @@ const DeliverySettings = () => {
                       enableTimeSlots: e.target.checked,
                     })
                   }
-                  className="w-4 h-4 border-gray-300 dark:border-gray-600 rounded focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700"
+                  className="w-4 h-4 border-gray-300 dark:border-gray-600 rounded focus:ring-gray-400 dark:focus:ring-gray-500 bg-white"
                 />
-                <span className="text-xs text-gray-700 dark:text-gray-300">
+                <span className="text-xs text-gray-700">
                   {configData.enableTimeSlots ? "Enabled" : "Disabled"}
                 </span>
               </label>
@@ -432,7 +432,7 @@ const DeliverySettings = () => {
 
       {/* Add Time Slot Form */}
       {showAddForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-6">
           <form onSubmit={handleSubmit}>
             <div className="max-w-4xl">
               <FormSectionWithDots
@@ -525,7 +525,7 @@ const DeliverySettings = () => {
           </div>
 
           {/* Time Slots Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <DataTable
                 data={paginatedTimeSlots}
@@ -540,10 +540,10 @@ const DeliverySettings = () => {
 
             {/* Pagination */}
             {filteredAndSortedTimeSlots.length > 0 && (
-              <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
                   <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                    <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    <span className="text-gray-600 whitespace-nowrap">
                       Show
                     </span>
                     <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
@@ -553,7 +553,7 @@ const DeliverySettings = () => {
                           setItemsPerPage(Number(e.target.value));
                           setCurrentPage(1);
                         }}
-                        className="w-16 sm:w-20 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-16 sm:w-20 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                       >
                         <option value="10">10</option>
                         <option value="25">25</option>
@@ -561,7 +561,7 @@ const DeliverySettings = () => {
                         <option value="100">100</option>
                       </select>
                     </div>
-                    <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    <span className="text-gray-600 whitespace-nowrap">
                       Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                       {Math.min(
                         currentPage * itemsPerPage,

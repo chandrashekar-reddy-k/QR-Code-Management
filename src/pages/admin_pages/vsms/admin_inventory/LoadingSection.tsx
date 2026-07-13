@@ -112,7 +112,7 @@ const LoadingSection = ({
   const freeItems = paginatedItemsFromAll.filter(i => i.isFree);
 
   const renderLoadingTable = (itemsToRender, isFreeGroup = false) => (
-    <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+    <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
       <table className="w-full text-left border-collapse table-fixed">
         <thead>
           <tr className="bg-gray-50 dark:bg-gray-900/50/50 text-[9px] font-bold uppercase tracking-widest text-gray-400">
@@ -132,7 +132,7 @@ const LoadingSection = ({
               <tr key={`load-table-${item.id}`} className={`hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group ${isFreeGroup ? 'bg-emerald-50/10' : ''}`}>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border shadow-inner shrink-0 ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border shadow-inner shrink-0 ${item.isFree ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 text-gray-600'}`}>
                       {item.image ? (
                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
@@ -140,7 +140,7 @@ const LoadingSection = ({
                       )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 leading-tight truncate">{item.name}</span>
+                      <span className="text-[11px] font-bold text-gray-800 leading-tight truncate">{item.name}</span>
                       {item.unit && (
                         <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter truncate">
                           {item.unitValue || ''} {item.unit.type}
@@ -150,7 +150,7 @@ const LoadingSection = ({
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-center">
-                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">₹{price}</span>
+                  <span className="text-[10px] font-bold text-gray-500">₹{price}</span>
                 </td>
                 <td className="px-3 py-2.5 bg-emerald-50/5">
                   <div className="flex items-center justify-center gap-3">
@@ -164,7 +164,7 @@ const LoadingSection = ({
                       <span className="text-[7px] font-bold text-amber-500 uppercase tracking-widest leading-none mt-0.5">In Vehicle</span>
                     </div>
                     <div className="w-px h-4 bg-emerald-100" />
-                    <div className="flex flex-col items-center bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded-lg border border-emerald-100 shadow-sm">
+                    <div className="flex flex-col items-center bg-white px-1.5 py-0.5 rounded-lg border border-emerald-100 shadow-sm">
                       <span className="text-[10px] font-bold text-blue-600">
                         {item.totalStock || ((item.warehouseStock || 0) + (item.vehicleStock || 0))}
                       </span>
@@ -179,7 +179,7 @@ const LoadingSection = ({
                       placeholder="0"
                       min="0"
                       onWheel={(e) => e.target.blur()}
-                      className={`w-16 bg-white dark:bg-gray-800 border ${qty > (item.warehouseStock || 0) ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-200'} rounded-lg px-2 py-1 text-[11px] text-center font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-sm`}
+                      className={`w-16 bg-white border ${qty > (item.warehouseStock || 0) ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-200'} rounded-lg px-2 py-1 text-[11px] text-center font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-sm`}
                       value={stockQuantities[item.id] || ''}
                       onChange={(e) => {
                         const val = Math.max(0, parseInt(e.target.value) || 0);
@@ -234,12 +234,12 @@ const LoadingSection = ({
 
       {/* Render Load Stock Form in-page when active */}
       {showLoadModal ? (
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden animate-in fade-in duration-300">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700 no-print">
+        <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden animate-in fade-in duration-300">
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 no-print">
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setShowLoadModal(false)} 
-                className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700"
+                className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 hover:bg-gray-100 transition-all border border-gray-200"
               >
                 <ArrowLeft size={18} />
               </button>
@@ -251,7 +251,7 @@ const LoadingSection = ({
             <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
               <div className="relative flex-1 md:w-64">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" placeholder="Search products..." className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-3 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner" value={opsSearch} onChange={(e) => setOpsSearch(e.target.value)} />
+                <input type="text" placeholder="Search products..." className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg pl-10 pr-4 py-3 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner" value={opsSearch} onChange={(e) => setOpsSearch(e.target.value)} />
               </div>
               <button onClick={() => { setScannerTarget('loading'); setShowScanner(true); }} className="p-3 bg-gray-50 dark:bg-gray-900/50 hover:bg-emerald-50 rounded-lg text-gray-400 hover:text-emerald-600 transition-all border border-transparent hover:border-emerald-100 shadow-sm">
                 <Barcode size={24} />
@@ -260,14 +260,14 @@ const LoadingSection = ({
           </div>
 
           {/* Professional Header: Selected Vehicle and Total Value Side-by-Side */}
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between p-5 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700 mb-6">
+          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between p-5 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 mb-6">
             <div className="flex flex-col md:flex-row md:items-center gap-4 flex-1">
-              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 shrink-0">
+              <div className="flex items-center gap-2 text-gray-500 shrink-0">
                 <Truck size={18} className="text-emerald-600" />
                 <span className="text-xs font-bold uppercase tracking-wider">Select Target Vehicle:</span>
               </div>
               <select 
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all min-w-[280px]" 
+                className="bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all min-w-[280px]" 
                 value={selectedVehicleId} 
                 onChange={(e) => setSelectedVehicleId(e.target.value)}
               >
@@ -321,7 +321,7 @@ const LoadingSection = ({
           )}
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8 py-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-center gap-2 mt-8 py-4 border-t border-gray-200">
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-emerald-600 disabled:opacity-30 transition-colors">Prev</button>
               <span className="text-[10px] font-bold text-emerald-600 px-4 py-2 bg-emerald-50 rounded-xl">Page {currentPage} of {totalPages}</span>
               <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-emerald-600 disabled:opacity-30 transition-colors">Next</button>
@@ -331,9 +331,9 @@ const LoadingSection = ({
       ) : (
         selectedSession ? (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300 print:p-0">
-            <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700 no-print">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 no-print">
               <div className="flex items-center gap-4">
-                <button onClick={() => setSelectedSession(null)} className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700"><ArrowLeft size={18} /></button>
+                <button onClick={() => setSelectedSession(null)} className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 hover:bg-gray-100 transition-all border border-gray-200"><ArrowLeft size={18} /></button>
                 <div className="text-left">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">Loading Details</h4>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Inventory Load Session</p>
@@ -341,7 +341,7 @@ const LoadingSection = ({
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={exportLoadDetailToExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><FileDown size={14} /> Excel</button>
-                <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"><Printer size={14} /> Print</button>
+                <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900/50 text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 shadow-sm"><Printer size={14} /> Print</button>
               </div>
             </div>
 
@@ -356,18 +356,18 @@ const LoadingSection = ({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-start gap-x-12 gap-y-6 mb-8 pb-6 border-b border-gray-200 dark:border-gray-700 text-left">
+              <div className="flex flex-wrap items-start gap-x-12 gap-y-6 mb-8 pb-6 border-b border-gray-200 text-left">
                 <div className="flex flex-col min-w-[150px]">
                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Truck size={10} className="text-emerald-400" /> Vehicle</span>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">{selectedSession.vehicle?.vehicleNumber || 'Unknown'}</span>
+                  <span className="text-xs font-bold text-gray-800 uppercase">{selectedSession.vehicle?.vehicleNumber || 'Unknown'}</span>
                 </div>
                 <div className="flex flex-col min-w-[150px]">
                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Check size={10} className="text-emerald-400" /> Authorized By</span>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{selectedSession.user?.name || 'System Admin'}</span>
+                  <span className="text-xs font-bold text-gray-800">{selectedSession.user?.name || 'System Admin'}</span>
                 </div>
                 <div className="flex flex-col min-w-[150px]">
                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><RefreshCw size={10} className="text-emerald-400" /> Timestamp</span>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{new Date(selectedSession.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                  <span className="text-xs font-bold text-gray-800">{new Date(selectedSession.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
                 </div>
                 <div className="flex flex-col min-w-[100px]">
                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Package size={10} className="text-emerald-400" /> Total Items</span>
@@ -375,7 +375,7 @@ const LoadingSection = ({
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -390,7 +390,7 @@ const LoadingSection = ({
                       <tr key={`det-load-${i}`} className="hover:bg-emerald-50/10 transition-colors group">
                         <td className="px-4 py-2.5">
                           <div className="flex flex-col text-left">
-                            <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 group-hover:text-emerald-600 transition-colors uppercase tracking-tight leading-none mb-0.5">{item.product?.name}</span>
+                            <span className="text-[11px] font-bold text-gray-800 group-hover:text-emerald-600 transition-colors uppercase tracking-tight leading-none mb-0.5">{item.product?.name}</span>
                             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{item.product?.category?.name || 'General'}</span>
                           </div>
                         </td>
@@ -407,12 +407,12 @@ const LoadingSection = ({
                 <div className="flex justify-between px-10 gap-20">
                   <div className="text-center flex-1">
                     <div className="border-t border-gray-400 pt-2">
-                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Authorized Signatory</p>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Authorized Signatory</p>
                     </div>
                   </div>
                   <div className="text-center flex-1">
                     <div className="border-t border-gray-400 pt-2">
-                      <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Driver / Agent Signature</p>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Driver / Agent Signature</p>
                     </div>
                   </div>
                 </div>
@@ -428,13 +428,13 @@ const LoadingSection = ({
               <div className="flex justify-between items-center text-left">
                 <div>
                   <h1 className="text-2xl font-bold text-emerald-600 uppercase">Loading History Logs</h1>
-                  <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">VillageKart Sales Tracker</p>
+                  <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">VillageKart Sales Tracker</p>
                 </div>
                 <div className="text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Export Date: {new Date().toLocaleString()}</div>
               </div>
             </div>
             
-            <div className="flex items-center justify-between no-print mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between no-print mb-6 pb-4 border-b border-gray-200">
               <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-widest"><History size={18} className="text-emerald-500" /> Loading History</h4>
               <div className="flex items-center gap-2">
                 <button 
@@ -444,19 +444,19 @@ const LoadingSection = ({
                   <ArrowUpCircle size={14} /> Load Stock
                 </button>
                 <button onClick={exportHistoryToExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><FileDown size={14} /> Export Excel</button>
-                <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"><Printer size={14} /> Print History</button>
+                <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 shadow-sm"><Printer size={14} /> Print History</button>
               </div>
             </div>
 
             {isLoadingHistory ? (
               <div className="flex items-center justify-center py-12"><Loader2 size={32} className="animate-spin text-emerald-500" /></div>
             ) : historyData.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700"><Clock size={32} className="mx-auto text-gray-300 mb-3" /><p className="text-sm font-bold text-gray-400">No loading history found.</p></div>
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200"><Clock size={32} className="mx-auto text-gray-300 mb-3" /><p className="text-sm font-bold text-gray-400">No loading history found.</p></div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                    <tr className="border-b border-gray-100 bg-gray-50 dark:bg-gray-900/50">
                       <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">Date & Time</th>
                       <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">Vehicle Number</th>
                       <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">Authorized By</th>
@@ -467,13 +467,13 @@ const LoadingSection = ({
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {historyData.map((session, idx) => (
                       <tr key={`load-hist-tr-${idx}`} className="hover:bg-gray-50/40 dark:hover:bg-gray-700/20 transition-colors group">
-                        <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">
+                        <td className="px-6 py-4 text-xs text-gray-700">
                           {new Date(session.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                         </td>
                         <td className="px-6 py-4 text-xs font-bold text-gray-900 dark:text-white uppercase">
                           {session.vehicle?.vehicleNumber || 'Unspecified'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">
+                        <td className="px-6 py-4 text-xs text-gray-700">
                           {session.user?.name || 'System Admin'}
                         </td>
                         <td className="px-6 py-4 text-xs font-bold text-center text-emerald-600">

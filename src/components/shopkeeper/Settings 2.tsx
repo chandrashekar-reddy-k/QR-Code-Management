@@ -88,23 +88,23 @@ function CustomSelect({ label, value, onChange, options, placeholder, disabled =
 
   return (
     <div className="flex flex-col gap-1.5 relative w-full">
-      <label className="text-xs font-semibold text-gray-600">{label}</label>
+      <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500">{label}</label>
       <button
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full text-left text-xs px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D] bg-white flex justify-between items-center disabled:bg-gray-50 disabled:text-gray-400"
+        className="w-full text-left text-xs px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D] bg-white dark:bg-gray-800 flex justify-between items-center disabled:bg-gray-50 dark:bg-gray-700/50 disabled:text-gray-400 dark:text-gray-500"
       >
         <span className="truncate">{selectedName || placeholder}</span>
-        <span className="text-gray-400 text-[10px]">▼</span>
+        <span className="text-gray-400 dark:text-gray-500 text-[10px]">▼</span>
       </button>
 
       {isOpen && !disabled && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-[62px] left-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-[160px] overflow-y-auto z-50 py-1">
+          <div className="absolute top-[62px] left-0 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-[160px] overflow-y-auto z-50 py-1">
             {options.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-gray-400 italic font-normal">No options available</div>
+              <div className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 italic font-normal">No options available</div>
             ) : (
               options.map(option => (
                 <button
@@ -114,7 +114,7 @@ function CustomSelect({ label, value, onChange, options, placeholder, disabled =
                     onChange(option.id);
                     setIsOpen(false);
                   }}
-                  className="w-full text-left text-xs px-3 py-2 hover:bg-green-50 hover:text-[#00891D] transition-colors font-medium text-gray-700"
+                  className="w-full text-left text-xs px-3 py-2 hover:bg-green-50 hover:text-[#00891D] transition-colors font-medium text-gray-700 dark:text-gray-300"
                 >
                   {option.name}
                 </button>
@@ -399,24 +399,24 @@ export function Settings() {
 
 
   return (
-    <div className="w-full bg-[#F5F7FA] min-h-screen">
+    <div className="w-full bg-[#F5F7FA] dark:bg-gray-900 min-h-screen">
       {/* Header section */}
-      <div className="bg-white px-6 py-5 border-b border-gray-200 shadow-sm rounded-2xl mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+      <div className="bg-white dark:bg-gray-800 px-6 py-5 border-b border-gray-200 dark:border-gray-700 shadow-sm rounded-2xl mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
           <MapPin className="text-[#00891D]" size={24} /> Warehouse Settings
         </h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm mt-1">
           Configure store layout structure (Racks, Shelves, Trays) and assign products to their physical locations.
         </p>
 
         {/* Tab Buttons */}
-        <div className="flex gap-4 mt-6 border-b border-gray-100">
+        <div className="flex gap-4 mt-6 border-b border-gray-100 dark:border-gray-700">
           <button
             onClick={() => setActiveTab("layout")}
             className={`pb-3 font-semibold text-sm transition-all border-b-2 px-1 ${
               activeTab === "layout"
                 ? "border-[#00891D] text-[#00891D]"
-                : "border-transparent text-gray-400 hover:text-gray-600"
+                : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500"
             }`}
           >
             Store Layout Configuration
@@ -426,7 +426,7 @@ export function Settings() {
             className={`pb-3 font-semibold text-sm transition-all border-b-2 px-1 ${
               activeTab === "mapping"
                 ? "border-[#00891D] text-[#00891D]"
-                : "border-transparent text-gray-400 hover:text-gray-600"
+                : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500"
             }`}
           >
             Product Location Mapping
@@ -463,8 +463,8 @@ export function Settings() {
             <div className="md:col-span-1 flex flex-col gap-6">
               
               {/* Rack form */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2 mb-3">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center gap-2 mb-3">
                   <FolderPlus size={16} className="text-[#00891D]" /> Create New Rack
                 </h3>
                 <form onSubmit={handleCreateRack} className="flex flex-col gap-3">
@@ -474,7 +474,7 @@ export function Settings() {
                     placeholder="Rack Name (e.g. Rack A)"
                     value={newRackName}
                     onChange={(e) => setNewRackName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    className="w-full text-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                   />
                   <button
                     type="submit"
@@ -488,8 +488,8 @@ export function Settings() {
               </div>
 
               {/* Shelf form */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2 mb-3">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center gap-2 mb-3">
                   <Layers size={16} className="text-[#00891D]" /> Create New Shelf
                 </h3>
                 <form onSubmit={handleCreateShelf} className="flex flex-col gap-3">
@@ -506,7 +506,7 @@ export function Settings() {
                     placeholder="Shelf Name (e.g. Shelf 1)"
                     value={newShelfName}
                     onChange={(e) => setNewShelfName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    className="w-full text-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                   />
                   <button
                     type="submit"
@@ -520,8 +520,8 @@ export function Settings() {
               </div>
 
               {/* Tray form */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2 mb-3">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center gap-2 mb-3">
                   <Inbox size={16} className="text-[#00891D]" /> Create New Tray
                 </h3>
                 <form onSubmit={handleCreateTray} className="flex flex-col gap-3">
@@ -549,7 +549,7 @@ export function Settings() {
                     placeholder="Tray Name (e.g. Tray X)"
                     value={newTrayName}
                     onChange={(e) => setNewTrayName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    className="w-full text-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                   />
                   <button
                     type="submit"
@@ -565,27 +565,27 @@ export function Settings() {
             </div>
 
             {/* Layout Tree list (Right 2 columns) */}
-            <div className="md:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-bold text-gray-800 text-base mb-4 flex items-center gap-2">
+            <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 text-base mb-4 flex items-center gap-2">
                 🏠 Store Layout Hierarchy
               </h3>
 
               {loadingLayout ? (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500 gap-2">
                   <Loader2 className="animate-spin text-[#00891D]" size={32} />
                   <p className="text-xs">Loading layout tree...</p>
                 </div>
               ) : racks.length === 0 ? (
-                <div className="text-center py-16 text-gray-400">
+                <div className="text-center py-16 text-gray-400 dark:text-gray-500">
                   <p className="text-sm">No racks or layout elements found.</p>
                   <p className="text-xs mt-1">Use the forms on the left to start building your layout.</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
                   {racks.map(rack => (
-                    <div key={rack.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
-                      <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
-                        <span className="font-bold text-gray-800 text-sm flex items-center gap-1.5">
+                    <div key={rack.id} className="border border-gray-100 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50/50">
+                      <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
+                        <span className="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center gap-1.5">
                           📂 {rack.name}
                         </span>
                         <button
@@ -597,13 +597,13 @@ export function Settings() {
                       </div>
 
                       {rack.shelves.length === 0 ? (
-                        <p className="text-gray-400 text-[11px] italic ml-6">No shelves under this rack.</p>
+                        <p className="text-gray-400 dark:text-gray-500 text-[11px] italic ml-6">No shelves under this rack.</p>
                       ) : (
-                        <div className="flex flex-col gap-3 ml-4 pl-2 border-l-2 border-gray-200">
+                        <div className="flex flex-col gap-3 ml-4 pl-2 border-l-2 border-gray-200 dark:border-gray-700">
                           {rack.shelves.map(shelf => (
-                            <div key={shelf.id} className="bg-white rounded-lg p-3 border border-gray-100 shadow-2xs">
+                            <div key={shelf.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-100 dark:border-gray-700 shadow-2xs">
                               <div className="flex justify-between items-center mb-1">
-                                <span className="font-semibold text-gray-700 text-xs flex items-center gap-1">
+                                <span className="font-semibold text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1">
                                   🥞 {shelf.name}
                                 </span>
                                 <button
@@ -615,13 +615,13 @@ export function Settings() {
                               </div>
 
                               {shelf.trays.length === 0 ? (
-                                <p className="text-gray-400 text-[10px] italic ml-5">No trays on this shelf.</p>
+                                <p className="text-gray-400 dark:text-gray-500 text-[10px] italic ml-5">No trays on this shelf.</p>
                               ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 ml-4">
                                   {shelf.trays.map(tray => (
                                     <div 
                                       key={tray.id} 
-                                      className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded-md px-2.5 py-1 text-[11px] text-gray-600 font-medium"
+                                      className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700 rounded-md px-2.5 py-1 text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-500 font-medium"
                                     >
                                       <span>📥 {tray.name}</span>
                                       <button
@@ -655,8 +655,8 @@ export function Settings() {
           <div className="flex flex-col gap-6">
             
             {/* Mapping configuration form */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-bold text-gray-800 text-base mb-4 flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 text-base mb-4 flex items-center gap-2">
                 📍 Map Product to Location
               </h3>
               
@@ -665,15 +665,15 @@ export function Settings() {
                 {/* Product Search & Select */}
                 <div className="flex flex-col gap-1.5 md:col-span-1">
                   <div className="relative mb-0.5">
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">1. Select Product</label>
+                    <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 block mb-1">1. Select Product</label>
                     <input
                       type="text"
                       placeholder="Search product..."
                       value={searchProductQuery}
                       onChange={(e) => setSearchProductQuery(e.target.value)}
-                      className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                      className="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                     />
-                    <Search className="absolute left-2.5 top-[29px] text-gray-400" size={14} />
+                    <Search className="absolute left-2.5 top-[29px] text-gray-400 dark:text-gray-500" size={14} />
                   </div>
                   <CustomSelect
                     label=""
@@ -744,18 +744,18 @@ export function Settings() {
             </div>
 
             {/* Mapped Products list */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 overflow-hidden">
-              <h3 className="font-bold text-gray-800 text-base mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 text-base mb-4">
                 📋 Current Product Locations
               </h3>
 
               {loadingMapping ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500 gap-2">
                   <Loader2 className="animate-spin text-[#00891D]" size={32} />
                   <p className="text-xs">Loading mappings...</p>
                 </div>
               ) : mappings.length === 0 ? (
-                <div className="text-center py-16 text-gray-400">
+                <div className="text-center py-16 text-gray-400 dark:text-gray-500">
                   <p className="text-sm">No mapped products found.</p>
                   <p className="text-xs mt-1">Select a product and layout items above to map your inventory.</p>
                 </div>
@@ -763,7 +763,7 @@ export function Settings() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-100 text-gray-400 text-[10px] uppercase font-bold tracking-wider bg-gray-50/50">
+                      <tr className="border-b border-gray-100 dark:border-gray-700 text-gray-400 dark:text-gray-500 text-[10px] uppercase font-bold tracking-wider bg-gray-50 dark:bg-gray-700/50/50">
                         <th className="py-3 px-4">Product Name</th>
                         <th className="py-3 px-4">SKU / Batch</th>
                         <th className="py-3 px-4">Location</th>
@@ -772,11 +772,11 @@ export function Settings() {
                     </thead>
                     <tbody>
                       {mappings.map(map => (
-                        <tr key={map.id} className="border-b border-gray-50 hover:bg-gray-50/30 transition-colors text-xs text-gray-700">
-                          <td className="py-3.5 px-4 font-medium text-gray-800">
+                        <tr key={map.id} className="border-b border-gray-50 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50/30 transition-colors text-xs text-gray-700 dark:text-gray-300">
+                          <td className="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200">
                             {map.product.name}
                           </td>
-                          <td className="py-3.5 px-4 font-mono text-[11px] text-gray-500">
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">
                             {map.product.sku || "—"}
                           </td>
                           <td className="py-3.5 px-4 font-semibold text-[#00891D]">

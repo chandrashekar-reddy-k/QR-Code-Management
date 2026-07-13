@@ -154,7 +154,7 @@ const StoreSafeHeader = ({
       })()}
 
       {/* Internal Navigation Tabs */}
-      <div className="flex gap-2 bg-gray-100/50 p-1.5 rounded-2xl w-fit mb-12 border border-gray-100">
+      <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl w-fit mb-12 border border-gray-100">
         {availableHeaderTabs.map((t) => (
           <button
             key={t.key}

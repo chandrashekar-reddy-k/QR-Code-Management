@@ -40,7 +40,7 @@ const ViewAttribute = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">Loading attribute...</p>
+          <p className="text-gray-500">Loading attribute...</p>
         </div>
       </div>
     );
@@ -50,7 +50,7 @@ const ViewAttribute = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Attribute not found</p>
+          <p className="text-gray-500 mb-4">Attribute not found</p>
           <button
             onClick={() => navigate('/master-setup/attributes')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -84,7 +84,7 @@ const ViewAttribute = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">View Attribute</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">View Attribute</h1>
         <BackButton to="/master-setup/attributes" />
       </div>
       
@@ -96,11 +96,11 @@ const ViewAttribute = () => {
       {/* Three Cards Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Basic Information Card - Top Left */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200">Basic Information</h2>
+            <h2 className="text-base sm:text-lg font-bold text-gray-800">Basic Information</h2>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Status</span>
+              <span className="text-xs font-medium text-gray-600">Status</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -111,43 +111,43 @@ const ViewAttribute = () => {
                   }}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
               </label>
         </div>
       </div>
 
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Attribute</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{attribute.name}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Attribute</p>
+              <p className="text-sm text-gray-800">{attribute.name}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Attribute Type</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{getTypeLabel(attribute.type)}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Attribute Type</p>
+              <p className="text-sm text-gray-800">{getTypeLabel(attribute.type)}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Display Order</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{attribute.displayOrder}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Display Order</p>
+              <p className="text-sm text-gray-800">{attribute.displayOrder}</p>
             </div>
             </div>
           </div>
 
         {/* Options & Settings Card - Bottom Left */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">Options & Settings</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">Options & Settings</h2>
 
             <div className="space-y-3">
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Required</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{attribute.isRequired ? 'Yes' : 'No'}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Required</p>
+              <p className="text-sm text-gray-800">{attribute.isRequired ? 'Yes' : 'No'}</p>
               </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Filterable</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{attribute.isFilterable ? 'Yes' : 'No'}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Filterable</p>
+              <p className="text-sm text-gray-800">{attribute.isFilterable ? 'Yes' : 'No'}</p>
               </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Searchable</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{attribute.isSearchable ? 'Yes' : 'No'}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Searchable</p>
+              <p className="text-sm text-gray-800">{attribute.isSearchable ? 'Yes' : 'No'}</p>
             </div>
           </div>
         </div>

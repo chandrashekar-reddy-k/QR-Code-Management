@@ -116,7 +116,7 @@ const RequestSubCategory = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
+          <p className="text-xs text-gray-500 animate-pulse">
             Loading categories and subcategories...
           </p>
         </div>
@@ -130,7 +130,7 @@ const RequestSubCategory = () => {
 
       {/* HEADER */}
       <div className="mb-3 mt-3 flex justify-between items-center">
-        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Request SubCategory</h1>
+        <h1 className="text-lg font-bold text-gray-900">Request SubCategory</h1>
         <BackButton />
       </div>
 
@@ -140,7 +140,7 @@ const RequestSubCategory = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
           <FormSectionWithDots title="Select Categories & Subcategories">
@@ -157,7 +157,7 @@ const RequestSubCategory = () => {
                   return (
                     <span
                       key={id}
-                      className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-300 dark:border-gray-600 text-xs text-gray-800 dark:text-gray-200"
+                      className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full border border-gray-300 dark:border-gray-600 text-xs text-gray-800"
                     >
                       {cat?.image ? (
                         <img
@@ -196,7 +196,7 @@ const RequestSubCategory = () => {
                   return (
                     <span
                       key={id}
-                      className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-300 dark:border-gray-600 text-xs text-gray-800 dark:text-gray-200"
+                      className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full border border-gray-300 dark:border-gray-600 text-xs text-gray-800"
                     >
                       {sub?.name}
                       <button type="button" onClick={() => handleRemoveSub(id)} className="ml-1 hover:text-red-500">×</button>
@@ -214,15 +214,15 @@ const RequestSubCategory = () => {
                 placeholder="Search Category"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-white border-gray-300 dark:border-gray-600 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
 
             {/* CATEGORY LIST */}
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden max-h-96 overflow-y-auto bg-white dark:bg-gray-800">
+            <div className="border border-gray-200 rounded-lg overflow-hidden max-h-96 overflow-y-auto bg-white">
               {allCategories.map((cat) => (
-                <div key={cat.id} className="border-b last:border-b-0 border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                <div key={cat.id} className="border-b last:border-b-0 border-gray-200">
+                  <div className="flex items-center px-4 py-3 bg-white hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                     <input
                       type="checkbox"
                       checked={selectedCategories.includes(cat.id)}
@@ -240,16 +240,16 @@ const RequestSubCategory = () => {
                         }}
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full ml-3 mr-2 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] text-gray-400">
+                      <div className="w-8 h-8 rounded-full ml-3 mr-2 bg-gray-200 flex items-center justify-center text-[10px] text-gray-400">
                         N/A
                       </div>
                     )}
 
-                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{cat.name}</span>
+                    <span className="text-sm font-medium text-gray-800">{cat.name}</span>
 
                     <button
                       type="button"
-                      className="ml-auto text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      className="ml-auto text-gray-500 hover:text-gray-700 dark:hover:text-gray-200"
                       onClick={() => toggleExpand(cat.id)}
                     >
                       {expandedCategories.includes(cat.id) ? (
@@ -261,14 +261,14 @@ const RequestSubCategory = () => {
                   </div>
 
                   {expandedCategories.includes(cat.id) && (
-                    <div className="ml-10 border-l border-gray-200 dark:border-gray-700">
+                    <div className="ml-10 border-l border-gray-200">
                       {filteredSub(cat.subCategories).length === 0 ? (
                         <div className="px-4 py-2 text-xs text-gray-500">No subcategories match your search</div>
                       ) : (
                         filteredSub(cat.subCategories).map((sub) => (
                           <div
                             key={sub.id}
-                            className="flex items-center px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                            className="flex items-center px-4 py-2 hover:bg-gray-50 transition"
                           >
                             <input
                               type="checkbox"
@@ -276,7 +276,7 @@ const RequestSubCategory = () => {
                               onChange={() => handleSubCategoryToggle(sub, cat.id)}
                               className="accent-green-600 cursor-pointer"
                             />
-                            <span className="ml-2 text-xs text-gray-700 dark:text-gray-300">{sub.name}</span>
+                            <span className="ml-2 text-xs text-gray-700">{sub.name}</span>
                           </div>
                         ))
                       )}

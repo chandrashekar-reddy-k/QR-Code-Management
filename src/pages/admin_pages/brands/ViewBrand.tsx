@@ -40,7 +40,7 @@ const ViewBrand = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Loading brand...</p>
+          <p className="text-xs text-gray-500">Loading brand...</p>
         </div>
       </div>
     );
@@ -50,7 +50,7 @@ const ViewBrand = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Brand not found</p>
+          <p className="text-gray-500 mb-4">Brand not found</p>
           <button
             onClick={() => navigate('/products/brands')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -66,12 +66,12 @@ const ViewBrand = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Brand Details</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Brand Details</h1>
         <div className="flex items-center gap-3">
           <Badge
             status={brand.status}
             size="sm"
-            customColor={brand.status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800'}
+            customColor={brand.status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 text-gray-800'}
             className="rounded"
           />
           <BackButton to="/products/brands" />
@@ -84,32 +84,32 @@ const ViewBrand = () => {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <Tag size={18} className="text-green-600 dark:text-green-400" />
               Basic Information
             </h2>
             
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">ID</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{brand.id}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">ID</p>
+              <p className="text-sm font-semibold text-gray-800">{brand.id}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Brand Name</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{brand.name}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Brand Name</p>
+              <p className="text-sm font-semibold text-gray-800">{brand.name}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Status</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Status</p>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-medium ${
                   brand.status === 'active'
                     ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                    : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-700'
+                    : 'bg-gray-100 text-gray-700'
                 }`}
               >
                 {brand.status}
@@ -119,7 +119,7 @@ const ViewBrand = () => {
 
           {/* Image */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <ImageIcon size={18} className="text-green-600 dark:text-green-400" />
               Brand Image
             </h2>
@@ -132,8 +132,8 @@ const ViewBrand = () => {
                   className="w-48 h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                 />
               ) : (
-                <div className="w-48 h-48 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                  <ImageIcon size={48} className="text-gray-400 dark:text-gray-500" />
+                <div className="w-48 h-48 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                  <ImageIcon size={48} className="text-gray-400" />
                 </div>
               )}
             </div>

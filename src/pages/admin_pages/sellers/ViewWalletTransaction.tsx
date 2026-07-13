@@ -105,7 +105,7 @@ const ViewWalletTransaction = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Transaction not found</p>
+          <p className="text-gray-500 mb-4">Transaction not found</p>
           <button
             onClick={() => navigate('/vendors/wallet-transactions')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -121,7 +121,7 @@ const ViewWalletTransaction = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Transaction Details</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Transaction Details</h1>
         <BackButton to="/vendors/wallet-transactions" />
       </div>
       
@@ -131,27 +131,27 @@ const ViewWalletTransaction = () => {
       </div>
 
       {/* Transaction Details Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Transaction ID</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{transaction.id}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Transaction ID</p>
+              <p className="text-sm text-gray-800">{transaction.id}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Vendor</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{transaction.vendorName}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Vendor</p>
+              <p className="text-sm text-gray-800">{transaction.vendorName}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Order ID</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{transaction.orderId || 'N/A'}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Order ID</p>
+              <p className="text-sm text-gray-800">{transaction.orderId || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Product Name</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{transaction.productName}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Product Name</p>
+              <p className="text-sm text-gray-800">{transaction.productName}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Type</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Type</p>
               <Badge
                 status={transaction.type}
                 size="sm"
@@ -160,27 +160,27 @@ const ViewWalletTransaction = () => {
               />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Amount</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Amount</p>
               <p className={`text-sm font-medium ${transaction.type === 'Credit' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                 {formatCurrency(transaction.amount)}
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Status</p>
               <Badge
                 status={transaction.status}
                 size="sm"
-                customColor={transaction.status === 'Active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800'}
+                customColor={transaction.status === 'Active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 text-gray-800'}
                 className="rounded"
               />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{formatDate(transaction.date, 'DD-MM-YYYY, HH:mm A')}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Date</p>
+              <p className="text-sm text-gray-800">{formatDate(transaction.date, 'DD-MM-YYYY, HH:mm A')}</p>
             </div>
             <div className="col-span-1 md:col-span-2">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Message</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">{transaction.message}</p>
+              <p className="text-xs font-medium text-gray-500 mb-1">Message</p>
+              <p className="text-sm text-gray-800">{transaction.message}</p>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, ShoppingBag, Package, PackageCheck, Settings as SettingsIcon, History, Users, Store, RotateCcw, BarChart3 } from "lucide-react";
+
 import { Dashboard } from "../../../components/shopkeeper/Dashboard";
 import { NewOrders } from "../../../components/shopkeeper/NewOrders";
 import { OrderDetails } from "../../../components/shopkeeper/OrderDetails";
@@ -18,6 +18,9 @@ import { Settings } from "../../../components/shopkeeper/Settings";
 import { AllOrders } from "../../../components/shopkeeper/AllOrders";
 import { StaffTracker } from "../../../components/shopkeeper/StaffTracker";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
+import { SharedOrdersContext } from "../../../components/shopkeeper/SharedOrdersContext";
+import { useSocket } from "../../../hooks/useSocket";
+import api from "../../../api/axios";
 
 type Screen =
   | "dashboard"
@@ -45,6 +48,77 @@ export default function ShopkeeperAdminERP() {
   const [history, setHistory] = useState<Screen[]>([]);
   const location = useLocation();
   const reactNavigate = useReactNavigate();
+
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const socket = useSocket(1);
+
+  const fetchOrders = async () => {
+    try {
+      const cachedWh = localStorage.getItem("warehouseId");
+      const storedU = localStorage.getItem("user");
+      let userWarehouseId = "";
+      if (cachedWh && cachedWh !== "undefined") {
+        userWarehouseId = cachedWh;
+      } else if (storedU) {
+        try {
+          const u = JSON.parse(storedU);
+          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
+        } catch (e) {}
+      }
+
+      const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}` : '/orders';
+      const res = await api.get(endpoint);
+      const resData = res.data;
+      let rawOrders: any[] = [];
+      if (Array.isArray(resData)) {
+        rawOrders = resData;
+      } else if (resData && Array.isArray(resData.data)) {
+        rawOrders = resData.data;
+      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
+        rawOrders = resData.data.orders;
+      } else if (resData && Array.isArray(resData.orders)) {
+        rawOrders = resData.orders;
+      }
+
+      // Deduplicate and filter out orders with missing or mismatching warehouseId
+      const seenIds = new Set();
+      const filteredOrders: any[] = [];
+      for (const o of rawOrders) {
+        const id = o.id || o.order_number;
+        if (id && !seenIds.has(id)) {
+          const oWh = o.warehouseId || o.warehouse_id;
+          if (!oWh) continue; // Exclude orders with no warehouse
+          if (userWarehouseId && oWh !== userWarehouseId) continue; // Exclude mismatching warehouses
+
+          seenIds.add(id);
+          filteredOrders.push(o);
+        }
+      }
+
+      setOrders(filteredOrders);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to fetch orders in parent:", err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 30000);
+    if (socket.current) {
+      socket.current.on('order:status', fetchOrders);
+      socket.current.on('order:new', fetchOrders);
+    }
+    return () => {
+      clearInterval(interval);
+      if (socket.current) {
+        socket.current.off('order:status', fetchOrders);
+        socket.current.off('order:new', fetchOrders);
+      }
+    };
+  }, [socket.current]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -102,11 +176,11 @@ export default function ShopkeeperAdminERP() {
   const renderScreen = () => {
     return (
       <div className="w-full">
-        {screen === "dashboard" && <Dashboard onNavigate={navigate} />}
-        {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} />}
-        {screen === "all-orders" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
-        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} />}
-        {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} />}
+        {screen === "dashboard" && <Dashboard onNavigate={navigate} isAdmin={true} />}
+        {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} isAdmin={true} />}
+        {screen === "all-orders" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} isAdmin={true} />}
+        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} isAdmin={true} />}
+        {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} isAdmin={true} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
         {screen === "barcode-verification" && <BarcodeVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
         {screen === "picking-complete" && <PickingComplete onNavigate={navigate} data={orderData as any} />}
@@ -116,31 +190,22 @@ export default function ShopkeeperAdminERP() {
         {screen === "handover-verification" && <HandoverVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
         {screen === "self-pickup" && <SelfPickup onBack={goBack} />}
         {screen === "returns" && <Returns onBack={goBack} />}
-        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} />}
+        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} />}
         {screen === "staff-tracker" && <StaffTracker />}
         {screen === "settings" && <Settings />}
       </div>
     );
   };
 
-  const tabs = [
-    { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
-    { id: "new-orders", label: "Inbox Orders", icon: <ShoppingBag size={16} /> },
-    { id: "picking-queue", label: "Picking Queue", icon: <Package size={16} /> },
-    { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={16} /> },
-    { id: "self-pickup", label: "Self Pickup", icon: <Store size={16} /> },
-    { id: "returns", label: "Returns", icon: <RotateCcw size={16} /> },
-    { id: "sla-monitoring", label: "SLA Monitoring", icon: <BarChart3 size={16} /> },
-    { id: "all-orders", label: "Order History", icon: <History size={16} /> },
-    { id: "staff-tracker", label: "Staff Tracker", icon: <Users size={16} /> },
-    { id: "settings", label: "Settings", icon: <SettingsIcon size={16} /> },
-  ];
+
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      <div className="flex-1 w-full">
-        {renderScreen()}
+    <SharedOrdersContext.Provider value={{ orders, loading, refreshOrders: fetchOrders }}>
+      <div className="flex flex-col gap-6 w-full min-h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="flex-1 w-full">
+          {renderScreen()}
+        </div>
       </div>
-    </div>
+    </SharedOrdersContext.Provider>
   );
 }

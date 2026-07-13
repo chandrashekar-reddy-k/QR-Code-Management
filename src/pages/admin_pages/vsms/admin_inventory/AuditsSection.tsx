@@ -74,11 +74,11 @@ const AuditsSection = ({
         `}} />
         
         {/* Detailed View Header */}
-        <div className="flex flex-col sm:flex-row items-center justify-between bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mb-6 gap-4 no-print">
+        <div className="flex flex-col sm:flex-row items-center justify-between bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6 gap-4 no-print">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSelectedAuditId(null)}
-              className="p-3 bg-gray-50 dark:bg-gray-900/50 hover:bg-white dark:bg-gray-800 hover:shadow-sm rounded-lg text-gray-400 hover:text-emerald-600 transition-all border border-transparent hover:border-gray-200 dark:border-gray-700 active:scale-90"
+              className="p-3 bg-gray-50 dark:bg-gray-900/50 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-emerald-600 transition-all border border-transparent hover:border-gray-200 active:scale-90"
             >
               <ArrowLeft size={24} strokeWidth={3} />
             </button>
@@ -99,7 +99,7 @@ const AuditsSection = ({
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 shadow-sm"
             >
               <Printer size={16} /> Print
             </button>
@@ -111,14 +111,14 @@ const AuditsSection = ({
         </div>
 
         {/* Detailed View Body */}
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden print-section">
+        <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden print-section">
           <div className="absolute top-0 left-0 w-2 h-full bg-emerald-600 no-print"></div>
 
           <div className="print-header">
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-2xl font-bold text-emerald-600">STOCK AUDIT REPORT</h1>
-                <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">VillageKart Sales Tracker</p>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">VillageKart Sales Tracker</p>
               </div>
               <div className="text-right">
                 <p className="text-xs font-bold text-gray-400 uppercase">Report Generated</p>
@@ -127,24 +127,24 @@ const AuditsSection = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-start gap-x-12 gap-y-6 mb-8 pb-6 border-b border-gray-200 dark:border-gray-700 print-metadata">
+          <div className="flex flex-wrap items-start gap-x-12 gap-y-6 mb-8 pb-6 border-b border-gray-200 print-metadata">
             <div className="flex flex-col min-w-[120px]">
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><FileText size={10} className="text-emerald-400" /> Admin User</span>
-              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{audit.user?.name}</span>
+              <span className="text-xs font-bold text-gray-800">{audit.user?.name}</span>
             </div>
             <div className="flex flex-col min-w-[120px]">
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Truck size={10} className="text-emerald-400" /> Vehicle Type</span>
-              <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">{audit.vehicle?.vehicleName || 'Standard'}</span>
+              <span className="text-xs font-bold text-gray-800 uppercase">{audit.vehicle?.vehicleName || 'Standard'}</span>
             </div>
             <div className="flex flex-col min-w-[120px]">
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><RefreshCw size={10} className="text-emerald-400" /> Timestamp</span>
-              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-bold text-gray-800">
                 {new Date(audit.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}
               </span>
             </div>
             <div className="flex flex-col min-w-[100px]">
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Package size={10} className="text-emerald-400" /> Items</span>
-              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{audit.items.length} Products</span>
+              <span className="text-xs font-bold text-gray-800">{audit.items.length} Products</span>
             </div>
             <div className="flex-1 min-w-[200px] bg-emerald-50/40 p-3 rounded-xl border border-emerald-100/50">
               <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-0.5 flex items-center gap-1.5"><Gift size={10} /> Remark</span>
@@ -154,7 +154,7 @@ const AuditsSection = ({
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -171,7 +171,7 @@ const AuditsSection = ({
                     <tr key={item.id} className="hover:bg-emerald-50/10 transition-colors group">
                       <td className="px-3 py-1.5">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200 group-hover:text-emerald-600 transition-colors uppercase truncate max-w-[150px] leading-tight">{item.product?.name}</span>
+                          <span className="text-[10px] font-bold text-gray-800 group-hover:text-emerald-600 transition-colors uppercase truncate max-w-[150px] leading-tight">{item.product?.name}</span>
                           <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">{item.product?.category?.name || 'General'}</span>
                         </div>
                       </td>
@@ -180,7 +180,7 @@ const AuditsSection = ({
                       <td className="px-3 py-1.5 text-right">
                         <span className={`inline-flex items-center justify-center min-w-[35px] px-1.5 py-0.5 rounded-lg text-[8px] font-bold border ${diff > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                           diff < 0 ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                            'bg-gray-50 dark:bg-gray-900/50 text-gray-400 border-gray-200 dark:border-gray-700'
+                            'bg-gray-50 dark:bg-gray-900/50 text-gray-400 border-gray-200'
                           }`}>
                           {diff > 0 ? `+${diff}` : diff === 0 ? '0' : diff}
                         </span>
@@ -196,12 +196,12 @@ const AuditsSection = ({
             <div className="flex justify-between gap-20">
               <div className="text-center flex-1">
                 <div className="border-t border-gray-400 pt-2">
-                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Authorized Auditor</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Authorized Auditor</p>
                 </div>
               </div>
               <div className="text-center flex-1">
                 <div className="border-t border-gray-400 pt-2">
-                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Warehouse In-Charge</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Warehouse In-Charge</p>
                 </div>
               </div>
             </div>
@@ -260,12 +260,12 @@ const AuditsSection = ({
         }
         .print-header { display: none; }
       `}} />
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden print-section">
+      <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden print-section">
         <div className="print-header">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-emerald-600">INVENTORY AUDIT LOGS</h1>
-              <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">VillageKart Sales Tracker • Complete History</p>
+              <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">VillageKart Sales Tracker • Complete History</p>
             </div>
             <div className="text-right">
               <p className="text-xs font-bold text-gray-400 uppercase">Export Date</p>
@@ -274,7 +274,7 @@ const AuditsSection = ({
           </div>
         </div>
         {/* <div className="absolute top-0 left-0 w-2 h-full bg-emerald-600 no-print"></div> */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8 border-b border-gray-200 dark:border-gray-700 pb-6 gap-4">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-8 border-b border-gray-200 pb-6 gap-4">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shadow-inner">
               <CheckSquare size={32} />
@@ -296,7 +296,7 @@ const AuditsSection = ({
             </button>
             <button
               onClick={handlePrintHistory}
-              className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
+              className="flex items-center gap-2 px-5 py-3 bg-white text-gray-600 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 shadow-sm"
             >
               <Printer size={18} /> Print History
             </button>
@@ -306,7 +306,7 @@ const AuditsSection = ({
               <input
                 type="text"
                 placeholder="Search logs..."
-                className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-3 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner"
+                className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg pl-10 pr-4 py-3 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner"
                 value={auditSearch}
                 onChange={(e) => setAuditSearch(e.target.value)}
               />
@@ -324,18 +324,18 @@ const AuditsSection = ({
         {loadingAudit ? (
           <div className="space-y-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg animate-pulse" />
+              <div key={i} className="h-20 bg-white border border-gray-200 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : auditHistory.length === 0 ? (
-          <div className="text-center py-24 bg-gray-50 dark:bg-gray-900/50/50 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
-            <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gray-200/50">
+          <div className="text-center py-24 bg-gray-50 dark:bg-gray-900/50/50 rounded-lg border-2 border-dashed border-gray-200">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-gray-200/50">
               <CheckSquare size={40} className="text-gray-200" />
             </div>
             <p className="text-lg font-bold text-gray-400 uppercase tracking-[0.2em]">No audit records found</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -370,11 +370,11 @@ const AuditsSection = ({
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700">{audit.user?.name}</span>
+                        <span className="text-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-1 rounded-lg border border-gray-200">{audit.user?.name}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex flex-col">
-                          <span className="text-gray-800 dark:text-gray-200">{new Date(audit.createdAt).toLocaleDateString()}</span>
+                          <span className="text-gray-800">{new Date(audit.createdAt).toLocaleDateString()}</span>
                           <span className="text-[9px] text-gray-400 uppercase tracking-tighter">{new Date(audit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </td>

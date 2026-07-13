@@ -64,7 +64,7 @@ const TermsAndConditions = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+        <p className="text-sm text-gray-500">Loading...</p>
       </div>
     );
   }
@@ -73,7 +73,7 @@ const TermsAndConditions = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Action Buttons */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Terms and Conditions
         </h1>
         <div className="flex items-center gap-2">
@@ -90,7 +90,7 @@ const TermsAndConditions = () => {
             onClick={handleSave}
             disabled={saving}
             variant="ghost"
-            className="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="flex items-center gap-1.5 bg-white border border-gray-300 dark:border-gray-600 text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <Save size={14} />
             {saving ? "Updating..." : "Update Information"}
@@ -103,12 +103,12 @@ const TermsAndConditions = () => {
         <Breadcrumbs />
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+          <label className="block text-xs font-medium text-gray-700">
             Terms and Conditions :
           </label>
-          <span className="text-[10px] text-gray-500 dark:text-gray-400">
+          <span className="text-[10px] text-gray-500">
             {getWordCount(contentText)} words
           </span>
         </div>
@@ -116,10 +116,10 @@ const TermsAndConditions = () => {
           value={contentText}
           onChange={(e) => setContentText(e.target.value)}
           rows={20}
-          className="w-full px-3 py-2 text-xs border border-green-300 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 font-mono resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+          className="w-full px-3 py-2 text-xs border border-green-300 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 font-mono resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
           placeholder="Enter content...&#10;You can use:&#10;**bold text** for bold&#10;*italic text* for italic&#10;New lines will be preserved"
         />
-        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-[10px] text-gray-500 mt-1">
           ⚡️Upgrade - Rich text editor available. Use **text** for bold, *text*
           for italic
         </p>

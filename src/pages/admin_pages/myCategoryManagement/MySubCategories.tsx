@@ -141,7 +141,7 @@ const MySubCategories = () => {
       label: "ID",
       render: (item: FlatSubCategory) => (
         <div className="text-center">
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+          <span className="text-xs text-gray-500 font-mono">
             {item.id.slice(0, 8)}...
           </span>
         </div>
@@ -162,7 +162,7 @@ const MySubCategories = () => {
               }}
             />
           ) : (
-            <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
               <Box size={20} className="text-gray-400" />
             </div>
           )}
@@ -185,7 +185,7 @@ const MySubCategories = () => {
       label: "NAME",
       render: (item: FlatSubCategory) => (
         <div className="text-center">
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+          <span className="text-sm font-medium text-gray-800">
             {item.name}
           </span>
         </div>
@@ -196,7 +196,7 @@ const MySubCategories = () => {
       label: "DESCRIPTION",
       render: (item: FlatSubCategory) => (
         <div className="text-center">
-          <span className="text-sm text-gray-600 dark:text-gray-400">
+          <span className="text-sm text-gray-600">
             {item.description || "—"}
           </span>
         </div>
@@ -236,7 +236,7 @@ const MySubCategories = () => {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 mb-3 gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             My Sub Categories
           </h1>
           <Breadcrumbs />
@@ -266,10 +266,10 @@ const MySubCategories = () => {
 
       {/* FILTERS + SEARCH */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-2xl overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-2xl overflow-hidden">
           {/* Filter icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* STATUS DROPDOWN */}
@@ -290,7 +290,7 @@ const MySubCategories = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -308,7 +308,7 @@ const MySubCategories = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -340,12 +340,12 @@ const MySubCategories = () => {
       {/* TABLE */}
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-gray-500">
             Loading sub categories...
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow border overflow-hidden">
+        <div className="bg-white rounded-xl shadow border overflow-hidden">
           <DataTable
             data={paginated}
             columns={columns}
@@ -353,11 +353,11 @@ const MySubCategories = () => {
           />
 
           {/* PAGINATION */}
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               {/* LEFT SIDE */}
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Show</span>
+                <span className="text-gray-600">Show</span>
                 <div className="[&_select]:text-orange-600 [&_select]:px-2 [&_select]:py-1 [&_select]:border [&_select]:rounded-lg [&_select]:w-16 [&_select]:h-7">
                   <SelectInput
                     value={String(itemsPerPage)}
@@ -372,7 +372,7 @@ const MySubCategories = () => {
                     ]}
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-600">
                   Showing results{" "}
                   <span className="text-orange-600 font-medium">
                     {Math.min(paginated.length, itemsPerPage)}

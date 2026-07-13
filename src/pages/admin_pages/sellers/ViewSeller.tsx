@@ -524,7 +524,7 @@ const ViewSeller = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Vendor not found</p>
+          <p className="text-gray-500 mb-4">Vendor not found</p>
           <button
             onClick={() => navigate("/vendors/manage")}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -553,7 +553,7 @@ const ViewSeller = () => {
       <div className="mb-4 mt-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
               Vendor ID #{vendor.id}
             </h1>
             <Breadcrumbs />
@@ -583,59 +583,59 @@ const ViewSeller = () => {
       </div>
 
       {/* Basic Information Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4">
-        <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-4">
+        <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
           Basic Information
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Left Column */}
           <div className="space-y-3">
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Name:
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Partner 1</p>
+              <p className="text-sm text-gray-600">Partner 1</p>
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Surname:
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Something</p>
+              <p className="text-sm text-gray-600">Something</p>
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Mobile Number:
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{vendor.phone}</p>
+              <p className="text-sm text-gray-600">{vendor.phone}</p>
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 EmailID:
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{vendor.email}</p>
+              <p className="text-sm text-gray-600">{vendor.email}</p>
             </div>
           </div>
           {/* Right Column */}
           <div className="space-y-3">
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Vendor designation:
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Something</p>
+              <p className="text-sm text-gray-600">Something</p>
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Business Location (warehouse):
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600">
                 {vendor.address?.line1 || "Something"}
               </p>
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Business Location (Registered):
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600">
                 {vendor.address?.line1 || "Something"}
               </p>
             </div>
@@ -644,7 +644,7 @@ const ViewSeller = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="mb-4 bg-white rounded-xl shadow-md border border-gray-200 overflow-x-auto">
         <div className="flex min-w-max">
           {tabs.map((tab, index) => (
             <div key={tab} className="flex items-center">
@@ -652,8 +652,8 @@ const ViewSeller = () => {
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap relative ${
                   activeTab === tab
-                    ? "text-gray-900 dark:text-gray-100"
-                    : "text-gray-500 dark:text-gray-400"
+                    ? "text-gray-900"
+                    : "text-gray-500"
                 }`}
               >
                 {tab}
@@ -662,7 +662,7 @@ const ViewSeller = () => {
                 )}
               </button>
               {index < tabs.length - 1 && (
-                <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+                <div className="h-6 w-px bg-gray-200"></div>
               )}
             </div>
           ))}
@@ -674,10 +674,10 @@ const ViewSeller = () => {
         <>
           {/* Filters and Search */}
           <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
               {/* Filter Icon */}
               <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
-                <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+                <Filter size={18} className="text-gray-700" />
               </div>
 
               {/* Date Dropdown */}
@@ -698,7 +698,7 @@ const ViewSeller = () => {
                 </div>
                 <ChevronDown
                   size={16}
-                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
                 />
               </div>
 
@@ -721,7 +721,7 @@ const ViewSeller = () => {
                 </div>
                 <ChevronDown
                   size={16}
-                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
                 />
               </div>
 
@@ -743,7 +743,7 @@ const ViewSeller = () => {
                 </div>
                 <ChevronDown
                   size={16}
-                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
                 />
               </div>
 
@@ -774,12 +774,12 @@ const ViewSeller = () => {
           </div>
 
           {/* Transactions Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1200px]">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <tr className="border-b border-gray-200">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         ID
                         <div className="flex flex-col">
@@ -788,7 +788,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         VENDOR NAME
                         <div className="flex flex-col">
@@ -797,7 +797,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         ORDER ID
                         <div className="flex flex-col">
@@ -806,7 +806,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         PRODUCT NAME
                         <div className="flex flex-col">
@@ -815,7 +815,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         QTY.
                         <div className="flex flex-col">
@@ -824,7 +824,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         TYPE
                         <div className="flex flex-col">
@@ -833,7 +833,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         AMOUNT
                         <div className="flex flex-col">
@@ -842,7 +842,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         STATUS
                         <div className="flex flex-col">
@@ -851,7 +851,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         MESSAGE
                         <div className="flex flex-col">
@@ -860,7 +860,7 @@ const ViewSeller = () => {
                         </div>
                       </div>
                     </th>
-                    <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-center gap-1">
                         CREATED
                         <div className="flex flex-col">
@@ -874,7 +874,7 @@ const ViewSeller = () => {
                 <tbody>
                   <tr>
                     <td colSpan={10} className="py-12 text-center">
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">No data available</p>
+                      <p className="text-gray-500 text-sm">No data available</p>
                     </td>
                   </tr>
                 </tbody>
@@ -886,38 +886,38 @@ const ViewSeller = () => {
 
       {/* Business Details Section */}
       {activeTab === "Business Details" && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
             Business Details
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Left Column */}
             <div className="space-y-3">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Legal Business/Registered Name:
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Something</p>
+                <p className="text-sm text-gray-600">Something</p>
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Owner Name:
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{vendor.name}</p>
+                <p className="text-sm text-gray-600">{vendor.name}</p>
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   GST Number:
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600">
                   {vendor.store?.taxNumber || "Something"}
                 </p>
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   PAN Number:
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600">
                   {vendor.store?.panNumber || "Something"}
                 </p>
               </div>
@@ -925,30 +925,30 @@ const ViewSeller = () => {
             {/* Right Column */}
             <div className="space-y-3">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Store Name/Brand Name/Display Name:
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600">
                   {vendor.store?.name || "Something"}
                 </p>
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Nature Of Business:
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Something</p>
+                <p className="text-sm text-gray-600">Something</p>
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Business Sub Category:
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Something</p>
+                <p className="text-sm text-gray-600">Something</p>
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Date of IncorporationR:
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600">
                   {vendor.createdAt ? formatDate(vendor.createdAt) : "Something"}
                 </p>
               </div>
@@ -959,8 +959,8 @@ const ViewSeller = () => {
 
       {/* Contact and operations Section */}
       {activeTab === "Contact and operations" && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
             Contact and operationss
           </h2>
 
@@ -968,68 +968,68 @@ const ViewSeller = () => {
             {/* Left Column */}
             <div className="space-y-4">
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Primary Contact Name
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">
                   {vendor.name || "Something"}
                 </p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Alternate Contact*
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Email
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">
                   {vendor.email || "Something"}
                 </p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Delivery Capability
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
             </div>
 
             {/* Right Column */}
             <div className="space-y-4">
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Phone*
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">
                   {vendor.phone || "Something"}
                 </p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Operating Regions
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Lead Time
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
             </div>
           </div>
@@ -1038,8 +1038,8 @@ const ViewSeller = () => {
 
       {/* Product and Category Mapping Section */}
       {activeTab === "Product and category mapping" && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
             Product and Category Mapping
           </h2>
 
@@ -1047,54 +1047,54 @@ const ViewSeller = () => {
             {/* Left Column */}
             <div className="space-y-4">
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Categories Supplied
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Brands / Products
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Price Type (Fixed / Dynamic)
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
             </div>
 
             {/* Right Column */}
             <div className="space-y-4">
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Sub Categories Supplied
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   MOQ (Minimum Order Quantity)
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   Tax Slab (GST %)
                 </p>
-                <span className="text-gray-500 dark:text-gray-400">:</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                <span className="text-gray-500">:</span>
+                <p className="text-sm text-gray-700">Something</p>
               </div>
             </div>
           </div>
@@ -1103,16 +1103,16 @@ const ViewSeller = () => {
 
       {/* Bank and settlement Data Section */}
       {activeTab === "Bank and settlement Data" && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
             Bank settlement Details
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,_200px)_minmax(0,_1fr)] gap-6 text-sm items-start">
             {/* Cancelled Cheque Placeholder */}
             <div className="flex flex-col items-center gap-3">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-gray-100 dark:bg-gray-700 border border-dashed border-gray-300 dark:border-gray-600" />
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-gray-100 border border-dashed border-gray-300 dark:border-gray-600" />
+              <p className="text-xs sm:text-sm text-gray-600">
                 Cancelled Cheque
               </p>
             </div>
@@ -1122,48 +1122,48 @@ const ViewSeller = () => {
               {/* Left Column */}
               <div className="space-y-4">
                 <div className="flex items-baseline gap-2">
-                  <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700">
                     Account Holder Name
                   </p>
-                  <span className="text-gray-500 dark:text-gray-400">:</span>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="text-gray-500">:</span>
+                  <p className="text-sm text-gray-700">
                     {vendor.name || "Something"}
                   </p>
                 </div>
 
                 <div className="flex items-baseline gap-2">
-                  <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700">
                     Branch Name
                   </p>
-                  <span className="text-gray-500 dark:text-gray-400">:</span>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                  <span className="text-gray-500">:</span>
+                  <p className="text-sm text-gray-700">Something</p>
                 </div>
 
                 <div className="flex items-baseline gap-2">
-                  <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700">
                     Bank IFSC Code
                   </p>
-                  <span className="text-gray-500 dark:text-gray-400">:</span>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                  <span className="text-gray-500">:</span>
+                  <p className="text-sm text-gray-700">Something</p>
                 </div>
               </div>
 
               {/* Right Column */}
               <div className="space-y-4">
                 <div className="flex items-baseline gap-2">
-                  <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700">
                     Bank Name
                   </p>
-                  <span className="text-gray-500 dark:text-gray-400">:</span>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                  <span className="text-gray-500">:</span>
+                  <p className="text-sm text-gray-700">Something</p>
                 </div>
 
                 <div className="flex items-baseline gap-2">
-                  <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700">
                     Bank Account Number
                   </p>
-                  <span className="text-gray-500 dark:text-gray-400">:</span>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">Something</p>
+                  <span className="text-gray-500">:</span>
+                  <p className="text-sm text-gray-700">Something</p>
                 </div>
               </div>
             </div>
@@ -1175,32 +1175,32 @@ const ViewSeller = () => {
       {activeTab === "Business Documents" && (
         <>
           {/* Documents Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4">
-            <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
               Business Documents
             </h2>
 
             <div className="flex flex-wrap gap-6">
               {/* Pan Card */}
               <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600" />
-                <p className="text-[11px] sm:text-xs text-gray-700 dark:text-gray-300">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 border border-gray-200 dark:border-gray-600" />
+                <p className="text-[11px] sm:text-xs text-gray-700">
                   Pan Card
                 </p>
               </div>
 
               {/* GST Registered */}
               <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600" />
-                <p className="text-[11px] sm:text-xs text-gray-700 dark:text-gray-300 text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 border border-gray-200 dark:border-gray-600" />
+                <p className="text-[11px] sm:text-xs text-gray-700 text-center">
                   GST Registered
                 </p>
               </div>
 
               {/* Company Registration Certificate */}
               <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600" />
-                <p className="text-[11px] sm:text-xs text-gray-700 dark:text-gray-300 text-center leading-tight">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 border border-gray-200 dark:border-gray-600" />
+                <p className="text-[11px] sm:text-xs text-gray-700 text-center leading-tight">
                   Company Registration
                   <br />
                   Certificate
@@ -1209,8 +1209,8 @@ const ViewSeller = () => {
 
               {/* FSSAI License */}
               <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600" />
-                <p className="text-[11px] sm:text-xs text-gray-700 dark:text-gray-300">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 border border-gray-200 dark:border-gray-600" />
+                <p className="text-[11px] sm:text-xs text-gray-700">
                   FSSAI License
                 </p>
               </div>
@@ -1218,8 +1218,8 @@ const ViewSeller = () => {
           </div>
 
           {/* Status Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-5 inline-flex items-center gap-6">
-            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-5 inline-flex items-center gap-6">
+            <p className="text-xs sm:text-sm text-gray-700">
               <span className="font-medium">Current Status :</span>{" "}
               <span className="font-semibold text-orange-600 dark:text-orange-400">
                 {vendorStatus}
@@ -1230,7 +1230,7 @@ const ViewSeller = () => {
               <button
                 type="button"
                 onClick={() => setIsStatusModalOpen(true)}
-                className="relative inline-flex items-center border border-green-500 text-xs sm:text-sm rounded-md px-3 py-1.5 pr-8 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="relative inline-flex items-center border border-green-500 text-xs sm:text-sm rounded-md px-3 py-1.5 pr-8 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 Update Status
                 <ChevronDown
@@ -1246,15 +1246,15 @@ const ViewSeller = () => {
       {/* Update Status Modal */}
       {isStatusModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
                 Update Status
               </h3>
               <button
                 onClick={() => setIsStatusModalOpen(false)}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
               >
                 <X size={20} />
               </button>
@@ -1264,14 +1264,14 @@ const ViewSeller = () => {
             <div className="p-4">
               {/* Status Dropdown */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Update Status
                 </label>
                 <div className="relative">
                   <select
                     value={modalStatus}
                     onChange={(e) => setModalStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-green-500 rounded-md text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none pr-8"
+                    className="w-full px-3 py-2 border border-green-500 rounded-md text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none pr-8"
                   >
                     {STATUS_OPTIONS.map((status) => (
                       <option key={status} value={status}>
@@ -1296,7 +1296,7 @@ const ViewSeller = () => {
                       className={`px-3 py-2 text-sm rounded cursor-pointer transition-colors ${
                         modalStatus === status
                           ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          : "text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                       }`}
                     >
                       {status}
@@ -1307,10 +1307,10 @@ const ViewSeller = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-end gap-3 p-4 border-t border-gray-200">
               <button
                 onClick={() => setIsStatusModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
@@ -1344,10 +1344,10 @@ const ViewSeller = () => {
 
           {/* Filters and Search */}
           <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
               {/* Filter Icon */}
               <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
-                <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+                <Filter size={18} className="text-gray-700" />
               </div>
 
               {/* Category Dropdown */}
@@ -1369,7 +1369,7 @@ const ViewSeller = () => {
                 </div>
                 <ChevronDown
                   size={16}
-                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
                 />
               </div>
 
@@ -1391,7 +1391,7 @@ const ViewSeller = () => {
                 </div>
                 <ChevronDown
                   size={16}
-                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
                 />
               </div>
 
@@ -1413,7 +1413,7 @@ const ViewSeller = () => {
                 </div>
                 <ChevronDown
                   size={16}
-                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
                 />
               </div>
 
@@ -1444,12 +1444,12 @@ const ViewSeller = () => {
           </div>
 
           {/* Products Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px]">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <tr className="border-b border-gray-200">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       ID
                       <div className="flex flex-col">
@@ -1458,7 +1458,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       IMAGE
                       <div className="flex flex-col">
@@ -1467,7 +1467,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       PRODUCT NAME
                       <div className="flex flex-col">
@@ -1476,7 +1476,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       UNITS
                       <div className="flex flex-col">
@@ -1485,7 +1485,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       UNIT TYPE
                       <div className="flex flex-col">
@@ -1494,7 +1494,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       VARIANTS
                       <div className="flex flex-col">
@@ -1503,7 +1503,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       ACTUAL PRICE
                       <div className="flex flex-col">
@@ -1512,7 +1512,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       D.PRICE
                       <div className="flex flex-col">
@@ -1521,7 +1521,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       F.PRICE
                       <div className="flex flex-col">
@@ -1530,7 +1530,7 @@ const ViewSeller = () => {
                       </div>
                     </div>
                   </th>
-                  <th className="py-3 px-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <th className="py-3 px-3 text-xs font-bold text-gray-900 uppercase cursor-pointer hover:bg-gray-50">
                     <div className="flex items-center justify-center gap-1">
                       SKU
                       <div className="flex flex-col">
@@ -1545,9 +1545,9 @@ const ViewSeller = () => {
                 {currentProducts.map((product) => (
                   <tr
                     key={product.id}
-                    className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                   >
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.id}
                     </td>
                     <td className="py-3 px-3 text-center">
@@ -1560,28 +1560,28 @@ const ViewSeller = () => {
                         }}
                       />
                     </td>
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.productName}
                     </td>
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.units}
                     </td>
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.unitType}
                     </td>
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.variants}
                     </td>
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.actualPrice}
                     </td>
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.dPrice}
                     </td>
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.fPrice}
                     </td>
-                    <td className="py-3 px-3 text-xs text-center text-gray-700 dark:text-gray-300">
+                    <td className="py-3 px-3 text-xs text-center text-gray-700">
                       {product.sku}
                     </td>
                   </tr>
@@ -1592,21 +1592,21 @@ const ViewSeller = () => {
           {/* Pagination */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Show</span>
+              <span className="text-xs text-gray-600">Show</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1); // Reset to first page when changing items per page
                 }}
-                className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 bg-white text-gray-900"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              <span className="text-xs text-gray-600 dark:text-gray-400">
+              <span className="text-xs text-gray-600">
                 Showing results{" "}
                 <span className="text-orange-600 dark:text-orange-400 font-semibold">
                   {currentProducts.length}
@@ -1624,7 +1624,7 @@ const ViewSeller = () => {
                 className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 aria-label="Previous page"
               >
-                <ChevronLeft size={18} className="text-gray-600 dark:text-gray-400" />
+                <ChevronLeft size={18} className="text-gray-600" />
               </button>
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum;
@@ -1644,7 +1644,7 @@ const ViewSeller = () => {
                     className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
                       currentPage === pageNum
                         ? "bg-orange-500 text-white"
-                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        : "text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                     }`}
                   >
                     {pageNum}
@@ -1657,7 +1657,7 @@ const ViewSeller = () => {
                 className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 aria-label="Next page"
               >
-                <ChevronRight size={18} className="text-gray-600 dark:text-gray-400" />
+                <ChevronRight size={18} className="text-gray-600" />
               </button>
             </div>
           </div>

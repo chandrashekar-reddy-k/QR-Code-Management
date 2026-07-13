@@ -241,7 +241,7 @@ const Alerts = () => {
       case "NEGATIVE_STOCK":
         return "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300";
       default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -252,9 +252,9 @@ const Alerts = () => {
       case "Acknowledged":
         return "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300";
       case "Closed":
-        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
+        return "bg-gray-100 text-gray-800";
       default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -272,10 +272,10 @@ const Alerts = () => {
     <>
       {/* Filters and Search */}
       <div className="mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-700 w-full lg:flex-1 lg:max-w-md overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-700 w-full lg:flex-1 lg:max-w-md overflow-hidden">
           {/* Filter Icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* Status Dropdown */}
@@ -295,7 +295,7 @@ const Alerts = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -316,7 +316,7 @@ const Alerts = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -340,7 +340,7 @@ const Alerts = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -374,7 +374,7 @@ const Alerts = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <DataTable
           data={filteredAndSorted}
           columns={[
@@ -384,7 +384,7 @@ const Alerts = () => {
               sortable: true,
               render: (alert: ApiAlert) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                  <span className="text-xs sm:text-sm text-gray-800">
                     {alert.productName}
                   </span>
                 </div>
@@ -417,7 +417,7 @@ const Alerts = () => {
               sortable: true,
               render: (alert: ApiAlert) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                  <span className="text-xs sm:text-sm text-gray-800">
                     {alert.stock}
                   </span>
                 </div>
@@ -429,7 +429,7 @@ const Alerts = () => {
               sortable: true,
               render: (alert: ApiAlert) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                  <span className="text-xs sm:text-sm text-gray-800">
                     {alert.locationCode}
                   </span>
                 </div>
@@ -441,7 +441,7 @@ const Alerts = () => {
               sortable: true,
               render: (alert: ApiAlert) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                  <span className="text-xs sm:text-sm text-gray-800">
                     {alert.description}
                   </span>
                 </div>
@@ -453,7 +453,7 @@ const Alerts = () => {
   sortable: true,
   render: (alert: ApiAlert) => (
     <div className="text-center">
-      <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+      <span className="text-xs sm:text-sm text-gray-800">
         {alert.updatedAt ? formatDate(alert.updatedAt) : "--"}
       </span>
     </div>
@@ -511,10 +511,10 @@ const Alerts = () => {
 
         {/* Pagination */}
         {filteredAndSorted.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-400 [&_select]:font-medium">
@@ -524,7 +524,7 @@ const Alerts = () => {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                   >
                     <option value="10">10</option>
                     <option value="25">25</option>
@@ -532,16 +532,16 @@ const Alerts = () => {
                     <option value="100">100</option>
                   </select>
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing results{" "}
-                  <strong className="text-gray-900 dark:text-gray-200">
+                  <strong className="text-gray-900">
                     {Math.min(
                       (currentPage - 1) * itemsPerPage + 1,
                       filteredAndSorted.length
                     )}
                   </strong>{" "}
                   of{" "}
-                  <strong className="text-gray-900 dark:text-gray-200">
+                  <strong className="text-gray-900">
                     {filteredAndSorted.length}
                   </strong>
                 </span>

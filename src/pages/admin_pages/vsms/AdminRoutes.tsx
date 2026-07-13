@@ -431,7 +431,7 @@ export default function AdminRoutes() {
               <button
                 key={store.id}
                 onClick={() => setSearchParams({ storeId: store.id })}
-                className="group w-full bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all duration-300 flex items-center justify-between gap-6 relative overflow-hidden"
+                className="group w-full bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all duration-300 flex items-center justify-between gap-6 relative overflow-hidden"
               >
                 <div className="absolute left-0 top-0 w-2 h-full bg-emerald-500/10 group-hover:bg-emerald-500 transition-all" />
                 
@@ -469,7 +469,7 @@ export default function AdminRoutes() {
             );
           })}
           {stores.length === 0 && (
-            <div className="py-12 text-center bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+            <div className="py-12 text-center bg-white rounded-xl border border-dashed border-gray-200">
               <MapPin size={48} className="mx-auto text-gray-300 mb-4" />
               <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No Active Branches Found</p>
             </div>
@@ -486,7 +486,7 @@ export default function AdminRoutes() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Route & Coverage</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Categorize your logistics by branch</p>
+        <p className="text-sm text-gray-500">Categorize your logistics by branch</p>
       </div>
       {classifiedView}
     </div>
@@ -495,7 +495,7 @@ export default function AdminRoutes() {
   return (
     <div className="space-y-6">
       {/* Header & Tabs Container */}
-      <div className="flex flex-col gap-5 bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs">
+      <div className="flex flex-col gap-5 bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
         {/* Top Row: Title, Description & Actions */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Left: Title & Subtitle */}
@@ -503,7 +503,7 @@ export default function AdminRoutes() {
             {false && storeId && stores.length > 1 && (
               <button
                 onClick={() => setSearchParams({})}
-                className="p-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700/80 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50/50 transition-all shadow-2xs active:scale-95 mt-0.5"
+                className="p-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200/80 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50/50 transition-all shadow-2xs active:scale-95 mt-0.5"
                 title="Back to All Branches"
               >
                 <ChevronLeft size={18} strokeWidth={2.5} />
@@ -545,7 +545,7 @@ export default function AdminRoutes() {
           <div className="flex items-center gap-2 self-end lg:self-center shrink-0">
             <button
               onClick={handleExportPDF}
-              className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all shadow-2xs text-xs font-bold"
+              className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all shadow-2xs text-xs font-bold"
               title="Export PDF Report"
             >
               <FileText size={15} strokeWidth={2.5} />
@@ -553,7 +553,7 @@ export default function AdminRoutes() {
             </button>
             <button
               onClick={handleExportExcel}
-              className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100 transition-all shadow-2xs text-xs font-bold"
+              className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl text-emerald-600 hover:bg-emerald-50 hover:border-emerald-100 transition-all shadow-2xs text-xs font-bold"
               title="Export Excel Report"
             >
               <Download size={15} strokeWidth={2.5} />
@@ -563,7 +563,7 @@ export default function AdminRoutes() {
         </div>
 
         {/* Bottom Row: Fully Horizontally Scrollable Enterprise ERP Tabs */}
-        <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+        <div className="border-b border-gray-200 mb-6">
           <div className="w-full overflow-x-auto custom-scrollbar">
             <div className="flex items-center gap-8 w-fit min-w-max">
               {[
@@ -582,7 +582,7 @@ export default function AdminRoutes() {
                     onClick={() => handleTabChange(tab.id)}
                     className={`flex items-center gap-2 py-3.5 border-b-2 text-xs font-bold uppercase tracking-wider transition-all shrink-0 outline-none ${isActive
                       ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
+                      : 'border-transparent text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
                       }`}
                   >
                     <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'} />
@@ -608,13 +608,13 @@ export default function AdminRoutes() {
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => setIsVillageEditorOpen(false)}
-                  className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-emerald-600 font-bold transition-colors"
+                  className="flex items-center gap-2 text-gray-500 hover:text-emerald-600 font-bold transition-colors"
                 >
                   <ChevronLeft size={20} /> Back to Villages
                 </button>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row min-h-[600px]">
+              <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200 flex flex-col md:flex-row min-h-[600px]">
                 {/* Left Side: Map Picker */}
                 <div className="w-full md:w-3/5 h-[400px] md:h-auto relative bg-gray-100">
                   {isLoaded ? (
@@ -661,7 +661,7 @@ export default function AdminRoutes() {
                             }} 
                             label={{
                               text: villageForm.name || 'Village Center',
-                              className: 'bg-white dark:bg-gray-800/80 px-2 py-1 rounded text-[10px] font-bold shadow-sm mb-8'
+                              className: 'bg-white/80 px-2 py-1 rounded text-[10px] font-bold shadow-sm mb-8'
                             }}
                           />
                           <CircleF
@@ -722,7 +722,7 @@ export default function AdminRoutes() {
                   )}
 
                   <div className="absolute top-4 left-4 z-[10] flex flex-col gap-2">
-                    <div className="bg-white dark:bg-gray-800/90 backdrop-blur px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg">
+                    <div className="bg-white/90 backdrop-blur px-3 py-2 rounded-xl border border-gray-200 shadow-lg">
                       <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-2">
                         <Target size={12} /> {villageForm.isPolygon ? 'Click Map to add points • Drag Markers to edit' : 'Click Map to set Center'}
                       </p>
@@ -752,7 +752,7 @@ export default function AdminRoutes() {
                         });
                       }
                     }}
-                    className="absolute bottom-4 right-4 z-[10] p-3 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 text-emerald-600 hover:scale-110 transition-all active:scale-95"
+                    className="absolute bottom-4 right-4 z-[10] p-3 bg-white rounded-lg shadow-xl border border-gray-200 text-emerald-600 hover:scale-110 transition-all active:scale-95"
                   >
                     <Target size={20} strokeWidth={2.5} />
                   </button>
@@ -768,13 +768,13 @@ export default function AdminRoutes() {
                   <div className="flex bg-gray-200/50 p-1 rounded-lg">
                     <button
                       onClick={() => setVillageForm(prev => ({ ...prev, isPolygon: false }))}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${!villageForm.isPolygon ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow-sm' : 'text-gray-400'}`}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${!villageForm.isPolygon ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400'}`}
                     >
                       <CircleIcon size={14} /> Circle
                     </button>
                     <button
                       onClick={() => setVillageForm(prev => ({ ...prev, isPolygon: true }))}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${villageForm.isPolygon ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow-sm' : 'text-gray-400'}`}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${villageForm.isPolygon ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400'}`}
                     >
                       <Hexagon size={14} /> Polygon
                     </button>
@@ -788,7 +788,7 @@ export default function AdminRoutes() {
                         <input
                           type="text"
                           placeholder="Search or enter village name..."
-                          className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-12 pr-10 py-4 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
+                          className="w-full bg-white border border-gray-200 pl-12 pr-10 py-4 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
                           value={villageForm.name}
                           onChange={e => {
                             setVillageForm({ ...villageForm, name: e.target.value });
@@ -802,8 +802,8 @@ export default function AdminRoutes() {
                         )}
 
                         {villageSuggestions.length > 0 && (
-                          <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-2xl z-[999] overflow-hidden animate-slide-up ring-4 ring-black/5">
-                            <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                          <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-lg border border-gray-200 shadow-2xl z-[999] overflow-hidden animate-slide-up ring-4 ring-black/5">
+                            <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200">
                               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Global Location Results</span>
                             </div>
                             <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
@@ -820,7 +820,7 @@ export default function AdminRoutes() {
                                     });
                                     setVillageSuggestions([]);
                                   }}
-                                  className="w-full text-left px-6 py-4 hover:bg-emerald-50 transition-colors flex flex-col gap-0.5 border-b border-gray-200 dark:border-gray-700 last:border-0 group"
+                                  className="w-full text-left px-6 py-4 hover:bg-emerald-50 transition-colors flex flex-col gap-0.5 border-b border-gray-200 last:border-0 group"
                                 >
                                   <span className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-emerald-700">{s.display_name.split(',')[0]}</span>
                                   <span className="text-[10px] text-gray-400 font-bold truncate group-hover:text-emerald-600/70">{s.display_name}</span>
@@ -856,8 +856,8 @@ export default function AdminRoutes() {
                             <p className="text-[10px] text-gray-400 italic">No points added yet. Click the map to draw your boundary.</p>
                           ) : (
                             polygonPoints.map((p, i) => (
-                              <div key={i} className="flex items-center justify-between bg-white dark:bg-gray-800 p-2.5 rounded-xl border border-emerald-50 shadow-sm">
-                                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400">Point {i + 1}: {p.lat.toFixed(4)}, {p.lng.toFixed(4)}</span>
+                              <div key={i} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-50 shadow-sm">
+                                <span className="text-[10px] font-bold text-gray-600">Point {i + 1}: {p.lat.toFixed(4)}, {p.lng.toFixed(4)}</span>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -887,11 +887,11 @@ export default function AdminRoutes() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Latitude</label>
-                        <input type="number" step="any" placeholder="0.0000" className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl outline-none focus:border-emerald-500 text-xs font-bold" value={villageForm.latitude} onChange={e => setVillageForm({ ...villageForm, latitude: e.target.value })} />
+                        <input type="number" step="any" placeholder="0.0000" className="w-full bg-white border border-gray-200 p-4 rounded-xl outline-none focus:border-emerald-500 text-xs font-bold" value={villageForm.latitude} onChange={e => setVillageForm({ ...villageForm, latitude: e.target.value })} />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Longitude</label>
-                        <input type="number" step="any" placeholder="0.0000" className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl outline-none focus:border-emerald-500 text-xs font-bold" value={villageForm.longitude} onChange={e => setVillageForm({ ...villageForm, longitude: e.target.value })} />
+                        <input type="number" step="any" placeholder="0.0000" className="w-full bg-white border border-gray-200 p-4 rounded-xl outline-none focus:border-emerald-500 text-xs font-bold" value={villageForm.longitude} onChange={e => setVillageForm({ ...villageForm, longitude: e.target.value })} />
                       </div>
                     </div>
 
@@ -916,7 +916,7 @@ export default function AdminRoutes() {
                   <input
                     type="text"
                     placeholder="Search villages..."
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-12 pr-4 py-3.5 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
+                    className="w-full bg-white border border-gray-200 pl-12 pr-4 py-3.5 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
                     value={villageSearchQuery}
                     onChange={(e) => setVillageSearchQuery(e.target.value)}
                   />
@@ -931,7 +931,7 @@ export default function AdminRoutes() {
                 )}
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-h-[40vh] flex flex-col">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[40vh] flex flex-col">
                 {isVillagesLoading ? (
                   <div className="flex-1 flex flex-col items-center justify-center py-20 gap-4">
                     <Loader2 className="animate-spin text-emerald-600" size={32} />
@@ -940,7 +940,7 @@ export default function AdminRoutes() {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                      <thead className="bg-gray-50 dark:bg-gray-900/50/50 border-b border-gray-200 dark:border-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-900/50/50 border-b border-gray-200">
                         <tr>
                           <th className="px-8 py-5 font-bold text-gray-400 uppercase tracking-[0.2em] text-[10px]">Village Designation</th>
                           <th className="px-8 py-5 font-bold text-gray-400 uppercase tracking-[0.2em] text-[10px] text-center">Coordinates</th>
@@ -985,7 +985,7 @@ export default function AdminRoutes() {
                                     href={`https://www.google.com/maps?q=${encodeURIComponent(v.name + ' village')}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all"
+                                    className="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all"
                                     title="Open in Maps"
                                   >
                                     <MapPin size={15} />
@@ -1009,7 +1009,7 @@ export default function AdminRoutes() {
                                         }
                                         setIsVillageEditorOpen(true);
                                       }}
-                                      className="p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all"
+                                      className="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all"
                                     >
                                       <Pencil size={15} />
                                     </button>
@@ -1017,7 +1017,7 @@ export default function AdminRoutes() {
                                   {can('ROUTES', 'DELETE', 'VILLAGES') && (
                                     <button
                                       onClick={() => handleDeleteVillage(v.id)}
-                                      className="p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-rose-600 hover:border-rose-200 shadow-sm transition-all"
+                                      className="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-400 hover:text-rose-600 hover:border-rose-200 shadow-sm transition-all"
                                     >
                                       <Trash2 size={15} />
                                     </button>
@@ -1034,7 +1034,7 @@ export default function AdminRoutes() {
               </div>
 
               {totalVillagePages > 1 && (
-                <div className="flex items-center justify-between bg-white dark:bg-gray-800 px-8 py-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mt-4">
+                <div className="flex items-center justify-between bg-white px-8 py-4 rounded-xl border border-gray-200 shadow-sm mt-4">
                   <div className="flex items-center gap-2">
                     <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
                       Showing {(villagePage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(villagePage * ITEMS_PER_PAGE, filteredVillages.length)} of {filteredVillages.length}
@@ -1045,7 +1045,7 @@ export default function AdminRoutes() {
                     <button
                       onClick={() => setVillagePage(prev => Math.max(1, prev - 1))}
                       disabled={villagePage === 1}
-                      className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 dark:border-gray-700 disabled:hover:text-gray-400 transition-all"
+                      className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 disabled:hover:text-gray-400 transition-all"
                     >
                       <ChevronLeft size={16} />
                     </button>
@@ -1058,7 +1058,7 @@ export default function AdminRoutes() {
                             <button
                               key={pageNum}
                               onClick={() => setVillagePage(pageNum)}
-                              className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all ${villagePage === pageNum ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50'}`}
+                              className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all ${villagePage === pageNum ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900/50'}`}
                             >
                               {pageNum}
                             </button>
@@ -1073,7 +1073,7 @@ export default function AdminRoutes() {
                     <button
                       onClick={() => setVillagePage(prev => Math.min(totalVillagePages, prev + 1))}
                       disabled={villagePage === totalVillagePages}
-                      className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 dark:border-gray-700 disabled:hover:text-gray-400 transition-all"
+                      className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 disabled:hover:text-gray-400 transition-all"
                     >
                       <ChevronRight size={16} />
                     </button>
@@ -1090,7 +1090,7 @@ export default function AdminRoutes() {
         <div className="animate-fade-in">
           {isRouteEditorOpen ? (
             <div className="space-y-6">
-              <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="flex items-center justify-between bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setIsRouteEditorOpen(false)}
@@ -1120,7 +1120,7 @@ export default function AdminRoutes() {
 
               <div className="flex flex-col gap-6 h-[calc(100vh-280px)]">
                 {/* Selection Panel */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 overflow-y-auto custom-scrollbar flex flex-col gap-6 flex-1">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 overflow-y-auto custom-scrollbar flex flex-col gap-6 flex-1">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Route Name</label>
                     <div className="relative">
@@ -1128,7 +1128,7 @@ export default function AdminRoutes() {
                       <input
                         type="text"
                         placeholder="e.g. Hyderabad North Cluster"
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-12 pr-4 py-4 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
+                        className="w-full bg-white border border-gray-200 pl-12 pr-4 py-4 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
                         value={routeForm.routeName}
                         onChange={e => setRouteForm({ ...routeForm, routeName: e.target.value })}
                       />
@@ -1157,7 +1157,7 @@ export default function AdminRoutes() {
                         return availableVillages.map(v => (
                           <label
                             key={v.id}
-                            className={`p-4 rounded-lg border cursor-pointer flex items-center justify-between transition-all group ${routeForm.selectedVillages.includes(v.name) ? 'bg-emerald-50 border-emerald-200 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-emerald-100 hover:bg-gray-50 dark:bg-gray-900/50/50'}`}
+                            className={`p-4 rounded-lg border cursor-pointer flex items-center justify-between transition-all group ${routeForm.selectedVillages.includes(v.name) ? 'bg-emerald-50 border-emerald-200 shadow-sm' : 'bg-white border-gray-200 hover:border-emerald-100 hover:bg-gray-50 dark:bg-gray-900/50/50'}`}
                           >
                             <div className="flex items-center gap-3">
                               <input
@@ -1166,11 +1166,11 @@ export default function AdminRoutes() {
                                 checked={routeForm.selectedVillages.includes(v.name)}
                                 onChange={() => handleToggleRouteVillage(v.name)}
                               />
-                              <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${routeForm.selectedVillages.includes(v.name) ? 'bg-emerald-500 border-emerald-500' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 group-hover:border-emerald-300'}`}>
+                              <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${routeForm.selectedVillages.includes(v.name) ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-gray-200 group-hover:border-emerald-300'}`}>
                                 {routeForm.selectedVillages.includes(v.name) && <CheckCircle2 size={12} className="text-white" strokeWidth={4} />}
                               </div>
                               <div className="flex flex-col">
-                                <span className={`text-sm font-bold uppercase tracking-tight ${routeForm.selectedVillages.includes(v.name) ? 'text-emerald-900' : 'text-gray-700 dark:text-gray-300'}`}>{v.name}</span>
+                                <span className={`text-sm font-bold uppercase tracking-tight ${routeForm.selectedVillages.includes(v.name) ? 'text-emerald-900' : 'text-gray-700'}`}>{v.name}</span>
                                 <span className="text-[9px] font-bold text-gray-400 truncate max-w-[120px]">{v.isPolygon ? 'Polygon' : `${v.radius}m Radius`}</span>
                               </div>
                             </div>
@@ -1191,7 +1191,7 @@ export default function AdminRoutes() {
                   <input
                     type="text"
                     placeholder="Search clusters..."
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-12 pr-4 py-3.5 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
+                    className="w-full bg-white border border-gray-200 pl-12 pr-4 py-3.5 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
                     value={routeSearchQuery}
                     onChange={(e) => setRouteSearchQuery(e.target.value)}
                   />
@@ -1207,14 +1207,14 @@ export default function AdminRoutes() {
               </div>
 
               {isRoutesLoading ? (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm py-20 flex flex-col items-center justify-center gap-4">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm py-20 flex flex-col items-center justify-center gap-4">
                   <Loader2 className="animate-spin text-emerald-600" size={32} />
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Scanning Clusters...</p>
                 </div>
               ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-h-[40vh]">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[40vh]">
                   <table className="w-full text-left">
-                    <thead className="bg-gray-50 dark:bg-gray-900/50/50 border-b border-gray-200 dark:border-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-900/50/50 border-b border-gray-200">
                       <tr>
                         <th className="px-8 py-5 font-bold text-gray-400 uppercase tracking-[0.15em] text-[10px]">Cluster Profile</th>
                         <th className="px-8 py-5 font-bold text-gray-400 uppercase tracking-[0.15em] text-[10px]">Composition</th>
@@ -1248,7 +1248,7 @@ export default function AdminRoutes() {
                             <td className="px-8 py-6">
                               <div className="flex flex-wrap gap-1.5">
                                 {(r.villages || []).map((v, i) => (
-                                  <span key={i} className="px-3 py-1 bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 rounded-lg text-[9px] font-bold uppercase tracking-wider border border-gray-200 dark:border-gray-700">
+                                  <span key={i} className="px-3 py-1 bg-gray-50 dark:bg-gray-900/50 text-gray-600 rounded-lg text-[9px] font-bold uppercase tracking-wider border border-gray-200">
                                     {v}
                                   </span>
                                 ))}
@@ -1267,13 +1267,13 @@ export default function AdminRoutes() {
                                       });
                                       setIsRouteEditorOpen(true);
                                     }}
-                                    className="p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all"
+                                    className="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all"
                                   >
                                     <Pencil size={15} />
                                   </button>
                                 )}
                                 {can('ROUTES', 'DELETE', 'ROUTES') && (
-                                  <button onClick={async () => { if (window.confirm('Delete?')) { await routeService.deleteRoute(r.id); fetchData(); } }} className="p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-rose-600 hover:border-rose-200 shadow-sm transition-all"><Trash2 size={15} /></button>
+                                  <button onClick={async () => { if (window.confirm('Delete?')) { await routeService.deleteRoute(r.id); fetchData(); } }} className="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-400 hover:text-rose-600 hover:border-rose-200 shadow-sm transition-all"><Trash2 size={15} /></button>
                                 )}
                               </div>
                             </td>
@@ -1286,7 +1286,7 @@ export default function AdminRoutes() {
               )}
 
               {totalRoutePages > 1 && (
-                <div className="flex items-center justify-between bg-white dark:bg-gray-800 px-8 py-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mt-4">
+                <div className="flex items-center justify-between bg-white px-8 py-4 rounded-xl border border-gray-200 shadow-sm mt-4">
                   <div className="flex items-center gap-2">
                     <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
                       Showing {(routePage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(routePage * ITEMS_PER_PAGE, filteredRoutes.length)} of {filteredRoutes.length}
@@ -1297,7 +1297,7 @@ export default function AdminRoutes() {
                     <button
                       onClick={() => setRoutePage(prev => Math.max(1, prev - 1))}
                       disabled={routePage === 1}
-                      className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 dark:border-gray-700 disabled:hover:text-gray-400 transition-all"
+                      className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 disabled:hover:text-gray-400 transition-all"
                     >
                       <ChevronLeft size={16} />
                     </button>
@@ -1310,7 +1310,7 @@ export default function AdminRoutes() {
                             <button
                               key={pageNum}
                               onClick={() => setRoutePage(pageNum)}
-                              className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all ${routePage === pageNum ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50'}`}
+                              className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all ${routePage === pageNum ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900/50'}`}
                             >
                               {pageNum}
                             </button>
@@ -1325,7 +1325,7 @@ export default function AdminRoutes() {
                     <button
                       onClick={() => setRoutePage(prev => Math.min(totalRoutePages, prev + 1))}
                       disabled={routePage === totalRoutePages}
-                      className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 dark:border-gray-700 disabled:hover:text-gray-400 transition-all"
+                      className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 disabled:hover:text-gray-400 transition-all"
                     >
                       <ChevronRight size={16} />
                     </button>
@@ -1344,7 +1344,7 @@ export default function AdminRoutes() {
             /* ── INLINE ASSIGNMENT EDITOR ── */
             <div className="space-y-6">
               {/* Header bar */}
-              <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-6 rounded-[2.5rem] border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] border border-gray-200 shadow-sm">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => { setShowAssignModal(false); setAssignmentForm({ id: '', vehicleId: '', userId: '', routeId: '', morningSession: '', afternoonSession: '' }); }}
@@ -1372,7 +1372,7 @@ export default function AdminRoutes() {
               </div>
 
               {/* Form body */}
-              <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+              <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm p-8">
                 <form onSubmit={handleSaveAssignment} className="space-y-8">
 
                   {/* Route & Agent selectors */}
@@ -1382,7 +1382,7 @@ export default function AdminRoutes() {
                       <div className="relative">
                         <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <select
-                          className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 pl-12 pr-4 py-4 rounded-2xl outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all appearance-none cursor-pointer"
+                          className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 pl-12 pr-4 py-4 rounded-2xl outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all appearance-none cursor-pointer"
                           value={assignmentForm.routeId}
                           onChange={e => {
                             setAssignmentForm({ ...assignmentForm, routeId: e.target.value, morningSession: '', afternoonSession: '' });
@@ -1399,7 +1399,7 @@ export default function AdminRoutes() {
                       <div className="relative">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <select
-                          className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 pl-12 pr-4 py-4 rounded-2xl outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all appearance-none cursor-pointer"
+                          className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 pl-12 pr-4 py-4 rounded-2xl outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all appearance-none cursor-pointer"
                           value={assignmentForm.userId}
                           onChange={e => {
                             const u = users.find(x => x.id === e.target.value);
@@ -1428,7 +1428,7 @@ export default function AdminRoutes() {
 
                     return (
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                           <div className="flex items-center gap-3">
                             <Calendar size={18} className="text-emerald-600" />
                             <div>
@@ -1450,11 +1450,11 @@ export default function AdminRoutes() {
                                 className={`rounded-2xl p-4 border flex flex-col gap-3 transition-all ${
                                   isActive
                                     ? 'bg-emerald-50/70 border-emerald-200 shadow-sm shadow-emerald-100'
-                                    : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700/50'
+                                    : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200/50'
                                 }`}
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className={`text-xs font-black uppercase tracking-tight ${ isActive ? 'text-emerald-700' : 'text-gray-500 dark:text-gray-400'}`}>{day}</span>
+                                  <span className={`text-xs font-black uppercase tracking-tight ${ isActive ? 'text-emerald-700' : 'text-gray-500'}`}>{day}</span>
                                   {isActive && <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]"/>}
                                 </div>
 
@@ -1462,7 +1462,7 @@ export default function AdminRoutes() {
                                   <div className="space-y-1">
                                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Morning</span>
                                     <select
-                                      className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                      className="w-full bg-white border border-gray-200 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
                                       value={assignmentForm.schedule[day]?.morning || ''}
                                       onChange={e => setAssignmentForm({
                                         ...assignmentForm,
@@ -1477,7 +1477,7 @@ export default function AdminRoutes() {
                                   <div className="space-y-1">
                                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Evening</span>
                                     <select
-                                      className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                      className="w-full bg-white border border-gray-200 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
                                       value={assignmentForm.schedule[day]?.evening || ''}
                                       onChange={e => setAssignmentForm({
                                         ...assignmentForm,
@@ -1509,7 +1509,7 @@ export default function AdminRoutes() {
               <input
                 type="text"
                 placeholder="Search assignments (agent, route, vehicle)..."
-                className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-12 pr-4 py-3.5 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
+                className="w-full bg-white border border-gray-200 pl-12 pr-4 py-3.5 rounded-lg outline-none focus:border-emerald-500 font-bold text-sm shadow-sm transition-all"
                 value={assignmentSearchQuery}
                 onChange={(e) => setAssignmentSearchQuery(e.target.value)}
               />
@@ -1525,7 +1525,7 @@ export default function AdminRoutes() {
           </div>
 
           {isAssignmentsLoading ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm py-20 flex flex-col items-center justify-center gap-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm py-20 flex flex-col items-center justify-center gap-4">
               <Loader2 className="animate-spin text-emerald-600" size={32} />
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Compiling Assignments...</p>
             </div>
@@ -1533,11 +1533,11 @@ export default function AdminRoutes() {
             <>
               <div className="grid grid-cols-1 md:hidden gap-4">
                 {(() => {
-                  if (paginatedAssignments.length === 0) return <div className="text-center py-10 text-gray-400 font-bold text-xs uppercase italic bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">No matching assignments</div>;
+                  if (paginatedAssignments.length === 0) return <div className="text-center py-10 text-gray-400 font-bold text-xs uppercase italic bg-white rounded-xl border border-gray-200">No matching assignments</div>;
 
                   return paginatedAssignments.map(a => (
-                    <div key={a.id} className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col gap-4">
-                      <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
+                    <div key={a.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-4">
+                      <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                         <h4 className="font-bold text-gray-900 dark:text-white uppercase tracking-tight">{a.route?.routeName}</h4>
                         <div className="flex gap-1">
                           {can('ROUTES', 'UPDATE', 'ASSIGNMENTS') && (
@@ -1562,11 +1562,11 @@ export default function AdminRoutes() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1.5"><Truck size={10} /> Vehicle</span>
-                          <span className="text-sm font-bold text-gray-800 dark:text-gray-200 leading-none">{a.vehicle?.vehicleNumber}</span>
+                          <span className="text-sm font-bold text-gray-800 leading-none">{a.vehicle?.vehicleNumber}</span>
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1.5"><User size={10} /> Agent</span>
-                          <span className="text-sm font-bold text-gray-800 dark:text-gray-200 leading-none">{a.user?.name}</span>
+                          <span className="text-sm font-bold text-gray-800 leading-none">{a.user?.name}</span>
                         </div>
                       </div>
                       <div className="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100/50 space-y-2">
@@ -1593,9 +1593,9 @@ export default function AdminRoutes() {
                 })()}
               </div>
 
-              <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden min-h-[40vh]">
+              <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[40vh]">
                 <table className="w-full text-left">
-                  <thead className="bg-gray-50 dark:bg-gray-900/50/50 border-b border-gray-200 dark:border-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-900/50/50 border-b border-gray-200">
                     <tr>
                       <th className="px-8 py-5 font-bold text-gray-400 uppercase tracking-[0.15em] text-[10px]">Assignment Details</th>
                       <th className="px-8 py-5 font-bold text-gray-400 uppercase tracking-[0.15em] text-[10px] text-center">Weekly Snapshot</th>
@@ -1627,12 +1627,12 @@ export default function AdminRoutes() {
                               <div className="flex items-center gap-4 pl-1">
                                 <div className="flex flex-col">
                                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.1em]">Vehicle</span>
-                                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">{a.vehicle?.vehicleNumber}</span>
+                                  <span className="text-[11px] font-bold text-gray-700 uppercase tracking-widest">{a.vehicle?.vehicleNumber}</span>
                                 </div>
                                 <div className="w-px h-6 bg-gray-100 self-center" />
                                 <div className="flex flex-col">
                                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.1em]">Driver</span>
-                                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">{a.user?.name}</span>
+                                  <span className="text-[11px] font-bold text-gray-700 uppercase tracking-widest">{a.user?.name}</span>
                                 </div>
                               </div>
                             </div>
@@ -1679,10 +1679,10 @@ export default function AdminRoutes() {
                                     schedule: a.schedule || null
                                   });
                                   setShowAssignModal(true);
-                                }} className="p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all"><Pencil size={15} /></button>
+                                }} className="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all"><Pencil size={15} /></button>
                               )}
                               {can('ROUTES', 'DELETE', 'ASSIGNMENTS') && (
-                                <button onClick={async () => { if (window.confirm('Remove?')) { await routeService.deleteRouteAssignment(a.id); fetchData(); } }} className="p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-rose-600 hover:border-rose-200 shadow-sm transition-all"><X size={15} /></button>
+                                <button onClick={async () => { if (window.confirm('Remove?')) { await routeService.deleteRouteAssignment(a.id); fetchData(); } }} className="p-2.5 bg-white rounded-xl border border-gray-200 text-gray-400 hover:text-rose-600 hover:border-rose-200 shadow-sm transition-all"><X size={15} /></button>
                               )}
                             </div>
                           </td>
@@ -1696,7 +1696,7 @@ export default function AdminRoutes() {
             )}
 
             {!showAssignModal && totalAssignmentPages > 1 && (
-            <div className="flex items-center justify-between bg-white dark:bg-gray-800 px-8 py-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mt-4">
+            <div className="flex items-center justify-between bg-white px-8 py-4 rounded-xl border border-gray-200 shadow-sm mt-4">
               <div className="flex items-center gap-2">
                 <p className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
                   Showing {(assignmentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(assignmentPage * ITEMS_PER_PAGE, filteredAssignments.length)} of {filteredAssignments.length}
@@ -1707,7 +1707,7 @@ export default function AdminRoutes() {
                 <button
                   onClick={() => setAssignmentPage(prev => Math.max(1, prev - 1))}
                   disabled={assignmentPage === 1}
-                  className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 dark:border-gray-700 disabled:hover:text-gray-400 transition-all"
+                  className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 disabled:hover:text-gray-400 transition-all"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -1720,7 +1720,7 @@ export default function AdminRoutes() {
                         <button
                           key={pageNum}
                           onClick={() => setAssignmentPage(pageNum)}
-                          className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all ${assignmentPage === pageNum ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900/50'}`}
+                          className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all ${assignmentPage === pageNum ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900/50'}`}
                         >
                           {pageNum}
                         </button>
@@ -1735,7 +1735,7 @@ export default function AdminRoutes() {
                 <button
                   onClick={() => setAssignmentPage(prev => Math.min(totalAssignmentPages, prev + 1))}
                   disabled={assignmentPage === totalAssignmentPages}
-                  className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 dark:border-gray-700 disabled:hover:text-gray-400 transition-all"
+                  className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:border-gray-200 disabled:hover:text-gray-400 transition-all"
                 >
                   <ChevronRight size={16} />
                 </button>

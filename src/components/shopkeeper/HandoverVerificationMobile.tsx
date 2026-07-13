@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, QrCode, CheckCircle, Scan, Bike, Loader2 } from "lucide-react";
 import api from "../../api/axios";
 
-interface HandoverVerificationProps {
+interface HandoverVerificationMobileProps {
   onBack: () => void;
   onNavigate: (screen: string) => void;
   data?: any;
@@ -10,7 +10,7 @@ interface HandoverVerificationProps {
 
 type Step = "staff-scan" | "rider-scan" | "complete";
 
-export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerificationProps) {
+export function HandoverVerificationMobile({ onBack, data }: HandoverVerificationProps) {
   const [step, setStep] = useState<Step>("staff-scan");
   const [loading, setLoading] = useState(false);
   const [staffVerifiedAt, setStaffVerifiedAt] = useState<Date | null>(null);
@@ -26,7 +26,7 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
   const currentStepIdx = steps.findIndex(s => s.key === step);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
@@ -35,13 +35,13 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
           </button>
           <div>
             <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Handover Verification</h1>
-            <p className="text-white/70" style={{ fontSize: "12px" }}>Order #{order.order_number || "QC100240"} · Rider: Arjun Kumar</p>
+            <p className="text-white/70" style={{ fontSize: "12px" }}>Order #{order.order_number || "QC100240"} · Rider: {order.riderName || "N/A"}</p>
           </div>
         </div>
       </div>
 
       {/* Stepper */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4">
+      <div className="bg-white border-b border-gray-100 px-4 py-4 dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center">
           {steps.map((s, idx) => (
             <div key={s.key} className="flex items-center flex-1 last:flex-none">
@@ -73,10 +73,10 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
       <div className="flex flex-col items-center px-4 py-8 gap-6">
         {/* QR Code Display */}
         {step !== "complete" && (
-          <div className="bg-white rounded-3xl p-6 shadow-sm w-full flex flex-col items-center">
-            <p className="text-gray-500 mb-4" style={{ fontSize: "12px" }}>ORDER QR CODE</p>
+          <div className="bg-white rounded-3xl p-6 shadow-sm w-full flex flex-col items-center dark:bg-gray-800">
+            <p className="text-gray-500 mb-4 dark:text-gray-400" style={{ fontSize: "12px" }}>ORDER QR CODE</p>
             {/* Simulated QR Code */}
-            <div className="relative w-48 h-48 bg-white border-4 border-gray-900 rounded-2xl flex items-center justify-center mb-4">
+            <div className="relative w-48 h-48 bg-white border-4 border-gray-900 rounded-2xl flex items-center justify-center mb-4 dark:bg-gray-800">
               <div className="grid grid-cols-7 gap-0.5 p-2">
                 {[...Array(49)].map((_, i) => (
                   <div
@@ -90,8 +90,8 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
                 <QrCode size={80} color="#1a1a1a" strokeWidth={1.5} />
               </div>
             </div>
-            <p className="text-gray-800 mb-1" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number || "QC100240"}</p>
-            <p className="text-gray-500" style={{ fontSize: "11px", fontFamily: "monospace" }}>HS7K2-9PLM4-QXR82</p>
+            <p className="text-gray-800 mb-1 dark:text-gray-200" style={{ fontWeight: 700, fontSize: "16px" }}>{order.order_number || "QC100240"}</p>
+            <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "11px", fontFamily: "monospace" }}>HS7K2-9PLM4-QXR82</p>
           </div>
         )}
 
@@ -122,7 +122,7 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
             <div className="bg-orange-50 rounded-2xl p-4 w-full text-center">
               <Bike size={32} color="#EF5A06" className="mx-auto mb-2" />
               <p className="text-orange-800" style={{ fontWeight: 600, fontSize: "14px" }}>Rider Scan Verification</p>
-              <p className="text-orange-600" style={{ fontSize: "12px" }}>Rider: Arjun Kumar scans from their device</p>
+              <p className="text-orange-600" style={{ fontSize: "12px" }}>Rider: {order.riderName || "N/A"} scans from their device</p>
             </div>
             <button
               onClick={async () => {
@@ -162,28 +162,28 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
             </div>
 
             <div className="text-center">
-              <h2 className="text-gray-900 mb-1" style={{ fontWeight: 700, fontSize: "22px" }}>Handover Complete!</h2>
-              <p className="text-gray-500" style={{ fontSize: "14px" }}>Order dispatched to Arjun Kumar</p>
+              <h2 className="text-gray-900 mb-1 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "22px" }}>Handover Complete!</h2>
+              <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "14px" }}>Order dispatched to {order.riderName || "N/A"}</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 w-full shadow-sm">
+            <div className="bg-white rounded-2xl p-4 w-full shadow-sm dark:bg-gray-800">
               {[
                 { label: "Order", value: `#${order.order_number || "QC100240"}` },
-                { label: "Rider", value: "Arjun Kumar" },
+                { label: "Rider", value: order.riderName || "N/A" },
                 { label: "Staff Verified", value: staffVerifiedAt ? staffVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
                 { label: "Rider Verified", value: riderVerifiedAt ? riderVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
                 { label: "Handover Time", value: riderVerifiedAt ? riderVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
                 { label: "Status", value: "Dispatched ✓" },
               ].map(row => (
                 <div key={row.label} className="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
-                  <span className="text-gray-500" style={{ fontSize: "13px" }}>{row.label}</span>
-                  <span className="text-gray-800" style={{ fontWeight: 600, fontSize: "13px" }}>{row.value}</span>
+                  <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "13px" }}>{row.label}</span>
+                  <span className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "13px" }}>{row.value}</span>
                 </div>
               ))}
             </div>
 
             <button
-              onClick={() => onNavigate("dashboard")}
+              onClick={onBack}
               className="w-full flex items-center justify-center gap-2 rounded-xl py-4"
               style={{ backgroundColor: "#2E7D32" }}
             >

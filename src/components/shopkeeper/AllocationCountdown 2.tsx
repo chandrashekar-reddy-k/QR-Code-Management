@@ -48,12 +48,5 @@ export function AllocationCountdown({ startedAt, timeoutMinutes }: AllocationCou
     );
   }
 
-  return (
-    <div className="flex items-center gap-1 rounded-full px-2 py-0.5" style={{ backgroundColor: isUrgent ? "#FFEBEE" : "#FFF3E0" }}>
-      <Clock size={10} color={isUrgent ? "#D32F2F" : "#EF5A06"} />
-      <span style={{ color: isUrgent ? "#D32F2F" : "#EF5A06", fontWeight: 700, fontSize: "11px" }}>
-        Assign in {minutes}:{seconds.toString().padStart(2, '0')}
-      </span>
-    </div>
-  );
+  return null;
 }

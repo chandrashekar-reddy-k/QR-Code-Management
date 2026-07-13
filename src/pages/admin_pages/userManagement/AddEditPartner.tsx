@@ -226,7 +226,7 @@ const AddEditPartner = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             Loading partner...
           </p>
         </div>
@@ -238,7 +238,7 @@ const AddEditPartner = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Back Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditMode ? "Edit Partner" : "Add Partner"}
         </h1>
         <div className="flex items-center justify-end">
@@ -253,7 +253,7 @@ const AddEditPartner = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit(onSubmit, onError)}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-6"
       >
         <div className="max-w-4xl">
           {/* Personal Information Section */}
@@ -374,7 +374,7 @@ const AddEditPartner = () => {
                 control={control}
                 render={({ field }) => (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
                       Status{" "}
                       <span className="text-red-500 dark:text-red-400">*</span>
                     </label>
@@ -411,7 +411,7 @@ const AddEditPartner = () => {
               type="button"
               onClick={() => navigate("/user-management/partners")}
               variant="ghost"
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white dark:bg-gray-800"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white"
               disabled={isPending || loading}
             >
               Cancel

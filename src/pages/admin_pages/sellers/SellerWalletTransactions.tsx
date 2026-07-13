@@ -276,7 +276,7 @@ const SellerWalletTransactions = () => {
       sortable: true,
       render: (transaction: WalletTransaction) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{transaction.id}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{transaction.id}</span>
         </div>
       ),
     },
@@ -287,8 +287,8 @@ const SellerWalletTransactions = () => {
       render: (transaction: WalletTransaction) => (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <Store size={12} className="text-gray-400 dark:text-gray-500" />
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 break-words">{transaction.vendorName}</span>
+            <Store size={12} className="text-gray-400" />
+            <span className="text-xs sm:text-sm text-gray-800 break-words">{transaction.vendorName}</span>
           </div>
         </div>
       ),
@@ -299,7 +299,7 @@ const SellerWalletTransactions = () => {
       sortable: true,
       render: (transaction: WalletTransaction) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{transaction.orderId}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{transaction.orderId}</span>
         </div>
       ),
     },
@@ -310,8 +310,8 @@ const SellerWalletTransactions = () => {
       render: (transaction: WalletTransaction) => (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <Package size={12} className="text-gray-400 dark:text-gray-500" />
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 break-words">{transaction.productName}</span>
+            <Package size={12} className="text-gray-400" />
+            <span className="text-xs sm:text-sm text-gray-800 break-words">{transaction.productName}</span>
           </div>
         </div>
       ),
@@ -322,7 +322,7 @@ const SellerWalletTransactions = () => {
       sortable: true,
       render: (transaction: WalletTransaction) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{transaction.measurement}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{transaction.measurement}</span>
         </div>
       ),
     },
@@ -348,7 +348,7 @@ const SellerWalletTransactions = () => {
       render: (transaction: WalletTransaction) => (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <DollarSign size={12} className="text-gray-400 dark:text-gray-500" />
+            <DollarSign size={12} className="text-gray-400" />
             <span className={`text-xs sm:text-sm font-medium ${
               transaction.type === 'Credit' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
             }`}>
@@ -365,8 +365,8 @@ const SellerWalletTransactions = () => {
       render: (transaction: WalletTransaction) => (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <MessageSquare size={12} className="text-gray-400 dark:text-gray-500" />
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 break-words">{transaction.message}</span>
+            <MessageSquare size={12} className="text-gray-400" />
+            <span className="text-xs sm:text-sm text-gray-800 break-words">{transaction.message}</span>
           </div>
         </div>
       ),
@@ -380,7 +380,7 @@ const SellerWalletTransactions = () => {
           <Badge
             status={transaction.status}
             size="sm"
-            customColor={transaction.status === 'Active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800'}
+            customColor={transaction.status === 'Active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 text-gray-800'}
             className="rounded"
           />
         </div>
@@ -393,8 +393,8 @@ const SellerWalletTransactions = () => {
       render: (transaction: WalletTransaction) => (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <Calendar size={12} className="text-gray-400 dark:text-gray-500" />
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">
+            <Calendar size={12} className="text-gray-400" />
+            <span className="text-xs sm:text-sm text-gray-800 whitespace-nowrap">
               {formatDate(transaction.date, 'DD-MM-YYYY, HH:mm A')}
             </span>
           </div>
@@ -433,7 +433,7 @@ const SellerWalletTransactions = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Action Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Vendor Wallet Transactions</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Vendor Wallet Transactions</h1>
         <PrimaryButton
           onClick={() => navigate('/vendors/wallet-transactions/create')}
           size="sm"
@@ -479,10 +479,10 @@ const SellerWalletTransactions = () => {
 
       {/* Filters and Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
           {/* Filter Icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* Date Dropdown */}
@@ -499,7 +499,7 @@ const SellerWalletTransactions = () => {
                 ]}
               />
             </div>
-            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400" />
+            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
           </div>
 
           {/* Type Dropdown */}
@@ -515,7 +515,7 @@ const SellerWalletTransactions = () => {
                 ]}
               />
             </div>
-            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400" />
+            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
           </div>
 
           {/* Status Dropdown */}
@@ -531,7 +531,7 @@ const SellerWalletTransactions = () => {
                 ]}
               />
             </div>
-            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400" />
+            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
           </div>
 
           {/* Reset Filter Button */}
@@ -558,7 +558,7 @@ const SellerWalletTransactions = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedTransactions}
@@ -573,10 +573,10 @@ const SellerWalletTransactions = () => {
 
         {/* Pagination */}
         {filteredAndSortedTransactions.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
                   <SelectInput
                     value={itemsPerPage.toString()}
@@ -593,7 +593,7 @@ const SellerWalletTransactions = () => {
                     className="w-14 sm:w-16 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing <span className="text-orange-600 dark:text-orange-500 font-medium">{((currentPage - 1) * itemsPerPage + 1).toLocaleString()}</span> of{' '}
                   <span className="text-orange-600 dark:text-orange-500 font-medium">{filteredAndSortedTransactions.length.toLocaleString()}</span>
                 </span>

@@ -2951,7 +2951,7 @@ export default function AdminAssets() {
               setSearchParams(prev => { prev.set('tab', tab.key); return prev; }, { replace: true });
             }}
             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-200 ${
-              activeTab === tab.key ? 'bg-white text-emerald-700 border border-emerald-100 shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'
+              activeTab === tab.key ? 'bg-white text-emerald-700 border border-emerald-100 shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
             }`}>
             <span className="shrink-0">{tab.icon}</span>
             <span className="truncate max-w-full">{tab.label}</span>

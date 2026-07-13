@@ -443,7 +443,7 @@ const ViewVariant = () => {
   if (isError || !variant) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-100/80 dark:bg-gray-900/80">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
           <p className="text-red-600 dark:text-red-400 mb-4">
             {isError ? "Error loading variant" : "Variant not found"}
           </p>
@@ -453,7 +453,7 @@ const ViewVariant = () => {
                 pid ? `/products/manage/view/${pid}` : "/products/manage",
               )
             }
-            className="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600"
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600"
           >
             Back to Product
           </button>
@@ -476,22 +476,22 @@ const ViewVariant = () => {
     label: string;
     value: string | number;
   }) => (
-    <div className="flex justify-between items-start py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
-      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+    <div className="flex justify-between items-start py-2.5 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-500 font-medium">
         {label}
       </span>
-      <span className="text-sm text-gray-900 dark:text-gray-100 font-medium text-right max-w-[60%]">
+      <span className="text-sm text-gray-900 font-medium text-right max-w-[60%]">
         {value ?? "N/A"}
       </span>
     </div>
   );
 
   const DetailBlock = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex justify-between items-start py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
-      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+    <div className="flex justify-between items-start py-2.5 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-500 font-medium">
         {label}
       </span>
-      <p className="text-sm text-gray-900 dark:text-gray-100 font-medium text-right max-w-[60%] whitespace-pre-wrap break-words break-all">
+      <p className="text-sm text-gray-900 font-medium text-right max-w-[60%] whitespace-pre-wrap break-words break-all">
         {value.trim() ? value : "N/A"}
       </p>
     </div>
@@ -511,10 +511,10 @@ const ViewVariant = () => {
       <div
         className={`relative w-full max-w-md bg-gray-50 dark:bg-gray-900 shadow-2xl flex flex-col transition-transform duration-200 ease-out ${isDrawerVisible ? "translate-x-0" : "translate-x-full"}`}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 bg-white shrink-0">
           <h2
             id="variant-details-title"
-            className="text-xl font-bold text-gray-900 dark:text-gray-100"
+            className="text-xl font-bold text-gray-900"
           >
             Variant Details
           </h2>
@@ -523,11 +523,11 @@ const ViewVariant = () => {
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Close"
           >
-            <X size={22} className="text-gray-600 dark:text-gray-400" />
+            <X size={22} className="text-gray-600" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="p-6 border-b border-gray-200 bg-white">
             {variantImages.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-3">
                 {variantImages.map((imgSrc, idx) => (
@@ -543,8 +543,8 @@ const ViewVariant = () => {
                 ))}
               </div>
             ) : (
-              <div className="flex justify-center w-32 h-32 mx-auto rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 items-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex justify-center w-32 h-32 mx-auto rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-100 items-center">
+                <span className="text-xs text-gray-500">
                   No image
                 </span>
               </div>
@@ -552,10 +552,10 @@ const ViewVariant = () => {
           </div>
           <div className="p-6 space-y-6">
             <div>
-              <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-4">
+              <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">
                 Units & Measurements
               </h3>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-0">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-0">
                 <DetailRow label="Unit Type" value={variant.type || "N/A"} />
                 <DetailRow label="Unit" value={variant.unit || "N/A"} />
                 <DetailRow label="Measurement" value={measurementDisplay} />
@@ -566,10 +566,10 @@ const ViewVariant = () => {
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-4">
+              <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">
                 Pricing
               </h3>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-0">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-0">
                 <DetailRow
                   label="Landing Price"
                   value={`₹${landingPrice.toFixed(2)}`}
@@ -597,10 +597,10 @@ const ViewVariant = () => {
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-4">
+              <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">
                 Inventory & Availability
               </h3>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-0">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-0">
                 <DetailRow label="Stock Quantity" value={variant.stock} />
                 <DetailRow
                   label="Low Stock Alert Threshold"
@@ -626,10 +626,10 @@ const ViewVariant = () => {
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-4">
+              <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">
                 SEO & Settings
               </h3>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-0">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-0">
                 <DetailRow
                   label="Meta Title"
                   value={variant.metaTitle || "N/A"}
@@ -650,7 +650,7 @@ const ViewVariant = () => {
             </div>
           </div>
         </div>
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+        <div className="p-6 border-t border-gray-200 bg-white shrink-0">
           <button
             onClick={handleEdit}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 dark:bg-green-700 text-white font-semibold rounded-xl hover:bg-green-700 dark:hover:bg-green-600 transition-colors"

@@ -30,7 +30,7 @@ export default function ReportLayout({ title, icon: Icon = BarChart3, children, 
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] pb-20">
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-[64px] z-40 backdrop-blur-md bg-opacity-80">
+      <div className="bg-white border-b border-gray-200 sticky top-[64px] z-40 backdrop-blur-md bg-opacity-80">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-4">
@@ -43,7 +43,7 @@ export default function ReportLayout({ title, icon: Icon = BarChart3, children, 
                       navigate('/admin/reports');
                     }
                   }}
-                  className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-90"
+                  className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-90"
                   title={hasStore ? "Back to Branch Selection" : "Back to Reports Hub"}
                 >
                   <ChevronLeft size={20} />
@@ -81,7 +81,7 @@ export default function ReportLayout({ title, icon: Icon = BarChart3, children, 
                   ))}
                 </select>
               )}
-              <button onClick={() => exportReportToExcel(activeTab, reportData)} disabled={!reportData || isLoading} className="bg-white dark:bg-gray-800 text-emerald-600 border border-emerald-100 px-5 py-3 rounded-lg flex items-center gap-2 font-bold text-xs uppercase tracking-widest shadow-xl shadow-emerald-50 hover:bg-emerald-50 hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"><Download size={16} /> Excel</button>
+              <button onClick={() => exportReportToExcel(activeTab, reportData)} disabled={!reportData || isLoading} className="bg-white text-emerald-600 border border-emerald-100 px-5 py-3 rounded-lg flex items-center gap-2 font-bold text-xs uppercase tracking-widest shadow-xl shadow-emerald-50 hover:bg-emerald-50 hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"><Download size={16} /> Excel</button>
               <button onClick={() => generateReportPDF(activeTab, reportData, false)} disabled={!reportData || isLoading} className="bg-gray-900 text-white px-5 py-3 rounded-lg flex items-center gap-2 font-bold text-xs uppercase tracking-widest shadow-xl shadow-gray-200 hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"><Download size={16} /> PDF</button>
               <button onClick={() => generateReportPDF(activeTab, reportData, true)} disabled={!reportData || isLoading} className="bg-emerald-600 text-white px-5 py-3 rounded-lg flex items-center gap-2 font-bold text-xs uppercase tracking-widest shadow-xl shadow-emerald-200 hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"><Printer size={16} /> Print</button>
            </div>
@@ -100,7 +100,7 @@ export default function ReportLayout({ title, icon: Icon = BarChart3, children, 
           <div className="space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col gap-1">
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight uppercase">Organizational Analytics</h2>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-widest italic">Select a branch to view detailed {title.toLowerCase()} reports</p>
+              <p className="text-sm font-medium text-gray-500 uppercase tracking-widest italic">Select a branch to view detailed {title.toLowerCase()} reports</p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 max-w-5xl">
@@ -108,7 +108,7 @@ export default function ReportLayout({ title, icon: Icon = BarChart3, children, 
                 <div 
                   key={store.id}
                   onClick={() => setSearchParams({ storeId: store.id })}
-                  className="group bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:border-emerald-100 transition-all cursor-pointer relative overflow-hidden"
+                  className="group bg-white p-8 rounded-xl border border-gray-200 shadow-sm hover:shadow-2xl hover:shadow-emerald-500/10 hover:border-emerald-100 transition-all cursor-pointer relative overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
                     <Icon size={120} />

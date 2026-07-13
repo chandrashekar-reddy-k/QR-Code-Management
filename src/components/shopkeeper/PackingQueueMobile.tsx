@@ -3,20 +3,22 @@ import { ArrowLeft, Clock, Package, Play, AlertCircle } from "lucide-react";
 import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
 
-interface PackingQueueProps {
+interface PackingQueueMobileProps {
   onNavigate: (screen: string, data?: any) => void;
   onBack: () => void;
 }
 
-export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
+export function PackingQueueMobile({ onNavigate, onBack }: PackingQueueMobileProps) {
   const [packingOrders, setPackingOrders] = useState<any[]>([]);
   const socket = useSocket(1);
 
   const fetchOrders = async () => {
     try {
       const res = await api.get('/orders');
-      // Filter for packing statuses
-      const orders = res.data.filter((o: any) => o.status === 'packing');
+      const orders = res.data.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'packing' || s === 'packed' || s === 'processing';
+      });
 
       // Use tray_number from DB as source of truth.
       // For any legacy order missing a tray, assign sequentially (NOT in parallel)
@@ -84,7 +86,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #EF5A06 0%, #D84315 100%)" }} className="px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
@@ -100,8 +102,8 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
         <div className="grid grid-cols-3 gap-2 mt-4">
           {[
             { label: "Awaiting", value: stats.awaiting, color: "white" },
-            { label: "Urgent", value: stats.urgent, color: "#FFF3E0" },
-            { label: "Avg SLA", value: "13m", color: "#E8F5E9" },
+            { label: "Urgent", value: stats.urgent, color: "white" },
+            { label: "Avg SLA", value: "13m", color: "white" },
           ].map(s => (
             <div key={s.label} className="bg-white/10 rounded-xl p-2 text-center">
               <p style={{ color: s.color, fontWeight: 700, fontSize: "18px" }}>{s.value}</p>
@@ -113,8 +115,8 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
 
       {/* Packing Tray Overview */}
       <div className="px-4 mt-4">
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h3 className="text-gray-700 mb-3" style={{ fontWeight: 600, fontSize: "13px" }}>Packing Trays</h3>
+        <div className="bg-white rounded-2xl p-4 shadow-sm dark:bg-gray-800">
+          <h3 className="text-gray-700 mb-3 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>Packing Trays</h3>
           <div className="grid grid-cols-5 gap-2">
             {(() => {
               // Collect all trays currently in use by real orders
@@ -151,7 +153,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
       {/* Orders */}
       <div className="flex flex-col gap-3 p-4">
         {packingOrders.map((order) => (
-          <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden dark:bg-gray-800">
             {order.urgent && (
               <div className="bg-orange-50 border-b border-orange-100 px-4 py-1.5 flex items-center gap-1.5">
                 <AlertCircle size={12} color="#EF5A06" />
@@ -162,12 +164,12 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-gray-900" style={{ fontWeight: 700, fontSize: "15px" }}>{order.order_number}</span>
+                    <span className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "15px" }}>{order.order_number}</span>
                     <span className="rounded-full px-2 py-0.5" style={{ fontSize: "10px", fontWeight: 600, backgroundColor: "#FFF3E0", color: "#EF5A06" }}>
                       Tray {order.tray}
                     </span>
                   </div>
-                  <span className="text-gray-500" style={{ fontSize: "12px" }}>{order.order_type}</span>
+                  <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "12px" }}>{order.order_type}</span>
                 </div>
                 <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: order.urgent ? "#FFEBEE" : "#FFF3E0" }}>
                   <Clock size={11} color={order.urgent ? "#D32F2F" : "#EF5A06"} />
@@ -182,9 +184,9 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2.5 mb-3">
+              <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2.5 mb-3 dark:bg-gray-900">
                 <Package size={14} color="#EF5A06" />
-                <span className="text-gray-600" style={{ fontSize: "12px" }}>{order.items} items to pack</span>
+                <span className="text-gray-600 dark:text-gray-400" style={{ fontSize: "12px" }}>{order.items} items to pack</span>
                 <span className="ml-auto text-gray-400" style={{ fontSize: "11px" }}>Tray: {order.tray}</span>
               </div>
 

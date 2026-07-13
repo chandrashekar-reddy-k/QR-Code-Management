@@ -165,18 +165,18 @@ export default function LocationTrackingReport() {
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Live</span>
                         </div>
-                        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest border-l border-gray-200 dark:border-gray-700 pl-3">
+                        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest border-l border-gray-200 pl-3">
                             Last Sync: {format(lastSync, 'hh:mm:ss a')}
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="flex gap-1 p-1 bg-gray-100/80 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700/50">
+                        <div className="flex gap-1 p-1 bg-gray-100/80 backdrop-blur-sm rounded-xl border border-gray-200/50">
                             {['live-map', 'history'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setSubTab(tab)}
-                                    className={`px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${subTab === tab ? 'bg-white dark:bg-gray-800 text-rose-600 shadow-sm border border-gray-200 dark:border-gray-700' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
+                                    className={`px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${subTab === tab ? 'bg-white text-rose-600 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     {tab === 'live-map' ? 'Live Map' : 'History'}
                                 </button>
@@ -196,7 +196,7 @@ export default function LocationTrackingReport() {
                         { label: 'On Duty', value: onDutyCount, sub: 'Started Shift', icon: ShieldCheck, color: 'indigo' },
                         { label: 'Offline Agents', value: offlineCount, sub: 'Currently Offline', icon: UserMinus, color: 'rose' }
                     ].map((stat, i) => (
-                        <div key={i} className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
+                        <div key={i} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all group">
                             <div className="flex items-center gap-4">
                                 <div className={`w-11 h-11 rounded-xl bg-${stat.color}-50 flex items-center justify-center text-${stat.color}-600 group-hover:scale-105 transition-transform`}>
                                     <stat.icon size={20} />
@@ -216,16 +216,16 @@ export default function LocationTrackingReport() {
                 {subTab === 'live-map' && (
                     <div className="space-y-8">
                         {/* Map Area */}
-                        <div className="w-full h-[600px] bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden relative z-0">
+                        <div className="w-full h-[600px] bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden relative z-0">
                             {/* Map UI Overlays */}
                             <div className="absolute top-8 left-8 z-10 flex gap-2">
-                                <button onClick={() => setIsSatellite(false)} className={`px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-2xl transition-all ${!isSatellite ? 'bg-gray-900 text-white' : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700'}`}>Map</button>
-                                <button onClick={() => setIsSatellite(true)} className={`px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-2xl transition-all ${isSatellite ? 'bg-gray-900 text-white' : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700'}`}>Satellite</button>
+                                <button onClick={() => setIsSatellite(false)} className={`px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-2xl transition-all ${!isSatellite ? 'bg-gray-900 text-white' : 'bg-white text-gray-900 dark:text-white hover:bg-gray-50 dark:bg-gray-900/50 border border-gray-200'}`}>Map</button>
+                                <button onClick={() => setIsSatellite(true)} className={`px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-2xl transition-all ${isSatellite ? 'bg-gray-900 text-white' : 'bg-white text-gray-900 dark:text-white hover:bg-gray-50 dark:bg-gray-900/50 border border-gray-200'}`}>Satellite</button>
                             </div>
 
                             {/* Agent Status Legend (Floating) */}
                             <div className="absolute top-6 right-6 z-10">
-                                <div className="bg-white dark:bg-gray-800/90 backdrop-blur-md p-5 rounded-xl shadow-2xl border border-white/20 min-w-[160px]">
+                                <div className="bg-white/90 backdrop-blur-md p-5 rounded-xl shadow-2xl border border-white/20 min-w-[160px]">
                                     <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Agent Status</h4>
                                     <div className="space-y-2">
                                         {[
@@ -237,7 +237,7 @@ export default function LocationTrackingReport() {
                                             <div key={i} className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <div className={`w-1.5 h-1.5 rounded-full bg-${status.color}-500 ${status.label === 'Active' ? 'animate-pulse' : ''}`} />
-                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400">{status.label}</span>
+                                                    <span className="text-[10px] font-bold text-gray-600">{status.label}</span>
                                                 </div>
                                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 bg-${status.color}-50 text-${status.color}-600 rounded-lg`}>{status.count}</span>
                                             </div>
@@ -309,7 +309,7 @@ export default function LocationTrackingReport() {
                                                             }}
                                                             label={{
                                                                 text: `${agent.user?.name?.split(' ')[0]} • ${isPending ? 'Sync...' : formatDistanceToNow(new Date(agent.timestamp), { addSuffix: true }).replace('about ', '').replace(' minutes ago', 'm').replace(' minute ago', 'm').replace(' hours ago', 'h').replace('less than a minute ago', 'now')}`,
-                                                                className: "bg-white dark:bg-gray-800/95 px-2.5 py-1 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-bold text-[9px] -mt-[64px] uppercase tracking-tighter whitespace-nowrap backdrop-blur-sm"
+                                                                className: "bg-white/95 px-2.5 py-1 rounded-lg shadow-xl border border-gray-200 text-gray-900 dark:text-white font-bold text-[9px] -mt-[64px] uppercase tracking-tighter whitespace-nowrap backdrop-blur-sm"
                                                             }}
                                                         />
                                                     );
@@ -321,7 +321,7 @@ export default function LocationTrackingReport() {
                                     {/* Premium Floating Agent Card */}
                                     {activeAgent && (
                                         <div className="absolute bottom-4 left-4 z-10 animate-in slide-in-from-left-4 duration-500">
-                                            <div className="bg-white dark:bg-gray-800/90 backdrop-blur-xl p-5 rounded-xl shadow-2xl border border-white/50 w-72 ring-1 ring-black/5">
+                                            <div className="bg-white/90 backdrop-blur-xl p-5 rounded-xl shadow-2xl border border-white/50 w-72 ring-1 ring-black/5">
                                                 <div className="flex items-start justify-between mb-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-rose-500 to-rose-600 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-rose-200">
@@ -341,14 +341,14 @@ export default function LocationTrackingReport() {
                                                 </div>
 
                                                 <div className="space-y-4">
-                                                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50/50 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                                                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50/50 rounded-xl border border-gray-200/50">
                                                         <div className="flex gap-3">
                                                             <div className="mt-0.5">
                                                                 <MapPin size={14} className="text-rose-500" />
                                                             </div>
                                                             <div>
                                                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Current Location</p>
-                                                                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-relaxed">{activeAgent.subLocation || 'In-Transit / Navigation active'}</p>
+                                                                <p className="text-xs font-bold text-gray-700 leading-relaxed">{activeAgent.subLocation || 'In-Transit / Navigation active'}</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -386,7 +386,7 @@ export default function LocationTrackingReport() {
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                                 {liveLocations.length === 0 ? (
-                                     <div className="col-span-full py-16 bg-gray-50 dark:bg-gray-900/50 rounded-xl text-center border-2 border-dashed border-gray-200 dark:border-gray-700">
+                                     <div className="col-span-full py-16 bg-gray-50 dark:bg-gray-900/50 rounded-xl text-center border-2 border-dashed border-gray-200">
                                          <Users className="mx-auto mb-3 text-gray-200" size={40} />
                                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No recently active agents</p>
                                      </div>
@@ -401,7 +401,7 @@ export default function LocationTrackingReport() {
                                                      map?.panTo({ lat: agent.lat, lng: agent.long });
                                                      map?.setZoom(17);
                                                  }}
-                                                 className={`bg-white dark:bg-gray-800 p-4 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] active:scale-95 ${activeAgent?.userId === agent.userId ? 'border-rose-200 bg-rose-50/20 shadow-xl' : 'border-gray-200 dark:border-gray-700 hover:shadow-lg'}`}
+                                                 className={`bg-white p-4 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] active:scale-95 ${activeAgent?.userId === agent.userId ? 'border-rose-200 bg-rose-50/20 shadow-xl' : 'border-gray-200 hover:shadow-lg'}`}
                                              >
                                                  <div className="flex items-center justify-between mb-3">
                                                      <div className="flex items-center gap-2.5">
@@ -420,7 +420,7 @@ export default function LocationTrackingReport() {
                                                      </div>
                                                  </div>
                                                  
-                                                 <div className="space-y-2 pt-2.5 border-t border-gray-200 dark:border-gray-700">
+                                                 <div className="space-y-2 pt-2.5 border-t border-gray-200">
                                                      <div className="flex items-center justify-between text-[9px] font-bold text-gray-400 uppercase">
                                                          <span>Last Ping</span>
                                                          <span className="text-gray-900 dark:text-white">{formatDistanceToNow(new Date(agent.timestamp), { addSuffix: true }).replace('about ', '')}</span>
@@ -442,8 +442,8 @@ export default function LocationTrackingReport() {
                 {subTab === 'history' && (
                     <div className="space-y-6">
                         {historyTab === 'logs' && (
-                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-                                <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50/30">
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+                                <div className="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50/30">
                                     <div className="flex items-center gap-3">
                                         <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight uppercase">Recent Geo-Logs (Breadcrumbs)</h3>
                                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded-full">
@@ -513,28 +513,28 @@ export default function LocationTrackingReport() {
 
                                                     {isExpanded && (
                                                         <div className="px-5 pb-5 animate-in slide-in-from-top-2 duration-300">
-                                                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50/30 overflow-hidden">
+                                                            <div className="rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-900/50/30 overflow-hidden">
                                                                 <div className="overflow-x-auto">
                                                                     <table className="w-full text-left border-collapse">
                                                                         <thead>
-                                                                            <tr className="bg-gray-100/50">
-                                                                                <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700">Village</th>
-                                                                                <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700">Landmark / Sub-Location</th>
-                                                                                <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700">Time</th>
+                                                                            <tr className="bg-gray-100">
+                                                                                <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200">Village</th>
+                                                                                <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200">Landmark / Sub-Location</th>
+                                                                                <th className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200">Time</th>
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody className="divide-y divide-gray-100">
                                                                             {sortedLogs.slice(0, 4).map((log, idx) => (
-                                                                                <tr key={idx} className="hover:bg-white dark:bg-gray-800 transition-colors">
+                                                                                <tr key={idx} className="hover:bg-white transition-colors">
                                                                                     <td className="px-4 py-3">
                                                                                         <div className="flex items-center gap-2">
                                                                                             <div className="w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center">
                                                                                                 <MapPin size={12} className="text-rose-500" />
                                                                                             </div>
-                                                                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{log.villageName || 'In-Transit'}</span>
+                                                                                            <span className="text-xs font-bold text-gray-700">{log.villageName || 'In-Transit'}</span>
                                                                                         </div>
                                                                                     </td>
-                                                                                    <td className="px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 italic truncate max-w-[200px]">
+                                                                                    <td className="px-4 py-3 text-[10px] font-bold text-gray-500 italic truncate max-w-[200px]">
                                                                                         {log.subLocation || '---'}
                                                                                     </td>
                                                                                     <td className="px-4 py-3 text-[10px] font-bold text-gray-400">
@@ -546,7 +546,7 @@ export default function LocationTrackingReport() {
                                                                     </table>
                                                                 </div>
                                                                 {sortedLogs.length > 4 && (
-                                                                    <div className="px-4 py-2 bg-gray-100/50 text-center">
+                                                                    <div className="px-4 py-2 bg-gray-100 text-center">
                                                                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Showing latest 4 of {sortedLogs.length} logs</span>
                                                                     </div>
                                                                 )}
@@ -568,8 +568,8 @@ export default function LocationTrackingReport() {
                         )}
 
                         {historyTab === 'visits' && (
-                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-                                <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50/30">
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+                                <div className="p-6 border-b border-gray-200 bg-gray-50 dark:bg-gray-900/50/30">
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight uppercase">Village Visit Durations</h3>
                                 </div>
                                 <div className="overflow-x-auto">
@@ -586,8 +586,8 @@ export default function LocationTrackingReport() {
                                         <tbody className="divide-y divide-gray-50">
                                             {trackingReportsData?.villageVisits?.map(log => (
                                                 <tr key={log.id} className="hover:bg-gray-50 dark:bg-gray-900/50 transition-colors">
-                                                    <td className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">{log.agentName}</td>
-                                                    <td className="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-400">{log.villageName}</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-gray-800">{log.agentName}</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-gray-600">{log.villageName}</td>
                                                     <td className="px-6 py-4 text-[11px] font-medium text-gray-400 italic">{log.subLocation || '---'}</td>
                                                     <td className="px-6 py-4 text-sm font-bold text-emerald-600">
                                                         {log.status === 'ACTIVE' ? (
@@ -620,8 +620,8 @@ export default function LocationTrackingReport() {
                         )}
 
                         {historyTab === 'deviation' && (
-                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-                                <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50/30">
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+                                <div className="p-6 border-b border-gray-200 bg-gray-50 dark:bg-gray-900/50/30">
                                     <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight uppercase">Shift Time Deviation</h3>
                                 </div>
                                 <div className="overflow-x-auto">
@@ -637,9 +637,9 @@ export default function LocationTrackingReport() {
                                         <tbody className="divide-y divide-gray-50">
                                             {trackingReportsData?.timeDeviation?.map(log => (
                                                 <tr key={log.id} className="hover:bg-gray-50 dark:bg-gray-900/50 transition-colors">
-                                                    <td className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">{log.agentName}</td>
-                                                    <td className="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-400">{log.expectedTime}</td>
-                                                    <td className="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-400">{log.actualTime}</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-gray-800">{log.agentName}</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-gray-600">{log.expectedTime}</td>
+                                                    <td className="px-6 py-4 text-sm font-bold text-gray-600">{log.actualTime}</td>
                                                     <td className={`px-6 py-4 text-xs font-bold ${log.status === 'LATE' ? 'text-rose-500' : 'text-emerald-500'}`}>
                                                         {log.deviationMinutes > 0 ? `+${formatMinutesToHours(log.deviationMinutes)} (Late)` : `${formatMinutesToHours(log.deviationMinutes)} (Early/On Time)`}
                                                     </td>

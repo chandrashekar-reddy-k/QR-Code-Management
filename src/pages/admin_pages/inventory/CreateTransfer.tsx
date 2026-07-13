@@ -121,7 +121,7 @@ const CreateTransfer = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Create Transfer
         </h1>
         <BackButton onClick={() => navigate('/inventory/operations/transfers')} />
@@ -171,19 +171,19 @@ const CreateTransfer = () => {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Notes</label>
+          <label className="block text-xs font-medium text-gray-700 mb-1.5">Notes</label>
           <textarea
             value={formData.notes}
             onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
             rows={3}
             placeholder="Additional notes (optional)"
-            className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+            className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
           />
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-3">
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-xs font-medium text-gray-700">
               Transfer Items <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <Button
@@ -197,20 +197,20 @@ const CreateTransfer = () => {
           </div>
           
           {formData.lines.length === 0 ? (
-            <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400">No items added. Click "Add Item" to add products to transfer.</p>
+            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-center">
+              <p className="text-xs text-gray-500">No items added. Click "Add Item" to add products to transfer.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {formData.lines.map((line, index) => (
-                <div key={index} className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <div key={index} className="p-3 border border-gray-200 rounded-lg bg-gray-50">
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                     <div className="sm:col-span-2">
                       <TextInput
                         label="Product"
                         value={line.productName}
                         disabled
-                        className="bg-white dark:bg-gray-700"
+                        className="bg-white"
                       />
                     </div>
                     <div>
@@ -218,7 +218,7 @@ const CreateTransfer = () => {
                         label="SKU"
                         value={line.sku}
                         disabled
-                        className="bg-white dark:bg-gray-700"
+                        className="bg-white"
                       />
                     </div>
                     <div className="flex gap-2">
@@ -244,7 +244,7 @@ const CreateTransfer = () => {
                       </Button>
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-[10px] text-gray-500 mt-1">
                     Available: {line.currentOnHand} units
                   </p>
                 </div>
@@ -257,7 +257,7 @@ const CreateTransfer = () => {
           <button
             type="button"
             onClick={handleCancel}
-            className="flex-1 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium"
+            className="flex-1 px-4 py-2 bg-white border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium"
           >
             Cancel
           </button>

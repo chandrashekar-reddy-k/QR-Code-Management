@@ -351,7 +351,7 @@ const SellerRequests = () => {
       sortable: true,
       render: (vendor: TableVendor) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{vendor.id.slice(0, 8)}...</span>
+          <span className="text-xs sm:text-sm text-gray-800">{vendor.id.slice(0, 8)}...</span>
         </div>
       ),
     },
@@ -363,8 +363,8 @@ const SellerRequests = () => {
         <div className="text-center">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-center gap-1.5">
-              <User size={12} className="text-gray-400 dark:text-gray-500" />
-              <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <User size={12} className="text-gray-400" />
+              <span className="text-xs sm:text-sm font-semibold text-gray-800">
                 {vendor.name}
               </span>
             </div>
@@ -381,7 +381,7 @@ const SellerRequests = () => {
       sortable: true,
       render: (vendor: TableVendor) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 break-words">
+          <span className="text-xs sm:text-sm text-gray-800 break-words">
             {vendor.email}
           </span>
         </div>
@@ -395,8 +395,8 @@ const SellerRequests = () => {
         <div className="text-center">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-center gap-1.5">
-              <Store size={12} className="text-gray-400 dark:text-gray-500" />
-              <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <Store size={12} className="text-gray-400" />
+              <span className="text-xs sm:text-sm font-semibold text-gray-800">
                 {vendor.storeName}
               </span>
             </div>
@@ -411,8 +411,8 @@ const SellerRequests = () => {
       render: (vendor: TableVendor) => (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <MapPin size={12} className="text-gray-400 dark:text-gray-500" />
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+            <MapPin size={12} className="text-gray-400" />
+            <span className="text-xs sm:text-sm text-gray-800">
               {vendor.city}
             </span>
           </div>
@@ -433,12 +433,12 @@ const SellerRequests = () => {
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
                 (e.target as HTMLImageElement).parentElement!.innerHTML = 
-                  '<div class="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center mx-auto"><svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>';
+                  '<div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mx-auto"><svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>';
               }}
             />
           ) : (
-            <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center mx-auto">
-              <ImageIcon size={14} className="text-gray-400 dark:text-gray-500" />
+            <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center mx-auto">
+              <ImageIcon size={14} className="text-gray-400" />
             </div>
           )}
         </div>
@@ -451,8 +451,8 @@ const SellerRequests = () => {
       render: (vendor: TableVendor) => (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <Percent size={12} className="text-gray-400 dark:text-gray-500" />
-            <span className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
+            <Percent size={12} className="text-gray-400" />
+            <span className="text-xs sm:text-sm font-medium text-gray-800">
               {vendor.commission}%
             </span>
           </div>
@@ -466,8 +466,8 @@ const SellerRequests = () => {
       render: (vendor: TableVendor) => (
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <Calendar size={12} className="text-gray-400 dark:text-gray-500" />
-            <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">
+            <Calendar size={12} className="text-gray-400" />
+            <span className="text-xs sm:text-sm text-gray-800 whitespace-nowrap">
               {vendor.createdAt ? formatDate(vendor.createdAt, "DD-MM-YYYY, HH:mm A") : 'N/A'}
             </span>
           </div>
@@ -490,7 +490,7 @@ const SellerRequests = () => {
               status={vendor.status}
               size="sm"
               customColor={
-                statusColorMap[vendor.status] || "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                statusColorMap[vendor.status] || "bg-gray-100 text-gray-800"
               }
               className="rounded font-semibold"
             />
@@ -534,7 +534,7 @@ const SellerRequests = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600">
             Loading vendor requests...
           </p>
         </div>
@@ -546,7 +546,7 @@ const SellerRequests = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Action Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           New Registered Vendors
         </h1>
         <PrimaryButton
@@ -594,10 +594,10 @@ const SellerRequests = () => {
 
       {/* Filters and Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-2xl overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-2xl overflow-hidden">
           {/* Filter Icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* Date Dropdown */}
@@ -616,7 +616,7 @@ const SellerRequests = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -636,7 +636,7 @@ const SellerRequests = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -654,7 +654,7 @@ const SellerRequests = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -682,7 +682,7 @@ const SellerRequests = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedVendors}
@@ -697,10 +697,10 @@ const SellerRequests = () => {
 
         {/* Pagination */}
         {filteredAndSortedVendors.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-14 [&_select]:sm:w-16 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
                   <SelectInput
                     value={itemsPerPage.toString()}
@@ -717,7 +717,7 @@ const SellerRequests = () => {
                     className="w-14 sm:w-16 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing{" "}
                   <span className="text-orange-600 dark:text-orange-500 font-medium">
                     {((currentPage - 1) * itemsPerPage + 1).toLocaleString()}

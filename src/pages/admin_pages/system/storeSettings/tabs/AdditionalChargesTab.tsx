@@ -18,9 +18,9 @@ const AdditionalChargesTab = ({ charges, onAdd, onRemove, onChange }: Additional
   return (
     <div className="space-y-6">
       {/* Additional Charges Section */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Additional Charges</h3>
+          <h3 className="text-sm font-semibold text-gray-800">Additional Charges</h3>
           <button
             type="button"
             onClick={onAdd}
@@ -32,7 +32,7 @@ const AdditionalChargesTab = ({ charges, onAdd, onRemove, onChange }: Additional
         </div>
 
         {charges.length === 0 ? (
-          <div className="text-center py-8 text-xs text-gray-500 dark:text-gray-400">
+          <div className="text-center py-8 text-xs text-gray-500">
             No additional charges added. Click "Add" to add a new charge.
           </div>
         ) : (
@@ -40,10 +40,10 @@ const AdditionalChargesTab = ({ charges, onAdd, onRemove, onChange }: Additional
             {charges.map((charge, index) => (
               <div
                 key={charge.id}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 relative"
+                className="bg-white border border-gray-200 rounded-lg p-4 relative"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-xs font-medium text-gray-700">
                     Charge #{index + 1}
                   </span>
                   {charges.length > 1 && (
@@ -70,11 +70,11 @@ const AdditionalChargesTab = ({ charges, onAdd, onRemove, onChange }: Additional
 
                   {/* Charge Amount */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Charge Amount
                     </label>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">₹</span>
+                      <span className="text-xs text-gray-600 whitespace-nowrap">₹</span>
                       <TextInput
                         type="number"
                         value={charge.chargeAmount}

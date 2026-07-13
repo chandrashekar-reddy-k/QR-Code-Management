@@ -183,7 +183,7 @@ const EditWalletTransaction = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Loading transaction...</p>
+          <p className="text-xs text-gray-500">Loading transaction...</p>
         </div>
       </div>
     );
@@ -193,7 +193,7 @@ const EditWalletTransaction = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Edit Wallet Transaction</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Edit Wallet Transaction</h1>
         <BackButton to="/vendors/wallet-transactions" />
       </div>
       
@@ -203,12 +203,12 @@ const EditWalletTransaction = () => {
       </div>
 
       {/* Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <form onSubmit={handleSubmit}>
           <FormSectionWithDots title="Transaction Information">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Vendor <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <SelectInput
@@ -224,7 +224,7 @@ const EditWalletTransaction = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Type <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <SelectInput
@@ -240,7 +240,7 @@ const EditWalletTransaction = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Amount <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <TextInput
@@ -256,7 +256,7 @@ const EditWalletTransaction = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Message <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <textarea
@@ -265,7 +265,7 @@ const EditWalletTransaction = () => {
                   onChange={handleChange}
                   placeholder="Enter Message."
                   rows={3}
-                  className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
+                  className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 ${
                     errors.message ? 'border-red-300 dark:border-red-600 focus:ring-red-500 dark:focus:ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500'
                   }`}
                 />

@@ -37,7 +37,7 @@ export default function StoreSelector({ onSelect, title, description }) {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{title || 'Select Branch'}</h2>
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">{description || 'Choose a specific store outlet to view its associated operational data.'}</p>
+        <p className="text-sm font-medium text-gray-500 mt-1">{description || 'Choose a specific store outlet to view its associated operational data.'}</p>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -45,7 +45,7 @@ export default function StoreSelector({ onSelect, title, description }) {
           <button 
             key={store.id} 
             onClick={() => onSelect(store.id)} 
-            className="text-left bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group relative overflow-hidden flex items-center justify-between"
+            className="text-left bg-white p-4 rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group relative overflow-hidden flex items-center justify-between"
           >
             <div className={`absolute top-0 left-0 w-1.5 h-full ${store.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-red-400'}`} />
             
@@ -57,7 +57,7 @@ export default function StoreSelector({ onSelect, title, description }) {
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight leading-none mb-1.5">{store.name}</h3>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 dark:text-gray-400 uppercase tracking-widest">{store.code}</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 uppercase tracking-widest">{store.code}</span>
                   {store.address && (
                     <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
                       <MapPin size={12} /> {store.address}
@@ -73,7 +73,7 @@ export default function StoreSelector({ onSelect, title, description }) {
           </button>
         ))}
         {stores.length === 0 && (
-          <div className="col-span-full py-10 text-center bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+          <div className="col-span-full py-10 text-center bg-white rounded-xl border border-dashed border-gray-200">
              <Store size={40} className="mx-auto text-gray-300 mb-3" />
              <h3 className="text-lg font-bold text-gray-900 dark:text-white">No Stores Found</h3>
              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Create a store first</p>

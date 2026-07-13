@@ -51,7 +51,7 @@ const ViewProductRating = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Loading rating...</p>
+          <p className="text-xs text-gray-500">Loading rating...</p>
         </div>
       </div>
     );
@@ -61,7 +61,7 @@ const ViewProductRating = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Rating not found</p>
+          <p className="text-gray-500 mb-4">Rating not found</p>
           <button
             onClick={() => navigate('/products/ratings')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -117,7 +117,7 @@ const ViewProductRating = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Rating ID #{rating.id.slice(0, 8)}...
         </h1>
         <BackButton to="/products/ratings" />
@@ -131,73 +131,73 @@ const ViewProductRating = () => {
       {/* Two Cards Side by Side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
         {/* User & Product Information Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2 mb-4">
             <User size={18} className="text-green-600 dark:text-green-400" />
             User & Product information
           </h2>
           
           <div className="space-y-4">
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">User ID</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{rating.userId.slice(0, 8)}...</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">User ID</p>
+              <p className="text-sm text-gray-700">{rating.userId.slice(0, 8)}...</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">User Name</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{userName}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">User Name</p>
+              <p className="text-sm font-semibold text-gray-800">{userName}</p>
             </div>
 
             {userPhone && (
               <div>
-                <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">User Phone</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{userPhone}</p>
+                <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">User Phone</p>
+                <p className="text-sm text-gray-700">{userPhone}</p>
               </div>
             )}
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1 flex items-center gap-1">
                 <Package size={12} />
                 Product ID
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{rating.productId.slice(0, 8)}...</p>
+              <p className="text-sm text-gray-700">{rating.productId.slice(0, 8)}...</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1 flex items-center gap-1">
                 <Package size={12} />
                 Product Name
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{productName}</p>
+              <p className="text-sm text-gray-700">{productName}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1 flex items-center gap-1">
                 <Calendar size={12} />
                 Review Date
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(displayDate)}</p>
+              <p className="text-sm text-gray-700">{formatDate(displayDate)}</p>
             </div>
           </div>
         </div>
 
         {/* Ratings & Reviews Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2 mb-4">
             <Star size={18} className="text-green-600 dark:text-green-400" />
             Ratings & Reviews
           </h2>
           
           <div className="space-y-4">
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Rating</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-2">Rating</p>
               {renderStars(displayRating)}
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Review</p>
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{displayReview}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-2">Review</p>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                <p className="text-sm text-gray-700 leading-relaxed">{displayReview}</p>
               </div>
             </div>
           </div>
@@ -206,8 +206,8 @@ const ViewProductRating = () => {
 
       {/* Review Image Card - Below the two cards */}
       <div className="flex justify-start">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 max-w-[300px] w-full">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 max-w-[300px] w-full">
+          <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2 mb-4">
             <ImageIcon size={18} className="text-green-600 dark:text-green-400" />
             Review Image
           </h2>
@@ -221,13 +221,13 @@ const ViewProductRating = () => {
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                   (e.target as HTMLImageElement).parentElement!.innerHTML = 
-                    '<div class="max-w-[200px] w-[200px] h-48 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center"><span class="text-sm text-gray-500 dark:text-gray-400">No image available</span></div>';
+                    '<div class="max-w-[200px] w-[200px] h-48 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center"><span class="text-sm text-gray-500">No image available</span></div>';
                 }}
               />
             ) : (
-              <div className="max-w-[200px] w-[200px] h-48 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                <ImageIcon size={48} className="text-gray-400 dark:text-gray-500" />
-                <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">No image available</span>
+              <div className="max-w-[200px] w-[200px] h-48 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                <ImageIcon size={48} className="text-gray-400" />
+                <span className="text-sm text-gray-500 ml-2">No image available</span>
               </div>
             )}
           </div>

@@ -28,8 +28,8 @@ export default function ItemWiseReport() {
 
   return (
     <ReportLayout title="Item-wise Sales" icon={Package} activeTab="item-wise" reportData={reportData} isLoading={isLoading}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in duration-500">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
+        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight uppercase">Item-wise Analysis</h3>
             <button onClick={fetchData} className="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all">
               <RotateCcw size={18} />
@@ -47,8 +47,8 @@ export default function ItemWiseReport() {
             <tbody className="divide-y divide-gray-50">
               {Array.isArray(reportData) && reportData.map((item, i) => (
                 <tr key={i} className="hover:bg-gray-50 dark:bg-gray-900/50/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">{item.itemName}</td>
-                  <td className="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-400">{item.totalQty}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-gray-800">{item.itemName}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-gray-600">{item.totalQty}</td>
                   <td className="px-6 py-4 text-sm font-bold text-emerald-600 italic">₹{(item.revenue || 0).toLocaleString()}</td>
                 </tr>
               ))}

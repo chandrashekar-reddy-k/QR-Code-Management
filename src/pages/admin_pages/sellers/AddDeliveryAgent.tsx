@@ -121,7 +121,7 @@ const AddDeliveryAgent = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Add Delivery Agent
         </h1>
         <BackButton to="/delivery-boys/manage" />
@@ -133,14 +133,14 @@ const AddDeliveryAgent = () => {
       </div>
 
       {/* Add Delivery Agent Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         {/* Progress Indicator */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+            <h2 className="text-lg font-bold text-gray-800">
               Add Delivery Agent
             </h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-gray-500">
               Step {currentStep} of {totalSteps}
             </span>
           </div>
@@ -163,7 +163,7 @@ const AddDeliveryAgent = () => {
                         ? "bg-green-600 text-white"
                         : isStepCompleted(step)
                         ? "bg-green-500 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                        : "bg-gray-200 text-gray-600"
                     }`}
                   >
                     {isStepCompleted(step) ? (
@@ -178,7 +178,7 @@ const AddDeliveryAgent = () => {
                         ? "text-green-600 dark:text-green-400"
                         : isStepCompleted(step)
                         ? "text-green-500 dark:text-green-400"
-                        : "text-gray-500 dark:text-gray-400"
+                        : "text-gray-500"
                     }`}
                   >
                     {step === 1 && "Personal Info"}
@@ -189,12 +189,12 @@ const AddDeliveryAgent = () => {
                   </span>
                 </button>
                 {step < totalSteps && (
-                  <div className="flex-1 h-0.5 mx-2 bg-gray-200 dark:bg-gray-700">
+                  <div className="flex-1 h-0.5 mx-2 bg-gray-200">
                     <div
                       className={`h-full transition-all ${
                         step < currentStep || isStepCompleted(step)
                           ? "bg-green-500"
-                          : "bg-gray-200 dark:bg-gray-700"
+                          : "bg-gray-200"
                       }`}
                       style={{
                         width:
@@ -214,9 +214,9 @@ const AddDeliveryAgent = () => {
           {/* Step 1: Personal Information */}
           {currentStep === 1 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <User size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 1: Personal Information
                 </h3>
                 {isStepCompleted(1) && (
@@ -299,9 +299,9 @@ const AddDeliveryAgent = () => {
           {/* Step 2: Address Information */}
           {currentStep === 2 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <MapPin size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 2: Address Information
                 </h3>
                 {isStepCompleted(2) && (
@@ -312,7 +312,7 @@ const AddDeliveryAgent = () => {
               {/* Permanent Address Section */}
               <div className="mb-6">
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900">
                     Permanent Address
                   </h4>
                   <div className="mt-1 border-t border-dashed border-gray-300 dark:border-gray-600" />
@@ -367,7 +367,7 @@ const AddDeliveryAgent = () => {
               {/* Communication Address Section */}
               <div>
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900">
                     Communication Address
                   </h4>
                   <div className="mt-1 border-t border-dashed border-gray-300 dark:border-gray-600" />
@@ -378,9 +378,9 @@ const AddDeliveryAgent = () => {
                       type="checkbox"
                       checked={sameAsAbove}
                       onChange={(e) => setSameAsAbove(e.target.checked)}
-                      className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400 dark:bg-gray-700"
+                      className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400"
                     />
-                    <span className="text-xs text-gray-700 dark:text-gray-300">
+                    <span className="text-xs text-gray-700">
                       Same as Above
                     </span>
                   </label>
@@ -450,9 +450,9 @@ const AddDeliveryAgent = () => {
           {/* Step 3: Education & Experience */}
           {currentStep === 3 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <GraduationCap size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 3: Education & Experience
                 </h3>
                 {isStepCompleted(3) && (
@@ -463,7 +463,7 @@ const AddDeliveryAgent = () => {
               {/* Education Details Section */}
               <div className="mb-6">
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900">
                     Education Details
                   </h4>
                   <div className="mt-1 border-t border-dashed border-gray-300 dark:border-gray-600" />
@@ -509,14 +509,14 @@ const AddDeliveryAgent = () => {
               {/* Experience Details Section */}
               <div className="mb-6">
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900">
                     Experience Details
                   </h4>
                   <div className="mt-1 border-t border-dashed border-gray-300 dark:border-gray-600" />
                 </div>
                 <FormSection variant="white">
                   <div className="mb-4">
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <p className="text-xs font-medium text-gray-700 mb-2">
                       Do you have work experience?
                     </p>
                     <div className="flex items-center gap-4">
@@ -527,9 +527,9 @@ const AddDeliveryAgent = () => {
                           value="yes"
                           checked={hasExperience === "yes"}
                           onChange={(e) => setHasExperience(e.target.value)}
-                          className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:bg-gray-700"
+                          className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 focus:ring-green-500"
                         />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">Yes</span>
+                        <span className="text-xs text-gray-700">Yes</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -538,9 +538,9 @@ const AddDeliveryAgent = () => {
                           value="no"
                           checked={hasExperience === "no"}
                           onChange={(e) => setHasExperience(e.target.value)}
-                          className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:bg-gray-700"
+                          className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 focus:ring-green-500"
                         />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">No</span>
+                        <span className="text-xs text-gray-700">No</span>
                       </label>
                     </div>
                   </div>
@@ -596,15 +596,15 @@ const AddDeliveryAgent = () => {
               {/* Upload Pay Slips Section */}
               <div>
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900">
                     Upload last 6 months pay slips
                   </h4>
                 </div>
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                     isDragging
-                      ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
-                      : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                      ? "border-gray-400 dark:border-gray-500 bg-gray-50"
+                      : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                   }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -623,10 +623,10 @@ const AddDeliveryAgent = () => {
                       <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600 rounded-full flex items-center justify-center mb-3">
                         <Upload size={24} className="text-white" />
                       </div>
-                      <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                      <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                         Drag and Drop or Choose file to upload
                       </p>
-                      <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-[10px] sm:text-xs text-gray-600">
                         supported formats PNG, JPEG, PDF
                       </p>
                     </div>
@@ -639,9 +639,9 @@ const AddDeliveryAgent = () => {
           {/* Step 4: Documents */}
           {currentStep === 4 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <FileText size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 4: Documents
                 </h3>
                 {isStepCompleted(4) && (
@@ -651,7 +651,7 @@ const AddDeliveryAgent = () => {
 
               {/* Documents Section */}
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-4">
                   Documents
                 </h4>
                 <div className="mt-1 border-t border-dashed border-gray-300 dark:border-gray-600 mb-6" />
@@ -660,15 +660,15 @@ const AddDeliveryAgent = () => {
               <div className="space-y-6">
                 {/* Aadhaar Card */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
                     Aadhaar Card
                   </label>
                   <div className="flex items-start gap-4">
                     <div
                       className={`flex-1 border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                         isDragging
-                          ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
-                          : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                          ? "border-gray-400 dark:border-gray-500 bg-gray-50"
+                          : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                       }`}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
@@ -686,10 +686,10 @@ const AddDeliveryAgent = () => {
                           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600 rounded-full flex items-center justify-center mb-3">
                             <Upload size={24} className="text-white" />
                           </div>
-                          <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                          <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                             Drag and Drop or Choose file to upload
                           </p>
-                          <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-[10px] sm:text-xs text-gray-600">
                             supported formats PNG, JPEG, PDF
                           </p>
                         </div>
@@ -700,15 +700,15 @@ const AddDeliveryAgent = () => {
 
                 {/* Pan Card */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
                     Pan Card
                   </label>
                   <div className="flex items-start gap-4">
                     <div
                       className={`flex-1 border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                         isDragging
-                          ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
-                          : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                          ? "border-gray-400 dark:border-gray-500 bg-gray-50"
+                          : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                       }`}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
@@ -726,10 +726,10 @@ const AddDeliveryAgent = () => {
                           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600 rounded-full flex items-center justify-center mb-3">
                             <Upload size={24} className="text-white" />
                           </div>
-                          <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                          <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                             Drag and Drop or Choose file to upload
                           </p>
-                          <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-[10px] sm:text-xs text-gray-600">
                             supported formats PNG, JPEG, PDF
                           </p>
                         </div>
@@ -740,15 +740,15 @@ const AddDeliveryAgent = () => {
 
                 {/* Driving License */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
                     Driving License
                   </label>
                   <div className="flex items-start gap-4">
                     <div
                       className={`flex-1 border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                         isDragging
-                          ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
-                          : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                          ? "border-gray-400 dark:border-gray-500 bg-gray-50"
+                          : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                       }`}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
@@ -766,17 +766,17 @@ const AddDeliveryAgent = () => {
                           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600 rounded-full flex items-center justify-center mb-3">
                             <Upload size={24} className="text-white" />
                           </div>
-                          <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                          <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                             Drag and Drop or Choose file to upload
                           </p>
-                          <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-[10px] sm:text-xs text-gray-600">
                             supported formats PNG, JPEG, PDF
                           </p>
                         </div>
                       </label>
                     </div>
                     {drivingLicensePreview && (
-                      <div className="relative w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <div className="relative w-24 h-24 bg-gray-100 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
                         <img
                           src={drivingLicensePreview}
                           alt="Driving License Preview"
@@ -796,15 +796,15 @@ const AddDeliveryAgent = () => {
 
                 {/* Upload Passport size Photo */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
                     Upload Passport size Photo
                   </label>
                   <div className="flex items-start gap-4">
                     <div
                       className={`flex-1 border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                         isDragging
-                          ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
-                          : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                          ? "border-gray-400 dark:border-gray-500 bg-gray-50"
+                          : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                       }`}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
@@ -822,17 +822,17 @@ const AddDeliveryAgent = () => {
                           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600 rounded-full flex items-center justify-center mb-3">
                             <Upload size={24} className="text-white" />
                           </div>
-                          <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                          <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                             Drag and Drop or Choose file to upload
                           </p>
-                          <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-[10px] sm:text-xs text-gray-600">
                             supported formats PNG, JPEG, PDF
                           </p>
                         </div>
                       </label>
                     </div>
                     {passportPhotoPreview && (
-                      <div className="relative w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <div className="relative w-24 h-24 bg-gray-100 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
                         <img
                           src={passportPhotoPreview}
                           alt="Passport Photo Preview"
@@ -856,9 +856,9 @@ const AddDeliveryAgent = () => {
           {/* Step 5: Bank and Settlement Data */}
           {currentStep === 5 && (
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <CreditCard size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Step 5: Bank and settlement Data
                 </h3>
                 {isStepCompleted(5) && (
@@ -910,14 +910,14 @@ const AddDeliveryAgent = () => {
 
               {/* Cancelled Cheque Upload Section */}
               <div className="mt-6">
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-xs font-medium text-gray-700 mb-2">
                   Cancelled Cheque or Bank Passbook Front Page Upload
                 </label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                     isDragging
-                      ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
-                      : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                      ? "border-gray-400 dark:border-gray-500 bg-gray-50"
+                      : "border-gray-300 dark:border-gray-600 bg-gray-50 hover:border-gray-400 dark:hover:border-gray-500"
                   }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -935,10 +935,10 @@ const AddDeliveryAgent = () => {
                       <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600 rounded-full flex items-center justify-center mb-3">
                         <Upload size={24} className="text-white" />
                       </div>
-                      <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">
+                      <p className="text-xs sm:text-sm font-medium text-gray-800 mb-1.5">
                         Drag and Drop or Choose file to upload
                       </p>
-                      <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-[10px] sm:text-xs text-gray-600">
                         supported formats PNG, JPEG, PDF
                       </p>
                     </div>
@@ -953,9 +953,9 @@ const AddDeliveryAgent = () => {
                     type="checkbox"
                     checked={declaration1}
                     onChange={(e) => setDeclaration1(e.target.checked)}
-                    className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 dark:bg-gray-700 mt-0.5"
+                    className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 mt-0.5"
                   />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">
+                  <span className="text-xs text-gray-700">
                     I hereby declare that all the information provided above is true and correct.
                   </span>
                 </label>
@@ -965,9 +965,9 @@ const AddDeliveryAgent = () => {
                     type="checkbox"
                     checked={declaration2}
                     onChange={(e) => setDeclaration2(e.target.checked)}
-                    className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 dark:bg-gray-700 mt-0.5"
+                    className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 mt-0.5"
                   />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">
+                  <span className="text-xs text-gray-700">
                     I authorize VillagKart to verify my KYC, and banking details.
                   </span>
                 </label>
@@ -976,13 +976,13 @@ const AddDeliveryAgent = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <div className="flex gap-2">
               {currentStep > 1 && (
                 <button
                   type="button"
                   onClick={handlePrevious}
-                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white dark:bg-gray-800"
+                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white"
                 >
                   <ChevronLeft size={14} />
                   Previous
@@ -991,7 +991,7 @@ const AddDeliveryAgent = () => {
               <button
                 type="button"
                 onClick={() => navigate("/delivery-agents/manage")}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white dark:bg-gray-800"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white"
               >
                 Cancel
               </button>

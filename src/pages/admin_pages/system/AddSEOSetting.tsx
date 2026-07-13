@@ -181,7 +181,7 @@ const AddSEOSetting = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditMode ? "Edit SEO Setting" : "Add SEO Setting"}
         </h1>
         <BackButton to="/system/seo-settings" />
@@ -195,7 +195,7 @@ const AddSEOSetting = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
           <FormSectionWithDots title="SEO Configuration">
@@ -230,7 +230,7 @@ const AddSEOSetting = () => {
 
             {/* Schema Markup Textarea */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Schema Markup
               </label>
               <textarea
@@ -238,13 +238,13 @@ const AddSEOSetting = () => {
                 onChange={(e) => handleChange("schemaMarkup", e.target.value)}
                 rows={4}
                 placeholder="Enter JSON-LD schema markup"
-                className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 font-mono resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 font-mono resize-none bg-white text-gray-900"
               />
             </div>
 
             {/* Meta Description Textarea */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Meta Description <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -255,24 +255,24 @@ const AddSEOSetting = () => {
                 required
                 rows={4}
                 placeholder="Enter meta description"
-                className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white text-gray-900"
               />
             </div>
 
             {/* OG Image Upload */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 OG Image{" "}
                 {!isEditMode && <span className="text-red-500">*</span>}
               </label>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+              <p className="text-[10px] text-gray-500 mb-2">
                 Please choose square image of larger than 350px*350px & smaller
                 than 550px*550px.
               </p>
               <div
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700"
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-gray-50"
               >
                 <input
                   type="file"
@@ -310,8 +310,8 @@ const AddSEOSetting = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Upload size={20} className="mx-auto text-gray-400 dark:text-gray-500" />
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <Upload size={20} className="mx-auto text-gray-400" />
+                      <p className="text-xs text-gray-600">
                         Drop Files here or click to upload
                       </p>
                     </div>

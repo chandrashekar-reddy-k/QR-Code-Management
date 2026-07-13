@@ -26,11 +26,11 @@ const AuditRow = memo(({ item, initialQuantity, onQuantityChange }) => {
     <tr className="hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group bg-emerald-50/5">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 shadow-inner flex items-center justify-center no-print">
+          <div className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 shadow-inner flex items-center justify-center no-print">
             {item.product?.isFree ? <Gift size={18} className="text-emerald-500" /> : <Package size={18} className="text-gray-400 group-hover:text-emerald-500" />}
           </div>
           <div className="flex flex-col">
-            <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 line-clamp-1 uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
+            <span className="text-[11px] font-bold text-gray-800 line-clamp-1 uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
             <span className="text-[8px] font-bold text-gray-400 uppercase">{item.product?.skuCode}</span>
           </div>
         </div>
@@ -41,7 +41,7 @@ const AuditRow = memo(({ item, initialQuantity, onQuantityChange }) => {
       <td className="px-6 py-4 text-center">
         <input
           type="number"
-          className="w-20 bg-white dark:bg-gray-800 border border-emerald-200 rounded-lg px-2 py-1.5 text-center text-sm font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none shadow-sm"
+          className="w-20 bg-white border border-emerald-200 rounded-lg px-2 py-1.5 text-center text-sm font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none shadow-sm"
           value={localQty}
           onChange={(e) => setLocalQty(e.target.value)}
           onBlur={handleBlur}
@@ -113,7 +113,7 @@ const VehicleStockSection = ({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl h-64 border border-gray-200 dark:border-gray-700 shadow-sm" />
+          <div key={i} className="bg-white rounded-xl h-64 border border-gray-200 shadow-sm" />
         ))}
       </div>
     );
@@ -126,7 +126,7 @@ const VehicleStockSection = ({
     const inventory = allVehiclesStock[v.id];
     if (!inventory && loadingTracking) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm animate-in fade-in duration-500">
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 bg-white rounded-xl border border-gray-200 shadow-sm animate-in fade-in duration-500">
           <div className="w-12 h-12 border-4 border-emerald-50 border-t-emerald-600 rounded-full animate-spin" />
           <div className="flex flex-col items-center gap-1">
             <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em]">Synchronizing</p>
@@ -177,13 +177,13 @@ const VehicleStockSection = ({
         <div className="flex items-center justify-between no-print">
           <button
             onClick={() => setViewingVehicleId(null)}
-            className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-emerald-600 transition-colors font-bold text-sm bg-white dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm w-fit"
+            className="flex items-center gap-2 text-gray-500 hover:text-emerald-600 transition-colors font-bold text-sm bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm w-fit"
           >
             ← Back to Vehicles
           </button>
           <div className="flex items-center gap-2">
             <button onClick={() => exportStockToExcel(v, filteredActiveStock)} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><FileDown size={14} /> Excel</button>
-            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"><Printer size={14} /> Print</button>
+            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900/50 text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200 shadow-sm"><Printer size={14} /> Print</button>
           </div>
         </div>
 
@@ -198,8 +198,8 @@ const VehicleStockSection = ({
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col gap-6">
-            <div className="flex flex-col md:flex-row justify-between md:items-center border-b border-gray-200 dark:border-gray-700 pb-5 gap-4">
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row justify-between md:items-center border-b border-gray-200 pb-5 gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-xl shadow-emerald-600/20">
                   <Truck size={28} />
@@ -216,27 +216,27 @@ const VehicleStockSection = ({
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3 no-print">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-3 no-print">
                 <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm uppercase tracking-widest">
                   <Package size={18} className="text-emerald-500" />
                   Loaded Inventory
                 </h4>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 focus-within:bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all min-w-[200px] md:min-w-[300px]">
+                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 px-3 py-1.5 rounded-xl border border-gray-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all min-w-[200px] md:min-w-[300px]">
                     <Search size={14} className="text-gray-400" />
                     <input
                       type="text"
                       placeholder="Search items..."
                       value={vehicleSearch}
                       onChange={(e) => setVehicleSearch(e.target.value)}
-                      className="bg-transparent text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:outline-none w-full"
+                      className="bg-transparent text-[10px] font-bold text-gray-700 focus:outline-none w-full"
                     />
                     <button
                       onClick={() => {
                         setScannerTarget('tracking');
                         setShowScanner(true);
                       }}
-                      className="p-1 rounded-lg hover:bg-white dark:bg-gray-800 text-gray-400 hover:text-emerald-600 transition-all"
+                      className="p-1 rounded-lg hover:bg-white text-gray-400 hover:text-emerald-600 transition-all"
                       title="Scan Barcode"
                     >
                       <Barcode size={14} />
@@ -247,7 +247,7 @@ const VehicleStockSection = ({
                       <>
                         <button
                           onClick={() => { setIsAuditMode(false); setAuditQuantities({}); }}
-                          className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-wider hover:bg-gray-50 dark:bg-gray-900/50 transition-colors"
+                          className="px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-wider hover:bg-gray-50 dark:bg-gray-900/50 transition-colors"
                         >
                           Cancel
                         </button>
@@ -278,11 +278,11 @@ const VehicleStockSection = ({
               </div>
 
               <div className="hidden print:block mb-4">
-                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">Live inventory of products currently held in the vehicle.</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase">Live inventory of products currently held in the vehicle.</p>
               </div>
 
               {filteredActiveStock.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200">
                   <Package size={32} className="mx-auto text-gray-300 mb-3" />
                   <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No active stock loaded</p>
                 </div>
@@ -295,13 +295,13 @@ const VehicleStockSection = ({
                       const diff = actualQty - systemQty;
 
                       return (
-                        <div key={`track-item-mob-${item.id}`} className={`flex items-center justify-between p-4 transition-colors rounded-lg border group ${isAuditMode ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 dark:bg-gray-900/50 hover:bg-emerald-50/50 border-gray-200 dark:border-gray-700'}`}>
+                        <div key={`track-item-mob-${item.id}`} className={`flex items-center justify-between p-4 transition-colors rounded-lg border group ${isAuditMode ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 dark:bg-gray-900/50 hover:bg-emerald-50/50 border-gray-200'}`}>
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center">
                               {item.product?.isFree ? <Gift size={18} className="text-emerald-500" /> : <Package size={18} className="text-gray-400 group-hover:text-emerald-500" />}
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-xs font-bold text-gray-800 dark:text-gray-200 line-clamp-1 leading-tight uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
+                              <span className="text-xs font-bold text-gray-800 line-clamp-1 leading-tight uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
                               {isAuditMode && (
                                 <span className={`text-[9px] font-bold uppercase tracking-tighter mt-0.5 ${diff === 0 ? 'text-gray-400' : diff > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                   Diff: {diff > 0 ? `+${diff}` : diff}
@@ -315,7 +315,7 @@ const VehicleStockSection = ({
                                 <span className="text-[8px] font-bold text-gray-400 uppercase">Actual Qty</span>
                                 <input
                                   type="number"
-                                  className="w-16 bg-white dark:bg-gray-800 border border-emerald-300 rounded-lg px-2 py-1 text-center text-xs font-bold text-emerald-700"
+                                  className="w-16 bg-white border border-emerald-300 rounded-lg px-2 py-1 text-center text-xs font-bold text-emerald-700"
                                   defaultValue={auditQuantities[item.productId] ?? ''}
                                   onBlur={(e) => setAuditQuantities(prev => ({
                                     ...prev,
@@ -326,7 +326,7 @@ const VehicleStockSection = ({
                             ) : (
                               <>
                                 <span className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{item.quantity}</span>
-                                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-0.5">₹{(item.quantity * parseFloat(item.product?.price || 0)).toLocaleString()}</span>
+                                <span className="text-[10px] font-bold text-gray-500 mt-0.5">₹{(item.quantity * parseFloat(item.product?.price || 0)).toLocaleString()}</span>
                               </>
                             )}
                           </div>
@@ -335,7 +335,7 @@ const VehicleStockSection = ({
                     })}
                   </div>
 
-                  <div className="hidden md:block print:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+                  <div className="hidden md:block print:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
                     <table className="w-full text-left border-collapse table-fixed">
                       <thead>
                         <tr className="bg-gray-50 dark:bg-gray-900/50/50 text-[9px] font-bold uppercase tracking-widest text-gray-400">
@@ -375,11 +375,11 @@ const VehicleStockSection = ({
                             <tr key={`track-table-pc-${item.id}`} className="hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group">
                               <td className="px-4 py-2">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 shadow-inner flex items-center justify-center no-print shrink-0">
+                                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 shadow-inner flex items-center justify-center no-print shrink-0">
                                     {item.product?.isFree ? <Gift size={14} className="text-emerald-500" /> : <Package size={14} className="text-gray-400 group-hover:text-emerald-500" />}
                                   </div>
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 uppercase tracking-tight truncate">{item.product?.name || 'Unknown'}</span>
+                                    <span className="text-[11px] font-bold text-gray-800 uppercase tracking-tight truncate">{item.product?.name || 'Unknown'}</span>
                                     <span className="text-[8px] font-bold text-gray-400 uppercase">{item.product?.skuCode}</span>
                                   </div>
                                 </div>
@@ -388,7 +388,7 @@ const VehicleStockSection = ({
                                 <span className="text-[10px] font-bold text-gray-400">{systemQty}</span>
                               </td>
                               <td className="px-3 py-2 text-center">
-                                <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400">₹{price}</span>
+                                <span className="text-[9px] font-bold text-gray-500">₹{price}</span>
                               </td>
                               <td className="pr-4 py-2 text-right">
                                 <span className="text-[10px] font-bold text-emerald-700">
@@ -408,7 +408,7 @@ const VehicleStockSection = ({
                         <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest pl-1">Audit Observation / Remarks</label>
                         <textarea
                           placeholder="Enter any discrepancies or notes here..."
-                          className="w-full bg-white dark:bg-gray-800 border border-amber-200 rounded-lg px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-amber-500/20 focus:outline-none resize-none"
+                          className="w-full bg-white border border-amber-200 rounded-lg px-4 py-3 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-amber-500/20 focus:outline-none resize-none"
                           rows={2}
                           value={auditRemark}
                           onChange={(e) => setAuditRemark(e.target.value)}
@@ -421,12 +421,12 @@ const VehicleStockSection = ({
                     <div className="flex justify-between px-10 gap-20">
                       <div className="text-center flex-1">
                         <div className="border-t border-gray-400 pt-2">
-                          <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Authorized Auditor</p>
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Authorized Auditor</p>
                         </div>
                       </div>
                       <div className="text-center flex-1">
                         <div className="border-t border-gray-400 pt-2">
-                          <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Agent / Custodian</p>
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Agent / Custodian</p>
                         </div>
                       </div>
                     </div>
@@ -445,7 +445,7 @@ const VehicleStockSection = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-x-auto scrollbar-thin">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto scrollbar-thin">
         <table className="w-full text-left border-collapse min-w-[800px]">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-900/50/50">
@@ -490,7 +490,7 @@ const VehicleStockSection = ({
                       </div>
                     ) : (
                       <div className="flex flex-col items-center">
-                        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{activeStock.length} SKUs</span>
+                        <span className="text-sm font-bold text-gray-700">{activeStock.length} SKUs</span>
                         <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">₹{totalValue.toLocaleString('en-IN')}</span>
                       </div>
                     )}
@@ -532,7 +532,7 @@ const VehicleStockSection = ({
             <div
               key={`track-card-${v.id}`}
               onClick={() => setViewingVehicleId(v.id)}
-              className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/5 transition-all cursor-pointer group flex flex-col gap-4"
+              className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/5 transition-all cursor-pointer group flex flex-col gap-4"
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gray-50 dark:bg-gray-900/50 group-hover:bg-emerald-600 rounded-lg flex items-center justify-center text-gray-400 group-hover:text-white transition-all shrink-0 shadow-inner">
@@ -553,7 +553,7 @@ const VehicleStockSection = ({
                   <>
                     <div className="flex flex-col">
                       <span className="text-[9px] font-bold uppercase text-gray-400 tracking-widest">Stock Items</span>
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-none mt-1">{activeStock.length} SKUs</span>
+                      <span className="text-sm font-bold text-gray-700 leading-none mt-1">{activeStock.length} SKUs</span>
                     </div>
                     <div className="flex flex-col items-end">
                       <span className="text-[9px] font-bold uppercase text-emerald-600/70 tracking-widest">Last Audit</span>

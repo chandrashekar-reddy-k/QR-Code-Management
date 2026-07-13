@@ -71,9 +71,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 overflow-x-hidden relative">
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-      <div className="flex-1 md:ml-72 min-w-0 overflow-x-hidden h-screen overflow-y-auto">
+      <div className="flex-1 md:ml-72 min-w-0 overflow-x-hidden h-screen overflow-y-auto bg-gray-100 dark:bg-gray-900">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="p-2 md:p-4 overflow-x-hidden">
+        <main className="p-2 md:p-4 overflow-x-hidden bg-gray-100 dark:bg-gray-900 min-h-screen">
           <ErrorBoundary>
             <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
           </ErrorBoundary>

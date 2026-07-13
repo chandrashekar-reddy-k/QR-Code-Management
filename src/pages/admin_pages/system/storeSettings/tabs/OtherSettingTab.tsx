@@ -23,7 +23,7 @@ const OtherSettingTab = ({ formData, onChange }: OtherSettingTabProps) => {
           min="1"
           required
         />
-        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">( Maximum items user can add to cart at once )</p>
+        <p className="text-[10px] text-gray-500 mt-1">( Maximum items user can add to cart at once )</p>
       </div>
 
       {/* Minimum Order Amount */}
@@ -37,7 +37,7 @@ const OtherSettingTab = ({ formData, onChange }: OtherSettingTabProps) => {
           min="0"
           step="0.01"
         />
-        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">( Below this user will not allowed to place order )</p>
+        <p className="text-[10px] text-gray-500 mt-1">( Below this user will not allowed to place order )</p>
       </div>
 
       {/* Low stock limit */}
@@ -50,7 +50,7 @@ const OtherSettingTab = ({ formData, onChange }: OtherSettingTabProps) => {
           onChange={onChange}
           min="0"
         />
-        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">( Product will be considered as low stock if stock goes below this limit )</p>
+        <p className="text-[10px] text-gray-500 mt-1">( Product will be considered as low stock if stock goes below this limit )</p>
       </div>
     </div>
   );

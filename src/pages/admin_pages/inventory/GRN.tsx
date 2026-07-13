@@ -223,7 +223,7 @@ const GRN = () => {
   return (
     <>
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <DataTable
           data={sortedGRNs}
           columns={[
@@ -233,7 +233,7 @@ const GRN = () => {
               sortable: true,
               render: (grn: ApiGRN) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{grn.grnCode}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{grn.grnCode}</span>
                 </div>
               ),
             },
@@ -243,7 +243,7 @@ const GRN = () => {
               sortable: true,
               render: (grn: ApiGRN) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{grn.supplier}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{grn.supplier}</span>
                 </div>
               ),
             },
@@ -253,7 +253,7 @@ const GRN = () => {
               sortable: true,
               render: (grn: ApiGRN) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{getLocationName(grn.location)}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{getLocationName(grn.location)}</span>
                 </div>
               ),
             },
@@ -282,7 +282,7 @@ const GRN = () => {
               sortable: true,
               render: (grn: ApiGRN) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{formatDate(grn.receivedAt)}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{formatDate(grn.receivedAt)}</span>
                 </div>
               ),
             },
@@ -292,7 +292,7 @@ const GRN = () => {
               sortable: true,
               render: (grn: ApiGRN) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{grn.linkedPO || '-'}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{grn.linkedPO || '-'}</span>
                 </div>
               ),
             },
@@ -306,10 +306,10 @@ const GRN = () => {
 
         {/* Pagination */}
         {sortedGRNs.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
                   <select
                     value={itemsPerPage.toString()}
@@ -317,7 +317,7 @@ const GRN = () => {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                   >
                     <option value="10">10</option>
                     <option value="25">25</option>
@@ -325,7 +325,7 @@ const GRN = () => {
                     <option value="100">100</option>
                   </select>
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing results <strong>{Math.min((currentPage - 1) * itemsPerPage + 1, sortedGRNs.length)}</strong> of <strong>{sortedGRNs.length}</strong>
                 </span>
               </div>
@@ -342,27 +342,27 @@ const GRN = () => {
       {/* Create GRN Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">Create GRN</h2>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-800">Create GRN</h2>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Supplier *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Supplier *</label>
                 <input
                   type="text"
                   value={formData.supplier}
                   onChange={(e) => setFormData((prev) => ({ ...prev, supplier: e.target.value }))}
                   placeholder="Enter supplier name"
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Location *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Location *</label>
                 <select
                   value={formData.locationCode}
                   onChange={(e) => setFormData((prev) => ({ ...prev, locationCode: e.target.value }))}
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                 >
                   <option value="">Select location</option>
                   {locations.map((loc) => (
@@ -371,27 +371,27 @@ const GRN = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Linked PO</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Linked PO</label>
                 <input
                   type="text"
                   value={formData.linkedPO}
                   onChange={(e) => setFormData((prev) => ({ ...prev, linkedPO: e.target.value }))}
                   placeholder="PO number (optional)"
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
               <div>
                 <button
                   type="button"
                   onClick={addLine}
-                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-xs font-medium"
+                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-xs font-medium"
                 >
                   Add Line
                 </button>
                 {formData.lines.length > 0 && (
                   <div className="mt-2 space-y-2">
                     {formData.lines.map((line, idx) => (
-                      <div key={idx} className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-xs text-gray-800 dark:text-gray-200">
+                      <div key={idx} className="p-2 bg-gray-50 rounded text-xs text-gray-800">
                         {line.productName} - Expected: {line.expectedQty}, Received: {line.receivedQty}
                       </div>
                     ))}
@@ -405,7 +405,7 @@ const GRN = () => {
                     setShowCreateModal(false);
                     setFormData({ supplier: '', locationCode: '', linkedPO: '', lines: [] });
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium"
                 >
                   Cancel
                 </button>

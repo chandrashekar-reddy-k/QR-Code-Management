@@ -13,7 +13,7 @@ export default function EscalatedOrders() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 mt-4">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
             Warehouse Escalated Orders
             <AlertOctagon className="text-rose-500 animate-bounce" size={24} />
           </h1>
@@ -22,9 +22,9 @@ export default function EscalatedOrders() {
       </div>
 
       {/* Main Table / List */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
-          <h3 className="font-semibold text-gray-800 dark:text-gray-200">Active SLA Breach Escalations</h3>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <div className="p-4 border-b border-gray-200 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
+          <h3 className="font-semibold text-gray-800">Active SLA Breach Escalations</h3>
           <span className="text-xs text-rose-500 font-bold bg-rose-50 dark:bg-rose-950/20 px-2 py-0.5 rounded-full">
             {items.length} Escalations Active
           </span>
@@ -33,7 +33,7 @@ export default function EscalatedOrders() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase bg-gray-100 dark:bg-gray-900">
+              <tr className="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase bg-gray-100 dark:bg-gray-900">
                 <th className="p-4">Fulfillment Order No</th>
                 <th className="p-4">Allocated At</th>
                 <th className="p-4">Elapsed Time</th>
@@ -61,10 +61,10 @@ export default function EscalatedOrders() {
               ) : (
                 items.map((esc: any) => (
                   <tr key={esc.id} className="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-                    <td className="p-4 font-mono text-sm text-gray-900 dark:text-gray-100">
+                    <td className="p-4 font-mono text-sm text-gray-900">
                       {esc.fulfillmentOrder?.fulfillmentOrderNo || esc.fulfillmentOrderId}
                     </td>
-                    <td className="p-4 text-xs text-gray-600 dark:text-gray-400">
+                    <td className="p-4 text-xs text-gray-600">
                       {new Date(esc.allocatedAt).toLocaleString()}
                     </td>
                     <td className="p-4 text-sm font-semibold text-rose-500 font-mono">

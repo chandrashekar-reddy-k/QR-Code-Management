@@ -87,7 +87,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 dark:text-gray-400 font-bold text-sm uppercase tracking-widest">Loading Route Mappings...</p>
+        <p className="text-gray-500 font-bold text-sm uppercase tracking-widest">Loading Route Mappings...</p>
       </div>
     );
   }
@@ -107,7 +107,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
               placeholder="Search assignments..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm"
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm"
             />
           </div>
           <button 
@@ -122,13 +122,13 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filtered.length === 0 ? (
-          <div className="col-span-full py-20 text-center bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+          <div className="col-span-full py-20 text-center bg-white rounded-xl border border-dashed border-gray-200">
             <Map size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-xs">No route mappings found</p>
+            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">No route mappings found</p>
           </div>
         ) : (
           filtered.map(assignment => (
-            <div key={assignment.id} className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all group flex flex-col gap-6 relative overflow-hidden">
+            <div key={assignment.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all group flex flex-col gap-6 relative overflow-hidden">
               <button 
                 onClick={() => handleDelete(assignment.id)}
                 className="absolute top-6 right-6 p-2 text-gray-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100"
@@ -136,7 +136,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
                 <Trash2 size={16} />
               </button>
 
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4 pr-8">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-4 pr-8">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                     <MapPin size={20} />
@@ -171,7 +171,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-1.5">
                   <Calendar size={12} className="text-gray-400" />
-                  <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
                     Active on: {Object.entries(assignment.schedule || {}).filter(([_, s]) => s.morning || s.evening).map(([d]) => d.substring(0, 3)).join(', ') || 'N/A'}
                   </span>
                 </div>
@@ -188,10 +188,10 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
       {showAssignModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
-          <div className="relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-emerald-50/50">
+          <div className="relative bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 border-b border-gray-200 flex justify-between items-center bg-emerald-50/50">
                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center text-emerald-600 shadow-sm">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center text-emerald-600 shadow-sm">
                     <MapPin size={24} />
                   </div>
                   <div>
@@ -199,7 +199,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
                     <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Deploy vehicle to operational area</p>
                   </div>
                </div>
-               <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-white dark:bg-gray-800 rounded-xl text-gray-400 transition-colors">
+               <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-white rounded-xl text-gray-400 transition-colors">
                  <X size={20} />
                </button>
             </div>
@@ -215,7 +215,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
                       const v = vehicles.find(vh => vh.id === e.target.value);
                       setNewAssignment(p => ({ ...p, vehicleId: e.target.value, userId: v?.assignedUserId || '' }));
                     }}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                   >
                     <option value="">Choose a vehicle...</option>
                     {vehicles.map(v => (
@@ -230,7 +230,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
                     required
                     value={newAssignment.routeId}
                     onChange={(e) => setNewAssignment(p => ({ ...p, routeId: e.target.value }))}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                   >
                     <option value="">Choose a route...</option>
                     {routes.map(r => (
@@ -254,7 +254,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
                           }
                         }))}
                         className={`py-2 rounded-xl text-[9px] font-bold uppercase transition-all border ${
-                          newAssignment.schedule[day].morning ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400'
+                          newAssignment.schedule[day].morning ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-white border-gray-200 text-gray-400'
                         }`}
                       >
                         {day.substring(0, 3)}
@@ -268,7 +268,7 @@ export default function RouteMappingSection({ storeId, vehicles, users }) {
                 <button
                   type="button"
                   onClick={() => setShowAssignModal(false)}
-                  className="flex-1 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                  className="flex-1 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-500 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
                 >
                   Cancel
                 </button>

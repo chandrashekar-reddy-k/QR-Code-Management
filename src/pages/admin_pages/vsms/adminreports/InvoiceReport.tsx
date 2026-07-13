@@ -28,8 +28,8 @@ export default function InvoiceReport() {
 
   return (
     <ReportLayout title="Invoice Report" icon={FileText} activeTab="invoices" reportData={reportData} isLoading={isLoading}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in duration-500">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
+          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight uppercase">Recent Invoices Audit</h3>
               <div className="px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-widest">Last 50 Entries</div>
           </div>
@@ -47,8 +47,8 @@ export default function InvoiceReport() {
                   <tbody className="divide-y divide-gray-50">
                       {Array.isArray(reportData) && reportData.map((ord, i) => (
                           <tr key={i} className="hover:bg-gray-50 dark:bg-gray-900/50 transition-colors">
-                              <td className="px-6 py-4 text-xs font-bold text-gray-800 dark:text-gray-200 tracking-tighter">{ord.displayId}</td>
-                              <td className="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-400">{ord.customerName || 'Walk-in'}</td>
+                              <td className="px-6 py-4 text-xs font-bold text-gray-800 tracking-tighter">{ord.displayId}</td>
+                              <td className="px-6 py-4 text-sm font-bold text-gray-600">{ord.customerName || 'Walk-in'}</td>
                               <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white italic">₹{(ord.totalAmount || 0).toLocaleString()}</td>
                               <td className="px-6 py-4"><span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${ord.paymentMode === 'CASH' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>{ord.paymentMode}</span></td>
                               <td className="px-6 py-4"><span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${ord.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{ord.status}</span></td>

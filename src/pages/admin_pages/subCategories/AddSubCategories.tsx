@@ -681,17 +681,17 @@ const AddSubCategories = () => {
 
   return (
     <div>
-      <div className="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
+      <div className="mb-4 bg-white rounded-lg shadow-md border border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-blue-900 dark:text-gray-100">
+            <h1 className="text-xl font-bold text-blue-900">
               {showForm
                 ? editingId
                   ? "Edit Sub Category"
                   : "Add Sub Category"
                 : "Sub-Categories"}
             </h1>
-            <p className="text-blue-700 dark:text-gray-400 text-xs mt-0.5">
+            <p className="text-blue-700 text-xs mt-0.5">
               {showForm
                 ? editingId
                   ? "Update sub category information"
@@ -753,7 +753,7 @@ const AddSubCategories = () => {
 
       {/* Search, Refresh, Import/Export Bar */}
       {!showForm && (
-        <div className="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
+        <div className="mb-4 bg-white rounded-lg shadow-md border border-gray-200 p-4">
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
             <div className="flex-1 w-full sm:w-auto">
               <SearchInput
@@ -767,7 +767,7 @@ const AddSubCategories = () => {
                 onClick={fetchSubCategories}
                 disabled={loading}
                 variant="ghost"
-                className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white dark:bg-gray-800 disabled:opacity-50"
+                className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
                 title="Refresh"
               >
                 <RefreshCw
@@ -801,14 +801,14 @@ const AddSubCategories = () => {
 
       {/* Sub Categories Table */}
       {!showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
           {loading ? (
             <div className="p-8 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Loading sub categories...</p>
+              <p className="text-xs text-gray-500">Loading sub categories...</p>
             </div>
           ) : getSortedSubCategories().length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              <p className="text-xs text-gray-500 mb-3">
                 {searchTerm
                   ? "No sub categories found matching your search"
                   : "No sub categories found"}
@@ -826,7 +826,7 @@ const AddSubCategories = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                  <tr className="bg-gray-50 border-b border-gray-200 dark:border-gray-600">
                     <SortableTableHeader
                       field="id"
                       label="ID"
@@ -835,7 +835,7 @@ const AddSubCategories = () => {
                       onSort={handleSort}
                     />
                     <th className="px-3 py-2 text-left">
-                      <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase">
+                      <span className="text-[10px] font-semibold text-gray-700 uppercase">
                         Image
                       </span>
                     </th>
@@ -868,7 +868,7 @@ const AddSubCategories = () => {
                       onSort={handleSort}
                     />
                     <th className="px-3 py-2 text-left">
-                      <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase">
+                      <span className="text-[10px] font-semibold text-gray-700 uppercase">
                         Actions
                       </span>
                     </th>
@@ -878,9 +878,9 @@ const AddSubCategories = () => {
                   {getSortedSubCategories().map((subCategory) => (
                     <tr
                       key={subCategory.id}
-                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <td className="px-3 py-2 text-xs font-medium text-gray-800 dark:text-gray-200">
+                      <td className="px-3 py-2 text-xs font-medium text-gray-800">
                         {subCategory.id}
                       </td>
                       <td className="px-3 py-2">
@@ -891,18 +891,18 @@ const AddSubCategories = () => {
                             className="w-10 h-10 object-cover rounded"
                           />
                         ) : (
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                          <span className="text-[10px] text-gray-400">
                             No image
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
+                      <td className="px-3 py-2 text-xs text-gray-700">
                         {subCategory.parentName}
                       </td>
-                      <td className="px-3 py-2 text-xs font-semibold text-gray-800 dark:text-gray-200">
+                      <td className="px-3 py-2 text-xs font-semibold text-gray-800">
                         {subCategory.name}
                       </td>
-                      <td className="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
+                      <td className="px-3 py-2 text-xs text-gray-700">
                         {subCategory.subtitle}
                       </td>
                       <td className="px-3 py-2">
@@ -910,7 +910,7 @@ const AddSubCategories = () => {
                           className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                             subCategory.status === "active"
                               ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                              : "bg-gray-100 text-gray-700"
                           }`}
                         >
                           {subCategory.status}
@@ -943,13 +943,13 @@ const AddSubCategories = () => {
 
       {/* Add Sub Category Form */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4 max-w-3xl mx-auto">
+        <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 max-w-3xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information Section */}
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <FolderTree size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Basic Information
                 </h3>
               </div>
@@ -992,7 +992,7 @@ const AddSubCategories = () => {
                   value={formData.slug}
                   onChange={handleChange}
                   placeholder="Auto-generated from sub category name"
-                  className="bg-gray-50 dark:bg-gray-700"
+                  className="bg-gray-50"
                   readOnly
                   error={errors.slug}
                 />
@@ -1013,17 +1013,17 @@ const AddSubCategories = () => {
 
             {/* Image Upload Section */}
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <ImageIcon size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   Sub Category Image
                 </h3>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Image {!editingId && <span className="text-red-500 dark:text-red-400">*</span>}
                 </label>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                <p className="text-[10px] text-gray-500 mb-2">
                   Please choose square image of larger than 350px*350px &
                   smaller than 550px*550px.
                 </p>
@@ -1036,11 +1036,11 @@ const AddSubCategories = () => {
                       document.getElementById("image-upload")?.click()
                     }
                   >
-                    <Upload className="mx-auto text-gray-400 dark:text-gray-500 mb-2" size={20} />
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    <Upload className="mx-auto text-gray-400 mb-2" size={20} />
+                    <p className="text-xs text-gray-600 mb-1">
                       Drop Files here or click to upload
                     </p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <p className="text-[10px] text-gray-500">
                       PNG, JPG, GIF up to 10MB
                     </p>
                     <input
@@ -1077,9 +1077,9 @@ const AddSubCategories = () => {
 
             {/* SEO & Meta Information Section */}
             <div>
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
                 <Search size={16} className="text-green-600 dark:text-green-400" />
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">
                   SEO & Meta Information
                 </h3>
               </div>
@@ -1106,7 +1106,7 @@ const AddSubCategories = () => {
 
                 {/* Schema Markup */}
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
                     Schema Markup
                   </label>
                   <textarea
@@ -1115,13 +1115,13 @@ const AddSubCategories = () => {
                     onChange={handleChange}
                     placeholder="Enter schema markup"
                     rows={3}
-                    className="w-full px-3 py-1.5 text-xs border border-green-300 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 dark:focus:border-green-600 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    className="w-full px-3 py-1.5 text-xs border border-green-300 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 dark:focus:border-green-600 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
 
                 {/* Meta Description */}
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
                     Meta Description
                   </label>
                   <textarea
@@ -1130,7 +1130,7 @@ const AddSubCategories = () => {
                     onChange={handleChange}
                     placeholder="Enter meta description"
                     rows={3}
-                    className="w-full px-3 py-1.5 text-xs border border-green-300 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 dark:focus:border-green-600 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    className="w-full px-3 py-1.5 text-xs border border-green-300 dark:border-green-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 dark:focus:border-green-600 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
               </div>
@@ -1144,7 +1144,7 @@ const AddSubCategories = () => {
                   setShowForm(false);
                   resetForm();
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white dark:bg-gray-800"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs font-medium bg-white"
               >
                 Cancel
               </button>

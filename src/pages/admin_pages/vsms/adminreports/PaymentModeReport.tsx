@@ -34,7 +34,7 @@ export default function PaymentModeReport() {
   return (
     <ReportLayout title="Payment Mode" icon={CreditCard} activeTab="payment-mode" reportData={reportData} isLoading={isLoading}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-500">
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col items-center">
+          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-8 self-start uppercase">Transaction Channels</h3>
               <div className="h-[250px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -47,13 +47,13 @@ export default function PaymentModeReport() {
                   </ResponsiveContainer>
               </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
+          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm space-y-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-4 uppercase">Channel Breakdown</h3>
               {pieData.map((d, i) => (
-                  <div key={d.name} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700">
+                  <div key={d.name} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200">
                       <div className="flex items-center gap-3">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">{d.name}</span>
+                          <span className="text-sm font-bold text-gray-700 uppercase tracking-widest">{d.name}</span>
                       </div>
                       <span className="text-lg font-bold text-gray-900 dark:text-white italic">₹{(d.value || 0).toLocaleString()}</span>
                   </div>

@@ -118,7 +118,7 @@ const ViewHomeSlider = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">Loading home slider...</p>
+          <p className="text-gray-500">Loading home slider...</p>
         </div>
       </div>
     );
@@ -128,7 +128,7 @@ const ViewHomeSlider = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Home slider not found</p>
+          <p className="text-gray-500 mb-4">Home slider not found</p>
           <button
             onClick={() => navigate("/home-sliders/manage")}
             className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
@@ -144,7 +144,7 @@ const ViewHomeSlider = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Home Slider Details
         </h1>
         <BackButton to="/home-sliders/manage" />
@@ -156,40 +156,40 @@ const ViewHomeSlider = () => {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <Sliders size={18} className="text-green-600 dark:text-green-400" />
               Basic Information
             </h2>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">
                 ID
               </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{slider.id}</p>
+              <p className="text-sm font-semibold text-gray-800">{slider.id}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">
                 Name
               </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <p className="text-sm font-semibold text-gray-800">
                 {slider.name}
               </p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">
                 Type
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{slider.type}</p>
+              <p className="text-sm text-gray-700">{slider.type}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">
                 Status
               </p>
               <Badge status={slider.status} size="sm" />
@@ -198,7 +198,7 @@ const ViewHomeSlider = () => {
 
           {/* Image Section */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <ImageIcon size={18} className="text-green-600 dark:text-green-400" />
               Home Slider Image
             </h2>
@@ -208,12 +208,12 @@ const ViewHomeSlider = () => {
                 <img
                   src={slider.image}
                   alt={slider.name}
-                  className="max-w-full w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700 object-cover"
+                  className="max-w-full w-full h-auto rounded-lg border border-gray-200 object-cover"
                 />
               </div>
             ) : (
-              <div className="w-full h-64 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-600">
-                <p className="text-sm text-gray-500 dark:text-gray-400">No image available</p>
+              <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-600">
+                <p className="text-sm text-gray-500">No image available</p>
               </div>
             )}
           </div>

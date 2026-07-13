@@ -24,7 +24,7 @@ const CreateItemView = ({
       <div className="flex items-center justify-between">
         <button
           onClick={() => setIsCreateView(false)}
-          className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-emerald-600 transition-colors font-bold text-sm bg-white dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
+          className="flex items-center gap-2 text-gray-500 hover:text-emerald-600 transition-colors font-bold text-sm bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm"
         >
           <ArrowLeft size={18} />
           Back to List
@@ -35,17 +35,17 @@ const CreateItemView = ({
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div className="flex items-center border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50/30">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="flex items-center border-b border-gray-200 bg-gray-50 dark:bg-gray-900/50/30">
           <button
             onClick={() => setModalTab('info')}
-            className={`flex-1 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${modalTab === 'info' ? 'bg-white dark:bg-gray-800 text-emerald-600 border-b-2 border-emerald-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
+            className={`flex-1 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${modalTab === 'info' ? 'bg-white text-emerald-600 border-b-2 border-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
             <Info size={16} /> Basic Information
           </button>
           <button
             onClick={() => setModalTab('price')}
-            className={`flex-1 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${modalTab === 'price' ? 'bg-white dark:bg-gray-800 text-emerald-600 border-b-2 border-emerald-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
+            className={`flex-1 py-5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${modalTab === 'price' ? 'bg-white text-emerald-600 border-b-2 border-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
             <Package size={16} /> Pricing & Stock
           </button>
@@ -57,7 +57,7 @@ const CreateItemView = ({
               <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] pl-1">Product Visual</label>
-                  <div className="relative group aspect-square max-w-[200px] bg-gray-50 dark:bg-gray-900/50 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 overflow-hidden transition-all hover:border-emerald-300 flex items-center justify-center">
+                  <div className="relative group aspect-square max-w-[200px] bg-gray-50 dark:bg-gray-900/50 rounded-xl border-2 border-dashed border-gray-200 overflow-hidden transition-all hover:border-emerald-300 flex items-center justify-center">
                     {previewUrl ? (
                       <img src={previewUrl} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     ) : (
@@ -78,7 +78,7 @@ const CreateItemView = ({
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Display Name *</label>
-                    <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 focus-within:bg-white dark:bg-gray-800 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
+                    <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
                       <Package size={16} className="text-gray-300" />
                       <input
                         type="text"
@@ -92,7 +92,7 @@ const CreateItemView = ({
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Barcode / SKU ID</label>
-                    <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 focus-within:bg-white dark:bg-gray-800 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
+                    <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
                       <Barcode size={16} className="text-gray-300" />
                       <input
                         type="text"
@@ -117,7 +117,7 @@ const CreateItemView = ({
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest pl-1">Initial Stock</label>
-                    <div className="relative flex items-center bg-emerald-50/50 border border-emerald-100 rounded-lg px-4 focus-within:bg-white dark:bg-gray-800 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
+                    <div className="relative flex items-center bg-emerald-50/50 border border-emerald-100 rounded-lg px-4 focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
                       <Package size={16} className="text-emerald-500" />
                       <input
                         type="number"
@@ -137,7 +137,7 @@ const CreateItemView = ({
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Category *</label>
                     <div className="relative">
                       <select
-                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 appearance-none"
+                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 appearance-none"
                         value={newItem.categoryId}
                         onChange={(e) => setNewItem({ ...newItem, categoryId: e.target.value })}
                       >
@@ -152,7 +152,7 @@ const CreateItemView = ({
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Sub Category *</label>
                     <div className="relative">
                       <select
-                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 appearance-none"
+                        className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 appearance-none"
                         value={newItem.subCategoryId}
                         onChange={(e) => setNewItem({ ...newItem, subCategoryId: e.target.value })}
                         disabled={!newItem.categoryId}
@@ -172,7 +172,7 @@ const CreateItemView = ({
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Unit Type *</label>
                     <select
-                      className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 appearance-none"
+                      className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 appearance-none"
                       value={newItem.unitId}
                       onChange={(e) => setNewItem({ ...newItem, unitId: e.target.value })}
                     >
@@ -185,7 +185,7 @@ const CreateItemView = ({
                     <input
                       type="text"
                       placeholder="e.g. 500 (for 500g)"
-                      className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+                      className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
                       value={newItem.unitValue}
                       onChange={(e) => setNewItem({ ...newItem, unitValue: e.target.value })}
                     />
@@ -197,7 +197,7 @@ const CreateItemView = ({
                   <textarea
                     rows={4}
                     placeholder="Describe the product details..."
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 resize-none"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 resize-none"
                     value={newItem.description}
                     onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                   />
@@ -219,7 +219,7 @@ const CreateItemView = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Selling Price *</label>
-                  <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4">
+                  <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4">
                     <span className="text-gray-400 font-bold">₹</span>
                     <input
                       type="number"
@@ -233,7 +233,7 @@ const CreateItemView = ({
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">MRP Price</label>
-                  <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4">
+                  <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4">
                     <span className="text-gray-400 font-bold">₹</span>
                     <input
                       type="number"
@@ -247,7 +247,7 @@ const CreateItemView = ({
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Purchase Price (Lnd)</label>
-                  <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4">
+                  <div className="relative flex items-center bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4">
                     <span className="text-gray-400 font-bold">₹</span>
                     <input
                       type="number"
@@ -262,7 +262,7 @@ const CreateItemView = ({
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">GST Rate (%)</label>
                     <select
-                      className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none"
+                      className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white focus:outline-none"
                       value={newItem.gst}
                       onChange={(e) => setNewItem({ ...newItem, gst: e.target.value })}
                     >
@@ -285,27 +285,27 @@ const CreateItemView = ({
                   </div>
                 </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-gray-200">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Low Stock Alert (Qty)</label>
                   <input
                     type="number"
                     placeholder="5"
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-4 py-4 text-sm font-bold text-gray-900 dark:text-white"
                     value={newItem.minStockAlert}
                     onChange={(e) => setNewItem({ ...newItem, minStockAlert: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Promotional (Free)</label>
-                  <div className="flex items-center gap-3 py-3 px-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 py-3 px-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200">
                     <input
                       type="checkbox"
                       className="w-5 h-5 rounded-lg border-gray-300 text-emerald-600 focus:ring-emerald-500"
                       checked={newItem.isFree}
                       onChange={(e) => setNewItem({ ...newItem, isFree: e.target.checked })}
                     />
-                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Mark as Free Item</span>
+                    <span className="text-xs font-bold text-gray-700">Mark as Free Item</span>
                   </div>
                 </div>
                 {newItem.isFree && (
@@ -325,7 +325,7 @@ const CreateItemView = ({
                 )}
               </div>
 
-              <div className="pt-6 flex items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="pt-6 flex items-center justify-between gap-4 border-t border-gray-200">
                 <div className="flex-1">
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Calculated Landing Price: <span className="text-gray-900 dark:text-white">₹{newItem.landingPrice || '0.00'}</span></p>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Gross Margin: <span className="text-emerald-600">₹{((parseFloat(newItem.price) || 0) - (parseFloat(newItem.landingPrice) || 0)).toFixed(2)}</span></p>

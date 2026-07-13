@@ -31,7 +31,7 @@ const ViewAdmin = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
             Admin Details
           </h1>
           <div className="flex items-center justify-end">
@@ -39,8 +39,8 @@ const ViewAdmin = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 text-center">
+          <p className="text-gray-500 mb-4">
             Admin not found
           </p>
           <BackButton to="/user-management/admins" />
@@ -53,7 +53,7 @@ const ViewAdmin = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title and Back Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Admin Details
         </h1>
         <div className="flex items-center justify-end">
@@ -62,13 +62,13 @@ const ViewAdmin = () => {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+            <p className="text-sm font-semibold text-gray-800">
               {admin.name}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-500">
               {admin.email}
             </p>
           </div>
@@ -76,7 +76,7 @@ const ViewAdmin = () => {
             className={`px-3 py-1 rounded-full text-xs font-medium ${
               admin.status === "active"
                 ? "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400"
-                : "bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800"
+                : "bg-gray-100 text-gray-800"
             }`}
           >
             {admin.status === "active" ? "Active" : "Inactive"}
@@ -86,36 +86,36 @@ const ViewAdmin = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Personal Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <UserCog size={18} className="text-green-600 dark:text-green-400" />
               Personal Information
             </h2>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">
                 Name
               </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <p className="text-sm font-semibold text-gray-800">
                 {admin.name}
               </p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1 flex items-center gap-1">
                 <Mail size={12} />
                 Email
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-sm text-gray-700">
                 {admin.email}
               </p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1 flex items-center gap-1">
                 <Phone size={12} />
                 Phone
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-sm text-gray-700">
                 {admin.phone}
               </p>
             </div>
@@ -123,29 +123,29 @@ const ViewAdmin = () => {
 
           {/* Role & Status Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
               <Shield size={18} className="text-green-600 dark:text-green-400" />
               Role & Status
             </h2>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">
                 Role
               </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <p className="text-sm font-semibold text-gray-800">
                 {admin.role}
               </p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">
                 Status
               </p>
               <span
                 className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                   admin.status === "active"
                     ? "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400"
-                    : "bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800"
+                    : "bg-gray-100 text-gray-800"
                 }`}
               >
                 {admin.status === "active" ? "Active" : "Inactive"}
@@ -153,11 +153,11 @@ const ViewAdmin = () => {
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1 flex items-center gap-1">
                 <Calendar size={12} />
                 Created At
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-sm text-gray-700">
                 {admin.createdAt}
               </p>
             </div>

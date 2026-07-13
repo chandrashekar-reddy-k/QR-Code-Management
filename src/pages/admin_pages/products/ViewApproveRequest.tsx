@@ -509,7 +509,7 @@ const ViewApproveRequest = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-gray-500 mb-4">
             Product request not found
           </p>
           <button
@@ -545,7 +545,7 @@ const ViewApproveRequest = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Product Request ID #{product.id}
         </h1>
         <div className="flex items-center gap-2">
@@ -573,7 +573,7 @@ const ViewApproveRequest = () => {
       </div>
 
       {/* Product Overview Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-4">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 mb-4">
         <div className="flex items-center gap-4 sm:gap-6 w-full">
           {/* Product Image */}
           <div className="flex-shrink-0">
@@ -584,10 +584,10 @@ const ViewApproveRequest = () => {
                 className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
               />
             ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
                 <ImageIcon
                   size={20}
-                  className="text-gray-400 dark:text-gray-500"
+                  className="text-gray-400"
                 />
               </div>
             )}
@@ -596,23 +596,23 @@ const ViewApproveRequest = () => {
           {/* Product Details - Side by Side */}
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <p className="text-xs font-medium text-gray-500 mb-1">
                 Seller Name
               </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <p className="text-sm font-semibold text-gray-800">
                 {product.sellerName}
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <p className="text-xs font-medium text-gray-500 mb-1">
                 Product Name
               </p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <p className="text-sm font-semibold text-gray-800">
                 {product.name}
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <p className="text-xs font-medium text-gray-500 mb-1">
                 Status
               </p>
               <Badge
@@ -637,40 +637,40 @@ const ViewApproveRequest = () => {
         {/* Left Column */}
         <div className="space-y-4">
           {/* Pricing Information Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
               Pricing Information
             </h2>
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Tax
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.tax}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Tags
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.tags}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Brands
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.brands}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Description
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.description}
                 </p>
               </div>
@@ -678,69 +678,69 @@ const ViewApproveRequest = () => {
           </div>
 
           {/* Product Variants Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
               Product Variants
             </h2>
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Type
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.variantType}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Stock Limit
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.stockLimit}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Measurement
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.measurement}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Price
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   ₹{product.price}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Discount Price
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   ₹{product.discountedPrice}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Stock
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.stock}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Unit
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.unit}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Unit Status
                 </p>
                 <p className="text-sm text-green-700 dark:text-green-400 font-medium">
@@ -751,13 +751,13 @@ const ViewApproveRequest = () => {
           </div>
 
           {/* Images Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
               Images
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                <p className="text-xs font-medium text-gray-500 mb-2">
                   Main Image
                 </p>
                 {product.image ? (
@@ -767,16 +767,16 @@ const ViewApproveRequest = () => {
                     className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                   />
                 ) : (
-                  <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                  <div className="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
                     <ImageIcon
                       size={24}
-                      className="text-gray-400 dark:text-gray-500"
+                      className="text-gray-400"
                     />
                   </div>
                 )}
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                <p className="text-xs font-medium text-gray-500 mb-2">
                   Other images
                 </p>
                 {product.otherImages && product.otherImages.length > 0 ? (
@@ -786,10 +786,10 @@ const ViewApproveRequest = () => {
                     className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                   />
                 ) : (
-                  <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                  <div className="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
                     <ImageIcon
                       size={24}
-                      className="text-gray-400 dark:text-gray-500"
+                      className="text-gray-400"
                     />
                   </div>
                 )}
@@ -801,40 +801,40 @@ const ViewApproveRequest = () => {
         {/* Right Column */}
         <div className="space-y-4">
           {/* SEO Settings Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
               Seo Settings
             </h2>
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Main Title
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.metaTitle}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Schema Markup
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.schemaMarkup}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Meta Keywords
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.metaKeywords}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Meta Description
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.metaDescription}
                 </p>
               </div>
@@ -842,88 +842,88 @@ const ViewApproveRequest = () => {
           </div>
 
           {/* Product Settings Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-            <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">
               Product Settings
             </h2>
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Category
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.category}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Product Type
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.productType}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Made In
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.madeIn}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   FSSAI Lic. No.
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.fssaiLicNo}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Barcode
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.barcode}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Is Returnable?
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.isReturnable ? "Yes" : "No"}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Is Cancel-able?
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.isCancelable ? "Yes" : "No"}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Is COD allowed?
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.isCodAllowed ? "Yes" : "No"}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Total allowed quantity
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.totalAllowedQuantity}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Product Status
                 </p>
-                <p className="text-sm text-gray-800 dark:text-gray-200">
+                <p className="text-sm text-gray-800">
                   {product.productStatus}
                 </p>
               </div>

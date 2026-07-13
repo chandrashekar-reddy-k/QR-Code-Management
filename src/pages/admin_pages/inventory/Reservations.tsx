@@ -176,10 +176,10 @@ const Reservations = () => {
     <>
       {/* Filters and Search */}
       <div className="mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
           {/* Filter Icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* Status Dropdown */}
@@ -197,7 +197,7 @@ const Reservations = () => {
                 }))}
               />
             </div>
-            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400" />
+            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
           </div>
 
           {/* Location Dropdown */}
@@ -218,7 +218,7 @@ const Reservations = () => {
                 ]}
               />
             </div>
-            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400" />
+            <ChevronDown size={16} className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
           </div>
 
           {/* Reset Filter Button */}
@@ -248,7 +248,7 @@ const Reservations = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <DataTable
           data={paginatedReservations}
           columns={[
@@ -257,7 +257,7 @@ const Reservations = () => {
               label: 'ORDER / RESERVATION ID',
               sortable: true,
               render: (reservation: Reservation) => (
-                <div className="text-center font-medium text-gray-900 dark:text-gray-100">
+                <div className="text-center font-medium text-gray-900">
                   <span>{reservation.orderId}</span>
                 </div>
               ),
@@ -268,7 +268,7 @@ const Reservations = () => {
               sortable: true,
               render: (reservation: Reservation) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.customerName}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{reservation.customerName}</span>
                 </div>
               ),
             },
@@ -278,7 +278,7 @@ const Reservations = () => {
               sortable: true,
               render: (reservation: Reservation) => (
                 <div className="text-center font-mono">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.locationCode}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{reservation.locationCode}</span>
                 </div>
               ),
             },
@@ -288,7 +288,7 @@ const Reservations = () => {
               sortable: true,
               render: (reservation: Reservation) => (
                 <div className="text-center font-semibold">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{reservation.qty}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{reservation.qty}</span>
                 </div>
               ),
             },
@@ -298,7 +298,7 @@ const Reservations = () => {
               sortable: false,
               render: (reservation: Reservation) => (
                 <div className="text-center">
-                  <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full font-medium">
+                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full font-medium">
                     {reservation.items?.length || 0} items
                   </span>
                 </div>
@@ -316,7 +316,7 @@ const Reservations = () => {
                     customColor={
                       reservation.status === 'active'
                         ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                        : 'bg-gray-100 text-gray-800'
                     }
                     className="rounded"
                   />
@@ -329,7 +329,7 @@ const Reservations = () => {
               sortable: true,
               render: (reservation: Reservation) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{formatDate(reservation.createdAt)}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{formatDate(reservation.createdAt)}</span>
                 </div>
               ),
             },
@@ -339,7 +339,7 @@ const Reservations = () => {
               sortable: true,
               render: (reservation: Reservation) => (
                 <div className="text-center">
-                  <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{formatDate(reservation.expiresAt)}</span>
+                  <span className="text-xs sm:text-sm text-gray-800">{formatDate(reservation.expiresAt)}</span>
                 </div>
               ),
             },
@@ -374,10 +374,10 @@ const Reservations = () => {
 
         {/* Pagination */}
         {filteredAndSorted.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
                   <select
                     value={itemsPerPage.toString()}
@@ -385,7 +385,7 @@ const Reservations = () => {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                   >
                     <option value="10">10</option>
                     <option value="25">25</option>
@@ -393,7 +393,7 @@ const Reservations = () => {
                     <option value="100">100</option>
                   </select>
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing results <strong>{Math.min((currentPage - 1) * itemsPerPage + 1, filteredAndSorted.length)}</strong> of <strong>{filteredAndSorted.length}</strong>
                 </span>
               </div>
@@ -422,9 +422,9 @@ const Reservations = () => {
       {/* Detailed Items Modal */}
       {viewingReservation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-2xl w-full overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/30">
-              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 max-w-2xl w-full overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 dark:bg-gray-900/30">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900">
                 Reservation Details (Order: {viewingReservation.orderId})
               </h3>
               <button
@@ -435,14 +435,14 @@ const Reservations = () => {
               </button>
             </div>
             <div className="p-6 overflow-y-auto flex-1">
-              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 flex flex-col sm:flex-row sm:justify-between gap-2">
-                <span>Customer: <strong className="text-gray-800 dark:text-gray-200">{viewingReservation.customerName}</strong></span>
-                <span>Location Code: <strong className="text-gray-800 dark:text-gray-200">{viewingReservation.locationCode}</strong></span>
+              <div className="text-xs sm:text-sm text-gray-600 mb-4 flex flex-col sm:flex-row sm:justify-between gap-2">
+                <span>Customer: <strong className="text-gray-800">{viewingReservation.customerName}</strong></span>
+                <span>Location Code: <strong className="text-gray-800">{viewingReservation.locationCode}</strong></span>
               </div>
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/10 text-gray-500 dark:text-gray-400 font-semibold">
+                    <tr className="border-b border-gray-200 bg-gray-50 dark:bg-gray-900/10 text-gray-500 font-semibold">
                       <th className="py-2.5 px-3">SKU</th>
                       <th className="py-2.5 px-3">PRODUCT</th>
                       <th className="py-2.5 px-3">VARIANT</th>
@@ -450,12 +450,12 @@ const Reservations = () => {
                       <th className="py-2.5 px-3 text-center">ACTION</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-gray-800">
                     {viewingReservation.items?.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20">
                         <td className="py-3 px-3 font-mono text-[11px] sm:text-xs">{item.sku}</td>
                         <td className="py-3 px-3 font-medium">{item.productName}</td>
-                        <td className="py-3 px-3 text-gray-500 dark:text-gray-400">{item.variantName}</td>
+                        <td className="py-3 px-3 text-gray-500">{item.variantName}</td>
                         <td className="py-3 px-3 text-center font-semibold">{item.qty}</td>
                         <td className="py-3 px-3 text-center">
                           <button
@@ -474,10 +474,10 @@ const Reservations = () => {
                 </table>
               </div>
             </div>
-            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/10 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+            <div className="px-6 py-4 bg-gray-50/10 border-t border-gray-200 flex justify-end">
               <button
                 onClick={() => setViewingReservation(null)}
-                className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600"
+                className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600"
               >
                 Close
               </button>

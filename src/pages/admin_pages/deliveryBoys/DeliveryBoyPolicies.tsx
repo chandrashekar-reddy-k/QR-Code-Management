@@ -104,7 +104,7 @@ const DeliveryBoyPolicies = () => {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <p className="text-xs text-gray-500 dark:text-gray-400">Loading policies...</p>
+        <p className="text-xs text-gray-500">Loading policies...</p>
       </div>
     );
   }
@@ -113,7 +113,7 @@ const DeliveryBoyPolicies = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-2 mt-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
           Policies
         </h1>
         <Breadcrumbs />
@@ -122,12 +122,12 @@ const DeliveryBoyPolicies = () => {
       {/* Two Cards Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Privacy Policy Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100">
+            <h3 className="text-sm sm:text-base font-bold text-gray-900">
               Privacy Policy
             </h3>
-            <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-xs sm:text-sm text-gray-600">
               Last Update : {lastUpdated}
             </span>
           </div>
@@ -139,7 +139,7 @@ const DeliveryBoyPolicies = () => {
                   value={privacyPolicyText}
                   onChange={(e) => setPrivacyPolicyText(e.target.value)}
                   rows={12}
-                  className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="Type here"
                 />
               </div>
@@ -166,7 +166,7 @@ const DeliveryBoyPolicies = () => {
                     setIsEditingPrivacy(false);
                     setPrivacyPolicyText(policy.privacyPolicy || "");
                   }}
-                  className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
@@ -175,7 +175,7 @@ const DeliveryBoyPolicies = () => {
           ) : (
             <>
               <div className="mb-4">
-                <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                   {policy.privacyPolicy || "No privacy policy available."}
                 </p>
               </div>
@@ -191,9 +191,9 @@ const DeliveryBoyPolicies = () => {
         </div>
 
         {/* Terms And Conditions Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
           <div className="mb-4">
-            <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100">
+            <h3 className="text-sm sm:text-base font-bold text-gray-900">
               Terms And Conditions
             </h3>
           </div>
@@ -203,7 +203,7 @@ const DeliveryBoyPolicies = () => {
               value={termsConditionsText}
               onChange={(e) => setTermsConditionsText(e.target.value)}
               rows={12}
-              className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="Type here"
             />
           </div>

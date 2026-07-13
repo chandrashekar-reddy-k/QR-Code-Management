@@ -258,7 +258,7 @@ const ManageTaxes = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-600 dark:text-gray-400">Loading taxes...</p>
+          <p className="text-gray-600">Loading taxes...</p>
         </div>
       </div>
     );
@@ -271,7 +271,7 @@ const ManageTaxes = () => {
       sortable: true,
       render: (tax: TableTax) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {tax.id.slice(0, 8)}...
           </span>
         </div>
@@ -283,7 +283,7 @@ const ManageTaxes = () => {
       sortable: true,
       render: (tax: TableTax) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">{tax.title}</span>
+          <span className="text-xs sm:text-sm font-semibold text-gray-800">{tax.title}</span>
         </div>
       ),
     },
@@ -293,7 +293,7 @@ const ManageTaxes = () => {
       sortable: true,
       render: (tax: TableTax) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">{tax.percentage}%</span>
+          <span className="text-xs sm:text-sm text-gray-700">{tax.percentage}%</span>
         </div>
       ),
     },
@@ -306,7 +306,7 @@ const ManageTaxes = () => {
           <Badge
             status={tax.status}
             size="sm"
-            customColor={tax.status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-800'}
+            customColor={tax.status === 'active' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-gray-100 text-gray-800'}
             className="rounded"
           />
         </div>
@@ -344,7 +344,7 @@ const ManageTaxes = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Taxes</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Taxes</h1>
         <PrimaryButton
           onClick={() => navigate('/products/taxes/create')}
           size="sm"
@@ -410,7 +410,7 @@ const ManageTaxes = () => {
             onClick={handleExport}
             variant="ghost"
             size="sm"
-            className="flex items-center gap-1.5 h-9 sm:h-10 bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-9 sm:h-10 bg-white"
           >
             <Download size={14} />
             <span className="text-xs sm:text-sm">Export</span>
@@ -419,7 +419,7 @@ const ManageTaxes = () => {
             onClick={handleImport}
             variant="ghost"
             size="sm"
-            className="flex items-center gap-1.5 h-9 sm:h-10 bg-white dark:bg-gray-800"
+            className="flex items-center gap-1.5 h-9 sm:h-10 bg-white"
           >
             <FileUp size={14} />
             <span className="text-xs sm:text-sm">Import</span>
@@ -428,7 +428,7 @@ const ManageTaxes = () => {
       </div>
 
       {/* Taxes Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedTaxes}
@@ -444,10 +444,10 @@ const ManageTaxes = () => {
 
         {/* Pagination */}
         {filteredAndSortedTaxes.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
                   <select
                     value={itemsPerPage.toString()}
@@ -455,7 +455,7 @@ const ManageTaxes = () => {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                   >
                     <option value="10">10</option>
                     <option value="25">25</option>
@@ -463,7 +463,7 @@ const ManageTaxes = () => {
                     <option value="100">100</option>
                   </select>
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedTaxes.length)} of {filteredAndSortedTaxes.length}
                 </span>
               </div>

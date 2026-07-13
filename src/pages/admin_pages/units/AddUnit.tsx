@@ -185,7 +185,7 @@ const AddUnit = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Loading unit...</p>
+          <p className="text-xs text-gray-500">Loading unit...</p>
         </div>
       </div>
     );
@@ -195,7 +195,7 @@ const AddUnit = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditMode ? 'Edit Unit' : 'Add Unit'}
         </h1>
         <BackButton to="/products/units" />
@@ -207,7 +207,7 @@ const AddUnit = () => {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit, onError)} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <form onSubmit={handleSubmit(onSubmit, onError)} className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="max-w-4xl">
           {/* Basic Information Section */}
           <FormSectionWithDots title="Basic Information">

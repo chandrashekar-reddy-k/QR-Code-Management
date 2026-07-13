@@ -260,7 +260,7 @@ const AddFeaturedSection = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditing ? "Edit Featured Section" : "Add Featured Section"}
         </h1>
         <BackButton to="/featured-sections" />
@@ -274,7 +274,7 @@ const AddFeaturedSection = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
           {/* Basic Information Section */}
@@ -292,7 +292,7 @@ const AddFeaturedSection = () => {
 
             {/* Short Description */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Short Description <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -301,7 +301,7 @@ const AddFeaturedSection = () => {
                 onChange={handleChange}
                 placeholder="Ex : Weekends deal goes here"
                 rows={3}
-                className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white text-gray-900 ${
                   errors.shortDescription
                     ? "border-red-300 dark:border-red-600 focus:ring-red-500"
                     : "border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500"
@@ -319,14 +319,14 @@ const AddFeaturedSection = () => {
           <FormSectionWithDots title="Category & Product Settings">
             {/* Category IDs - Multi-select Dropdown */}
             <div ref={categoryDropdownRef} className="relative mb-4">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
                 Category IDs ( Ex : 100,205, 360 )
               </label>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                  className={`w-full min-h-[38px] px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-left flex items-center justify-between gap-2 ${
+                  className={`w-full min-h-[38px] px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white text-gray-900 text-left flex items-center justify-between gap-2 ${
                     errors.categoryIds
                       ? 'border-red-300 dark:border-red-600 focus:ring-red-500 dark:focus:ring-red-400'
                       : 'border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500'
@@ -350,17 +350,17 @@ const AddFeaturedSection = () => {
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-500 dark:text-gray-400">Select categories...</span>
+                      <span className="text-gray-500">Select categories...</span>
                     )}
                   </div>
                   <ChevronDown
                     size={16}
-                    className={`text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0 ${showCategoryDropdown ? 'rotate-180' : ''}`}
+                    className={`text-gray-400 transition-transform flex-shrink-0 ${showCategoryDropdown ? 'rotate-180' : ''}`}
                   />
                 </button>
 
                 {showCategoryDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {categories.length > 0 ? (
                       <div className="p-2">
                         {categories.map((category) => {
@@ -378,9 +378,9 @@ const AddFeaturedSection = () => {
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => handleCategoryToggle(category.id)}
-                                className="w-4 h-4 border-gray-300 dark:border-gray-600 rounded focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-800 text-green-600"
+                                className="w-4 h-4 border-gray-300 dark:border-gray-600 rounded focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-green-600"
                               />
-                              <span className="text-xs text-gray-700 dark:text-gray-300 flex-1">
+                              <span className="text-xs text-gray-700 flex-1">
                                 {category.name} <span className="text-gray-500">({category.id})</span>
                               </span>
                               {isSelected && (
@@ -393,7 +393,7 @@ const AddFeaturedSection = () => {
                         })}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 p-4 text-center">
+                      <p className="text-xs text-gray-500 p-4 text-center">
                         No categories available
                       </p>
                     )}
@@ -401,7 +401,7 @@ const AddFeaturedSection = () => {
                 )}
               </div>
               {formData.categoryIds && (
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-[10px] text-gray-500 mt-1">
                   Selected IDs: {formData.categoryIds}
                 </p>
               )}
@@ -450,7 +450,7 @@ const AddFeaturedSection = () => {
           <FormSectionWithDots title="Background Colors">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Background Color (Light Theme){" "}
                   <span className="text-red-500">*</span>
                 </label>
@@ -460,7 +460,7 @@ const AddFeaturedSection = () => {
                     name="backgroundColorLight"
                     value={formData.backgroundColorLight}
                     onChange={handleChange}
-                    className="w-16 h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700"
+                    className="w-16 h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white"
                   />
                   <TextInput
                     type="text"
@@ -474,7 +474,7 @@ const AddFeaturedSection = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Background Color (Dark Theme){" "}
                   <span className="text-red-500">*</span>
                 </label>
@@ -484,7 +484,7 @@ const AddFeaturedSection = () => {
                     name="backgroundColorDark"
                     value={formData.backgroundColorDark}
                     onChange={handleChange}
-                    className="w-16 h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700"
+                    className="w-16 h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white"
                   />
                   <TextInput
                     type="text"

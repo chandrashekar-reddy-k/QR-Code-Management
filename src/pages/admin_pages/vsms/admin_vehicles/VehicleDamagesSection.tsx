@@ -14,14 +14,14 @@ const severityColor = (s) => {
   return m[s] || m.MINOR;
 };
 const statusColor = (s) => {
-  const m = { REPORTED: 'bg-amber-50 text-amber-600 border-amber-100', UNDER_REVIEW: 'bg-blue-50 text-blue-600 border-blue-100', REPAIR_SCHEDULED: 'bg-emerald-50 text-emerald-600 border-emerald-100', IN_REPAIR: 'bg-purple-50 text-purple-600 border-purple-100', REPAIRED: 'bg-emerald-50 text-emerald-600 border-emerald-100', CLOSED: 'bg-gray-100 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700' };
+  const m = { REPORTED: 'bg-amber-50 text-amber-600 border-amber-100', UNDER_REVIEW: 'bg-blue-50 text-blue-600 border-blue-100', REPAIR_SCHEDULED: 'bg-emerald-50 text-emerald-600 border-emerald-100', IN_REPAIR: 'bg-purple-50 text-purple-600 border-purple-100', REPAIRED: 'bg-emerald-50 text-emerald-600 border-emerald-100', CLOSED: 'bg-gray-100 text-gray-500 border-gray-200' };
   return m[s] || m.REPORTED;
 };
 
 const initForm = { vehicleId: '', damageType: 'DENT', severity: 'MINOR', title: '', description: '', location: '', estimatedCost: '', odometerReading: '' };
 
 const FieldWrapper = ({ label, children }) => (<div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2 block">{label}</label>{children}</div>);
-const inp = (cls = '') => `w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 outline-none ${cls}`;
+const inp = (cls = '') => `w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 outline-none ${cls}`;
 
 export default function VehicleDamagesSection({ storeId }) {
   const [damages, setDamages] = useState([]);
@@ -97,7 +97,7 @@ export default function VehicleDamagesSection({ storeId }) {
   const q = searchTerm.toLowerCase();
   const filtered = damages.filter(d => d.title?.toLowerCase().includes(q) || d.vehicle?.vehicleNumber?.toLowerCase().includes(q) || d.damageType?.toLowerCase().includes(q));
 
-  if (loading) return <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-emerald-600" size={40} /><p className="text-gray-500 dark:text-gray-400 font-bold text-sm uppercase tracking-widest">Loading...</p></div>;
+  if (loading) return <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-emerald-600" size={40} /><p className="text-gray-500 font-bold text-sm uppercase tracking-widest">Loading...</p></div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -109,7 +109,7 @@ export default function VehicleDamagesSection({ storeId }) {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative group flex-1 md:w-72 md:flex-initial">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input type="text" placeholder="Search damages..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none shadow-sm" />
+            <input type="text" placeholder="Search damages..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none shadow-sm" />
           </div>
           <button onClick={() => { setForm(initForm); setShowCreate(true); }} className="px-5 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2 active:scale-95 shrink-0">
             <Plus size={16} /> Report Damage
@@ -118,7 +118,7 @@ export default function VehicleDamagesSection({ storeId }) {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {filtered.length === 0 ? (
           <div className="py-20 text-center flex flex-col items-center"><Wrench size={48} className="text-gray-200 mb-4" /><p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No vehicle damages reported</p></div>
         ) : (
@@ -138,21 +138,21 @@ export default function VehicleDamagesSection({ storeId }) {
                   <tr key={d.id} className="hover:bg-gray-50 dark:bg-gray-900/50/30 transition-all group">
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200 leading-tight">{d.title}</span>
+                        <span className="text-sm font-bold text-gray-800 leading-tight">{d.title}</span>
                         <span className="text-[10px] font-bold text-gray-400">{d.location || 'No location'} • {new Date(d.createdAt).toLocaleDateString()}</span>
                       </div>
                     </td>
                     <td className="px-4 py-5 text-center">
                       <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white uppercase"><Truck size={12} className="text-gray-300" />{d.vehicle?.vehicleNumber}</div>
                     </td>
-                    <td className="px-4 py-5 text-center"><span className="px-2.5 py-1 bg-gray-100 text-gray-600 dark:text-gray-400 rounded-lg text-[9px] font-bold uppercase tracking-widest">{d.damageType}</span></td>
+                    <td className="px-4 py-5 text-center"><span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-[9px] font-bold uppercase tracking-widest">{d.damageType}</span></td>
                     <td className="px-4 py-5 text-center"><span className={`px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-widest border ${severityColor(d.severity)}`}>{d.severity}</span></td>
-                    <td className="px-4 py-5 text-center"><span className="text-sm font-bold text-gray-700 dark:text-gray-300">₹{(d.estimatedCost || 0).toLocaleString()}</span></td>
+                    <td className="px-4 py-5 text-center"><span className="text-sm font-bold text-gray-700">₹{(d.estimatedCost || 0).toLocaleString()}</span></td>
                     <td className="px-4 py-5 text-center"><span className={`px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-widest border ${statusColor(d.status)}`}>{d.status.replace('_', ' ')}</span></td>
                     <td className="px-6 py-5">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => openEdit(d)} className="p-2 bg-gray-50 dark:bg-gray-900/50 text-gray-400 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 transition-all border border-gray-200 dark:border-gray-700" title="Edit"><Pencil size={14} /></button>
-                        <button onClick={() => { setDeleting(d); setShowDelete(true); }} className="p-2 bg-gray-50 dark:bg-gray-900/50 text-gray-400 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all border border-gray-200 dark:border-gray-700" title="Delete"><Trash2 size={14} /></button>
+                        <button onClick={() => openEdit(d)} className="p-2 bg-gray-50 dark:bg-gray-900/50 text-gray-400 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 transition-all border border-gray-200" title="Edit"><Pencil size={14} /></button>
+                        <button onClick={() => { setDeleting(d); setShowDelete(true); }} className="p-2 bg-gray-50 dark:bg-gray-900/50 text-gray-400 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all border border-gray-200" title="Delete"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -166,7 +166,7 @@ export default function VehicleDamagesSection({ storeId }) {
       {/* CREATE MODAL */}
       {showCreate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden max-h-[90vh] flex flex-col">
             <div className="p-8 bg-rose-600 text-white shrink-0">
               <h3 className="text-2xl font-bold tracking-tight">Report Vehicle Damage</h3>
               <p className="text-rose-100 text-xs font-bold uppercase tracking-widest mt-1">Log physical damage to a vehicle</p>
@@ -184,7 +184,7 @@ export default function VehicleDamagesSection({ storeId }) {
               </div>
               <FieldWrapper label="Description"><textarea rows={3} value={form.description} onChange={e => setForm({...form, description: e.target.value})} className={inp('focus:ring-rose-500/20 resize-none')} placeholder="Describe the damage..." /></FieldWrapper>
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-4 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50">Cancel</button>
+                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-[10px] border border-gray-200 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50">Cancel</button>
                 <button type="submit" disabled={isSubmitting} className="flex-[2] py-4 bg-rose-600 text-white font-bold uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-700 flex items-center justify-center gap-2">
                   {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <><AlertTriangle size={16} /> Report Damage</>}
                 </button>
@@ -197,7 +197,7 @@ export default function VehicleDamagesSection({ storeId }) {
       {/* EDIT MODAL */}
       {showEdit && editing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden max-h-[90vh] flex flex-col">
             <div className="p-8 bg-emerald-600 text-white shrink-0">
               <h3 className="text-2xl font-bold tracking-tight">Edit Damage Entry</h3>
               <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mt-1">{editing.title} — {editing.vehicle?.vehicleNumber}</p>
@@ -216,7 +216,7 @@ export default function VehicleDamagesSection({ storeId }) {
               <FieldWrapper label="Location"><select value={editForm.location} onChange={e => setEditForm({...editForm, location: e.target.value})} className={inp('focus:ring-emerald-500/20')}><option value="">Select...</option>{LOCATIONS.map(l => <option key={l}>{l}</option>)}</select></FieldWrapper>
               <FieldWrapper label="Repair Notes"><textarea rows={2} value={editForm.repairNotes} onChange={e => setEditForm({...editForm, repairNotes: e.target.value})} className={inp('focus:ring-emerald-500/20 resize-none')} placeholder="Workshop notes, parts replaced..." /></FieldWrapper>
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => { setShowEdit(false); setEditing(null); }} className="flex-1 py-4 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50">Cancel</button>
+                <button type="button" onClick={() => { setShowEdit(false); setEditing(null); }} className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-[10px] border border-gray-200 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50">Cancel</button>
                 <button type="submit" disabled={isSubmitting} className="flex-[2] py-4 bg-emerald-600 text-white font-bold uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 flex items-center justify-center gap-2">
                   {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle2 size={16} /> Save Changes</>}
                 </button>
@@ -229,13 +229,13 @@ export default function VehicleDamagesSection({ storeId }) {
       {/* DELETE MODAL */}
       {showDelete && deleting && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 p-8 text-center">
+          <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 p-8 text-center">
             <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6"><Trash2 size={28} className="text-rose-600" /></div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-2">Delete Damage Entry?</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1"><strong>{deleting.title}</strong></p>
+            <p className="text-sm text-gray-500 mb-1"><strong>{deleting.title}</strong></p>
             <p className="text-xs text-gray-400 mb-8">{deleting.vehicle?.vehicleNumber} • {deleting.damageType} • This cannot be undone.</p>
             <div className="flex gap-4">
-              <button onClick={() => { setShowDelete(false); setDeleting(null); }} className="flex-1 py-4 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50">Cancel</button>
+              <button onClick={() => { setShowDelete(false); setDeleting(null); }} className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-[10px] border border-gray-200 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50">Cancel</button>
               <button onClick={handleDelete} disabled={isSubmitting} className="flex-1 py-4 bg-rose-600 text-white font-bold uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-rose-500/20 hover:bg-rose-700 flex items-center justify-center gap-2">
                 {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Delete'}
               </button>

@@ -46,7 +46,7 @@ export default function RouteCollectionSection({ storeId }) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 dark:text-gray-400 font-bold text-sm uppercase tracking-widest">Loading Route Collections...</p>
+        <p className="text-gray-500 font-bold text-sm uppercase tracking-widest">Loading Route Collections...</p>
       </div>
     );
   }
@@ -65,20 +65,20 @@ export default function RouteCollectionSection({ storeId }) {
             placeholder="Search by agent or route..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm"
+            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         {filtered.length === 0 ? (
-          <div className="py-20 text-center bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+          <div className="py-20 text-center bg-white rounded-xl border border-dashed border-gray-200">
             <Wallet size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-xs">No collection records found</p>
+            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">No collection records found</p>
           </div>
         ) : (
           filtered.map((record, idx) => (
-            <div key={idx} className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:border-emerald-200 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+            <div key={idx} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:border-emerald-200 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group">
               <div className="flex items-center gap-5">
                 <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-inner">
                   <IndianRupee size={28} />

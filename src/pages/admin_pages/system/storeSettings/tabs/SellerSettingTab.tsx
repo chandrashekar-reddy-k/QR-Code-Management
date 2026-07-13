@@ -13,9 +13,9 @@ const SellerSettingTab = ({ formData, onChange }: SellerSettingTabProps) => {
   return (
     <div className="space-y-6">
       {/* One Seller Cart */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <label className="text-xs font-medium text-gray-700">
             One Seller Cart( Enable/Disable )
           </label>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -32,7 +32,7 @@ const SellerSettingTab = ({ formData, onChange }: SellerSettingTabProps) => {
       </div>
 
       {/* Seller Commission */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div>
           <TextInput
             label="Seller Commission (%)"
@@ -47,9 +47,9 @@ const SellerSettingTab = ({ formData, onChange }: SellerSettingTabProps) => {
       </div>
 
       {/* Self Pickup Mode */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+          <label className="text-xs font-medium text-gray-700">
             Self Pickup Mode( Enable/Disable )
           </label>
           <label className="relative inline-flex items-center cursor-pointer">

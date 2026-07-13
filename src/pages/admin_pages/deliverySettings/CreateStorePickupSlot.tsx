@@ -251,7 +251,7 @@ const CreateStorePickupSlot = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEdit ? "Edit Store Pickup Slot" : "Create Store Pickup Slot"}
         </h1>
         <BackButton
@@ -271,7 +271,7 @@ const CreateStorePickupSlot = () => {
       {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
           {/* Slot Information Section */}
@@ -349,9 +349,9 @@ const CreateStorePickupSlot = () => {
                   name="repeat"
                   checked={formData.repeat}
                   onChange={handleChange}
-                  className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-2 bg-white dark:bg-gray-700 cursor-pointer"
+                  className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-2 bg-white cursor-pointer"
                 />
-                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                <span className="text-sm font-medium text-gray-800">
                   Repeat
                 </span>
               </label>
@@ -392,9 +392,9 @@ const CreateStorePickupSlot = () => {
                           name={`customDay-${day}`}
                           checked={formData.customDays[day]}
                           onChange={handleChange}
-                          className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-2 bg-white dark:bg-gray-700 cursor-pointer"
+                          className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-2 bg-white cursor-pointer"
                         />
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                        <span className="text-sm font-medium text-gray-800">
                           {day.charAt(0).toUpperCase() + day.slice(1)}
                         </span>
                       </label>
@@ -417,7 +417,7 @@ const CreateStorePickupSlot = () => {
               onClick={() =>
                 navigate("/delivery-settings/store-pickup")
               }
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>

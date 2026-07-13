@@ -517,7 +517,7 @@ const HomeDeliveryOrders = () => {
   const getStatusColor = (status: string) => {
     const statusUpper = status.toUpperCase();
     if (statusUpper === "PENDING") {
-      return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200";
+      return "bg-gray-100 text-gray-700";
     }
     if (statusUpper === "CONFIRMED") {
       return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
@@ -552,7 +552,7 @@ const HomeDeliveryOrders = () => {
     if (statusUpper === "RETURNED") {
       return "bg-orange-200 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200";
     }
-    return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200";
+    return "bg-gray-100 text-gray-700";
   };
 
   // Format status for display
@@ -621,7 +621,7 @@ const HomeDeliveryOrders = () => {
       sortable: true,
       render: (order: TableOrder) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">
+          <span className="text-xs sm:text-sm text-gray-800 font-medium">
             {order.id.slice(0, 8)}
           </span>
         </div>
@@ -633,7 +633,7 @@ const HomeDeliveryOrders = () => {
       sortable: true,
       render: (order: TableOrder) => (
         <div className="text-center">
-          <div className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <div className="text-xs sm:text-sm text-gray-800">
             {order.userName}
           </div>
           <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">
@@ -648,7 +648,7 @@ const HomeDeliveryOrders = () => {
       sortable: true,
       render: (order: TableOrder) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {order.deliveryAddress}
           </span>
         </div>
@@ -660,7 +660,7 @@ const HomeDeliveryOrders = () => {
       sortable: true,
       render: (order: TableOrder) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {order.PaymentMethod}
           </span>
         </div>
@@ -672,7 +672,7 @@ const HomeDeliveryOrders = () => {
       sortable: true,
       render: (order: TableOrder) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {order.deliveryPartner || "-"}
           </span>
         </div>
@@ -684,7 +684,7 @@ const HomeDeliveryOrders = () => {
       sortable: true,
       render: (order: TableOrder) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {order.deliveryType}
           </span>
         </div>
@@ -712,7 +712,7 @@ const HomeDeliveryOrders = () => {
       sortable: true,
       render: (order: TableOrder) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {formatDate(order.orderDate, "DD-MM-YYYY, HH:mm A")}
           </span>
         </div>
@@ -743,7 +743,7 @@ const HomeDeliveryOrders = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-2 mt-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
           Home Delivery Orders
         </h1>
         <Breadcrumbs />
@@ -766,10 +766,10 @@ const HomeDeliveryOrders = () => {
 
       {/* Filters + Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full sm:w-auto overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full sm:w-auto overflow-x-auto">
           {/* Filter icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
+            <Filter size={18} className="text-gray-700" />
           </div>
 
           {/* Status Filter */}
@@ -801,7 +801,7 @@ const HomeDeliveryOrders = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -824,7 +824,7 @@ const HomeDeliveryOrders = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -847,7 +847,7 @@ const HomeDeliveryOrders = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -872,7 +872,7 @@ const HomeDeliveryOrders = () => {
               </div>
               <ChevronDown
                 size={16}
-                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
               />
             </div>
           )}
@@ -895,7 +895,7 @@ const HomeDeliveryOrders = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
             />
           </div>
 
@@ -931,7 +931,7 @@ const HomeDeliveryOrders = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={sortedOrders}
@@ -947,10 +947,10 @@ const HomeDeliveryOrders = () => {
 
         {/* Pagination */}
         {sortedOrders.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-400 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:text-gray-900 dark:[&_select]:text-gray-200 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
@@ -969,7 +969,7 @@ const HomeDeliveryOrders = () => {
                     className="w-16 sm:w-20 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                   {Math.min(currentPage * itemsPerPage, pagination.total)} of{" "}
                   {pagination.total}

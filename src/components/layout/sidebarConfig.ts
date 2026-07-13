@@ -48,6 +48,7 @@ import {
   BookOpen,   // ← ADD
   History,
   RotateCcw,
+  CheckCircle,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -90,7 +91,7 @@ export const activeCheckers = {
     !pathname.startsWith("/vendors/view"),
   isMyCategoryManagementActive: (pathname: string) =>
     pathname.startsWith("/my-categories") ||
-  pathname.startsWith("/my-sub-categories"),
+    pathname.startsWith("/my-sub-categories"),
   isProductActive: (pathname: string) =>
     pathname.startsWith("/products") &&
     !pathname.startsWith("/products/brands") &&
@@ -120,8 +121,8 @@ export const initialStateCheckers = {
     pathname.startsWith("/home-delivery-orders") ||
     pathname.startsWith("/self-pickup-orders"),
   isMyCategoryManagementOpen: (pathname: string) =>
-      pathname.startsWith("/my-categories") ||
-  pathname.startsWith("/my-sub-categories"),
+    pathname.startsWith("/my-categories") ||
+    pathname.startsWith("/my-sub-categories"),
   isVendorManagementOpen: (pathname: string) =>
     pathname.startsWith("/vendors") &&
     !pathname.startsWith("/vendors/requests") &&
@@ -191,9 +192,9 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isShopkeeperErpAdminOpen",
     subItems: [
       { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
-      { path: '/shopkeeper-erp?tab=new-orders', label: 'Inbox Orders', icon: ShoppingCart },
       { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
       { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
+      { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
       { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
       { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
       { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },

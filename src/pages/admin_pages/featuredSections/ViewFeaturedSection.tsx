@@ -91,7 +91,7 @@ const ViewFeaturedSection = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">Loading featured section...</p>
+          <p className="text-gray-500">Loading featured section...</p>
         </div>
       </div>
     );
@@ -101,7 +101,7 @@ const ViewFeaturedSection = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Featured section not found</p>
+          <p className="text-gray-500 mb-4">Featured section not found</p>
           <button
             onClick={() => navigate('/featured-sections')}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -117,7 +117,7 @@ const ViewFeaturedSection = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Featured Section Details
         </h1>
         <BackButton to="/featured-sections" />
@@ -129,49 +129,49 @@ const ViewFeaturedSection = () => {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
         <div className="space-y-6">
           {/* Title */}
-          <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2 mb-2">
               <Star size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Title</label>
+              <label className="text-xs font-semibold text-gray-700 uppercase">Title</label>
             </div>
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{section.title}</p>
+            <p className="text-sm font-bold text-gray-900">{section.title}</p>
           </div>
 
           {/* Short Description */}
-          <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2 mb-2">
               <Layout size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Short Description</label>
+              <label className="text-xs font-semibold text-gray-700 uppercase">Short Description</label>
             </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300">{section.shortDescription}</p>
+            <p className="text-sm text-gray-700">{section.shortDescription}</p>
           </div>
 
           {/* Style and Product Type */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Layout size={16} className="text-blue-600" />
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Style</label>
+                <label className="text-xs font-semibold text-gray-700 uppercase">Style</label>
               </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{section.style}</p>
+              <p className="text-sm font-medium text-gray-900">{section.style}</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Tag size={16} className="text-blue-600" />
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Product Type</label>
+                <label className="text-xs font-semibold text-gray-700 uppercase">Product Type</label>
               </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{section.productType}</p>
+              <p className="text-sm font-medium text-gray-900">{section.productType}</p>
             </div>
           </div>
 
           {/* Category IDs */}
-          <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2 mb-2">
               <MapPin size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Category IDs</label>
+              <label className="text-xs font-semibold text-gray-700 uppercase">Category IDs</label>
             </div>
             <div className="flex flex-wrap gap-2">
               {section.categoryIds.split(',').map((categoryId, index) => (
@@ -189,9 +189,9 @@ const ViewFeaturedSection = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Hash size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Position</label>
+              <label className="text-xs font-semibold text-gray-700 uppercase">Position</label>
             </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{section.position}</p>
+            <p className="text-sm font-medium text-gray-900">{section.position}</p>
           </div>
         </div>
       </div>

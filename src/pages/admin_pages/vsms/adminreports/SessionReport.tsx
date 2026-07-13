@@ -30,7 +30,7 @@ export default function SessionReport() {
     <ReportLayout title="Session Report" icon={Zap} activeTab="sessions" reportData={reportData} isLoading={isLoading}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-500">
           {Array.isArray(reportData) && reportData.map((s, i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+              <div key={i} className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden group">
                   <div className={`absolute top-0 right-0 w-32 h-32 ${s.session === 'MORNING' ? 'bg-emerald-50' : 'bg-emerald-50'} rounded-bl-full -mr-16 -mt-16 transition-all group-hover:scale-110`} />
                   <div className="relative z-10">
                       <div className={`w-14 h-14 rounded-lg ${s.session === 'MORNING' ? 'bg-emerald-500 shadow-emerald-200' : 'bg-emerald-600 shadow-emerald-200'} shadow-lg flex items-center justify-center text-white mb-6`}>

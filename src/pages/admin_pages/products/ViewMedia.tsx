@@ -63,7 +63,7 @@ const ViewMedia = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Media not found</p>
+          <p className="text-gray-500 mb-4">Media not found</p>
           <button
             onClick={() => navigate('/products/media')}
             className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
@@ -79,7 +79,7 @@ const ViewMedia = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Media Details</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Media Details</h1>
         <BackButton to="/products/media" />
       </div>
       
@@ -91,49 +91,49 @@ const ViewMedia = () => {
       {/* Two Separate Cards Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Card: User & Product Information */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">
             User & Product information
           </h2>
           
           <div className="space-y-3">
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">User ID</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{media.id}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">User ID</p>
+              <p className="text-sm font-semibold text-gray-800">{media.id}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">File Name</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{media.name}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">File Name</p>
+              <p className="text-sm font-semibold text-gray-800">{media.name}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Extension</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{media.extension.toUpperCase()}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Extension</p>
+              <p className="text-sm text-gray-700">{media.extension.toUpperCase()}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">File Type</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 capitalize">{media.type}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">File Type</p>
+              <p className="text-sm text-gray-700 capitalize">{media.type}</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Sub Directory</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{media.subDirectory}</p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Sub Directory</p>
+              <p className="text-sm text-gray-700">{media.subDirectory}</p>
             </div>
 
             {media.vendorName && (
               <div>
-                <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Seller Name</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{media.vendorName}</p>
+                <p className="text-[10px] font-medium text-gray-500 uppercase mb-1">Seller Name</p>
+                <p className="text-sm text-gray-700">{media.vendorName}</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Right Card: Media Preview */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">
             Media Preview
           </h2>
           
@@ -146,14 +146,14 @@ const ViewMedia = () => {
                   className="w-full max-w-[200px] rounded-lg border border-gray-200 dark:border-gray-600 shadow-md"
                 />
               ) : (
-                <div className="w-full max-w-[200px] h-48 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                  <ImageIcon size={48} className="text-gray-400 dark:text-gray-500" />
+                <div className="w-full max-w-[200px] h-48 bg-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                  <ImageIcon size={48} className="text-gray-400" />
                 </div>
               )}
             </div>
 
             <div className="text-center">
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{media.name}.{media.extension}</p>
+              <p className="text-sm font-semibold text-gray-800">{media.name}.{media.extension}</p>
             </div>
           </div>
         </div>

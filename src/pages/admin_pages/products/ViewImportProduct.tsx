@@ -81,7 +81,7 @@ const ViewImportProduct = () => {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-gray-500 mb-4">
             {isError ? (errMsg || 'Error loading product') : 'Product not found'}
           </p>
           <button
@@ -102,7 +102,7 @@ const ViewImportProduct = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title + Back button (same structure as ViewProduct) */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           View Import Product
         </h1>
         <div className="flex items-center gap-2">
@@ -115,32 +115,32 @@ const ViewImportProduct = () => {
       </div>
 
       {/* Header card: image + main info (mirrors ViewProduct style but simplified) */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 mb-4">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 mb-4">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
           <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0">
             {mainImage ? (
               <img
                 src={mainImage}
                 alt={String(product.name || 'Product')}
-                className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                className="w-full h-full object-cover rounded-lg border border-gray-200"
               />
             ) : (
-              <div className="w-full h-full bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                <ImageIcon size={32} className="text-gray-400 dark:text-gray-500" />
+              <div className="w-full h-full bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                <ImageIcon size={32} className="text-gray-400" />
               </div>
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="space-y-2">
               <div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Product Name : </span>
-                <span className="text-sm text-gray-800 dark:text-gray-200">
+                <span className="text-xs font-medium text-gray-500">Product Name : </span>
+                <span className="text-sm text-gray-800">
                   {String(product.name || 'N/A')}
                 </span>
               </div>
               <div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">SKU : </span>
-                <span className="text-sm text-gray-800 dark:text-gray-200">
+                <span className="text-xs font-medium text-gray-500">SKU : </span>
+                <span className="text-sm text-gray-800">
                   {String(product.sku || 'N/A')}
                 </span>
               </div>
@@ -152,31 +152,31 @@ const ViewImportProduct = () => {
       {/* Main content grid – reuse pricing / category cards style from ViewProduct but with import fields */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {/* Pricing card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">Pricing Information</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+          <h2 className="text-sm font-bold text-gray-800 mb-4">Pricing Information</h2>
           <div className="space-y-3">
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Price : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Price : </span>
+              <span className="text-xs text-gray-800">
                 {formatCurrency(Number(product.price || 0))}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">MRP : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">MRP : </span>
+              <span className="text-xs text-gray-800">
                 {formatCurrency(Number((product as { mrp?: number }).mrp || 0))}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Final Price : </span>
+              <span className="text-xs font-medium text-gray-500">Final Price : </span>
               <span className="text-xs text-green-600 dark:text-green-400">
                 {formatCurrency(Number((product as { finalPrice?: number }).finalPrice || 0))}
               </span>
             </div>
             {product.description && typeof product.description === 'string' && (
               <div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Description : </span>
-                <p className="text-xs text-gray-800 dark:text-gray-200 mt-1">
+                <span className="text-xs font-medium text-gray-500">Description : </span>
+                <p className="text-xs text-gray-800 mt-1">
                   {product.description}
                 </p>
               </div>
@@ -185,24 +185,24 @@ const ViewImportProduct = () => {
         </div>
 
         {/* Category / brand card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">Category & Brand</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+          <h2 className="text-sm font-bold text-gray-800 mb-4">Category & Brand</h2>
           <div className="space-y-3">
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Category : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Category : </span>
+              <span className="text-xs text-gray-800">
                 {String((product.category as { name?: string })?.name || product.categoryName || 'N/A')}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Sub Category : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Sub Category : </span>
+              <span className="text-xs text-gray-800">
                 {String((product.subCategory as { name?: string })?.name || product.subCategoryName || 'N/A')}
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Brand : </span>
-              <span className="text-xs text-gray-800 dark:text-gray-200">
+              <span className="text-xs font-medium text-gray-500">Brand : </span>
+              <span className="text-xs text-gray-800">
                 {String((product.brand as { name?: string })?.name || product.brandName || 'N/A')}
               </span>
             </div>
@@ -212,30 +212,30 @@ const ViewImportProduct = () => {
 
       {/* Variants table – simplified version of ViewProduct variants table */}
       {variants.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 mb-4">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">Variants</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 mb-4">
+          <h2 className="text-sm font-bold text-gray-800 mb-4">Variants</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/40">
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">ID</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">IMAGE</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">VARIANT NAME</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">SKU</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">MEASUREMENT</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">MRP</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">PRICE</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">STATUS</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300">STOCK</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">ID</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">IMAGE</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">VARIANT NAME</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">SKU</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">MEASUREMENT</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">MRP</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">PRICE</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">STATUS</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600">STOCK</th>
                 </tr>
               </thead>
               <tbody>
                 {variants.map((v) => (
                   <tr
                     key={v.id}
-                    className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                    className="border-t border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800/60"
                   >
-                    <td className="px-3 py-2 text-[11px] text-gray-800 dark:text-gray-200">{v.id}</td>
+                    <td className="px-3 py-2 text-[11px] text-gray-800">{v.id}</td>
                     <td className="px-3 py-2">
                       {v.primaryImages && v.primaryImages.length > 0 ? (
                         <img
@@ -244,18 +244,18 @@ const ViewImportProduct = () => {
                           className="w-10 h-10 object-cover rounded mx-auto"
                         />
                       ) : (
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">No image</span>
+                        <span className="text-[10px] text-gray-400">No image</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-[11px] text-gray-800 dark:text-gray-200">{v.variantName || 'N/A'}</td>
-                    <td className="px-3 py-2 text-[11px] text-gray-800 dark:text-gray-200">{v.sku || 'N/A'}</td>
-                    <td className="px-3 py-2 text-[11px] text-gray-800 dark:text-gray-200">
+                    <td className="px-3 py-2 text-[11px] text-gray-800">{v.variantName || 'N/A'}</td>
+                    <td className="px-3 py-2 text-[11px] text-gray-800">{v.sku || 'N/A'}</td>
+                    <td className="px-3 py-2 text-[11px] text-gray-800">
                       {v.measurement || 'N/A'}
                     </td>
-                    <td className="px-3 py-2 text-[11px] text-gray-800 dark:text-gray-200">
+                    <td className="px-3 py-2 text-[11px] text-gray-800">
                       {formatCurrency(v.mrp || 0)}
                     </td>
-                    <td className="px-3 py-2 text-[11px] text-gray-800 dark:text-gray-200">
+                    <td className="px-3 py-2 text-[11px] text-gray-800">
                       {formatCurrency(v.sellingPrice || 0)}
                     </td>
                     <td className="px-3 py-2 text-[11px]">
@@ -269,7 +269,7 @@ const ViewImportProduct = () => {
                         {v.status || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-[11px] text-gray-800 dark:text-gray-200">
+                    <td className="px-3 py-2 text-[11px] text-gray-800">
                       {v.stockQuantity ?? 0}
                     </td>
                   </tr>

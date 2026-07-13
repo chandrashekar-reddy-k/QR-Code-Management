@@ -78,7 +78,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 dark:text-gray-400 font-medium">Loading Trip Data...</p>
+        <p className="text-gray-500 font-medium">Loading Trip Data...</p>
       </div>
     );
   }
@@ -86,10 +86,10 @@ export default function TripManagementSection({ storeId, vehicles }) {
   return (
     <div className="space-y-6">
       {/* Header Actions */}
-      <div className="flex items-center justify-between bg-white dark:bg-gray-800/50 backdrop-blur-md p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="flex items-center justify-between bg-white/50 backdrop-blur-md p-6 rounded-xl border border-gray-200 shadow-sm">
         <div>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Shift & Trip Management</h3>
-          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">Control vehicle operational lifecycle</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Control vehicle operational lifecycle</p>
         </div>
         <button
           onClick={() => setShowStartModal(true)}
@@ -103,7 +103,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
       {/* Trip List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {trips.length === 0 ? (
-          <div className="col-span-full py-20 text-center bg-gray-50 dark:bg-gray-900/50/50 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+          <div className="col-span-full py-20 text-center bg-gray-50 dark:bg-gray-900/50/50 rounded-xl border-2 border-dashed border-gray-200">
             <History size={48} className="mx-auto text-gray-300 mb-4" />
             <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No trip history found for this store</p>
           </div>
@@ -111,11 +111,11 @@ export default function TripManagementSection({ storeId, vehicles }) {
           trips.map(trip => (
             <div 
               key={trip.id}
-              className={`bg-white dark:bg-gray-800 rounded-xl border transition-all p-6 relative overflow-hidden group shadow-sm hover:shadow-xl ${trip.status === 'OPEN' ? 'border-emerald-200' : 'border-gray-200 dark:border-gray-700'}`}
+              className={`bg-white rounded-xl border transition-all p-6 relative overflow-hidden group shadow-sm hover:shadow-xl ${trip.status === 'OPEN' ? 'border-emerald-200' : 'border-gray-200'}`}
             >
               {trip.status === 'OPEN' && (
                 <div className="absolute top-0 right-0 px-4 py-1.5 bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-widest rounded-bl-xl flex items-center gap-1 animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-gray-800" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
                   Active Trip
                 </div>
               )}
@@ -133,21 +133,21 @@ export default function TripManagementSection({ storeId, vehicles }) {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Start ODO</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{trip.startOdometer} km</p>
+                  <p className="text-sm font-bold text-gray-800">{trip.startOdometer} km</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">End ODO</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{trip.endOdometer || '--'} km</p>
+                  <p className="text-sm font-bold text-gray-800">{trip.endOdometer || '--'} km</p>
                 </div>
               </div>
 
               {trip.status === 'CLOSED' && (
                 <div className="space-y-3 mb-6 bg-emerald-50/30 p-4 rounded-lg border border-emerald-100/30">
-                   <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                   <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                     <span>Distance</span>
                     <span className="text-emerald-600 font-bold">{(trip.endOdometer - trip.startOdometer).toFixed(1)} km</span>
                   </div>
-                  <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                     <span>Total Sales</span>
                     <span className="text-emerald-600 font-bold">₹{trip.totalSales?.toLocaleString()}</span>
                   </div>
@@ -178,8 +178,8 @@ export default function TripManagementSection({ storeId, vehicles }) {
       {/* Start Trip Modal */}
       {showStartModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
-            <div className="p-8 border-b border-gray-200 dark:border-gray-700 bg-emerald-600 text-white">
+          <div className="bg-white w-full max-w-md rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-8 border-b border-gray-200 bg-emerald-600 text-white">
               <h3 className="text-2xl font-bold tracking-tight">Initialize Shift</h3>
               <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mt-1">Setup vehicle and starting parameters</p>
             </div>
@@ -191,7 +191,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                   required
                   value={formData.vehicleId}
                   onChange={e => setFormData({...formData, vehicleId: e.target.value})}
-                  className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                  className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                 >
                   <option value="">Choose Vehicle...</option>
                   {vehicles.map(v => (
@@ -210,7 +210,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                     placeholder="0.0"
                     value={formData.startOdometer}
                     onChange={e => setFormData({...formData, startOdometer: e.target.value})}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                   />
                 </div>
                 <div>
@@ -218,7 +218,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                   <select 
                     value={formData.shift}
                     onChange={e => setFormData({...formData, shift: parseInt(e.target.value)})}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                   >
                     <option value={1}>Morning (1)</option>
                     <option value={2}>Evening (2)</option>
@@ -235,7 +235,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                     required
                     value={formData.openingCash}
                     onChange={e => setFormData({...formData, openingCash: e.target.value})}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 rounded-xl py-3 pl-8 pr-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 rounded-xl py-3 pl-8 pr-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                   />
                 </div>
               </div>
@@ -244,7 +244,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                 <button 
                   type="button"
                   onClick={() => setShowStartModal(false)}
-                  className="flex-1 py-4 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50 transition-all"
+                  className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-[10px] border border-gray-200 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50 transition-all"
                 >
                   Cancel
                 </button>
@@ -264,8 +264,8 @@ export default function TripManagementSection({ storeId, vehicles }) {
       {/* End Trip Modal */}
       {showEndModal && selectedTrip && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
-            <div className="p-8 border-b border-gray-200 dark:border-gray-700 bg-rose-600 text-white">
+          <div className="bg-white w-full max-w-md rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-8 border-b border-gray-200 bg-rose-600 text-white">
               <h3 className="text-2xl font-bold tracking-tight">Shift Reconciliation</h3>
               <p className="text-rose-100 text-xs font-bold uppercase tracking-widest mt-1">Close active trip for {selectedTrip.vehicle.vehicleNumber}</p>
             </div>
@@ -280,7 +280,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                   min={selectedTrip.startOdometer}
                   value={endData.endOdometer}
                   onChange={e => setEndData({...endData, endOdometer: e.target.value})}
-                  className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-rose-500 transition-all outline-none"
+                  className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-rose-500 transition-all outline-none"
                 />
               </div>
 
@@ -292,7 +292,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                     required
                     value={endData.closingCash}
                     onChange={e => setEndData({...endData, closingCash: e.target.value})}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-rose-500 transition-all outline-none"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-rose-500 transition-all outline-none"
                   />
                 </div>
                 <div>
@@ -302,7 +302,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                     required
                     value={endData.totalSales}
                     onChange={e => setEndData({...endData, totalSales: e.target.value})}
-                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-rose-500 transition-all outline-none"
+                    className="w-full bg-gray-50 dark:bg-gray-900/50 border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-rose-500 transition-all outline-none"
                   />
                 </div>
               </div>
@@ -311,7 +311,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                 <button 
                   type="button"
                   onClick={() => setShowEndModal(false)}
-                  className="flex-1 py-4 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50 transition-all"
+                  className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-[10px] border border-gray-200 rounded-xl hover:bg-gray-50 dark:bg-gray-900/50 transition-all"
                 >
                   Cancel
                 </button>

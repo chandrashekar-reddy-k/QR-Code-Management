@@ -61,15 +61,15 @@ export default function ExpenseAnalytics() {
         <div className="space-y-6">
             {/* Date Range */}
             <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">From</span>
                     <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                        className="bg-transparent text-sm font-bold text-gray-700 dark:text-gray-300 outline-none" />
+                        className="bg-transparent text-sm font-bold text-gray-700 outline-none" />
                 </div>
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">To</span>
                     <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                        className="bg-transparent text-sm font-bold text-gray-700 dark:text-gray-300 outline-none" />
+                        className="bg-transparent text-sm font-bold text-gray-700 outline-none" />
                 </div>
                 
                 <button 
@@ -99,7 +99,7 @@ export default function ExpenseAnalytics() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Category Breakdown */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-4">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <PieChart size={16} className="text-emerald-500" /> Category Breakdown
                     </h3>
@@ -108,7 +108,7 @@ export default function ExpenseAnalytics() {
                     ) : data?.byCategory?.map(c => (
                         <div key={c.name} className="space-y-1">
                             <div className="flex justify-between text-xs font-bold">
-                                <span className="text-gray-700 dark:text-gray-300 uppercase tracking-tight">{c.name}</span>
+                                <span className="text-gray-700 uppercase tracking-tight">{c.name}</span>
                                 <span className="text-gray-900 dark:text-white">₹{c.amount.toLocaleString()}</span>
                             </div>
                             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -120,7 +120,7 @@ export default function ExpenseAnalytics() {
                 </div>
 
                 {/* Agent Leaderboard */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-3">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Users size={16} className="text-blue-500" /> Agent Leaderboard
                     </h3>
@@ -131,7 +131,7 @@ export default function ExpenseAnalytics() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between text-xs font-bold mb-0.5">
-                                    <span className="text-gray-700 dark:text-gray-300 truncate">{a.name}</span>
+                                    <span className="text-gray-700 truncate">{a.name}</span>
                                     <span className="text-gray-900 dark:text-white ml-2">₹{a.amount.toLocaleString()}</span>
                                 </div>
                                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -144,7 +144,7 @@ export default function ExpenseAnalytics() {
                 </div>
 
                 {/* Status Distribution */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-3">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <BarChart3 size={16} className="text-purple-500" /> Status Distribution
                     </h3>
@@ -162,7 +162,7 @@ export default function ExpenseAnalytics() {
                 </div>
 
                 {/* Payment Mode Split */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-3">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Receipt size={16} className="text-rose-500" /> Payment Mode Split
                     </h3>
@@ -172,8 +172,8 @@ export default function ExpenseAnalytics() {
                         return (
                             <div key={p.mode} className="space-y-1">
                                 <div className="flex justify-between text-xs font-bold">
-                                    <span className="text-gray-700 dark:text-gray-300">{p.mode}</span>
-                                    <span className="text-gray-500 dark:text-gray-400">{pct}% · ₹{p.amount.toLocaleString()}</span>
+                                    <span className="text-gray-700">{p.mode}</span>
+                                    <span className="text-gray-500">{pct}% · ₹{p.amount.toLocaleString()}</span>
                                 </div>
                                 <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                                     <div className={`h-full rounded-full ${p.mode === 'CASH' ? 'bg-emerald-500' : p.mode === 'PERSONAL_CASH' ? 'bg-purple-500' : 'bg-blue-500'}`}

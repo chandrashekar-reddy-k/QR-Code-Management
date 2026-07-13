@@ -1319,7 +1319,7 @@ export default function AdminSales() {
               onClick={() => { setActiveTab('sales'); setCurrentPage(1); }}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'sales'
                 ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100'
-                : 'text-gray-500 hover:text-emerald-600 hover:bg-gray-100/50 border border-transparent'
+                : 'text-gray-500 hover:text-emerald-600 hover:bg-gray-100 border border-transparent'
                 }`}
             >
               <ShoppingCart size={16} />
@@ -1329,7 +1329,7 @@ export default function AdminSales() {
               onClick={() => { setActiveTab('customers'); setCurrentPage(1); }}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'customers'
                 ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100'
-                : 'text-gray-500 hover:text-emerald-600 hover:bg-gray-100/50 border border-transparent'
+                : 'text-gray-500 hover:text-emerald-600 hover:bg-gray-100 border border-transparent'
                 }`}
             >
               <User size={16} />

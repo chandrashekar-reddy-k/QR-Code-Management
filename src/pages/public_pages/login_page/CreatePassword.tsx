@@ -151,14 +151,14 @@ const CreatePassword = () => {
             <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-900 mb-2">
               Set Your Password
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-8">
+            <p className="text-sm text-gray-500 mb-8">
               Create a new password. Ensure it differs from previous ones for
               security.
             </p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-500 mb-1.5">
+                <label className="block text-sm font-medium text-gray-500 mb-1.5">
                   New Password
                 </label>
                 <Controller
@@ -181,7 +181,7 @@ const CreatePassword = () => {
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-600 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-600 transition-colors"
                       >
                         {showNewPassword ? (
                           <EyeOff size={20} />
@@ -200,7 +200,7 @@ const CreatePassword = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-500 mb-1.5">
+                <label className="block text-sm font-medium text-gray-500 mb-1.5">
                   Confirm New Password
                 </label>
                 <Controller
@@ -225,7 +225,7 @@ const CreatePassword = () => {
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-600 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-600 transition-colors"
                       >
                         {showConfirmPassword ? (
                           <EyeOff size={20} />

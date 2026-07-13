@@ -199,7 +199,7 @@ const ManageFeaturedSections = () => {
       sortable: true,
       render: (section: FeaturedSection) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{section.id}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{section.id}</span>
         </div>
       ),
     },
@@ -209,7 +209,7 @@ const ManageFeaturedSections = () => {
       sortable: true,
       render: (section: FeaturedSection) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-semibold">
+          <span className="text-xs sm:text-sm text-gray-800 font-semibold">
             {section.title}
           </span>
         </div>
@@ -221,7 +221,7 @@ const ManageFeaturedSections = () => {
       sortable: true,
       render: (section: FeaturedSection) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 max-w-xs truncate block mx-auto" title={section.shortDescription}>
+          <span className="text-xs sm:text-sm text-gray-800 max-w-xs truncate block mx-auto" title={section.shortDescription}>
             {section.shortDescription}
           </span>
         </div>
@@ -233,7 +233,7 @@ const ManageFeaturedSections = () => {
       sortable: true,
       render: (section: FeaturedSection) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{section.style}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{section.style}</span>
         </div>
       ),
     },
@@ -243,7 +243,7 @@ const ManageFeaturedSections = () => {
       sortable: false,
       render: (section: FeaturedSection) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{section.productType}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{section.productType}</span>
         </div>
       ),
     },
@@ -253,7 +253,7 @@ const ManageFeaturedSections = () => {
       sortable: false,
       render: (section: FeaturedSection) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 max-w-xs truncate block mx-auto" title={section.categoryIds}>
+          <span className="text-xs sm:text-sm text-gray-800 max-w-xs truncate block mx-auto" title={section.categoryIds}>
             {section.categoryIds}
           </span>
         </div>
@@ -265,7 +265,7 @@ const ManageFeaturedSections = () => {
       sortable: true,
       render: (section: FeaturedSection) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{section.position}</span>
+          <span className="text-xs sm:text-sm text-gray-800">{section.position}</span>
         </div>
       ),
     },
@@ -300,7 +300,7 @@ const ManageFeaturedSections = () => {
       {/* Page Title */}
       <div className="mb-2 mt-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-1">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
             Featured Sections
           </h1>
           <PrimaryButton
@@ -366,7 +366,7 @@ const ManageFeaturedSections = () => {
       </div>
 
       {/* Featured Sections Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedSections}
@@ -386,10 +386,10 @@ const ManageFeaturedSections = () => {
 
         {/* Pagination */}
         {filteredAndSortedSections.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
                   <SelectInput
                     value={itemsPerPage.toString()}
@@ -406,7 +406,7 @@ const ManageFeaturedSections = () => {
                     className="w-16 sm:w-20 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing results{" "}
                   <span className="text-orange-600 font-medium">
                     {itemsPerPage}

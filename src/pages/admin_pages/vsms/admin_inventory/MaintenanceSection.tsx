@@ -106,7 +106,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 dark:text-gray-400 font-medium">Loading Service History...</p>
+        <p className="text-gray-500 font-medium">Loading Service History...</p>
       </div>
     );
   }
@@ -115,13 +115,13 @@ export default function MaintenanceSection({ storeId, vehicles }) {
     <div className="h-full">
       {showForm ? (
         <div className="max-w-6xl mx-auto h-[calc(100vh-140px)] flex flex-col">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden flex flex-col flex-1">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col flex-1">
             {/* Ultra Compact Header */}
             <div className="px-8 py-6 bg-emerald-600 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setShowForm(false)}
-                  className="w-10 h-10 bg-white dark:bg-gray-800/10 hover:bg-white dark:bg-gray-800/20 rounded-xl flex items-center justify-center transition-all"
+                  className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all"
                 >
                   <ArrowLeft size={20} />
                 </button>
@@ -137,14 +137,14 @@ export default function MaintenanceSection({ storeId, vehicles }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
                 {/* Column 1: Basic Info */}
                 <div className="space-y-5">
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Vehicle & Date</label>
                     <div className="space-y-4">
                       <select 
                         required
                         value={formData.vehicleId}
                         onChange={e => setFormData({...formData, vehicleId: e.target.value})}
-                        className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                       >
                         <option value="">Select Vehicle...</option>
                         {vehicles.map(v => (
@@ -156,19 +156,19 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                         required
                         value={formData.date}
                         onChange={e => setFormData({...formData, date: e.target.value})}
-                        className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Service Details</label>
                     <div className="space-y-4">
                       <select 
                         required
                         value={formData.serviceType}
                         onChange={e => setFormData({...formData, serviceType: e.target.value})}
-                        className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                       >
                         <option value="General Service">General Service</option>
                         <option value="Engine Repair">Engine Repair</option>
@@ -184,7 +184,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                         step="0.1"
                         value={formData.odometer}
                         onChange={e => setFormData({...formData, odometer: e.target.value})}
-                        className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                         placeholder="ODO Reading (km)"
                       />
                     </div>
@@ -202,24 +202,24 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                         required
                         value={formData.amount}
                         onChange={e => setFormData({...formData, amount: e.target.value})}
-                        className="w-full bg-white dark:bg-gray-800 border-emerald-100 text-emerald-700 rounded-xl py-3.5 pl-8 pr-4 text-lg font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none shadow-sm"
+                        className="w-full bg-white border-emerald-100 text-emerald-700 rounded-xl py-3.5 pl-8 pr-4 text-lg font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none shadow-sm"
                         placeholder="0.00"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Workshop Info</label>
                     <input 
                       type="text"
                       value={formData.mechanicName}
                       onChange={e => setFormData({...formData, mechanicName: e.target.value})}
-                      className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                      className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                       placeholder="Mechanic / Workshop Name"
                     />
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700/50 min-h-[140px]">
+                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50 min-h-[140px]">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Upload Bill</label>
                     <input 
                       type="file"
@@ -230,7 +230,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                     />
                     <label 
                       htmlFor="maintenance-bill-compact"
-                      className="w-full h-24 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-emerald-300 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
+                      className="w-full h-24 bg-white border-2 border-dashed border-gray-200 hover:border-emerald-300 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
                     >
                        {previewUrl ? (
                          <img src={previewUrl} className="h-20 w-auto rounded-lg object-cover border-2 border-emerald-500" alt="Preview" />
@@ -246,13 +246,13 @@ export default function MaintenanceSection({ storeId, vehicles }) {
 
                 {/* Column 3: Work Details */}
                 <div className="flex flex-col">
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700/50 flex flex-col min-h-[300px]">
+                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50 flex flex-col min-h-[300px]">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Work Report</label>
                     <textarea 
                       required
                       value={formData.details}
                       onChange={e => setFormData({...formData, details: e.target.value})}
-                      className="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg py-4 px-5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 transition-all outline-none resize-none flex-1"
+                      className="w-full bg-white border-gray-200 rounded-lg py-4 px-5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 transition-all outline-none resize-none flex-1"
                       placeholder="Describe parts replaced or work done in detail..."
                     />
                   </div>
@@ -260,11 +260,11 @@ export default function MaintenanceSection({ storeId, vehicles }) {
               </div>
 
               {/* Action Bar */}
-              <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 shrink-0">
+              <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-200 shrink-0">
                 <button 
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-8 py-4 bg-gray-100 text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] rounded-lg hover:bg-gray-200 transition-all"
+                  className="px-8 py-4 bg-gray-100 text-gray-600 font-bold uppercase tracking-widest text-[10px] rounded-lg hover:bg-gray-200 transition-all"
                 >
                   Discard
                 </button>
@@ -287,7 +287,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
       ) : (
         <div className="space-y-6">
           {/* Compact Header for History View */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-gray-800/50 backdrop-blur-md p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/50 backdrop-blur-md p-6 rounded-xl border border-gray-200 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-emerald-600 text-white rounded-lg flex items-center justify-center">
                 <Wrench size={24} />
@@ -299,7 +299,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
             </div>
 
             <div className="flex items-center gap-6">
-                <div className="flex gap-4 border-r border-gray-200 dark:border-gray-700 pr-6">
+                <div className="flex gap-4 border-r border-gray-200 pr-6">
                     <div className="text-right">
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">History</p>
                         <p className="text-lg font-bold text-emerald-600">{logs.length}</p>
@@ -319,7 +319,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -339,14 +339,14 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                     logs.map((log) => (
                       <tr key={log.id} className="hover:bg-gray-50 dark:bg-gray-900/50/80 transition-colors">
                         <td className="px-8 py-5">
-                          <p className="text-xs font-bold text-gray-800 dark:text-gray-200 tracking-tight">{log.date ? format(new Date(log.date), 'dd MMM yyyy') : '--'}</p>
+                          <p className="text-xs font-bold text-gray-800 tracking-tight">{log.date ? format(new Date(log.date), 'dd MMM yyyy') : '--'}</p>
                           <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">{log.vehicle?.vehicleNumber}</p>
                         </td>
                         <td className="px-8 py-5">
                           <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-emerald-100">{log.serviceType}</span>
                         </td>
                         <td className="px-8 py-5 max-w-sm">
-                          <p className="text-[11px] text-gray-600 dark:text-gray-400 line-clamp-1">{log.details || 'No details'}</p>
+                          <p className="text-[11px] text-gray-600 line-clamp-1">{log.details || 'No details'}</p>
                         </td>
                         <td className="px-8 py-5 text-right">
                           <div className="flex flex-col items-end">

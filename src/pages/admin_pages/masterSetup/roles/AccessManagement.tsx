@@ -82,7 +82,7 @@ const AccessManagement = () => {
       sortable: false,
       render: (role: TableRole) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {role.id}
           </span>
         </div>
@@ -94,7 +94,7 @@ const AccessManagement = () => {
       sortable: false,
       render: (role: TableRole) => (
         <div className="text-left">
-          <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <span className="text-xs sm:text-sm font-semibold text-gray-900">
             {role.name}
           </span>
         </div>
@@ -106,7 +106,7 @@ const AccessManagement = () => {
       sortable: false,
       render: (role: TableRole) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          <span className="text-xs sm:text-sm text-gray-800">
             {role.createdAt
               ? new Date(role.createdAt).toLocaleString()
               : "—"}
@@ -146,7 +146,7 @@ const AccessManagement = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Access Management
         </h1>
         <PrimaryButton
@@ -180,7 +180,7 @@ const AccessManagement = () => {
       </div>
 
       {/* Roles Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <DataTable
             data={paginatedRoles}
@@ -196,10 +196,10 @@ const AccessManagement = () => {
 
         {/* Pagination */}
         {filteredRoles.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Show
                 </span>
                 <select
@@ -208,14 +208,14 @@ const AccessManagement = () => {
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
                 >
                   <option value="10">10</option>
                   <option value="25">25</option>
                   <option value="50">50</option>
                   <option value="100">100</option>
                 </select>
-                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-gray-600 whitespace-nowrap">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                   {Math.min(
                     currentPage * itemsPerPage,
