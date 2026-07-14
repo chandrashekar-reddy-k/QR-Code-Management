@@ -15,7 +15,7 @@ import { SelfPickup } from "../../../components/shopkeeper/SelfPickup";
 import { Returns } from "../../../components/shopkeeper/Returns";
 import { SLAMonitoring } from "../../../components/shopkeeper/SLAMonitoring";
 import { Settings } from "../../../components/shopkeeper/Settings";
-import { AllOrders } from "../../../components/shopkeeper/AllOrders";
+import { OrderHistory } from "../../../components/shopkeeper/OrderHistory";
 import { StaffTracker } from "../../../components/shopkeeper/StaffTracker";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 import { SharedOrdersContext } from "../../../components/shopkeeper/SharedOrdersContext";
@@ -25,7 +25,7 @@ import api from "../../../api/axios";
 type Screen =
   | "dashboard"
   | "new-orders"
-  | "all-orders"
+  | "orderhistory"
   | "order-details"
   | "picking-queue"
   | "picking-screen"
@@ -55,8 +55,8 @@ export default function ShopkeeperAdminERP() {
 
   const fetchOrders = async () => {
     try {
-      const cachedWh = localStorage.getItem("warehouseId");
-      const storedU = localStorage.getItem("user");
+      const cachedWh = localStorage.getItem("partnerWarehouseId");
+      const storedU = localStorage.getItem("partnerUser");
       let userWarehouseId = "";
       if (cachedWh && cachedWh !== "undefined") {
         userWarehouseId = cachedWh;
@@ -106,7 +106,7 @@ export default function ShopkeeperAdminERP() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 30000);
+    const interval = setInterval(fetchOrders, 5000);
     if (socket.current) {
       socket.current.on('order:status', fetchOrders);
       socket.current.on('order:new', fetchOrders);
@@ -124,31 +124,23 @@ export default function ShopkeeperAdminERP() {
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get("tab") || "dashboard";
 
-    const isSubScreenOfTab = (currentScreen: string, targetTab: string) => {
-      if (targetTab === "new-orders" && currentScreen === "order-details") return true;
-      if (targetTab === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(currentScreen)) return true;
-      if (targetTab === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(currentScreen)) return true;
-      return false;
-    };
-
-    if (screen !== tab && !isSubScreenOfTab(screen, tab)) {
-      setScreen(tab as Screen);
-    }
-  }, [location.search]);
+    setScreen(tab as Screen);
+  }, [location]);
 
   const navigate = (dest: string, data?: unknown) => {
     setHistory(prev => [...prev, screen]);
 
-    if (dest === "all-orders") {
+    if (dest === "orderhistory") {
       setAllOrdersStatus(typeof data === 'string' ? data : undefined);
-      setScreen("all-orders");
-      reactNavigate(`/shopkeeper-erp?tab=all-orders`);
+      setScreen("orderhistory");
+      reactNavigate(`/shopkeeper-erp?tab=orderhistory`);
       return;
     }
 
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "all-orders", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "orderhistory", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper-erp?tab=${dest}`);
+      setScreen(dest as Screen);
     } else {
       setScreen(dest as Screen);
     }
@@ -160,7 +152,7 @@ export default function ShopkeeperAdminERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "all-orders", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "orderhistory", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper-erp?tab=${prev}`);
         setScreen(prev as Screen);
@@ -178,7 +170,7 @@ export default function ShopkeeperAdminERP() {
       <div className="w-full">
         {screen === "dashboard" && <Dashboard onNavigate={navigate} isAdmin={true} />}
         {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} isAdmin={true} />}
-        {screen === "all-orders" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} isAdmin={true} />}
+        {screen === "orderhistory" && <OrderHistory onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} isAdmin={true} />}
         {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} isAdmin={true} />}
         {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} isAdmin={true} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}

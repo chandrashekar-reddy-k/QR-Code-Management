@@ -5,7 +5,8 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const token = localStorage.getItem(isShopkeeper ? 'staffToken' : 'partnerToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,7 +22,8 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized - Token expired or invalid
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('refreshToken');
+      const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+      const refreshToken = localStorage.getItem(isShopkeeper ? 'staffRefreshToken' : 'partnerRefreshToken');
       
       if (refreshToken) {
         try {
@@ -30,9 +32,9 @@ api.interceptors.response.use(
           });
           if (res.data?.data?.accessToken) {
             const newToken = res.data.data.accessToken;
-            localStorage.setItem('token', newToken);
+            localStorage.setItem(isShopkeeper ? 'staffToken' : 'partnerToken', newToken);
             if (res.data.data.refreshToken) {
-              localStorage.setItem('refreshToken', res.data.data.refreshToken);
+              localStorage.setItem(isShopkeeper ? 'staffRefreshToken' : 'partnerRefreshToken', res.data.data.refreshToken);
             }
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return api(originalRequest);
@@ -44,7 +46,21 @@ api.interceptors.response.use(
       
       // If we don't have a refresh token or refreshing fails, clear storage and redirect
       if (!window.location.pathname.includes('/login')) {
-        localStorage.clear();
+        if (isShopkeeper) {
+          localStorage.removeItem('staffToken');
+          localStorage.removeItem('staffRefreshToken');
+          localStorage.removeItem('staffUser');
+          localStorage.removeItem('staffRole');
+          localStorage.removeItem('staffWarehouseId');
+          localStorage.removeItem('staffActiveOrder');
+        } else {
+          localStorage.removeItem('partnerToken');
+          localStorage.removeItem('partnerRefreshToken');
+          localStorage.removeItem('partnerUser');
+          localStorage.removeItem('partnerRole');
+          localStorage.removeItem('partnerWarehouseId');
+          localStorage.removeItem('partnerIsAuthenticated');
+        }
         sessionStorage.clear();
         window.location.href = '/login';
       }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, MapPin, CheckCircle, Scan, Package, Loader2, XCircle } from "lucide-react";
 import api from "../../api/axios";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 interface PickingScreenMobileProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -30,6 +31,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
   const [rejectRemarks, setRejectRemarks] = useState<string>("");
   const [rejectingItem, setRejectingItem] = useState<any>(null);
   const [validationError, setValidationError] = useState<string>("");
+  const [slaInfo, setSlaInfo] = useState(() => getSLAInfo(order));
 
   useEffect(() => {
     if (!order?.id) return;
@@ -51,6 +53,15 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
       setLoading(false);
     });
   }, [order?.id]);
+
+  useEffect(() => {
+    const updateTimer = () => {
+      setSlaInfo(getSLAInfo(order));
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [order]);
 
   const handlePick = async (itemId: number) => {
     try {
@@ -157,7 +168,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
           </button>
           <div className="flex-1">
             <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Picking — #{order?.order_number}</h1>
-            <p className="text-white/70" style={{ fontSize: "12px" }}>{order?.order_type} · SLA: {order?.sla_minutes}m</p>
+            <p className="text-white/70" style={{ fontSize: "12px" }}>{order?.order_type} · SLA: {slaInfo.displayText}</p>
           </div>
         </div>
 

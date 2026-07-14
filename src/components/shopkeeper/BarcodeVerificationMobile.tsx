@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, CheckCircle, XCircle, ZapIcon, RefreshCw } from "lucide-react";
 
-interface BarcodeVerificationProps {
+interface BarcodeVerificationMobileProps {
   onBack: () => void;
   onNavigate: (screen: string) => void;
   data?: any;
@@ -9,17 +9,17 @@ interface BarcodeVerificationProps {
 
 type ScanState = "scanning" | "success" | "mismatch";
 
-export function BarcodeVerification({ onBack, onNavigate, data }: BarcodeVerificationProps) {
+export function BarcodeVerificationMobile({ onBack, onNavigate, data }: BarcodeVerificationMobileProps) {
   const [scanState, setScanState] = useState<ScanState>("scanning");
 
   const order = data || {};
   const currentItem = order.currentItem || {};
 
-  const expectedProduct = { 
-    name: currentItem.name || "Unknown Product", 
-    barcode: currentItem.barcode || "8901030726203", 
-    qty: currentItem.quantity || 1, 
-    img: currentItem.image_url ? <img src={currentItem.image_url} alt="" className="w-10 h-10 object-cover rounded" /> : "📦" 
+  const expectedProduct = {
+    name: currentItem.name || "Unknown Product",
+    barcode: currentItem.barcode || "8901030726203",
+    qty: currentItem.quantity || 1,
+    img: currentItem.image_url ? <img src={currentItem.image_url} alt="" className="w-10 h-10 object-cover rounded" /> : "📦"
   };
   const mismatchProduct = { name: "Unknown Mismatch", barcode: "000000000000", img: "📦" };
 
@@ -104,12 +104,12 @@ export function BarcodeVerification({ onBack, onNavigate, data }: BarcodeVerific
             {expectedProduct.img}
           </div>
           <div className="flex-1">
-            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5" style={{ fontSize: "11px" }}>EXPECTED PRODUCT</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-0.5" style={{ fontSize: "11px" }}>EXPECTED PRODUCT</p>
             <p className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "14px" }}>{expectedProduct.name}</p>
             <p className="text-gray-400 dark:text-gray-500" style={{ fontSize: "11px", fontFamily: "monospace" }}>{expectedProduct.barcode}</p>
           </div>
           <div className="text-right">
-            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>Required</p>
+            <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "11px" }}>Required</p>
             <p className="text-green-700" style={{ fontWeight: 700, fontSize: "20px" }}>×{expectedProduct.qty}</p>
           </div>
         </div>

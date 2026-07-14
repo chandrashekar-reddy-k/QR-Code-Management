@@ -201,7 +201,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
       { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
       { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-      { path: '/shopkeeper-erp?tab=all-orders', label: 'Order History', icon: History },
+      { path: '/shopkeeper-erp?tab=orderhistory', label: 'Order History', icon: History },
       { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
       { path: '/shopkeeper-erp?tab=settings', label: 'Settings', icon: Settings }
     ]

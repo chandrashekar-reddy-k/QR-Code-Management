@@ -1,8 +1,9 @@
 import { HandoverVerificationMobile } from "./HandoverVerificationMobile";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { ArrowLeft, QrCode, CheckCircle, Scan, Bike, Loader2, ChevronRight, Package } from "lucide-react";
 import api from "../../api/axios";
+import { getSLAInfo } from "../../utils/slaHelper";
 import toast from "react-hot-toast";
 
 interface HandoverVerificationProps {
@@ -15,12 +16,12 @@ type Step = "staff-scan" | "rider-scan" | "complete";
 
 export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerificationProps) {
 
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
+  const storedPartnerUser = localStorage.getItem("partnerUser");
+  const partnerUserObj = storedPartnerUser ? JSON.parse(storedPartnerUser) : null;
+  const partnerRole = partnerUserObj?.role;
 
   // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile handover verification UI
-  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  const isStaffLogin = !partnerRole || partnerRole === "SHOPKEEPER" || partnerRole === "STORE_STAFF";
 
   if (isStaffLogin) {
     return <HandoverVerificationMobile onBack={onBack} onNavigate={onNavigate} data={data} />;
@@ -40,7 +41,6 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
   ];
 
   const currentStepIdx = steps.findIndex(s => s.key === step);
-  const totalItems = order.items?.length || 1;
 
   const handleStaffVerify = () => {
     setLoading(true);
@@ -73,11 +73,7 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
     }
   };
 
-  const isSlaBreached = useMemo(() => {
-    if (!order.shopkeeper_accepted_at || !order.sla_minutes) return false;
-    const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
-    return elapsed > order.sla_minutes;
-  }, [order]);
+  const slaInfo = getSLAInfo(order);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] pb-12">
@@ -131,8 +127,14 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">SLA Status</p>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${isSlaBreached ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                {isSlaBreached ? "Breached" : "On Time"}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                slaInfo.status === 'breached' 
+                  ? 'bg-red-105 text-red-800' 
+                  : slaInfo.status === 'at_risk' 
+                  ? 'bg-orange-100 text-orange-850' 
+                  : 'bg-green-100 text-green-800'
+              }`}>
+                {slaInfo.displayText}
               </span>
             </div>
           </div>

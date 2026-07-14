@@ -2,51 +2,14 @@ import { PickingQueueMobile } from "./PickingQueueMobile";
 import { useState, useMemo, useRef } from "react";
 import { ArrowLeft, Package, Play, CheckCircle2, ChevronRight, ShoppingBag, Filter, RotateCcw, ChevronDown, Eye } from "lucide-react";
 import { useSharedOrders } from "./SharedOrdersContext";
+import { getSLAInfo } from "../../utils/slaHelper";
 import Breadcrumbs from "../common/Breadcrumbs";
 import { SelectInput, SearchInput } from "../ui";
-
-function formatSlaDuration(minutes: number, isBreached: boolean): string {
-  const absMin = Math.abs(minutes);
-  let durationStr = "";
-
-  if (absMin < 60) {
-    durationStr = `${absMin}m`;
-  } else {
-    const hours = Math.floor(absMin / 60);
-    const mins = absMin % 60;
-    if (hours < 24) {
-      durationStr = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    } else {
-      const days = Math.floor(hours / 24);
-      const remainingHours = hours % 24;
-      durationStr = remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
-      if (isBreached) {
-        return `Overdue by ${durationStr}`;
-      }
-    }
-  }
-
-  return isBreached ? `${durationStr} overdue` : `${durationStr} remaining`;
-}
 
 interface PickingQueueProps {
   onNavigate: (screen: string, data?: any) => void;
   onBack: () => void;
   isAdmin?: boolean;
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const config = {
-    HIGH: { bg: "#FFEBEE", color: "#D32F2F" },
-    MEDIUM: { bg: "#FFF3E0", color: "#EF5A06" },
-    LOW: { bg: "#E8F5E9", color: "#00891D" },
-  }[priority] || { bg: "#F5F5F5", color: "#757575" };
-
-  return (
-    <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold inline-block text-center" style={{ backgroundColor: config.bg, color: config.color }}>
-      {priority}
-    </span>
-  );
 }
 
 export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQueueProps) {
@@ -55,9 +18,7 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
   }
   const { orders: sharedOrders } = useSharedOrders();
 
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
+
 
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -374,31 +335,15 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
                   const progress = (order.picked / order.items) * 100;
                   const isCompleted = order.picked === order.items;
                   const isInProgress = order.picked > 0 && !isCompleted;
-                  const isUrgent = order.sla_minutes <= 10;
 
-                  const acceptedAt = order.shopkeeper_accepted_at
-                    ? new Date(order.shopkeeper_accepted_at).getTime()
-                    : null;
-                  const elapsedMin = acceptedAt
-                    ? Math.floor((Date.now() - acceptedAt) / 60000)
-                    : 0;
-                  const remainingMin = order.sla_minutes - elapsedMin;
-                  const slaBreached = acceptedAt !== null && remainingMin < 0;
-
-                  // Determine SLA status text and badge styles
-                  let slaStatusText = "";
+                  const slaInfo = getSLAInfo(order);
+                  let slaStatusText = slaInfo.displayText;
                   let slaBadgeClass = "";
-                  if (acceptedAt === null) {
-                    slaStatusText = formatSlaDuration(order.sla_minutes, false);
-                    slaBadgeClass = "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800";
-                  } else if (slaBreached) {
-                    slaStatusText = formatSlaDuration(remainingMin, true);
+                  if (slaInfo.status === 'breached') {
                     slaBadgeClass = "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800";
-                  } else if (isUrgent || remainingMin <= 10) {
-                    slaStatusText = formatSlaDuration(remainingMin, false);
+                  } else if (slaInfo.status === 'at_risk') {
                     slaBadgeClass = "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800";
                   } else {
-                    slaStatusText = formatSlaDuration(remainingMin, false);
                     slaBadgeClass = "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800";
                   }
 

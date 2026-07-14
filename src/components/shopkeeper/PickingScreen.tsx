@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, MapPin, CheckCircle, Scan, Package, Loader2, XCircle, ChevronRight } from "lucide-react";
-import { PickingScreenMobile } from "./PickingScreenMobile";
 import api from "../../api/axios";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 interface PickingScreenProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -37,6 +37,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
   const [elapsedTime, setElapsedTime] = useState("");
   const [lastActivity, setLastActivity] = useState<string>("—");
   const [barcodeInput, setBarcodeInput] = useState("");
+  const [slaInfo, setSlaInfo] = useState(() => getSLAInfo(order));
 
   useEffect(() => {
     setBarcodeInput("");
@@ -69,7 +70,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
   };
 
   useEffect(() => {
-    const startVal = order?.picking_started_at || order?.pickingStartedAt || order?.accepted_at || order?.createdAt || order?.created_at;
+    const startVal = order?.shopkeeper_accepted_at || order?.shopkeeperAcceptedAt || order?.acceptedByShopkeeperAt || order?.accepted_at || order?.picking_started_at || order?.pickingStartedAt || order?.createdAt || order?.created_at;
     if (!startVal) {
       setElapsedTime("—");
       return;
@@ -85,20 +86,21 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
       const diffMs = now - startTime;
       if (diffMs < 0) {
         setElapsedTime("0s");
-        return;
-      }
-      const totalSecs = Math.floor(diffMs / 1000);
-      const mins = Math.floor(totalSecs / 60);
-      const secs = totalSecs % 60;
-      const hrs = Math.floor(mins / 60);
-      
-      if (hrs > 0) {
-        setElapsedTime(`${hrs}h ${mins % 60}m ${secs}s`);
-      } else if (mins > 0) {
-        setElapsedTime(`${mins}m ${secs}s`);
       } else {
-        setElapsedTime(`${secs}s`);
+        const totalSecs = Math.floor(diffMs / 1000);
+        const mins = Math.floor(totalSecs / 60);
+        const secs = totalSecs % 60;
+        const hrs = Math.floor(mins / 60);
+        
+        if (hrs > 0) {
+          setElapsedTime(`${hrs}h ${mins % 60}m ${secs}s`);
+        } else if (mins > 0) {
+          setElapsedTime(`${mins}m ${secs}s`);
+        } else {
+          setElapsedTime(`${secs}s`);
+        }
       }
+      setSlaInfo(getSLAInfo(order));
     };
 
     updateTimer();
@@ -226,7 +228,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
   const completedItems = items.filter(i => i.is_picked || i.is_rejected);
   const totalCompleted = completedItems.length;
   const percentCompleted = items.length ? Math.round((totalCompleted / items.length) * 100) : 0;
-  const isVerified = currentItem && barcodeInput === currentItem.barcode;
+
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] dark:bg-gray-900">
@@ -249,8 +251,14 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
               <span className="text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-md">
                 Delivery: {order?.order_type || 'STANDARD'}
               </span>
-              <span className="text-xs font-semibold bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 rounded-md">
-                SLA: {order?.sla_minutes || 30} mins
+              <span className={`text-xs font-semibold border px-2 py-0.5 rounded-md ${
+                slaInfo.status === 'breached' 
+                  ? 'bg-red-50 text-red-700 border-red-100' 
+                  : slaInfo.status === 'at_risk' 
+                  ? 'bg-orange-50 text-orange-700 border-orange-100' 
+                  : 'bg-green-50 text-green-700 border-green-100'
+              }`}>
+                SLA: {slaInfo.displayText}
               </span>
               <span className={`text-xs font-semibold border px-2 py-0.5 rounded-md ${
                 (order?.priority || 'NORMAL').toUpperCase() === 'HIGH' 
@@ -397,7 +405,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
                   <XCircle size={15} /> Reject
                 </button>
                 <button
-                  onClick={() => onNavigate("barcode-verification", { ...order, currentItem })}
+                  onClick={() => onNavigate("barcode-verification", { ...order, currentItem, items, currentIdx })}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors flex items-center gap-1.5 shadow-sm"
                 >
                   <Scan size={15} /> Verify

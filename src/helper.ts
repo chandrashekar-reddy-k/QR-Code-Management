@@ -29,7 +29,22 @@ const pendingRequests: Array<{
  * Clears all auth data and redirects to login
  */
 const clearAuthAndRedirect = () => {
-  localStorage.clear();
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  if (isShopkeeper) {
+    localStorage.removeItem('staffToken');
+    localStorage.removeItem('staffRefreshToken');
+    localStorage.removeItem('staffUser');
+    localStorage.removeItem('staffRole');
+    localStorage.removeItem('staffWarehouseId');
+    localStorage.removeItem('staffActiveOrder');
+  } else {
+    localStorage.removeItem('partnerToken');
+    localStorage.removeItem('partnerRefreshToken');
+    localStorage.removeItem('partnerUser');
+    localStorage.removeItem('partnerRole');
+    localStorage.removeItem('partnerWarehouseId');
+    localStorage.removeItem('partnerIsAuthenticated');
+  }
   sessionStorage.clear();
   const path = window.location.pathname || "";
   if (isRedirectingToLogin || path === "/login" || path.startsWith("/login/")) {
@@ -49,7 +64,8 @@ const clearAuthAndRedirect = () => {
  * Calls the refresh token API
  */
 const refreshAccessToken = async (): Promise<string> => {
-  const refreshToken = localStorage.getItem("refreshToken");
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const refreshToken = localStorage.getItem(isShopkeeper ? "staffRefreshToken" : "partnerRefreshToken");
 
   if (!refreshToken) {
     throw new Error("No refresh token available");
@@ -80,11 +96,11 @@ const refreshAccessToken = async (): Promise<string> => {
 
   if (data?.data?.accessToken) {
     // Update access token
-    localStorage.setItem("token", data.data.accessToken);
+    localStorage.setItem(isShopkeeper ? "staffToken" : "partnerToken", data.data.accessToken);
 
     // Update refresh token if provided
     if (data.data.refreshToken) {
-      localStorage.setItem("refreshToken", data.data.refreshToken);
+      localStorage.setItem(isShopkeeper ? "staffRefreshToken" : "partnerRefreshToken", data.data.refreshToken);
     }
 
     return data.data.accessToken;
@@ -213,7 +229,8 @@ async function fetchData<T>(
     // Add Authorization header if token exists and endpoint requires it
     // Skip token for login and other auth endpoints that don't need token
     if (!isAuthEndpointWithoutToken) {
-      const token = localStorage.getItem("token");
+      const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+      const token = localStorage.getItem(isShopkeeper ? "staffToken" : "partnerToken");
       if (!token) {
         // Don't fire the request tokenless — wait for refresh if one is in progress
         if (isRefreshing && refreshPromise) {

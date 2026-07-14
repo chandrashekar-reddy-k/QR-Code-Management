@@ -58,12 +58,27 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
     // },
     onSuccess: (data: LoginResponse) => {
       const user = data.data.user;
+      const anyUser = user as any;
 
       // Only persist tokens for users who should go to dashboard (password already created is FALSE)
       if (!user.isCreatedPassword) {
-        localStorage.setItem("token", data.data.accessToken);
-        localStorage.setItem("refreshToken", data.data.refreshToken);
-        localStorage.setItem("user", JSON.stringify(user));
+        if (user.role === 'SHOPKEEPER') {
+          localStorage.setItem("staffToken", data.data.accessToken);
+          localStorage.setItem("staffRefreshToken", data.data.refreshToken);
+          localStorage.setItem("staffUser", JSON.stringify(user));
+          localStorage.setItem("staffRole", user.role);
+          if (anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id) {
+            localStorage.setItem("staffWarehouseId", anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id || "");
+          }
+        } else {
+          localStorage.setItem("partnerToken", data.data.accessToken);
+          localStorage.setItem("partnerRefreshToken", data.data.refreshToken);
+          localStorage.setItem("partnerUser", JSON.stringify(user));
+          localStorage.setItem("partnerRole", user.role);
+          if (anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id) {
+            localStorage.setItem("partnerWarehouseId", anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id || "");
+          }
+        }
       }
 
       onSuccess(data);
@@ -137,12 +152,16 @@ export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
     },
     onSuccess: (data: LoginResponse) => {
       const user = data.data.user;
+      const anyUser = user as any;
 
       if (!user.isCreatedPassword) {
-        localStorage.setItem("token", data.data.accessToken);
-        localStorage.setItem("refreshToken", data.data.refreshToken);
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("role", user.role);
+        localStorage.setItem("staffToken", data.data.accessToken);
+        localStorage.setItem("staffRefreshToken", data.data.refreshToken);
+        localStorage.setItem("staffUser", JSON.stringify(user));
+        localStorage.setItem("staffRole", user.role);
+        if (anyUser.store?.id) {
+          localStorage.setItem("staffWarehouseId", anyUser.store.id);
+        }
       }
 
       onSuccess(data);

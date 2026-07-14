@@ -315,27 +315,27 @@ export default function Sidebar({ isOpen, onClose }) {
       )}
 
       {/* Sidebar - Desktop (Fixed) & Mobile (Drawer) */}
-      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-200 flex flex-col z-[70] transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} h-screen overflow-hidden`}>
+      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col z-[70] transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} h-screen overflow-hidden`}>
 
         {/* Store Context Layer */}
         <div className="p-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Store size={14} className="text-emerald-600" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Store Context</span>
+              <Store size={14} className="text-emerald-600 dark:text-emerald-500" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-500">Store Context</span>
             </div>
             {/* <NotificationDropdown /> */}
           </div>
 
-          <div className="group relative flex items-center gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 shadow-sm transition-all hover:bg-emerald-50">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200/50">
+          <div className="group relative flex items-center gap-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100/50 dark:border-emerald-900/30 shadow-sm transition-all hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200/50 dark:shadow-none">
               <Store size={20} strokeWidth={2.5} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-black text-slate-900 tracking-tight truncate leading-tight">
+              <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 tracking-tight truncate leading-tight">
                 {user?.storeName || user?.tenantName || 'VillagKart'}
               </h3>
-              <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Sales Outlet</p>
+              <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mt-0.5">Sales Outlet</p>
             </div>
           </div>
         </div>
@@ -360,8 +360,8 @@ export default function Sidebar({ isOpen, onClose }) {
                     <button
                       onClick={() => toggleMenu(item.name)}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${isActive
-                        ? 'bg-emerald-50 text-emerald-700 font-bold'
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                        ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 font-bold'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'}`}
                     >
                       <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${isActive ? 'bg-emerald-600 scale-100' : 'bg-transparent scale-0'}`} />
                       <item.icon size={16} strokeWidth={isActive ? 3 : 2.5} className={item.color} />
@@ -373,7 +373,7 @@ export default function Sidebar({ isOpen, onClose }) {
                       />
                     </button>
                     {isMenuOpen && (
-                      <div className="pl-4 space-y-1 mt-1 border-l-2 border-emerald-50/50 ml-6">
+                      <div className="pl-4 space-y-1 mt-1 border-l-2 border-emerald-50/50 dark:border-emerald-900/30 ml-6">
                         {item.subItems.map((sub) => {
                           const hasNestedItems = sub.subItems && sub.subItems.length > 0;
                           const isNestedOpen = openMenus[sub.name];
@@ -384,7 +384,7 @@ export default function Sidebar({ isOpen, onClose }) {
                               <div key={sub.name} className="space-y-0.5">
                                 <button
                                   onClick={() => toggleMenu(sub.name)}
-                                  className={`w-full flex items-center justify-between gap-3 px-4 py-1.5 rounded-lg transition-all duration-200 ${isNestedActive ? 'text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
+                                  className={`w-full flex items-center justify-between gap-3 px-4 py-1.5 rounded-lg transition-all duration-200 ${isNestedActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                                 >
                                   <div className="flex items-center gap-3">
                                     <sub.icon size={14} strokeWidth={2.5} />
@@ -397,7 +397,7 @@ export default function Sidebar({ isOpen, onClose }) {
                                   />
                                 </button>
                                 {isNestedOpen && (
-                                  <div className="pl-4 space-y-0.5 mt-0.5 border-l border-emerald-50/30 ml-6">
+                                  <div className="pl-4 space-y-0.5 mt-0.5 border-l border-emerald-50/30 dark:border-emerald-900/20 ml-6">
                                     {sub.subItems.map(nested => {
                                       const targetTab = new URLSearchParams(nested.path.split('?')[1]).get('tab');
                                       const targetSub = new URLSearchParams(nested.path.split('?')[1]).get('sub');
@@ -409,7 +409,7 @@ export default function Sidebar({ isOpen, onClose }) {
                                           onClick={onClose}
                                           className={`flex items-center gap-3 px-4 py-1.5 rounded-lg transition-all duration-200 ${isTarget
                                             ? 'bg-emerald-600 text-white shadow-sm'
-                                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
+                                            : 'text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300'}`}
                                         >
                                           <nested.icon size={12} strokeWidth={isTarget ? 3 : 2.5} />
                                           <span className="text-[9px] font-black uppercase tracking-widest">{nested.name}</span>
@@ -446,9 +446,9 @@ export default function Sidebar({ isOpen, onClose }) {
                               onClick={onClose}
                               className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${isSubActive
                                 ? 'bg-emerald-600 text-white shadow-md'
-                                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
+                                : 'text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300'}`}
                             >
-                              <sub.icon size={14} strokeWidth={isSubActive ? 3 : 2.5} />
+                              <sub.icon size={14} strokeWidth={isSubActive ? 3 : 2.5} className={isSubActive ? 'text-white' : 'text-emerald-500'} />
                               <span className="text-[10px] font-black uppercase tracking-wider">{sub.name}</span>
                               {isSubActive && <div className="ml-auto w-1 h-1 rounded-full bg-white animate-pulse" />}
                             </Link>
@@ -466,8 +466,8 @@ export default function Sidebar({ isOpen, onClose }) {
                   to={item.path}
                   onClick={onClose}
                   className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${isActive
-                    ? `bg-emerald-600 text-white shadow-lg shadow-emerald-200`
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                    ? `bg-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-none`
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'}`}
                 >
                   <item.icon size={16} strokeWidth={isActive ? 3 : 2.5} className={isActive ? 'text-white' : item.color} />
                   <span className="flex-1 font-black text-xs uppercase tracking-wide">{item.name}</span>
@@ -481,19 +481,19 @@ export default function Sidebar({ isOpen, onClose }) {
         </div>
 
         {/* User Profile Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-          <div className="mx-2 p-3 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-black text-sm border border-emerald-100/50 shrink-0">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
+          <div className="mx-2 p-3 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 shadow-sm flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black text-sm border border-emerald-100/50 dark:border-emerald-900/30 shrink-0">
               {user?.name?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-black text-slate-900 truncate tracking-tight uppercase leading-none">{user?.name}</p>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate mt-1">{user?.role?.replace('_', ' ')}</p>
+              <p className="text-[11px] font-black text-slate-900 dark:text-slate-100 truncate tracking-tight uppercase leading-none">{user?.name}</p>
+              <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate mt-1">{user?.role?.replace('_', ' ')}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-5 py-2.5 mt-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-all border border-transparent hover:border-rose-100"
+            className="flex items-center gap-3 w-full px-5 py-2.5 mt-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 dark:hover:text-rose-400 transition-all border border-transparent hover:border-rose-100 dark:hover:border-rose-900/30"
           >
             <LogOut size={14} strokeWidth={3} />
             <span>Sign Out</span>

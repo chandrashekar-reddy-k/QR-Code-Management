@@ -3,7 +3,7 @@
  * Prefer explicit warehouse fields from login; otherwise use partner `user.id` (your API scopes by partner user).
  */
 
-const STORAGE_KEY = "warehouseId";
+const STORAGE_KEY = "partnerWarehouseId";
 
 function asId(v: unknown): string | undefined {
   if (v == null) return undefined;
@@ -118,7 +118,7 @@ export function getPartnerWarehouseId(): string | undefined {
     const direct = localStorage.getItem(STORAGE_KEY);
     if (direct?.trim()) return direct.trim();
 
-    const rawUser = localStorage.getItem("user");
+    const rawUser = localStorage.getItem("partnerUser");
     if (rawUser) {
       const u = JSON.parse(rawUser) as unknown;
       const fromUser = extractWarehouseIdFromUser(u);

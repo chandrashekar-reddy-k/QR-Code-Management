@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, Package, Play, AlertCircle, CheckCircle2, ChevronRight } from "lucide-react";
 import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 interface PickingQueueProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -101,23 +102,12 @@ export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
           const progress = (order.picked / order.items) * 100;
           const isCompleted = order.picked === order.items;
           const isInProgress = order.picked > 0 && !isCompleted;
-          const isUrgent = order.sla_minutes <= 10;
-          // Compute SLA remaining from shopkeeper_accepted_at
-          const acceptedAt = order.shopkeeper_accepted_at
-            ? new Date(order.shopkeeper_accepted_at).getTime()
-            : null;
-          const elapsedMin = acceptedAt
-            ? Math.floor((Date.now() - acceptedAt) / 60000)
-            : 0;
-          const remainingMin = order.sla_minutes - elapsedMin;
-          const slaBreached = acceptedAt !== null && remainingMin < 0;
-          const slaLabel = acceptedAt
-            ? slaBreached
-              ? `Overdue ${Math.abs(remainingMin)}m`
-              : `${remainingMin}m left`
-            : `${order.sla_minutes}m`;
-          const slaColor = slaBreached ? "#D32F2F" : isUrgent ? "#EF5A06" : "#EF5A06";
-          const slaBg = slaBreached ? "#FFEBEE" : isUrgent ? "#FFEBEE" : "#FFF3E0";
+          const slaInfo = getSLAInfo(order);
+          const slaBreached = slaInfo.status === 'breached';
+          const isUrgent = slaInfo.status === 'at_risk';
+          const slaLabel = slaInfo.displayText;
+          const slaColor = slaBreached ? "#D32F2F" : isUrgent ? "#EF5A06" : "#00891D";
+          const slaBg = slaBreached ? "#FFEBEE" : isUrgent ? "#FFEBEE" : "#E8F5E9";
 
           return (
             <div key={order.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">

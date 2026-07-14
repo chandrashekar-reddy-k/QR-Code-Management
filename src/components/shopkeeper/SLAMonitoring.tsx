@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Loader2, Package, TrendingUp, Filter, RotateCcw, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { getSLAInfo } from "../../utils/slaHelper";
 import api from "../../api/axios";
 import { SelectInput, SearchInput } from "../ui";
 
@@ -114,17 +115,17 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
   const breachesList: any[] = [];
 
   orders.forEach((o) => {
-    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
-    if (!acceptedAtStr || !isNotDispatchedOrCancelled(o)) {
+    if (!isNotDispatchedOrCancelled(o)) {
       return;
     }
 
-    const acceptedAt = new Date(acceptedAtStr).getTime();
+    const slaInfo = getSLAInfo(o, now);
+    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
+    const acceptedAt = acceptedAtStr ? new Date(acceptedAtStr).getTime() : now.getTime();
     const elapsed = (now.getTime() - acceptedAt) / 60000;
     const slaMinutes = o.sla_minutes || o.slaMinutes || 30;
-    const remaining = slaMinutes - elapsed;
 
-    if (elapsed > slaMinutes) {
+    if (slaInfo.status === 'breached') {
       breachedCount++;
       breachesList.push({
         order_number: o.order_number || o.orderNumber,
@@ -135,7 +136,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
         sla_minutes: slaMinutes,
         delay_minutes: Math.max(0, Math.floor(elapsed - slaMinutes))
       });
-    } else if (remaining < 15) {
+    } else if (slaInfo.status === 'at_risk') {
       atRiskCount++;
     } else {
       onTrackCount++;
@@ -171,17 +172,10 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
   const filteredOrders = orders.filter((o) => {
     if (!isNotDispatchedOrCancelled(o)) return false;
 
-    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
-    if (!acceptedAtStr) return false;
+    const slaInfo = getSLAInfo(o, now);
+    const currentSlaStatus = slaInfo.status;
 
-    const acceptedAt = new Date(acceptedAtStr).getTime();
-    const elapsed = (now.getTime() - acceptedAt) / 60000;
-    const slaMinutes = o.sla_minutes || o.slaMinutes || 30;
-    const remaining = slaMinutes - elapsed;
-    
-    const isBreached = remaining < 0;
-    const isAtRisk = remaining >= 0 && remaining <= 10;
-    const currentSlaStatus = isBreached ? "breached" : isAtRisk ? "at_risk" : "on_track";
+    if (currentSlaStatus === 'on_track') return false;
 
     if (slaFilter && currentSlaStatus !== slaFilter) return false;
     if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return false;
@@ -256,7 +250,6 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                 onChange={(e) => setSlaFilter(e.target.value)}
                 options={[
                   { value: "", label: "SLA Status: All" },
-                  { value: "on_track", label: "On Track" },
                   { value: "at_risk", label: "At Risk" },
                   { value: "breached", label: "Breached" },
                 ]}
@@ -378,14 +371,10 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                 </tr>
               ) : (
                 filteredOrders.map((o) => {
-                  const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
-                  const acceptedAt = acceptedAtStr ? new Date(acceptedAtStr).getTime() : now.getTime();
-                  const elapsed = (now.getTime() - acceptedAt) / 60000;
-                  const slaMinutes = o.sla_minutes || o.slaMinutes || 30;
-                  const remainingRaw = slaMinutes - elapsed;
-                  const isBreached = remainingRaw < 0;
-                  const isAtRisk = remainingRaw >= 0 && remainingRaw <= 10;
-                  
+                  const slaInfo = getSLAInfo(o, now);
+                  const isBreached = slaInfo.status === 'breached';
+                  const isAtRisk = slaInfo.status === 'at_risk';
+
                   let badgeBg = "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800";
                   let badgeText = "On Track";
                   if (isBreached) {
@@ -407,7 +396,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                   } else if (isAtRisk) {
                     dynamicPriority = "High";
                     priorityBadgeCls = "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800";
-                  } else if (remainingRaw <= 20) {
+                  } else if (slaInfo.remainingMinutes <= 20) {
                     dynamicPriority = "Medium";
                     priorityBadgeCls = "bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800";
                   } else {
@@ -434,7 +423,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                         <span className="text-gray-700 dark:text-gray-300 font-medium capitalize">{o.status?.replace(/_/g, ' ') || 'Unknown'}</span>
                       </td>
                       <td className="px-4 py-2 text-center whitespace-nowrap font-bold text-gray-900 dark:text-gray-100">
-                        {isBreached ? <span className="text-red-600 dark:text-red-400">{formatTime(Math.abs(remainingRaw), true)}</span> : formatTime(remainingRaw)}
+                        {isBreached ? <span className="text-red-600 dark:text-red-400">{slaInfo.displayText}</span> : slaInfo.displayText}
                       </td>
                       <td className="px-4 py-2 text-center whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badgeBg}`}>

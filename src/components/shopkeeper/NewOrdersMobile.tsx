@@ -40,7 +40,8 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   const [selectedShopkeeper, setSelectedShopkeeper] = useState<{ id: number; assignedAt: string; timeoutMinutes: number } | null>(null);
 
   // User & role info for staff UI filtering
-  const storedU = localStorage.getItem("user");
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const storedU = localStorage.getItem(isShopkeeper ? "staffUser" : "partnerUser");
   let userRole: string | null = null;
   if (storedU) {
     try {
@@ -48,7 +49,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
       userRole = u.role;
     } catch (e) {}
   }
-  const isStaff = userRole && !["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole.toUpperCase());
+  const isStaff = isShopkeeper || (userRole && !["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole.toUpperCase()));
 
   // Real-time integration using storeId 1 as per dummy data
   const socket = useSocket(1);

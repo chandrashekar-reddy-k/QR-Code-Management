@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { ArrowLeft, Clock, Search, ShoppingBag, X } from "lucide-react";
 
-interface AllOrdersProps {
+interface OrderHistoryMobileProps {
   onBack: () => void;
   onNavigate?: (screen: string, data?: any) => void;
   initialStatus?: string;
@@ -44,7 +44,7 @@ const tabMap: Record<string, string> = {
 
 import { useSharedOrders } from "./SharedOrdersContext";
 
-export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }: AllOrdersProps) {
+export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin = false }: OrderHistoryMobileProps) {
   const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -129,14 +129,19 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
   }, [orders, activeTab, searchQuery]);
 
   const statusStyles: Record<string, { color: string; bg: string }> = {
-    new: { color: "#1565C0", bg: "#E3F2FD" },
-    picking: { color: "#6A1B9A", bg: "#F3E5F5" },
-    packing: { color: "#E65100", bg: "#FFF3E0" },
-    ready: { color: "#14B8A6", bg: "#E8F5E9" },
-    dispatched: { color: "#2E7D32", bg: "#E0F2F1" },
-    delivered: { color: "#1B5E20", bg: "#C8E6C9" },
-    cancelled: { color: "#D32F2F", bg: "#FFEBEE" },
-    rejected: { color: "#D32F2F", bg: "#FFEBEE" },
+    new: { color: "#1D4ED8", bg: "#EFF6FF" },
+    placed: { color: "#1D4ED8", bg: "#EFF6FF" },
+    assigned: { color: "#4B5563", bg: "#F3F4F6" },
+    accepted: { color: "#1D4ED8", bg: "#EFF6FF" },
+    picking: { color: "#7C3AED", bg: "#F5F3FF" },
+    packing: { color: "#EA580C", bg: "#FFF7ED" },
+    ready: { color: "#0D9488", bg: "#F0FDFA" },
+    ready_for_dispatch: { color: "#0D9488", bg: "#F0FDFA" },
+    dispatched: { color: "#16A34A", bg: "#F0FDF4" },
+    completed: { color: "#16A34A", bg: "#F0FDF4" },
+    delivered: { color: "#16A34A", bg: "#F0FDF4" },
+    cancelled: { color: "#DC2626", bg: "#FEF2F2" },
+    rejected: { color: "#DC2626", bg: "#FEF2F2" },
   };
 
   return (

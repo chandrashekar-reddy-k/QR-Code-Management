@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef } from "react";
 import { ArrowLeft, Clock, Package, Play, AlertCircle, Eye, Filter, RotateCcw, ChevronDown } from "lucide-react";
-import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
+import { getSLAInfo } from "../../utils/slaHelper";
 import Breadcrumbs from "../common/Breadcrumbs";
 import { SelectInput, SearchInput } from "../ui";
-
-import { PackingQueueMobile } from "./PackingQueueMobile";
 
 interface PackingQueueProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -13,7 +11,7 @@ interface PackingQueueProps {
 }
 
 export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
-  const { orders: sharedOrders, refreshOrders } = useSharedOrders();
+  const { orders: sharedOrders } = useSharedOrders();
 
 
   const packingOrders = useMemo(() => {
@@ -22,21 +20,9 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
       return s === 'packing' || s === 'packed' || s === 'processing';
     });
 
-    const allTrays = ["P01", "P02", "P03", "P04", "P05"];
-    const assignedTrays = new Set<string>(
-      orders.filter((o: any) => o.tray_number).map((o: any) => o.tray_number as string)
-    );
-
     const processedOrders: any[] = [];
     for (const o of orders) {
-      let tray = o.tray_number;
-      if (!tray) {
-        const nextFreeTray = allTrays.find(t => !assignedTrays.has(t));
-        tray = nextFreeTray || 'P??';
-        if (nextFreeTray) {
-          assignedTrays.add(tray);
-        }
-      }
+      const tray = o.tray_number || 'N/A';
       const pickedCount = o.picked_count ?? o.item_count ?? 0;
       const acceptedAtField = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
       const acceptedMs = acceptedAtField
@@ -53,37 +39,6 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
       });
     }
     return processedOrders;
-  }, [sharedOrders]);
-
-  useEffect(() => {
-    const ordersToAssign = sharedOrders.filter((o: any) => {
-      const s = o.status?.toLowerCase();
-      return (s === 'packing' || s === 'packed' || s === 'processing') && !o.tray_number;
-    });
-
-    if (ordersToAssign.length > 0) {
-      const assignTrays = async () => {
-        const allTrays = ["P01", "P02", "P03", "P04", "P05"];
-        const assignedTrays = new Set<string>(
-          sharedOrders.filter((o: any) => o.tray_number).map((o: any) => o.tray_number as string)
-        );
-
-        for (const o of ordersToAssign) {
-          const nextFreeTray = allTrays.find(t => !assignedTrays.has(t));
-          const tray = nextFreeTray || 'P??';
-          if (nextFreeTray) {
-            assignedTrays.add(tray);
-            try {
-              await api.put(`/orders/${o.id}/status`, { status: 'packing', tray_number: tray });
-            } catch (e) {
-              console.warn('Failed to persist tray assignment', e);
-            }
-          }
-        }
-        await refreshOrders();
-      };
-      assignTrays();
-    }
   }, [sharedOrders]);
 
   const stats = {
@@ -152,10 +107,10 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
         if (!orderDateStr) return false;
         const orderDate = new Date(orderDateStr);
         const orderDateStart = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate()).getTime();
-        
+
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        
+
         if (dateRangeType === "today") {
           return orderDateStart === todayStart;
         } else if (dateRangeType === "yesterday") {
@@ -406,55 +361,15 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredPackingOrders.map((order) => {
-                  const acceptedAtField = order.shopkeeper_accepted_at || order.shopkeeperAcceptedAt || order.acceptedByShopkeeperAt;
-                  const acceptedAt = acceptedAtField
-                    ? new Date(acceptedAtField).getTime()
-                    : null;
-                  const elapsedMin = acceptedAt
-                    ? Math.floor((Date.now() - acceptedAt) / 60000)
-                    : 0;
-                  const remainingMin = order.sla_minutes - elapsedMin;
-                  const slaBreached = acceptedAt !== null && remainingMin < 0;
-                  const isStarted = !!(order.packing_started_at || order.packingStartedAt);
-
-                  // Target SLA duration display helper matching Picking Queue style
-                  const formatSla = (minutes: number, isBreached: boolean): string => {
-                    const absMin = Math.abs(minutes);
-                    const suffix = isBreached ? " overdue" : " remaining";
-                    const prefix = isBreached ? "Overdue by " : "";
-                    
-                    if (absMin < 60) {
-                      return isBreached ? `${prefix}${absMin}m` : `${absMin}m${suffix}`;
-                    }
-                    
-                    const hours = Math.floor(absMin / 60);
-                    const mins = absMin % 60;
-                    
-                    if (hours < 24) {
-                      const timeStr = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-                      return isBreached ? `${prefix}${timeStr}` : `${timeStr}${suffix}`;
-                    }
-                    
-                    const days = Math.floor(hours / 24);
-                    const remHours = hours % 24;
-                    const timeStr = remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
-                    return isBreached ? `${prefix}${timeStr}` : `${timeStr}${suffix}`;
-                  };
-
-                  let slaStatusText = "";
+                  const slaInfo = getSLAInfo(order);
+                  let slaStatusText = slaInfo.displayText;
                   let slaBadgeClass = "";
-                  if (acceptedAt === null) {
-                    slaStatusText = `${order.sla_minutes}m target`;
-                    slaBadgeClass = "bg-green-50 text-green-700 border-green-200";
-                  } else if (slaBreached) {
-                    slaStatusText = formatSla(remainingMin, true);
-                    slaBadgeClass = "bg-red-50 text-red-700 border-red-200";
-                  } else if (order.urgent || remainingMin <= 10) {
-                    slaStatusText = formatSla(remainingMin, false);
-                    slaBadgeClass = "bg-orange-50 text-orange-700 border-orange-200";
+                  if (slaInfo.status === 'breached') {
+                    slaBadgeClass = "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800";
+                  } else if (slaInfo.status === 'at_risk') {
+                    slaBadgeClass = "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800";
                   } else {
-                    slaStatusText = formatSla(remainingMin, false);
-                    slaBadgeClass = "bg-green-50 text-green-700 border-green-200";
+                    slaBadgeClass = "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800";
                   }
 
                   const itemsList = order.itemsList || [];
@@ -462,7 +377,7 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                   const isCompletedVal = ["packed", "ready", "dispatched"].includes((order.status || "").toLowerCase());
                   const packedCountVal = isCompletedVal ? totalToPack : (itemsList.filter((i: any) => i.is_picked && i.is_verified).length || 0);
                   const pctVal = totalToPack > 0 ? Math.round((packedCountVal / totalToPack) * 100) : 0;
-                  
+
                   return (
                     <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-750 transition-colors h-[64px]">
                       <td className="px-4 py-4 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
@@ -559,11 +474,10 @@ export function PackingQueue({ onNavigate, onBack }: PackingQueueProps) {
                       <td className="px-4 py-2 font-bold text-gray-900 dark:text-gray-100">{tray}</td>
                       <td className="px-4 py-2">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                            isActive
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${isActive
                               ? "bg-orange-50 text-orange-700 border-orange-200"
                               : "bg-green-50 text-green-700 border-green-200"
-                          }`}
+                            }`}
                         >
                           {isActive ? "Occupied" : "Available"}
                         </span>

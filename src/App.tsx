@@ -19,9 +19,11 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastContainer } from "react-toastify";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem('token');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+
+  const isShopkeeperPortal = location.pathname.startsWith('/shopkeeper') && !location.pathname.startsWith('/shopkeeper-erp');
+  const token = isShopkeeperPortal ? localStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -30,14 +32,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Parse user role from localStorage
   let role = "";
   try {
-    const userStr = localStorage.getItem('user');
+    const userStr = isShopkeeperPortal ? localStorage.getItem('staffUser') : localStorage.getItem('partnerUser');
     const user = userStr ? JSON.parse(userStr) : null;
     role = user?.role || "";
   } catch (e) {}
 
   const isAgentRole = role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT";
   const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
-  const isShopkeeperPortal = location.pathname.startsWith('/shopkeeper') && !location.pathname.startsWith('/shopkeeper-erp');
 
   if (isAgentRole) {
     if (!isAgentPortal) {

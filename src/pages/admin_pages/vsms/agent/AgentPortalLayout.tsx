@@ -76,9 +76,9 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   };
 
   const renderSidebarContent = () => (
-    <div className="flex flex-col h-full bg-white text-gray-800">
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100">
       {/* Sidebar Header */}
-      <div className="p-6 border-b border-gray-100 flex-shrink-0 flex items-center justify-between">
+      <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex-shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200 dark:shadow-none">
             <Store size={20} strokeWidth={2.5} />
@@ -104,7 +104,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {menuSections.map((section) => (
           <div key={section.title} className="space-y-1">
-            <p className="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">
+            <p className="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-2">
               {section.title}
             </p>
             {section.items.map((item) => {
@@ -131,8 +131,8 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       </div>
 
       {/* User Footer */}
-      <div className="p-4 border-t border-gray-100 bg-slate-50/50/50 flex-shrink-0">
-        <div className="mx-2 p-3 rounded-2xl bg-white border border-gray-100 dark:border-gray-600 shadow-sm flex items-center gap-3">
+      <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex-shrink-0">
+        <div className="mx-2 p-3 rounded-2xl bg-white dark:bg-slate-950 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 font-black text-sm border border-emerald-100 dark:border-emerald-900/30 shrink-0">
             {agentName.charAt(0).toUpperCase()}
           </div>
@@ -159,7 +159,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 flex flex-col md:flex-row relative overflow-x-hidden">
       {/* Desktop Sidebar (Fixed on Left) */}
-      <aside className="hidden md:block w-72 border-r border-gray-200 dark:border-gray-800 h-screen fixed left-0 top-0 flex-shrink-0 z-40 bg-white">
+      <aside className="hidden md:block w-72 border-r border-gray-200 dark:border-gray-800 h-screen fixed left-0 top-0 flex-shrink-0 z-40 bg-white dark:bg-slate-900">
         {renderSidebarContent()}
       </aside>
 
@@ -170,7 +170,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
           onClick={() => setIsOpen(false)}
         />
       )}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white transform transition-transform duration-300 md:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 transform transition-transform duration-300 md:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {renderSidebarContent()}
       </aside>
 
