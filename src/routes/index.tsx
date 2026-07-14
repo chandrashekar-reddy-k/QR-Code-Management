@@ -79,6 +79,12 @@ const BulkUpload = lazy(
 const BulkUpdate = lazy(
   () => import("../pages/admin_pages/products/BulkUpdate")
 );
+const BundleDeals = lazy(
+  () => import("../pages/admin_pages/products/BundleDeals")
+);
+const HomepagePromos = lazy(
+  () => import("../pages/admin_pages/products/HomepagePromos")
+);
 const ImportProducts = lazy(
   () => import("../pages/admin_pages/products/ImportProducts")
 );
@@ -520,6 +526,7 @@ const AdminRoutes = lazy(() => import("../pages/admin_pages/vsms/AdminRoutes"));
 const AdminInventory = lazy(() => import("../pages/admin_pages/vsms/AdminInventory"));
 const AdminCashManagement = lazy(() => import("../pages/admin_pages/vsms/AdminCashManagement"));
 const AdminPOS = lazy(() => import("../pages/admin_pages/vsms/AdminPOS"));
+const BarcodeManagement = lazy(() => import("../pages/admin_pages/vsms/BarcodeManagement"));
 const AdminSalesPage = lazy(() => import("../pages/admin_pages/vsms/AdminSales"));
 const AdminAssets = lazy(() => import("../pages/admin_pages/vsms/AdminAssets"));
 
@@ -677,6 +684,16 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/products/manage",
     component: ManageProducts,
+    requiresAuth: true,
+  },
+  {
+    path: "/products/bundles",
+    component: BundleDeals,
+    requiresAuth: true,
+  },
+  {
+    path: "/marketing/promos",
+    component: HomepagePromos,
     requiresAuth: true,
   },
   {
@@ -1728,6 +1745,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/pos",
     component: AdminPOS,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/barcodes",
+    component: BarcodeManagement,
     requiresAuth: true,
   },
   {

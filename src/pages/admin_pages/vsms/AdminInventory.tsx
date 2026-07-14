@@ -26,6 +26,7 @@ import VehicleStockSection from './admin_inventory/VehicleStockSection';
 import AuditsSection from './admin_inventory/AuditsSection';
 import RefillsSection from './admin_inventory/RefillsSection';
 import OpeningStockSection from './admin_inventory/OpeningStockSection';
+import AgentTransfersSection from './admin_inventory/AgentTransfersSection';
 import CreateItemView from './admin_inventory/CreateItemView';
 import EditItemView from './admin_inventory/EditItemView';
 
@@ -1928,6 +1929,7 @@ export default function AdminInventory() {
                 {[
                   { id: 'loading', label: 'Loading', icon: ArrowUpCircle },
                   { id: 'return', label: 'Return', icon: ArrowDownCircle },
+                  { id: 'transfers', label: 'Agent Transfers', icon: ArrowRight },
                   { id: 'tracking', label: 'Vehicle Stock', icon: Package },
                   { id: 'refills', label: 'Refills', icon: RefreshCw },
                   { id: 'audits', label: 'Audit History', icon: ClipboardList },
@@ -2036,6 +2038,7 @@ export default function AdminInventory() {
 
               {subTab === 'loading' && renderLoading()}
               {subTab === 'return' && renderReturn()}
+              {subTab === 'transfers' && <AgentTransfersSection vehicles={vehicles} items={items} can={can} />}
               {subTab === 'tracking' && renderTracking()}
               {subTab === 'refills' && renderRefills()}
               {subTab === 'audits' && renderAuditHistory()}

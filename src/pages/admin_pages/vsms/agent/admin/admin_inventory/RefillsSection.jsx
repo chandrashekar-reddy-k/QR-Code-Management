@@ -223,11 +223,13 @@ const RefillsSection = ({
                         const targetCapacity = stockItem ? Math.max(stockItem.openingQuantity || 0, stockItem.quantity) : 0;
                         const currentQty = stockItem ? stockItem.quantity : 0;
                         const shortfall = targetCapacity - currentQty;
-                        const excess = item.quantity - shortfall;
+                        
+                        const requestedQty = editedQuantities[item.id] ?? item.quantity;
+                        const excess = requestedQty - shortfall;
 
                         if (excess > 0) {
                           excessBadge = (
-                            <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-lg shadow-lg shadow-emerald-500/30 ring-2 ring-white flex items-center gap-1 z-10 animate-in zoom-in duration-300">
+                            <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-lg shadow-lg shadow-rose-500/30 ring-2 ring-white flex items-center gap-1 z-10 animate-in zoom-in duration-300">
                               <ArrowUpCircle size={10} strokeWidth={3} />
                               +{excess}
                             </div>
@@ -267,6 +269,16 @@ const RefillsSection = ({
                                 {req.status === 'PENDING' && (
                                   <>
                                     <div className="flex items-center gap-1">
+                                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Assigned:</span>
+                                      <span className="text-[9px] font-black text-slate-700">
+                                        {(() => {
+                                          const vInv = allVehiclesStock[req.vehicleId] || [];
+                                          const si = vInv.find(v => v.productId === item.productId);
+                                          return si ? (si.openingQuantity || 0) : 0;
+                                        })()}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
                                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">In Vehicle:</span>
                                       <span className="text-[9px] font-black text-indigo-600">{(allVehiclesStock[req.vehicleId]?.find(v => v.productId === item.productId)?.quantity || 0)}</span>
                                     </div>
@@ -282,6 +294,23 @@ const RefillsSection = ({
                                         })()}
                                       </span>
                                     </div>
+                                    {(() => {
+                                      const vInv = allVehiclesStock[req.vehicleId] || [];
+                                      const si = vInv.find(v => v.productId === item.productId);
+                                      const tc = si ? Math.max(si.openingQuantity || 0, si.quantity) : 0;
+                                      const cq = si ? si.quantity : 0;
+                                      const shortfall = Math.max(0, tc - cq);
+                                      const requested = editedQuantities[item.id] ?? item.quantity;
+                                      const excess = requested - shortfall;
+                                      if (excess > 0) {
+                                        return (
+                                          <div className="flex items-center gap-1 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded text-[9px] font-black text-rose-600 animate-pulse">
+                                            <span>Exceeds: +{excess}</span>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                   </>
                                 )}
                               </div>
