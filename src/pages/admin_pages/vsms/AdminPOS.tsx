@@ -388,6 +388,7 @@ export default function AdminPOS() {
   const [scannedProduct, setScannedProduct] = useState(null);
   const [scannedQuantity, setScannedQuantity] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [activeVariantProduct, setActiveVariantProduct] = useState(null); // For variant selection popup
 
   // Checkout States
   const [checkoutStep, setCheckoutStep] = useState('CART'); // 'CART', 'PAYMENT', 'SUCCESS'
@@ -538,7 +539,7 @@ export default function AdminPOS() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await productsAPI.getAll({ showAll: true, storeId });
+      const { data } = await productsAPI.getAll({ showAll: true, storeId, bypassCache: true });
       setProducts(data);
     } catch (err) {
       toast.error('Failed to load products');
@@ -1591,6 +1592,10 @@ export default function AdminPOS() {
                             toast.error('Please click DONE to start a new sale');
                             return;
                           }
+                          if (product.variants && product.variants.length > 0) {
+                            setActiveVariantProduct(product);
+                            return;
+                          }
                           if (product.stock <= 0) {
                             toast.error('Product out of stock');
                             return;
@@ -1678,17 +1683,21 @@ export default function AdminPOS() {
                             </div>
                           ) : (
                             <button
-                              disabled={product.stock <= 0}
+                              disabled={product.stock <= 0 && (!product.variants || product.variants.length === 0)}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (checkoutStep === 'SUCCESS') {
                                   toast.error('Please click DONE to start a new sale');
                                   return;
-                                  }
-                                addItem(product);
+                                }
+                                if (product.variants && product.variants.length > 0) {
+                                  setActiveVariantProduct(product);
+                                } else {
+                                  addItem(product);
+                                }
                               }}
                               className={`w-full py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 border ${
-                                product.stock <= 0 
+                                product.stock <= 0 && (!product.variants || product.variants.length === 0)
                                   ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' 
                                   : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-100 hover:border-emerald-600 shadow-sm active:scale-95'
                               }`}
@@ -2656,6 +2665,114 @@ export default function AdminPOS() {
                 Confirm Addition
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Variant Selection Modal */}
+      {activeVariantProduct && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white rounded-[3rem] p-10 w-full max-w-lg text-center shadow-2xl animate-in zoom-in-95 relative overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="absolute top-0 left-0 w-full h-2 bg-emerald-600" />
+            
+            <div className="flex justify-between items-start mb-4">
+              <div className="text-left">
+                <h3 className="text-2xl font-black text-gray-900 leading-snug">{activeVariantProduct.name}</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Select a Variant to Add</p>
+              </div>
+              <button 
+                onClick={() => setActiveVariantProduct(null)} 
+                className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 py-2 text-left">
+              {activeVariantProduct.variants?.map((variant) => {
+                const inCartVar = items.find(i => i.productId === activeVariantProduct.id && i.productVariantId === variant.id);
+                return (
+                  <div 
+                    key={variant.id}
+                    className={`flex justify-between items-center p-4 rounded-2xl border transition-all ${
+                      inCartVar ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-100 hover:border-slate-200'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-black text-slate-800 uppercase">{variant.variantName}</div>
+                      <div className="text-[10px] text-slate-400 font-bold mt-0.5">SKU: {variant.sku || '—'}</div>
+                      <div className="flex items-baseline gap-1.5 mt-2">
+                        <span className="text-sm font-black text-slate-900">₹{(variant.price || variant.sellingPrice || 0).toFixed(2)}</span>
+                        {variant.mrp > (variant.price || variant.sellingPrice) && (
+                          <span className="text-[10px] font-bold text-slate-400 line-through">₹{variant.mrp.toFixed(2)}</span>
+                        )}
+                      </div>
+                      <span className={`text-[8px] font-black uppercase tracking-wider block mt-1 ${variant.stock <= 0 ? 'text-rose-500' : 'text-slate-400'}`}>
+                        {variant.stock <= 0 ? 'Out of Stock' : `Stock: ${variant.stock} units`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {inCartVar ? (
+                        <div className="flex items-center gap-2 bg-emerald-50 rounded-xl border border-emerald-200 p-0.5">
+                          <button
+                            onClick={() => updateQuantity(activeVariantProduct.id, inCartVar.quantity - 1, variant.id)}
+                            className="w-7 h-7 flex items-center justify-center bg-white rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-100 shadow-sm"
+                          >
+                            <Minus size={12} strokeWidth={3} />
+                          </button>
+                          <span className="text-xs font-black text-emerald-800 px-1">{inCartVar.quantity}</span>
+                          <button
+                            onClick={() => {
+                              if (inCartVar.quantity >= variant.stock) {
+                                toast.error('Cannot exceed available stock');
+                                return;
+                              }
+                              updateQuantity(activeVariantProduct.id, inCartVar.quantity + 1, variant.id);
+                            }}
+                            className="w-7 h-7 flex items-center justify-center bg-white rounded-lg text-emerald-600 hover:bg-emerald-50 border border-slate-100 shadow-sm"
+                          >
+                            <Plus size={12} strokeWidth={3} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          disabled={variant.stock <= 0}
+                          onClick={() => {
+                            // Map variant attributes to mock product object passed to cartStore
+                            const variantProduct = {
+                              ...activeVariantProduct,
+                              id: activeVariantProduct.id,
+                              productVariantId: variant.id,
+                              name: `${activeVariantProduct.name} (${variant.variantName})`,
+                              price: variant.price || variant.sellingPrice || 0,
+                              mrp: variant.mrp || 0,
+                              stock: variant.stock || 0
+                            };
+                            addItem(variantProduct, 1, variant.id);
+                            toast.success(`Added ${variant.variantName} to cart`);
+                          }}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                            variant.stock <= 0 
+                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' 
+                              : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-100 hover:border-emerald-600 shadow-sm'
+                          }`}
+                        >
+                          Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <button
+              onClick={() => setActiveVariantProduct(null)}
+              className="mt-6 w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all text-xs uppercase tracking-widest"
+            >
+              Continue Shopping
+            </button>
           </div>
         </div>
       )}
