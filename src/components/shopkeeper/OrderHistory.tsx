@@ -3,7 +3,7 @@ import { ArrowLeft, ShoppingBag, Filter, RotateCcw, ChevronDown } from "lucide-r
 import Breadcrumbs from "../common/Breadcrumbs";
 import { SelectInput, SearchInput, ViewIconButton, Pagination } from "../ui";
 
-interface AllOrdersProps {
+interface OrderHistoryProps {
   onBack: () => void;
   onNavigate?: (screen: string, data?: any) => void;
   initialStatus?: string;
@@ -44,9 +44,9 @@ const tabMap: Record<string, string> = {
 
 import { useSharedOrders } from "./SharedOrdersContext";
 
-import { AllOrders as MobileAllOrders } from "./AllOrdersMobile";
+import { OrderHistoryMobile as MobileAllOrders } from "./OrderHistoryMobile";
 
-export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }: AllOrdersProps) {
+export function OrderHistory({ onBack, onNavigate, initialStatus, isAdmin = false }: OrderHistoryProps) {
   if (!isAdmin) {
     return <MobileAllOrders onBack={onBack} onNavigate={onNavigate} initialStatus={initialStatus} />;
   }
@@ -102,10 +102,12 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
     });
 
     // Filter to completed/finalized operational records only (including dispatched)
-    allOrders = allOrders.filter((o: any) => {
-      const s = o.status?.toLowerCase();
-      return ['delivered', 'completed', 'cancelled', 'rejected', 'return', 'returned', 'dispatched'].includes(s);
-    });
+    if (!isAdmin) {
+      allOrders = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return ['delivered', 'completed', 'cancelled', 'rejected', 'return', 'returned', 'dispatched'].includes(s);
+      });
+    }
 
     // Staff view client-side shopkeeper filter
     if (!isAdmin) {
@@ -130,13 +132,18 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
     if (statusFilter !== "All") {
       result = orders.filter((o: any) => {
         const s = o.status?.toLowerCase();
-        if (statusFilter === "Picking") return s === "picking" || s === "accepted" || s === "confirmed";
-        if (statusFilter === "Packing") return s === "packing" || s === "processing";
-        if (statusFilter === "Ready") return s === "ready";
-        if (statusFilter === "Dispatched") return s === "dispatched";
-        if (statusFilter === "Delivered") return s === "delivered" || s === "completed";
-        if (statusFilter === "Cancelled") return s === "cancelled" || s === "rejected";
-        if (statusFilter === "Returned") return s === "return" || s === "returned";
+        if (statusFilter === "Active") {
+          return ['new', 'placed', 'assigned', 'accepted', 'picking', 'confirmed', 'packing', 'processing', 'ready', 'handover', 'ready_for_dispatch'].includes(s);
+        }
+        if (statusFilter === "Dispatched") {
+          return s === "dispatched" || s === "delivered" || s === "completed";
+        }
+        if (statusFilter === "Rejected") {
+          return s === "rejected" || s === "cancelled";
+        }
+        if (statusFilter === "Returns") {
+          return s === "return" || s === "returned";
+        }
         return true;
       });
     }
@@ -228,21 +235,24 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
   const getStatusChipStyles = (status: string) => {
     const s = (status || "").toLowerCase();
     const styleMap: Record<string, { bg: string; text: string }> = {
-      new: { bg: "#E3F2FD", text: "#1D4ED8" },
-      placed: { bg: "#E3F2FD", text: "#1D4ED8" },
-      pending: { bg: "#F3E5F5", text: "#7C3AED" },
-      picking: { bg: "#FFF3E0", text: "#D97706" },
-      accepted: { bg: "#FFF3E0", text: "#D97706" },
-      confirmed: { bg: "#FFF3E0", text: "#D97706" },
-      packing: { bg: "#E0F2F1", text: "#0F766E" },
-      processing: { bg: "#E0F2F1", text: "#0F766E" },
-      ready: { bg: "#E8F5E9", text: "#15803D" },
-      dispatched: { bg: "#E8F5E9", text: "#1B5E20" },
-      delivered: { bg: "#C8E6C9", text: "#1B5E20" },
-      cancelled: { bg: "#FFEBEE", text: "#D32F2F" },
-      rejected: { bg: "#FFEBEE", text: "#D32F2F" },
-      returns: { bg: "#FFEBEE", text: "#D32F2F" },
-      returned: { bg: "#FFEBEE", text: "#D32F2F" },
+      new: { bg: "#EFF6FF", text: "#1D4ED8" },
+      placed: { bg: "#EFF6FF", text: "#1D4ED8" },
+      assigned: { bg: "#F3F4F6", text: "#4B5563" },
+      pending: { bg: "#EFF6FF", text: "#1D4ED8" },
+      accepted: { bg: "#EFF6FF", text: "#1D4ED8" },
+      confirmed: { bg: "#EFF6FF", text: "#1D4ED8" },
+      picking: { bg: "#F5F3FF", text: "#7C3AED" },
+      packing: { bg: "#FFF7ED", text: "#EA580C" },
+      processing: { bg: "#FFF7ED", text: "#EA580C" },
+      ready: { bg: "#F0FDFA", text: "#0D9488" },
+      ready_for_dispatch: { bg: "#F0FDFA", text: "#0D9488" },
+      dispatched: { bg: "#F0FDF4", text: "#16A34A" },
+      completed: { bg: "#F0FDF4", text: "#16A34A" },
+      delivered: { bg: "#F0FDF4", text: "#16A34A" },
+      cancelled: { bg: "#FEF2F2", text: "#DC2626" },
+      rejected: { bg: "#FEF2F2", text: "#DC2626" },
+      returns: { bg: "#FEF2F2", text: "#DC2626" },
+      returned: { bg: "#FEF2F2", text: "#DC2626" },
     };
     return styleMap[s] || { bg: "#F5F5F5", text: "#757575" };
   };
@@ -327,10 +337,10 @@ export function AllOrders({ onBack, onNavigate, initialStatus, isAdmin = false }
                 onChange={(e) => setStatusFilter(e.target.value)}
                 options={[
                   { value: "All", label: "Status" },
+                  { value: "Active", label: "Active" },
                   { value: "Dispatched", label: "Dispatched" },
-                  { value: "Delivered", label: "Delivered" },
-                  { value: "Cancelled", label: "Cancelled" },
-                  { value: "Returned", label: "Returned" },
+                  { value: "Rejected", label: "Rejected" },
+                  { value: "Returns", label: "Returns" },
                 ]}
               />
             </div>

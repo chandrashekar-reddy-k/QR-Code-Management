@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, ChevronRight, Filter, RotateCcw, Search } from "lucide-react";
 import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 interface ReadyOrdersProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -76,11 +77,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
     // 2. SLA Status Filter
     if (slaStatusFilter) {
       result = result.filter((o: any) => {
-        if (!o.shopkeeper_accepted_at) {
-          return slaStatusFilter !== "overdue";
-        }
-        const elapsed = (Date.now() - new Date(o.shopkeeper_accepted_at).getTime()) / 60000;
-        const isOverdue = elapsed > o.sla_minutes;
+        const isOverdue = getSLAInfo(o).isBreached;
         if (slaStatusFilter === "overdue" && !isOverdue) return false;
         if (slaStatusFilter === "ontrack" && isOverdue) return false;
         return true;
@@ -123,11 +120,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   }
 
   // Count SLA-breached orders: elapsed from shopkeeper_accepted_at > sla_minutes
-  const overdueCount = orders.filter(o => {
-    if (!o.shopkeeper_accepted_at) return false;
-    const elapsed = (Date.now() - new Date(o.shopkeeper_accepted_at).getTime()) / 60000;
-    return elapsed > o.sla_minutes;
-  }).length;
+  const overdueCount = orders.filter(o => getSLAInfo(o).isBreached).length;
   const waitingForRiderCount = orders.filter(o => !o.agentId).length;
 
   return (
@@ -283,31 +276,9 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {filteredOrders.map((order) => {
-                    const { isOverdue, timeString } = (() => {
-                      const formatDuration = (totalMinutes: number) => {
-                        const mins = Math.round(Math.abs(totalMinutes));
-                        if (mins < 1) return '<1m';
-                        if (mins < 60) return `${mins}m`;
-                        if (mins < 1440) {
-                          const h = Math.floor(mins / 60);
-                          const m = mins % 60;
-                          return m > 0 ? `${h}h ${m}m` : `${h}h`;
-                        }
-                        const d = Math.floor(mins / 1440);
-                        const h = Math.floor((mins % 1440) / 60);
-                        return h > 0 ? `${d}d ${h}h` : `${d}d`;
-                      };
-                      if (!order.shopkeeper_accepted_at) {
-                        return { isOverdue: false, timeString: `${formatDuration(order.sla_minutes)} Remaining` };
-                      }
-                      const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
-                      const diff = order.sla_minutes - elapsed;
-                      if (diff < 0) {
-                        return { isOverdue: true, timeString: `Overdue • ${formatDuration(diff)}` };
-                      } else {
-                        return { isOverdue: false, timeString: `${formatDuration(diff)} Remaining` };
-                      }
-                    })();
+                    const slaInfo = getSLAInfo(order);
+                    const isOverdue = slaInfo.isBreached;
+                    const timeString = slaInfo.displayText;
 
                     return (
                       <tr key={order.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, CheckCircle, Printer, Loader2, ChevronRight } from "lucide-react";
 import api from "../../api/axios";
 import { PackingScreenMobile } from "./PackingScreenMobile";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 interface PackingScreenProps {
   onNavigate: (screen: string) => void;
@@ -10,12 +11,12 @@ interface PackingScreenProps {
 }
 
 export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps) {
-  const storedUser = localStorage.getItem("user");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const userRole = userObj?.role;
+  const storedPartnerUser = localStorage.getItem("partnerUser");
+  const partnerUserObj = storedPartnerUser ? JSON.parse(storedPartnerUser) : null;
+  const partnerRole = partnerUserObj?.role;
 
   // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile packing screen UI
-  const isStaffLogin = !userRole || userRole === "SHOPKEEPER" || userRole === "STORE_STAFF";
+  const isStaffLogin = !partnerRole || partnerRole === "SHOPKEEPER" || partnerRole === "STORE_STAFF";
 
   if (isStaffLogin) {
     return <PackingScreenMobile onNavigate={onNavigate} onBack={onBack} order={order} />;
@@ -25,6 +26,16 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
   const [loading, setLoading] = useState(true);
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [labelPrinted, setLabelPrinted] = useState(false);
+  const [slaInfo, setSlaInfo] = useState(() => getSLAInfo(order));
+
+  useEffect(() => {
+    const updateTimer = () => {
+      setSlaInfo(getSLAInfo(order));
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [order]);
 
   useEffect(() => {
     if (!order?.id) return;
@@ -98,6 +109,15 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
                 </span>
                 <span className="px-2 py-0.5 text-xs font-bold rounded bg-green-100 text-green-700">
                   Status: {order.status === "packing" ? "In Progress" : (order.status?.charAt(0).toUpperCase() + order.status?.slice(1) || "N/A")}
+                </span>
+                <span className={`px-2 py-0.5 text-xs font-bold rounded border ${
+                  slaInfo.status === 'breached' 
+                    ? 'bg-red-50 text-red-700 border-red-100' 
+                    : slaInfo.status === 'at_risk' 
+                    ? 'bg-orange-50 text-orange-700 border-orange-100' 
+                    : 'bg-green-50 text-green-700 border-green-100'
+                }`}>
+                  SLA: {slaInfo.displayText}
                 </span>
               </div>
             </div>

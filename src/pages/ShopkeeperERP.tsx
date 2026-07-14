@@ -1,3 +1,4 @@
+// Trigger re-evaluation comment
 import { useState, useEffect } from "react";
 import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, Settings as SettingsIcon, History } from "lucide-react";
 import { DashboardMobile as Dashboard } from "../components/shopkeeper/DashboardMobile";
@@ -5,7 +6,7 @@ import { NewOrders } from "../components/shopkeeper/NewOrdersMobile";
 import { OrderDetails } from "../components/shopkeeper/OrderDetailsMobile";
 import { PickingQueueMobile as PickingQueue } from "../components/shopkeeper/PickingQueueMobile";
 import { PickingScreenMobile as PickingScreen } from "../components/shopkeeper/PickingScreenMobile";
-import { BarcodeVerification } from "../components/shopkeeper/BarcodeVerification 2";
+import { BarcodeVerificationMobile as BarcodeVerification } from "../components/shopkeeper/BarcodeVerificationMobile";
 import { PickingCompleteMobile as PickingComplete } from "../components/shopkeeper/PickingCompleteMobile";
 import { PackingQueueMobile as PackingQueue } from "../components/shopkeeper/PackingQueueMobile";
 import { PackingScreenMobile as PackingScreen } from "../components/shopkeeper/PackingScreenMobile";
@@ -15,7 +16,7 @@ import { SelfPickup } from "../components/shopkeeper/SelfPickupMobile";
 import { Returns } from "../components/shopkeeper/ReturnsMobile";
 import { SLAMonitoring } from "../components/shopkeeper/SLAMonitoringMobile";
 import { Settings } from "../components/shopkeeper/Settings 2";
-import { AllOrders } from "../components/shopkeeper/AllOrdersMobile";
+import { OrderHistoryMobile as AllOrders } from "../components/shopkeeper/OrderHistoryMobile";
 import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 import { useSocket } from "../hooks/useSocket";
@@ -29,7 +30,7 @@ const api = axios.create({
 
 // Set Authorization header interceptor
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("staffToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -41,7 +42,7 @@ api.interceptors.request.use((config) => {
 type Screen =
   | "dashboard"
   | "new-orders"
-  | "all-orders"
+  | "orderhistory"
   | "order-details"
   | "picking-queue"
   | "picking-screen"
@@ -63,7 +64,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("staffUser");
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
@@ -86,7 +87,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
         const res = await api.get('/orders');
         const allOrders = res.data;
         
-        const storedUser = localStorage.getItem("user");
+        const storedUser = localStorage.getItem("staffUser");
         const userObj = storedUser ? JSON.parse(storedUser) : null;
         const skId = userObj?.shopkeeper_id || userObj?.shopkeeperId || userObj?.id;
 
@@ -194,7 +195,12 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
         ))}
         <button
           onClick={() => {
-            localStorage.clear();
+            localStorage.removeItem("staffToken");
+            localStorage.removeItem("staffRefreshToken");
+            localStorage.removeItem("staffUser");
+            localStorage.removeItem("staffRole");
+            localStorage.removeItem("staffWarehouseId");
+            localStorage.removeItem("staffActiveOrder");
             window.location.href = "/login";
           }}
           className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 flex items-center justify-center gap-2 border border-red-100 hover:bg-red-50 transition-colors w-full"
@@ -210,7 +216,7 @@ export default function ShopkeeperERP() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [orderData, setOrderData] = useState<unknown>(() => {
     try {
-      const saved = localStorage.getItem("sk_active_order");
+      const saved = localStorage.getItem("staffActiveOrder");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -220,15 +226,15 @@ export default function ShopkeeperERP() {
   const [history, setHistory] = useState<Screen[]>([]);
   const location = useLocation();
   const reactNavigate = useReactNavigate();
-
+ 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const socket = useSocket(1);
-
+ 
   const fetchOrders = async () => {
     try {
-      const cachedWh = localStorage.getItem("warehouseId");
-      const storedU = localStorage.getItem("user");
+      const cachedWh = localStorage.getItem("staffWarehouseId");
+      const storedU = localStorage.getItem("staffUser");
       let userWarehouseId = "";
       if (cachedWh && cachedWh !== "undefined") {
         userWarehouseId = cachedWh;
@@ -278,7 +284,7 @@ export default function ShopkeeperERP() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 30000);
+    const interval = setInterval(fetchOrders, 5000);
     if (socket.current) {
       socket.current.on('order:status', fetchOrders);
       socket.current.on('order:new', fetchOrders);
@@ -293,7 +299,12 @@ export default function ShopkeeperERP() {
   }, [socket.current]);
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem("staffToken");
+    localStorage.removeItem("staffRefreshToken");
+    localStorage.removeItem("staffUser");
+    localStorage.removeItem("staffRole");
+    localStorage.removeItem("staffWarehouseId");
+    localStorage.removeItem("staffActiveOrder");
     window.location.href = "/login";
   };
 
@@ -301,31 +312,22 @@ export default function ShopkeeperERP() {
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get("tab") || "dashboard";
 
-    const isSubScreenOfTab = (currentScreen: string, targetTab: string) => {
-      if (targetTab === "new-orders" && currentScreen === "order-details") return true;
-      if (targetTab === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(currentScreen)) return true;
-      if (targetTab === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(currentScreen)) return true;
-      return false;
-    };
-
-    if (screen !== tab && !isSubScreenOfTab(screen, tab)) {
-      setScreen(tab as Screen);
-    }
-  }, [location.search]);
+    setScreen(tab as Screen);
+  }, [location]);
 
   const navigate = (dest: string, data?: unknown) => {
     setHistory(prev => [...prev, screen]);
 
-    // Handle all-orders with optional status filter
-    if (dest === "all-orders") {
+    // Handle orderhistory with optional status filter
+    if (dest === "orderhistory") {
       setAllOrdersStatus(typeof data === 'string' ? data : undefined);
-      setScreen("all-orders");
-      reactNavigate(`/shopkeeper?tab=all-orders`);
+      setScreen("orderhistory");
+      reactNavigate(`/shopkeeper?tab=orderhistory`);
       return;
     }
 
     // Check if the destination is a primary tab in the sidebar
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "all-orders"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "orderhistory"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper?tab=${dest}`);
       setScreen(dest as Screen);
@@ -336,9 +338,9 @@ export default function ShopkeeperERP() {
     if (data !== undefined) {
       setOrderData(data);
       if (data) {
-        localStorage.setItem("sk_active_order", JSON.stringify(data));
+        localStorage.setItem("staffActiveOrder", JSON.stringify(data));
       } else {
-        localStorage.removeItem("sk_active_order");
+        localStorage.removeItem("staffActiveOrder");
       }
     }
   };
@@ -347,7 +349,7 @@ export default function ShopkeeperERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "all-orders"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "orderhistory"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper?tab=${prev}`);
         setScreen(prev as Screen);
@@ -396,7 +398,7 @@ export default function ShopkeeperERP() {
         </div>
 
         {/* Dynamic Screens (re-mounted on navigation) */}
-        {screen === "all-orders" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
+        {screen === "orderhistory" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
         {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
         {screen === "barcode-verification" && <BarcodeVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
@@ -421,7 +423,7 @@ export default function ShopkeeperERP() {
                   alt="VillagKart"
                   className="max-w-[260px] w-full h-full object-contain object-center"
                   onError={(e) => {
-                    const target = e.target;
+                    const target = e.target as HTMLImageElement;
                     target.style.display = "none";
                     const parent = target.parentElement;
                     if (parent) {
@@ -440,7 +442,7 @@ export default function ShopkeeperERP() {
             {[
               { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
               { id: "new-orders", label: "Inbox Orders", icon: <ShoppingBag size={18} /> },
-              { id: "all-orders", label: "Order History", icon: <History size={18} /> },
+              { id: "orderhistory", label: "Order History", icon: <History size={18} /> },
               { id: "picking-queue", label: "Picking Queue", icon: <Package size={18} /> },
               { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={18} /> },
               { id: "profile", label: "Profile", icon: <User size={18} /> },
@@ -496,7 +498,7 @@ export default function ShopkeeperERP() {
               className="h-8 w-auto object-contain object-left max-w-[200px]"
             />
             <button
-              onClick={() => navigate("all-orders")}
+              onClick={() => navigate("orderhistory")}
               className="flex items-center gap-1.5 text-[#00891D] font-semibold text-xs bg-[#00891D]/10 px-3 py-1.5 rounded-lg active:scale-95 transition-all"
             >
               <History size={14} />

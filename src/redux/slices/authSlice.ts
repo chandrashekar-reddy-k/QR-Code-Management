@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -10,7 +10,7 @@ const clearBusinessSettingsShown = (): void => {
 
 // Load initial state from localStorage
 const loadAuthFromStorage = (): boolean => {
-  return localStorage.getItem('isAuthenticated') === 'true';
+  return localStorage.getItem('partnerIsAuthenticated') === 'true';
 };
 
 const initialState: AuthState = {
@@ -24,12 +24,17 @@ const authSlice = createSlice({
     login: (state) => {
       state.isAuthenticated = true;
       clearBusinessSettingsShown();
-      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('partnerIsAuthenticated', 'true');
     },
     logout: (state) => {
       state.isAuthenticated = false;
       clearBusinessSettingsShown();
-      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('partnerIsAuthenticated');
+      localStorage.removeItem('partnerToken');
+      localStorage.removeItem('partnerRefreshToken');
+      localStorage.removeItem('partnerUser');
+      localStorage.removeItem('partnerRole');
+      localStorage.removeItem('partnerWarehouseId');
     },
   },
 });

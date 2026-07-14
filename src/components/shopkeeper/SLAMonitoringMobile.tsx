@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Loader2, Package } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, Tooltip } from "recharts";
+import { getSLAInfo } from "../../utils/slaHelper";
 import api from "../../api/axios";
 
 import { useSocket } from "../../hooks/useSocket";
@@ -89,17 +90,17 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
   const breachesList: any[] = [];
 
   orders.forEach((o) => {
-    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
-    if (!acceptedAtStr || !isNotDispatchedOrCancelled(o)) {
+    if (!isNotDispatchedOrCancelled(o)) {
       return;
     }
 
-    const acceptedAt = new Date(acceptedAtStr).getTime();
+    const slaInfo = getSLAInfo(o, now);
+    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
+    const acceptedAt = acceptedAtStr ? new Date(acceptedAtStr).getTime() : now.getTime();
     const elapsed = (now.getTime() - acceptedAt) / 60000;
     const slaMinutes = o.sla_minutes || o.slaMinutes || 30;
-    const remaining = slaMinutes - elapsed;
 
-    if (elapsed > slaMinutes) {
+    if (slaInfo.status === 'breached') {
       breachedCount++;
       breachesList.push({
         order_number: o.order_number || o.orderNumber,
@@ -110,7 +111,7 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
         sla_minutes: slaMinutes,
         delay_minutes: Math.max(0, Math.floor(elapsed - slaMinutes))
       });
-    } else if (remaining < 15) {
+    } else if (slaInfo.status === 'at_risk') {
       atRiskCount++;
     } else {
       onTrackCount++;

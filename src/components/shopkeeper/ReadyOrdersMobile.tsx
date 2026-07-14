@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, User } from "lucide-react";
 import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 interface ReadyOrdersMobileProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -86,11 +87,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
 
       <div className="flex flex-col gap-3 p-4">
         {orders.map((order) => {
-          const isOverdue = (() => {
-            if (!order.shopkeeper_accepted_at) return false;
-            const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
-            return elapsed > order.sla_minutes;
-          })();
+          const isOverdue = getSLAInfo(order).isBreached;
           return (
             <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden dark:bg-gray-800">
               {isOverdue && (

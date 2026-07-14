@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, CheckCircle, Printer, Package, CheckSquare, Square, Loader2 } from "lucide-react";
 import api from "../../api/axios";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 interface PackingScreenMobileProps {
   onNavigate: (screen: string) => void;
@@ -13,6 +14,16 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
   const [loading, setLoading] = useState(true);
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [labelPrinted, setLabelPrinted] = useState(false);
+  const [slaInfo, setSlaInfo] = useState(() => getSLAInfo(order));
+
+  useEffect(() => {
+    const updateTimer = () => {
+      setSlaInfo(getSLAInfo(order));
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [order]);
 
   useEffect(() => {
     if (!order?.id) return;
@@ -67,7 +78,7 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
           </button>
           <div className="flex-1">
             <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Packing — #{order?.order_number}</h1>
-            <p className="text-white/70" style={{ fontSize: "12px" }}>Packing Tray: {order?.tray_number || order?.tray || 'N/A'} · {order?.order_type}</p>
+            <p className="text-white/70" style={{ fontSize: "12px" }}>Tray: {order?.tray_number || order?.tray || 'N/A'} · {order?.order_type} · SLA: {slaInfo.displayText}</p>
           </div>
         </div>
 

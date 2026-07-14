@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSharedOrders } from "./SharedOrdersContext";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 import {
   ShoppingBag,
@@ -51,14 +52,7 @@ interface DashboardProps {
 }
 
 const isSLABreached = (order: any): boolean => {
-  if (!order.shopkeeper_accepted_at) return false;
-  if (order.status === 'dispatched' || order.status === 'delivered') {
-    if (!order.dispatched_at) return false;
-    const elapsed = (new Date(order.dispatched_at).getTime() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
-    return elapsed > (order.sla_minutes ?? 30);
-  }
-  const elapsed = (Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000;
-  return elapsed > (order.sla_minutes ?? 30);
+  return getSLAInfo(order).isBreached;
 };
 
 
@@ -204,8 +198,8 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     }
 
     // Retrieve current user's warehouseId to scope dashboard orders to this store only
-    const cachedWh = localStorage.getItem("warehouseId");
-    const storedU = localStorage.getItem("user");
+    const cachedWh = localStorage.getItem(isAdmin ? "partnerWarehouseId" : "staffWarehouseId");
+    const storedU = localStorage.getItem(isAdmin ? "partnerUser" : "staffUser");
     let userWarehouseId: string | null = null;
     if (cachedWh && cachedWh !== "undefined") {
       userWarehouseId = cachedWh;
@@ -216,7 +210,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       } catch (e) { }
     }
 
-    // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, and must not be pre-payment PENDING status
+    // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, must not be pre-payment PENDING status, and must be assigned to a shopkeeper
     let allOrders = distinctOrders.filter((o: any) => {
       const oWh = o.warehouseId || o.warehouse_id;
       if (!oWh) return false;
@@ -229,12 +223,18 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       if (status === 'PENDING') {
         return false;
       }
+
+      const isAssigned = o.shopkeeper_name || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_phone || o.assignedShopkeeperId;
+      if (!isAssigned) {
+        return false;
+      }
+
       return true;
     });
 
     // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
     if (!isAdmin) {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("staffUser");
       const user = storedUser ? JSON.parse(storedUser) : null;
       const userPhone = user?.phone;
       if (userPhone) {
@@ -287,20 +287,11 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     }).length;
 
     const breached = allOrders.filter((o: any) => {
-      const acceptedAtStr = o.shopkeeperAcceptedAt || o.shopkeeper_accepted_at || o.acceptedByShopkeeperAt;
-      if (!acceptedAtStr) return false;
-
       const s = o.status?.toLowerCase();
       if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
         return false;
       }
-
-      const acceptedAt = new Date(acceptedAtStr).getTime();
-      const elapsedMinutes = (Date.now() - acceptedAt) / 60000;
-      const slaMinutes = o.sla_minutes ?? 30;
-      const remaining = slaMinutes - elapsedMinutes;
-
-      return remaining < 15;
+      return getSLAInfo(o).remainingMinutes < 15;
     }).length;
 
     setStats({
@@ -340,20 +331,11 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       if (orders.length === 0) return;
       setStats((prev: any) => {
         const breached = orders.filter((o: any) => {
-          const acceptedAtStr = o.shopkeeperAcceptedAt || o.shopkeeper_accepted_at || o.acceptedByShopkeeperAt;
-          if (!acceptedAtStr) return false;
-
           const s = o.status?.toLowerCase();
           if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
             return false;
           }
-
-          const acceptedAt = new Date(acceptedAtStr).getTime();
-          const elapsedMinutes = (Date.now() - acceptedAt) / 60000;
-          const slaMinutes = o.sla_minutes ?? 30;
-          const remaining = slaMinutes - elapsedMinutes;
-
-          return remaining < 15;
+          return getSLAInfo(o).remainingMinutes < 15;
         }).length;
 
         if (prev.slaAlerts === breached) return prev;
@@ -411,7 +393,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
   const totalDispatched = allDispatchedOrders.length;
 
   const kpiCards = [
-    { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "all-orders", variant: "purple" as const },
+    { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "orderhistory", variant: "purple" as const },
     { label: "New Orders", value: stats.newOrders, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", screen: "new-orders", variant: "blue" as const },
     { label: "Picking", value: stats.picking, icon: Package, color: "#6A1B9A", bg: "#F3E5F5", screen: "picking-queue", variant: "purple" as const },
     { label: "Packing", value: stats.packing, icon: Package, color: "#E65100", bg: "#FFF3E0", screen: "packing-queue", variant: "yellow" as const },
@@ -419,8 +401,8 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
   ];
 
   const secondRowKpis = [
-    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "all-orders", statusFilter: "DISPATCHED", variant: "green" as const },
-    { label: "Rejected", value: rejectedToday, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "all-orders", statusFilter: "REJECTED", variant: "red" as const },
+    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "orderhistory", statusFilter: "DISPATCHED", variant: "green" as const },
+    { label: "Rejected", value: rejectedToday, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "orderhistory", statusFilter: "REJECTED", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", screen: "sla-monitoring", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns", variant: "gray" as const },
     { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
@@ -760,7 +742,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
           <div className="bg-white rounded-[16px] p-[24px] flex flex-col dark:bg-gray-800" style={{ boxShadow: "0px 0px 12px rgba(0,0,0,0.05)" }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[#111827] text-[16px] font-semibold dark:text-gray-100">Recent Orders</h3>
-              <button onClick={() => onNavigate("all-orders")} className="text-[#00891D] hover:underline text-sm font-semibold flex items-center gap-1">
+              <button onClick={() => onNavigate("orderhistory")} className="text-[#00891D] hover:underline text-sm font-semibold flex items-center gap-1">
                 View All <ChevronRight size={16} />
               </button>
             </div>
@@ -780,23 +762,24 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:divide-gray-800">
                   {recentOrders.map((order) => {
                     const statusStyles: Record<string, { color: string; bg: string }> = {
-                      new: { color: "#1D4ED8", bg: "#DBEAFE" },
-                      placed: { color: "#1D4ED8", bg: "#DBEAFE" },
-                      pending: { color: "#1D4ED8", bg: "#DBEAFE" },
-                      picking: { color: "#7C3AED", bg: "#EDE9FE" },
-                      confirmed: { color: "#7C3AED", bg: "#EDE9FE" },
-                      accepted: { color: "#7C3AED", bg: "#EDE9FE" },
-                      packing: { color: "#D97706", bg: "#FEF3C7" },
-                      processing: { color: "#D97706", bg: "#FEF3C7" },
-                      ready: { color: "#0F766E", bg: "#CCFBF1" },
-                      ready_for_pickup: { color: "#0F766E", bg: "#CCFBF1" },
-                      dispatched: { color: "#15803D", bg: "#DCFCE7" },
-                      out_for_delivery: { color: "#15803D", bg: "#DCFCE7" },
-                      in_transit: { color: "#15803D", bg: "#DCFCE7" },
-                      delivered: { color: "#1B5E20", bg: "#C8E6C9" },
-                      completed: { color: "#1B5E20", bg: "#C8E6C9" },
-                      cancelled: { color: "#D32F2F", bg: "#FFEBEE" },
-                      rejected: { color: "#D32F2F", bg: "#FFEBEE" },
+                      new: { color: "#1D4ED8", bg: "#EFF6FF" }, // Default Placed/Pending (Unassigned) is blue
+                      placed: { color: "#1D4ED8", bg: "#EFF6FF" },
+                      pending: { color: "#1D4ED8", bg: "#EFF6FF" },
+                      accepted: { color: "#1D4ED8", bg: "#EFF6FF" },
+                      picking: { color: "#7C3AED", bg: "#F5F3FF" },
+                      confirmed: { color: "#7C3AED", bg: "#F5F3FF" },
+                      packing: { color: "#EA580C", bg: "#FFF7ED" },
+                      processing: { color: "#EA580C", bg: "#FFF7ED" },
+                      ready: { color: "#0D9488", bg: "#F0FDFA" },
+                      ready_for_pickup: { color: "#0D9488", bg: "#F0FDFA" },
+                      ready_for_dispatch: { color: "#0D9488", bg: "#F0FDFA" },
+                      dispatched: { color: "#16A34A", bg: "#F0FDF4" },
+                      out_for_delivery: { color: "#16A34A", bg: "#F0FDF4" },
+                      in_transit: { color: "#16A34A", bg: "#F0FDF4" },
+                      delivered: { color: "#16A34A", bg: "#F0FDF4" },
+                      completed: { color: "#16A34A", bg: "#F0FDF4" },
+                      cancelled: { color: "#DC2626", bg: "#FEF2F2" },
+                      rejected: { color: "#DC2626", bg: "#FEF2F2" },
                     };
                     const lowerStatus = (order.status || "").toLowerCase();
                     const statusColor = statusStyles[lowerStatus]?.color || "#757575";
@@ -1041,7 +1024,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       <div className="px-4 mt-4 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "14px" }}>Recent Orders</h3>
-          <button onClick={() => onNavigate("all-orders")} className="flex items-center gap-1 text-[#00891D] hover:underline" style={{ fontSize: "12px", fontWeight: 500 }}>
+          <button onClick={() => onNavigate("orderhistory")} className="flex items-center gap-1 text-[#00891D] hover:underline" style={{ fontSize: "12px", fontWeight: 500 }}>
             View All <ChevronRight size={14} />
           </button>
         </div>

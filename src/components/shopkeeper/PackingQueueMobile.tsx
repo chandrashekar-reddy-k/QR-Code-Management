@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, Package, Play, AlertCircle } from "lucide-react";
 import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
+import { getSLAInfo } from "../../utils/slaHelper";
 
 interface PackingQueueMobileProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -20,34 +21,9 @@ export function PackingQueueMobile({ onNavigate, onBack }: PackingQueueMobilePro
         return s === 'packing' || s === 'packed' || s === 'processing';
       });
 
-      // Use tray_number from DB as source of truth.
-      // For any legacy order missing a tray, assign sequentially (NOT in parallel)
-      // so each order picks the next truly-free tray one at a time.
-      const allTrays = ["P01", "P02", "P03", "P04", "P05"];
-      const assignedTrays = new Set<string>(
-        orders.filter((o: any) => o.tray_number).map((o: any) => o.tray_number as string)
-      );
-
       const processedOrders: any[] = [];
       for (const o of orders) {
-        // Trust the tray_number already assigned atomically by the backend.
-        // If for some reason it's missing (legacy / edge case), pick the next
-        // truly-free slot sequentially and persist it — but do NOT fall back
-        // silently to 'P01' which masks duplicate-tray bugs.
-        let tray: string = o.tray_number;
-        if (!tray) {
-          const nextFreeTray = allTrays.find(t => !assignedTrays.has(t));
-          tray = nextFreeTray || 'P??'; // 'P??' is intentionally visible so the bug is noticed
-          if (nextFreeTray) {
-            assignedTrays.add(tray);
-            // Persist so it's stable across refreshes
-            try {
-              await api.put(`/orders/${o.id}/status`, { status: 'packing', tray_number: tray });
-            } catch (e) {
-              console.warn('Failed to persist tray assignment', e);
-            }
-          }
-        }
+        const tray = o.tray_number || 'N/A';
         // Use picked_count from the DB — rejected items don't need to be packed
         const pickedCount = o.picked_count ?? o.item_count ?? 0;
         // Compute urgency based on shopkeeper_accepted_at if available, else fall back to sla_minutes < 15
@@ -152,37 +128,41 @@ export function PackingQueueMobile({ onNavigate, onBack }: PackingQueueMobilePro
 
       {/* Orders */}
       <div className="flex flex-col gap-3 p-4">
-        {packingOrders.map((order) => (
-          <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden dark:bg-gray-800">
-            {order.urgent && (
-              <div className="bg-orange-50 border-b border-orange-100 px-4 py-1.5 flex items-center gap-1.5">
-                <AlertCircle size={12} color="#EF5A06" />
-                <span style={{ color: "#EF5A06", fontWeight: 600, fontSize: "11px" }}>URGENT — SLA Critical!</span>
-              </div>
-            )}
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "15px" }}>{order.order_number}</span>
-                    <span className="rounded-full px-2 py-0.5" style={{ fontSize: "10px", fontWeight: 600, backgroundColor: "#FFF3E0", color: "#EF5A06" }}>
-                      Tray {order.tray}
-                    </span>
-                  </div>
-                  <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "12px" }}>{order.order_type}</span>
-                </div>
-                <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: order.urgent ? "#FFEBEE" : "#FFF3E0" }}>
-                  <Clock size={11} color={order.urgent ? "#D32F2F" : "#EF5A06"} />
-                  <span style={{ color: order.urgent ? "#D32F2F" : "#EF5A06", fontWeight: 700, fontSize: "11px" }}>
-                    {order.shopkeeper_accepted_at
-                      ? (() => {
-                          const rem = order.sla_minutes - Math.floor((Date.now() - new Date(order.shopkeeper_accepted_at).getTime()) / 60000);
-                          return rem < 0 ? `Overdue ${Math.abs(rem)}m` : `${rem}m left`;
-                        })()
-                      : `${order.sla_minutes}m`}
+        {packingOrders.map((order) => {
+          const slaInfo = getSLAInfo(order);
+          const slaBreached = slaInfo.status === 'breached';
+          const isUrgent = slaInfo.status === 'at_risk';
+          const slaColor = slaBreached ? "#D32F2F" : isUrgent ? "#EF5A06" : "#00891D";
+          const slaBg = slaBreached ? "#FFEBEE" : isUrgent ? "#FFEBEE" : "#E8F5E9";
+
+          return (
+            <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden dark:bg-gray-800">
+              {(slaBreached || isUrgent) && (
+                <div className="bg-orange-50 border-b border-orange-100 px-4 py-1.5 flex items-center gap-1.5">
+                  <AlertCircle size={12} color={slaColor} />
+                  <span style={{ color: slaColor, fontWeight: 600, fontSize: "11px" }}>
+                    {slaBreached ? "URGENT — SLA Breached!" : "URGENT — SLA Critical!"}
                   </span>
                 </div>
-              </div>
+              )}
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-gray-900 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "15px" }}>{order.order_number}</span>
+                      <span className="rounded-full px-2 py-0.5" style={{ fontSize: "10px", fontWeight: 600, backgroundColor: "#FFF3E0", color: "#EF5A06" }}>
+                        Tray {order.tray}
+                      </span>
+                    </div>
+                    <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "12px" }}>{order.order_type}</span>
+                  </div>
+                  <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: slaBg }}>
+                    <Clock size={11} color={slaColor} />
+                    <span style={{ color: slaColor, fontWeight: 700, fontSize: "11px" }}>
+                      {slaInfo.displayText}
+                    </span>
+                  </div>
+                </div>
 
               <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2.5 mb-3 dark:bg-gray-900">
                 <Package size={14} color="#EF5A06" />
@@ -200,7 +180,8 @@ export function PackingQueueMobile({ onNavigate, onBack }: PackingQueueMobilePro
               </button>
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
     </div>
   );
