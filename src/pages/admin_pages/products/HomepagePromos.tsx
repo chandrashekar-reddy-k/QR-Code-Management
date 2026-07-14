@@ -332,7 +332,7 @@ export default function HomepagePromos() {
               })}
             </div>
           )}
-        </div>  </div>
+        </div>
 
         {/* Promotion Panel */}
         <div className="bg-white dark:bg-gray-900/50 border border-gray-150 dark:border-gray-800 p-6 rounded-3xl shadow-sm h-fit">
