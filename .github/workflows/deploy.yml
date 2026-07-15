@@ -42,9 +42,8 @@ jobs:
 
             npm run build
 
-            echo "Restarting frontend process..."
-
-            pm2 restart test_erp-partner-web
-            pm2 save
-
+            echo "Restarting Nginx..."
+            
+            sudo systemctl reload nginx
+            
             echo "Frontend deployment completed successfully."
