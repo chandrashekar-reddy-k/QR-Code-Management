@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, QrCode, CheckCircle, MapPin, Package, Loader2 } from "lucide-react";
+import { ArrowLeft, QrCode, CheckCircle, Package, Loader2, Clock } from "lucide-react";
 import api from "../../api/axios";
 
 interface SelfPickupProps {
@@ -14,6 +14,7 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
   const [loading, setLoading] = useState(true);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
   const [activeOrder, setActiveOrder] = useState<string | null>(null);
+  const [completedToday, setCompletedToday] = useState(0);
 
   const fetchOrders = () => {
     api.get('/orders?status=ready').then(res => {
@@ -25,7 +26,28 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
     });
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  const fetchCompletedCount = () => {
+    api.get('/orders').then(res => {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const completedTodayOrders = res.data.filter((o: any) => {
+        const isSelfPickup = o.order_type === 'Self Pickup';
+        const isDispatched = o.status?.toLowerCase() === 'dispatched' || o.status?.toLowerCase() === 'completed';
+        const dateStr = o.updated_at || o.updatedAt || o.created_at || o.createdAt;
+        if (!dateStr) return false;
+        const orderDate = new Date(dateStr).getTime();
+        return isSelfPickup && isDispatched && orderDate >= todayStart;
+      });
+      setCompletedToday(completedTodayOrders.length);
+    }).catch(err => {
+      console.error(err);
+    });
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    fetchCompletedCount();
+  }, []);
 
   const handleVerify = (id: string) => {
     setVerifiedIds(prev => [...prev, id]);
@@ -37,6 +59,7 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
       await api.put(`/orders/${id}/status`, { status: 'dispatched' });
       setOrders(prev => prev.filter(o => o.id !== id));
       setVerifiedIds(prev => prev.filter(vid => vid !== id));
+      setCompletedToday(prev => prev + 1);
     } catch (err) {
       console.error(err);
     }
@@ -64,16 +87,34 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
           </div>
         </div>
 
+        {/* Operational KPI Cards */}
         <div className="grid grid-cols-3 gap-2 mt-4">
-          {["C01", "C02", "C03"].map((counter, i) => (
-            <div key={counter} className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-3 text-center">
-              <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-gray-800/20 flex items-center justify-center mx-auto mb-1">
-                <MapPin size={18} color="white" />
-              </div>
-              <p className="text-white" style={{ fontWeight: 700, fontSize: "14px" }}>{counter}</p>
-              <p className="text-white/60" style={{ fontSize: "10px" }}>{i === 2 ? "Self-service" : "Staffed"}</p>
+          {/* Card 1: Ready for Pickup */}
+          <div className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-3 text-center">
+            <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-gray-800/20 flex items-center justify-center mx-auto mb-1">
+              <CheckCircle size={18} color="white" />
             </div>
-          ))}
+            <p className="text-white" style={{ fontWeight: 700, fontSize: "14px" }}>{verifiedIds.length}</p>
+            <p className="text-white" style={{ fontSize: "10px" }}>Ready for Pickup</p>
+          </div>
+
+          {/* Card 2: Waiting Customers */}
+          <div className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-3 text-center">
+            <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-gray-800/20 flex items-center justify-center mx-auto mb-1">
+              <Clock size={18} color="white" />
+            </div>
+            <p className="text-white" style={{ fontWeight: 700, fontSize: "14px" }}>{orders.filter(o => !verifiedIds.includes(o.id)).length}</p>
+            <p className="text-white" style={{ fontSize: "10px" }}>Waiting Customers</p>
+          </div>
+
+          {/* Card 3: Completed Today */}
+          <div className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-3 text-center">
+            <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-gray-800/20 flex items-center justify-center mx-auto mb-1">
+              <Package size={18} color="white" />
+            </div>
+            <p className="text-white" style={{ fontWeight: 700, fontSize: "14px" }}>{completedToday}</p>
+            <p className="text-white" style={{ fontSize: "10px" }}>Completed Today</p>
+          </div>
         </div>
       </div>
 
@@ -108,11 +149,11 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
                 {/* Token & Counter — orange + green */}
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex-1 rounded-2xl p-3 text-center" style={{ backgroundColor: "#FFF3E0" }}>
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5" style={{ fontSize: "10px" }}>TOKEN</p>
+                    <p className="text-gray-500 dark:text-gray-400 mb-0.5" style={{ fontSize: "10px" }}>TOKEN</p>
                     <p style={{ fontWeight: 900, fontSize: "28px", letterSpacing: "2px", color: ORANGE }}>{token}</p>
                   </div>
                   <div className="flex-1 rounded-2xl p-3 text-center" style={{ backgroundColor: "#E8F5E9" }}>
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-0.5" style={{ fontSize: "10px" }}>COUNTER</p>
+                    <p className="text-gray-500 dark:text-gray-400 mb-0.5" style={{ fontSize: "10px" }}>COUNTER</p>
                     <p style={{ fontWeight: 900, fontSize: "28px", color: GREEN }}>{counter}</p>
                   </div>
                 </div>
@@ -126,7 +167,7 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
                   </div>
                   <div className="flex-1">
                     <p className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "13px" }}>{order.customer_name}</p>
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>#{order.order_number} · ₹{order.total_value}</p>
+                    <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "11px" }}>#{order.order_number} · ₹{order.total_value}</p>
                   </div>
                 </div>
 
@@ -184,7 +225,7 @@ export function SelfPickup({ onBack }: SelfPickupProps) {
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-sm mt-4">
             <CheckCircle size={48} color={GREEN} className="mb-3" />
             <h3 className="text-gray-900 dark:text-gray-100 font-bold mb-1">All Caught Up!</h3>
-            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">No self pickup orders waiting.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">No self pickup orders waiting.</p>
           </div>
         )}
       </div>
