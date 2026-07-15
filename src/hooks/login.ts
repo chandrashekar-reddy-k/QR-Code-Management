@@ -44,8 +44,45 @@ type ApiError =
 
 const useLogin = (onSuccess: (data: LoginResponse) => void) => {
   return useMutation<LoginResponse, ErrorResponse, LoginPayload>({
-    mutationFn: (payload: LoginPayload) =>
-      fetchData<LoginResponse>(`partner/auth/login`, "POST", payload),
+    mutationFn: (payload: LoginPayload) => {
+      const identityServiceUrl = "http://localhost:4000/api/v1/auth/login";
+      return fetch(identityServiceUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          identifier: payload.email,
+          password: payload.password,
+          portal: "partner"
+        })
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Login failed");
+        }
+        return {
+          status: true,
+          response: data.message || "Success",
+          data: {
+            accessToken: data.data.accessToken,
+            refreshToken: data.data.refreshToken,
+            expiresIn: "24h",
+            user: {
+              id: data.data.user?.id,
+              phone: data.data.user?.phone || "",
+              name: data.data.user?.name || "",
+              email: data.data.user?.email || "",
+              role: data.data.user?.roles?.[0] || data.data.user?.role || "PARTNER",
+              avatar: data.data.user?.avatar || null,
+              store: null,
+              supplier: null,
+              isCreatedPassword: false
+            }
+          }
+        } as LoginResponse;
+      });
+    },
 
     // onSuccess: (data: LoginResponse) => {
     //     onSuccess(data);
