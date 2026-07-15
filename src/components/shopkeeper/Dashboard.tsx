@@ -679,7 +679,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                   <p className="text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 text-[12px] mt-0.5">This Week · Mon–Sun</p>
                 </div>
                 <div className="w-full outline-none focus:outline-none" style={{ outline: 'none' }}>
-                  <ResponsiveContainer width="100%" height={260} minWidth={1}>
+                  <ResponsiveContainer width="100%" height={260} minWidth={0}>
                     <BarChart
                       data={weeklyData}
                       margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
@@ -762,11 +762,11 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                     };
                     const lowerStatus = (order.status || "").toLowerCase();
                     const isAssigned = (lowerStatus === 'new' || lowerStatus === 'placed' || lowerStatus === 'assigned') && (
-                      order.shopkeeper_name || 
-                      order.assignedShopkeeper || 
-                      order.assigned_shopkeeper || 
-                      order.assignedShopkeeperId || 
-                      order.assigned_shopkeeper_id || 
+                      order.shopkeeper_name ||
+                      order.assignedShopkeeper ||
+                      order.assigned_shopkeeper ||
+                      order.assignedShopkeeperId ||
+                      order.assigned_shopkeeper_id ||
                       order.shopkeeper_phone
                     );
                     const statusColor = isAssigned ? "#4B5563" : (statusStyles[lowerStatus]?.color || "#757575");

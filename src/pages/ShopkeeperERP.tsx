@@ -30,7 +30,7 @@ const api = axios.create({
 
 // Set Authorization header interceptor
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("staffToken");
+  const token = sessionStorage.getItem("staffToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -64,12 +64,12 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem("staffUser");
+      const storedUser = sessionStorage.getItem("staffUser");
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
     } catch (err) {
-      console.error("Failed to parse user from localStorage", err);
+      console.error("Failed to parse user from sessionStorage", err);
     }
   }, []);
 
@@ -87,7 +87,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
         const res = await api.get('/orders');
         const allOrders = res.data;
         
-        const storedUser = localStorage.getItem("staffUser");
+        const storedUser = sessionStorage.getItem("staffUser");
         const userObj = storedUser ? JSON.parse(storedUser) : null;
         const skId = userObj?.shopkeeper_id || userObj?.shopkeeperId || userObj?.id;
 
@@ -121,7 +121,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
     {
       title: "Store Info",
       items: [
-        { label: "Hyderabad Store 01", icon: "🏬", desc: `Store Manager: ${name}` },
+        { label: "Hyderabad Store 01", icon: "🏬", desc: `Shopkeeper: ${name}` },
         { label: "Operating Hours", icon: "🕐", desc: "6:00 AM – 11:00 PM" },
         { label: "Store Performance", icon: "⭐", desc: "4.8 / 5.0 Rating" },
       ],
@@ -143,7 +143,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
           <span className="text-white font-bold text-2xl">{initials}</span>
         </div>
         <h1 className="text-white font-bold text-xl">{name}</h1>
-        <p className="text-white/70 text-xs">Store Manager · Hyderabad Store 01</p>
+        <p className="text-white/70 text-xs">Shopkeeper · Hyderabad Store 01</p>
         <div className="flex gap-3 mt-3">
           {[
             { label: "Orders", value: stats.orders.toString() },
@@ -195,12 +195,12 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
         ))}
         <button
           onClick={() => {
-            localStorage.removeItem("staffToken");
-            localStorage.removeItem("staffRefreshToken");
-            localStorage.removeItem("staffUser");
-            localStorage.removeItem("staffRole");
-            localStorage.removeItem("staffWarehouseId");
-            localStorage.removeItem("staffActiveOrder");
+            sessionStorage.removeItem("staffToken");
+            sessionStorage.removeItem("staffRefreshToken");
+            sessionStorage.removeItem("staffUser");
+            sessionStorage.removeItem("staffRole");
+            sessionStorage.removeItem("staffWarehouseId");
+            sessionStorage.removeItem("staffActiveOrder");
             window.location.href = "/login";
           }}
           className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 flex items-center justify-center gap-2 border border-red-100 hover:bg-red-50 transition-colors w-full"
@@ -216,7 +216,7 @@ export default function ShopkeeperERP() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [orderData, setOrderData] = useState<unknown>(() => {
     try {
-      const saved = localStorage.getItem("staffActiveOrder");
+      const saved = sessionStorage.getItem("staffActiveOrder");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -233,8 +233,8 @@ export default function ShopkeeperERP() {
  
   const fetchOrders = async () => {
     try {
-      const cachedWh = localStorage.getItem("staffWarehouseId");
-      const storedU = localStorage.getItem("staffUser");
+      const cachedWh = sessionStorage.getItem("staffWarehouseId");
+      const storedU = sessionStorage.getItem("staffUser");
       let userWarehouseId = "";
       if (cachedWh && cachedWh !== "undefined") {
         userWarehouseId = cachedWh;
@@ -299,12 +299,12 @@ export default function ShopkeeperERP() {
   }, [socket.current]);
 
   const handleLogout = () => {
-    localStorage.removeItem("staffToken");
-    localStorage.removeItem("staffRefreshToken");
-    localStorage.removeItem("staffUser");
-    localStorage.removeItem("staffRole");
-    localStorage.removeItem("staffWarehouseId");
-    localStorage.removeItem("staffActiveOrder");
+    sessionStorage.removeItem("staffToken");
+    sessionStorage.removeItem("staffRefreshToken");
+    sessionStorage.removeItem("staffUser");
+    sessionStorage.removeItem("staffRole");
+    sessionStorage.removeItem("staffWarehouseId");
+    sessionStorage.removeItem("staffActiveOrder");
     window.location.href = "/login";
   };
 
@@ -338,9 +338,9 @@ export default function ShopkeeperERP() {
     if (data !== undefined) {
       setOrderData(data);
       if (data) {
-        localStorage.setItem("staffActiveOrder", JSON.stringify(data));
+        sessionStorage.setItem("staffActiveOrder", JSON.stringify(data));
       } else {
-        localStorage.removeItem("staffActiveOrder");
+        sessionStorage.removeItem("staffActiveOrder");
       }
     }
   };

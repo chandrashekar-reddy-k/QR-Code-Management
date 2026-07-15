@@ -48,7 +48,8 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
   const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const storedUser = localStorage.getItem("user");
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
   const userObj = storedUser ? JSON.parse(storedUser) : null;
   const userRole = userObj?.role;
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
@@ -60,8 +61,8 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
   });
 
   const orders = useMemo(() => {
-    const cachedWh = localStorage.getItem("warehouseId");
-    const storedU = localStorage.getItem("user");
+    const cachedWh = isShopkeeper ? sessionStorage.getItem("staffWarehouseId") : localStorage.getItem("partnerWarehouseId");
+    const storedU = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
     let userWarehouseId = "";
     if (cachedWh && cachedWh !== "undefined") {
       userWarehouseId = cachedWh;
@@ -84,7 +85,7 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
 
     // Staff view client-side shopkeeper filter
     if (!isAdmin) {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
       const user = storedUser ? JSON.parse(storedUser) : null;
       const skId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
       const skPhone = user?.phone;

@@ -23,16 +23,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   const isShopkeeperPortal = location.pathname.startsWith('/shopkeeper') && !location.pathname.startsWith('/shopkeeper-erp');
-  const token = isShopkeeperPortal ? localStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
+  const token = isShopkeeperPortal ? sessionStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
 
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // Parse user role from localStorage
+  // Parse user role from storage
   let role = "";
   try {
-    const userStr = isShopkeeperPortal ? localStorage.getItem('staffUser') : localStorage.getItem('partnerUser');
+    const userStr = isShopkeeperPortal ? sessionStorage.getItem('staffUser') : localStorage.getItem('partnerUser');
     const user = userStr ? JSON.parse(userStr) : null;
     role = user?.role || "";
   } catch (e) {}

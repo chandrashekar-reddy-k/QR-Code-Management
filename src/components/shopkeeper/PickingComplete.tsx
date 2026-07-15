@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { PickingCompleteMobile } from "./PickingCompleteMobile";
 import { CheckCircle, Package, ArrowRight, ChevronRight } from "lucide-react";
 
 interface PickingCompleteProps {
@@ -8,7 +6,8 @@ interface PickingCompleteProps {
 }
 
 export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
-  const storedUser = localStorage.getItem("user");
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
   const userObj = storedUser ? JSON.parse(storedUser) : null;
 
   const order = data || {};
