@@ -20,6 +20,7 @@ import { OrderHistoryMobile as AllOrders } from "../components/shopkeeper/OrderH
 import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 import { useSocket } from "../hooks/useSocket";
+import { getSLAInfo } from "../utils/slaHelper";
 
 import { SharedOrdersContext } from "../components/shopkeeper/SharedOrdersContext";
 
@@ -97,7 +98,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
         const total = shopkeeperOrders.length;
         const completed = shopkeeperOrders.filter((o: any) => o.status?.toLowerCase() === 'dispatched').length;
-        const breached = shopkeeperOrders.filter((o: any) => o.sla_breach).length;
+        const breached = shopkeeperOrders.filter((o: any) => getSLAInfo(o).isBreached).length;
         const slaPercent = total > 0 ? Math.round(((total - breached) / total) * 100) : 100;
         const selfPickup = shopkeeperOrders.filter((o: any) => o.order_type === 'Self Pickup' && o.status === 'ready').length;
 
