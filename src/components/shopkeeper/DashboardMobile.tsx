@@ -137,7 +137,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
   const [orders, setOrders] = useState<any[]>([]);
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
 
-  const storedUser = localStorage.getItem("user");
+  const storedUser = isAdmin ? localStorage.getItem("partnerUser") : sessionStorage.getItem("staffUser");
   const userObj = storedUser ? JSON.parse(storedUser) : null;
   const userRole = userObj?.role;
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
@@ -174,7 +174,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = isAdmin ? localStorage.getItem("partnerUser") : sessionStorage.getItem("staffUser");
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
         if (parsed?.name) {
@@ -198,8 +198,8 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     }
 
     // Retrieve current user's warehouseId to scope dashboard orders to this store only
-    const cachedWh = localStorage.getItem(isAdmin ? "partnerWarehouseId" : "staffWarehouseId");
-    const storedU = localStorage.getItem(isAdmin ? "partnerUser" : "staffUser");
+    const cachedWh = isAdmin ? localStorage.getItem("partnerWarehouseId") : sessionStorage.getItem("staffWarehouseId");
+    const storedU = isAdmin ? localStorage.getItem("partnerUser") : sessionStorage.getItem("staffUser");
     let userWarehouseId: string | null = null;
     if (cachedWh && cachedWh !== "undefined") {
       userWarehouseId = cachedWh;
@@ -234,7 +234,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
     // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
     if (!isAdmin) {
-      const storedUser = localStorage.getItem("staffUser");
+      const storedUser = sessionStorage.getItem("staffUser");
       const user = storedUser ? JSON.parse(storedUser) : null;
       const userPhone = user?.phone;
       if (userPhone) {
@@ -364,11 +364,6 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
   const todayOrders = orders.filter((o: any) => isToday(o.createdAt || o.created_at));
 
 
-  const rejectedToday = todayOrders.filter((o: any) => {
-    const s = o.status?.toLowerCase();
-    return s === 'rejected' || s === 'cancelled';
-  }).length;
-
   const returnsToday = todayOrders.filter((o: any) => {
     const s = o.status?.toLowerCase();
     return s === 'return' || s === 'returned';
@@ -402,7 +397,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
   const secondRowKpis = [
     { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "orderhistory", statusFilter: "DISPATCHED", variant: "green" as const },
-    { label: "Rejected", value: rejectedToday, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "orderhistory", statusFilter: "REJECTED", variant: "red" as const },
+    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "orderhistory", statusFilter: "REJECTED", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", screen: "sla-monitoring", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns", variant: "gray" as const },
     { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
@@ -700,7 +695,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                   <p className="text-[#9EA3AE] text-[12px] mt-0.5 dark:text-gray-400">This Week · Mon–Sun</p>
                 </div>
                 <div className="w-full outline-none focus:outline-none" style={{ outline: 'none' }}>
-                  <ResponsiveContainer width="100%" height={260} minWidth={1}>
+                  <ResponsiveContainer width="100%" height={260} minWidth={0}>
                     <BarChart
                       data={weeklyData}
                       margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
@@ -983,7 +978,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
             </span>
           </div>
           <div className="w-full outline-none focus:outline-none" style={{ outline: 'none' }}>
-            <ResponsiveContainer width="100%" height={260} minWidth={1}>
+            <ResponsiveContainer width="100%" height={260} minWidth={0}>
               <BarChart
                 data={weeklyData}
                 margin={{ top: 20, right: 10, left: -20, bottom: 0 }}

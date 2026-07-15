@@ -41,7 +41,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
 
   // User & role info for staff UI filtering
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
-  const storedU = localStorage.getItem(isShopkeeper ? "staffUser" : "partnerUser");
+  const storedU = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
   let userRole: string | null = null;
   if (storedU) {
     try {

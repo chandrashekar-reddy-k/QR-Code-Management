@@ -62,13 +62,14 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
 
       // Only persist tokens for users who should go to dashboard (password already created is FALSE)
       if (!user.isCreatedPassword) {
-        if (user.role === 'SHOPKEEPER') {
-          localStorage.setItem("staffToken", data.data.accessToken);
-          localStorage.setItem("staffRefreshToken", data.data.refreshToken);
-          localStorage.setItem("staffUser", JSON.stringify(user));
-          localStorage.setItem("staffRole", user.role);
+        const isStaffRole = ['SHOPKEEPER', 'WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(user.role);
+        if (isStaffRole) {
+          sessionStorage.setItem("staffToken", data.data.accessToken);
+          sessionStorage.setItem("staffRefreshToken", data.data.refreshToken);
+          sessionStorage.setItem("staffUser", JSON.stringify(user));
+          sessionStorage.setItem("staffRole", user.role);
           if (anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id) {
-            localStorage.setItem("staffWarehouseId", anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id || "");
+            sessionStorage.setItem("staffWarehouseId", anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id || "");
           }
         } else {
           localStorage.setItem("partnerToken", data.data.accessToken);
@@ -121,11 +122,11 @@ export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
       if (!response.ok) {
         throw apiData as ErrorResponse;
       }
-      
+
       if (apiData.role !== "VEHICLE_AGENT") {
         throw { message: "This login is exclusively for VSMS Agents." } as ErrorResponse;
       }
-      
+
       // Map the VSMS Agent API response format to the Partner Web LoginResponse format
       const formattedData: LoginResponse = {
         status: true,
@@ -155,12 +156,12 @@ export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
       const anyUser = user as any;
 
       if (!user.isCreatedPassword) {
-        localStorage.setItem("staffToken", data.data.accessToken);
-        localStorage.setItem("staffRefreshToken", data.data.refreshToken);
-        localStorage.setItem("staffUser", JSON.stringify(user));
-        localStorage.setItem("staffRole", user.role);
+        sessionStorage.setItem("staffToken", data.data.accessToken);
+        sessionStorage.setItem("staffRefreshToken", data.data.refreshToken);
+        sessionStorage.setItem("staffUser", JSON.stringify(user));
+        sessionStorage.setItem("staffRole", user.role);
         if (anyUser.store?.id) {
-          localStorage.setItem("staffWarehouseId", anyUser.store.id);
+          sessionStorage.setItem("staffWarehouseId", anyUser.store.id);
         }
       }
 

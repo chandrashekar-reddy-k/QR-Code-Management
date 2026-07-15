@@ -64,7 +64,7 @@ export default function ShopkeeperAdminERP() {
         try {
           const u = JSON.parse(storedU);
           userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
-        } catch (e) {}
+        } catch (e) { }
       }
 
       const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}` : '/orders';

@@ -30,7 +30,8 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
     });
   };
 
-  const storedUser = localStorage.getItem("user");
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
   const userObj = storedUser ? JSON.parse(storedUser) : null;
   const userRole = userObj?.role;
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);

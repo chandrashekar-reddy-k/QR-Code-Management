@@ -6,7 +6,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
-  const token = localStorage.getItem(isShopkeeper ? 'staffToken' : 'partnerToken');
+  const token = isShopkeeper ? sessionStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -23,7 +23,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
-      const refreshToken = localStorage.getItem(isShopkeeper ? 'staffRefreshToken' : 'partnerRefreshToken');
+      const refreshToken = isShopkeeper ? sessionStorage.getItem('staffRefreshToken') : localStorage.getItem('partnerRefreshToken');
       
       if (refreshToken) {
         try {
@@ -32,9 +32,16 @@ api.interceptors.response.use(
           });
           if (res.data?.data?.accessToken) {
             const newToken = res.data.data.accessToken;
-            localStorage.setItem(isShopkeeper ? 'staffToken' : 'partnerToken', newToken);
-            if (res.data.data.refreshToken) {
-              localStorage.setItem(isShopkeeper ? 'staffRefreshToken' : 'partnerRefreshToken', res.data.data.refreshToken);
+            if (isShopkeeper) {
+              sessionStorage.setItem('staffToken', newToken);
+              if (res.data.data.refreshToken) {
+                sessionStorage.setItem('staffRefreshToken', res.data.data.refreshToken);
+              }
+            } else {
+              localStorage.setItem('partnerToken', newToken);
+              if (res.data.data.refreshToken) {
+                localStorage.setItem('partnerRefreshToken', res.data.data.refreshToken);
+              }
             }
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return api(originalRequest);
@@ -47,12 +54,12 @@ api.interceptors.response.use(
       // If we don't have a refresh token or refreshing fails, clear storage and redirect
       if (!window.location.pathname.includes('/login')) {
         if (isShopkeeper) {
-          localStorage.removeItem('staffToken');
-          localStorage.removeItem('staffRefreshToken');
-          localStorage.removeItem('staffUser');
-          localStorage.removeItem('staffRole');
-          localStorage.removeItem('staffWarehouseId');
-          localStorage.removeItem('staffActiveOrder');
+          sessionStorage.removeItem('staffToken');
+          sessionStorage.removeItem('staffRefreshToken');
+          sessionStorage.removeItem('staffUser');
+          sessionStorage.removeItem('staffRole');
+          sessionStorage.removeItem('staffWarehouseId');
+          sessionStorage.removeItem('staffActiveOrder');
         } else {
           localStorage.removeItem('partnerToken');
           localStorage.removeItem('partnerRefreshToken');

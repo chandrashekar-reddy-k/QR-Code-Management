@@ -11,12 +11,13 @@ interface PackingScreenProps {
 }
 
 export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps) {
-  const storedPartnerUser = localStorage.getItem("partnerUser");
-  const partnerUserObj = storedPartnerUser ? JSON.parse(storedPartnerUser) : null;
-  const partnerRole = partnerUserObj?.role;
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
+  const userObj = storedUser ? JSON.parse(storedUser) : null;
+  const role = userObj?.role;
 
   // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile packing screen UI
-  const isStaffLogin = !partnerRole || partnerRole === "SHOPKEEPER" || partnerRole === "STORE_STAFF";
+  const isStaffLogin = isShopkeeper || !role || role === "SHOPKEEPER" || role === "STORE_STAFF";
 
   if (isStaffLogin) {
     return <PackingScreenMobile onNavigate={onNavigate} onBack={onBack} order={order} />;
