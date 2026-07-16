@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 8080,
+    port: 8082,
     strictPort: true,
     proxy: {
       // In dev, use /api-admin to avoid CORS when uploading to admin API

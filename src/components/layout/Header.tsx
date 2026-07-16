@@ -857,6 +857,24 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           )}
         </div>
 
+        {/* HRMS SSO Link */}
+        <button
+          className="flex items-center gap-1.5 px-3 py-2 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium text-xs transition-all border border-green-200 dark:border-green-800"
+          title="Open HRMS Portal"
+          onClick={() => {
+            const token = localStorage.getItem('token');
+            const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
+            if (token) {
+              window.open(`${hrmsUrl}/login?sso_token=${token}`, '_blank');
+            } else {
+              window.open(`${hrmsUrl}/login`, '_blank');
+            }
+          }}
+        >
+          <UserCog size={16} />
+          <span>HRMS</span>
+        </button>
+
         {/* Settings */}
         <button
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
