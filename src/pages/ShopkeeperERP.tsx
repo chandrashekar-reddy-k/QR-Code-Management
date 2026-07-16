@@ -87,7 +87,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
       try {
         const res = await api.get('/orders');
         const allOrders = res.data;
-        
+
         const storedUser = sessionStorage.getItem("staffUser");
         const userObj = storedUser ? JSON.parse(storedUser) : null;
         const skId = userObj?.shopkeeper_id || userObj?.shopkeeperId || userObj?.id;
@@ -227,11 +227,11 @@ export default function ShopkeeperERP() {
   const [history, setHistory] = useState<Screen[]>([]);
   const location = useLocation();
   const reactNavigate = useReactNavigate();
- 
+
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const socket = useSocket(1);
- 
+
   const fetchOrders = async () => {
     try {
       const cachedWh = sessionStorage.getItem("staffWarehouseId");
@@ -243,7 +243,7 @@ export default function ShopkeeperERP() {
         try {
           const u = JSON.parse(storedU);
           userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
-        } catch (e) {}
+        } catch (e) { }
       }
 
       const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}` : '/orders';
@@ -415,7 +415,7 @@ export default function ShopkeeperERP() {
       <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex-shrink-0 h-screen sticky top-0">
-                    {/* Logo or Brand */}
+          {/* Logo or Brand */}
           <div className="py-4 pl-5 pr-3 flex-shrink-0 border-b border-gray-50 dark:border-gray-700">
             <div className="flex items-center justify-between gap-2">
               <div className="flex-1 min-w-0 h-12 flex items-center justify-center overflow-hidden">
@@ -437,7 +437,7 @@ export default function ShopkeeperERP() {
               </div>
             </div>
           </div>
-          
+
           {/* Navigation Items */}
           <nav className="flex-1 p-4 space-y-1">
             {[
@@ -447,24 +447,22 @@ export default function ShopkeeperERP() {
               { id: "picking-queue", label: "Picking Queue", icon: <Package size={18} /> },
               { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={18} /> },
               { id: "profile", label: "Profile", icon: <User size={18} /> },
-              { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
             ].map((item) => {
               const isActive = screen === item.id || (
                 item.id === "new-orders" && screen === "order-details"
               ) || (
-                item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
-              ) || (
-                item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
-              );
+                  item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
+                ) || (
+                  item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
+                );
               return (
                 <button
                   key={item.id}
                   onClick={() => navigate(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                    isActive
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
                       ? "bg-[#00891D]/10 text-[#00891D]"
                       : "text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
-                  }`}
+                    }`}
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -472,7 +470,7 @@ export default function ShopkeeperERP() {
               );
             })}
           </nav>
-          
+
           {/* Sign Out Button */}
           <div className="p-4 border-t border-gray-50">
             <button
@@ -488,10 +486,10 @@ export default function ShopkeeperERP() {
             </button>
           </div>
         </aside>
-  
+
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
-                    {/* Mobile Header / Navigation */}
+          {/* Mobile Header / Navigation */}
           <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
             <img
               src="/villagekart_svg_icon-2.svg"
@@ -506,12 +504,12 @@ export default function ShopkeeperERP() {
               <span>History</span>
             </button>
           </header>
-  
+
           {/* Content Body */}
           <main className="flex-1 p-4 md:p-6 overflow-y-auto w-full">
             {renderScreen()}
           </main>
-  
+
           {/* Mobile Bottom Navigation */}
           <nav className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-around py-2 sticky bottom-0 z-30">
             {[
@@ -524,17 +522,16 @@ export default function ShopkeeperERP() {
               const isActive = screen === item.id || (
                 item.id === "new-orders" && screen === "order-details"
               ) || (
-                item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
-              ) || (
-                item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
-              );
+                  item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
+                ) || (
+                  item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
+                );
               return (
                 <button
                   key={item.id}
                   onClick={() => navigate(item.id)}
-                  className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold transition-all ${
-                    isActive ? "text-[#00891D]" : "text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
-                  }`}
+                  className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold transition-all ${isActive ? "text-[#00891D]" : "text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
+                    }`}
                 >
                   {item.icon}
                   <span>{item.label}</span>

@@ -108,6 +108,29 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     return isOverdue ? `Overdue by ${timeStr}` : timeStr;
   };
 
+  // Helper to check if order date matches the dateFilter
+  const matchesDateFilter = (o: any) => {
+    if (!dateFilter || dateFilter === 'all') return true;
+    const orderDate = new Date(o.createdAt || o.created_at || o.acceptedAt || o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt);
+    if (isNaN(orderDate.getTime())) return true;
+    
+    const nowTime = now.getTime();
+    if (dateFilter === 'today') {
+      const today = new Date(now);
+      today.setHours(0,0,0,0);
+      return orderDate >= today;
+    }
+    if (dateFilter === 'week') {
+      const oneWeekAgo = new Date(nowTime - 7 * 24 * 60 * 60 * 1000);
+      return orderDate >= oneWeekAgo;
+    }
+    if (dateFilter === 'month') {
+      const oneMonthAgo = new Date(nowTime - 30 * 24 * 60 * 60 * 1000);
+      return orderDate >= oneMonthAgo;
+    }
+    return true;
+  };
+
   // 1. Summary counts
   let onTrackCount = 0;
   let atRiskCount = 0;
@@ -117,6 +140,20 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
   orders.forEach((o) => {
     if (!isNotDispatchedOrCancelled(o)) {
       return;
+    }
+
+    // Apply Stage Filter to counts
+    if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return;
+
+    // Apply Date Filter to counts
+    if (!matchesDateFilter(o)) return;
+
+    // Apply Search Query to counts
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const orderNo = (o.order_number || o.orderNumber || "").toLowerCase();
+      const custName = (o.customer_name || o.consumer?.name || "").toLowerCase();
+      if (!orderNo.includes(q) && !custName.includes(q)) return;
     }
 
     const slaInfo = getSLAInfo(o, now);
@@ -159,11 +196,45 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
   // 4. SLA data properties
   const hourlyData = slaData?.hourlyData || [];
 
+  // Calculate dynamic average fulfillment time
+  let totalFulfillmentMinutes = 0;
+  let completedCount = 0;
+  orders.forEach((o) => {
+    const s = o.status?.toLowerCase();
+    if (!['dispatched', 'delivered', 'completed', 'out_for_delivery'].includes(s)) {
+      return;
+    }
+
+    if (!matchesDateFilter(o)) return;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const orderNo = (o.order_number || o.orderNumber || "").toLowerCase();
+      const custName = (o.customer_name || o.consumer?.name || "").toLowerCase();
+      if (!orderNo.includes(q) && !custName.includes(q)) return;
+    }
+
+    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt || o.createdAt || o.created_at;
+    const completedAtStr = o.dispatched_at || o.dispatchedAt || o.delivered_at || o.deliveredAt || o.completed_at || o.completedAt || o.updatedAt || o.updated_at;
+    
+    if (acceptedAtStr && completedAtStr) {
+      const start = new Date(acceptedAtStr).getTime();
+      const end = new Date(completedAtStr).getTime();
+      if (!isNaN(start) && !isNaN(end) && end >= start) {
+        totalFulfillmentMinutes += (end - start) / 60000;
+        completedCount++;
+      }
+    }
+  });
+
+  const dynamicAvgFulfillment = completedCount > 0 
+    ? Math.round(totalFulfillmentMinutes / completedCount) 
+    : (slaData?.summary?.avg_fulfillment || 15);
+
   const summary = {
     active_orders: activeOrdersCount,
     at_risk: atRiskCount,
     active_breaches: breachedCount,
-    avg_fulfillment: slaData?.summary?.avg_fulfillment || 0
+    avg_fulfillment: dynamicAvgFulfillment
   };
 
   const onTimeCount = onTrackCount;
@@ -179,12 +250,13 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
 
     if (slaFilter && currentSlaStatus !== slaFilter) return false;
     if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return false;
-    
+    if (!matchesDateFilter(o)) return false;
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      if (!o.order_number?.toLowerCase().includes(q) && !o.customer_name?.toLowerCase().includes(q)) {
-        return false;
-      }
+      const orderNo = (o.order_number || o.orderNumber || "").toLowerCase();
+      const custName = (o.customer_name || o.consumer?.name || "").toLowerCase();
+      if (!orderNo.includes(q) && !custName.includes(q)) return false;
     }
     return true;
   });
@@ -364,8 +436,11 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                 <tr>
                   <td colSpan={7} className="py-12 text-center">
                     <CheckCircle size={48} className="mx-auto text-green-500 mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">
-                      No orders found matching filters
+                    <h3 className="text-gray-900 dark:text-white text-lg font-semibold">
+                      All Orders On Track
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                      No SLA alerts detected.
                     </p>
                   </td>
                 </tr>
