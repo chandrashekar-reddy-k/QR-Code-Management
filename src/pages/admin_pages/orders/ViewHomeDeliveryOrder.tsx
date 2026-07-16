@@ -126,6 +126,8 @@ interface HomeDeliveryOrderView {
   additionalCharges: number;
   taxAmount:number;
   finalTotal: number;
+  orderReturnHistory?: any[];
+  refundTransactions?: any[];
 }
 
 // Helper to get user-friendly label from enum
@@ -254,6 +256,8 @@ const ViewHomeDeliveryOrder = () => {
       additionalCharges: 0, // Not in API response
       finalTotal: orderData.totalAmount || 0,
       taxAmount: orderData.taxAmount || 0,
+      orderReturnHistory: orderData.orderReturnHistory || [],
+      refundTransactions: orderData.refundTransactions || [],
     } as HomeDeliveryOrderView;
   }, [data, id, deliveryAgents]);
 
@@ -398,7 +402,64 @@ const ViewHomeDeliveryOrder = () => {
       </div>
 
       {/* OMS Stepper */}
-      <OmsStepper orderId={order.id} currentStatus={order.status} />
+      <OmsStepper orderId={order.id} currentStatus={order.status} returnHistory={order.orderReturnHistory} refundTransactions={order.refundTransactions} paymentMethod={order.paymentMethod} />
+
+      {/* Return & Refund Information */}
+      {order.orderReturnHistory && order.orderReturnHistory.length > 0 && (
+          <div className="mt-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base sm:text-lg font-bold text-red-800 dark:text-red-300 flex items-center gap-2">
+                      <span className="material-icons">assignment_return</span> Return & Refund Information
+                  </h2>
+              </div>
+              <div className="space-y-4">
+                  {order.orderReturnHistory.map((returnEntry) => (
+                      <div key={returnEntry.id} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-red-100 dark:border-red-900/30">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Date</p>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {formatDate(returnEntry.createdAt, "DD-MM-YYYY, HH:mm A")}
+                                  </p>
+                              </div>
+                              <div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                                  <p className={`text-sm font-bold ${returnEntry.toPhase === 'APPROVED' ? 'text-green-600' : returnEntry.toPhase === 'REJECTED' ? 'text-red-600' : 'text-yellow-600'}`}>
+                                      {returnEntry.toPhase}
+                                  </p>
+                              </div>
+                              <div className="col-span-2">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Reason</p>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {returnEntry.reason || "No reason provided"}
+                                  </p>
+                              </div>
+                          </div>
+                          {returnEntry.metadata && Array.isArray(returnEntry.metadata.items) && (
+                              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Returned Items</p>
+                                  <div className="space-y-2">
+                                      {returnEntry.metadata.items.map((item: any, idx: number) => {
+                                          const product = order.products.find(p => p.id === item.orderItemId);
+                                          return (
+                                              <div key={idx} className="flex items-center justify-between text-sm">
+                                                  <span className="text-gray-800 dark:text-gray-200 truncate pr-4">
+                                                      {item.quantity}x {product?.name || 'Unknown Item'}
+                                                  </span>
+                                                  <span className="font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                      ₹{((product?.price || 0) * item.quantity).toFixed(2)}
+                                                  </span>
+                                              </div>
+                                          );
+                                      })}
+                                  </div>
+                              </div>
+                          )}
+                      </div>
+                  ))}
+              </div>
+          </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6">
@@ -577,11 +638,12 @@ const ViewHomeDeliveryOrder = () => {
                         case OrderStatus.PROCESSING:
                           return OrderStatus.READY_FOR_PICKUP;
                         case OrderStatus.READY_FOR_PICKUP:
-                          return null;
-                        case OrderStatus.OUT_FOR_DELIVERY:
+                          // If agent is assigned, it might be ASSIGNED_TO_AGENT, but we allow PICKED_UP next
                           return OrderStatus.PICKED_UP;
                         case OrderStatus.PICKED_UP:
-                          return OrderStatus.IN_TRANSIT;
+                          return OrderStatus.OUT_FOR_DELIVERY;
+                        case OrderStatus.OUT_FOR_DELIVERY:
+                          return OrderStatus.DELIVERED;
                         case OrderStatus.IN_TRANSIT:
                           return OrderStatus.DELIVERED;
                         default:
@@ -640,6 +702,7 @@ const ViewHomeDeliveryOrder = () => {
                     let updateButtonDisabled = false;
                     if (
                       order.status === OrderStatus.READY_FOR_PICKUP ||
+                      order.status === OrderStatus.OUT_FOR_DELIVERY ||
                       order.status === OrderStatus.DELIVERED ||
                       order.status === OrderStatus.RETURN_INITIATED
                     ) {

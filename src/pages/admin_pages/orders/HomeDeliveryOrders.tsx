@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { Filter, ChevronDown, RotateCcw, Package, Wallet } from "lucide-react";
+import { Filter, ChevronDown, RotateCcw } from "lucide-react";
 import {
   SearchInput,
   SelectInput,
   DataTable,
   Pagination,
   ViewIconButton,
-  StatCard,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
-import { formatDate, formatCurrency } from "../../../utils/formatters";
+import { formatDate } from "../../../utils/formatters";
 import { useGetDeliveryOrders, useBulkTransitionOrders, useGeneratePickingList } from "../../../hooks/order";
 import { useGetRouteMaps, type RouteMapItem } from "../../../hooks/deliverySettings";
 import { toast } from "react-toastify";
@@ -94,8 +93,9 @@ interface TableOrder {
   deliveryAddress: string;
   PaymentMethod: string;
   deliveryPartner: string | null;
-   deliveryType: string;
+  deliveryType: string;
   status: string;
+  paymentStatus: string;
   orderDate: string;
 }
 
@@ -296,10 +296,6 @@ const HomeDeliveryOrders = () => {
     [apiData?.data?.orders]
   );
 
-  const statusCounts: ApiStatusCounts = useMemo(
-    () => apiData?.data?.statusCounts || {},
-    [apiData?.data?.statusCounts]
-  );
 
   const pagination: ApiPagination = apiData?.pagination || {
     page: 1,
@@ -368,7 +364,12 @@ const HomeDeliveryOrders = () => {
         PaymentMethod: order.payment?.method || "N/A",// Payment method not in API response
         deliveryPartner: order.agentId ? "Assigned" : null,
         deliveryType: (order as { deliveryType?: string })?.deliveryType || "N/A",
-        status: order.status || "PENDING",
+        status: order.payment?.status === "REFUNDED" 
+          ? "REFUNDED" 
+          : order.payment?.status === "REFUND_PENDING" 
+            ? "REFUND_PENDING" 
+            : (order.status || "PENDING"),
+        paymentStatus: order.payment?.status || "N/A",
         orderDate: order.createdAt || new Date().toISOString(),
       };
     });
@@ -456,62 +457,6 @@ const HomeDeliveryOrders = () => {
     setCurrentPage(1);
   };
 
-  // Calculate KPI metrics from statusCounts and orders data
-  const kpiData = useMemo(() => {
-    const counts = statusCounts;
-
-    // Calculate totals from statusCounts
-    const totalOrders = (Object.values(counts) as number[]).reduce(
-      (sum, count) => sum + (count || 0),
-      0
-    );
-    const newOrders = (counts.PENDING || 0) + (counts.CONFIRMED || 0);
-    const processingOrders = (counts.PROCESSING || 0) + (counts.READY_FOR_PICKUP || 0);
-    const inTransitOrders =
-      (counts.OUT_FOR_DELIVERY || 0) +
-      (counts.PICKED_UP || 0) +
-      (counts.IN_TRANSIT || 0) +
-      (counts.RETURN_INITIATED || 0);
-
-    // Calculate total revenue from orders
-    const totalRevenue = orders.reduce(
-      (sum, order) => sum + (order.totalAmount || 0),
-      0
-    );
-
-    return [
-      {
-        title: "Total Orders",
-        value: totalOrders.toLocaleString(),
-        icon: Package,
-        variant: "purple" as const,
-      },
-      {
-        title: "New Orders",
-        value: newOrders.toLocaleString(),
-        icon: Package,
-        variant: "yellow" as const,
-      },
-      {
-        title: "Processing",
-        value: processingOrders.toLocaleString(),
-        icon: Package,
-        variant: "green" as const,
-      },
-      {
-        title: "In Transit",
-        value: inTransitOrders.toLocaleString(),
-        icon: Package,
-        variant: "red" as const,
-      },
-      {
-        title: "Total Revenue",
-        value: formatCurrency(totalRevenue),
-        icon: Wallet,
-        variant: "purple" as const,
-      },
-    ];
-  }, [statusCounts, orders]);
 
   // Get status badge color
   const getStatusColor = (status: string) => {
@@ -552,6 +497,12 @@ const HomeDeliveryOrders = () => {
     if (statusUpper === "RETURNED") {
       return "bg-orange-200 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200";
     }
+    if (statusUpper === "REFUNDED") {
+      return "bg-green-100 dark:bg-green-950/20 text-green-700 dark:text-green-300";
+    }
+    if (statusUpper === "REFUND_PENDING") {
+      return "bg-yellow-100 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-300";
+    }
     return "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200";
   };
 
@@ -573,6 +524,8 @@ const HomeDeliveryOrders = () => {
       CANCELED: "Cancelled",
       FAILED: "Failed",
       RETURNED: "Returned",
+      REFUNDED: "Refunded",
+      REFUND_PENDING: "Refund Pending",
     };
     return statusMap[statusUpper] || status;
   };

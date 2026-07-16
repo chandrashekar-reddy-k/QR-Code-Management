@@ -415,7 +415,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         (isSectionOpen ||
           location.pathname.startsWith("/orders") ||
           location.pathname.startsWith("/home-delivery-orders") ||
-          location.pathname.startsWith("/self-pickup-orders"));
+          location.pathname.startsWith("/self-pickup-orders") ||
+          location.pathname.startsWith("/refunds") ||
+          location.pathname.startsWith("/return-requests"));
 
       // Determine final active state (checking all conditions)
       const finalActive =

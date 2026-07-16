@@ -233,6 +233,11 @@ const ViewReturnRequest = lazy(
   () => import("../pages/admin_pages/returnRequests/ViewReturnRequest")
 );
 
+// Refunds
+const ManageRefunds = lazy(
+  () => import("../pages/admin_pages/refunds/ManageRefunds")
+);
+
 // Featured Sections
 const ManageFeaturedSections = lazy(
   () => import("../pages/admin_pages/featuredSections/ManageFeaturedSections")
@@ -972,6 +977,12 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/return-requests/view/:id",
     component: ViewReturnRequest,
+    requiresAuth: true,
+  },
+  // Refunds
+  {
+    path: "/refunds",
+    component: ManageRefunds,
     requiresAuth: true,
   },
   // Featured Sections

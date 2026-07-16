@@ -44,8 +44,9 @@ import {
   ArrowRightLeft,
   Wrench,
   HelpCircle,
-  Link2,      // ← ADD
-  BookOpen,   // ← ADD
+  Link2,
+  BookOpen,
+  Banknote,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -104,7 +105,9 @@ export const activeCheckers = {
   isOrderManagementActive: (pathname: string) =>
     pathname.startsWith("/orders") ||
     pathname.startsWith("/home-delivery-orders") ||
-    pathname.startsWith("/self-pickup-orders"),
+    pathname.startsWith("/self-pickup-orders") ||
+    pathname.startsWith("/refunds") ||
+    pathname.startsWith("/return-requests"),
   isStaffManagementActive: (pathname: string) =>
     pathname.startsWith("/delivery-boys") &&
     !pathname.startsWith("/delivery-boys/requests"),
@@ -116,7 +119,9 @@ export const initialStateCheckers = {
   isOrderManagementOpen: (pathname: string) =>
     pathname.startsWith("/orders") ||
     pathname.startsWith("/home-delivery-orders") ||
-    pathname.startsWith("/self-pickup-orders"),
+    pathname.startsWith("/self-pickup-orders") ||
+    pathname.startsWith("/refunds") ||
+    pathname.startsWith("/return-requests"),
   isMyCategoryManagementOpen: (pathname: string) =>
       pathname.startsWith("/my-categories") ||
   pathname.startsWith("/my-sub-categories"),
@@ -283,6 +288,16 @@ export const sidebarConfig: MenuSection[] = [
         path: "/escalations",
         label: "Escalated Orders",
         icon: AlertTriangle,
+      },
+      {
+        path: "/return-requests",
+        label: "Return Requests",
+        icon: RefreshCw,
+      },
+      {
+        path: "/refunds",
+        label: "Refunds",
+        icon: Banknote,
       },
     ],
   },

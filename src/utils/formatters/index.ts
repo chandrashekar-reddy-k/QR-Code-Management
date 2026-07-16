@@ -1,5 +1,6 @@
-export const formatCurrency = (amount: number): string => {
-  return `₹${amount.toFixed(2)}`;
+export const formatCurrency = (amount: number | undefined | null): string => {
+  const validAmount = Number(amount) || 0;
+  return `₹${validAmount.toFixed(2)}`;
 };
 
 export const formatDate = (dateString: string, format?: string): string => {
