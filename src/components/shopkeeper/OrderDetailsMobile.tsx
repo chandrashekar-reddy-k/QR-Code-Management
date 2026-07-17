@@ -436,7 +436,7 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
         </div>
       </div>
 
-      {fullOrder.status === 'new' && (
+      {(fullOrder.status === 'new' || fullOrder.status === 'assigned') && (
         <div className="bg-white border-t border-gray-100 p-4 flex gap-3 mt-auto dark:bg-gray-800 dark:border-gray-700">
           <button
             onClick={handleReject}

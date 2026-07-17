@@ -106,7 +106,7 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
     if (activeTab !== "All") {
       result = orders.filter((o: any) => {
         const s = o.status?.toLowerCase();
-        if (activeTab === "New") return s === "new" || s === "placed";
+        if (activeTab === "New") return s === "new" || s === "placed" || s === "assigned";
         if (activeTab === "Picking") return s === "picking" || s === "accepted" || s === "confirmed";
         if (activeTab === "Packing") return s === "packing" || s === "processing";
         if (activeTab === "Ready") return s === "ready";

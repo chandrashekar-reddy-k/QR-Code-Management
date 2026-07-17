@@ -251,7 +251,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
     const newOrders = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'new';
+      return s === 'new' || s === 'assigned';
     }).length;
     const picking = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
@@ -760,6 +760,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                       new: { color: "#1D4ED8", bg: "#EFF6FF" }, // Default Placed/Pending (Unassigned) is blue
                       placed: { color: "#1D4ED8", bg: "#EFF6FF" },
                       pending: { color: "#1D4ED8", bg: "#EFF6FF" },
+                      assigned: { color: "#4B5563", bg: "#F3F4F6" },
                       accepted: { color: "#1D4ED8", bg: "#EFF6FF" },
                       picking: { color: "#7C3AED", bg: "#F5F3FF" },
                       confirmed: { color: "#7C3AED", bg: "#F5F3FF" },
@@ -796,6 +797,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                         FAILED: "Failed",
                         RETURNED: "Returned",
                         NEW: "Placed",
+                        ASSIGNED: "Assigned",
                         ACCEPTED: "Accepted",
                         PICKING: "Picking",
                         PACKING: "Packing",
