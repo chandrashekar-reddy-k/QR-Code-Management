@@ -15,7 +15,7 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
   // Tick every minute so SLA elapsed/remaining updates automatically
   const [now, setNow] = useState(new Date());
 
-  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp') && !!sessionStorage.getItem('staffToken');
   const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
   const userObj = storedUser ? JSON.parse(storedUser) : null;
   const userRole = userObj?.role;

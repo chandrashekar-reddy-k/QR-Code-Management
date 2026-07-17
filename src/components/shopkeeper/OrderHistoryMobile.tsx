@@ -48,7 +48,7 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
   const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp') && !!sessionStorage.getItem("staffToken");
   const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
   const userObj = storedUser ? JSON.parse(storedUser) : null;
   const userRole = userObj?.role;

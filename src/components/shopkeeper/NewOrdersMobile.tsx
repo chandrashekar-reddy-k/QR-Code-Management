@@ -40,7 +40,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   const [selectedShopkeeper, setSelectedShopkeeper] = useState<{ id: number; assignedAt: string; timeoutMinutes: number } | null>(null);
 
   // User & role info for staff UI filtering
-  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp') && !!sessionStorage.getItem('staffToken');
   const storedU = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
   let userRole: string | null = null;
   if (storedU) {
