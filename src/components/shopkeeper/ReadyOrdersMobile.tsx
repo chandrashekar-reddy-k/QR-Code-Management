@@ -12,7 +12,7 @@ interface ReadyOrdersMobileProps {
 export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps) {
   const { orders: sharedOrders, refreshOrders, loading: sharedLoading } = useSharedOrders();
 
-  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp') && !!sessionStorage.getItem('staffToken');
+  const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
   const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
   const userObj = storedUser ? JSON.parse(storedUser) : null;
   const userRole = userObj?.role;
