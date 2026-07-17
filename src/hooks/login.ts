@@ -27,7 +27,7 @@ export interface LoginResponse {
 }
 
 interface LoginPayload {
-  email: string;
+  identifier: string;
   password: string;
 }
 
@@ -52,7 +52,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          identifier: payload.email,
+          identifier: payload.identifier,
           password: payload.password,
           portal: "partner"
         })

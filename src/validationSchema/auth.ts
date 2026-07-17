@@ -7,11 +7,15 @@ export const MIN_PASSWORD_LENGTH = 6;
 
 // Yup validation schema for Login
 export const loginSchema = yup.object({
-  email: yup
+  identifier: yup
     .string()
-    .required("Email is required")
-    .max(MAX_EMAIL_LENGTH, `Email should not exceed ${MAX_EMAIL_LENGTH} characters`)
-    .email("Please enter a valid email address")
+    .required("Email or Mobile number is required")
+    .test("emailOrMobile", "Please enter a valid email or 10-digit mobile number", (value) => {
+      if (!value) return false;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const phoneRegex = /^[0-9]{10}$/;
+      return emailRegex.test(value) || phoneRegex.test(value);
+    })
     .trim(),
   password: yup
     .string()

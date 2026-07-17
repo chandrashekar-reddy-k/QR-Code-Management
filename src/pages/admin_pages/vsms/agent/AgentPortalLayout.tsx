@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 
+let hrmsWindowRef: Window | null = null;
+
 const menuSections = [
   {
     title: 'Core Operations',
@@ -65,9 +67,31 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     // Force light theme for agent portal
     const root = window.document.documentElement;
     root.classList.remove('dark');
+
+    // Auto-close HRMS tab when agent portal tab is closed/unloaded
+    const handleUnload = () => {
+      if (hrmsWindowRef && !hrmsWindowRef.closed) {
+        try {
+          hrmsWindowRef.close();
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('unload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
   }, []);
 
   const handleLogout = () => {
+    if (hrmsWindowRef && !hrmsWindowRef.closed) {
+      try {
+        hrmsWindowRef.close();
+      } catch (err) {
+        console.error('Failed to close HRMS window:', err);
+      }
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userName');
@@ -186,6 +210,38 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-3">
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-bold text-xs transition-all border border-green-200"
+                title="Open HRMS Portal"
+                onClick={async () => {
+                  const token = localStorage.getItem('token');
+                  const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
+                  const identityUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000";
+                  if (token) {
+                    try {
+                      const response = await fetch(`${identityUrl}/api/v1/auth/sso/ticket`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                        }
+                      });
+                      const body = await response.json();
+                      if (response.ok && body?.data?.ticket) {
+                        hrmsWindowRef = window.open(`${hrmsUrl}/login?sso_ticket=${body.data.ticket}`, '_blank');
+                        return;
+                      }
+                    } catch (err) {
+                      console.error('Failed to generate SSO ticket:', err);
+                    }
+                    hrmsWindowRef = window.open(`${hrmsUrl}/login`, '_blank');
+                  } else {
+                    hrmsWindowRef = window.open(`${hrmsUrl}/login`, '_blank');
+                  }
+                }}
+              >
+                <span>HRMS</span>
+              </button>
               <span className="hidden sm:inline text-xs font-black text-slate-700 uppercase tracking-wider">
                 Welcome back, {agentName}
               </span>

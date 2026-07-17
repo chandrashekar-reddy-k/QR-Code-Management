@@ -22,6 +22,8 @@ import { useSocket } from "../hooks/useSocket";
 
 import { SharedOrdersContext } from "../components/shopkeeper/SharedOrdersContext";
 
+let hrmsWindowRef: Window | null = null;
+
 // Local API Client instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_URL || "http://localhost:3004/api/v1",
@@ -293,9 +295,32 @@ export default function ShopkeeperERP() {
   }, [socket.current]);
 
   const handleLogout = () => {
+    if (hrmsWindowRef && !hrmsWindowRef.closed) {
+      try {
+        hrmsWindowRef.close();
+      } catch (err) {
+        console.error('Failed to close HRMS window:', err);
+      }
+    }
     localStorage.clear();
     window.location.href = "/login";
   };
+
+  useEffect(() => {
+    const handleUnload = () => {
+      if (hrmsWindowRef && !hrmsWindowRef.closed) {
+        try {
+          hrmsWindowRef.close();
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('unload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, []);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -470,6 +495,47 @@ export default function ShopkeeperERP() {
             })}
           </nav>
           
+          {/* HRMS SSO Link */}
+          <div className="px-4 py-2">
+            <button
+              onClick={async () => {
+                const token = localStorage.getItem('token');
+                const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
+                const identityUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000";
+                if (token) {
+                  try {
+                    const response = await fetch(`${identityUrl}/api/v1/auth/sso/ticket`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      }
+                    });
+                    const body = await response.json();
+                    if (response.ok && body?.data?.ticket) {
+                      hrmsWindowRef = window.open(`${hrmsUrl}/login?sso_ticket=${body.data.ticket}`, '_blank');
+                      return;
+                    }
+                  } catch (err) {
+                    console.error('Failed to generate SSO ticket:', err);
+                  }
+                  hrmsWindowRef = window.open(`${hrmsUrl}/login`, '_blank');
+                } else {
+                  hrmsWindowRef = window.open(`${hrmsUrl}/login`, '_blank');
+                }
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 text-[#00891D] rounded-xl text-sm font-semibold transition-all border border-green-200"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>HRMS Portal</span>
+            </button>
+          </div>
+
           {/* Sign Out Button */}
           <div className="p-4 border-t border-gray-50">
             <button
