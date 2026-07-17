@@ -31,7 +31,7 @@ const api = axios.create({
 
 // Set Authorization header interceptor
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem("staffToken");
+  const token = sessionStorage.getItem("staffToken") || localStorage.getItem("partnerToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -65,12 +65,12 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
   useEffect(() => {
     try {
-      const storedUser = sessionStorage.getItem("staffUser");
+      const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("partnerUser");
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
     } catch (err) {
-      console.error("Failed to parse user from sessionStorage", err);
+      console.error("Failed to parse user from sessionStorage/localStorage", err);
     }
   }, []);
 
@@ -88,7 +88,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
         const res = await api.get('/orders');
         const allOrders = res.data;
 
-        const storedUser = sessionStorage.getItem("staffUser");
+        const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("partnerUser");
         const userObj = storedUser ? JSON.parse(storedUser) : null;
         const skId = userObj?.shopkeeper_id || userObj?.shopkeeperId || userObj?.id;
 
@@ -217,7 +217,7 @@ export default function ShopkeeperERP() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [orderData, setOrderData] = useState<unknown>(() => {
     try {
-      const saved = sessionStorage.getItem("staffActiveOrder");
+      const saved = sessionStorage.getItem("staffActiveOrder") || localStorage.getItem("partnerActiveOrder");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -234,8 +234,8 @@ export default function ShopkeeperERP() {
 
   const fetchOrders = async () => {
     try {
-      const cachedWh = sessionStorage.getItem("staffWarehouseId");
-      const storedU = sessionStorage.getItem("staffUser");
+      const cachedWh = sessionStorage.getItem("staffWarehouseId") || localStorage.getItem("partnerWarehouseId");
+      const storedU = sessionStorage.getItem("staffUser") || localStorage.getItem("partnerUser");
       let userWarehouseId = "";
       if (cachedWh && cachedWh !== "undefined") {
         userWarehouseId = cachedWh;
@@ -306,14 +306,19 @@ export default function ShopkeeperERP() {
     sessionStorage.removeItem("staffRole");
     sessionStorage.removeItem("staffWarehouseId");
     sessionStorage.removeItem("staffActiveOrder");
+    localStorage.removeItem("partnerToken");
+    localStorage.removeItem("partnerUser");
+    localStorage.removeItem("partnerWarehouseId");
+    localStorage.removeItem("partnerActiveOrder");
     window.location.href = "/login";
   };
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get("tab") || "dashboard";
+    const mapped = tab === "all-orders" ? "orderhistory" : tab;
 
-    setScreen(tab as Screen);
+    setScreen(mapped as Screen);
   }, [location]);
 
   const navigate = (dest: string, data?: unknown) => {
