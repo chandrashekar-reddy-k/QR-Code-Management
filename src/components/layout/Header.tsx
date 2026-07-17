@@ -276,7 +276,28 @@ interface User {
   supplier: unknown | null;
 }
 
+let hrmsWindowRef: Window | null = null;
+
 const Header = ({ onMenuClick }: HeaderProps) => {
+  // Hook to close HRMS window if the partner portal tab is closed/unloaded
+  useEffect(() => {
+    const handleUnload = () => {
+      if (hrmsWindowRef && !hrmsWindowRef.closed) {
+        try {
+          hrmsWindowRef.close();
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('unload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, []);
+
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -335,6 +356,13 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   ];
 
   const handleLogout = () => {
+    if (hrmsWindowRef && !hrmsWindowRef.closed) {
+      try {
+        hrmsWindowRef.close();
+      } catch (err) {
+        console.error('Failed to close HRMS window:', err);
+      }
+    }
     logout();
     navigate("/login");
   };
@@ -865,9 +893,9 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             const token = localStorage.getItem('token');
             const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
             if (token) {
-              window.open(`${hrmsUrl}/login?sso_token=${token}`, '_blank');
+              hrmsWindowRef = window.open(`${hrmsUrl}/login?sso_token=${token}`, '_blank');
             } else {
-              window.open(`${hrmsUrl}/login`, '_blank');
+              hrmsWindowRef = window.open(`${hrmsUrl}/login`, '_blank');
             }
           }}
         >
