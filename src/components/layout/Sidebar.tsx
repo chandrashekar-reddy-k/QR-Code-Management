@@ -571,6 +571,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   // ============================================
   // MAIN RENDER - Complete sidebar UI
   // ============================================
+  const isOfferImageActive = location.pathname.startsWith('/offer-images');
+  const isSystemActive = location.pathname.startsWith('/system');
+  const isWebSettingsActive = location.pathname.startsWith('/web-settings');
 
   return (
     <aside
