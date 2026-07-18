@@ -123,6 +123,7 @@ const useGetOrderById = (orderId: string | undefined) => {
 // Order Status Enum (align with consumer `OrderStatus` + partner API rules).
 // Do not PUT `OUT_FOR_DELIVERY` / `ASSIGNED_TO_AGENT` / `DELIVERED` here — use assign-agent / delivery completion flows.
 export enum OrderStatus {
+  PENDING = "PENDING",
   PLACED = "PLACED",
   CONFIRMED = "CONFIRMED",
   PROCESSING = "PROCESSING",

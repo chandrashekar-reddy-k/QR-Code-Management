@@ -133,6 +133,8 @@ interface HomeDeliveryOrderView {
 // Helper to get user-friendly label from enum
 const getStatusLabel = (status: OrderStatus): string => {
   switch (status) {
+    case OrderStatus.PENDING:
+      return "Pending (Awaiting Approval)";
     case OrderStatus.PLACED:
       return "Placed";
     case OrderStatus.CONFIRMED:
@@ -631,6 +633,8 @@ const ViewHomeDeliveryOrder = () => {
                     // Helper: get next status in flow
                     const getNextStatus = (status: OrderStatus) => {
                       switch (status) {
+                        case OrderStatus.PENDING:
+                          return OrderStatus.CONFIRMED;
                         case OrderStatus.PLACED:
                           return OrderStatus.CONFIRMED;
                         case OrderStatus.CONFIRMED:
@@ -656,8 +660,9 @@ const ViewHomeDeliveryOrder = () => {
 
                     // Build status options with enable/disable logic
                     const statusOptions = [
+                      { value: OrderStatus.PENDING, label: "Pending" },
                       { value: OrderStatus.PLACED, label: "Placed" },
-                      { value: OrderStatus.CONFIRMED, label: "Confirmed" },
+                      { value: OrderStatus.CONFIRMED, label: "Approve (Confirm)" },
                       { value: OrderStatus.PROCESSING, label: "Processing" },
                       { value: OrderStatus.READY_FOR_PICKUP, label: "Ready for Pickup" },
                       {
@@ -667,7 +672,7 @@ const ViewHomeDeliveryOrder = () => {
                       { value: OrderStatus.PICKED_UP, label: "Picked Up" },
                       { value: OrderStatus.IN_TRANSIT, label: "In Transit" },
                       { value: OrderStatus.DELIVERED, label: "Delivered" },
-                      { value: OrderStatus.CANCELLED, label: "Cancelled" },
+                      { value: OrderStatus.CANCELLED, label: "Reject (Cancel)" },
                     ].map((opt) => {
                       // Only current and next status are enabled
                       const isCurrent = order.status === opt.value;
