@@ -9,31 +9,7 @@ interface ReturnRequestsParams {
   status?: string;
 }
 
-export interface ReturnRequest {
-  id: string | number;
-  userId: string | number;
-  name: string;
-  productName: string;
-  quantity: number;
-  total: number;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
-  reason: string;
-  date: string;
-  notes?: string;
-  orderNumber?: string;
-  items?: Array<{
-    id: string;
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-    totalPrice: number;
-    product: {
-      id: string;
-      name: string;
-      images: string[];
-    };
-  }>;
-}
+import { ReturnRequest } from "../types";
 
 interface ReturnRequestsResponse {
   status: boolean;
@@ -95,29 +71,77 @@ export const useGetReturnRequestById = (id: string | undefined) => {
   });
 };
 
-interface UpdateReturnRequestStatusPayload {
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
-  reason: string;
+interface ApproveReturnItemPayload {
+  orderItemId: string;
 }
 
-export const useUpdateReturnRequestStatus = (id: string | undefined) => {
+export const useApproveReturnItem = (id: string | undefined) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: UpdateReturnRequestStatusPayload) => {
+    mutationFn: (payload: ApproveReturnItemPayload) => {
       if (!id) {
         throw new Error("Return request ID is required");
       }
-      const endpoint = `partner/return-requests/${id}/status`;
-      return fetchData<{ status: boolean; response: string }>(endpoint, "PUT", payload);
+      const endpoint = `partner/return-requests/${id}/approve`;
+      return fetchData<{ status: boolean; response: string }>(endpoint, "POST", payload);
     },
     onSuccess: (data) => {
-      toast.success(data.response || "Return request status updated successfully");
+      toast.success(data.response || "Return item approved successfully");
       queryClient.invalidateQueries({ queryKey: ["returnRequest", id] });
       queryClient.invalidateQueries({ queryKey: ["returnRequests"] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to update return request status");
+      toast.error(error.message || "Failed to approve return item");
+    },
+  });
+};
+
+interface RejectReturnItemPayload {
+  orderItemId: string;
+  reason: string;
+}
+
+export const useRejectReturnItem = (id: string | undefined) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: RejectReturnItemPayload) => {
+      if (!id) {
+        throw new Error("Return request ID is required");
+      }
+      const endpoint = `partner/return-requests/${id}/reject`;
+      return fetchData<{ status: boolean; response: string }>(endpoint, "POST", payload);
+    },
+    onSuccess: (data) => {
+      toast.success(data.response || "Return item rejected successfully");
+      queryClient.invalidateQueries({ queryKey: ["returnRequest", id] });
+      queryClient.invalidateQueries({ queryKey: ["returnRequests"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to reject return item");
+    },
+  });
+};
+
+export const useReceiveReturnItem = (id: string | undefined) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { items: Array<{ orderItemId: string, qcStatus: string, qcNotes?: string }> }) => {
+      if (!id) {
+        throw new Error("Return request ID is required");
+      }
+      const endpoint = `partner/return-requests/${id}/receive`;
+      return fetchData<{ status: boolean; response: string }>(endpoint, "POST", payload);
+    },
+    onSuccess: (data) => {
+      toast.success(data.response || "Return items received successfully");
+      queryClient.invalidateQueries({ queryKey: ["returnRequest", id] });
+      queryClient.invalidateQueries({ queryKey: ["returnRequests"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to receive return items");
     },
   });
 };
@@ -139,3 +163,4 @@ export const useDeleteReturnRequest = () => {
     },
   });
 };
+

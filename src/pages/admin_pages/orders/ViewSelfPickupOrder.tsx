@@ -106,6 +106,8 @@ interface SelfPickupOrderView {
     price: number;
     image: string;
   }[];
+  orderReturnHistory?: any[];
+  refundTransactions?: any[];
 }
 
 // Helper to get user-friendly label from enum
@@ -184,6 +186,8 @@ const ViewSelfPickupOrder = () => {
         orderData.deliveryDate ||
         null,
       products: transformedProducts,
+      orderReturnHistory: orderData.orderReturnHistory || [],
+      refundTransactions: orderData.refundTransactions || [],
     } as SelfPickupOrderView;
   }, [data, id]);
 
@@ -285,7 +289,7 @@ const ViewSelfPickupOrder = () => {
       </div>
 
       {/* OMS Stepper */}
-      <OmsStepper orderId={order.id} currentStatus={order.status} />
+      <OmsStepper orderId={order.id} currentStatus={order.status} returnHistory={order.orderReturnHistory} refundTransactions={order.refundTransactions} paymentMethod={order.paymentMethod} />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6">

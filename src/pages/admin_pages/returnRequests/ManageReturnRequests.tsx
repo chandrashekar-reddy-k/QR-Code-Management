@@ -60,8 +60,12 @@ const ManageReturnRequests = () => {
   });
 
   useEffect(() => {
-    if (apiData?.data?.data) {
-      setReturnRequests(apiData.data.data);
+    if (apiData?.data) {
+      if (Array.isArray(apiData.data)) {
+        setReturnRequests(apiData.data);
+      } else if (apiData.data.data && Array.isArray(apiData.data.data)) {
+        setReturnRequests(apiData.data.data);
+      }
     }
   }, [apiData]);
 

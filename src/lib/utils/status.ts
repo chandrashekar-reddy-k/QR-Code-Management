@@ -1,7 +1,8 @@
 /**
  * Get status badge CSS classes based on status value
  */
-export const getStatusBadgeClass = (status: string): string => {
+export const getStatusBadgeClass = (status: string | undefined | null): string => {
+  if (!status) return 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 text-gray-700';
   const statusLower = status.toLowerCase();
   
   switch (statusLower) {
@@ -43,7 +44,8 @@ export const getStatusBadgeClass = (status: string): string => {
 /**
  * Get formatted status label
  */
-export const getStatusLabel = (status: string): string => {
+export const getStatusLabel = (status: string | undefined | null): string => {
+  if (!status) return '';
   const statusLower = status.toLowerCase();
   if (statusLower === 'in_stock') return 'In Stock';
   if (statusLower === 'low_stock') return 'Low Stock';
