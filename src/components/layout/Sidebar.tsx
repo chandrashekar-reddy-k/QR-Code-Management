@@ -7,6 +7,31 @@ interface SidebarProps {
   setIsOpen?: (open: boolean) => void;
 }
 
+
+const hasModuleViewPermission = (moduleName: string) => {
+  let permissions: string[] = [];
+  try {
+    permissions = JSON.parse(localStorage.getItem("permissions") || "[]");
+  } catch (e) {}
+
+  // This is the PARTNER portal — always use the "Partner: " prefix.
+  // (The admin portal has its own Sidebar.tsx that uses "Admin: ")
+  const prefix = "Partner: ";
+
+  // No module name remapping needed for partner portal
+  const mappedModuleName = moduleName;
+
+  const slug = (prefix + mappedModuleName)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') + '_view';
+
+  const hasIt = permissions.includes(slug);
+  console.log(`[RBAC_DEBUG] Checking "${moduleName}" -> slug: "${slug}". Granted? ${hasIt}. Total permissions in storage: ${permissions.length}`);
+
+  return hasIt;
+};
+
 const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const location = useLocation();
   // const [isCategoriesOpen, setIsCategoriesOpen] = useState(
@@ -441,6 +466,35 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   ];
 
   // const isCategoryActive = location.pathname.startsWith('/categories/order');
+  
+  // Dynamic permission filters
+  const filteredUserManagementSubItems = userManagementSubItems.filter(() => hasModuleViewPermission("User Management"));
+  const filteredMasterSetupSubItems = masterSetupSubItems.filter(() => hasModuleViewPermission("Master Setup"));
+  const filteredProductSubItems = productSubItems.filter(() => hasModuleViewPermission("Product Management"));
+  const filteredPricingSubItems = pricingSubItems.filter(() => hasModuleViewPermission("Pricing Engine"));
+  const filteredProductMasterDataSubItems = productMasterDataSubItems.filter(() => hasModuleViewPermission("Product Management"));
+  const filteredBarcodeSubItems = barcodeSubItems.filter(() => hasModuleViewPermission("Barcode Master"));
+  const filteredProcurementSubItems = procurementSubItems.filter(() => hasModuleViewPermission("Purchase Management"));
+  const filteredPartnerSubItems = partnerSubItems.filter(() => hasModuleViewPermission("Partner Management"));
+  const filteredOrdersSubItems = ordersSubItems.filter(() => hasModuleViewPermission("Orders Management"));
+  const filteredSellerSubItems = sellerSubItems.filter(() => hasModuleViewPermission("Vendor Management"));
+  const filteredStaffSubItems = staffSubItems.filter(() => hasModuleViewPermission("Staff Management"));
+  const filteredShopkeeperSubItems = (typeof shopkeeperSubItems !== 'undefined' ? shopkeeperSubItems : []).filter(() => hasModuleViewPermission("Shopkeeper ERP (Admin)"));
+  const filteredShopkeeperErpAdminSubItems = shopkeeperErpAdminSubItems.filter(() => hasModuleViewPermission("Shopkeeper ERP (Admin)"));
+  const filteredDeliveryBoySubItems = deliveryBoySubItems.filter(() => hasModuleViewPermission("Delivery Management"));
+  const filteredPromotionsSubItems = promotionsSubItems.filter(() => hasModuleViewPermission("Promotions & Offers"));
+  const filteredVsmsSubItems = vsmsSubItems.filter(() => hasModuleViewPermission("VSMS Logistics"));
+  const filteredAssetSubItems = assetSubItems.filter(() => hasModuleViewPermission("Fleet Assets"));
+  const filteredSettingsSubItems = settingsSubItems.filter(() => hasModuleViewPermission("Settings"));
+  const filteredRatingsSubItems = ratingsSubItems.filter(() => hasModuleViewPermission("Ratings & Reviews"));
+  const filteredResourcesSubItems = resourcesSubItems.filter(() => hasModuleViewPermission("Resource Management"));
+  const filteredSystemSubItems = systemSubItems.filter(() => hasModuleViewPermission("System Settings"));
+  const filteredWebSettingsSubItems = webSettingsSubItems.filter(() => hasModuleViewPermission("System Settings"));
+  const filteredLocationsSubItems = locationsSubItems.filter(() => hasModuleViewPermission("Master Setup"));
+  const filteredContactSubItems = contactSubItems.filter(() => hasModuleViewPermission("Contact Us"));
+  const filteredOfferImageSubItems = offerImageSubItems.filter(() => hasModuleViewPermission("Offer Images"));
+  const filteredDeliverySubItems = deliverySubItems.filter(() => hasModuleViewPermission("Delivery Management"));
+
   const isUserManagementActive =
     location.pathname.startsWith('/delivery-boys/requests') ||
     location.pathname.startsWith('/delivery-boys/create') ||
@@ -625,7 +679,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
         {/* User & Vendor Management Section */}
-        <div className="mt-1">
+        <div className="mt-1" style={{ display: (filteredUserManagementSubItems.length > 0) ? 'block' : 'none' }}>
           <div className="px-3 py-2 mb-2">
             <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               USER & VENDOR MANAGEMENT
@@ -633,7 +687,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* User Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredUserManagementSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsUserManagementOpen(!isUserManagementOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isUserManagementActive
@@ -663,7 +717,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {userManagementSubItems.map((subItem, index) => {
+                {filteredUserManagementSubItems.map((subItem, index) => {
                   // Check if current path matches or starts with the subItem path (for nested routes)
                   let isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
@@ -709,7 +763,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                   }
 
                   const Icon = subItem.icon;
-                  const totalItems = userManagementSubItems.length;
+                  const totalItems = filteredUserManagementSubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -738,7 +792,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         </div>
 
         {/* Product & Inventory Section */}
-        <div className="mt-1">
+        <div className="mt-1" style={{ display: (filteredMasterSetupSubItems.length > 0 || filteredProductSubItems.length > 0 || filteredPricingSubItems.length > 0 || filteredProductMasterDataSubItems.length > 0 || filteredBarcodeSubItems.length > 0 || filteredProcurementSubItems.length > 0 || hasModuleViewPermission("Stock Management")) ? 'block' : 'none' }}>
           <div className="px-3 py-2 mb-2">
             <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               PRODUCT & STOCK
@@ -746,7 +800,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Master Setup Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredMasterSetupSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsMasterSetupOpen(!isMasterSetupOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isMasterSetupActive
@@ -774,7 +828,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {masterSetupSubItems.map((subItem, index) => {
+                {filteredMasterSetupSubItems.map((subItem, index) => {
                   // Make 'Categories' active for nested routes like view/edit/etc
                   let isActive = location.pathname === subItem.path || location.pathname.startsWith(subItem.path + '/');
                   // Special handling for Categories
@@ -786,7 +840,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                     isActive = location.pathname.startsWith('/categories/sub-categories');
                   }
                   const Icon = subItem.icon;
-                  const totalItems = masterSetupSubItems.length;
+                  const totalItems = filteredMasterSetupSubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -812,7 +866,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Product Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredProductSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsProductsOpen(!isProductsOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isProductActive
@@ -840,12 +894,12 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {productSubItems.map((subItem, index) => {
+                {filteredProductSubItems.map((subItem, index) => {
                   const isActive =
                     location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = productSubItems.length;
+                  const totalItems = filteredProductSubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -871,7 +925,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Pricing Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredPricingSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsPricingOpen(!isPricingOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isPricingActive
@@ -899,12 +953,12 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {pricingSubItems.map((subItem, index) => {
+                {filteredPricingSubItems.map((subItem, index) => {
                   const isActive =
                     location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = pricingSubItems.length;
+                  const totalItems = filteredPricingSubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -930,7 +984,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Product Master Data Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredProductMasterDataSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsProductMasterDataOpen(!isProductMasterDataOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isProductMasterDataActive
@@ -958,12 +1012,12 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {productMasterDataSubItems.map((subItem, index) => {
+                {filteredProductMasterDataSubItems.map((subItem, index) => {
                   const isActive =
                     location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = productMasterDataSubItems.length;
+                  const totalItems = filteredProductMasterDataSubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -989,7 +1043,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Barcode Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredBarcodeSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsBarcodeOpen(!isBarcodeOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isBarcodeActive
@@ -1016,10 +1070,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {barcodeSubItems.map((subItem, index) => {
+                {filteredBarcodeSubItems.map((subItem, index) => {
                   const isActive = (location.pathname + location.search) === subItem.path;
                   const Icon = subItem.icon;
-                  const totalItems = barcodeSubItems.length;
+                  const totalItems = filteredBarcodeSubItems.length;
 
                   return (
                     <Link
@@ -1109,7 +1163,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div> */}
 
           {/* Purchase Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredProcurementSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsProcurementOpen(!isProcurementOpen)}
               className={`w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/procurement')
@@ -1135,7 +1189,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                 }`}
             >
               <div className="ml-7 pl-3 border-l border-gray-200 dark:border-gray-700 space-y-1 mt-1 relative before:absolute before:top-0 before:left-[-1px] before:w-[2px] before:h-full before:bg-gradient-to-b before:from-green-500/0 before:via-green-500/30 before:to-green-500/0">
-                {procurementSubItems.map((subItem, index) => {
+                {filteredProcurementSubItems.map((subItem, index) => {
                   const Icon = subItem.icon;
                   const isExactTabMatch = location.search === `?tab=${subItem.path.split('=')[1]}`;
                   const isFallbackMatch = index === 0 && !location.search && location.pathname === '/procurement';
@@ -1152,7 +1206,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                       style={{
                         animationDelay: isProcurementOpen
                           ? `${index * 0.05}s`
-                          : `${(procurementSubItems.length - index - 1) * 0.03}s`,
+                          : `${(filteredProcurementSubItems.length - index - 1) * 0.03}s`,
                       }}
                     >
                       <Icon size={14} />
@@ -1165,7 +1219,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Inventory Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredVsmsSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsInventoryOpen(!isInventoryOpen)}
               className={`w-full flex items-center justify-between gap-1 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isInventoryActive
@@ -1262,7 +1316,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         </div>
 
         {/* Orders & Delivery Section */}
-        <div className="mt-1">
+        <div className="mt-1" style={{ display: (filteredPartnerSubItems.length > 0 || filteredOrdersSubItems.length > 0 || filteredSellerSubItems.length > 0 || filteredStaffSubItems.length > 0 || filteredShopkeeperErpAdminSubItems.length > 0 || filteredDeliveryBoySubItems.length > 0 || filteredDeliverySubItems.length > 0 || hasModuleViewPermission("Orders Management") || hasModuleViewPermission("VSMS Logistics")) ? 'block' : 'none' }}>
           <div className="px-3 py-2 mb-2">
             <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               ORDERS & DELIVERY
@@ -1270,7 +1324,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Partner Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredPartnerSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsPartnersOpen(!isPartnersOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalPartnersActive
@@ -1294,7 +1348,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {partnerSubItems.map((subItem, index) => {
+                {filteredPartnerSubItems.map((subItem, index) => {
                   let isActive =
                     location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
@@ -1321,7 +1375,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                       style={{
                         animationDelay: isPartnersOpen
                           ? `${index * 0.05}s`
-                          : `${(partnerSubItems.length - index - 1) * 0.03}s`,
+                          : `${(filteredPartnerSubItems.length - index - 1) * 0.03}s`,
                       }}
                     >
                       <Icon size={14} />
@@ -1350,7 +1404,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div> */}
 
           {/* Orders Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredOrdersSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsOrdersOpen(!isOrdersOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalOrdersActive
@@ -1377,11 +1431,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {ordersSubItems.map((subItem, index) => {
+                {filteredOrdersSubItems.map((subItem, index) => {
                   const isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = ordersSubItems.length;
+                  const totalItems = filteredOrdersSubItems.length;
 
                   return (
                     <Link
@@ -1408,7 +1462,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Vendor Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredSellerSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsSellersOpen(!isSellersOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalSellerActive
@@ -1436,12 +1490,12 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {sellerSubItems.map((subItem, index) => {
+                {filteredSellerSubItems.map((subItem, index) => {
                   // Check if current path matches or starts with the subItem path (for nested routes)
                   const isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = sellerSubItems.length;
+                  const totalItems = filteredSellerSubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -1466,7 +1520,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
             </div>
           </div>
           {/* Staff Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredStaffSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsStaffOpen(!isStaffOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalStaffActive
@@ -1494,7 +1548,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {staffSubItems.map((subItem, index) => {
+                {filteredStaffSubItems.map((subItem, index) => {
                   const isActive =
                     location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
@@ -1514,7 +1568,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                       style={{
                         animationDelay: isStaffOpen
                           ? `${index * 0.05}s`
-                          : `${(staffSubItems.length - index - 1) * 0.03}s`,
+                          : `${(filteredStaffSubItems.length - index - 1) * 0.03}s`,
                       }}
                     >
                       <Icon size={14} />
@@ -1554,10 +1608,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {shopkeeperSubItems.map((subItem, index) => {
+                {filteredShopkeeperSubItems.map((subItem, index) => {
                   const isActive = location.pathname + location.search === subItem.path;
                   const Icon = subItem.icon;
-                  const totalItems = shopkeeperSubItems.length;
+                  const totalItems = filteredShopkeeperSubItems.length;
 
                   return (
                     <Link
@@ -1584,7 +1638,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div> */}
 
           {/* Shopkeeper ERP (Admin) Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredShopkeeperErpAdminSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsShopkeeperErpAdminOpen(!isShopkeeperErpAdminOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/shopkeeper-erp')
@@ -1611,10 +1665,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {shopkeeperErpAdminSubItems.map((subItem, index) => {
+                {filteredShopkeeperErpAdminSubItems.map((subItem, index) => {
                   const isActive = location.pathname + location.search === subItem.path;
                   const Icon = subItem.icon;
-                  const totalItems = shopkeeperErpAdminSubItems.length;
+                  const totalItems = filteredShopkeeperErpAdminSubItems.length;
 
                   return (
                     <Link
@@ -1642,7 +1696,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
           {/* Delivery Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredDeliveryBoySubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsDeliveryBoysOpen(!isDeliveryBoysOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalDeliveryBoyActive
@@ -1670,12 +1724,12 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {deliveryBoySubItems.map((subItem, index) => {
+                {filteredDeliveryBoySubItems.map((subItem, index) => {
                   // Check if current path matches or starts with the subItem path (for nested routes)
                   const isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = deliveryBoySubItems.length;
+                  const totalItems = filteredDeliveryBoySubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -1700,7 +1754,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
             </div>
           </div>
           {/* Delivery Settings Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredDeliverySubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsDeliveryOpen(!isDeliveryOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalDeliveryActive
@@ -1728,7 +1782,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {deliverySubItems.map((subItem, index) => {
+                {filteredDeliverySubItems.map((subItem, index) => {
                   const isActive =
                     location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
@@ -1747,7 +1801,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                       style={{
                         animationDelay: isDeliveryOpen
                           ? `${index * 0.05}s`
-                          : `${(deliverySubItems.length - index - 1) * 0.03}s`,
+                          : `${(filteredDeliverySubItems.length - index - 1) * 0.03}s`,
                       }}
                     >
                       <Icon size={14} />
@@ -1760,7 +1814,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Return Requests Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: hasModuleViewPermission("Orders Management") ? 'block' : 'none' }}>
             <Link
               to="/return-requests"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/return-requests')
@@ -1776,7 +1830,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
           {/* Points of Sales */}
 
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: hasModuleViewPermission("VSMS Logistics") ? 'block' : 'none' }}>
             <Link
               to="/vsms/pos"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/point-of-sales')
@@ -1809,7 +1863,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
         {/* FINANACIAL */}
-        <div className="mt-1">
+        <div className="mt-1" style={{ display: (filteredPromotionsSubItems.length > 0 || hasModuleViewPermission("Financial")) ? 'block' : 'none' }}>
           <div className="px-3 py-2 mb-2">
             <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               FINANCIAL
@@ -1818,7 +1872,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
           {/* Withdrawal Request */}
 
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: hasModuleViewPermission("Financial") ? 'block' : 'none' }}>
             <Link
               to="/withdrawal-request"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/withdrawal-request')
@@ -1833,7 +1887,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
           {/* Wallet Transactions*/}
 
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: hasModuleViewPermission("Financial") ? 'block' : 'none' }}>
             <Link
               to="/wallet-transactions"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/wallet-transactions')
@@ -1847,7 +1901,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Featured Sections Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: hasModuleViewPermission("Financial") ? 'block' : 'none' }}>
             <Link
               to="/featured-sections"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname === '/featured-sections'
@@ -1862,7 +1916,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
           {/* Promotions and Offers Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredPromotionsSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsPromotionsOpen(!isPromotionsOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalPromotionsActive
@@ -1889,11 +1943,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {promotionsSubItems.map((subItem, index) => {
+                {filteredPromotionsSubItems.map((subItem, index) => {
                   const isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = promotionsSubItems.length;
+                  const totalItems = filteredPromotionsSubItems.length;
 
                   return (
                     <Link
@@ -1932,7 +1986,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
             </span>
           </div>
 
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredVsmsSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsVsmsOpen(!isVsmsOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/vsms')
@@ -1960,12 +2014,12 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {vsmsSubItems.map((subItem, index) => {
+                {filteredVsmsSubItems.map((subItem, index) => {
                   const isActive = subItem.path.includes('?')
                     ? (location.pathname + location.search) === subItem.path
                     : (location.pathname === subItem.path || location.pathname.startsWith(subItem.path + '/'));
                   const Icon = subItem.icon;
-                  const totalItems = vsmsSubItems.length;
+                  const totalItems = filteredVsmsSubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -2016,10 +2070,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                     }}
                   >
                     <div className="ml-4 space-y-1">
-                      {assetSubItems.map((subItem, index) => {
+                      {filteredAssetSubItems.map((subItem, index) => {
                         const isActive = location.pathname + location.search === subItem.path;
                         const Icon = subItem.icon;
-                        const totalItems = assetSubItems.length;
+                        const totalItems = filteredAssetSubItems.length;
                         return (
                           <Link
                             key={subItem.path}
@@ -2120,7 +2174,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Settings Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredSettingsSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalSettingsActive
@@ -2147,11 +2201,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {settingsSubItems.map((subItem, index) => {
+                {filteredSettingsSubItems.map((subItem, index) => {
                   const isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = settingsSubItems.length;
+                  const totalItems = filteredSettingsSubItems.length;
 
                   return (
                     <Link
@@ -2178,7 +2232,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Notifications - single link; tabs (Customer, Warehouse, etc.) are on the page */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: hasModuleViewPermission("Notifications") ? 'block' : 'none' }}>
             <Link
               to="/notifications/customer-notifications"
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalNotificationsActive
@@ -2192,7 +2246,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Ratings and Reviews Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredRatingsSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsRatingsOpen(!isRatingsOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalRatingsActive
@@ -2219,11 +2273,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {ratingsSubItems.map((subItem, index) => {
+                {filteredRatingsSubItems.map((subItem, index) => {
                   const isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = ratingsSubItems.length;
+                  const totalItems = filteredRatingsSubItems.length;
 
                   return (
                     <Link
@@ -2250,7 +2304,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Contact Us Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredContactSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsContactOpen(!isContactOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalContactActive
@@ -2274,7 +2328,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {contactSubItems.map((subItem, index) => {
+                {filteredContactSubItems.map((subItem, index) => {
                   const isActive =
                     location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
@@ -2292,7 +2346,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                       style={{
                         animationDelay: isContactOpen
                           ? `${index * 0.05}s`
-                          : `${(contactSubItems.length - index - 1) * 0.03}s`,
+                          : `${(filteredContactSubItems.length - index - 1) * 0.03}s`,
                       }}
                     >
                       <Icon size={14} />
@@ -2305,7 +2359,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Access Management */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredUserManagementSubItems.length === 0 ? 'none' : 'block' }}>
             <Link
               to="/reports/access-management"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/reports/access-management')
@@ -2319,7 +2373,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Resource Management Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredResourcesSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsResourcesOpen(!isResourcesOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalResourcesActive
@@ -2346,11 +2400,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {resourcesSubItems.map((subItem, index) => {
+                {filteredResourcesSubItems.map((subItem, index) => {
                   const isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = resourcesSubItems.length;
+                  const totalItems = filteredResourcesSubItems.length;
 
                   return (
                     <Link
@@ -2380,7 +2434,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
           {/* Vehicles*/}
 
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: hasModuleViewPermission("VSMS Logistics") ? 'block' : 'none' }}>
             <Link
               to="/vehicles"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/vehicles')
@@ -2394,7 +2448,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Activity Log Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredContactSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsActivityLogOpen(!isActivityLogOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalActivityLogActive
@@ -2450,7 +2504,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
           {/* Locations Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredLocationsSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsLocationsOpen(!isLocationsOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalLocationsActive
@@ -2477,11 +2531,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {locationsSubItems.map((subItem, index) => {
+                {filteredLocationsSubItems.map((subItem, index) => {
                   const isActive = location.pathname === subItem.path ||
                     location.pathname.startsWith(subItem.path + '/');
                   const Icon = subItem.icon;
-                  const totalItems = locationsSubItems.length;
+                  const totalItems = filteredLocationsSubItems.length;
 
                   return (
                     <Link
@@ -2512,7 +2566,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
         {/* Marketing & Promotions Section */}
-        <div className="mt-1">
+        <div className="mt-1" style={{ display: (filteredOfferImageSubItems.length > 0 || hasModuleViewPermission("Home Sliders") || hasModuleViewPermission("Offer Images")) ? 'block' : 'none' }}>
           <div className="px-3 py-2 mb-2">
             <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               MARKETING & PROMOTIONS
@@ -2520,7 +2574,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Home Sliders Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredOfferImageSubItems.length === 0 ? 'none' : 'block' }}>
             <Link
               to="/home-sliders/manage"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/home-sliders')
@@ -2534,7 +2588,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </div>
 
           {/* Offer Images Menu */}
-          <div className="mt-1">
+          <div className="mt-1" style={{ display: filteredOfferImageSubItems.length === 0 ? 'none' : 'block' }}>
             <button
               onClick={() => setIsOfferImagesOpen(!isOfferImagesOpen)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isOfferImageActive
@@ -2562,10 +2616,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }}
             >
               <div className="ml-4 space-y-1">
-                {offerImageSubItems.map((subItem, index) => {
+                {filteredOfferImageSubItems.map((subItem, index) => {
                   const isActive = location.pathname === subItem.path;
                   const Icon = subItem.icon;
-                  const totalItems = offerImageSubItems.length;
+                  const totalItems = filteredOfferImageSubItems.length;
                   return (
                     <Link
                       key={subItem.path}
@@ -2606,7 +2660,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         </div>
 
         {/* System Menu */}
-        <div className="mt-2">
+        <div className="mt-2" style={{ display: filteredSystemSubItems.length === 0 ? 'none' : 'block' }}>
           <button
             onClick={() => setIsSystemOpen(!isSystemOpen)}
             className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isSystemActive
@@ -2634,10 +2688,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
             }}
           >
             <div className="ml-4 space-y-1">
-              {systemSubItems.map((subItem, index) => {
+              {filteredSystemSubItems.map((subItem, index) => {
                 const isActive = location.pathname === subItem.path;
                 const Icon = subItem.icon;
-                const totalItems = systemSubItems.length;
+                const totalItems = filteredSystemSubItems.length;
                 return (
                   <Link
                     key={subItem.path}
@@ -2663,7 +2717,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         </div>
 
         {/* Web Settings Menu */}
-        <div className="mt-2">
+        <div className="mt-2" style={{ display: filteredWebSettingsSubItems.length === 0 ? 'none' : 'block' }}>
           <button
             onClick={() => setIsWebSettingsOpen(!isWebSettingsOpen)}
             className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isWebSettingsActive
@@ -2691,10 +2745,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
             }}
           >
             <div className="ml-4 space-y-1">
-              {webSettingsSubItems.map((subItem, index) => {
+              {filteredWebSettingsSubItems.map((subItem, index) => {
                 const isActive = location.pathname === subItem.path;
                 const Icon = subItem.icon;
-                const totalItems = webSettingsSubItems.length;
+                const totalItems = filteredWebSettingsSubItems.length;
                 return (
                   <Link
                     key={subItem.path}
@@ -2721,7 +2775,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
         {/* Languages Menu */}
-        <div className="mt-2">
+        <div className="mt-2" style={{ display: hasModuleViewPermission("Languages") ? 'block' : 'none' }}>
           <Link
             to="/languages"
             className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname === '/languages'

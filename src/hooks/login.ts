@@ -101,6 +101,22 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         localStorage.setItem("token", data.data.accessToken);
         localStorage.setItem("refreshToken", data.data.refreshToken);
         localStorage.setItem("user", JSON.stringify(user));
+        try {
+          const base64Url = data.data.accessToken.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          const decoded = JSON.parse(jsonPayload);
+          if (decoded.permissions) {
+              localStorage.setItem('permissions', JSON.stringify(decoded.permissions));
+          } else {
+              localStorage.setItem('permissions', JSON.stringify([]));
+          }
+        } catch (err) {
+            console.error("Failed to parse token permissions:", err);
+            localStorage.setItem('permissions', JSON.stringify([]));
+        }
       }
 
       onSuccess(data);
@@ -144,7 +160,22 @@ export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
         throw apiData as ErrorResponse;
       }
       
-      if (apiData.role !== "VEHICLE_AGENT") {
+      // Decode permissions dynamically from the token to determine if they belong in the VSMS Agent portal
+      let isAgent = false;
+      try {
+        const base64Url = apiData.token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const decoded = JSON.parse(jsonPayload);
+        const userPermissions = decoded.permissions || [];
+        isAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
+      } catch (err) {
+        console.error("Agent login permission decoder error:", err);
+      }
+
+      if (!isAgent && apiData.role !== "VEHICLE_AGENT" && apiData.role !== "DELIVERY_AGENT") {
         throw { message: "This login is exclusively for VSMS Agents." } as ErrorResponse;
       }
       
@@ -180,6 +211,22 @@ export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
         localStorage.setItem("refreshToken", data.data.refreshToken);
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("role", user.role);
+        try {
+          const base64Url = data.data.accessToken.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          const decoded = JSON.parse(jsonPayload);
+          if (decoded.permissions) {
+              localStorage.setItem('permissions', JSON.stringify(decoded.permissions));
+          } else {
+              localStorage.setItem('permissions', JSON.stringify([]));
+          }
+        } catch (err) {
+            console.error("Failed to parse token permissions:", err);
+            localStorage.setItem('permissions', JSON.stringify([]));
+        }
       }
 
       onSuccess(data);

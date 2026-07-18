@@ -22,6 +22,24 @@ const Login = () => {
     setErrorMessage("");
     const user = data.data.user;
 
+    // Decode permissions dynamically from the token to determine portal destination
+    let userPermissions: string[] = [];
+    try {
+      const base64Url = data.data.accessToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const decoded = JSON.parse(jsonPayload);
+      userPermissions = decoded.permissions || [];
+    } catch (err) {
+      console.error("SSO route parser error:", err);
+    }
+
+    const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_"));
+    const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
+    const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_"));
+
     if (user.isCreatedPassword) {
       navigate("/create-password", {
         state: {
@@ -30,13 +48,22 @@ const Login = () => {
         },
       });
     } else {
-      const role = user.role?.toUpperCase();
-      if (role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT") {
+      if (hasAgent) {
         navigate("/vsms/agent-portal/today-plan");
-      } else if (role === "SHOPKEEPER") {
+      } else if (hasShopkeeper) {
         navigate("/shopkeeper");
-      } else {
+      } else if (hasPartner) {
         navigate("/");
+      } else {
+        // Fallback to legacy static role checks
+        const role = user.role?.toUpperCase();
+        if (role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT") {
+          navigate("/vsms/agent-portal/today-plan");
+        } else if (role === "SHOPKEEPER") {
+          navigate("/shopkeeper");
+        } else {
+          navigate("/");
+        }
       }
     }
   };
