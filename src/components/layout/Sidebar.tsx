@@ -155,18 +155,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
   const ordersSubItems = [
-    { path: '/orders/live-dashboard', label: 'Live OMS Dashboard', icon: Activity },
     { path: '/home-delivery-orders', label: 'Home Delivery Orders', icon: Home },
     { path: '/self-pickup-orders', label: 'Self Pickup Orders', icon: Store },
-    { path: '/orders/sla', label: 'SLA Center', icon: Clock },
-    { path: '/orders/breached', label: 'Breached SLA', icon: Clock },
-    { path: '/orders/escalated', label: 'Escalated SLA', icon: AlertTriangle },
     { path: '/audit/logs', label: 'Audit Logs', icon: History },
-    { path: '/fraud/risk-queue', label: 'Fraud Queue', icon: ShieldAlert },
-    { path: '/settlements/dashboard', label: 'Settlement Dashboard', icon: Landmark },
-    { path: '/settlements/commission-rules', label: 'Commission Rules', icon: Settings },
     { path: '/notifications/logs', label: 'Notification Logs', icon: MessageSquare },
-    { path: '/analytics/dashboard', label: 'OMS Analytics', icon: BarChart2 },
   ];
 
 
