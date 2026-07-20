@@ -99,6 +99,35 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     navigate('/login');
   };
 
+  const hasAgentPermission = (path: string) => {
+    let permissions: string[] = [];
+    try {
+      permissions = JSON.parse(localStorage.getItem("permissions") || "[]");
+    } catch (e) {}
+
+    const slugMap: Record<string, string> = {
+      '/vsms/agent-portal/today-plan': 'vsms_agent_todays_plan_view',
+      '/vsms/agent-portal/sales': 'vsms_agent_sales_pos_view',
+      '/vsms/agent-portal/inventory': 'vsms_agent_vehicle_stock_view',
+      '/vsms/agent-portal/opening-cash': 'vsms_agent_opening_cash_view',
+      '/vsms/agent-portal/closing-cash': 'vsms_agent_closing_cash_view',
+      '/vsms/agent-portal/wallet': 'vsms_agent_cash_wallet_view',
+      '/vsms/agent-portal/create-expense': 'vsms_agent_create_expense_view',
+      '/vsms/agent-portal/attendance': 'vsms_agent_my_attendance_view',
+      '/vsms/agent-portal/reports': 'vsms_agent_sales_analytics_view',
+      '/vsms/agent-portal/sales-history': 'vsms_agent_sales_history_view',
+      '/vsms/agent-portal/targets': 'vsms_agent_my_targets_view',
+      '/vsms/agent-portal/assets': 'vsms_agent_my_assets_view',
+      '/vsms/agent-portal/report-damage': 'vsms_agent_report_damage_view',
+      '/vsms/agent-portal/activity-logs': 'vsms_agent_activity_logs_view',
+      '/vsms/agent-portal/profile': 'vsms_agent_my_profile_view',
+    };
+
+    const slug = slugMap[path];
+    if (!slug) return true;
+    return permissions.includes(slug);
+  };
+
   const renderSidebarContent = () => (
     <div className="flex flex-col h-full bg-white text-gray-800">
       {/* Sidebar Header */}
@@ -125,33 +154,39 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       </div>
 
       {/* Nav Items */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        {menuSections.map((section) => (
-          <div key={section.title} className="space-y-1">
-            <p className="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">
-              {section.title}
-            </p>
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-xs font-bold uppercase tracking-wider ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-none'
-                      : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-gray-750 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Icon size={16} strokeWidth={isActive ? 3 : 2.5} className={isActive ? 'text-white' : 'text-emerald-500'} />
-                  <span className="flex-grow">{item.label}</span>
-                </NavLink>
-              );
-            })}
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pb-8">
+        {menuSections
+          .map((section) => {
+            const filteredItems = section.items.filter((item) => hasAgentPermission(item.path));
+            return { ...section, items: filteredItems };
+          })
+          .filter((section) => section.items.length > 0)
+          .map((section) => (
+            <div key={section.title} className="space-y-1">
+              <p className="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">
+                {section.title}
+              </p>
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-xs font-bold uppercase tracking-wider ${
+                      isActive
+                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-none'
+                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-gray-750 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Icon size={16} strokeWidth={isActive ? 3 : 2.5} className={isActive ? 'text-white' : 'text-emerald-500'} />
+                    <span className="flex-grow">{item.label}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
       </div>
 
       {/* User Footer */}

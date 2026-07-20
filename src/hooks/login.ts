@@ -84,38 +84,52 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
       });
     },
 
-    // onSuccess: (data: LoginResponse) => {
-    //     onSuccess(data);
-    //     // Store tokens
-    //     localStorage.setItem('token', data.data.accessToken);
-    //     localStorage.setItem('refreshToken', data.data.refreshToken);
-    //     // Store user data
-    //     localStorage.setItem('user', JSON.stringify(data.data.user));
-    //     toast.success(data.response);
-    // },
     onSuccess: (data: LoginResponse) => {
       const user = data.data.user;
 
       // Only persist tokens for users who should go to dashboard (password already created is FALSE)
       if (!user.isCreatedPassword) {
-        localStorage.setItem("token", data.data.accessToken);
-        localStorage.setItem("refreshToken", data.data.refreshToken);
-        localStorage.setItem("user", JSON.stringify(user));
+        // Decode permissions from the token first to validate portal access
+        let decoded: { permissions?: string[]; roles?: string[] } = {};
         try {
           const base64Url = data.data.accessToken.split('.')[1];
           const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
           }).join(''));
-          const decoded = JSON.parse(jsonPayload);
-          if (decoded.permissions) {
-              localStorage.setItem('permissions', JSON.stringify(decoded.permissions));
-          } else {
-              localStorage.setItem('permissions', JSON.stringify([]));
-          }
+          decoded = JSON.parse(jsonPayload);
         } catch (err) {
-            console.error("Failed to parse token permissions:", err);
-            localStorage.setItem('permissions', JSON.stringify([]));
+          console.error("Failed to decode token:", err);
+        }
+
+        const permissions: string[] = decoded.permissions || [];
+        const role = (user.role || "").toUpperCase();
+
+        // Block admin/super-admin accounts by role — they should use the Admin Portal,
+        // not the Partner Portal, regardless of what permissions they carry.
+        const isAdminRole = ["SUPER_ADMIN", "SUPERADMIN", "ADMIN"].includes(role);
+        if (isAdminRole) {
+          toast.error("Invalid Login");
+          return;
+        }
+
+        // Also block users who have ONLY admin permissions and no partner/agent/shopkeeper permissions
+        const hasPartner = permissions.some((p: string) => p.startsWith("partner_"));
+        const hasAgent = permissions.some((p: string) => p.startsWith("vsms_agent_"));
+        const hasShopkeeper = permissions.some((p: string) => p.startsWith("shopkeeper_"));
+        const hasAdminPerms = permissions.some((p: string) => p.startsWith("admin_"));
+        if (hasAdminPerms && !hasPartner && !hasAgent && !hasShopkeeper) {
+          toast.error("Invalid Credentials");
+          return;
+        }
+
+        localStorage.setItem("token", data.data.accessToken);
+        localStorage.setItem("refreshToken", data.data.refreshToken);
+        localStorage.setItem("user", JSON.stringify(user));
+        if (permissions.length > 0) {
+          localStorage.setItem('permissions', JSON.stringify(permissions));
+        } else {
+          localStorage.setItem('permissions', JSON.stringify([]));
         }
       }
 
@@ -159,14 +173,14 @@ export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
       if (!response.ok) {
         throw apiData as ErrorResponse;
       }
-      
+
       // Decode permissions dynamically from the token to determine if they belong in the VSMS Agent portal
       let isAgent = false;
       try {
         const base64Url = apiData.token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
         const decoded = JSON.parse(jsonPayload);
         const userPermissions = decoded.permissions || [];
@@ -178,7 +192,7 @@ export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
       if (!isAgent && apiData.role !== "VEHICLE_AGENT" && apiData.role !== "DELIVERY_AGENT") {
         throw { message: "This login is exclusively for VSMS Agents." } as ErrorResponse;
       }
-      
+
       // Map the VSMS Agent API response format to the Partner Web LoginResponse format
       const formattedData: LoginResponse = {
         status: true,
@@ -214,18 +228,18 @@ export const useAgentLogin = (onSuccess: (data: LoginResponse) => void) => {
         try {
           const base64Url = data.data.accessToken.split('.')[1];
           const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
           }).join(''));
           const decoded = JSON.parse(jsonPayload);
           if (decoded.permissions) {
-              localStorage.setItem('permissions', JSON.stringify(decoded.permissions));
+            localStorage.setItem('permissions', JSON.stringify(decoded.permissions));
           } else {
-              localStorage.setItem('permissions', JSON.stringify([]));
+            localStorage.setItem('permissions', JSON.stringify([]));
           }
         } catch (err) {
-            console.error("Failed to parse token permissions:", err);
-            localStorage.setItem('permissions', JSON.stringify([]));
+          console.error("Failed to parse token permissions:", err);
+          localStorage.setItem('permissions', JSON.stringify([]));
         }
       }
 

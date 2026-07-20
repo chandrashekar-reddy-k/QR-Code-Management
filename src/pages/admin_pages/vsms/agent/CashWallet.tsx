@@ -173,23 +173,31 @@ export default function CashWallet() {
                 </div>
 
                 {/* Request Button */}
-                <button
-                    onClick={() => setShowAddExpense(true)}
-                    className="w-full bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all hover:border-emerald-200 hover:bg-emerald-50/10"
-                >
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-100 transition-colors">
-                            <Receipt size={28} strokeWidth={2.5} />
-                        </div>
-                        <div className="text-left">
-                            <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">Submit New</span>
-                            <span className="text-lg font-black text-slate-900 leading-tight">Request Expense</span>
-                        </div>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                        <Plus size={20} strokeWidth={3} />
-                    </div>
-                </button>
+                {(() => {
+                    try {
+                        const perms = JSON.parse(localStorage.getItem("permissions") || "[]");
+                        if (!perms.includes("vsms_agent_create_expense_view")) return null;
+                    } catch (e) {}
+                    return (
+                        <button
+                            onClick={() => setShowAddExpense(true)}
+                            className="w-full bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all hover:border-emerald-200 hover:bg-emerald-50/10"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                                    <Receipt size={28} strokeWidth={2.5} />
+                                </div>
+                                <div className="text-left">
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">Submit New</span>
+                                    <span className="text-lg font-black text-slate-900 leading-tight">Request Expense</span>
+                                </div>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                                <Plus size={20} strokeWidth={3} />
+                            </div>
+                        </button>
+                    );
+                })()}
 
                 {/* History */}
                 <div className="space-y-4">

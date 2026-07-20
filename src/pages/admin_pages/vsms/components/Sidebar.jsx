@@ -232,10 +232,32 @@ export default function Sidebar({ isOpen, onClose }) {
 
     const isBasicAgentRole = ['SALES_AGENT', 'VEHICLE_AGENT', 'DRIVER', 'HELPER'].includes(user?.role);
 
-    // Agents WITH a custom role → check granular AGENT_PORTAL section permissions
-    if (isBasicAgentRole && user?.customRoleId && item.module === 'AGENT_PORTAL' && item.section) {
-      const { can } = useUserStore.getState();
-      return can('AGENT_PORTAL', 'READ', item.section);
+    // Check granular AGENT_PORTAL section permissions
+    if (item.module === 'AGENT_PORTAL' && item.section) {
+      let permissions = [];
+      try {
+        permissions = JSON.parse(localStorage.getItem("permissions") || "[]");
+      } catch (e) {}
+
+      const slugMap = {
+        'SALES_POS': 'vsms_agent_sales_pos_view',
+        'ROUTE_PLAN': 'vsms_agent_todays_plan_view',
+        'AGENT_INVENTORY': 'vsms_agent_vehicle_stock_view',
+        'CASH_RECON': 'vsms_agent_closing_cash_view',
+        'AGENT_WALLET': 'vsms_agent_cash_wallet_view',
+        'AGENT_ATTENDANCE': 'vsms_agent_my_attendance_view',
+        'AGENT_REPORTS': 'vsms_agent_sales_analytics_view',
+        'SALES_HISTORY': 'vsms_agent_sales_history_view',
+        'AGENT_TARGETS': 'vsms_agent_my_targets_view',
+        'AGENT_ASSETS': 'vsms_agent_my_assets_view',
+        'DAMAGE_REPORT': 'vsms_agent_report_damage_view',
+        'AGENT_ACTIVITIES': 'vsms_agent_activity_logs_view',
+        'AGENT_PROFILE': 'vsms_agent_my_profile_view',
+      };
+
+      const slug = slugMap[item.section];
+      if (!slug) return true;
+      return permissions.includes(slug);
     }
 
     // Agents WITHOUT a custom role → full access to all non-admin items

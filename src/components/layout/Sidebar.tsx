@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, CalendarClock, Bike, Megaphone, Hash, Database, Image, Smile, Map, Users2, Smartphone, HelpCircle, Package, ShoppingCart, Store, Image as ImageIcon, Tag, RotateCcw, Star, Truck, ChevronDown, ChevronRight, Settings, FolderTree, Layers, Award, Ruler, Percent, MapPin, Navigation, Building2, Phone, Info, FileText, Shield, Upload, RefreshCw, CheckCircle, Film, Users, UserCog, Handshake, Boxes, Eye, AlertTriangle, ClipboardList, ArrowRightLeft, Receipt, ScanLine, Printer, Bell, UserCheck, Wallet, DollarSign, ShieldCheck, Maximize2, Monitor, Clock, CreditCard, Globe, Share2, X, Languages, BarChart3, Link2, BookOpen, Wrench, Activity, History, ShieldAlert, Landmark, MessageSquare, BarChart2 } from 'lucide-react';
 
@@ -7,32 +7,116 @@ interface SidebarProps {
   setIsOpen?: (open: boolean) => void;
 }
 
-
-const hasModuleViewPermission = (moduleName: string) => {
-  let permissions: string[] = [];
-  try {
-    permissions = JSON.parse(localStorage.getItem("permissions") || "[]");
-  } catch (e) {}
-
-  // This is the PARTNER portal — always use the "Partner: " prefix.
-  // (The admin portal has its own Sidebar.tsx that uses "Admin: ")
+// Build a slug from module name using Partner: prefix
+const buildPartnerSlug = (moduleName: string): string => {
   const prefix = "Partner: ";
-
-  // No module name remapping needed for partner portal
   const mappedModuleName = moduleName;
-
-  const slug = (prefix + mappedModuleName)
+  return (prefix + mappedModuleName)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '') + '_view';
-
-  const hasIt = permissions.includes(slug);
-  console.log(`[RBAC_DEBUG] Checking "${moduleName}" -> slug: "${slug}". Granted? ${hasIt}. Total permissions in storage: ${permissions.length}`);
-
-  return hasIt;
 };
 
 const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
+  // Live permission state — refreshed from Identity Service token
+  const [permissions, setPermissions] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('permissions') || '[]'); } catch { return []; }
+  });
+
+  // Refresh token from Identity Service and update localStorage + state
+  const refreshPermissions = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const identityUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000') + '/api/v1/auth/me';
+      const res = await fetch(identityUrl, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      // Identity service returns a new access token with fresh permissions
+      const newToken = data.data?.accessToken;
+      if (newToken) {
+        const base64 = newToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = JSON.parse(decodeURIComponent(window.atob(base64).split('').map((c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+        if (decoded.permissions) {
+          localStorage.setItem('token', newToken);
+          localStorage.setItem('permissions', JSON.stringify(decoded.permissions));
+          setPermissions(decoded.permissions);
+        }
+      } else if (data.data?.permissions) {
+        // Fallback: some APIs return permissions directly
+        localStorage.setItem('permissions', JSON.stringify(data.data.permissions));
+        setPermissions(data.data.permissions);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    // Poll every 30 seconds for permission changes
+    const interval = setInterval(refreshPermissions, 30000);
+    // Also refresh on window focus (user returns to tab after making HRMS changes)
+    const onFocus = () => refreshPermissions();
+    window.addEventListener('focus', onFocus);
+    // Listen for storage events (same-browser cross-tab token updates)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'permissions' && e.newValue) {
+        try { setPermissions(JSON.parse(e.newValue)); } catch { /* silent */ }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [refreshPermissions]);
+
+  // Permission check using live state
+  const hasModuleViewPermission = (moduleName: string) => {
+    return permissions.includes(buildPartnerSlug(moduleName));
+  };
+
+  const hasSubPermission = (parent: string, label: string) => {
+    const parentSlug = buildPartnerSlug(parent);
+    if (!permissions.includes(parentSlug)) return false;
+
+    const slugMap: Record<string, string> = {
+      // VSMS Logistics
+      "Fleet Vehicles": "partner_vsms_logistics_fleet_vehicles_view",
+      "Fuel & Maintenance": "partner_vsms_logistics_fuel_maintenance_view",
+      "Vehicle Damages": "partner_vsms_logistics_vehicle_damages_view",
+      "Routes & Coverage": "partner_vsms_logistics_routes_coverage_view",
+      "Vehicle Stock & Audits": "partner_vsms_logistics_stock_audits_view",
+      "Cash Management": "partner_vsms_logistics_cash_management_view",
+      "Sales History": "partner_vsms_logistics_sales_history_view",
+
+      // Fleet Assets
+      "Assets Registry": "partner_fleet_assets_registry_view",
+      "Asset Assignment": "partner_fleet_assets_assignment_view",
+      "Asset Transfers": "partner_fleet_assets_transfers_view",
+      "Vehicle Mapping": "partner_fleet_assets_vehicle_mapping_view",
+      "Asset Maintenance": "partner_fleet_assets_maintenance_view",
+      "Depreciation": "partner_fleet_assets_depreciation_view",
+      "Asset Audit": "partner_fleet_assets_audit_view",
+      "Asset Requests": "partner_fleet_assets_requests_view",
+      "Asset Reports": "partner_fleet_assets_reports_view",
+
+      // Shopkeeper ERP (Admin)
+      "Dashboard": "partner_shopkeeper_erp_dashboard_view",
+      "Picking Queue": "partner_shopkeeper_erp_picking_queue_view",
+      "Packing Queue": "partner_shopkeeper_erp_packing_queue_view",
+      "Ready for Dispatch": "partner_shopkeeper_erp_ready_dispatch_view",
+      "Self Pickup": "partner_shopkeeper_erp_self_pickup_view",
+      "Returns": "partner_shopkeeper_erp_returns_view",
+      "SLA Monitoring": "partner_shopkeeper_erp_sla_monitoring_view",
+      "Order History": "partner_shopkeeper_erp_order_history_view",
+      "Staff Tracker": "partner_shopkeeper_erp_staff_tracker_view",
+      "Settings": "partner_shopkeeper_erp_settings_view",
+    };
+
+    const slug = slugMap[label];
+    if (!slug) return true;
+    return permissions.includes(slug);
+  };
   const location = useLocation();
   // const [isCategoriesOpen, setIsCategoriesOpen] = useState(
   //   location.pathname.startsWith('/categories')
@@ -479,12 +563,17 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const filteredOrdersSubItems = ordersSubItems.filter(() => hasModuleViewPermission("Orders Management"));
   const filteredSellerSubItems = sellerSubItems.filter(() => hasModuleViewPermission("Vendor Management"));
   const filteredStaffSubItems = staffSubItems.filter(() => hasModuleViewPermission("Staff Management"));
-  const filteredShopkeeperSubItems = (typeof shopkeeperSubItems !== 'undefined' ? shopkeeperSubItems : []).filter(() => hasModuleViewPermission("Shopkeeper ERP (Admin)"));
-  const filteredShopkeeperErpAdminSubItems = shopkeeperErpAdminSubItems.filter(() => hasModuleViewPermission("Shopkeeper ERP (Admin)"));
+  const filteredShopkeeperSubItems = (typeof shopkeeperSubItems !== 'undefined' ? shopkeeperSubItems : []).filter(item => hasSubPermission("Shopkeeper ERP (Admin)", item.label));
+  const filteredShopkeeperErpAdminSubItems = shopkeeperErpAdminSubItems.filter(item => hasSubPermission("Shopkeeper ERP (Admin)", item.label));
   const filteredDeliveryBoySubItems = deliveryBoySubItems.filter(() => hasModuleViewPermission("Delivery Management"));
   const filteredPromotionsSubItems = promotionsSubItems.filter(() => hasModuleViewPermission("Promotions & Offers"));
-  const filteredVsmsSubItems = vsmsSubItems.filter(() => hasModuleViewPermission("VSMS Logistics"));
-  const filteredAssetSubItems = assetSubItems.filter(() => hasModuleViewPermission("Fleet Assets"));
+  const filteredVsmsSubItems = vsmsSubItems.filter(item => {
+    if (item.label === "Point of Sale") {
+      return hasModuleViewPermission("Point of Sales");
+    }
+    return hasSubPermission("VSMS Logistics", item.label);
+  });
+  const filteredAssetSubItems = assetSubItems.filter(item => hasSubPermission("Fleet Assets", item.label));
   const filteredSettingsSubItems = settingsSubItems.filter(() => hasModuleViewPermission("Settings"));
   const filteredRatingsSubItems = ratingsSubItems.filter(() => hasModuleViewPermission("Ratings & Reviews"));
   const filteredResourcesSubItems = resourcesSubItems.filter(() => hasModuleViewPermission("Resource Management"));
@@ -1830,7 +1919,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
           {/* Points of Sales */}
 
-          <div className="mt-1" style={{ display: hasModuleViewPermission("VSMS Logistics") ? 'block' : 'none' }}>
+          <div className="mt-1" style={{ display: hasModuleViewPermission("Point of Sales") ? 'block' : 'none' }}>
             <Link
               to="/vsms/pos"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${location.pathname.startsWith('/point-of-sales')
