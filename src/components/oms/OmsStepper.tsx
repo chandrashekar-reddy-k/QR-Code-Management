@@ -182,7 +182,9 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({
       h && typeof h.status === "string" && milestone.statuses.includes(h.status.toUpperCase())
     );
     if (!matched) return null;
-    return new Date(matched.at).toLocaleString("en-IN", {
+    const ts = matched.at || matched.createdAt;
+    if (!ts) return null;
+    return new Date(ts).toLocaleString("en-IN", {
       dateStyle: "short",
       timeStyle: "short",
     });
