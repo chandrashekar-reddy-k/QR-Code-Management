@@ -207,16 +207,7 @@ export default function WarehouseDashboard() {
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-6 shadow-sm">
           <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4">Operations Navigation</h3>
           <div className="space-y-3">
-            <Link 
-              to="/inventory/atp" 
-              className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-            >
-              <div>
-                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200">ATP Stock Visibility</h4>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Check promiseable inventory balances</p>
-              </div>
-              <ArrowRight className="text-indigo-500" size={16} />
-            </Link>
+
 
             <Link 
               to="/escalations" 

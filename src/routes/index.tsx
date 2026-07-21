@@ -25,9 +25,7 @@ const PriceBooks = lazy(() => import("../pages/admin_pages/pricing/PriceBooks"))
 const ProductPricing = lazy(() => import("../pages/admin_pages/pricing/ProductPricing"));
 const PriceComparison = lazy(() => import("../pages/admin_pages/pricing/PriceComparison"));
 
-const AtpInventory = lazy(
-  () => import("../pages/admin_pages/inventory/AtpInventory")
-);
+
 const EscalatedOrders = lazy(
   () => import("../pages/admin_pages/escalations/EscalatedOrders")
 );
@@ -602,11 +600,7 @@ export const protectedRoutes: RouteConfig[] = [
     component: WarehouseDashboard,
     requiresAuth: true,
   },
-  {
-    path: "/inventory/atp",
-    component: AtpInventory,
-    requiresAuth: true,
-  },
+
   {
     path: "/escalations",
     component: EscalatedOrders,

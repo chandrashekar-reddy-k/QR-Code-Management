@@ -245,12 +245,7 @@ export const sidebarConfig: MenuSection[] = [
     icon: Boxes,
     activeCheck: activeCheckers.isStockManagementActive,
   },
-  {
-    type: "link",
-    path: "/inventory/atp",
-    label: "ATP Inventory",
-    icon: Boxes,
-  },
+
   {
     type: "link",
     path: "/inventory/monitoring/reservations",
