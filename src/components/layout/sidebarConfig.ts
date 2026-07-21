@@ -187,12 +187,7 @@ export const sidebarConfig: MenuSection[] = [
     label: "Dashboard",
     icon: Home,
   },
-  {
-    type: "link",
-    path: "/dashboard/warehouse",
-    label: "Warehouse Dashboard",
-    icon: Home,
-  },
+
   {
     type: "collapsible",
     label: "Shopkeeper ERP (Admin)",

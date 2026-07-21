@@ -17,9 +17,7 @@ const CreatePassword = lazy(
 const Dashboard = lazy(
   () => import("../pages/admin_pages/dashboard/Dashboard")
 );
-const WarehouseDashboard = lazy(
-  () => import("../pages/admin_pages/dashboard/WarehouseDashboard")
-);
+
 // Pricing Engine
 const PriceBooks = lazy(() => import("../pages/admin_pages/pricing/PriceBooks"));
 const ProductPricing = lazy(() => import("../pages/admin_pages/pricing/ProductPricing"));
@@ -595,11 +593,7 @@ export const protectedRoutes: RouteConfig[] = [
     component: Dashboard,
     requiresAuth: true,
   },
-  {
-    path: "/dashboard/warehouse",
-    component: WarehouseDashboard,
-    requiresAuth: true,
-  },
+
 
   {
     path: "/escalations",
