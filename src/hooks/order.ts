@@ -334,8 +334,8 @@ const useGetOrderAuditHistory = (id: string | undefined) => {
   return useQuery({
     queryKey: ["orderAuditHistory", id],
     queryFn: () => {
-      const endpoint = `oms/orders/${id}/audit-history`;
-      return fetchData<any>(endpoint, "GET", undefined, undefined, false, true);
+      const endpoint = `partner/orders/${id}/audit-history`;
+      return fetchData<any>(endpoint, "GET", undefined, undefined, false, false);
     },
     enabled: !!id,
   });
