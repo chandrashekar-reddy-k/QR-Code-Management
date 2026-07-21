@@ -178,7 +178,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   // useEffect - Updates menu states when location changes
   // ============================================
 
+  // jdsfhkjsd
   /**
+   * 
    * useEffect Hook
    * Whenever user navigates to different page, this automatically
    * opens/closes menu items based on current page
@@ -319,8 +321,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           <Link
             to={section.path}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isActive
-                ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
+              ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
+              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
               }`}
           >
             <Icon size={16} />
@@ -429,8 +431,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           <button
             onClick={() => setIsOpen && setIsOpen(!isOpen)}
             className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalActive
-                ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
+              ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
+              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
               }`}
           >
             {/* Icon and Label */}
