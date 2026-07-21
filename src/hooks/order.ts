@@ -323,8 +323,8 @@ const useGetOrderTimeline = (id: string | undefined) => {
   return useQuery({
     queryKey: ["orderTimeline", id],
     queryFn: () => {
-      const endpoint = `oms/orders/${id}/timeline`;
-      return fetchData<any>(endpoint, "GET", undefined, undefined, false, true);
+      const endpoint = `partner/orders/${id}/timeline`;
+      return fetchData<any>(endpoint, "GET", undefined, undefined, false, false);
     },
     enabled: !!id,
   });
