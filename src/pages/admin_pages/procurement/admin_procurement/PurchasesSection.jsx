@@ -238,17 +238,20 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
     const grn = grns.find(g => g.id === grnId);
     if (!grn) return;
 
-    // Only map APPROVED items from the GRN
+    // Accept APPROVED items; fall back to all non-REJECTED items if QC hasn't been performed yet
     const approvedItems = grn.items.filter(i => i.qcStatus === 'APPROVED');
-    
-    if (approvedItems.length === 0) {
-      toast.error('Selected GRN does not have any approved items.');
+    const eligibleItems = approvedItems.length > 0
+      ? approvedItems
+      : grn.items.filter(i => i.qcStatus !== 'REJECTED');
+
+    if (eligibleItems.length === 0) {
+      toast.error('Selected GRN has no eligible items (all rejected).');
       setForm(prev => ({ ...prev, grnId: '', items: [] }));
       return;
     }
 
     // Map GRN items to Purchase Invoice items
-    const mappedItems = approvedItems.map(item => {
+    const mappedItems = eligibleItems.map(item => {
       const prod = products.find(p => p.id === item.productId);
       const cost = item.product?.purchasePrice || prod?.purchasePrice || prod?.price || 0;
       // Auto-fetch Received Qty as the invoice quantity (max allowed)
@@ -279,11 +282,12 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
     setForm(prev => ({
       ...prev,
       grnId,
-      vendorId: grn.po?.vendorId || prev.vendorId,
+      vendorId: grn.po?.vendorId || grn.po?.vendor?.id || prev.vendorId,
       items: mappedItems.map(i => calculateItemValues(i))
     }));
 
-    toast.success(`Loaded approved items from GRN #${grn.displayId}`);
+    const label = approvedItems.length > 0 ? 'approved' : 'received';
+    toast.success(`Loaded ${eligibleItems.length} ${label} items from GRN #${grn.displayId}`);
   };
 
   const calculateItemValues = (item) => {
@@ -806,11 +810,17 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                   required
                   value={form.grnId}
                   onChange={e => handleGRNSelect(e.target.value)}
-                  disabled={!form.vendorId}
-                  className="w-full bg-emerald-50/50 rounded-xl px-4 py-3 text-sm font-bold border border-emerald-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                  <option value="">{form.vendorId ? 'Select Approved GRN' : 'Select Vendor First'}</option>
-                  {form.vendorId && grns.filter(g => g.po?.vendorId === form.vendorId || g.vendorId === form.vendorId).map(g => (
-                    <option key={g.id} value={g.id}>GRN #{g.displayId} ({format(new Date(g.createdAt), 'dd MMM')})</option>
+                  className="w-full bg-emerald-50/50 rounded-xl px-4 py-3 text-sm font-bold border border-emerald-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-emerald-700">
+                  <option value="">Select GRN</option>
+                  {(form.vendorId
+                    ? grns.filter(g =>
+                        g.po?.vendorId === form.vendorId ||
+                        g.po?.vendor?.id === form.vendorId ||
+                        g.vendorId === form.vendorId
+                      )
+                    : grns
+                  ).map(g => (
+                    <option key={g.id} value={g.id}>GRN #{g.displayId} — {format(new Date(g.createdAt), 'dd MMM yyyy')} ({g.status})</option>
                   ))}
                 </select>
               </div>
