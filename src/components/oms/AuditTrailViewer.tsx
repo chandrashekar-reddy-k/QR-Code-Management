@@ -44,8 +44,10 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
 
       <div className="relative pl-6 border-l-2 border-slate-100 dark:border-slate-800 space-y-6 ml-2">
         {logs.map((log: any, idx: number) => {
-          const isCancelled = log.toStatus.toUpperCase() === "CANCELLED" || log.toStatus.toUpperCase() === "FAILED";
-          const isCompleted = log.toStatus.toUpperCase() === "DELIVERED";
+          const toStatusStr = String(log.status || log.toStatus || "").toUpperCase();
+          const fromStatusStr = String(log.previousStatus || log.fromStatus || "START").toUpperCase();
+          const isCancelled = toStatusStr === "CANCELLED" || toStatusStr === "FAILED";
+          const isCompleted = toStatusStr === "DELIVERED";
           
           return (
             <div key={log.id || idx} className="relative group">
@@ -73,14 +75,14 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
               {/* Timestamp */}
               <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                 <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded">
-                  {new Date(log.at).toLocaleString("en-IN", {
+                  {new Date(log.at || log.createdAt).toLocaleString("en-IN", {
                     dateStyle: "medium",
                     timeStyle: "short",
                   })}
                 </span>
                 <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <User className="w-3.5 h-3.5" />
-                  {log.actor}
+                  {log.actor || log.changedBy || "System"}
                 </span>
               </div>
 
@@ -89,7 +91,7 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
                 <div className="flex items-center gap-1.5 flex-wrap text-sm font-semibold text-slate-700 dark:text-slate-350">
                   <span className="text-xs font-normal text-slate-400 dark:text-slate-500">Transition:</span>
                   <span className="px-1.5 py-0.5 rounded text-xs bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase font-mono">
-                    {log.fromStatus || "START"}
+                    {fromStatusStr}
                   </span>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
                   <span
@@ -101,7 +103,7 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
                         : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400"
                     }`}
                   >
-                    {log.toStatus}
+                    {toStatusStr}
                   </span>
                 </div>
 
