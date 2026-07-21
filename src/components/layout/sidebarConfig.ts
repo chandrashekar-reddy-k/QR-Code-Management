@@ -321,11 +321,7 @@ export const sidebarConfig: MenuSection[] = [
         label: "Self Pickup Orders",
         icon: ShoppingBag,
       },
-      {
-        path: "/escalations",
-        label: "Escalated Orders",
-        icon: AlertTriangle,
-      },
+
       {
         path: "/return-requests",
         label: "Return Requests",

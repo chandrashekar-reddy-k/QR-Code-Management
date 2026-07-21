@@ -24,9 +24,7 @@ const ProductPricing = lazy(() => import("../pages/admin_pages/pricing/ProductPr
 const PriceComparison = lazy(() => import("../pages/admin_pages/pricing/PriceComparison"));
 
 
-const EscalatedOrders = lazy(
-  () => import("../pages/admin_pages/escalations/EscalatedOrders")
-);
+
 
 // Categories
 const ManageCategories = lazy(
@@ -595,11 +593,7 @@ export const protectedRoutes: RouteConfig[] = [
   },
 
 
-  {
-    path: "/escalations",
-    component: EscalatedOrders,
-    requiresAuth: true,
-  },
+
   // Notifications
   {
     path: "/notifications",
