@@ -607,11 +607,11 @@ export const protectedRoutes: RouteConfig[] = [
     component: AtpInventory,
     requiresAuth: true,
   },
-  // {
-  //   path: "/escalations",
-  //   component: EscalatedOrders,
-  //   requiresAuth: true,
-  // },
+  {
+    path: "/escalations",
+    component: EscalatedOrders,
+    requiresAuth: true,
+  },
   // Notifications
   {
     path: "/notifications",

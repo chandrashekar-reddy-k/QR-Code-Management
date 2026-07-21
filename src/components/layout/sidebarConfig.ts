@@ -335,7 +335,6 @@ export const sidebarConfig: MenuSection[] = [
         path: "/escalations",
         label: "Escalated Orders",
         icon: AlertTriangle,
-        hidden: true,
       },
       {
         path: "/return-requests",
