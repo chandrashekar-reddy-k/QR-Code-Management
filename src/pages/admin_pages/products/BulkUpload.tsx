@@ -84,7 +84,7 @@ const BulkUpload = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
           Bulk Uploads
         </h1>
         <button
@@ -107,12 +107,12 @@ const BulkUpload = () => {
         {/* Left Section - File Upload and Actions */}
         <div className="space-y-3">
           {/* Upload Area */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
             <div
               className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
                 isDragging
-                  ? "border-gray-400 dark:border-gray-500 bg-gray-50"
-                  : "border-gray-300 dark:border-gray-600 bg-white hover:border-gray-400 dark:hover:border-gray-500"
+                  ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
+                  : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -122,7 +122,7 @@ const BulkUpload = () => {
                 <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-600 dark:bg-green-700 rounded-full flex items-center justify-center mb-3">
                   <Upload size={24} className="text-white" />
                 </div>
-                <p className="text-[10px] sm:text-xs text-gray-600 mb-3">
+                <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mb-3">
                   Supported formats: CSV or Excel (.xlsx)
                 </p>
                 <input
@@ -139,7 +139,7 @@ const BulkUpload = () => {
                   Choose File
                 </label>
                 {csvFile && (
-                  <p className="text-[10px] text-gray-600 mt-2">
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400 mt-2">
                     Selected: {fileName} ({(csvFile.size / 1024).toFixed(2)} KB)
                   </p>
                 )}
@@ -161,17 +161,17 @@ const BulkUpload = () => {
 
         {/* Right Section - Alert Box */}
         <div>
-          <div className="bg-white rounded-xl shadow-md border-2 border-orange-200 dark:border-orange-700/50 p-3 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border-2 border-orange-200 dark:border-orange-700/50 p-3 sm:p-4">
             <div className="flex items-start gap-2">
               <div className="w-6 h-6 bg-orange-500 dark:bg-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <AlertCircle size={14} className="text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-[10px] sm:text-xs font-semibold text-gray-800 mb-1">
+                <p className="text-[10px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1">
                   Always download and use new sample file if you did updated
                   partner panel version.
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-700">
+                <p className="text-[10px] sm:text-xs text-gray-700 dark:text-gray-300">
                   Read and follow instructions carefully before proceed.
                 </p>
               </div>

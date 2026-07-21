@@ -409,7 +409,7 @@ const Media = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
           Media
         </h1>
         {showUploadForm ? (
@@ -443,14 +443,14 @@ const Media = () => {
             onSubmit as (data: MediaFormInputs) => void,
             onError
           )}
-          className="mb-6 bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
+          className="mb-6 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
         >
-          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
             <ImageIcon
               size={18}
               className="text-green-600 dark:text-green-400"
             />
-            <h3 className="text-sm font-semibold text-gray-800">
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
               Media Upload Form
             </h3>
           </div>
@@ -462,7 +462,7 @@ const Media = () => {
               control={control}
               render={({ field }) => (
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     File{" "}
                     <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
@@ -472,8 +472,8 @@ const Media = () => {
                   <div
                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                       isDragging
-                        ? "border-gray-400 dark:border-gray-500 bg-gray-50"
-                        : "border-gray-300 dark:border-gray-600 bg-white hover:border-gray-400 dark:hover:border-gray-500"
+                        ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
+                        : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                     } ${!imagePreview ? "cursor-pointer" : ""}`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -485,13 +485,13 @@ const Media = () => {
                     {!imagePreview ? (
                       <div>
                         <Upload
-                          className="mx-auto text-gray-400 mb-3"
+                          className="mx-auto text-gray-400 dark:text-gray-500 mb-3"
                           size={32}
                         />
-                        <p className="text-sm text-gray-600 mb-2 font-medium">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
                           Drag and drop to upload image!
                         </p>
-                        <p className="text-xs text-gray-500 mb-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                           ...or click to select a image from your device
                         </p>
                         <input
@@ -636,12 +636,12 @@ const Media = () => {
 
           {/* Filters and Search */}
           <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-md overflow-hidden">
               {/* Filter Icon */}
               <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center sm:justify-center flex-shrink-0">
                 <Filter
                   size={18}
-                  className="text-gray-700"
+                  className="text-gray-700 dark:text-gray-300"
                 />
               </div>
 
@@ -664,7 +664,7 @@ const Media = () => {
                 </div>
                 <ChevronDown
                   size={16}
-                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
+                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
                 />
               </div>
 
@@ -687,7 +687,7 @@ const Media = () => {
                 </div>
                 <ChevronDown
                   size={16}
-                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
+                  className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
                 />
               </div>
 
@@ -721,7 +721,7 @@ const Media = () => {
           </div>
 
           {/* Media Table */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <DataTable
                 data={paginatedMedia}
@@ -732,7 +732,7 @@ const Media = () => {
                     sortable: true,
                     render: (media: Media) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-800">
+                        <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                           {media.id}
                         </span>
                       </div>
@@ -751,7 +751,7 @@ const Media = () => {
                             className="w-10 h-10 object-cover rounded mx-auto"
                           />
                         ) : (
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
                             No image
                           </span>
                         )}
@@ -764,7 +764,7 @@ const Media = () => {
                     sortable: true,
                     render: (media: Media) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm font-semibold text-gray-800">
+                        <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
                           {media.name}
                         </span>
                       </div>
@@ -776,7 +776,7 @@ const Media = () => {
                     sortable: true,
                     render: (media: Media) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-700 uppercase">
+                        <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 uppercase">
                           {media.extension}
                         </span>
                       </div>
@@ -788,7 +788,7 @@ const Media = () => {
                     sortable: true,
                     render: (media: Media) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-700 capitalize">
+                        <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 capitalize">
                           {media.type}
                         </span>
                       </div>
@@ -800,7 +800,7 @@ const Media = () => {
                     sortable: true,
                     render: (media: Media) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-700">
+                        <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                           {media.size}
                         </span>
                       </div>
@@ -812,7 +812,7 @@ const Media = () => {
                     sortable: false,
                     render: (media: Media) => (
                       <div className="text-center">
-                        <span className="text-xs sm:text-sm text-gray-700">
+                        <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                           {media.vendorName || "-"}
                         </span>
                       </div>
@@ -851,10 +851,10 @@ const Media = () => {
 
             {/* Pagination */}
             {filteredAndSortedMedia.length > 0 && (
-              <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
+              <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
                   <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                    <span className="text-gray-600 whitespace-nowrap">
+                    <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
                       Show
                     </span>
                     <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
@@ -864,7 +864,7 @@ const Media = () => {
                           setItemsPerPage(Number(e.target.value));
                           setCurrentPage(1);
                         }}
-                        className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
+                        className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       >
                         <option value="10">10</option>
                         <option value="25">25</option>
@@ -872,7 +872,7 @@ const Media = () => {
                         <option value="100">100</option>
                       </select>
                     </div>
-                    <span className="text-gray-600 whitespace-nowrap">
+                    <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
                       Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                       {Math.min(
                         currentPage * itemsPerPage,

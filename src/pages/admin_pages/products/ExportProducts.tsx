@@ -350,7 +350,7 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{product.id}</span>
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{product.id}</span>
         </div>
       ),
     },
@@ -364,7 +364,7 @@ const ExportProducts = () => {
             type="checkbox"
             checked={selectedProducts.has(product.id)}
             onChange={(e) => handleSelectProduct(product.id, e.target.checked)}
-            className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500"
+            className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 dark:bg-gray-700"
           />
         </div>
       ),
@@ -382,8 +382,8 @@ const ExportProducts = () => {
               className="w-12 h-12 object-cover rounded"
             />
           ) : (
-            <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-              <ImageIcon size={12} className="text-gray-400" />
+            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
+              <ImageIcon size={12} className="text-gray-400 dark:text-gray-500" />
             </div>
           )}
         </div>
@@ -395,7 +395,7 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 font-medium">{product.productName}</span>
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">{product.productName}</span>
         </div>
       ),
     },
@@ -405,7 +405,7 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{product.units}</span>
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{product.units}</span>
         </div>
       ),
     },
@@ -415,7 +415,7 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{product.unitType}</span>
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{product.unitType}</span>
         </div>
       ),
     },
@@ -425,7 +425,7 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{product.variants}</span>
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{product.variants}</span>
         </div>
       ),
     },
@@ -435,8 +435,8 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="flex items-center justify-center gap-1.5">
-          <IndianRupee size={12} className="text-gray-400" />
-          <span className="text-xs sm:text-sm text-gray-800">{formatCurrency(product.actualPrice)}</span>
+          <IndianRupee size={12} className="text-gray-400 dark:text-gray-500" />
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{formatCurrency(product.actualPrice)}</span>
         </div>
       ),
     },
@@ -446,8 +446,8 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="flex items-center justify-center gap-1.5">
-          <IndianRupee size={12} className="text-gray-400" />
-          <span className="text-xs sm:text-sm text-gray-800">{formatCurrency(product.dPrice)}</span>
+          <IndianRupee size={12} className="text-gray-400 dark:text-gray-500" />
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{formatCurrency(product.dPrice)}</span>
         </div>
       ),
     },
@@ -457,8 +457,8 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="flex items-center justify-center gap-1.5">
-          <IndianRupee size={12} className="text-gray-400" />
-          <span className="text-xs sm:text-sm text-gray-800">{formatCurrency(product.oPrice)}</span>
+          <IndianRupee size={12} className="text-gray-400 dark:text-gray-500" />
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{formatCurrency(product.oPrice)}</span>
         </div>
       ),
     },
@@ -468,8 +468,8 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="flex items-center justify-center gap-1.5">
-          <IndianRupee size={12} className="text-gray-400" />
-          <span className="text-xs sm:text-sm text-gray-800">{formatCurrency(product.fPrice)}</span>
+          <IndianRupee size={12} className="text-gray-400 dark:text-gray-500" />
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{formatCurrency(product.fPrice)}</span>
         </div>
       ),
     },
@@ -479,7 +479,7 @@ const ExportProducts = () => {
       sortable: true,
       render: (product: ExportProduct) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{product.sku}</span>
+          <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">{product.sku}</span>
         </div>
       ),
     },
@@ -517,7 +517,7 @@ const ExportProducts = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-2 mt-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
+        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
           Export Products
         </h1>
         <Breadcrumbs />
@@ -538,10 +538,10 @@ const ExportProducts = () => {
 
       {/* Filters + Search */}
       <div className="mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-xl overflow-hidden">
           {/* Filter icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
-            <Filter size={18} className="text-gray-700" />
+            <Filter size={18} className="text-gray-700 dark:text-gray-300" />
           </div>
 
           {/* Category Filter */}
@@ -556,7 +556,7 @@ const ExportProducts = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
             />
           </div>
 
@@ -572,7 +572,7 @@ const ExportProducts = () => {
             </div>
             <ChevronDown
               size={16}
-              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
             />
           </div>
 
@@ -600,11 +600,11 @@ const ExportProducts = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+              <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 {columns.map((column) => {
                   if (column.key === "select") {
                     return (
@@ -617,9 +617,9 @@ const ExportProducts = () => {
                             type="checkbox"
                             checked={selectAll}
                             onChange={(e) => handleSelectAll(e.target.checked)}
-                            className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400"
+                            className="w-4 h-4 text-gray-600 border-0 rounded focus:ring-gray-400 dark:bg-gray-700"
                           />
-                          <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">
+                          <span className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                             {column.label}
                           </span>
                         </div>
@@ -637,7 +637,7 @@ const ExportProducts = () => {
                       onClick={column.sortable ? () => handleSort(column.key) : undefined}
                     >
                       <div className="flex items-center justify-center gap-1 sm:gap-1.5">
-                        <span className="text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wide">
+                        <span className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                           {column.label}
                         </span>
                         {column.sortable && (
@@ -645,8 +645,8 @@ const ExportProducts = () => {
                             <svg
                               className={`w-2 h-2 ${
                                 sortField === column.key && sortDirection === "asc"
-                                  ? "text-gray-900"
-                                  : "text-gray-400"
+                                  ? "text-gray-900 dark:text-gray-100"
+                                  : "text-gray-400 dark:text-gray-500"
                               }`}
                               fill="currentColor"
                               viewBox="0 0 20 20"
@@ -656,8 +656,8 @@ const ExportProducts = () => {
                             <svg
                               className={`w-2 h-2 -mt-1 ${
                                 sortField === column.key && sortDirection === "desc"
-                                  ? "text-gray-900"
-                                  : "text-gray-400"
+                                  ? "text-gray-900 dark:text-gray-100"
+                                  : "text-gray-400 dark:text-gray-500"
                               }`}
                               fill="currentColor"
                               viewBox="0 0 20 20"
@@ -676,12 +676,12 @@ const ExportProducts = () => {
               {paginatedProducts.map((product) => (
                 <tr
                   key={product.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   {columns.map((column) => (
                     <td
                       key={column.key}
-                      className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-800"
+                      className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-800 dark:text-gray-200"
                     >
                       {column.render ? column.render(product) : (product as any)[column.key]}
                     </td>
@@ -694,10 +694,10 @@ const ExportProducts = () => {
 
         {/* Pagination */}
         {filteredAndSortedProducts.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
+          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 whitespace-nowrap">Show</span>
+                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Show</span>
                 <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
                   <SelectInput
                     value={itemsPerPage.toString()}
@@ -714,7 +714,7 @@ const ExportProducts = () => {
                     className="w-16 sm:w-20 h-7 text-xs"
                   />
                 </div>
-                <span className="text-gray-600 whitespace-nowrap">
+                <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
                   Showing results{" "}
                   <span className="text-orange-600 dark:text-orange-500 font-medium">
                     {itemsPerPage}
@@ -743,10 +743,10 @@ const ExportProducts = () => {
       {/* Upload Modal */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
                 Select Media
               </h2>
               <button
@@ -762,8 +762,8 @@ const ExportProducts = () => {
               <div
                 className={`border-2 border-dashed rounded-lg p-8 sm:p-12 text-center transition-colors ${
                   isDragging
-                    ? "border-gray-400 dark:border-gray-500 bg-gray-50"
-                    : "border-gray-300 dark:border-gray-600 bg-white hover:border-gray-400 dark:hover:border-gray-500"
+                    ? "border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-700"
+                    : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -773,7 +773,7 @@ const ExportProducts = () => {
                   <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
                     <Upload size={28} className="text-white" />
                   </div>
-                  <p className="text-sm sm:text-base font-medium text-gray-800 mb-2">
+                  <p className="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200 mb-2">
                     Drag and Drop or{" "}
                     <label
                       htmlFor="export-file-input"
@@ -783,7 +783,7 @@ const ExportProducts = () => {
                     </label>{" "}
                     to upload
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     supported formats PNG, JPEG, PDF
                   </p>
                   <input
@@ -794,8 +794,8 @@ const ExportProducts = () => {
                     className="hidden"
                   />
                   {uploadFile && (
-                    <div className="mt-4 p-3 bg-gray-100 rounded-lg">
-                      <p className="text-xs sm:text-sm text-gray-800">
+                    <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                      <p className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                         Selected: {uploadFile.name}
                       </p>
                     </div>
@@ -805,10 +805,10 @@ const ExportProducts = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-gray-200">
+            <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={handleCloseModal}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
