@@ -147,10 +147,15 @@ export const useCreateInventoryMovement = () => {
 };
 
 /* ---------- GET INVENTORY RESERVATIONS ---------- */
-export const useGetInventoryReservations = () => {
+export const useGetInventoryReservations = (filters: { productId?: string; variantId?: string; warehouseId?: string } = {}) => {
+  const searchParams = new URLSearchParams();
+  if (filters.productId) searchParams.append("productId", filters.productId);
+  if (filters.variantId) searchParams.append("variantId", filters.variantId);
+  if (filters.warehouseId && filters.warehouseId !== "All") searchParams.append("warehouseId", filters.warehouseId);
+
   return useQuery({
-    queryKey: ["inventoryReservations"],
-    queryFn: () => fetchData("inventorymanagement/inventory/reservations", "GET"),
+    queryKey: ["inventoryReservations", filters.productId, filters.variantId, filters.warehouseId],
+    queryFn: () => fetchData(`inventorymanagement/inventory/reservations?${searchParams.toString()}`, "GET"),
   });
 };
 
@@ -163,6 +168,8 @@ export const useReleaseInventoryReservation = () => {
       toast.success(data.message || "Reservation released successfully");
       queryClient.invalidateQueries({ queryKey: ["inventoryReservations"] });
       queryClient.invalidateQueries({ queryKey: ["inventoryBalances"] });
+      queryClient.invalidateQueries({ queryKey: ["stockLedger"] });
+      queryClient.invalidateQueries({ queryKey: ["inventorySummary"] });
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to release reservation");
