@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Loader2, Package } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, Loader2, Package } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, Tooltip } from "recharts";
 import { getSLAInfo } from "../../utils/slaHelper";
 import api from "../../api/axios";
@@ -77,48 +77,79 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
     );
   }
 
-  // Helper to check if order status is not dispatched or cancelled
-  const isNotDispatchedOrCancelled = (o: any) => {
+  const isCancelledOrRejected = (o: any) => {
     const s = o.status?.toLowerCase();
-    return s && !['dispatched', 'delivered', 'completed', 'cancelled', 'rejected', 'out_for_delivery'].includes(s);
+    return s && ['cancelled', 'rejected'].includes(s);
   };
 
   // 1. Summary counts
   let onTrackCount = 0;
   let atRiskCount = 0;
-  let breachedCount = 0;
+  let activeBreachedCount = 0;
+  let dispatchedBreachedCount = 0;
   const breachesList: any[] = [];
-
   orders.forEach((o) => {
-    if (!isNotDispatchedOrCancelled(o)) {
+    const s = o.status?.toLowerCase();
+    if (!s || isCancelledOrRejected(o)) {
       return;
     }
 
     const slaInfo = getSLAInfo(o, now);
-    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
+    const acceptedAtStr = o.shopkeeper_accepted_at || 
+                          o.shopkeeperAcceptedAt || 
+                          o.acceptedByShopkeeperAt || 
+                          o.accepted_at ||
+                          o.allocation_started_at || 
+                          o.allocationStartedAt || 
+                          o.created_at || 
+                          o.createdAt;
     const acceptedAt = acceptedAtStr ? new Date(acceptedAtStr).getTime() : now.getTime();
-    const elapsed = (now.getTime() - acceptedAt) / 60000;
+    
+    // Freeze calculation if order is completed/dispatched
+    const isCompleted = ['dispatched', 'delivered', 'completed', 'out_for_delivery'].includes(s);
+    const endVal = isCompleted ? (o.dispatched_at || o.dispatchedAt || o.deliveredAt || o.delivered_at) : null;
+    const evaluationTime = endVal ? new Date(endVal) : now;
+    const elapsed = (evaluationTime.getTime() - acceptedAt) / 60000;
     const slaMinutes = o.sla_minutes || o.slaMinutes || 30;
 
-    if (slaInfo.status === 'breached') {
-      breachedCount++;
-      breachesList.push({
-        order_number: o.order_number || o.orderNumber,
-        customer_name: o.customer_name || o.consumer?.name || "Customer",
-        customer_phone: o.customer_phone || o.consumer?.phone || "",
-        order_type: o.order_type || (o.fulfillmentType === 'STORE_PICKUP' ? 'Self Pickup' : 'Home Delivery'),
-        status: o.status,
-        sla_minutes: slaMinutes,
-        delay_minutes: Math.max(0, Math.floor(elapsed - slaMinutes))
-      });
-    } else if (slaInfo.status === 'at_risk') {
-      atRiskCount++;
+    if (isCompleted) {
+      if (slaInfo.status === 'breached') {
+        dispatchedBreachedCount++;
+      }
     } else {
-      onTrackCount++;
+      if (slaInfo.status === 'breached') {
+        activeBreachedCount++;
+        breachesList.push({
+          order_number: o.order_number || o.orderNumber,
+          customer_name: o.customer_name || o.consumer?.name || "Customer",
+          customer_phone: o.customer_phone || o.consumer?.phone || "",
+          order_type: o.order_type || (o.fulfillmentType === 'STORE_PICKUP' ? 'Self Pickup' : 'Home Delivery'),
+          status: o.status,
+          sla_minutes: slaMinutes,
+          delay_minutes: Math.max(0, Math.floor(elapsed - slaMinutes)),
+          is_breached: true
+        });
+      } else {
+        if (slaInfo.status === 'at_risk') {
+          atRiskCount++;
+          breachesList.push({
+            order_number: o.order_number || o.orderNumber,
+            customer_name: o.customer_name || o.consumer?.name || "Customer",
+            customer_phone: o.customer_phone || o.consumer?.phone || "",
+            order_type: o.order_type || (o.fulfillmentType === 'STORE_PICKUP' ? 'Self Pickup' : 'Home Delivery'),
+            status: o.status,
+            sla_minutes: slaMinutes,
+            delay_minutes: Math.max(0, Math.floor(slaMinutes - elapsed)),
+            is_breached: false
+          });
+        } else {
+          onTrackCount++;
+        }
+      }
     }
   });
 
-  const activeOrdersCount = onTrackCount + atRiskCount + breachedCount;
+  const activeOrdersCount = onTrackCount + atRiskCount + activeBreachedCount;
 
   // 2. SLA Compliance Rate
   let complianceRate = 100;
@@ -126,7 +157,7 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
     complianceRate = (onTrackCount / activeOrdersCount) * 100;
   }
   const atRiskPct = activeOrdersCount > 0 ? (atRiskCount / activeOrdersCount) * 100 : 0;
-  const breachedPct = activeOrdersCount > 0 ? (breachedCount / activeOrdersCount) * 100 : 0;
+  const breachedPct = activeOrdersCount > 0 ? (activeBreachedCount / activeOrdersCount) * 100 : 0;
 
   // 3. Breach Alerts List
   const breaches = breachesList;
@@ -138,7 +169,7 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
   const summary = {
     active_orders: activeOrdersCount,
     at_risk: atRiskCount,
-    active_breaches: breachedCount,
+    active_breaches: dispatchedBreachedCount,
     avg_fulfillment: slaData?.summary?.avg_fulfillment || 0
   };
 
@@ -167,9 +198,9 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
         <div className="grid grid-cols-4 gap-2 mt-4">
           {[
             { label: "Active Orders", value: summary.active_orders, color: "white" },
-            { label: "On Track",      value: onTimeCount,             color: "#A5D6A7" },
-            { label: "At Risk",       value: summary.at_risk,         color: "#FFD54F" },
-            { label: "Breached",      value: summary.active_breaches, color: ORANGE },
+            { label: "On Track", value: onTimeCount, color: "#A5D6A7" },
+            { label: "At Risk", value: summary.at_risk, color: "#FFD54F" },
+            { label: "Breached", value: summary.active_breaches, color: ORANGE },
           ].map(s => (
             <div key={s.label} className="bg-white/20 dark:bg-gray-800/10 rounded-xl p-2 text-center">
               <p style={{ color: s.color, fontWeight: 700, fontSize: "16px" }}>{s.value}</p>
@@ -191,14 +222,14 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
           <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
             <div className="h-full flex">
               <div style={{ width: `${complianceRate}%`, backgroundColor: GREEN, transition: "width 0.6s ease" }} />
-              <div style={{ width: `${atRiskPct}%`,   backgroundColor: ORANGE, opacity: 0.6 }} />
+              <div style={{ width: `${atRiskPct}%`, backgroundColor: ORANGE, opacity: 0.6 }} />
               <div style={{ width: `${breachedPct}%`, backgroundColor: ORANGE }} />
             </div>
           </div>
           <div className="flex gap-5">
             {[
               { label: "On Track", color: GREEN },
-              { label: "At Risk",  color: ORANGE, opacity: 0.6 },
+              { label: "At Risk", color: ORANGE, opacity: 0.6 },
               { label: "Breached", color: ORANGE },
             ].map(l => (
               <div key={l.label} className="flex items-center gap-1.5">
@@ -226,8 +257,8 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
         {breaches.length > 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle size={16} color={ORANGE} />
-              <h3 className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>SLA Breach Alerts</h3>
+              <Clock size={16} color={ORANGE} />
+              <h3 className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>SLA Alerts (At Risk & Breached)</h3>
               <span
                 className="ml-auto rounded-full px-2 py-0.5"
                 style={{ fontSize: "11px", fontWeight: 600, backgroundColor: ORANGE_LIGHT, color: ORANGE }}
@@ -240,16 +271,18 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
                 <div
                   key={breach.order_number}
                   className="rounded-xl p-3"
-                  style={{ backgroundColor: breach.delay_minutes > 15 ? ORANGE_LIGHT : "#FFFDE7" }}
+                  style={{ backgroundColor: breach.is_breached ? ORANGE_LIGHT : "#FFFDE7" }}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div>
                       <span className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 700, fontSize: "13px" }}>#{breach.order_number}</span>
-                      <span className="ml-2 text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>{breach.customer_name}</span>
+                      <span className="ml-2 text-gray-500 dark:text-gray-400" style={{ fontSize: "11px" }}>{breach.customer_name}</span>
                     </div>
-                    <span style={{ color: ORANGE, fontWeight: 700, fontSize: "13px" }}>+{breach.delay_minutes}m</span>
+                    <span style={{ color: ORANGE, fontWeight: 700, fontSize: "13px" }}>
+                      {breach.is_breached ? `Overdue by ${breach.delay_minutes}m` : `${breach.delay_minutes}m remaining`}
+                    </span>
                   </div>
-                  <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500" style={{ fontSize: "11px" }}>
+                  <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "11px" }}>
                     {breach.order_type} · Stage: <span style={{ fontWeight: 600, textTransform: "capitalize" }}>{breach.status}</span> · SLA: {breach.sla_minutes}m
                   </p>
                 </div>
@@ -261,7 +294,7 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: GREEN_LIGHT }}>
               <CheckCircle size={20} color={GREEN} />
             </div>
-            <p style={{ fontWeight: 600, fontSize: "13px", color: GREEN }}>No SLA breaches right now 🎉</p>
+            <p style={{ fontWeight: 600, fontSize: "13px", color: GREEN }}>No active SLA alerts right now 🎉</p>
           </div>
         )}
 
@@ -281,7 +314,7 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
                     <XAxis dataKey="time" tick={{ fontSize: 9, fill: "#9E9E9E" }} axisLine={false} tickLine={false} />
                     <YAxis hide />
                     <Tooltip contentStyle={{ fontSize: "11px", borderRadius: "8px", border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} />
-                    <Bar dataKey="onTime"   stackId="a" fill={GREEN}  radius={[0, 0, 2, 2]} name="On Time" />
+                    <Bar dataKey="onTime" stackId="a" fill={GREEN} radius={[0, 0, 2, 2]} name="On Time" />
                     <Bar dataKey="breached" stackId="a" fill={ORANGE} radius={[2, 2, 0, 0]} name="Breached" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -314,7 +347,7 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
                     <XAxis dataKey="time" tick={{ fontSize: 9, fill: "#9E9E9E" }} axisLine={false} tickLine={false} />
                     <YAxis hide />
                     <Tooltip contentStyle={{ fontSize: "11px", borderRadius: "8px", border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} formatter={(v: any) => [`${v} min`]} />
-                    <Line type="monotone" dataKey="picking" stroke={GREEN}  strokeWidth={2} dot={false} name="Picking" />
+                    <Line type="monotone" dataKey="picking" stroke={GREEN} strokeWidth={2} dot={false} name="Picking" />
                     <Line type="monotone" dataKey="packing" stroke={ORANGE} strokeWidth={2} dot={false} name="Packing" />
                     <Line type="monotone" dataKey="handover" stroke={GREEN} strokeWidth={1.5} dot={false} strokeDasharray="4 2" name="Handover" />
                   </LineChart>
@@ -322,9 +355,9 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
               </div>
               <div className="flex gap-5 mt-2">
                 {[
-                  { label: "Picking",  color: GREEN,  dash: false },
-                  { label: "Packing",  color: ORANGE, dash: false },
-                  { label: "Handover", color: GREEN,  dash: true },
+                  { label: "Picking", color: GREEN, dash: false },
+                  { label: "Packing", color: ORANGE, dash: false },
+                  { label: "Handover", color: GREEN, dash: true },
                 ].map(l => (
                   <div key={l.label} className="flex items-center gap-1.5">
                     <div className="w-6 h-0.5 rounded-full" style={{ backgroundColor: l.color, opacity: l.dash ? 0.6 : 1 }} />

@@ -20,13 +20,13 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
   const [slaData, setSlaData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-  
+
   // Filter states
   const [slaFilter, setSlaFilter] = useState("");
   const [stageFilter, setStageFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("today");
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   const socket = useSocket(1);
 
   const fetchData = () => {
@@ -95,7 +95,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     const d = Math.floor(totalMinutes / 1440);
     const h = Math.floor((totalMinutes % 1440) / 60);
     const m = Math.floor(totalMinutes % 60);
-    
+
     let timeStr = "";
     if (d > 0) {
       timeStr = `${d}d ${h}h`;
@@ -104,7 +104,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     } else {
       timeStr = `${m}m`;
     }
-    
+
     return isOverdue ? `Overdue by ${timeStr}` : timeStr;
   };
 
@@ -113,11 +113,19 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     if (!dateFilter || dateFilter === 'all') return true;
     const orderDate = new Date(o.createdAt || o.created_at || o.acceptedAt || o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt);
     if (isNaN(orderDate.getTime())) return true;
+<<<<<<< HEAD
     
     const nowTime = now.getTime();
     if (dateFilter === 'today') {
       const today = new Date(now);
       today.setHours(0,0,0,0);
+=======
+
+    const nowTime = now.getTime();
+    if (dateFilter === 'today') {
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+>>>>>>> erp/shopweb
       return orderDate >= today;
     }
     if (dateFilter === 'week') {
@@ -131,18 +139,33 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     return true;
   };
 
+<<<<<<< HEAD
+=======
+  const isCancelledOrRejected = (o: any) => {
+    const s = o.status?.toLowerCase();
+    return s && ['cancelled', 'rejected'].includes(s);
+  };
+
+>>>>>>> erp/shopweb
   // 1. Summary counts
   let onTrackCount = 0;
   let atRiskCount = 0;
-  let breachedCount = 0;
+  let activeBreachedCount = 0;
+  let dispatchedBreachedCount = 0;
   const breachesList: any[] = [];
 
   orders.forEach((o) => {
+<<<<<<< HEAD
     if (!isNotDispatchedOrCancelled(o)) {
+=======
+    const s = o.status?.toLowerCase();
+    if (!s || isCancelledOrRejected(o)) {
+>>>>>>> erp/shopweb
       return;
     }
 
     // Apply Stage Filter to counts
+<<<<<<< HEAD
     if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return;
 
     // Apply Date Filter to counts
@@ -175,12 +198,72 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
       });
     } else if (slaInfo.status === 'at_risk') {
       atRiskCount++;
+=======
+    if (stageFilter && s !== stageFilter.toLowerCase()) return;
+
+    // Apply Search Query to counts
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const orderNo = (o.order_number || o.orderNumber || "").toLowerCase();
+      const custName = (o.customer_name || o.consumer?.name || "").toLowerCase();
+      if (!orderNo.includes(q) && !custName.includes(q)) return;
+    }
+
+    const slaInfo = getSLAInfo(o, now);
+    const acceptedAtStr = o.shopkeeper_accepted_at || 
+                          o.shopkeeperAcceptedAt || 
+                          o.acceptedByShopkeeperAt || 
+                          o.accepted_at ||
+                          o.allocation_started_at || 
+                          o.allocationStartedAt || 
+                          o.created_at || 
+                          o.createdAt;
+    const acceptedAt = acceptedAtStr ? new Date(acceptedAtStr).getTime() : now.getTime();
+    
+    // Freeze calculation if order is completed/dispatched
+    const isCompleted = ['dispatched', 'delivered', 'completed', 'out_for_delivery'].includes(s);
+    const endVal = isCompleted ? (o.dispatched_at || o.dispatchedAt || o.deliveredAt || o.delivered_at) : null;
+    const evaluationTime = endVal ? new Date(endVal) : now;
+    const elapsed = (evaluationTime.getTime() - acceptedAt) / 60000;
+    const slaMinutes = o.sla_minutes || o.slaMinutes || 30;
+
+    if (isCompleted) {
+      if (slaInfo.status === 'breached') {
+        dispatchedBreachedCount++;
+        if (matchesDateFilter(o)) {
+          breachesList.push({
+            order_number: o.order_number || o.orderNumber,
+            customer_name: o.customer_name || o.consumer?.name || "Customer",
+            customer_phone: o.customer_phone || o.consumer?.phone || "",
+            order_type: o.order_type || (o.fulfillmentType === 'STORE_PICKUP' ? 'Self Pickup' : 'Home Delivery'),
+            status: o.status,
+            sla_minutes: slaMinutes,
+            delay_minutes: Math.max(0, Math.floor(elapsed - slaMinutes))
+          });
+        }
+      }
+>>>>>>> erp/shopweb
     } else {
-      onTrackCount++;
+      if (slaInfo.status === 'breached') {
+        activeBreachedCount++;
+        breachesList.push({
+          order_number: o.order_number || o.orderNumber,
+          customer_name: o.customer_name || o.consumer?.name || "Customer",
+          customer_phone: o.customer_phone || o.consumer?.phone || "",
+          order_type: o.order_type || (o.fulfillmentType === 'STORE_PICKUP' ? 'Self Pickup' : 'Home Delivery'),
+          status: o.status,
+          sla_minutes: slaMinutes,
+          delay_minutes: Math.max(0, Math.floor(elapsed - slaMinutes))
+        });
+      } else if (slaInfo.status === 'at_risk') {
+        atRiskCount++;
+      } else {
+        onTrackCount++;
+      }
     }
   });
 
-  const activeOrdersCount = onTrackCount + atRiskCount + breachedCount;
+  const activeOrdersCount = onTrackCount + atRiskCount + activeBreachedCount;
 
   // 2. SLA Compliance Rate
   let complianceRate = 100;
@@ -188,7 +271,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     complianceRate = (onTrackCount / activeOrdersCount) * 100;
   }
   const atRiskPct = activeOrdersCount > 0 ? (atRiskCount / activeOrdersCount) * 100 : 0;
-  const breachedPct = activeOrdersCount > 0 ? (breachedCount / activeOrdersCount) * 100 : 0;
+  const breachedPct = activeOrdersCount > 0 ? (activeBreachedCount / activeOrdersCount) * 100 : 0;
 
   // 3. Breach Alerts List
   const breaches = breachesList;
@@ -215,7 +298,11 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
 
     const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt || o.createdAt || o.created_at;
     const completedAtStr = o.dispatched_at || o.dispatchedAt || o.delivered_at || o.deliveredAt || o.completed_at || o.completedAt || o.updatedAt || o.updated_at;
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> erp/shopweb
     if (acceptedAtStr && completedAtStr) {
       const start = new Date(acceptedAtStr).getTime();
       const end = new Date(completedAtStr).getTime();
@@ -226,14 +313,23 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     }
   });
 
+<<<<<<< HEAD
   const dynamicAvgFulfillment = completedCount > 0 
     ? Math.round(totalFulfillmentMinutes / completedCount) 
+=======
+  const dynamicAvgFulfillment = completedCount > 0
+    ? Math.round(totalFulfillmentMinutes / completedCount)
+>>>>>>> erp/shopweb
     : (slaData?.summary?.avg_fulfillment || 15);
 
   const summary = {
     active_orders: activeOrdersCount,
     at_risk: atRiskCount,
+<<<<<<< HEAD
     active_breaches: breachedCount,
+=======
+    active_breaches: dispatchedBreachedCount,
+>>>>>>> erp/shopweb
     avg_fulfillment: dynamicAvgFulfillment
   };
 
@@ -245,12 +341,20 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
 
     const slaInfo = getSLAInfo(o, now);
     const currentSlaStatus = slaInfo.status;
+<<<<<<< HEAD
 
     if (currentSlaStatus === 'on_track') return false;
 
     if (slaFilter && currentSlaStatus !== slaFilter) return false;
     if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return false;
     if (!matchesDateFilter(o)) return false;
+=======
+
+
+
+    if (slaFilter && currentSlaStatus !== slaFilter) return false;
+    if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return false;
+>>>>>>> erp/shopweb
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -291,9 +395,9 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         {[
           { label: "Active Orders", value: summary.active_orders, icon: <Package size={20} className="text-blue-600" />, bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-gray-900 dark:text-white" },
-          { label: "On Track",      value: onTimeCount,           icon: <CheckCircle size={20} className="text-green-600" />, bg: "bg-green-50 dark:bg-green-950/30", text: "text-gray-900 dark:text-white" },
-          { label: "At Risk",       value: summary.at_risk,       icon: <Clock size={20} className="text-yellow-600" />, bg: "bg-yellow-50 dark:bg-yellow-950/30", text: "text-gray-900 dark:text-white" },
-          { label: "Breached",      value: summary.active_breaches, icon: <AlertTriangle size={20} className="text-orange-600" />, bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-gray-900 dark:text-white" },
+          { label: "On Track", value: onTimeCount, icon: <CheckCircle size={20} className="text-green-600" />, bg: "bg-green-50 dark:bg-green-950/30", text: "text-gray-900 dark:text-white" },
+          { label: "At Risk", value: summary.at_risk, icon: <Clock size={20} className="text-yellow-600" />, bg: "bg-yellow-50 dark:bg-yellow-950/30", text: "text-gray-900 dark:text-white" },
+          { label: "Breached", value: summary.active_breaches, icon: <AlertTriangle size={20} className="text-orange-600" />, bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-gray-900 dark:text-white" },
           { label: "SLA Success Rate", value: `${complianceRate.toFixed(1)}%`, icon: <TrendingUp size={20} className="text-emerald-600" />, bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-gray-900 dark:text-white" },
         ].map(card => (
           <div key={card.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm flex items-center gap-4">
@@ -397,14 +501,14 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
           <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
             <div className="h-full flex">
               <div style={{ width: `${complianceRate}%`, backgroundColor: GREEN, transition: "width 0.6s ease" }} />
-              <div style={{ width: `${atRiskPct}%`,   backgroundColor: ORANGE, opacity: 0.6 }} />
+              <div style={{ width: `${atRiskPct}%`, backgroundColor: ORANGE, opacity: 0.6 }} />
               <div style={{ width: `${breachedPct}%`, backgroundColor: ORANGE }} />
             </div>
           </div>
           <div className="flex gap-5">
             {[
               { label: "On Track", color: GREEN },
-              { label: "At Risk",  color: ORANGE, opacity: 0.6 },
+              { label: "At Risk", color: ORANGE, opacity: 0.6 },
               { label: "Breached", color: ORANGE },
             ].map(l => (
               <div key={l.label} className="flex items-center gap-1.5">
@@ -609,7 +713,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
                     <XAxis dataKey="time" tick={{ fontSize: 9, fill: "#9E9E9E" }} axisLine={false} tickLine={false} />
                     <YAxis hide />
                     <Tooltip contentStyle={{ fontSize: "11px", borderRadius: "8px", border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} />
-                    <Bar dataKey="onTime"   stackId="a" fill={GREEN}  radius={[0, 0, 2, 2]} name="On Time" />
+                    <Bar dataKey="onTime" stackId="a" fill={GREEN} radius={[0, 0, 2, 2]} name="On Time" />
                     <Bar dataKey="breached" stackId="a" fill={ORANGE} radius={[2, 2, 0, 0]} name="Breached" />
                   </BarChart>
                 </ResponsiveContainer>

@@ -79,7 +79,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
         fetchOrders();
       });
       socket.current.on('order:status', ({ orderId, status }: any) => {
-        if (status !== 'new') {
+        if (status !== 'new' && status !== 'assigned') {
           setOrders(prev => prev.filter(o => o.id !== Number(orderId)));
         }
       });

@@ -79,7 +79,7 @@ export function OrderHistory({ onBack, onNavigate, initialStatus, isAdmin = fals
 
 
   const orders = useMemo(() => {
-    const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp') && !!sessionStorage.getItem("staffToken");
+    const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
     const cachedWh = isShopkeeper ? sessionStorage.getItem("staffWarehouseId") : localStorage.getItem("partnerWarehouseId");
     const storedU = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
     let userWarehouseId = "";

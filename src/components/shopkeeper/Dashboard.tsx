@@ -234,7 +234,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       const isAssigned = o.shopkeeper_phone || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_name;
       if (!isAssigned) return false;
       const s = o.status?.toLowerCase();
-      return ['new', 'accepted', 'confirmed', 'picking', 'packing', 'processing', 'ready'].includes(s);
+      return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'packing', 'processing', 'ready'].includes(s);
     }).length;
 
     const picking = allOrders.filter((o: any) => {
@@ -744,6 +744,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                       new: { color: "#1D4ED8", bg: "#EFF6FF" }, // Default Placed/Pending (Unassigned) is blue
                       placed: { color: "#1D4ED8", bg: "#EFF6FF" },
                       pending: { color: "#1D4ED8", bg: "#EFF6FF" },
+                      assigned: { color: "#4B5563", bg: "#F3F4F6" },
                       accepted: { color: "#1D4ED8", bg: "#EFF6FF" },
                       picking: { color: "#7C3AED", bg: "#F5F3FF" },
                       confirmed: { color: "#7C3AED", bg: "#F5F3FF" },

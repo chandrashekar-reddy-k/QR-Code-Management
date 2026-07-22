@@ -125,7 +125,7 @@ export default function ShopkeeperAdminERP() {
     const tab = searchParams.get("tab") || "dashboard";
     const mapped = tab === "all-orders" ? "orderhistory" : tab;
 
-    setScreen(mapped as Screen);
+    setScreen(tab as Screen);
   }, [location]);
 
   const navigate = (dest: string, data?: unknown) => {

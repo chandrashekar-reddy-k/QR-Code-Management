@@ -262,11 +262,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         <div className="mt-1" key={section.path}>
           <Link
             to={section.path}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${
-              isActive
-                ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
-            }`}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${isActive
+              ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
+              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
+              }`}
           >
             <Icon size={16} />
             <span>{section.label}</span>
@@ -349,11 +348,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         <div className="mt-1" key={section.stateKey}>
           <button
             onClick={() => setIsOpen && setIsOpen(!isOpen)}
-            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${
-              finalActive
-                ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
-            }`}
+            className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-1 transition-all text-sm ${finalActive
+              ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
+              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
+              }`}
           >
             <div
               className={`flex items-center gap-2 ${
@@ -404,13 +402,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
                     <Link
                       key={subItem.path}
                       to={subItem.path}
-                      className={`${
-                        isOpen ? "dropdown-item" : "dropdown-item-exit"
-                      } flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${
-                        isActive
-                          ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
+                      className={`${isOpen ? "dropdown-item" : "dropdown-item-exit"
+                        } flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${isActive
+                          ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
                           : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
-                      }`}
+                        }`}
                       style={{
                         animationDelay: isOpen
                           ? `${index * 0.05}s`
@@ -443,9 +439,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
   return (
     <aside
-      className={`w-72 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 h-screen flex flex-col fixed left-0 top-0 z-50 overflow-hidden transition-transform duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700 ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      } md:translate-x-0`}
+      className={`w-72 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 h-screen flex flex-col fixed left-0 top-0 z-50 overflow-hidden transition-transform duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700 ${isOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0` }
       style={{ fontFamily: "'Segoe UI', sans-serif" }}
     >
       {/* Header Section - Logo and Close Button */}
