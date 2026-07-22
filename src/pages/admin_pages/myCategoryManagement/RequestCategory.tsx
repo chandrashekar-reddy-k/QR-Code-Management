@@ -9,6 +9,7 @@ import {
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import { useGetProductCategoriesList } from "../../../hooks/product";
+import { useAddCategoriesAndSubCategories } from "../../../hooks/category";
 
 interface ApiCategory {
   id: string;
@@ -36,7 +37,9 @@ const RequestCategoryPage = () => {
     setSelected((prev) => prev.filter((sid) => sid !== id));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const addCategoryMutation = useAddCategoriesAndSubCategories();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (selected.length === 0) {
@@ -44,10 +47,22 @@ const RequestCategoryPage = () => {
       return;
     }
 
-    // API call here
-    alert("Request sent successfully!");
+    try {
+      const payload = {
+        categories: selected.map(catId => {
+          const category = allCategories.find(c => c.id === catId);
+          return {
+            categoryId: catId,
+            subCategoryIds: []
+          };
+        })
+      };
 
-    navigate("/my-categories");
+      await addCategoryMutation.mutateAsync(payload);
+      navigate("/my-categories");
+    } catch {
+      // Error handled by hook toast
+    }
   };
 
   // Filter categories by search input

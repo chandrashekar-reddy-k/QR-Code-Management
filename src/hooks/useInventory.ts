@@ -8,6 +8,7 @@ import {
   setCycleCounts,
   setAlerts,
   setSettings,
+  setLocations,
   adjustStock,
   updateAlerts,
 } from '../redux/slices/inventorySlice';
@@ -45,6 +46,7 @@ export const useInventory = () => {
     setCycleCounts: (cycleCounts: CycleCount[]) => dispatch(setCycleCounts(cycleCounts)),
     setAlerts: (alerts: Alert[]) => dispatch(setAlerts(alerts)),
     setSettings: (settings: InventorySettings) => dispatch(setSettings(settings)),
+    setLocations: (locations: Location[]) => dispatch(setLocations(locations)),
     adjustStock: (
       variantId: string,
       locationCode: string,

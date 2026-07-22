@@ -8,7 +8,7 @@ import {
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
-import { useGetCategoriesAndSubCategories } from "../../../hooks/category";
+import { useGetCategoriesAndSubCategories, useAddCategoriesAndSubCategories } from "../../../hooks/category";
 
 interface SubCategory {
   id: string;
@@ -100,7 +100,9 @@ const RequestSubCategory = () => {
   const filteredSub = (subs: SubCategory[]) =>
     subs.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const addCategoryMutation = useAddCategoriesAndSubCategories();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (selectedCategories.length === 0) {
@@ -108,8 +110,26 @@ const RequestSubCategory = () => {
       return;
     }
 
-    alert("Request sent successfully!");
-    navigate("/my-categories");
+    try {
+      const payload = {
+        categories: selectedCategories.map((catId) => {
+          const cat = allCategories.find((c) => c.id === catId);
+          const subIds = (cat?.subCategories || [])
+            .map((s) => s.id)
+            .filter((subId) => selectedSubCategories.includes(subId));
+
+          return {
+            categoryId: catId,
+            subCategoryIds: subIds,
+          };
+        }),
+      };
+
+      await addCategoryMutation.mutateAsync(payload);
+      navigate("/my-categories");
+    } catch {
+      // Error handled by hook toast
+    }
   };
 
   if (isLoading) {

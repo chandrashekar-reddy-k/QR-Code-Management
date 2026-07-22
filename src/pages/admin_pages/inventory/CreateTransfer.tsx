@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useInventory } from '../../../hooks/useInventory';
+import { useGetAllProductList } from '../../../hooks/product';
 import { Transfer } from '../../../types/inventory.types';
 import { FormSection, SelectInput, TextInput, PrimaryButton, Button, BackButton } from '../../../components/ui';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
+import fetchData from '../../../helper';
 
 const CreateTransfer = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { transfers, setTransfers, locations, snapshots } = useInventory();
-  
+  const { transfers, setTransfers, locations, setLocations, snapshots } = useInventory();
+
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+
   const [formData, setFormData] = useState({
     fromLocation: '',
     toLocation: '',
@@ -17,7 +21,35 @@ const CreateTransfer = () => {
     lines: [] as Array<{ variantId: string; sku: string; productName: string; currentOnHand: number; transferQty: number }>,
   });
 
-  // Pre-fill form from navigation state (if coming from inventory overview or SKU detail)
+  // Fetch products scoped specifically to selected fromLocation (warehouse/partner)
+  const { data: productsRes, isLoading: loadingProducts } = useGetAllProductList(1, 1000, "", true, undefined, formData.fromLocation);
+  const productsList = useMemo(() => {
+    return productsRes?.data?.products || productsRes?.data || [];
+  }, [productsRes]);
+
+  // Fetch warehouses from API on mount
+  useEffect(() => {
+    const fetchWarehouses = async () => {
+      setLoadingWarehouses(true);
+      try {
+        const res = await fetchData('warehouses', 'GET');
+        const warehouses = res?.data || res || [];
+        if (Array.isArray(warehouses) && warehouses.length > 0) {
+          setLocations(warehouses.map((w: { id: string; name: string; code: string }) => ({
+            code: w.id || w.code,
+            name: w.name,
+          })));
+        }
+      } catch (err) {
+        console.warn('Could not load warehouses:', err);
+      } finally {
+        setLoadingWarehouses(false);
+      }
+    };
+    fetchWarehouses();
+  }, []);
+
+  // Pre-fill form from navigation state or auto-populate initial line when products load
   useEffect(() => {
     if (location.state) {
       const state = location.state as any;
@@ -38,9 +70,31 @@ const CreateTransfer = () => {
             transferQty: 1,
           }],
         }));
+        return;
       }
     }
-  }, [location.state]);
+
+    // Auto add initial product line if location selected, lines array is empty and products are loaded
+    if (formData.fromLocation && productsList.length > 0) {
+      setFormData(prev => {
+        if (prev.lines.length > 0) return prev;
+        const firstProduct = productsList[0];
+        const variant = firstProduct.variants?.[0] || firstProduct.masterVariant || {};
+        const sku = variant.sku || firstProduct.sku || firstProduct.slug || 'SKU-001';
+        const stock = firstProduct.stock ?? variant.stock ?? 100;
+        return {
+          ...prev,
+          lines: [{
+            variantId: variant.id || firstProduct.id,
+            sku: sku,
+            productName: firstProduct.name || 'Unnamed Product',
+            currentOnHand: stock,
+            transferQty: 1,
+          }]
+        };
+      });
+    }
+  }, [location.state, productsList, formData.fromLocation]);
 
   const handleCreateTransfer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,29 +124,64 @@ const CreateTransfer = () => {
   };
 
   const addLine = () => {
-    // Get snapshots from the selected "from" location
-    const locationSnapshots = formData.fromLocation 
-      ? snapshots.filter(s => s.locationCode === formData.fromLocation && s.onHand > 0)
-      : snapshots.filter(s => s.onHand > 0);
-    
-    if (locationSnapshots.length > 0) {
-      const firstSnapshot = locationSnapshots[0];
+    if (productsList.length > 0) {
+      const firstProduct = productsList[0];
+      const variant = firstProduct.variants?.[0] || firstProduct.masterVariant || {};
+      const sku = variant.sku || firstProduct.sku || firstProduct.slug || 'SKU-001';
+      const stock = firstProduct.stock ?? variant.stock ?? 100;
+
       setFormData((prev) => ({
         ...prev,
         lines: [
           ...prev.lines,
           {
-            variantId: firstSnapshot.variantId,
-            sku: firstSnapshot.sku,
-            productName: firstSnapshot.productName,
-            currentOnHand: firstSnapshot.onHand,
+            variantId: variant.id || firstProduct.id,
+            sku: sku,
+            productName: firstProduct.name || 'Unnamed Product',
+            currentOnHand: stock,
             transferQty: 1,
           },
         ],
       }));
     } else {
-      alert('No products available at the selected location');
+      setFormData((prev) => ({
+        ...prev,
+        lines: [
+          ...prev.lines,
+          {
+            variantId: '',
+            sku: '',
+            productName: '',
+            currentOnHand: 0,
+            transferQty: 1,
+          },
+        ],
+      }));
     }
+  };
+
+  const updateLineProduct = (index: number, productId: string) => {
+    const selectedProd = productsList.find((p: any) => p.id === productId);
+    if (!selectedProd) return;
+
+    const variant = selectedProd.variants?.[0] || selectedProd.masterVariant || {};
+    const sku = variant.sku || selectedProd.sku || selectedProd.slug || 'SKU-001';
+    const stock = selectedProd.stock ?? variant.stock ?? 100;
+
+    setFormData((prev) => ({
+      ...prev,
+      lines: prev.lines.map((line, i) =>
+        i === index
+          ? {
+              ...line,
+              variantId: variant.id || selectedProd.id,
+              sku: sku,
+              productName: selectedProd.name,
+              currentOnHand: stock,
+            }
+          : line
+      ),
+    }));
   };
 
   const removeLine = (index: number) => {
@@ -145,9 +234,9 @@ const CreateTransfer = () => {
             value={formData.fromLocation}
             onChange={(e) => setFormData((prev) => ({ ...prev, fromLocation: e.target.value }))}
             required
-            placeholder="Select location"
+            placeholder={loadingWarehouses ? "Loading locations..." : "Select location"}
             options={[
-              { value: '', label: 'Select location' },
+              { value: '', label: loadingWarehouses ? 'Loading locations...' : 'Select location' },
               ...locations.map((loc) => ({
                 value: loc.code,
                 label: loc.name,
@@ -159,9 +248,9 @@ const CreateTransfer = () => {
             value={formData.toLocation}
             onChange={(e) => setFormData((prev) => ({ ...prev, toLocation: e.target.value }))}
             required
-            placeholder="Select location"
+            placeholder={loadingWarehouses ? "Loading locations..." : "Select location"}
             options={[
-              { value: '', label: 'Select location' },
+              { value: '', label: loadingWarehouses ? 'Loading locations...' : 'Select location' },
               ...locations.map((loc) => ({
                 value: loc.code,
                 label: loc.name,
@@ -186,17 +275,23 @@ const CreateTransfer = () => {
             <label className="block text-xs font-medium text-gray-700">
               Transfer Items <span className="text-red-500 dark:text-red-400">*</span>
             </label>
-            <Button
-              type="button"
-              onClick={addLine}
-              variant="outline"
-              size="sm"
-            >
-              Add Item
-            </Button>
+            {formData.fromLocation && (
+              <Button
+                type="button"
+                onClick={addLine}
+                variant="outline"
+                size="sm"
+              >
+                Add Item
+              </Button>
+            )}
           </div>
           
-          {formData.lines.length === 0 ? (
+          {!formData.fromLocation ? (
+            <div className="p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50 text-center">
+              <p className="text-xs text-gray-500 font-medium">Please select a "From Location" first to view and add products for transfer.</p>
+            </div>
+          ) : formData.lines.length === 0 ? (
             <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-center">
               <p className="text-xs text-gray-500">No items added. Click "Add Item" to add products to transfer.</p>
             </div>
@@ -206,11 +301,19 @@ const CreateTransfer = () => {
                 <div key={index} className="p-3 border border-gray-200 rounded-lg bg-gray-50">
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                     <div className="sm:col-span-2">
-                      <TextInput
+                      <SelectInput
                         label="Product"
-                        value={line.productName}
-                        disabled
-                        className="bg-white"
+                        value={productsList.find((p: any) => p.name === line.productName)?.id || ''}
+                        onChange={(e) => updateLineProduct(index, e.target.value)}
+                        required
+                        placeholder={loadingProducts ? "Loading products..." : "Select product"}
+                        options={[
+                          { value: '', label: loadingProducts ? 'Loading products...' : 'Select product' },
+                          ...productsList.map((p: any) => ({
+                            value: p.id,
+                            label: `${p.name} (${p.sku || p.slug || 'SKU'})`,
+                          })),
+                        ]}
                       />
                     </div>
                     <div>

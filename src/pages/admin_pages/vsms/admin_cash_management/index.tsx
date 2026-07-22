@@ -304,10 +304,6 @@ export default function AdminCashManagementContent() {
         if (data?.success || Array.isArray(data)) {
           const fetchedStores = data?.data || data;
           setStores(fetchedStores);
-          const currentStoreId = searchParams.get('storeId');
-          if (!currentStoreId && fetchedStores.length > 0) {
-            setSearchParams({ storeId: fetchedStores[0].id });
-          }
         }
       } catch (err) {}
     };

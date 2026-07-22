@@ -187,11 +187,6 @@ export default function AdminDamage() {
         const res = await adminAPI.getStores();
         const fetchedStores = res.data?.success ? res.data.data : (res.data || []);
         setStores(fetchedStores);
-
-        // Always select the first store to bypass branch selection completely
-        if (fetchedStores.length > 0 && !storeId) {
-          setSearchParams({ storeId: fetchedStores[0].id });
-        }
       } catch (err) {
         console.error('Failed to fetch stores');
       } finally {
@@ -199,7 +194,7 @@ export default function AdminDamage() {
       }
     };
     fetchStores();
-  }, [storeId]);
+  }, []);
 
   const fetchCreateData = useCallback(async () => {
     try {
@@ -1338,7 +1333,8 @@ export default function AdminDamage() {
   };
 
   const renderClassifiedDamage = () => {
-    if (storeId) return null;
+    const isPartner = user?.role === 'PARTNER';
+    if (storeId || isPartner) return null;
 
     return (
       <div className="flex flex-col gap-4 pt-4 animate-in fade-in slide-in-from-bottom-6 max-w-5xl mx-auto px-4">

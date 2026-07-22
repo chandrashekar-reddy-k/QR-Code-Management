@@ -233,6 +233,21 @@ const useEditWarehouseCategories = () => {
     });
 };
 
+const useToggleWarehouseCategory = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) =>
+            fetchData(`partner/categories/warehouse/catandsubcat/toggle/${id}`, "PATCH"),
+        onSuccess: (data: createCategoryResponse) => {
+            toast.success(data.response || "Status updated successfully");
+            queryClient.invalidateQueries({ queryKey: ["warehouseCategories"] });
+        },
+        onError: (error: any) => {
+            toast.error(error?.message || "Failed to update category status");
+        },
+    });
+};
+
 export {
     useGetAllCategoryList,
     useGetAllCategoriesForManage,
@@ -247,4 +262,5 @@ export {
     useAddCategoriesAndSubCategories,
     useGetWarehouseCategories,
     useEditWarehouseCategories,
+    useToggleWarehouseCategory,
 };
