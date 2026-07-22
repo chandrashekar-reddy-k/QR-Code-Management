@@ -18,11 +18,13 @@ import {
   Pagination,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
-import { useGetProductCategoriesList } from "../../../hooks/product";
+import { useGetWarehouseCategories, useToggleWarehouseCategory } from "../../../hooks/category";
 
 interface ApiCategory {
   id: string;
-  name: string;
+  categoryId?: string;
+  categoryName?: string;
+  name?: string;
   description?: string;
   image?: string;
   isActive?: boolean;
@@ -38,13 +40,17 @@ const MyCategories = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const { data: categoriesData, isLoading } = useGetProductCategoriesList();
+  const { data: categoriesData, isLoading } = useGetWarehouseCategories();
 
   // Parse API response
   const allCategories: ApiCategory[] = useMemo(() => {
     const res = categoriesData as { data?: ApiCategory[] } | undefined;
-    const arr = Array.isArray(res?.data) ? res!.data! : [];
-    return arr;
+    const arr = Array.isArray(res?.data) ? res!.data! : Array.isArray(categoriesData) ? (categoriesData as ApiCategory[]) : [];
+    return arr.map(c => ({
+      ...c,
+      id: c.categoryId || c.id,
+      name: c.categoryName || c.name || "Unnamed Category"
+    }));
   }, [categoriesData]);
 
   // Filter by search and status
@@ -55,7 +61,7 @@ const MyCategories = () => {
         (c.name || "").toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus =
         !statusFilter ||
-        (statusFilter === "active" ? c.isActive !== false : c.isActive === false);
+        (statusFilter === "active" ? c.isEnabled !== false : c.isEnabled === false);
       return matchesSearch && matchesStatus;
     });
   }, [allCategories, searchTerm, statusFilter]);
@@ -67,8 +73,8 @@ const MyCategories = () => {
   );
 
   const totalCount = allCategories.length;
-  const activeCount = allCategories.filter((c) => c.isActive !== false).length;
-  const inactiveCount = allCategories.filter((c) => c.isActive === false).length;
+  const activeCount = allCategories.filter((c) => c.isEnabled !== false).length;
+  const inactiveCount = allCategories.filter((c) => c.isEnabled === false).length;
 
   const kpiData = [
     {
@@ -90,6 +96,16 @@ const MyCategories = () => {
       variant: "green" as const,
     },
   ];
+
+  const toggleMutation = useToggleWarehouseCategory();
+
+  const handleToggle = async (id: string) => {
+    try {
+      await toggleMutation.mutateAsync(id);
+    } catch {
+      // Error handled by hook toast
+    }
+  };
 
   const columns = [
     {
@@ -164,18 +180,26 @@ const MyCategories = () => {
       key: "status",
       label: "STATUS",
       render: (item: ApiCategory) => {
-        const isActive = item.isActive !== false;
+        const isActive = item.isEnabled !== false;
+        const isToggling = toggleMutation.isPending && toggleMutation.variables === item.id;
+
         return (
-          <div className="flex justify-center">
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                isActive
-                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-              }`}
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => handleToggle(item.id)}
+              disabled={isToggling}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                isActive ? "bg-green-600" : "bg-gray-300"
+              } ${isToggling ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              title={isActive ? "Click to disable category" : "Click to enable category"}
             >
-              {isActive ? "Active" : "Inactive"}
-            </span>
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isActive ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
           </div>
         );
       },

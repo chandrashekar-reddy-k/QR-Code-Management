@@ -18,7 +18,7 @@ import {
   Pagination,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
-import { useGetProductCategoriesList } from "../../../hooks/product";
+import { useGetWarehouseCategories } from "../../../hooks/category";
 
 interface ApiSubCategory {
   id: string;
@@ -32,7 +32,9 @@ interface ApiSubCategory {
 
 interface ApiCategory {
   id: string;
-  name: string;
+  categoryId?: string;
+  categoryName?: string;
+  name?: string;
   isActive?: boolean;
   image?: string;
   subCategories?: ApiSubCategory[];
@@ -51,13 +53,18 @@ const MySubCategories = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Fetch all categories — each includes their subCategories array
-  const { data: categoriesData, isLoading } = useGetProductCategoriesList();
+  // Fetch approved warehouse categories with subcategories
+  const { data: categoriesData, isLoading } = useGetWarehouseCategories();
 
   // Parse categories from API response
   const categories: ApiCategory[] = useMemo(() => {
     const res = categoriesData as { data?: ApiCategory[] } | undefined;
-    return Array.isArray(res?.data) ? res!.data! : [];
+    const arr = Array.isArray(res?.data) ? res!.data! : Array.isArray(categoriesData) ? (categoriesData as ApiCategory[]) : [];
+    return arr.map(c => ({
+      ...c,
+      id: c.categoryId || c.id,
+      name: c.categoryName || c.name || "Unnamed Category"
+    }));
   }, [categoriesData]);
 
   // Flatten all subcategories from all categories

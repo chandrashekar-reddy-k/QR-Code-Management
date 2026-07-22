@@ -23,16 +23,9 @@ export default function BranchCashOverview({ onSelect }) {
         if (storesRes.data?.success) {
           const fetchedStores = storesRes.data.data;
           setStores(fetchedStores);
-          // Auto-select if only one store exists
-          if (fetchedStores.length === 1) {
-            onSelect(fetchedStores[0].id);
-          }
         } else {
           const fetchedStores = storesRes.data || [];
           setStores(fetchedStores);
-          if (fetchedStores.length === 1) {
-            onSelect(fetchedStores[0].id);
-          }
         }
         setSummaries(summariesRes || []);
       } catch (error) {

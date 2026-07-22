@@ -212,6 +212,9 @@ export const adminAPI = {
   updateStore: (id, data) => api.put(`/admin/stores/${id}`, data),
   deleteStore: (id) => api.delete(`/admin/stores/${id}`),
 
+  // Warehouses (for location dropdowns)
+  getWarehouses: (params?) => api.get('/warehouses', { params }),
+
   // Role & Privileges Management
   getRoles: () => api.get('/admin/roles'),
   getRole: (id) => api.get(`/admin/roles/${id}`),

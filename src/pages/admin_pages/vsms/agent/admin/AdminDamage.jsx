@@ -166,9 +166,6 @@ export default function AdminDamage() {
         setStores(fetchedStores);
         
         // Auto-select if only one store exists
-        if (fetchedStores.length === 1 && !storeId) {
-          setSearchParams({ storeId: fetchedStores[0].id });
-        }
       } catch (err) {
         console.error('Failed to fetch stores');
       } finally {
@@ -1345,7 +1342,8 @@ export default function AdminDamage() {
   };
 
   const renderClassifiedDamage = () => {
-    if (storeId) return null;
+    const isPartner = user?.role === 'PARTNER';
+    if (storeId || isPartner) return null;
 
     return (
       <div className="flex flex-col gap-4 pt-4 animate-in fade-in slide-in-from-bottom-6 max-w-5xl mx-auto px-4">

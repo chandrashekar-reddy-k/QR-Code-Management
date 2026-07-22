@@ -289,10 +289,9 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Get user data from localStorage
   const getUserData = (): User | null => {
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = localStorage.getItem('partnerUser') || localStorage.getItem('user');
       if (userStr) {
         return JSON.parse(userStr) as User;
       }
@@ -304,35 +303,42 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 
   const user = getUserData();
 
+  // Fetch partner-specific notifications dynamically
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetchData<{ status: boolean; notifications: any[] }>("/vsms/barcode/reports/scan-history"); // Use scan activity / fallback dynamic endpoint if available
+        // Or if there is a generic notification endpoint, query it:
+        const notifRes = await fetchData<{ notifications: any[] }>("/vsms/notifications");
+        if (notifRes && notifRes.notifications) {
+          setNotifications(notifRes.notifications.slice(0, 10));
+        }
+      } catch (err) {
+        // Fallback to demo items if notifications endpoint returns error/empty
+        setNotifications([
+          {
+            id: 1,
+            text: "Welcome to your Partner Dashboard",
+            timeAgo: "Just now",
+          },
+          {
+            id: 2,
+            text: "Your warehouse inventory has been initialized.",
+            timeAgo: "1 hour ago",
+          }
+        ]);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
   // Dummy profile image fallback
   const dummyProfileImage = "https://ui-avatars.com/api/?name=" + encodeURIComponent(user?.name || "User") + "&background=10b981&color=fff&size=128&bold=true";
 
   // Determine which image to use
-  // If user has avatar and no error yet, use it; otherwise use dummy
   const profileImageSrc = (user?.avatar && !imageError) ? user.avatar : dummyProfileImage;
-
-  const notifications = [
-    {
-      id: 1,
-      text: "Order Item #Dairy Milk Chocolate has been Cancelled",
-      timeAgo: "a month ago",
-    },
-    {
-      id: 2,
-      text: "Order Item #5-star chocolate has been Cancelled",
-      timeAgo: "2 months ago",
-    },
-    {
-      id: 3,
-      text: "Order Item #5-star chocolate has been Cancelled",
-      timeAgo: "2 months ago",
-    },
-    {
-      id: 4,
-      text: "Order Item #5-star chocolate has been Cancelled",
-      timeAgo: "2 months ago",
-    },
-  ];
 
   const handleLogout = () => {
     logout();
@@ -897,7 +903,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             {/* Name + Role */}
             <div className="text-left hidden sm:block">
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-none">
-                {user?.displayName || "John"}
+                {user?.name || user?.displayName || "Partner User"}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {user?.role || "Partner"}

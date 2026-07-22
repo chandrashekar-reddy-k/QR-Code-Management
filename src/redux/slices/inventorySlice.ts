@@ -24,12 +24,7 @@ interface InventoryState {
   settings: InventorySettings;
 }
 
-// Mock initial data
-const initialLocations: Location[] = [
-  { code: 'WH1', name: 'Warehouse 1' },
-  { code: 'WH2', name: 'Warehouse 2' },
-  { code: 'STORE1', name: 'Store 1' },
-];
+const initialLocations: Location[] = [];
 
 const initialState: InventoryState = {
   snapshots: [],
@@ -73,6 +68,9 @@ const inventorySlice = createSlice({
     },
     setSettings: (state, action: PayloadAction<InventorySettings>) => {
       state.settings = action.payload;
+    },
+    setLocations: (state, action: PayloadAction<Location[]>) => {
+      state.locations = action.payload;
     },
     adjustStock: (
       state,
@@ -160,6 +158,7 @@ export const {
   setCycleCounts,
   setAlerts,
   setSettings,
+  setLocations,
   adjustStock,
   updateAlerts,
 } = inventorySlice.actions;
