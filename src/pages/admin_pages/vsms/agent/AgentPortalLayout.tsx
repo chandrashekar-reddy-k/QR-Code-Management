@@ -60,7 +60,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
 
   useEffect(() => {
     // Fetch real user profile (assignedVehicleId, role, etc.) on mount
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
     if (token) {
       refreshUserProfile();
     }

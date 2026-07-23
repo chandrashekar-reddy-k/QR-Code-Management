@@ -32,7 +32,7 @@ export default function AdminVehicles() {
 
   // Always refresh profile on mount so portalType is current (ADMIN vs AGENT)
   useEffect(() => {
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
     if (token) refreshUserProfile();
   }, []);
 

@@ -1,18 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { URL as configURL } from '../config';
 
-// Derive the socket server URL from VITE_API_URL (strip /api suffix if present)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-const SOCKET_URL = API_URL.replace(/\/api\/?$/, '');
+const API_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_URL || configURL || '';
+const SOCKET_URL = API_URL.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
-export function useSocket(storeId: number) {
+export function useSocket(storeId?: number | string) {
   const socket = useRef<Socket | undefined>(undefined);
 
   useEffect(() => {
+    const token = sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+    if (!token || !SOCKET_URL) return;
+
     socket.current = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
+      auth: { token },
     });
-    socket.current.emit('join:store', { storeId });
+    if (storeId) {
+      socket.current.emit('join:store', { storeId });
+    }
 
     return () => {
       socket.current?.disconnect();

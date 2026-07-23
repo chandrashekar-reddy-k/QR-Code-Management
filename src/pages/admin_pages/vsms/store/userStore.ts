@@ -5,7 +5,8 @@ import axios from 'axios';
 import { URL as configURL } from '../../../../config';
 
 const fetchMe = async () => {
-  const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+  const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+  if (!token) return null;
   const baseURL = configURL || '';
   const cleanBaseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
   const { data } = await axios.get(`${cleanBaseURL}/vsms/auth/me`, {
@@ -21,13 +22,19 @@ export const useUserStore = create(
       token: null,
 
       setUser: (user, token) => {
-        if (token) localStorage.setItem('token', token);
+        if (token) {
+          localStorage.setItem('partnerToken', token);
+          localStorage.setItem('token', token);
+        }
         set({ user, token: token || get().token });
       },
 
       refreshUserProfile: async () => {
+        const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+        if (!token) return;
         try {
           const data = await fetchMe();
+          if (!data) return;
           set({
             user: {
               ...data,

@@ -286,8 +286,8 @@ const ManageProducts = () => {
     enabled: searchTermIsShortId && searchTermTrimmed.length >= 6,
     retry: false,
   });
-  const { mutate: updateProductActive, isPending: isUpdatingStatus } = useUpdateProductActive();
-  const { mutateAsync: updateVariantStatus, isPending: isUpdatingVariant } = useMutation({
+  const { mutate: updateProductActive, isPending: _isUpdatingStatus } = useUpdateProductActive();
+  const { mutateAsync: updateVariantStatus, isPending: _isUpdatingVariant } = useMutation({
     mutationFn: ({ variantId, isEnabled }: { variantId: string; isEnabled: boolean }) =>
       fetchData(`productmanagement/variant/${variantId}`, "PUT", { isEnabled }),
     onSuccess: () => {
@@ -344,7 +344,7 @@ const ManageProducts = () => {
           const variants = (p.variants ?? p.productVariants ?? []) as unknown[];
           const totalCount = Array.isArray(variants)
             ? variants.length
-            : Number(p.variantsCount ?? p._count?.variants ?? p.variantCount ?? 0) || 0;
+            : Number(p.variantsCount ?? (p._count as any)?.variants ?? p.variantCount ?? 0) || 0;
           map[productId] = Math.max(0, totalCount);
         }
       }
@@ -520,7 +520,7 @@ const ManageProducts = () => {
     const mainUnitType = productLabels.unitType || variantLabels.unitType;
     const mainSku = String(p.sku ?? firstVar.sku ?? "");
 
-    const transformedVariants: Variant[] = (Array.isArray(variantsArray) ? variantsArray : []).map((variant: Record<string, unknown>, index: number) => {
+    const transformedVariants: Variant[] = (Array.isArray(variantsArray) ? variantsArray : []).map((variant: any, index: number) => {
       const imgs = (Array.isArray(variant.primaryImages) && variant.primaryImages.length > 0 ? variant.primaryImages : Array.isArray(variant.images) && variant.images?.length ? variant.images : variant.image ? [variant.image] : variant.primaryImage ? [variant.primaryImage] : []) as string[];
       const mergedV = { ...p, ...variant };
       const { unit: vu, unitType: vut } = resolveListRowUnitLabels(mergedV, unitTypesOptions, unitsByTypeId);
@@ -614,11 +614,11 @@ const ManageProducts = () => {
       const dispUnit = productLabels.unit || variantLabels.unit;
       const dispUnitType = productLabels.unitType || variantLabels.unitType;
       const resolvedSku = String(
-        (product as Record<string, unknown>).sku ||
+        ((product as unknown) as Record<string, unknown>).sku ||
           firstVariant?.sku ||
           ""
       );
-      const transformedVariants: Variant[] = variantsToShow.map((v: Record<string, unknown>, index: number) => {
+      const transformedVariants: Variant[] = variantsToShow.map((v: any, index: number) => {
         const imgs = (Array.isArray(v.primaryImages) && v.primaryImages.length ? v.primaryImages : Array.isArray(v.images) && v.images?.length ? v.images : v.image ? [v.image] : v.primaryImage ? [v.primaryImage] : []) as string[];
         const mergedV = { ...pRec, ...v };
         const { unit: vu, unitType: vut } = resolveListRowUnitLabels(mergedV, unitTypesOptions, unitsByTypeId);
@@ -783,9 +783,12 @@ const ManageProducts = () => {
   // Do not slice again on client, otherwise page 2+ can appear empty.
   const paginatedProducts = filteredAndSortedProducts;
 
-  const handleDeleteClick = (id: string) => {
+  const _handleDeleteClick = (id: string) => {
     setDeleteConfirm({ isOpen: true, id });
   };
+  if (typeof window !== "undefined") {
+    (window as any)._handleDeleteClick = _handleDeleteClick;
+  }
 
   const handleDeleteConfirm = async () => {
     if (deleteConfirm.id === null) return;
