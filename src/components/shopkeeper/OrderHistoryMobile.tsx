@@ -30,7 +30,7 @@ const getLatestActivityTime = (order: any): number => {
   return latest;
 };
 
-const tabs = ["All", "New", "Picking", "Packing", "Ready", "Dispatched", "Rejected", "Returns"];
+
 
 const tabMap: Record<string, string> = {
   NEW: "New",
@@ -55,50 +55,73 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (initialStatus) {
+      if (!isAdmin && initialStatus.toUpperCase() === "DISPATCHED") return "Handed Over";
       return tabMap[initialStatus.toUpperCase()] ?? "All";
     }
     return "All";
   });
 
+  const handedOverIds = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('handedOverIds') || '[]');
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const dynamicTabs = useMemo(() => {
+    if (!isAdmin) {
+      return ["All", "New", "Picking", "Packing", "Ready", "Handed Over", "Rejected", "Returns"];
+    }
+    return ["All", "New", "Picking", "Packing", "Ready", "Dispatched", "Rejected", "Returns"];
+  }, [isAdmin]);
+
   const orders = useMemo(() => {
-    const cachedWh = isShopkeeper ? sessionStorage.getItem("staffWarehouseId") : localStorage.getItem("partnerWarehouseId");
-    const storedU = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
-    let userWarehouseId = "";
+    const cachedWh = !isAdmin ? sessionStorage.getItem("staffWarehouseId") : localStorage.getItem("partnerWarehouseId");
+    const storedU = !isAdmin ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
+    let userWarehouseId: any = "";
     if (cachedWh && cachedWh !== "undefined") {
       userWarehouseId = cachedWh;
     } else if (storedU) {
       try {
         const u = JSON.parse(storedU);
-        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id || "";
+        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
       } catch (e) { }
+    }
+    if (userWarehouseId && typeof userWarehouseId === 'object' && userWarehouseId.id) {
+      userWarehouseId = userWarehouseId.id;
     }
 
     let allOrders = [...sharedOrders];
 
     // Filter to valid orders: must have a warehouse and must match user's warehouseId if set
     allOrders = allOrders.filter((o: any) => {
-      const oWh = o.warehouseId || o.warehouse_id;
+      const oWh = o.warehouseId?.id || o.warehouseId || o.warehouse_id?.id || o.warehouse_id;
       if (!oWh) return false;
-      if (userWarehouseId && oWh !== userWarehouseId) return false;
+      if (isAdmin && userWarehouseId && String(oWh) !== String(userWarehouseId)) return false;
       return true;
     });
 
-    // Staff view client-side shopkeeper filter
     if (!isAdmin) {
-      const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
+      const storedUser = !isAdmin ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
       const user = storedUser ? JSON.parse(storedUser) : null;
-      const skId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
+      let rawSkId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
+      if (rawSkId && typeof rawSkId === 'object' && rawSkId.id) rawSkId = rawSkId.id;
+      const skId = rawSkId;
       const skPhone = user?.phone;
       if (skId || skPhone) {
         allOrders = allOrders.filter((o: any) => {
-          const matchesId = skId && (o.assignedShopkeeperId === skId || o.assigned_shopkeeper_id === skId);
+          let oAssignedId = o.assignedShopkeeperId || o.assigned_shopkeeper_id || o.shopkeeper_id;
+          if (oAssignedId && typeof oAssignedId === 'object' && oAssignedId.id) oAssignedId = oAssignedId.id;
+          const matchesId = skId && String(oAssignedId) === String(skId);
           const matchesPhone = skPhone && (o.assignedShopkeeper?.phone === skPhone || o.assigned_shopkeeper_phone === skPhone || o.shopkeeper_phone === skPhone);
-          return matchesId || matchesPhone;
+          const matchesHandedOver = handedOverIds.map(String).includes(String(o.id || o.order_number));
+          return matchesId || matchesPhone || matchesHandedOver;
         });
       }
     }
     return allOrders;
-  }, [sharedOrders, isAdmin]);
+  }, [sharedOrders, isAdmin, handedOverIds]);
 
   const filteredOrders = useMemo(() => {
     let result = orders;
@@ -109,8 +132,9 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
         if (activeTab === "New") return s === "new" || s === "placed" || s === "assigned";
         if (activeTab === "Picking") return s === "picking" || s === "accepted" || s === "confirmed";
         if (activeTab === "Packing") return s === "packing" || s === "processing";
-        if (activeTab === "Ready") return s === "ready";
+        if (activeTab === "Ready") return s === "ready" && (!isAdmin ? !handedOverIds.map(String).includes(String(o.id || o.order_number)) : true);
         if (activeTab === "Dispatched") return s === "dispatched";
+        if (activeTab === "Handed Over") return s === "dispatched" || (s === "ready" && handedOverIds.map(String).includes(String(o.id || o.order_number)));
         if (activeTab === "Rejected") return s === "rejected" || s === "cancelled";
         if (activeTab === "Returns") return s === "return" || s === "returned";
         return true;
@@ -127,7 +151,7 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
     }
 
     return [...result].sort((a, b) => getLatestActivityTime(b) - getLatestActivityTime(a));
-  }, [orders, activeTab, searchQuery]);
+  }, [orders, activeTab, searchQuery, isAdmin, handedOverIds]);
 
   const statusStyles: Record<string, { color: string; bg: string }> = {
     new: { color: "#1D4ED8", bg: "#EFF6FF" },
@@ -157,7 +181,7 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
         </button>
         <div>
           <h1 className="text-white text-xl font-bold">Order History</h1>
-          <p className="text-white/80 text-xs">{filteredOrders.length} orders total</p>
+          <p className="text-white/80 text-xs">{filteredOrders.length} filtered / {orders.length} orders / {sharedOrders.length} shared</p>
         </div>
       </div>
 
@@ -185,13 +209,13 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
 
       {/* Tabs */}
       <div className="px-4 mt-4 overflow-x-auto scrollbar-none flex gap-2 pb-2">
-        {tabs.map((tab) => (
+        {dynamicTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${activeTab === tab
                 ? "bg-[#00891D] border-[#00891D] text-white shadow-sm"
-                : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50"
+                : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
               }`}
           >
             {tab}
@@ -211,9 +235,41 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
           </div>
         ) : (
           filteredOrders.map((order) => {
-            const statusColor = statusStyles[order.status?.toLowerCase()]?.color || "#757575";
-            const statusBg = statusStyles[order.status?.toLowerCase()]?.bg || "#F5F5F5";
+            const lowerStatus = (order.status || "").toLowerCase();
+            const isHandedOverLocally = !isAdmin && lowerStatus === 'ready' && handedOverIds.map(String).includes(String(order.id));
+            const effectiveStatus = isHandedOverLocally ? 'dispatched' : lowerStatus;
 
+            const statusColor = statusStyles[effectiveStatus]?.color || "#757575";
+            const statusBg = statusStyles[effectiveStatus]?.bg || "#F5F5F5";
+
+            const formatStatusDisplay = (status: string) => {
+              if (isHandedOverLocally) return "Handed Over";
+              const statusUpper = (status || "").toUpperCase();
+              const statusMap: Record<string, string> = {
+                PENDING: "Pending",
+                CONFIRMED: "Confirmed",
+                PROCESSING: "Processing",
+                READY_FOR_PICKUP: "Ready for Pickup",
+                OUT_FOR_DELIVERY: "Out for Delivery",
+                ASSIGNED_TO_AGENT: "Out for Delivery",
+                PICKED_UP: "Picked Up",
+                IN_TRANSIT: "In Transit",
+                DELIVERED: "Delivered",
+                CANCELLED: "Cancelled",
+                FAILED: "Failed",
+                RETURNED: "Returned",
+                NEW: "Placed",
+                ASSIGNED: "Assigned",
+                ACCEPTED: "Accepted",
+                PICKING: "Picking",
+                PACKING: "Packing",
+                READY: "Ready",
+                DISPATCHED: !isAdmin ? "Handed Over" : "Dispatched",
+                COMPLETED: "Completed",
+                REJECTED: "Rejected",
+              };
+              return statusMap[statusUpper] || status;
+            };
             return (
               <div
                 key={order.id}
@@ -227,7 +283,7 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
                   <div className="flex items-center justify-between">
                     <span className="text-gray-800 font-bold text-sm dark:text-gray-200">{order.order_number || order.orderNumber}</span>
                     <span className="rounded-full px-2 py-0.5 uppercase text-[10px] font-bold" style={{ backgroundColor: statusBg, color: statusColor }}>
-                      {order.status}
+                      {formatStatusDisplay(order.status)}
                     </span>
                   </div>
                   {shouldShowShopkeeper && (
@@ -273,10 +329,12 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
                       })()}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 mt-1.5">
-                    <Clock size={10} className="text-gray-400" />
-                    <span className="text-gray-400 text-[10px]">SLA: {order.sla_minutes || 30} min</span>
-                  </div>
+                  {!(isShopkeeper && ['dispatched', 'delivered', 'completed', 'out_for_delivery'].includes((order.status || '').toLowerCase())) && (
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <Clock size={10} className="text-gray-400" />
+                      <span className="text-gray-400 text-[10px]">SLA: {order.sla_minutes || 30} min</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );

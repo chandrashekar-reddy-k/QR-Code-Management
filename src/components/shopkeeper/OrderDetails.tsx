@@ -193,8 +193,8 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
               {fullOrder.order_type || "Home Delivery"}
             </span>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${isUrgent
-                ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
-                : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+              ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+              : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
               }`}>
               <Clock size={12} />
               <span>{fullOrder.sla_minutes}m SLA</span>
@@ -413,8 +413,8 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
                   <div className="flex items-center">
                     <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${slaIsBreached
-                        ? "bg-red-550/10 text-red-700 dark:bg-red-950/30 dark:text-red-400"
-                        : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                      ? "bg-red-550/10 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                      : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
                       }`}>
                       {slaStatusLabel}
                     </span>
@@ -428,10 +428,10 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
                   <div className="flex items-center">
                     <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Remaining Time</span>
                     <span className={`text-[14px] font-bold ${slaIsBreached
-                        ? "text-red-600 dark:text-red-400"
-                        : (slaRemainingSeconds <= 300)
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-green-600 dark:text-green-400"
+                      ? "text-red-600 dark:text-red-400"
+                      : (slaRemainingSeconds <= 300)
+                        ? "text-orange-600 dark:text-orange-400"
+                        : "text-green-600 dark:text-green-400"
                       }`}>
                       {slaIsBreached ? `Overdue by ${formatSeconds(slaRemainingSeconds)}` : formatSeconds(slaRemainingSeconds)}
                     </span>
@@ -464,8 +464,8 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
                   <div className="flex items-center">
                     <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Status</span>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${slaIsBreached
-                        ? "bg-red-550/10 text-red-700 dark:bg-red-950/30 dark:text-red-400"
-                        : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                      ? "bg-red-550/10 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                      : "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
                       }`}>
                       {slaStatusLabel}
                     </span>
@@ -528,8 +528,8 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
               <div className="flex items-center">
                 <span className="w-[180px] text-[12px] font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">Payment Status</span>
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${fullOrder.payment_status?.toLowerCase() === "paid" || fullOrder.payment_status?.toLowerCase() === "completed"
-                    ? "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                    : "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400"
+                  ? "bg-green-550/10 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                  : "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400"
                   }`}>
                   {fullOrder.payment_status || "Pending"}
                 </span>

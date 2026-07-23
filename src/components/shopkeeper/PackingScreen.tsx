@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, CheckCircle, Printer, Loader2, ChevronRight } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2, ChevronRight } from "lucide-react";
 import api from "../../api/axios";
 import { PackingScreenMobile } from "./PackingScreenMobile";
 import { getSLAInfo } from "../../utils/slaHelper";
@@ -26,7 +26,6 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
-  const [labelPrinted, setLabelPrinted] = useState(false);
   const [slaInfo, setSlaInfo] = useState(() => getSLAInfo(order));
 
   useEffect(() => {
@@ -61,7 +60,7 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
   };
 
   const handleCompletePacking = async () => {
-    if (allChecked && labelPrinted && order?.id) {
+    if (allChecked && order?.id) {
       try {
         await api.put(`/orders/${order.id}/status`, {
           status: 'ready',
@@ -149,9 +148,9 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
                 </span>
               </div>
             </div>
-            <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+            <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden shadow-inner">
               <div
-                className="h-full bg-green-500 rounded-full transition-all duration-300"
+                className="h-full bg-[#00891D] rounded-full transition-all duration-300"
                 style={{ width: `${totalToPack ? (totalChecked / totalToPack) * 100 : 0}%` }}
               />
             </div>
@@ -256,23 +255,14 @@ export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps)
 
       {/* Sticky Bottom Actions Bar */}
       <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-200 p-4 shadow-md z-10">
-        <div className="max-w-4xl mx-auto flex gap-4">
-          <button
-            onClick={() => setLabelPrinted(true)}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-3 border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
-          >
-            <Printer size={16} className={labelPrinted ? "text-[#00891D]" : "text-[#EF5A06]"} />
-            <span className={`font-bold text-sm ${labelPrinted ? "text-[#00891D]" : "text-[#EF5A06]"}`}>
-              {labelPrinted ? "Label Printed ✓" : "Print Label"}
-            </span>
-          </button>
+        <div className="max-w-4xl mx-auto flex gap-4 w-full">
           <button
             onClick={handleCompletePacking}
-            disabled={!allChecked || !labelPrinted}
-            className="flex-[2] flex items-center justify-center gap-2 rounded-lg py-3 transition-colors text-white font-bold text-sm shadow-sm"
+            disabled={!allChecked}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 transition-colors text-white font-bold text-sm shadow-sm w-full"
             style={{
-              backgroundColor: allChecked && labelPrinted ? "#00891D" : "#BDBDBD",
-              cursor: allChecked && labelPrinted ? "pointer" : "not-allowed"
+              backgroundColor: allChecked ? "#00891D" : "#BDBDBD",
+              cursor: allChecked ? "pointer" : "not-allowed"
             }}
           >
             <CheckCircle size={16} color="white" />

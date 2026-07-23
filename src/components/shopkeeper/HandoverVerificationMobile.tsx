@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, QrCode, CheckCircle, Scan, Bike, Loader2 } from "lucide-react";
+import { ArrowLeft, QrCode, CheckCircle, Scan, Loader2 } from "lucide-react";
 import api from "../../api/axios";
 
 interface HandoverVerificationMobileProps {
@@ -8,19 +8,17 @@ interface HandoverVerificationMobileProps {
   data?: any;
 }
 
-type Step = "staff-scan" | "rider-scan" | "complete";
+type Step = "staff-scan" | "complete";
 
 export function HandoverVerificationMobile({ onBack, data }: HandoverVerificationMobileProps) {
   const [step, setStep] = useState<Step>("staff-scan");
   const [loading, setLoading] = useState(false);
   const [staffVerifiedAt, setStaffVerifiedAt] = useState<Date | null>(null);
-  const [riderVerifiedAt, setRiderVerifiedAt] = useState<Date | null>(null);
   const order = data || {};
 
   const steps = [
     { key: "staff-scan", label: "Staff Verification", desc: "Staff scans the order QR" },
-    { key: "rider-scan", label: "Rider Verification", desc: "Rider scans on their app" },
-    { key: "complete", label: "Handover Complete", desc: "Dispatched successfully" },
+    { key: "complete", label: "Handover Complete", desc: "Handed over successfully" },
   ];
 
   const currentStepIdx = steps.findIndex(s => s.key === step);
@@ -35,7 +33,7 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
           </button>
           <div>
             <h1 className="text-white" style={{ fontWeight: 700, fontSize: "18px" }}>Handover Verification</h1>
-            <p className="text-white/70" style={{ fontSize: "12px" }}>Order #{order.order_number || "QC100240"} · Rider: {order.riderName || "N/A"}</p>
+            <p className="text-white/70" style={{ fontSize: "12px" }}>Order #{order.order_number || "QC100240"}</p>
           </div>
         </div>
       </div>
@@ -104,34 +102,18 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
               <p className="text-green-600" style={{ fontSize: "12px" }}>Scan the order QR with staff scanner</p>
             </div>
             <button
-              onClick={() => {
-                setStaffVerifiedAt(new Date());
-                setStep("rider-scan");
-              }}
-              className="w-full flex items-center justify-center gap-2 rounded-xl py-4"
-              style={{ backgroundColor: "#00891D" }}
-            >
-              <CheckCircle size={18} color="white" />
-              <span className="text-white" style={{ fontWeight: 600, fontSize: "15px" }}>Staff Verified ✓</span>
-            </button>
-          </div>
-        )}
-
-        {step === "rider-scan" && (
-          <div className="w-full flex flex-col items-center gap-4">
-            <div className="bg-orange-50 rounded-2xl p-4 w-full text-center">
-              <Bike size={32} color="#EF5A06" className="mx-auto mb-2" />
-              <p className="text-orange-800" style={{ fontWeight: 600, fontSize: "14px" }}>Rider Scan Verification</p>
-              <p className="text-orange-600" style={{ fontSize: "12px" }}>Rider: {order.riderName || "N/A"} scans from their device</p>
-            </div>
-            <button
               onClick={async () => {
                 try {
                   setLoading(true);
                   if (order.id) {
-                    await api.put(`/orders/${order.id}/status`, { status: 'dispatched' });
+                    // Update local cache only; leave backend status as 'ready'
+                    const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
+                    if (!handedOverIds.includes(String(order.id))) {
+                      const newIds = [...handedOverIds, String(order.id)];
+                      localStorage.setItem('handedOverIds', JSON.stringify(newIds));
+                    }
                   }
-                  setRiderVerifiedAt(new Date());
+                  setStaffVerifiedAt(new Date());
                   setStep("complete");
                 } catch (err) {
                   console.error(err);
@@ -140,11 +122,11 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
                 }
               }}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 rounded-xl py-4"
-              style={{ backgroundColor: "#EF5A06", opacity: loading ? 0.7 : 1 }}
+              className="w-full flex items-center justify-center gap-2 rounded-xl py-4 transition-opacity"
+              style={{ backgroundColor: "#00891D", opacity: loading ? 0.7 : 1 }}
             >
               {loading ? <Loader2 className="animate-spin text-white" size={18} /> : <CheckCircle size={18} color="white" />}
-              <span className="text-white" style={{ fontWeight: 600, fontSize: "15px" }}>Rider Verified ✓</span>
+              <span className="text-white" style={{ fontWeight: 600, fontSize: "15px" }}>Staff Verified ✓</span>
             </button>
           </div>
         )}
@@ -163,17 +145,14 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
 
             <div className="text-center">
               <h2 className="text-gray-900 mb-1 dark:text-gray-100" style={{ fontWeight: 700, fontSize: "22px" }}>Handover Complete!</h2>
-              <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "14px" }}>Order dispatched to {order.riderName || "N/A"}</p>
+              <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "14px" }}>Order handed over successfully</p>
             </div>
 
             <div className="bg-white rounded-2xl p-4 w-full shadow-sm dark:bg-gray-800">
               {[
                 { label: "Order", value: `#${order.order_number || "QC100240"}` },
-                { label: "Rider", value: order.riderName || "N/A" },
-                { label: "Staff Verified", value: staffVerifiedAt ? staffVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
-                { label: "Rider Verified", value: riderVerifiedAt ? riderVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
-                { label: "Handover Time", value: riderVerifiedAt ? riderVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
-                { label: "Status", value: "Dispatched ✓" },
+                { label: "Handover Time", value: staffVerifiedAt ? staffVerifiedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A" },
+                { label: "Status", value: "Handed Over ✓" },
               ].map(row => (
                 <div key={row.label} className="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
                   <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "13px" }}>{row.label}</span>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, CheckCircle, Printer, Package, CheckSquare, Square, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, Package, CheckSquare, Square, Loader2 } from "lucide-react";
 import api from "../../api/axios";
 import { getSLAInfo } from "../../utils/slaHelper";
 
@@ -13,7 +13,6 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
-  const [labelPrinted, setLabelPrinted] = useState(false);
   const [slaInfo, setSlaInfo] = useState(() => getSLAInfo(order));
 
   useEffect(() => {
@@ -48,7 +47,7 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
   };
 
   const handleCompletePacking = async () => {
-    if (allChecked && labelPrinted && order?.id) {
+    if (allChecked && order?.id) {
       try {
         await api.put(`/orders/${order.id}/status`, {
           status: 'ready',
@@ -89,10 +88,10 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
             </span>
             <span className="text-white/70" style={{ fontSize: "12px" }}>{totalToPack ? Math.round((totalChecked / totalToPack) * 100) : 0}%</span>
           </div>
-          <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-white/30 rounded-full overflow-hidden shadow-inner">
             <div
               className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${totalToPack ? (totalChecked / totalToPack) * 100 : 0}%`, backgroundColor: allChecked ? "#9E9E9E" : "#FFC107" }}
+              style={{ width: `${totalToPack ? (totalChecked / totalToPack) * 100 : 0}%`, backgroundColor: allChecked ? "#EF5A06" : "#FFC107" }}
             />
           </div>
         </div>
@@ -169,27 +168,17 @@ export function PackingScreenMobile({ onNavigate, onBack, order }: PackingScreen
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-100 p-2.5 dark:bg-gray-800 dark:border-gray-700">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setLabelPrinted(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 border"
-            style={{ borderColor: labelPrinted ? "#00891D" : "#EF5A06", backgroundColor: labelPrinted ? "#E8F5E9" : "white" }}
-          >
-            <Printer size={13} color={labelPrinted ? "#00891D" : "#EF5A06"} />
-            <span style={{ color: labelPrinted ? "#00891D" : "#EF5A06", fontWeight: 600, fontSize: "11px" }}>
-              {labelPrinted ? "Label Printed ✓" : "Print Label"}
-            </span>
-          </button>
+      <div className="fixed bottom-14 md:bottom-0 left-0 md:left-64 right-0 bg-white border-t border-gray-100 p-2.5 dark:bg-gray-800 dark:border-gray-700 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <div className="flex gap-2 w-full">
           <button
             onClick={handleCompletePacking}
-            disabled={!allChecked || !labelPrinted}
-            className="flex-[2] flex items-center justify-center gap-1.5 rounded-lg py-2 transition-opacity"
-            style={{ backgroundColor: allChecked && labelPrinted ? "#2E7D32" : "#BDBDBD", opacity: allChecked && labelPrinted ? 1 : 0.7 }}
+            disabled={!allChecked}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 transition-opacity w-full"
+            style={{ backgroundColor: allChecked ? "#2E7D32" : "#BDBDBD", opacity: allChecked ? 1 : 0.7 }}
           >
-            <CheckCircle size={13} color="white" />
-            <span className="text-white" style={{ fontWeight: 600, fontSize: "12px" }}>
-              {allChecked && labelPrinted ? "Complete Packing" : `Pack ${remainingToPack} more item${remainingToPack === 1 ? "" : "s"}`}
+            <CheckCircle size={16} color="white" />
+            <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>
+              {allChecked ? "Complete Packing" : `Pack ${remainingToPack} more item${remainingToPack === 1 ? "" : "s"}`}
             </span>
           </button>
         </div>

@@ -3,6 +3,7 @@ import { ArrowLeft, Clock, MapPin, Zap, ShoppingCart, Phone, AlertCircle, CheckC
 import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
 import { ShopkeeperModal } from "./ShopkeeperModal";
+import { useSharedOrders } from "./SharedOrdersContext";
 
 interface NewOrdersProps {
   onNavigate: (screen: string, data?: unknown) => void;
@@ -34,9 +35,6 @@ function CountdownTimer({ minutes }: { minutes: number }) {
 }
 
 export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedShopkeeper, setSelectedShopkeeper] = useState<{ id: number; assignedAt: string; timeoutMinutes: number } | null>(null);
 
   // User & role info for staff UI filtering
@@ -47,57 +45,20 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
     try {
       const u = JSON.parse(storedU);
       userRole = u.role;
-    } catch (e) {}
+    } catch (e) { }
   }
   const isStaff = isShopkeeper || (userRole && !["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole.toUpperCase()));
 
   // Real-time integration using storeId 1 as per dummy data
   const socket = useSocket(1);
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/orders?status=new');
-      setOrders(res.data);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch new orders.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-
-    if (socket.current) {
-      socket.current.on('order:new', () => {
-        fetchOrders();
-      });
-      socket.current.on('order:assigned', () => {
-        fetchOrders();
-      });
-      socket.current.on('order:status', ({ orderId, status }: any) => {
-        if (status !== 'new' && status !== 'assigned') {
-          setOrders(prev => prev.filter(o => o.id !== Number(orderId)));
-        }
-      });
-    }
-
-    return () => {
-      if (socket.current) {
-        socket.current.off('order:new');
-        socket.current.off('order:assigned');
-        socket.current.off('order:status');
-      }
-    };
-  }, [socket.current]);
+  const { orders: sharedOrders, refreshOrders, loading } = useSharedOrders();
+  const orders = sharedOrders.filter((o: any) => o.status === 'new' || o.status === 'assigned');
 
   const handleAccept = async (orderId: number) => {
     try {
       await api.put(`/orders/${orderId}/accept`);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
+      await refreshOrders();
       onNavigate("picking-queue");
     } catch (err) {
       console.error(err);
@@ -107,7 +68,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   const handleReject = async (orderId: number) => {
     try {
       await api.put(`/orders/${orderId}/reject`);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
+      await refreshOrders();
     } catch (err) {
       console.error(err);
     }
@@ -141,12 +102,6 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
           )}
         </div>
       </div>
-
-      {error && (
-        <div className="p-4 bg-red-50 text-red-700 m-4 rounded-xl border border-red-200">
-          {error}
-        </div>
-      )}
 
       {/* Order Cards */}
       <div className="flex flex-col gap-3 p-4">

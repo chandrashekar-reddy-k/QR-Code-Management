@@ -182,43 +182,32 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     } else if (storedU) {
       try {
         const u = JSON.parse(storedU);
-        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
+        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || null;
       } catch (e) { }
     }
 
     // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, must not be pre-payment PENDING status, and must be assigned to a shopkeeper
-    let allOrders = distinctOrders.filter((o: any) => {
-      const oWh = o.warehouseId || o.warehouse_id;
-      if (!oWh) return false;
+    // Filter logic
+    let allOrders = distinctOrders;
 
-      if (userWarehouseId && oWh !== userWarehouseId) {
-        return false;
-      }
-
-      const status = (o.status || "").toUpperCase();
-      if (status === 'PENDING') {
-        return false;
-      }
-
-      const isAssigned = o.shopkeeper_name || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_phone || o.assignedShopkeeperId;
-      if (!isAssigned) {
-        return false;
-      }
-
-      return true;
-    });
-
-    // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
-    if (!isAdmin) {
-      const storedUser = localStorage.getItem("staffUser");
+    if (isAdmin) {
+      allOrders = distinctOrders.filter((o: any) => {
+        const oWh = o.warehouseId || o.warehouse_id;
+        if (!oWh) return false;
+        if (userWarehouseId && oWh !== userWarehouseId) return false;
+        const status = (o.status || "").toUpperCase();
+        if (status === 'PENDING') return false;
+        return true;
+      });
+    } else {
+      const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("staffUser");
       const user = storedUser ? JSON.parse(storedUser) : null;
-      const userPhone = user?.phone;
-      if (userPhone) {
+      const skId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
+      if (skId) {
         allOrders = allOrders.filter(
           (o: any) =>
-            o.assignedShopkeeper?.phone === userPhone ||
-            o.assigned_shopkeeper?.phone === userPhone ||
-            o.shopkeeper_phone === userPhone
+            o.assignedShopkeeperId === skId ||
+            o.assigned_shopkeeper_id === skId
         );
       }
     }
@@ -227,11 +216,11 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const newOrders = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'new';
+      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending';
     }).length;
 
     const activeOrdersCount = allOrders.filter((o: any) => {
-      const isAssigned = o.shopkeeper_phone || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_name;
+      const isAssigned = o.shopkeeper_phone || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_name || o.assignedShopkeeperId || o.assigned_shopkeeper_id;
       if (!isAssigned) return false;
       const s = o.status?.toLowerCase();
       return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'packing', 'processing', 'ready'].includes(s);
