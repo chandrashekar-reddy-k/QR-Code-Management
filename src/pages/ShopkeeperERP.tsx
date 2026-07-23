@@ -529,10 +529,11 @@ export default function ShopkeeperERP() {
               onClick={async () => {
                 const token = localStorage.getItem('token');
                 const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
-                const identityUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000";
+                const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
+                const identityUrl = `${baseUrl}/api/v1/auth/sso/ticket`;
                 if (token) {
                   try {
-                    const response = await fetch(`${identityUrl}/api/v1/auth/sso/ticket`, {
+                    const response = await fetch(identityUrl, {
                       method: 'POST',
                       headers: {
                         'Authorization': `Bearer ${token}`,

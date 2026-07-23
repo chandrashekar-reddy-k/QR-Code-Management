@@ -45,7 +45,8 @@ type ApiError =
 const useLogin = (onSuccess: (data: LoginResponse) => void) => {
   return useMutation<LoginResponse, ErrorResponse, LoginPayload>({
     mutationFn: (payload: LoginPayload) => {
-      const identityServiceUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000") + "/api/v1/auth/login";
+      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
+      const identityServiceUrl = `${baseUrl}/api/v1/auth/login`;
       return fetch(identityServiceUrl, {
         method: "POST",
         headers: {
