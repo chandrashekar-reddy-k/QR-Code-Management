@@ -31,7 +31,7 @@ export const useUserStore = create(
           set({
             user: {
               ...data,
-              permissions: data.permissions || data.customRole?.permissions || null,
+              permissions: data.customRole?.permissions || data.permissions || null,
               customRoleName: data.customRoleName || data.customRole?.name || null,
               portalType: data.portalType || data.customRole?.portalType || null,
               customRoleId: data.customRoleId || data.customRole?.id || null,
@@ -71,8 +71,32 @@ export const useUserStore = create(
         }
       },
 
-      can: (module, action, section) => {
-        return true;
+      can: (module, action = 'READ', section) => {
+        const user = get().user;
+        if (!user) return false;
+
+        // Super Admins & Tenant Owners bypass all permission gates
+        if (['SUPER_ADMIN', 'TENANT_OWNER'].includes(user.role)) return true;
+
+        // Evaluate permissions map
+        if (!user.permissions || typeof user.permissions !== 'object') {
+          return false;
+        }
+
+        const modName = module ? String(module).toUpperCase() : '';
+        const baseModule = modName.endsWith('S') ? modName.slice(0, -1) : modName;
+
+        const perms = user.permissions[modName] || 
+                      user.permissions[baseModule] || 
+                      user.permissions[`${baseModule}S`] || 
+                      [];
+
+        if (Array.isArray(perms)) {
+          if (perms.includes('ALL') || perms.includes('*')) return true;
+          return perms.includes(action);
+        }
+
+        return false;
       },
 
       clearUser: () => {

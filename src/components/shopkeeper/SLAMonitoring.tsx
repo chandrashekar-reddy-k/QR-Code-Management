@@ -113,19 +113,11 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     if (!dateFilter || dateFilter === 'all') return true;
     const orderDate = new Date(o.createdAt || o.created_at || o.acceptedAt || o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt);
     if (isNaN(orderDate.getTime())) return true;
-<<<<<<< HEAD
-    
-    const nowTime = now.getTime();
-    if (dateFilter === 'today') {
-      const today = new Date(now);
-      today.setHours(0,0,0,0);
-=======
 
     const nowTime = now.getTime();
     if (dateFilter === 'today') {
       const today = new Date(now);
       today.setHours(0, 0, 0, 0);
->>>>>>> erp/shopweb
       return orderDate >= today;
     }
     if (dateFilter === 'week') {
@@ -139,14 +131,10 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     return true;
   };
 
-<<<<<<< HEAD
-=======
   const isCancelledOrRejected = (o: any) => {
     const s = o.status?.toLowerCase();
     return s && ['cancelled', 'rejected'].includes(s);
   };
-
->>>>>>> erp/shopweb
   // 1. Summary counts
   let onTrackCount = 0;
   let atRiskCount = 0;
@@ -155,50 +143,11 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
   const breachesList: any[] = [];
 
   orders.forEach((o) => {
-<<<<<<< HEAD
-    if (!isNotDispatchedOrCancelled(o)) {
-=======
     const s = o.status?.toLowerCase();
     if (!s || isCancelledOrRejected(o)) {
->>>>>>> erp/shopweb
       return;
     }
 
-    // Apply Stage Filter to counts
-<<<<<<< HEAD
-    if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return;
-
-    // Apply Date Filter to counts
-    if (!matchesDateFilter(o)) return;
-
-    // Apply Search Query to counts
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const orderNo = (o.order_number || o.orderNumber || "").toLowerCase();
-      const custName = (o.customer_name || o.consumer?.name || "").toLowerCase();
-      if (!orderNo.includes(q) && !custName.includes(q)) return;
-    }
-
-    const slaInfo = getSLAInfo(o, now);
-    const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt;
-    const acceptedAt = acceptedAtStr ? new Date(acceptedAtStr).getTime() : now.getTime();
-    const elapsed = (now.getTime() - acceptedAt) / 60000;
-    const slaMinutes = o.sla_minutes || o.slaMinutes || 30;
-
-    if (slaInfo.status === 'breached') {
-      breachedCount++;
-      breachesList.push({
-        order_number: o.order_number || o.orderNumber,
-        customer_name: o.customer_name || o.consumer?.name || "Customer",
-        customer_phone: o.customer_phone || o.consumer?.phone || "",
-        order_type: o.order_type || (o.fulfillmentType === 'STORE_PICKUP' ? 'Self Pickup' : 'Home Delivery'),
-        status: o.status,
-        sla_minutes: slaMinutes,
-        delay_minutes: Math.max(0, Math.floor(elapsed - slaMinutes))
-      });
-    } else if (slaInfo.status === 'at_risk') {
-      atRiskCount++;
-=======
     if (stageFilter && s !== stageFilter.toLowerCase()) return;
 
     // Apply Search Query to counts
@@ -242,7 +191,6 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
           });
         }
       }
->>>>>>> erp/shopweb
     } else {
       if (slaInfo.status === 'breached') {
         activeBreachedCount++;
@@ -298,11 +246,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
 
     const acceptedAtStr = o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt || o.createdAt || o.created_at;
     const completedAtStr = o.dispatched_at || o.dispatchedAt || o.delivered_at || o.deliveredAt || o.completed_at || o.completedAt || o.updatedAt || o.updated_at;
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> erp/shopweb
     if (acceptedAtStr && completedAtStr) {
       const start = new Date(acceptedAtStr).getTime();
       const end = new Date(completedAtStr).getTime();
@@ -313,23 +257,14 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     }
   });
 
-<<<<<<< HEAD
-  const dynamicAvgFulfillment = completedCount > 0 
-    ? Math.round(totalFulfillmentMinutes / completedCount) 
-=======
   const dynamicAvgFulfillment = completedCount > 0
     ? Math.round(totalFulfillmentMinutes / completedCount)
->>>>>>> erp/shopweb
     : (slaData?.summary?.avg_fulfillment || 15);
 
   const summary = {
     active_orders: activeOrdersCount,
     at_risk: atRiskCount,
-<<<<<<< HEAD
-    active_breaches: breachedCount,
-=======
     active_breaches: dispatchedBreachedCount,
->>>>>>> erp/shopweb
     avg_fulfillment: dynamicAvgFulfillment
   };
 
@@ -341,20 +276,11 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
 
     const slaInfo = getSLAInfo(o, now);
     const currentSlaStatus = slaInfo.status;
-<<<<<<< HEAD
-
-    if (currentSlaStatus === 'on_track') return false;
-
-    if (slaFilter && currentSlaStatus !== slaFilter) return false;
-    if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return false;
-    if (!matchesDateFilter(o)) return false;
-=======
 
 
 
     if (slaFilter && currentSlaStatus !== slaFilter) return false;
     if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return false;
->>>>>>> erp/shopweb
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();

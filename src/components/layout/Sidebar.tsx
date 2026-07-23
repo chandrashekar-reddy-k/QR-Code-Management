@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+// import { ChevronDown, ChevronRight, X } from "lucide-react";
 import {
   sidebarConfig,
   initialStateCheckers,
   MenuSection,
   SubMenuItem,
 } from "./sidebarConfig";
+// import { useState, useEffect, useCallback } from 'react';
+// import { Link, useLocation } from 'react-router-dom';
+import { Home, CalendarClock, Bike, Megaphone, Hash, Database, Image, Smile, Map, Users2, Smartphone, HelpCircle, Package, ShoppingCart, Store, Image as ImageIcon, Tag, RotateCcw, Star, Truck, ChevronDown, ChevronRight, Settings, FolderTree, Layers, Award, Ruler, Percent, MapPin, Navigation, Building2, Phone, Info, FileText, Shield, Upload, RefreshCw, CheckCircle, Film, Users, UserCog, Handshake, Boxes, Eye, AlertTriangle, ClipboardList, ArrowRightLeft, Receipt, ScanLine, Printer, Bell, UserCheck, Wallet, DollarSign, ShieldCheck, Maximize2, Monitor, Clock, CreditCard, Globe, Share2, X, Languages, BarChart3, Link2, BookOpen, Wrench, Activity, History, ShieldAlert, Landmark, MessageSquare, BarChart2 } from 'lucide-react';
 
 // Sidebar component props interface
 interface SidebarProps {
@@ -14,13 +17,147 @@ interface SidebarProps {
   setIsOpen?: (open: boolean) => void; // Function to open/close sidebar
 }
 
-/**
- * Sidebar Component
- * This component displays the menu sidebar on the left side
- * It handles all menu items, submenus, and navigation
- */
+// Build a slug from module name using Partner: prefix
+const buildPartnerSlug = (moduleName: string): string => {
+  const prefix = "Partner: ";
+  const mappedModuleName = moduleName;
+  return (prefix + mappedModuleName)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') + '_view';
+};
+
 const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
-  // Get current page path
+  // Live permission state — refreshed from Identity Service token
+  const [permissions, setPermissions] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('permissions') || '[]'); } catch { return []; }
+  });
+
+  // Refresh token from Identity Service and update localStorage + state
+  const refreshPermissions = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('partnerToken');
+      if (!token) return;
+      const localMeUrl = `http://localhost:4000/api/v1/auth/me`;
+      const res = await fetch(localMeUrl, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.data?.accessToken) {
+        localStorage.setItem('partnerToken', data.data.accessToken);
+      }
+      const newPermissions = data.data?.permissions || data.data?.user?.permissions || data.permissions;
+      if (newPermissions) {
+        localStorage.setItem('permissions', JSON.stringify(newPermissions));
+        setPermissions(newPermissions);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    // Immediate refresh on mount
+    refreshPermissions();
+    // Poll every 30 seconds for permission changes
+    const interval = setInterval(refreshPermissions, 30000);
+    const onFocus = () => refreshPermissions();
+    window.addEventListener('focus', onFocus);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'permissions' && e.newValue) {
+        try { setPermissions(JSON.parse(e.newValue)); } catch { /* silent */ }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [refreshPermissions]);
+
+  // Permission check using live state with dynamic keyword-root matching
+  const hasModuleViewPermission = useCallback((moduleName: string) => {
+    if (!permissions || !Array.isArray(permissions)) return false;
+    
+    // Super Admins, Tenant Owners or wildcard permission holders pass everything
+    if (permissions.includes('*') || permissions.includes('ALL') || permissions.includes('all')) return true;
+
+    // Helper to normalize strings into core semantic word roots
+    const getSemanticRoots = (str: string) => {
+      return str
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .split(' ')
+        .map(word => {
+          // Normalize common synonyms to align frontend labels with DB schema
+          if (word === 'procurement') return 'purchase';
+          if (word === 'pricing') return 'price';
+          if (word === 'logistics') return 'vsms';
+          return word;
+        })
+        .filter(word => {
+          // Filter out generic noise words
+          return word && !['partner', 'admin', 'vsms', 'management', 'view', 'create', 'edit', 'delete', 'all', 'update', 'setup', 'and', 'erp', 'to', 'the', 'settings'].includes(word);
+        });
+    };
+
+    const targetRoots = getSemanticRoots(moduleName);
+    if (targetRoots.length === 0) return true; // Show items with no specific semantic constraints
+
+    // Check if any active permission in the DB matches the target roots
+    return permissions.some(perm => {
+      // Only view permissions or special access permissions should show in the sidebar
+      const isViewPermission = perm.endsWith('_view') || perm.includes('view') || perm.endsWith('_track') || perm.endsWith('_tracking');
+      if (!isViewPermission) return false;
+
+      const permRoots = getSemanticRoots(perm);
+      return targetRoots.every(root => permRoots.includes(root));
+    });
+  }, [permissions]);
+
+  const hasSubPermission = useCallback((parent: string, label: string) => {
+    if (!permissions || !Array.isArray(permissions)) return false;
+    if (permissions.includes('*') || permissions.includes('ALL') || permissions.includes('all')) return true;
+
+    const toSlugPart = (str: string) => str.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+    const portal = 'partner';
+    const parentPart = toSlugPart(parent);
+    const labelPart = toSlugPart(label);
+
+    const candidates = [
+      `${portal}_${parentPart}_${labelPart}_view`,
+      `${parentPart}_${labelPart}_view`,
+      `${portal}_${labelPart}_view`,
+      `${labelPart}_view`
+    ];
+
+    // Strip duplicate parent words from the sub-item name dynamically (e.g. "asset" in "fleet_assets" and "asset_assignment")
+    const wordsInParent = parentPart.split('_');
+    const wordsInLabel = labelPart.split('_');
+    const cleanLabelPart = wordsInLabel.filter(w => !wordsInParent.includes(w)).join('_');
+    if (cleanLabelPart && cleanLabelPart !== labelPart) {
+      candidates.push(`${portal}_${parentPart}_${cleanLabelPart}_view`);
+      candidates.push(`${parentPart}_${cleanLabelPart}_view`);
+    }
+
+    // Strip redundant words like 'vehicle', 'asset' or 'management' dynamically to prevent mismatches
+    const cleanLabelWords = wordsInLabel.filter(w => !wordsInParent.includes(w) && !['asset', 'assets', 'vehicle', 'vehicles', 'agent', 'management', 'setup'].includes(w));
+    const cleanLabelPart2 = cleanLabelWords.join('_');
+    if (cleanLabelPart2 && cleanLabelPart2 !== cleanLabelPart && cleanLabelPart2 !== labelPart) {
+      candidates.push(`${portal}_${parentPart}_${cleanLabelPart2}_view`);
+      candidates.push(`${parentPart}_${cleanLabelPart2}_view`);
+    }
+
+    // Strip generic portal keywords from parent name (e.g. "admin" in "shopkeeper_erp_admin")
+    const cleanParentPart = parentPart.replace(/_admin|_partner/g, '');
+    if (cleanParentPart !== parentPart) {
+      candidates.push(`${portal}_${cleanParentPart}_${labelPart}_view`);
+      candidates.push(`${portal}_${cleanParentPart}_${cleanLabelPart}_view`);
+      candidates.push(`${cleanParentPart}_${labelPart}_view`);
+      candidates.push(`${cleanParentPart}_${cleanLabelPart}_view`);
+    }
+
+    return candidates.some(candidate => permissions.includes(candidate));
+  }, [permissions]);
   const location = useLocation();
 
   // ============================================
@@ -75,10 +212,56 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   );
 
   // Additional config states
-  const [isShopkeeperErpAdminOpen, setIsShopkeeperErpAdminOpen] = useState(false);
+  const [isShopkeeperErpAdminOpen, setIsShopkeeperErpAdminOpen] = useState(
+    location.pathname.startsWith('/shopkeeper-erp')
+  );
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);
-  const [isProcurementOpen, setIsProcurementOpen] = useState(false);
+  const [isProcurementOpen, setIsProcurementOpen] = useState(
+    location.pathname.startsWith('/procurement')
+  );
+  const [isMasterSetupOpen, setIsMasterSetupOpen] = useState(
+    location.pathname.startsWith('/master-setup') || location.pathname.startsWith('/categories')
+  );
+  const [isProductMasterDataOpen, setIsProductMasterDataOpen] = useState(
+    location.pathname.startsWith('/product-master-data')
+  );
+  const [isInventoryOpen, setIsInventoryOpen] = useState(
+    location.pathname.startsWith('/inventory')
+  );
+  const [isPartnersOpen, setIsPartnersOpen] = useState(
+    location.pathname.startsWith('/partner-management') || location.pathname.startsWith('/user-management/partners')
+  );
+  const [isOrdersOpen, setIsOrdersOpen] = useState(
+    location.pathname.startsWith('/orders') || location.pathname.startsWith('/home-delivery-orders') || location.pathname.startsWith('/self-pickup-orders')
+  );
+  const [isSellersOpen, setIsSellersOpen] = useState(
+    location.pathname.startsWith('/vendors')
+  );
+  const [isDeliveryBoysOpen, setIsDeliveryBoysOpen] = useState(
+    location.pathname.startsWith('/delivery-boys')
+  );
+  const [isPromotionsOpen, setIsPromotionsOpen] = useState(
+    location.pathname.startsWith('/promo-codes') || location.pathname.startsWith('/promotions')
+  );
+  const [isSettingsOpen, setIsSettingsOpen] = useState(
+    location.pathname.startsWith('/system/settings') || location.pathname.startsWith('/delivery-charges')
+  );
+  const [isRatingsOpen, setIsRatingsOpen] = useState(
+    location.pathname.startsWith('/ratings')
+  );
+  const [isResourcesOpen, setIsResourcesOpen] = useState(
+    location.pathname.startsWith('/resource-management') || location.pathname.startsWith('/assets') || location.pathname.startsWith('/administration-report') || location.pathname.startsWith('/human-resource')
+  );
+  const [isActivityLogOpen, setIsActivityLogOpen] = useState(
+    location.pathname.startsWith('/activity-log')
+  );
+  const [isOfferImagesOpen, setIsOfferImagesOpen] = useState(
+    location.pathname.startsWith('/offer-images')
+  );
+  const [isWebSettingsOpen, setIsWebSettingsOpen] = useState(
+    location.pathname.startsWith('/web-settings')
+  );
   const [isVsmsOpen, setIsVsmsOpen] = useState(false);
   const [isAssetsOpen, setIsAssetsOpen] = useState(false);
 
@@ -161,6 +344,434 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
     ]
   );
+
+  const [isContactOpen, setIsContactOpen] = useState(
+    location.pathname.startsWith('/contact-us')
+  );
+
+  const [isDeliveryOpen, setIsDeliveryOpen] = useState(
+    location.pathname.startsWith('/delivery-settings')
+  );
+
+  const [isStaffOpen, setIsStaffOpen] = useState(
+    location.pathname.startsWith('/staff-management')
+  );
+  const [isShopkeeperOpen, setIsShopkeeperOpen] = useState(
+    location.pathname.startsWith('/shopkeeper')
+  );
+  const navItems = [
+    { path: '/', icon: Home, label: 'Dashboard' },
+  ];
+
+  const shopkeeperErpAdminSubItems = [
+    { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
+    { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
+    { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
+    { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
+    { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
+    { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
+    { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
+    { path: '/shopkeeper-erp?tab=all-orders', label: 'Order History', icon: History },
+    { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
+    { path: '/shopkeeper-erp?tab=settings', label: 'Settings', icon: Settings }
+  ];
+
+  // const categorySubItems = [
+  //   { path: '/categories/order', label: 'Order Categories' },
+  // ];
+
+
+  const ordersSubItems = [
+    { path: '/orders/live-dashboard', label: 'Live OMS Dashboard', icon: Activity },
+    { path: '/home-delivery-orders', label: 'Home Delivery Orders', icon: Home },
+    { path: '/self-pickup-orders', label: 'Self Pickup Orders', icon: Store },
+    { path: '/orders/sla', label: 'SLA Center', icon: Clock },
+    { path: '/orders/breached', label: 'Breached SLA', icon: Clock },
+    { path: '/orders/escalated', label: 'Escalated SLA', icon: AlertTriangle },
+    { path: '/audit/logs', label: 'Audit Logs', icon: History },
+    { path: '/fraud/risk-queue', label: 'Fraud Queue', icon: ShieldAlert },
+    { path: '/settlements/dashboard', label: 'Settlement Dashboard', icon: Landmark },
+    { path: '/settlements/commission-rules', label: 'Commission Rules', icon: Settings },
+    { path: '/notifications/logs', label: 'Notification Logs', icon: MessageSquare },
+    { path: '/analytics/dashboard', label: 'OMS Analytics', icon: BarChart2 },
+  ];
+
+
+  const promotionsSubItems = [
+    { path: '/promo-codes/manage', label: 'Promo Codes', icon: Tag },
+    { path: '/promo-codes/banners', label: 'Banners', icon: Image },
+    { path: '/promo-codes/campaigns', label: 'Campaigns', icon: Megaphone },
+  ];
+
+  const settingsSubItems = [
+    { path: '/settings/root-map-creation', label: 'Root Map Creation', icon: MapPin },
+    { path: '/settings/slot-management', label: 'Slot Management', icon: Clock },
+    { path: '/settings/delivery-zone-management', label: 'Delivery Zone Management', icon: Map },
+  ];
+
+  const ratingsSubItems = [
+    { path: '/products/ratings', label: 'Product Ratings', icon: Star },
+    { path: '/service-ratings', label: 'Service Ratings', icon: Smile },
+  ];
+
+  const locationsSubItems = [
+    { path: '/master-setup/countries', label: 'Countries', icon: MapPin },
+    { path: '/master-setup/states', label: 'State', icon: MapPin },
+    { path: '/master-setup/districts', label: 'District', icon: Navigation },
+    { path: '/master-setup/areas', label: 'Areas/Cities', icon: Building2 },
+    { path: '/master-setup/zip-codes', label: 'Zip Codes', icon: Hash },
+    // { path: '/locations/areas', label: 'Areas', icon: Grid },
+  ];
+
+
+  const resourcesSubItems = [
+    { path: '/resource-management/assets', label: 'Assets', icon: Database },
+    { path: '/resource-management/adminstation', label: 'Administration Report', icon: FileText },
+    { path: '/resource-management/humen', label: 'Humen Resource', icon: FileText },
+  ];
+
+  const partnerSubItems = [
+    {
+      path: '/user-management/partners',
+      label: 'Manage Partners',
+      icon: Handshake,
+    },
+    {
+      path: '/partner-management/partner-wallet',
+      label: 'Partner Wallet Transactions',
+      icon: Wallet,
+    },
+    {
+      path: '/partner-management/partner-policies',
+      label: 'Partner Policies',
+      icon: FileText,
+    },
+  ]
+
+
+  const activityLogSubItems = [
+    { path: '/activity-log/policies', label: 'Policies', icon: FileText },
+    { path: '/activity-log/customer', label: 'Customer', icon: Users },
+    { path: '/activity-log/partner', label: 'Partner', icon: UserCheck },
+    { path: '/activity-log/vendor', label: 'Vendor', icon: Store },
+    { path: '/activity-log/hr-policies', label: 'HR Policies', icon: Shield },
+    { path: '/activity-log/app-links', label: 'App Links', icon: Smartphone },
+    { path: '/activity-log/faqs', label: "FAQ's", icon: HelpCircle },
+  ];
+
+  const shopkeeperSubItems = [
+    { path: '/shopkeeper?tab=dashboard', label: 'Dashboard', icon: Home },
+    { path: '/shopkeeper?tab=picking-queue', label: 'Picking Queue', icon: Package },
+    { path: '/shopkeeper?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
+    { path: '/shopkeeper?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
+    { path: '/shopkeeper?tab=self-pickup', label: 'Self Pickup', icon: Store },
+    { path: '/shopkeeper?tab=returns', label: 'Returns', icon: RotateCcw },
+    { path: '/shopkeeper?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
+    { path: '/shopkeeper?tab=all-orders', label: 'Order History', icon: History },
+    { path: '/shopkeeper?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
+    { path: '/shopkeeper?tab=settings', label: 'Settings', icon: Settings }
+  ];
+
+  const contactSubItems = [
+    { path: '/contact-us/customer', label: 'Customer', icon: Users },
+    { path: '/contact-us/partner', label: 'Partner', icon: UserCheck },
+    { path: '/contact-us/vendor', label: 'Vendor', icon: Store },
+    { path: '/contact-us/staff', label: 'Staff / Human Resources', icon: Users2 },
+    { path: '/contact-us/social-media', label: 'Social Media Links', icon: Share2 },
+    { path: '/contact-us/app-links', label: 'App Links', icon: Smartphone },
+    { path: '/contact-us/faqs', label: "FAQ's", icon: HelpCircle },
+  ];
+
+
+
+  const deliverySubItems = [
+    {
+      path: '/delivery-settings/delivery-types',
+      label: 'Delivery Types',
+      icon: Truck,
+    },
+    {
+      path: '/delivery-settings/scheduled-delivery',
+      label: 'Scheduled Delivery',
+      icon: CalendarClock,
+    },
+    {
+      path: "/delivery-settings/store-pickup",
+      label: "Store Pickup",
+      icon: CalendarClock,
+    },
+  ];
+
+  const staffSubItems = [
+    {
+      path: '/staff-management/delivery-agents',
+      label: 'Delivery Agents',
+      icon: UserCheck,
+    },
+  ];
+
+  const masterSetupSubItems = [
+    { path: '/master-setup/centrals', label: 'States', icon: Building2 },
+    { path: '/master-setup/zones', label: 'Zones', icon: MapPin },
+    { path: '/master-setup/clusters', label: 'Clusters', icon: Users },
+    { path: '/master-setup/stores', label: 'Stores', icon: Store },
+    { path: '/master-setup/mobileStores', label: 'Mobile Stores', icon: Truck },
+    { path: '/categories/manage', label: 'Categories', icon: FolderTree },
+    // { path: '/vsms/assets?tab=categories', label: 'Asset Categories', icon: FolderTree },
+    { path: '/categories/sub-categories', label: 'Sub-Categories', icon: Layers },
+    { path: '/products/brands', label: 'Brands', icon: Award },
+
+    { path: '/master-setup/attributes', label: 'Attributes', icon: Tag },
+    { path: '/master-setup/unit-types', label: 'Unit Types', icon: Layers },
+    { path: '/products/units', label: 'Units', icon: Ruler },
+    { path: '/products/taxes', label: 'Taxes', icon: Percent },
+    { path: '/master-setup/role-management', label: 'Role Management', icon: ShieldCheck },
+    { path: '/master-setup/settings', label: 'Settings', icon: Settings },
+    { path: '/master-setup/inventory-management', label: 'Inventory Management', icon: Package },
+    { path: '/master-setup/expense-management', label: 'Expense Management', icon: Receipt },
+    { path: '/master-setup/asset-management', label: 'Asset Management', icon: Tag },
+    { path: '/master-setup/business-profile', label: 'Business Profile', icon: Store },
+    { path: '/master-setup/tax-settings', label: 'Tax Settings', icon: Percent },
+    { path: '/master-setup/shift-management', label: 'Shift Management', icon: Clock },
+    { path: '/products/bundles', label: 'Bundle Deals', icon: Tag },
+    { path: '/marketing/promos', label: 'Homepage Promos', icon: Percent },
+    { path: '/master-setup/delivery-fee-slabs', label: 'Delivery Fee Slabs', icon: Truck },
+    { path: '/master-setup/time-slots', label: 'Time Slots Management', icon: Clock },
+    { path: '/master-setup/radius-enforcement', label: 'Radius Enforcement', icon: MapPin },
+    // { path: '/master-setup/countries', label: 'Countries', icon: MapPin }, // Moved to Locations
+    // { path: '/master-setup/states', label: 'State', icon: MapPin },
+    // { path: '/master-setup/districts', label: 'District', icon: Navigation }, // Moved to Locations
+    // { path: '/master-setup/areas', label: 'Areas/Cities', icon: Building2 },
+    { path: '/master-setup/about-us', label: 'About Us', icon: Info },
+    { path: '/master-setup/contact-us', label: 'Contact Us', icon: Phone },
+    { path: '/master-setup/terms-conditions', label: 'Terms and Conditions', icon: FileText },
+    { path: '/master-setup/privacy-policy', label: 'Privacy and Policy', icon: Shield },
+  ];
+
+  const procurementSubItems = [
+    { path: '/procurement?tab=vendors', label: 'Vendors', icon: Users },
+    { path: '/procurement?tab=mapping', label: 'Item Mapping', icon: Link2 },
+    { path: '/procurement?tab=po', label: 'Purchase Orders', icon: ClipboardList },
+    { path: '/procurement?tab=grn', label: 'Goods Receipt', icon: Truck },
+    { path: '/procurement?tab=purchases', label: 'Purchases', icon: ShoppingCart },
+    { path: '/procurement?tab=ledger', label: 'Stock Ledger', icon: BookOpen },
+    { path: '/procurement?tab=payments', label: 'Payments', icon: CreditCard },
+    { path: '/procurement?tab=reports', label: 'Reports', icon: BarChart3 },
+  ];
+
+  const productSubItems = [
+    { path: '/products/manage', label: 'Partner Manage Products', icon: Package },
+    { path: '/products/approve', label: 'Partner Approve Requests', icon: CheckCircle },
+    { path: '/products/ratings', label: 'Partner Product Ratings', icon: Star },
+    { path: '/products/media', label: 'Partner Media', icon: Film },
+    // { path: '/products/import-products', label: 'Import Products', icon: ArrowDownToLine },
+    // { path: '/products/export-products', label: 'Export Products', icon: ArrowUpFromLine },
+    // { path: '/products/order', label: 'Products Order' },
+  ];
+  const pricingSubItems = [
+    { path: '/pricing/price-books', label: 'Price Books', icon: BookOpen },
+    { path: '/pricing/product-pricing', label: 'Product Pricing', icon: Tag },
+    { path: '/pricing/price-comparison', label: 'Price Comparison', icon: BarChart2 }
+  ];
+  const productMasterDataSubItems = [
+    { path: '/product-master-data/manage', label: 'Manage Products', icon: Package },
+    { path: '/product-master-data/ratings', label: 'Product Ratings', icon: Star },
+    { path: '/product-master-data/media', label: 'Media', icon: Film },
+    { path: '/product-master-data/bulk-upload', label: 'Bulk Upload', icon: Upload },
+    { path: '/product-master-data/bulk-update', label: 'Bulk Update', icon: RefreshCw },
+    // { path: '/product-master-data/import-products', label: 'Import Products', icon: ArrowDownToLine },
+    // { path: '/product-master-data/export-products', label: 'Export Products', icon: ArrowUpFromLine },
+  ];
+
+  // const partnerCategorySubItems = [
+  //   { path: '/partner-category-mapping/partner-categories', label: 'Partner Categories', icon: Package },
+  //   { path: '/partner-category-mapping/partner-special-categories', label: 'Partner Special Categories', icon: Package },
+  //   { path: '/partner-category-mapping/approve-request', label: 'Approve Requests', icon: Package },
+  // ];
+
+
+  const userManagementSubItems = [
+    // { path: '/delivery-boys/requests', label: 'Delivery agent', icon: Truck },
+    // { path: '/vendors/requests', label: 'Vendors', icon: Store },
+    { path: '/user-management/admins', label: 'Admins', icon: UserCog },
+    // { path: '/user-management/partners', label: 'Partners', icon: Handshake }, // Moved to Partner Management
+    { path: '/user-management/customers', label: 'Customers', icon: Users },
+    { path: '/user-management/customers-categories', label: 'Customers Categories', icon: Handshake },
+  ];
+
+  const sellerSubItems = [
+    { path: '/vendors/manage', label: 'Manage Vendors', icon: UserCheck },
+    { path: '/vendors/wallet-transactions', label: 'Vendor Wallet Transactions', icon: Wallet },
+    { path: '/vendors/policies', label: 'Vendor Policies', icon: FileText },
+  ];
+
+
+
+  const offerImageSubItems = [
+    { path: '/offer-images/manage', label: 'Manage Offer Images', icon: ImageIcon },
+    { path: '/offer-images/popup', label: 'Manage Popup Offer', icon: Maximize2 },
+  ];
+
+
+
+  const systemSubItems = [
+    { path: '/system/store-settings', label: 'Store Settings', icon: Settings },
+    // { path: '/system/delivery-settings', label: 'Delivery Settings', icon: Clock },
+    { path: '/system/payment-methods', label: 'Payment Methods', icon: CreditCard },
+    // { path: '/system/contact-us', label: 'Contact Us', icon: Phone }, // Moved to Master Setup
+    { path: '/system/about-us', label: 'About Us', icon: Info },
+    { path: '/system/seo-settings', label: 'SEO Settings', icon: Globe },
+  ];
+
+  const webSettingsSubItems = [
+    { path: '/web-settings/general', label: 'General Web Settings', icon: Settings },
+    { path: '/web-settings/social-media', label: 'Social Media', icon: Share2 },
+  ];
+
+
+  const vsmsSubItems = [
+    { path: '/vsms/vehicles', label: 'Fleet Vehicles', icon: Truck },
+    { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
+    { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
+    { path: '/vsms/routes-coverage', label: 'Routes & Coverage', icon: MapPin },
+    { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
+    { path: '/vsms/cash-management', label: 'Cash Management', icon: Wallet },
+    { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },
+    { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
+  ];
+
+  const barcodeSubItems = [
+    { path: '/vsms/barcodes?tab=master', label: 'Barcode Master', icon: ScanLine },
+    { path: '/vsms/barcodes?tab=printing', label: 'Barcode Printing', icon: Printer },
+  ];
+
+  const assetSubItems = [
+    { path: '/vsms/assets?tab=master', label: 'Assets Registry', icon: Package },
+    { path: '/vsms/assets?tab=tracking', label: 'Asset Assignment', icon: Users },
+    { path: '/vsms/assets?tab=transfers', label: 'Asset Transfers', icon: ArrowRightLeft },
+    { path: '/vsms/assets?tab=vehicle-mapping', label: 'Vehicle Mapping', icon: Truck },
+    { path: '/vsms/assets?tab=issues', label: 'Asset Maintenance', icon: Wrench },
+    { path: '/vsms/assets?tab=depreciation', label: 'Depreciation', icon: Percent },
+    { path: '/vsms/assets?tab=audit', label: 'Asset Audit', icon: ClipboardList },
+    { path: '/vsms/assets?tab=requests', label: 'Asset Requests', icon: HelpCircle },
+    { path: '/vsms/assets?tab=reports', label: 'Asset Reports', icon: BarChart3 },
+  ];
+
+  const deliveryBoySubItems = [
+    { path: '/delivery-boys/manage', label: 'Manage Delivery agents', icon: UserCheck },
+    { path: '/delivery-boys/fund-transfers', label: 'Fund Transfers', icon: ArrowRightLeft },
+    { path: '/delivery-boys/cash-collections', label: 'Cash Collection', icon: DollarSign },
+    { path: '/delivery-boys/policies', label: 'Delivery boy policies', icon: FileText },
+  ];
+
+  // const isCategoryActive = location.pathname.startsWith('/categories/order');
+
+  // Dynamic permission filters
+  const filteredUserManagementSubItems = userManagementSubItems.filter(() => hasModuleViewPermission("User Management"));
+  const filteredMasterSetupSubItems = masterSetupSubItems.filter(() => hasModuleViewPermission("Master Setup"));
+  const filteredProductSubItems = productSubItems.filter(() => hasModuleViewPermission("Product Management"));
+  const filteredPricingSubItems = pricingSubItems.filter(() => hasModuleViewPermission("Pricing Engine"));
+  const filteredProductMasterDataSubItems = productMasterDataSubItems.filter(() => hasModuleViewPermission("Product Management"));
+  const filteredBarcodeSubItems = barcodeSubItems.filter(item => hasSubPermission("Barcode Management", item.label) || hasModuleViewPermission(item.label));
+  const filteredProcurementSubItems = procurementSubItems.filter(() => hasModuleViewPermission("Purchase Management"));
+  const filteredPartnerSubItems = partnerSubItems.filter(() => hasModuleViewPermission("Partner Management"));
+  const filteredOrdersSubItems = ordersSubItems.filter(() => hasModuleViewPermission("Orders Management"));
+  const filteredSellerSubItems = sellerSubItems.filter(() => hasModuleViewPermission("Vendor Management"));
+  const filteredStaffSubItems = staffSubItems.filter(() => hasModuleViewPermission("Staff Management"));
+  const filteredShopkeeperSubItems = (typeof shopkeeperSubItems !== 'undefined' ? shopkeeperSubItems : []).filter(item => hasSubPermission("Shopkeeper ERP (Admin)", item.label));
+  const filteredShopkeeperErpAdminSubItems = shopkeeperErpAdminSubItems.filter(item => hasSubPermission("Shopkeeper ERP (Admin)", item.label));
+  const filteredDeliveryBoySubItems = deliveryBoySubItems.filter(() => hasModuleViewPermission("Delivery Management"));
+  const filteredPromotionsSubItems = promotionsSubItems.filter(() => hasModuleViewPermission("Promotions & Offers"));
+  const filteredVsmsSubItems = vsmsSubItems.filter(item => {
+    if (item.label === "Point of Sale") {
+      return hasModuleViewPermission("Point of Sales");
+    }
+    return hasSubPermission("VSMS Logistics", item.label);
+  });
+  const filteredAssetSubItems = assetSubItems.filter(item => hasSubPermission("Fleet Assets", item.label));
+  const filteredSettingsSubItems = settingsSubItems.filter(() => hasModuleViewPermission("Settings"));
+  const filteredRatingsSubItems = ratingsSubItems.filter(() => hasModuleViewPermission("Ratings & Reviews"));
+  const filteredResourcesSubItems = resourcesSubItems.filter(() => hasModuleViewPermission("Resource Management"));
+  const filteredSystemSubItems = systemSubItems.filter(() => hasModuleViewPermission("System Settings"));
+  const filteredWebSettingsSubItems = webSettingsSubItems.filter(() => hasModuleViewPermission("System Settings"));
+  const filteredLocationsSubItems = locationsSubItems.filter(() => hasModuleViewPermission("Master Setup"));
+  const filteredContactSubItems = contactSubItems.filter(() => hasModuleViewPermission("Contact Us"));
+  const filteredOfferImageSubItems = offerImageSubItems.filter(() => hasModuleViewPermission("Offer Images"));
+  const filteredDeliverySubItems = deliverySubItems.filter(() => hasModuleViewPermission("Delivery Management"));
+
+  const isUserManagementActive =
+    location.pathname.startsWith('/delivery-boys/requests') ||
+    location.pathname.startsWith('/delivery-boys/create') ||
+    location.pathname.startsWith('/delivery-boys/edit') ||
+    location.pathname.startsWith('/delivery-boys/view') ||
+    location.pathname.startsWith('/vendors/requests') ||
+    location.pathname.startsWith('/vendors/create') ||
+    location.pathname.startsWith('/vendors/edit') ||
+    location.pathname.startsWith('/vendors/view') ||
+    (location.pathname.startsWith('/user-management') &&
+      !location.pathname.startsWith('/user-management/partners'));
+  const isMasterSetupActive =
+    location.pathname.startsWith('/categories') ||
+    location.pathname.startsWith('/categories/sub-categories') ||
+    location.pathname.startsWith('/products/brands') ||
+    location.pathname.startsWith('/products/units') ||
+    location.pathname.startsWith('/products/taxes') ||
+    (location.pathname.startsWith('/master-setup') &&
+      !location.pathname.startsWith('/master-setup/countries') &&
+      !location.pathname.startsWith('/master-setup/districts')) ||
+    location.pathname.startsWith('/master-setup/contact-us');
+
+  const isProductActive = location.pathname.startsWith('/products') &&
+    !location.pathname.startsWith('/products/brands') &&
+    !location.pathname.startsWith('/products/units') &&
+    !location.pathname.startsWith('/products/taxes');
+  const isProductMasterDataActive = location.pathname.startsWith('/product-master-data');
+  const isPricingActive = location.pathname.startsWith('/pricing');
+  const isBarcodeActive = location.pathname.startsWith('/vsms/barcodes');
+  const isInventoryActive = location.pathname.startsWith('/inventory');
+  const isOfferImageActive = location.pathname.startsWith('/offer-images');
+  const isSystemActive = location.pathname.startsWith('/system');
+  const isWebSettingsActive = location.pathname.startsWith('/web-settings');
+  const isSellerActive = location.pathname.startsWith('/vendors') &&
+    !location.pathname.startsWith('/vendors/requests') &&
+    !location.pathname.startsWith('/vendors/create') &&
+    !location.pathname.startsWith('/vendors/edit') &&
+    !location.pathname.startsWith('/vendors/view');
+  const isDeliveryBoyActive = location.pathname.startsWith('/delivery-boys') &&
+    !location.pathname.startsWith('/delivery-boys/requests') &&
+    !location.pathname.startsWith('/delivery-boys/view') &&
+    !location.pathname.startsWith('/delivery-boys/create') &&
+    !location.pathname.startsWith('/delivery-boys/edit');
+
+  // Check if we're on a view page that should be under Delivery Boys or Sellers
+  const isDeliveryBoyViewPage = location.pathname.startsWith('/delivery-boys/view');
+  const isSellerViewPage = location.pathname.startsWith('/vendors/view');
+
+  // Adjust active states for view pages
+  const finalDeliveryBoyActive = isDeliveryBoyActive || isDeliveryBoyViewPage;
+  const finalSellerActive = isSellerActive || isSellerViewPage;
+
+  const finalOrdersActive =
+    location.pathname.startsWith('/orders') ||
+    location.pathname.startsWith("/home-delivery-orders") ||
+    location.pathname.startsWith('/self-pickup-orders');
+  const finalPromotionsActive = location.pathname.startsWith('/promotions');
+  const finalSettingsActive = location.pathname.startsWith('/settings');
+  const finalNotificationsActive = location.pathname.startsWith('/notifications');
+  const finalRatingsActive = location.pathname.startsWith('/ratings');
+  const finalLocationsActive = location.pathname.startsWith('/locations') ||
+    location.pathname.startsWith('/master-setup/countries') ||
+    location.pathname.startsWith('/master-setup/districts');
+  const finalResourcesActive = location.pathname.startsWith('/resource-management');
+  const finalPartnersActive = location.pathname.startsWith('/partner-management') ||
+    location.pathname.startsWith('/user-management/partners');
+  const finalActivityLogActive =
+    location.pathname.startsWith('/activity-log');
+  const finalContactActive = location.pathname.startsWith('/contact-us');
+  const finalDeliveryActive =
+    location.pathname.startsWith('/delivery-settings');
+  const finalStaffActive =
+    location.pathname.startsWith('/staff-management');
 
   // Update menu open states when location changes
   useEffect(() => {
@@ -255,6 +866,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     (section: MenuSection) => {
       if (!section.path || !section.label || !section.icon) return null;
 
+      // Permission gate for link items
+      if (section.label !== "Dashboard" && !hasModuleViewPermission(section.permission || section.label)) {
+        return null;
+      }
+
       const isActive = isItemActive(section);
       const Icon = section.icon;
 
@@ -273,7 +889,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         </div>
       );
     },
-    [isItemActive]
+    [isItemActive, hasModuleViewPermission]
   );
 
   const renderCollapsibleItem = useCallback(
@@ -285,6 +901,23 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         !section.subItems
       )
         return null;
+
+      const isParentAllowed = hasModuleViewPermission(section.permission || section.label);
+
+      // Filter sub-items by permissions
+      const visibleSubItems = section.subItems.filter((item) => {
+        if (item.hidden) return false;
+        // If parent module does not have granular sub-permissions, render all its children if the parent is allowed
+        if (!section.hasSubPermissions) {
+          return isParentAllowed;
+        }
+        return hasModuleViewPermission(item.permission || item.label) || hasSubPermission(section.label, item.permission || item.label);
+      });
+
+      // Permission gate: Hide collapsible menu if parent module is denied AND no sub-items are allowed
+      if (!isParentAllowed && visibleSubItems.length === 0) {
+        return null;
+      }
 
       const isOpen = stateGetters[section.stateKey] || false;
       const setIsOpen = stateSetters[section.stateKey];
@@ -342,8 +975,6 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         (section.stateKey === "isSystemOpen" &&
           location.pathname.startsWith("/system"));
 
-      const visibleSubItems = section.subItems.filter((item) => !item.hidden);
-
       return (
         <div className="mt-1" key={section.stateKey}>
           <button
@@ -354,9 +985,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               }`}
           >
             <div
-              className={`flex items-center gap-2 ${
-                section.stateKey === "isProductsOpen" ? "min-w-0" : ""
-              }`}
+              className={`flex items-center gap-2 ${section.stateKey === "isProductsOpen" ? "min-w-0" : ""
+                }`}
             >
               <Icon
                 size={16}
@@ -378,9 +1008,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           </button>
 
           <div
-            className={`overflow-hidden ${
-              isOpen ? "dropdown-enter" : "dropdown-exit"
-            }`}
+            className={`overflow-hidden ${isOpen ? "dropdown-enter" : "dropdown-exit"
+              }`}
             style={{
               maxHeight: isOpen ? "500px" : "0",
               transition:
@@ -440,7 +1069,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   return (
     <aside
       className={`w-72 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 h-screen flex flex-col fixed left-0 top-0 z-50 overflow-hidden transition-transform duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700 ${isOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0` }
+        } md:translate-x-0`}
       style={{ fontFamily: "'Segoe UI', sans-serif" }}
     >
       {/* Header Section - Logo and Close Button */}
@@ -498,6 +1127,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
               return null;
           }
         })}
+
       </nav>
     </aside>
   );

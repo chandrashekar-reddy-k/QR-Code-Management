@@ -329,7 +329,7 @@ export default function AdminPOS() {
           setIsManagingTerminals(true);
         } else if (data.data.length === 1) {
           const t = data.data[0];
-          navigate(`/admin/pos?storeId=${s.id}&storeName=${encodeURIComponent(s.name)}&terminalId=${t.id}&terminalName=${encodeURIComponent(t.name)}`);
+          navigate(`/vsms/pos?storeId=${s.id}&storeName=${encodeURIComponent(s.name)}&terminalId=${t.id}&terminalName=${encodeURIComponent(t.name)}`);
         } else {
           setTerminalList(data.data);
           setTerminalSelectionStore(s);
@@ -365,7 +365,7 @@ export default function AdminPOS() {
   // Auto-redirect fixed-store users
   useEffect(() => {
     if (!storeId && !isGlobal && user?.storeId) {
-      navigate(`/admin/pos?storeId=${user.storeId}&storeName=${encodeURIComponent(user.storeName || 'My Store')}`, { replace: true });
+      navigate(`/vsms/pos?storeId=${user.storeId}&storeName=${encodeURIComponent(user.storeName || 'My Store')}`, { replace: true });
     }
   }, [storeId, isGlobal, user]);
 
@@ -1437,7 +1437,7 @@ export default function AdminPOS() {
         {/* Store Selector Button (For Global Admins) */}
         {isGlobal && (
           <button
-            onClick={() => navigate('/admin/pos')}
+            onClick={() => navigate('/vsms/pos')}
             className="flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-all ml-4"
           >
             <Store size={16} />
@@ -3067,7 +3067,7 @@ function StoreSelectionScreen({
         terminals={terminalList}
         onClose={() => setTerminalSelectionStore(null)}
         onSelect={(t) => {
-          navigate(`/admin/pos?storeId=${terminalSelectionStore.id}&storeName=${encodeURIComponent(terminalSelectionStore.name)}&terminalId=${t.id}&terminalName=${encodeURIComponent(t.name)}`);
+          navigate(`/vsms/pos?storeId=${terminalSelectionStore.id}&storeName=${encodeURIComponent(terminalSelectionStore.name)}&terminalId=${t.id}&terminalName=${encodeURIComponent(t.name)}`);
           setTerminalSelectionStore(null);
         }}
         navigate={navigate}
@@ -3139,7 +3139,7 @@ function StoreSelectionScreen({
                     <tr 
                       key={s.id} 
                       className="group hover:bg-emerald-50/40 transition-colors cursor-pointer whitespace-nowrap"
-                      onClick={() => navigate(`/admin/pos?storeId=${s.id}&storeName=${encodeURIComponent(s.name)}`)}
+                      onClick={() => navigate(`/vsms/pos?storeId=${s.id}&storeName=${encodeURIComponent(s.name)}`)}
                     >
                       <td className="px-6 py-3">
                         <span className="text-[11px] font-black text-slate-400 group-hover:text-emerald-600 transition-colors">{s.code}</span>

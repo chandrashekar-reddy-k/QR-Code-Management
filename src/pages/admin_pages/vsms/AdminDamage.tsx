@@ -59,8 +59,8 @@ const RESPONSIBILITY_LABELS = {
 
 export default function AdminDamage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const storeId = searchParams.get('storeId');
   const { user, can } = useUserStore();
+  const storeId = searchParams.get('storeId') || user?.storeId;
 
   if (!can('INVENTORY', 'READ', 'DAMAGE')) {
     return (
@@ -1333,6 +1333,8 @@ export default function AdminDamage() {
   };
 
   const renderClassifiedDamage = () => {
+    return null;
+
     const isPartner = user?.role === 'PARTNER';
     if (storeId || isPartner) return null;
 

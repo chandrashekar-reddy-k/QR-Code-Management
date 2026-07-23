@@ -190,9 +190,11 @@ export const sidebarConfig: MenuSection[] = [
 
   {
     type: "collapsible",
+    permission: "Partner: Shopkeeper ERP (Admin)",
     label: "Shopkeeper ERP (Admin)",
     icon: Store,
     stateKey: "isShopkeeperErpAdminOpen",
+    hasSubPermissions: true,
     subItems: [
       { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
       { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
@@ -215,9 +217,11 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: Product Management",
     label: "Product Management",
     icon: Package,
     stateKey: "isProductsOpen",
+    hasSubPermissions: true,
     activeCheck: activeCheckers.isProductActive,
     subItems: [
       { path: "/products/manage", label: "Manage Products", icon: Package, activeCheck: activeCheckers.isManageProductsActive },
@@ -235,6 +239,7 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "link",
+    permission: "Partner: Stock Management",
     path: "/stock",
     label: "Stock Management",
     icon: Boxes,
@@ -243,12 +248,14 @@ export const sidebarConfig: MenuSection[] = [
 
   {
     type: "link",
+    permission: "Partner: Reservations",
     path: "/inventory/monitoring/reservations",
     label: "Reservations",
     icon: Clock,
   },
   {
     type: "collapsible",
+    permission: "Partner: Pricing Engine",
     label: "Pricing Engine",
     icon: DollarSign,
     stateKey: "isPricingOpen",
@@ -261,9 +268,11 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: Barcode Management",
     label: "Barcode Management",
     icon: ScanLine,
     stateKey: "isBarcodeOpen",
+    hasSubPermissions: true,
     activeCheck: (pathname: string) => pathname.startsWith("/vsms/barcodes"),
     subItems: [
       { path: '/vsms/barcodes?tab=master', label: 'Barcode Master', icon: ScanLine },
@@ -278,9 +287,11 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: Purchase Management",
     label: "Purchase Management",
     icon: ShoppingCart,
     stateKey: "isProcurementOpen",
+    hasSubPermissions: true,
     activeCheck: (pathname: string) => pathname.startsWith("/procurement"),
     subItems: [
       { path: "/procurement?tab=vendors", label: "Vendors", icon: Users },
@@ -295,6 +306,7 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: My Category Management",
     label: "My Category Management",
     icon: Tag, // Or any icon you prefer
     stateKey: "isMyCategoryManagementOpen",  // Use this stateKey to manage open/close
@@ -306,6 +318,7 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: Orders Management",
     label: "Order Management",
     icon: ShoppingCart,
     stateKey: "isOrderManagementOpen",
@@ -336,6 +349,7 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: Vendor Management",
     label: "Vendor Management",
     icon: Store,
     stateKey: "isVendorManagementOpen",
@@ -354,6 +368,7 @@ export const sidebarConfig: MenuSection[] = [
   // Staff Management
   {
     type: "collapsible",
+    permission: "Partner: Staff Management",
     label: "Staff Management",
     icon: Users,
     stateKey: "isStaffManagementOpen",
@@ -370,6 +385,7 @@ export const sidebarConfig: MenuSection[] = [
   // User Management
   {
     type: "collapsible",
+    permission: "Partner: User Management",
     label: "User Management",
     icon: Users,
     stateKey: "isUserManagementOpen",
@@ -396,6 +412,7 @@ export const sidebarConfig: MenuSection[] = [
   // Delivery Settings
   {
     type: "collapsible",
+    permission: "Partner: Delivery Management",
     label: "Delivery Settings",
     icon: Truck,
     stateKey: "isDeliverySettingsOpen",
@@ -432,6 +449,7 @@ export const sidebarConfig: MenuSection[] = [
   // Point of Sales
   {
     type: "link",
+    permission: "Partner: Point of Sales",
     path: "/point-of-sales",
     label: "Point of Sales",
     icon: Percent,
@@ -444,12 +462,14 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "link",
+    permission: "Partner: Withdrawal Request",
     path: "/withdrawal-request",
     label: "Withdrawal Request",
     icon: DollarSign,
   },
   {
     type: "link",
+    permission: "Partner: Wallet Transactions",
     path: "/wallet-transactions",
     label: "Wallet Transactions",
     icon: Wallet,
@@ -458,6 +478,7 @@ export const sidebarConfig: MenuSection[] = [
   // Promotions and Offers
   {
     type: "collapsible",
+    permission: "Partner: Promotions & Offers",
     label: "Promotions and Offers",
     icon: ClipboardList,
     stateKey: "isPromotionsOffersOpen",
@@ -475,6 +496,7 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: Reports",
     label: "Reports",
     icon: BarChart3,
     stateKey: "isReportsOpen",
@@ -500,9 +522,11 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: VSMS Logistics",
     label: "VSMS Logistics",
     icon: Truck,
     stateKey: "isVsmsOpen",
+    hasSubPermissions: true,
     subItems: [
       { path: '/vsms/vehicles', label: 'Fleet Vehicles', icon: Truck },
       { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
@@ -516,9 +540,11 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
+    permission: "Partner: Fleet Assets",
     label: "Fleet Assets",
     icon: Database,
     stateKey: "isAssetsOpen",
+    hasSubPermissions: true,
     subItems: [
       { path: '/vsms/assets?tab=master', label: 'Assets Registry', icon: Package },
       { path: '/vsms/assets?tab=tracking', label: 'Asset Assignment', icon: Users },
@@ -535,6 +561,7 @@ export const sidebarConfig: MenuSection[] = [
   // Settings
   {
     type: "collapsible",
+    permission: "Partner: Settings",
     label: "Settings",
     icon: Settings,
     stateKey: "isSystemOpen",
@@ -563,6 +590,7 @@ export const sidebarConfig: MenuSection[] = [
   // Root Map Creation
   {
     type: "link",
+    permission: "Partner: Root Map Creation",
     path: "/root-map-creation",
     label: "Root Map Creation",
     icon: Map,
@@ -571,6 +599,7 @@ export const sidebarConfig: MenuSection[] = [
   // Slot Management
   {
     type: "link",
+    permission: "Partner: Slot Management",
     path: "/slot-management",
     label: "Slot Management",
     icon: Calendar,
@@ -579,6 +608,7 @@ export const sidebarConfig: MenuSection[] = [
   // Delivery Zone Management
   {
     type: "link",
+    permission: "Partner: Delivery Zone Management",
     path: "/delivery-zone-management",
     label: "Delivery Zone Management",
     icon: MapPin,
@@ -587,6 +617,7 @@ export const sidebarConfig: MenuSection[] = [
   // Notifications
   {
     type: "collapsible",
+    permission: "Partner: Notifications",
     label: "Notifications",
     icon: Bell,
     stateKey: "isNotificationsOpen",
@@ -618,6 +649,7 @@ export const sidebarConfig: MenuSection[] = [
   // Referral Notification
   {
     type: "link",
+    permission: "Partner: Referral Notifications",
     path: "/referral-notification",
     label: "Referral Notification",
     icon: Bell,
@@ -626,6 +658,7 @@ export const sidebarConfig: MenuSection[] = [
   // Ratings and Reviews
   {
     type: "collapsible",
+    permission: "Partner: Ratings & Reviews",
     label: "Ratings and Reviews",
     icon: StarIcon,
     stateKey: "isRatingsReviewsOpen",
@@ -635,6 +668,7 @@ export const sidebarConfig: MenuSection[] = [
   // Product
   {
     type: "link",
+    permission: "Partner: Product Management",
     path: "/product",
     label: "Product",
     icon: Package,
@@ -643,6 +677,7 @@ export const sidebarConfig: MenuSection[] = [
   // Service
   {
     type: "link",
+    permission: "Partner: Service",
     path: "/service",
     label: "Service",
     icon: Settings,
@@ -651,6 +686,7 @@ export const sidebarConfig: MenuSection[] = [
   // Contact Us
   {
     type: "collapsible",
+    permission: "Partner: Contact Us",
     label: "Contact Us",
     icon: Phone,
     stateKey: "isContactUsOpen",
@@ -660,6 +696,7 @@ export const sidebarConfig: MenuSection[] = [
   // Access Management
   {
     type: "link",
+    permission: "Partner: Access Management",
     path: "/access-management",
     label: "Access Management",
     icon: Shield,
@@ -668,6 +705,7 @@ export const sidebarConfig: MenuSection[] = [
   // Resource Management
   {
     type: "link",
+    permission: "Partner: Resource Management",
     path: "/resource-management",
     label: "Resource Management",
     icon: FileText,
@@ -676,6 +714,7 @@ export const sidebarConfig: MenuSection[] = [
   // Vehicles
   {
     type: "link",
+    permission: "Partner: Resource Management",
     path: "/vehicles",
     label: "Vehicles",
     icon: Car,
@@ -684,6 +723,7 @@ export const sidebarConfig: MenuSection[] = [
   // Locations
   {
     type: "collapsible",
+    permission: "Partner: Locations",
     label: "Locations",
     icon: MapPin,
     stateKey: "isLocationsOpen",

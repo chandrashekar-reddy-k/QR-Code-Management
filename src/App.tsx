@@ -29,15 +29,40 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Parse user role from storage
+  // Parse user role and permissions from storage/localStorage
   let role = "";
+  let permissions: string[] = [];
   try {
     const userStr = isShopkeeperPortal ? sessionStorage.getItem('staffUser') : localStorage.getItem('partnerUser');
     const user = userStr ? JSON.parse(userStr) : null;
     role = user?.role || "";
+
+    const permsStr = localStorage.getItem('permissions');
+    permissions = permsStr ? JSON.parse(permsStr) : [];
   } catch (e) { }
 
-  const isAgentRole = role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT";
+  const hasAgentPermissions = permissions.some((p: string) => p.startsWith("vsms_agent_"));
+  const hasShopkeeperPermissions = permissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
+  const hasPartnerPermissions = permissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
+  const hasAdminPerms = permissions.some((p: string) => p.startsWith("admin_"));
+
+  // Block admin/super-admin accounts by ROLE — always redirect regardless of permissions,
+  // since SUPER_ADMIN can carry all permission slugs.
+  const isAdminRole = ["SUPER_ADMIN", "SUPERADMIN", "ADMIN"].includes(role.toUpperCase());
+  const isAdminOnlyPerms = hasAdminPerms && !hasPartnerPermissions && !hasAgentPermissions && !hasShopkeeperPermissions;
+  if (isAdminRole || isAdminOnlyPerms) {
+    // Clear stale token so they land on login cleanly
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('permissions');
+    localStorage.removeItem('user');
+    return <Navigate to="/login" replace />;
+  }
+
+  // Dynamically determine classification based on active permissions and roles
+  const isAgentRole = role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT" || (hasAgentPermissions && !hasPartnerPermissions);
+  const isShopkeeperRole = role === "SHOPKEEPER" || (hasShopkeeperPermissions && !hasPartnerPermissions && !hasAgentPermissions);
+
   const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
 
   if (isAgentRole) {
@@ -54,14 +79,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // If a partner/admin/shopkeeper attempts to access the agent portal, redirect them
   if (isAgentPortal) {
-    if (role === "SHOPKEEPER") {
+    if (isShopkeeperRole) {
       return <Navigate to="/shopkeeper" replace />;
     }
     return <Navigate to="/" replace />;
   }
 
-  // If accessing the Shopkeeper portal, directly render the children (it has its own layout/sidebar)
-  if (isShopkeeperPortal) {
+  // If accessing the Shopkeeper portal directly or classified as shopkeeper role
+  if (isShopkeeperPortal || (isShopkeeperRole && location.pathname === "/")) {
+    if (!isShopkeeperPortal) {
+      return <Navigate to="/shopkeeper" replace />;
+    }
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>{children}</Suspense>

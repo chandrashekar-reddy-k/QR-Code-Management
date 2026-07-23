@@ -24,6 +24,8 @@ import { getSLAInfo } from "../utils/slaHelper";
 
 import { SharedOrdersContext } from "../components/shopkeeper/SharedOrdersContext";
 
+let hrmsWindowRef: Window | null = null;
+
 // Local API Client instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_URL || "http://localhost:3004/api/v1",
@@ -310,8 +312,32 @@ export default function ShopkeeperERP() {
     localStorage.removeItem("partnerUser");
     localStorage.removeItem("partnerWarehouseId");
     localStorage.removeItem("partnerActiveOrder");
+    if (hrmsWindowRef && !hrmsWindowRef.closed) {
+      try {
+        hrmsWindowRef.close();
+      } catch (err) {
+        console.error('Failed to close HRMS window:', err);
+      }
+    }
+    localStorage.clear();
     window.location.href = "/login";
   };
+
+  useEffect(() => {
+    const handleUnload = () => {
+      if (hrmsWindowRef && !hrmsWindowRef.closed) {
+        try {
+          hrmsWindowRef.close();
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('unload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, []);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -415,6 +441,27 @@ export default function ShopkeeperERP() {
     );
   };
 
+  const hasShopkeeperPermission = (tabId: string) => {
+    let permissions: string[] = [];
+    try {
+      permissions = JSON.parse(localStorage.getItem("permissions") || "[]");
+    } catch (e) {}
+    
+    const slugMap: Record<string, string> = {
+      "dashboard": "shopkeeper_dashboard_view",
+      "new-orders": "shopkeeper_inbox_orders_view",
+      "all-orders": "shopkeeper_order_history_view",
+      "picking-queue": "shopkeeper_picking_queue_view",
+      "packing-queue": "shopkeeper_packing_queue_view",
+      "profile": "shopkeeper_profile_view",
+      "settings": "shopkeeper_settings_view",
+    };
+    
+    const slug = slugMap[tabId];
+    if (!slug) return true;
+    return permissions.includes(slug);
+  };
+
   return (
     <SharedOrdersContext.Provider value={{ orders, loading, refreshOrders: fetchOrders }}>
       <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
@@ -452,7 +499,8 @@ export default function ShopkeeperERP() {
               { id: "picking-queue", label: "Picking Queue", icon: <Package size={18} /> },
               { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={18} /> },
               { id: "profile", label: "Profile", icon: <User size={18} /> },
-            ].map((item) => {
+              { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
+            ].filter(item => hasShopkeeperPermission(item.id)).map((item) => {
               const isActive = screen === item.id || (
                 item.id === "new-orders" && screen === "order-details"
               ) || (
@@ -466,8 +514,8 @@ export default function ShopkeeperERP() {
                   onClick={() => navigate(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
                       ? "bg-[#00891D]/10 text-[#00891D]"
-                      : "text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
-                    }`}
+                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
+                  }`}
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -475,6 +523,46 @@ export default function ShopkeeperERP() {
               );
             })}
           </nav>
+          {/* HRMS SSO Link */}
+          <div className="px-4 py-2">
+            <button
+              onClick={async () => {
+                const token = localStorage.getItem('token');
+                const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
+                const identityUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000";
+                if (token) {
+                  try {
+                    const response = await fetch(`${identityUrl}/api/v1/auth/sso/ticket`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      }
+                    });
+                    const body = await response.json();
+                     if (response.ok && body?.data?.ticket) {
+                       hrmsWindowRef = window.open(`${hrmsUrl}/?sso_ticket=${body.data.ticket}`, '_blank');
+                       return;
+                     }
+                   } catch (err) {
+                     console.error('Failed to generate SSO ticket:', err);
+                   }
+                   hrmsWindowRef = window.open(`${hrmsUrl}/`, '_blank');
+                 } else {
+                   hrmsWindowRef = window.open(`${hrmsUrl}/`, '_blank');
+                 }
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 text-[#00891D] rounded-xl text-sm font-semibold transition-all border border-green-200"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>HRMS Portal</span>
+            </button>
+          </div>
 
           {/* Sign Out Button */}
           <div className="p-4 border-t border-gray-50">
@@ -523,7 +611,7 @@ export default function ShopkeeperERP() {
               { id: "picking-queue", label: "Picking", icon: <Package size={18} /> },
               { id: "packing-queue", label: "Packing", icon: <PackageCheck size={18} /> },
               { id: "profile", label: "Profile", icon: <User size={18} /> },
-            ].map((item) => {
+            ].filter(item => hasShopkeeperPermission(item.id)).map((item) => {
               const isActive = screen === item.id || (
                 item.id === "new-orders" && screen === "order-details"
               ) || (
