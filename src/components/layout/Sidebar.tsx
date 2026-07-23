@@ -38,7 +38,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     try {
       const token = localStorage.getItem('partnerToken');
       if (!token) return;
-      const localMeUrl = `http://localhost:4000/api/v1/auth/me`;
+      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
+      const localMeUrl = `${baseUrl}/api/v1/auth/me`;
       const res = await fetch(localMeUrl, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const data = await res.json();
