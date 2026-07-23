@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Phone, MapPin, ChevronDown, Search } from "lucide-react";
-import api from "../../../api/axios";
+import fetchData from "../../../helper";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
@@ -189,8 +189,9 @@ const ViewHomeDeliveryOrder = () => {
   useEffect(() => {
     const fetchShopkeepers = async () => {
       try {
-        const res = await api.get("/shopkeepers");
-        setShopkeepers(res.data);
+        const res = await fetchData<any>("shopkeepers", "GET");
+        const list = Array.isArray(res) ? res : (res?.data && Array.isArray(res.data)) ? res.data : [];
+        setShopkeepers(list);
       } catch (err) {
         console.error("Failed to fetch shopkeepers", err);
       }
@@ -202,7 +203,7 @@ const ViewHomeDeliveryOrder = () => {
     if (!selectedShopkeeperId) return;
     setIsAllocatingShopkeeper(true);
     try {
-      await api.post(`/orders/${id}/allocate-shopkeeper`, {
+      await fetchData(`orders/${id}/allocate-shopkeeper`, "POST", {
         shopkeeperId: selectedShopkeeperId,
       });
       window.location.reload();
@@ -669,7 +670,7 @@ const ViewHomeDeliveryOrder = () => {
                           // Automatically trigger unassignment when empty option is selected
                           setIsAllocatingShopkeeper(true);
                           try {
-                            await api.post(`/orders/${id}/allocate-shopkeeper`, {
+                            await fetchData(`orders/${id}/allocate-shopkeeper`, "POST", {
                               shopkeeperId: "",
                             });
                             window.location.reload();

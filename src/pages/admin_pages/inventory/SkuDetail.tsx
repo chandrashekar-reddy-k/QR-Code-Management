@@ -3,16 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import { useInventory } from '../../../hooks/useInventory';
 import { calculateAvailable, getInventoryStatus } from '../../../lib/utils/inventory.ts';
-import { StockLedgerEntry, Reservation } from '../../../types/inventory.types';
+import { StockLedgerEntry } from '../../../types/inventory.types';
 import StatusBadge from '../../../components/common/inventory/StatusBadge';
 import { BackButton, DataTable } from '../../../components/ui';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
+import { useGetInventoryReservations } from '../../../hooks/InventoryManagement/inventory';
 
 const SkuDetail = () => {
   const { variantId } = useParams<{ variantId: string }>();
   const navigate = useNavigate();
   const { snapshots, ledger, reservations, setLedger, setReservations } = useInventory();
   const [activeTab, setActiveTab] = useState<'locations' | 'ledger' | 'reservations'>('locations');
+
+  const { data: realReservationsRes } = useGetInventoryReservations({ variantId });
 
   // Get all snapshots for this variant
   const variantSnapshots = snapshots.filter((s) => s.variantId === variantId);
@@ -140,110 +143,13 @@ const SkuDetail = () => {
     }
   }, [ledger.length, variantId, setLedger]);
 
-  // Initialize mock reservations data if empty
+  // Sync real reservations from backend
   useEffect(() => {
-    if (reservations.length === 0 && variantId && firstSnapshot) {
-      const mockReservations: Reservation[] = [
-        {
-          id: 'RES-001',
-          orderId: 'ORD-2025-001',
-          customerName: 'Rajesh Kumar',
-          variantId: variantId,
-          sku: firstSnapshot.sku,
-          locationCode: 'MAIN-WH',
-          qty: 25,
-          status: 'active',
-          createdAt: '2025-01-15T09:00:00',
-          expiresAt: '2025-01-17T09:00:00',
-        },
-        {
-          id: 'RES-002',
-          orderId: 'ORD-2025-002',
-          customerName: 'Priya Sharma',
-          variantId: variantId,
-          sku: firstSnapshot.sku,
-          locationCode: 'STORE-A',
-          qty: 15,
-          status: 'active',
-          createdAt: '2025-01-14T11:30:00',
-          expiresAt: '2025-01-16T11:30:00',
-        },
-        {
-          id: 'RES-003',
-          orderId: 'ORD-2025-003',
-          customerName: 'Amit Patel',
-          variantId: variantId,
-          sku: firstSnapshot.sku,
-          locationCode: 'DIST-CENTER',
-          qty: 40,
-          status: 'active',
-          createdAt: '2025-01-13T14:20:00',
-          expiresAt: '2025-01-15T14:20:00',
-        },
-        {
-          id: 'RES-004',
-          orderId: 'ORD-2025-004',
-          customerName: 'Sneha Reddy',
-          variantId: variantId,
-          sku: firstSnapshot.sku,
-          locationCode: 'MAIN-WH',
-          qty: 20,
-          status: 'released',
-          createdAt: '2025-01-12T10:15:00',
-          expiresAt: '2025-01-14T10:15:00',
-        },
-        {
-          id: 'RES-005',
-          orderId: 'ORD-2025-005',
-          customerName: 'Vikram Singh',
-          variantId: variantId,
-          sku: firstSnapshot.sku,
-          locationCode: 'STORE-B',
-          qty: 10,
-          status: 'active',
-          createdAt: '2025-01-11T16:45:00',
-          expiresAt: '2025-01-13T16:45:00',
-        },
-        {
-          id: 'RES-006',
-          orderId: 'ORD-2025-006',
-          customerName: 'Anjali Mehta',
-          variantId: variantId,
-          sku: firstSnapshot.sku,
-          locationCode: 'MAIN-WH',
-          qty: 30,
-          status: 'released',
-          createdAt: '2025-01-10T08:30:00',
-          expiresAt: '2025-01-12T08:30:00',
-        },
-        {
-          id: 'RES-007',
-          orderId: 'ORD-2025-007',
-          customerName: 'Rahul Gupta',
-          variantId: variantId,
-          sku: firstSnapshot.sku,
-          locationCode: 'DIST-CENTER',
-          qty: 18,
-          status: 'active',
-          createdAt: '2025-01-09T13:00:00',
-          expiresAt: '2025-01-11T13:00:00',
-        },
-        {
-          id: 'RES-008',
-          orderId: 'ORD-2025-008',
-          customerName: 'Kavita Nair',
-          variantId: variantId,
-          sku: firstSnapshot.sku,
-          locationCode: 'STORE-C',
-          qty: 12,
-          status: 'active',
-          createdAt: '2025-01-08T15:20:00',
-          expiresAt: '2025-01-10T15:20:00',
-        },
-      ];
-      setReservations(mockReservations);
+    if (realReservationsRes) {
+      const raw = (realReservationsRes as any)?.data ?? [];
+      setReservations(raw);
     }
-  }, [reservations.length, variantId, firstSnapshot, setReservations]);
+  }, [realReservationsRes, setReservations]);
 
   // Filter ledger for this variant
   const variantLedger = ledger.filter((l) => l.variantId === variantId);
@@ -454,7 +360,7 @@ const SkuDetail = () => {
                 sortField={null}
                 sortDirection={null}
                 onSort={() => {}}
-                keyExtractor={(snapshot, index) => `${snapshot.variantId}-${snapshot.locationCode}-${index}`}
+                keyExtractor={(snapshot) => `${snapshot.variantId}-${snapshot.locationCode}`}
                 emptyMessage="No locations found"
               />
             </div>
