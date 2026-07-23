@@ -80,7 +80,7 @@ export default function AdminCashManagementContent() {
   const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
     if (token && !user) {
       refreshUserProfile();
     }

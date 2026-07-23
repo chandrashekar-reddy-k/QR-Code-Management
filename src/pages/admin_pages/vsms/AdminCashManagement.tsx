@@ -21,7 +21,7 @@ export default function AdminCashManagement() {
   const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
     if (token) {
       refreshUserProfile();
     }

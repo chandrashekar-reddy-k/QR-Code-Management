@@ -23,7 +23,7 @@ export const useNotificationStore = create((set, get) => ({
     fetchNotifications: async () => {
         set({ loading: true });
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
             if (!token) return;
 
             const res = await fetch(`${API_BASE_URL}/notifications`, {
@@ -47,7 +47,7 @@ export const useNotificationStore = create((set, get) => ({
 
     markAsRead: async (id) => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
             const res = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -67,7 +67,7 @@ export const useNotificationStore = create((set, get) => ({
 
     markAllAsRead: async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
             const res = await fetch(`${API_BASE_URL}/notifications/read-all`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }

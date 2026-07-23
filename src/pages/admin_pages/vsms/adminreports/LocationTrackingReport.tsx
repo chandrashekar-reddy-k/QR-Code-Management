@@ -105,7 +105,7 @@ export default function LocationTrackingReport() {
 
         const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || window.location.origin.replace('5173', '5000');
         const socket = io(socketUrl, {
-            auth: { token: localStorage.getItem('token') },
+            auth: { token: localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken') },
             transports: ['websocket', 'polling']
         });
 
