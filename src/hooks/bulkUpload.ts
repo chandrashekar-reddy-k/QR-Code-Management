@@ -104,7 +104,7 @@ const useDownloadSample = () => {
       const fullUrl = `${baseUrl.replace(/\/$/, "")}/productmanagement/product/template/download`;
 
       const headers: HeadersInit = {};
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("staffToken") || localStorage.getItem("partnerToken") || localStorage.getItem("token");
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
@@ -206,7 +206,7 @@ const useDownloadBulkUpdateTemplate = () => {
       const fullUrl = `${baseUrl.replace(/\/$/, "")}/productmanagement/product/template/update/download${qs ? `?${qs}` : ""}`;
 
       const headers: HeadersInit = {};
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("staffToken") || localStorage.getItem("partnerToken") || localStorage.getItem("token");
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
