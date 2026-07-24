@@ -197,20 +197,22 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       }
     }
 
-    // Retrieve current user's warehouseId to scope dashboard orders to this store only
+    // Retrieve current user's warehouseId to scope dashboard orders to this store only (skip for admin)
     const cachedWh = isAdmin ? localStorage.getItem("partnerWarehouseId") : sessionStorage.getItem("staffWarehouseId");
     const storedU = isAdmin ? localStorage.getItem("partnerUser") : sessionStorage.getItem("staffUser");
     let userWarehouseId: string | null = null;
-    if (cachedWh && cachedWh !== "undefined") {
-      userWarehouseId = cachedWh;
-    } else if (storedU) {
-      try {
-        const u = JSON.parse(storedU);
-        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
-      } catch (e) { }
+    if (!isAdmin) {
+      if (cachedWh && cachedWh !== "undefined") {
+        userWarehouseId = cachedWh;
+      } else if (storedU) {
+        try {
+          const u = JSON.parse(storedU);
+          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
+        } catch (e) { }
+      }
     }
 
-    // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, must not be pre-payment PENDING status, and must be assigned to a shopkeeper
+    // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, must not be pre-payment PENDING status
     let allOrders = distinctOrders.filter((o: any) => {
       const oWh = o.warehouseId || o.warehouse_id;
       if (!oWh) return false;
@@ -224,9 +226,11 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
         return false;
       }
 
-      const isAssigned = o.shopkeeper_name || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_phone || o.assignedShopkeeperId;
-      if (!isAssigned) {
-        return false;
+      if (!isAdmin) {
+        const isAssigned = o.shopkeeper_name || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_phone || o.assignedShopkeeperId;
+        if (!isAssigned) {
+          return false;
+        }
       }
 
       return true;
