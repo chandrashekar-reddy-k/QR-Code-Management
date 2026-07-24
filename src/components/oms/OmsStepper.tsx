@@ -41,7 +41,7 @@ const MILESTONES: Milestone[] = [
   },
   {
     key: "DISPATCHED",
-    label: "Dispatched",
+    label: "Out for Delivery",
     statuses: ["OUT_FOR_DELIVERY", "PICKED_UP", "IN_TRANSIT", "ASSIGNED_TO_AGENT"],
     description: "In transit with agent",
   },
