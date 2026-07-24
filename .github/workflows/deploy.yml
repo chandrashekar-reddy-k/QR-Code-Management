@@ -36,7 +36,7 @@ jobs:
 
             echo "Installing dependencies..."
 
-            npm ci
+            npm install
 
             echo "Building frontend..."
 
