@@ -9,8 +9,10 @@ export function useSocket(storeId: number) {
   const socket = useRef<Socket | undefined>(undefined);
 
   useEffect(() => {
+    const token = localStorage.getItem('token') || localStorage.getItem('partnerToken') || sessionStorage.getItem('staffToken');
     socket.current = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
+      auth: { token }
     });
     socket.current.emit('join:store', { storeId });
 

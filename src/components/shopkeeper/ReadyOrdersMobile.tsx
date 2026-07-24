@@ -11,7 +11,7 @@ interface ReadyOrdersMobileProps {
 }
 
 export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps) {
-  const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
+  const { orders: sharedOrders, loading: sharedLoading, refreshOrders } = useSharedOrders();
 
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
   const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
@@ -38,6 +38,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
   const orders = useMemo(() => {
     return sharedOrders.filter((o: any) => {
       if (o.status?.toLowerCase() !== 'ready' || o.order_type === 'Self Pickup') return false;
+      if (o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver') return false;
       const orderId = String(o.id || o.order_number);
       if (handedOverIds.map(String).includes(orderId)) return false;
       return true;
@@ -169,6 +170,14 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                         const newIds = [...handedOverIds, String(orderIdToSave)];
                         setHandedOverIds(newIds);
                         localStorage.setItem('handedOverIds', JSON.stringify(newIds));
+                        
+                        // Call backend to update status
+                        await api.put(`/orders/${orderIdToSave}/handover`);
+                        
+                        if (refreshOrders) {
+                          refreshOrders();
+                        }
+                        
                         toast.success("Order handed over to Store Manager!");
                       } catch (err) {
                         toast.error("Failed to handover order");

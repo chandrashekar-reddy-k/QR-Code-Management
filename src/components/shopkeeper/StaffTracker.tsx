@@ -70,22 +70,33 @@ export function StaffTracker() {
         return (assignedId && assignedId === s.id) || (assignedPhone && assignedPhone === s.phone);
       });
 
-      // Find the active orders
-      const activeOrders = skOrders.filter(o => {
+      // Find all relevant orders for display
+      const displayableOrders = skOrders.filter(o => {
         const status = o.status?.toLowerCase() || '';
-        return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'picked', 'packing', 'packed', 'processing', 'ready'].includes(status);
+        const allocationStatus = o.allocationStatus || o.allocation_status;
+        return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'picked', 'packing', 'packed', 'processing', 'ready', 'handed_over'].includes(status) || allocationStatus === 'HandedOver';
+      });
+      
+      // True active orders (excluding HandedOver) determining Busy state
+      const trueActiveOrders = displayableOrders.filter(o => {
+        const allocationStatus = o.allocationStatus || o.allocation_status;
+        if (allocationStatus === 'HandedOver' || (o.status && o.status.toLowerCase() === 'handed_over')) return false;
+        return true;
       });
 
-      const isBusy = activeOrders.length > 0;
+      const isBusy = trueActiveOrders.length > 0;
       let activeOrder = null;
-      if (isBusy) {
-        // Sort to find the latest created order, or just take first
-        const o = activeOrders[0];
+      
+      // Prefer true active order, don't show handed over orders in main view
+      const oToDisplay = isBusy ? trueActiveOrders[0] : null;
+      
+      if (oToDisplay) {
+        const o = oToDisplay;
         activeOrder = {
           orderId: o.id || o._id,
           orderNumber: o.order_number || o.orderNumber,
           fulfillmentType: o.order_type || o.deliveryType || "HOME_DELIVERY",
-          status: o.status || "Unknown",
+          status: o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver' ? 'handed_over' : (o.status || "Unknown"),
           pickingCompletedAt: o.picking_completed_at || null,
           trayNumber: o.tray_number || o.trayNumber || null,
           customerName: o.customer_name || o.user || o.userName || "Unknown",
@@ -95,7 +106,7 @@ export function StaffTracker() {
           shopkeeperAcceptedAt: o.shopkeeper_accepted_at || o.shopkeeperAcceptedAt || o.acceptedByShopkeeperAt || null,
           createdAt: o.created_at || o.createdAt || null,
           updatedAt: o.updated_at || o.updatedAt || null,
-          activeOrdersCount: activeOrders.length
+          activeOrdersCount: trueActiveOrders.length
         };
       }
       return {
@@ -112,9 +123,10 @@ export function StaffTracker() {
     const mergedOrders = detailedStaff.orders.map(do_ => {
       const liveOrder = sharedOrders.find(so => so.id === do_.id || so.order_number === do_.orderNumber || so._id === do_.id);
       if (liveOrder) {
+        const allocStatus = liveOrder.allocationStatus || liveOrder.allocation_status;
         return {
           ...do_,
-          status: liveOrder.status,
+          status: allocStatus === 'HandedOver' ? 'handed_over' : liveOrder.status,
           pickedCount: liveOrder.picked_count || liveOrder.picked || do_.pickedCount,
           itemCount: liveOrder.item_count || liveOrder.items || do_.itemCount,
           trayNumber: liveOrder.tray_number || liveOrder.trayNumber || do_.trayNumber
@@ -124,6 +136,10 @@ export function StaffTracker() {
     });
 
     const hasActive = mergedOrders.some(o => {
+      const liveOrder = sharedOrders.find(so => so.id === o.id || so.order_number === o.orderNumber || so._id === o.id);
+      const allocationStatus = liveOrder?.allocationStatus || liveOrder?.allocation_status || (o as any).allocationStatus;
+      if (allocationStatus === 'HandedOver') return false;
+      
       const s = o.status?.toLowerCase() || '';
       return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'picked', 'packing', 'packed', 'processing', 'ready'].includes(s);
     });
@@ -397,7 +413,7 @@ export function StaffTracker() {
 
               {/* Active Order Details */}
               <div className="flex-[2] min-w-[300px]">
-                {member.status === "Busy" && member.activeOrder ? (
+                {member.activeOrder ? (
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between gap-4">
 
                     {/* Left: Order Info & Progress */}
@@ -459,7 +475,9 @@ export function StaffTracker() {
                             ? 'Assigned'
                             : member.activeOrder.status === 'ready' || member.activeOrder.status === 'READY'
                               ? 'Ready for Dispatch'
-                              : member.activeOrder.status}
+                              : member.activeOrder.status === 'handed_over' || member.activeOrder.status === 'HANDED_OVER'
+                                ? 'HANDED OVER'
+                                : member.activeOrder.status}
                         </span>
 
                         {(() => {
@@ -514,6 +532,7 @@ export function StaffTracker() {
                         else if (s === 'packing') activityStr = 'Started Packing';
                         else if (s === 'picked') activityStr = 'Finished Picking';
                         else if (s === 'packed' || s === 'ready' || s === 'ready_for_dispatch') activityStr = 'Ready for Dispatch';
+                        else if (s === 'handed_over' || s === 'handedover') activityStr = 'Handed Over to Store Manager';
                         else if (s === 'accepted') activityStr = 'Accepted';
                         else if (s === 'assigned') activityStr = 'Assigned';
                         else activityStr = member.activeOrder.status;

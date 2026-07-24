@@ -279,7 +279,8 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
     const slaInfo = getSLAInfo(o, now);
     const currentSlaStatus = slaInfo.status;
 
-
+    // Do not display 'on_track' orders in the monitoring table
+    if (currentSlaStatus === 'on_track') return false;
 
     if (slaFilter && currentSlaStatus !== slaFilter) return false;
     if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return false;

@@ -236,7 +236,12 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     }).length;
     const ready = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'ready';
+      const isHandedOver = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+      if (isAdmin) {
+        return s === 'ready' && isHandedOver;
+      } else {
+        return s === 'ready' && !isHandedOver;
+      }
     }).length;
 
     const completed = allOrders.filter((o: any) => {
@@ -607,8 +612,11 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
                             if (!isAssigned) return false;
 
+                            const isHandedOver = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+                            if (isHandedOver) return false;
+
                             const s = o.status?.toLowerCase();
-                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
+                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return' && s !== 'handed_over';
                           });
 
                           const activeOrderCount = activeOrdersForSk.length;

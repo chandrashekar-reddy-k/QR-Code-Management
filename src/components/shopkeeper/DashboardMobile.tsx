@@ -258,7 +258,12 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     }).length;
     const ready = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'ready';
+      const isHandedOver = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+      if (isAdmin) {
+        return s === 'ready' && isHandedOver;
+      } else {
+        return s === 'ready' && !isHandedOver;
+      }
     }).length;
 
     const completed = allOrders.filter((o: any) => {
@@ -404,8 +409,11 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     return s === 'dispatched' || handedOverIds.map(String).includes(String(o.id || o.order_number));
   }).length;
 
-  // Subtract locally handed over from Ready KPI
-  const actualReady = stats.ready - orders.filter((o: any) => o.status?.toLowerCase() === 'ready' && handedOverIds.map(String).includes(String(o.id))).length;
+  // Subtract locally handed over from Ready KPI (only for shopkeeper, and only if not already excluded by DB status)
+  const actualReady = Math.max(0, stats.ready - (isAdmin ? 0 : orders.filter((o: any) => {
+    const isHandedOverDb = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+    return o.status?.toLowerCase() === 'ready' && !isHandedOverDb && handedOverIds.map(String).includes(String(o.id || o.order_number));
+  }).length));
 
   const kpiCards = [
     { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "orderhistory", variant: "purple" as const },
@@ -655,7 +663,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                             if (!isAssigned) return false;
 
                             const s = o.status?.toLowerCase();
-                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
+                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return' && s !== 'handed_over';
                           });
 
                           const activeOrderCount = activeOrdersForSk.length;
