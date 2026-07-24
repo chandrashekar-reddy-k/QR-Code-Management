@@ -133,11 +133,10 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({ orderId, currentStatus }
               {/* Connector line for mobile */}
               {idx < MILESTONES.length - 1 && (
                 <div
-                  className={`absolute left-4 top-8 w-0.5 h-full md:hidden transition-all duration-300 ${
-                    timestamp && getMilestoneTime(MILESTONES[idx + 1])
+                  className={`absolute left-4 top-8 w-0.5 h-full md:hidden transition-all duration-300 ${timestamp && getMilestoneTime(MILESTONES[idx + 1])
                       ? "bg-indigo-500"
                       : "bg-slate-200 dark:bg-slate-700"
-                  }`}
+                    }`}
                   style={{ height: "calc(100% + 24px)" }}
                 />
               )}
@@ -145,23 +144,21 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({ orderId, currentStatus }
               {/* Connector line for desktop */}
               {idx < MILESTONES.length - 1 && (
                 <div
-                  className={`absolute top-4 left-[calc(50%+16px)] w-[calc(100%-32px)] h-0.5 hidden md:block transition-all duration-300 ${
-                    timestamp && getMilestoneTime(MILESTONES[idx + 1])
+                  className={`absolute top-4 left-[calc(50%+16px)] w-[calc(100%-32px)] h-0.5 hidden md:block transition-all duration-300 ${timestamp && getMilestoneTime(MILESTONES[idx + 1])
                       ? "bg-indigo-500"
                       : "bg-slate-200 dark:bg-slate-700"
-                  }`}
+                    }`}
                 />
               )}
 
               {/* Stepper Dot */}
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center relative z-10 transition-all duration-300 border-2 ${
-                  isCurrent
+                className={`w-9 h-9 rounded-full flex items-center justify-center relative z-10 transition-all duration-300 border-2 ${isCurrent
                     ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-150 ring-4 ring-indigo-50"
                     : isCompleted
-                    ? "bg-emerald-500 border-emerald-500 text-white"
-                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400"
-                }`}
+                      ? "bg-emerald-500 border-emerald-500 text-white"
+                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400"
+                  }`}
               >
                 {isCompleted ? (
                   <Check className="w-5 h-5 stroke-[3]" />
@@ -173,13 +170,12 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({ orderId, currentStatus }
               {/* Stepper Info */}
               <div className="ml-4 md:ml-0 md:mt-3 text-left md:text-center">
                 <p
-                  className={`text-sm font-semibold transition-colors duration-250 ${
-                    isCurrent
+                  className={`text-sm font-semibold transition-colors duration-250 ${isCurrent
                       ? "text-indigo-600 dark:text-indigo-400"
                       : isCompleted
-                      ? "text-slate-850 dark:text-slate-200"
-                      : "text-slate-400 dark:text-slate-500"
-                  }`}
+                        ? "text-slate-850 dark:text-slate-200"
+                        : "text-slate-400 dark:text-slate-500"
+                    }`}
                 >
                   {milestone.label}
                 </p>
