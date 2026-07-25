@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, Package, Play, AlertCircle, CheckCircle2, ChevronRight } from "lucide-react";
-import api from "../../api/axios";
-import { useSocket } from "../../hooks/useSocket";
+import { useSharedOrders } from "./SharedOrdersContext";
 import { getSLAInfo } from "../../utils/slaHelper";
 
 interface PickingQueueProps {
@@ -25,38 +24,23 @@ function PriorityBadge({ priority }: { priority: string }) {
 
 export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
   const [pickingOrders, setPickingOrders] = useState<any[]>([]);
-  const socket = useSocket(1);
-
-  const fetchOrders = async () => {
-    try {
-      const res = await api.get('/orders');
-      // Filter for accepted or picking statuses
-      const orders = res.data.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'accepted' || s === 'picking' || s === 'confirmed';
-      });
-      
-      // Calculate mock items data if backend doesn't return full details in this endpoint yet
-      const processedOrders = orders.map((o: any) => ({
-        ...o,
-        items: o.item_count || 0,
-        picked: o.picked_count || 0
-      }));
-      setPickingOrders(processedOrders);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const { orders: sharedOrders } = useSharedOrders();
 
   useEffect(() => {
-    fetchOrders();
-    if (socket.current) {
-      socket.current.on('order:status', fetchOrders);
-    }
-    return () => {
-      if (socket.current) socket.current.off('order:status');
-    };
-  }, [socket.current]);
+    // Filter for accepted or picking statuses
+    const orders = sharedOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'accepted' || s === 'picking' || s === 'confirmed';
+    });
+    
+    // Calculate mock items data if backend doesn't return full details in this endpoint yet
+    const processedOrders = orders.map((o: any) => ({
+      ...o,
+      items: o.item_count || 0,
+      picked: o.picked_count || 0
+    }));
+    setPickingOrders(processedOrders);
+  }, [sharedOrders]);
 
   const stats = {
     pending: pickingOrders.filter(o => o.picked === 0).length,

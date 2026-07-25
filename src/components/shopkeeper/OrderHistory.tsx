@@ -98,7 +98,7 @@ export function OrderHistory({ onBack, onNavigate, initialStatus, isAdmin = fals
     allOrders = allOrders.filter((o: any) => {
       const oWh = o.warehouseId || o.warehouse_id;
       if (!oWh) return false;
-      if (userWarehouseId && oWh !== userWarehouseId) return false;
+      if (userWarehouseId && String(oWh) !== String(userWarehouseId)) return false;
       return true;
     });
 

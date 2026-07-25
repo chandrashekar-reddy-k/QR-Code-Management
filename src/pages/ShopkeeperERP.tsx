@@ -1,6 +1,6 @@
 // Trigger re-evaluation comment
 import { useState, useEffect } from "react";
-import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, Settings as SettingsIcon, History } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History } from "lucide-react";
 import { DashboardMobile as Dashboard } from "../components/shopkeeper/DashboardMobile";
 import { NewOrders } from "../components/shopkeeper/NewOrdersMobile";
 import { OrderDetails } from "../components/shopkeeper/OrderDetailsMobile";
@@ -21,11 +21,15 @@ import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 import { useSocket } from "../hooks/useSocket";
 import { getSLAInfo } from "../utils/slaHelper";
+<<<<<<< HEAD
 
 import { SharedOrdersContext } from "../components/shopkeeper/SharedOrdersContext";
 
 let hrmsWindowRef: Window | null = null;
 
+=======
+import { SharedOrdersContext, useSharedOrders } from "../components/shopkeeper/SharedOrdersContext";
+>>>>>>> erp/shopweb
 // Local API Client instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_URL || "http://localhost:3004/api/v1",
@@ -84,33 +88,47 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
     .toUpperCase()
     .slice(0, 2);
 
+  const { orders: sharedOrders } = useSharedOrders();
+
   useEffect(() => {
-    const fetchStats = async () => {
+    const computeStats = () => {
       try {
-        const res = await api.get('/orders');
-        const allOrders = res.data;
+        const allOrders = sharedOrders || [];
 
         const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("partnerUser");
         const userObj = storedUser ? JSON.parse(storedUser) : null;
-        const skId = userObj?.shopkeeper_id || userObj?.shopkeeperId || userObj?.id;
+        let skId = userObj?.shopkeeper_id || userObj?.shopkeeperId || userObj?.id;
+        if (skId && typeof skId === 'object' && skId.id) skId = skId.id;
 
         const shopkeeperOrders = skId
-          ? allOrders.filter((o: any) => o.assignedShopkeeperId === skId || o.assigned_shopkeeper_id === skId)
+          ? allOrders.filter((o: any) => {
+              let oAssignedId = o.assignedShopkeeperId || o.assigned_shopkeeper_id || o.shopkeeper_id;
+              if (oAssignedId && typeof oAssignedId === 'object' && oAssignedId.id) oAssignedId = oAssignedId.id;
+              return String(oAssignedId) === String(skId);
+            })
           : [];
 
         const total = shopkeeperOrders.length;
-        const completed = shopkeeperOrders.filter((o: any) => o.status?.toLowerCase() === 'dispatched').length;
+        const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
+        const completed = shopkeeperOrders.filter((o: any) => {
+          const s = o.status?.toLowerCase();
+          return s === 'dispatched' || handedOverIds.map(String).includes(String(o.id || o.order_number));
+        }).length;
         const breached = shopkeeperOrders.filter((o: any) => getSLAInfo(o).isBreached).length;
         const slaPercent = total > 0 ? Math.round(((total - breached) / total) * 100) : 100;
         const selfPickup = shopkeeperOrders.filter((o: any) => o.order_type === 'Self Pickup' && o.status === 'ready').length;
 
         setStats({ orders: total, completed, sla: slaPercent, selfPickup });
       } catch (err) {
-        console.error("Failed to load profile stats", err);
+        console.error("Failed to compute profile stats", err);
       }
     };
-    fetchStats();
-  }, []);
+    computeStats();
+    
+    // Add interval to dynamically update SLA
+    const interval = setInterval(computeStats, 60000);
+    return () => clearInterval(interval);
+  }, [sharedOrders]);
 
   const profileSections = [
     {
@@ -248,7 +266,7 @@ export default function ShopkeeperERP() {
         } catch (e) { }
       }
 
-      const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}` : '/orders';
+      const endpoint = `/orders?_t=${Date.now()}`;
       const res = await api.get(endpoint);
       const resData = res.data;
       let rawOrders: any[] = [];
@@ -270,7 +288,7 @@ export default function ShopkeeperERP() {
         if (id && !seenIds.has(id)) {
           const oWh = o.warehouseId || o.warehouse_id;
           if (!oWh) continue; // Exclude orders with no warehouse (like test orders)
-          if (userWarehouseId && oWh !== userWarehouseId) continue; // Exclude mismatching warehouses
+          // if (userWarehouseId && oWh !== userWarehouseId) continue; // Exclude mismatching warehouses
 
           seenIds.add(id);
           filteredOrders.push(o);

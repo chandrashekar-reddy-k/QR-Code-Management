@@ -47,7 +47,12 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   };
 
   const orders = useMemo(() => {
-    return sharedOrders.filter((o: any) => o.status?.toLowerCase() === 'ready' && o.order_type !== 'Self Pickup');
+    return sharedOrders.filter((o: any) => {
+      const isReady = o.status?.toLowerCase() === 'ready';
+      const isNotSelfPickup = o.order_type !== 'Self Pickup';
+      const isHandedOver = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+      return isReady && isNotSelfPickup && isHandedOver;
+    });
   }, [sharedOrders]);
 
   const filteredOrders = useMemo(() => {

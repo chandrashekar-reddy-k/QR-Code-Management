@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, Package, Play, AlertCircle } from "lucide-react";
-import api from "../../api/axios";
-import { useSocket } from "../../hooks/useSocket";
+import { useSharedOrders } from "./SharedOrdersContext";
 import { getSLAInfo } from "../../utils/slaHelper";
 
 interface PackingQueueMobileProps {
@@ -11,50 +10,35 @@ interface PackingQueueMobileProps {
 
 export function PackingQueueMobile({ onNavigate, onBack }: PackingQueueMobileProps) {
   const [packingOrders, setPackingOrders] = useState<any[]>([]);
-  const socket = useSocket(1);
-
-  const fetchOrders = async () => {
-    try {
-      const res = await api.get('/orders');
-      const orders = res.data.filter((o: any) => {
-        const s = o.status?.toLowerCase();
-        return s === 'packing' || s === 'packed' || s === 'processing';
-      });
-
-      const processedOrders: any[] = [];
-      for (const o of orders) {
-        const tray = o.tray_number || 'N/A';
-        // Use picked_count from the DB — rejected items don't need to be packed
-        const pickedCount = o.picked_count ?? o.item_count ?? 0;
-        // Compute urgency based on shopkeeper_accepted_at if available, else fall back to sla_minutes < 15
-        const acceptedMs = o.shopkeeper_accepted_at
-          ? new Date(o.shopkeeper_accepted_at).getTime()
-          : null;
-        const pkElapsed = acceptedMs ? (Date.now() - acceptedMs) / 60000 : 0;
-        const pkRemaining = o.sla_minutes - pkElapsed;
-        processedOrders.push({
-          ...o,
-          items: pickedCount,
-          tray,
-          urgent: acceptedMs ? pkRemaining <= 10 : o.sla_minutes < 15
-        });
-      }
-
-      setPackingOrders(processedOrders);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const { orders: sharedOrders } = useSharedOrders();
 
   useEffect(() => {
-    fetchOrders();
-    if (socket.current) {
-      socket.current.on('order:status', fetchOrders);
+    const orders = sharedOrders.filter((o: any) => {
+      const s = o.status?.toLowerCase();
+      return s === 'packing' || s === 'packed' || s === 'processing';
+    });
+
+    const processedOrders: any[] = [];
+    for (const o of orders) {
+      const tray = o.tray_number || 'N/A';
+      // Use picked_count from the DB — rejected items don't need to be packed
+      const pickedCount = o.picked_count ?? o.item_count ?? 0;
+      // Compute urgency based on shopkeeper_accepted_at if available, else fall back to sla_minutes < 15
+      const acceptedMs = o.shopkeeper_accepted_at
+        ? new Date(o.shopkeeper_accepted_at).getTime()
+        : null;
+      const pkElapsed = acceptedMs ? (Date.now() - acceptedMs) / 60000 : 0;
+      const pkRemaining = o.sla_minutes - pkElapsed;
+      processedOrders.push({
+        ...o,
+        items: pickedCount,
+        tray,
+        urgent: acceptedMs ? pkRemaining <= 10 : o.sla_minutes < 15
+      });
     }
-    return () => {
-      if (socket.current) socket.current.off('order:status');
-    };
-  }, [socket.current]);
+
+    setPackingOrders(processedOrders);
+  }, [sharedOrders]);
 
   const stats = {
     awaiting: packingOrders.length,

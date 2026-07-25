@@ -200,6 +200,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     // Retrieve current user's warehouseId to scope dashboard orders to this store only (skip for admin)
     const cachedWh = isAdmin ? localStorage.getItem("partnerWarehouseId") : sessionStorage.getItem("staffWarehouseId");
     const storedU = isAdmin ? localStorage.getItem("partnerUser") : sessionStorage.getItem("staffUser");
+<<<<<<< HEAD
     let userWarehouseId: string | null = null;
     if (!isAdmin) {
       if (cachedWh && cachedWh !== "undefined") {
@@ -210,8 +211,22 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
           userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
         } catch (e) { }
       }
+=======
+    let userWarehouseId: any = null;
+    if (cachedWh && cachedWh !== "undefined") {
+      userWarehouseId = cachedWh;
+    } else if (storedU) {
+      try {
+        const u = JSON.parse(storedU);
+        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || null;
+      } catch (e) { }
+>>>>>>> erp/shopweb
+    }
+    if (userWarehouseId && typeof userWarehouseId === 'object' && userWarehouseId.id) {
+      userWarehouseId = userWarehouseId.id;
     }
 
+<<<<<<< HEAD
     // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, must not be pre-payment PENDING status
     let allOrders = distinctOrders.filter((o: any) => {
       const oWh = o.warehouseId || o.warehouse_id;
@@ -238,15 +253,33 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
     // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
     if (!isAdmin) {
+=======
+    // Filter logic
+    let allOrders = distinctOrders;
+
+    if (isAdmin) {
+      allOrders = distinctOrders.filter((o: any) => {
+        const oWh = o.warehouseId?.id || o.warehouseId || o.warehouse_id?.id || o.warehouse_id;
+        if (!oWh) return false;
+        if (userWarehouseId && String(oWh) !== String(userWarehouseId)) return false;
+        const status = (o.status || "").toUpperCase();
+        if (status === 'PENDING') return false;
+        return true;
+      });
+    } else {
+>>>>>>> erp/shopweb
       const storedUser = sessionStorage.getItem("staffUser");
       const user = storedUser ? JSON.parse(storedUser) : null;
-      const userPhone = user?.phone;
-      if (userPhone) {
+      let rawSkId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
+      if (rawSkId && typeof rawSkId === 'object' && rawSkId.id) rawSkId = rawSkId.id;
+      const skId = rawSkId;
+      if (skId) {
         allOrders = allOrders.filter(
-          (o: any) =>
-            o.assignedShopkeeper?.phone === userPhone ||
-            o.assigned_shopkeeper?.phone === userPhone ||
-            o.shopkeeper_phone === userPhone
+          (o: any) => {
+            let oAssignedId = o.assignedShopkeeperId || o.assigned_shopkeeper_id || o.shopkeeper_id;
+            if (oAssignedId && typeof oAssignedId === 'object' && oAssignedId.id) oAssignedId = oAssignedId.id;
+            return String(oAssignedId) === String(skId);
+          }
         );
       }
     }
@@ -255,7 +288,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
     const newOrders = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'new' || s === 'assigned';
+      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending';
     }).length;
     const picking = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
@@ -267,7 +300,12 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     }).length;
     const ready = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'ready';
+      const isHandedOver = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+      if (isAdmin) {
+        return s === 'ready' && isHandedOver;
+      } else {
+        return s === 'ready' && !isHandedOver;
+      }
     }).length;
 
     const completed = allOrders.filter((o: any) => {
@@ -292,7 +330,16 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
     const breached = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
+      
+      let isLocalDispatched = false;
+      try {
+        const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
+        if (handedOverIds.map(String).includes(String(o.id || o.order_number))) {
+          isLocalDispatched = true;
+        }
+      } catch {}
+
+      if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected' || isLocalDispatched) {
         return false;
       }
       return getSLAInfo(o).remainingMinutes < 15;
@@ -389,18 +436,37 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
   const todayRevenue = allDispatchedOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
 
-  const totalDispatched = allDispatchedOrders.length;
+
+
+  const handedOverIds = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('handedOverIds') || '[]');
+    } catch {
+      return [];
+    }
+  })();
+
+  const totalHandedOver = orders.filter((o: any) => {
+    const s = o.status?.toLowerCase();
+    return s === 'dispatched' || handedOverIds.map(String).includes(String(o.id || o.order_number));
+  }).length;
+
+  // Subtract locally handed over from Ready KPI (only for shopkeeper, and only if not already excluded by DB status)
+  const actualReady = Math.max(0, stats.ready - (isAdmin ? 0 : orders.filter((o: any) => {
+    const isHandedOverDb = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+    return o.status?.toLowerCase() === 'ready' && !isHandedOverDb && handedOverIds.map(String).includes(String(o.id || o.order_number));
+  }).length));
 
   const kpiCards = [
     { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", screen: "orderhistory", variant: "purple" as const },
     { label: "New Orders", value: stats.newOrders, icon: ShoppingBag, color: "#1565C0", bg: "#E3F2FD", screen: "new-orders", variant: "blue" as const },
     { label: "Picking", value: stats.picking, icon: Package, color: "#6A1B9A", bg: "#F3E5F5", screen: "picking-queue", variant: "purple" as const },
     { label: "Packing", value: stats.packing, icon: Package, color: "#E65100", bg: "#FFF3E0", screen: "packing-queue", variant: "yellow" as const },
-    { label: "Ready", value: stats.ready, icon: CheckCircle, color: "#14B8A6", bg: "#E8F5E9", screen: "ready-orders", variant: "green" as const },
+    { label: "Ready", value: actualReady, icon: CheckCircle, color: "#14B8A6", bg: "#E8F5E9", screen: "ready-orders", variant: "green" as const },
   ];
 
   const secondRowKpis = [
-    { label: "Dispatched", value: totalDispatched, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "orderhistory", statusFilter: "DISPATCHED", variant: "green" as const },
+    { label: "Handed Over", value: totalHandedOver, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "orderhistory", statusFilter: "DISPATCHED", variant: "green" as const },
     { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "orderhistory", statusFilter: "REJECTED", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", screen: "sla-monitoring", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns", variant: "gray" as const },
@@ -639,7 +705,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                             if (!isAssigned) return false;
 
                             const s = o.status?.toLowerCase();
-                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return';
+                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return' && s !== 'handed_over';
                           });
 
                           const activeOrderCount = activeOrdersForSk.length;
@@ -782,10 +848,13 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                       rejected: { color: "#DC2626", bg: "#FEF2F2" },
                     };
                     const lowerStatus = (order.status || "").toLowerCase();
-                    const statusColor = statusStyles[lowerStatus]?.color || "#757575";
-                    const statusBg = statusStyles[lowerStatus]?.bg || "#F5F5F5";
+                    const isHandedOverLocally = !isAdmin && lowerStatus === 'ready' && handedOverIds.map(String).includes(String(order.id));
+                    const effectiveStatus = isHandedOverLocally ? 'dispatched' : lowerStatus;
+                    const statusColor = statusStyles[effectiveStatus]?.color || "#757575";
+                    const statusBg = statusStyles[effectiveStatus]?.bg || "#F5F5F5";
 
                     const formatStatusDisplay = (status: string) => {
+                      if (isHandedOverLocally) return "Handed Over";
                       const statusUpper = (status || "").toUpperCase();
                       const statusMap: Record<string, string> = {
                         PENDING: "Pending",
@@ -806,7 +875,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                         PICKING: "Picking",
                         PACKING: "Packing",
                         READY: "Ready",
-                        DISPATCHED: "Dispatched",
+                        DISPATCHED: !isAdmin ? "Handed Over" : "Dispatched",
                         COMPLETED: "Completed",
                         REJECTED: "Rejected",
                       };
@@ -1041,11 +1110,41 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
               cancelled: { color: "#D32F2F", bg: "#FFEBEE" },
             };
 
-            const statusColor =
-              statusStyles[order.status?.toLowerCase()]?.color || "#757575";
+            const lowerStatus = (order.status || "").toLowerCase();
+            const isHandedOverLocally = !isAdmin && lowerStatus === 'ready' && handedOverIds.map(String).includes(String(order.id));
+            const effectiveStatus = isHandedOverLocally ? 'dispatched' : lowerStatus;
 
-            const statusBg =
-              statusStyles[order.status?.toLowerCase()]?.bg || "#F5F5F5";
+            const statusColor = statusStyles[effectiveStatus]?.color || "#757575";
+            const statusBg = statusStyles[effectiveStatus]?.bg || "#F5F5F5";
+
+            const formatStatusDisplay = (status: string) => {
+              if (isHandedOverLocally) return "Handed Over";
+              const statusUpper = (status || "").toUpperCase();
+              const statusMap: Record<string, string> = {
+                PENDING: "Pending",
+                CONFIRMED: "Confirmed",
+                PROCESSING: "Processing",
+                READY_FOR_PICKUP: "Ready for Pickup",
+                OUT_FOR_DELIVERY: "Out for Delivery",
+                ASSIGNED_TO_AGENT: "Out for Delivery",
+                PICKED_UP: "Picked Up",
+                IN_TRANSIT: "In Transit",
+                DELIVERED: "Delivered",
+                CANCELLED: "Cancelled",
+                FAILED: "Failed",
+                RETURNED: "Returned",
+                NEW: "Placed",
+                ASSIGNED: "Assigned",
+                ACCEPTED: "Accepted",
+                PICKING: "Picking",
+                PACKING: "Packing",
+                READY: "Ready",
+                DISPATCHED: !isAdmin ? "Handed Over" : "Dispatched",
+                COMPLETED: "Completed",
+                REJECTED: "Rejected",
+              };
+              return statusMap[statusUpper] || status;
+            };
 
             return (
               <button
@@ -1061,7 +1160,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                     <span className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "13px" }}>{order.order_number}</span>
                     <div className="flex flex-col items-end">
                       <span className="rounded-full px-2 py-0.5 uppercase" style={{ backgroundColor: statusBg, color: statusColor, fontSize: "10px", fontWeight: 600 }}>
-                        {order.status}
+                        {formatStatusDisplay(order.status)}
                       </span>
                       {shouldShowShopkeeper && (
                         <span className="text-[10px] text-gray-400 mt-0.5">

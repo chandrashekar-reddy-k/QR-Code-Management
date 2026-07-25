@@ -9,12 +9,19 @@ export function useSocket(storeId?: number | string) {
   const socket = useRef<Socket | undefined>(undefined);
 
   useEffect(() => {
+<<<<<<< HEAD
     const token = sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
     if (!token || !SOCKET_URL) return;
 
     socket.current = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       auth: { token },
+=======
+    const token = localStorage.getItem('token') || localStorage.getItem('partnerToken') || sessionStorage.getItem('staffToken');
+    socket.current = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      auth: { token }
+>>>>>>> erp/shopweb
     });
     if (storeId) {
       socket.current.emit('join:store', { storeId });

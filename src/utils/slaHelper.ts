@@ -19,10 +19,19 @@ export function getSLAInfo(order: any, now: Date = new Date()): SLAInfo {
     };
   }
 
-  // Freeze calculation if order is completed/dispatched
-  const statusStr = (order.status || "").toLowerCase();
+  let statusStr = (order.status || "").toLowerCase();
+  try {
+    if (typeof window !== 'undefined') {
+      const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
+      if (handedOverIds.map(String).includes(String(order.id || order.order_number))) {
+        statusStr = 'dispatched';
+      }
+    }
+  } catch { }
+
   const isCompleted = ['dispatched', 'delivered', 'completed', 'out_for_delivery'].includes(statusStr);
-  const endVal = isCompleted ? (order.dispatched_at || order.dispatchedAt || order.deliveredAt || order.delivered_at) : null;
+  const endVal = isCompleted ? (order.dispatched_at || order.dispatchedAt || order.deliveredAt || order.delivered_at || new Date()) : null;
+
   const evaluationTime = endVal ? new Date(endVal) : now;
 
   const acceptedTime = new Date(acceptedAtStr).getTime();

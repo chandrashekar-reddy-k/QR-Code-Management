@@ -89,7 +89,7 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
   let dispatchedBreachedCount = 0;
   const breachesList: any[] = [];
   orders.forEach((o) => {
-    const s = o.status?.toLowerCase();
+    let s = o.status?.toLowerCase();
     if (!s || isCancelledOrRejected(o)) {
       return;
     }
@@ -106,8 +106,15 @@ export function SLAMonitoring({ onBack }: SLAMonitoringProps) {
     const acceptedAt = acceptedAtStr ? new Date(acceptedAtStr).getTime() : now.getTime();
     
     // Freeze calculation if order is completed/dispatched
+    try {
+      const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
+      if (handedOverIds.map(String).includes(String(o.id || o.order_number))) {
+        s = 'dispatched';
+      }
+    } catch {}
+
     const isCompleted = ['dispatched', 'delivered', 'completed', 'out_for_delivery'].includes(s);
-    const endVal = isCompleted ? (o.dispatched_at || o.dispatchedAt || o.deliveredAt || o.delivered_at) : null;
+    const endVal = isCompleted ? (o.dispatched_at || o.dispatchedAt || o.deliveredAt || o.delivered_at || new Date()) : null;
     const evaluationTime = endVal ? new Date(endVal) : now;
     const elapsed = (evaluationTime.getTime() - acceptedAt) / 60000;
     const slaMinutes = o.sla_minutes || o.slaMinutes || 30;

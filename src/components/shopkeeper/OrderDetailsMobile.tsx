@@ -138,13 +138,21 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
   let slaStatusLabel = "";
 
   const acceptedAtStr = fullOrder.shopkeeperAcceptedAt || fullOrder.shopkeeper_accepted_at || fullOrder.acceptedByShopkeeperAt;
-  const completedAtStr = fullOrder.deliveredAt || fullOrder.delivered_at || fullOrder.dispatched_at || fullOrder.dispatchedAt || (fullOrder.status === "dispatched" ? fullOrder.updatedAt : null);
+  let orderStatus = fullOrder.status;
+  try {
+    const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
+    if (handedOverIds.map(String).includes(String(fullOrder.id || fullOrder.order_number))) {
+      orderStatus = 'dispatched';
+    }
+  } catch {}
+
+  const completedAtStr = fullOrder.deliveredAt || fullOrder.delivered_at || fullOrder.dispatched_at || fullOrder.dispatchedAt || (orderStatus === "dispatched" ? (fullOrder.updatedAt || new Date()) : null);
 
   if (!acceptedAtStr) {
     // Shopkeeper has not accepted yet ΓåÆ SLA hasn't started
     slaState = "waiting";
     slaStatusLabel = "Waiting for Acceptance";
-  } else if (fullOrder.status === "dispatched" || completedAtStr) {
+  } else if (orderStatus === "dispatched" || completedAtStr) {
     // Order has been dispatched ΓåÆ SLA is done
     slaState = "completed";
     const acceptedAt = new Date(acceptedAtStr).getTime();
@@ -176,10 +184,12 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
               <span className="text-white/70" style={{ fontSize: "12px" }}>{fullOrder.order_type}</span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5" style={{ backgroundColor: isUrgent ? "#FFCDD2" : "#C8E6C9" }}>
-            <Clock size={12} color={isUrgent ? "#D32F2F" : "#2E7D32"} />
-            <span style={{ color: isUrgent ? "#D32F2F" : "#2E7D32", fontWeight: 700, fontSize: "12px" }}>{fullOrder.sla_minutes}m SLA</span>
-          </div>
+          {!(slaState === "completed" && isShopkeeper) && (
+            <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5" style={{ backgroundColor: isUrgent ? "#FFCDD2" : "#C8E6C9" }}>
+              <Clock size={12} color={isUrgent ? "#D32F2F" : "#2E7D32"} />
+              <span style={{ color: isUrgent ? "#D32F2F" : "#2E7D32", fontWeight: 700, fontSize: "12px" }}>{fullOrder.sla_minutes}m SLA</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -320,6 +330,12 @@ export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
                     }}
                   >
                     {slaStatusLabel}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-1 pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "13px" }}>Handover Time:</span>
+                  <span className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "13px" }}>
+                    {new Date(completedAtStr || new Date()).toLocaleString("en-IN", { hour: '2-digit', minute: '2-digit', hour12: true })}
                   </span>
                 </div>
               </>
