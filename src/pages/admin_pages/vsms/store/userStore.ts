@@ -82,8 +82,22 @@ export const useUserStore = create(
         const user = get().user;
         if (!user) return false;
 
-        // Super Admins & Tenant Owners bypass all permission gates
-        if (['SUPER_ADMIN', 'TENANT_OWNER'].includes(user.role)) return true;
+        // Super Admins, Tenant Owners, Global Admins, Partners, or Users without customRoleId bypass all permission gates
+        if (
+          user.role === 'SUPER_ADMIN' ||
+          user.role === 'TENANT_OWNER' ||
+          user.role === 'PARTNER' ||
+          user.role === 'SHOPKEEPER' ||
+          (user.role === 'ADMIN' && !user.customRoleId) ||
+          user.portalType === 'ADMIN'
+        ) {
+          return true;
+        }
+
+        // If section is provided (e.g., 'VILLAGES', 'ROUTES', 'ASSIGNMENTS'), check ROUTE_TARGET_SECTIONS permission list
+        if (section && user.permissions?.ROUTE_TARGET_SECTIONS && Array.isArray(user.permissions.ROUTE_TARGET_SECTIONS)) {
+          if (user.permissions.ROUTE_TARGET_SECTIONS.includes(section)) return true;
+        }
 
         // Evaluate permissions map
         if (!user.permissions || typeof user.permissions !== 'object') {

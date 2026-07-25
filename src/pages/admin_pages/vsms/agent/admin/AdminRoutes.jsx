@@ -53,7 +53,15 @@ export default function AdminRoutes() {
   const currentUser = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
 
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'TENANT_OWNER';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'TENANT_OWNER' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.portalType === 'ADMIN' || !currentUser?.customRoleId;
+  
+  const canSection = (section, action = 'READ') => {
+    if (isAdmin) return true;
+    if (currentUser?.permissions?.ROUTE_TARGET_SECTIONS && Array.isArray(currentUser.permissions.ROUTE_TARGET_SECTIONS)) {
+      return currentUser.permissions.ROUTE_TARGET_SECTIONS.includes(section);
+    }
+    return can('ROUTES', action, section);
+  };
   
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab');
@@ -101,7 +109,7 @@ export default function AdminRoutes() {
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_API_KEY
   });
 
   // Form States
@@ -572,7 +580,7 @@ export default function AdminRoutes() {
                 <Target size={15} strokeWidth={2.5} />
                 <span>Performance</span>
               </button>
-              {can('ROUTES', 'READ', 'VILLAGES') && (
+              {canSection('VILLAGES') && (
                 <button
                   onClick={() => handleTabChange('villages')}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${activeTab === 'villages' ? 'bg-white text-emerald-700 shadow-xs ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-900 hover:bg-white/50'}`}
@@ -581,7 +589,7 @@ export default function AdminRoutes() {
                   <span>Village</span>
                 </button>
               )}
-              {can('ROUTES', 'READ', 'ROUTES') && (
+              {canSection('ROUTES') && (
                 <button
                   onClick={() => handleTabChange('routes')}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${activeTab === 'routes' ? 'bg-white text-emerald-700 shadow-xs ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-900 hover:bg-white/50'}`}
@@ -590,7 +598,7 @@ export default function AdminRoutes() {
                   <span>Routes</span>
                 </button>
               )}
-              {can('ROUTES', 'READ', 'ASSIGNMENTS') && (
+              {canSection('ASSIGNMENTS') && (
                 <button
                   onClick={() => handleTabChange('assignments')}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${activeTab === 'assignments' ? 'bg-white text-emerald-700 shadow-xs ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-900 hover:bg-white/50'}`}

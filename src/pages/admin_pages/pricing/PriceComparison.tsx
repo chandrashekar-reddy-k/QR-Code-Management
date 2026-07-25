@@ -88,8 +88,8 @@ export default function PriceComparison() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm text-slate-700 dark:text-slate-300">
-                {filteredComparison.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-all">
+                {filteredComparison.map((item, index) => (
+                  <tr key={`${item.id}-${item.sku || index}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-all">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900 dark:text-slate-100">{item.name}</div>
                       <div className="text-xs text-slate-400 font-mono mt-0.5">SKU: {item.sku || "—"}</div>
