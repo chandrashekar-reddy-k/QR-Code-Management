@@ -30,6 +30,12 @@ const pendingRequests: Array<{
  */
 const clearAuthAndRedirect = () => {
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
+  console.warn('[AUTH] clearAuthAndRedirect called', {
+    pathname: window.location.pathname,
+    isShopkeeper,
+    isRedirectingToLogin,
+    stack: new Error().stack?.split('\n').slice(1, 4).join(' | ')
+  });
   if (isShopkeeper) {
     sessionStorage.removeItem('staffToken');
     sessionStorage.removeItem('staffRefreshToken');
@@ -46,14 +52,15 @@ const clearAuthAndRedirect = () => {
     localStorage.removeItem('partnerIsAuthenticated');
   }
   sessionStorage.clear();
-  const path = window.location.pathname || "";
-  if (isRedirectingToLogin || path === "/login" || path.startsWith("/login/")) {
+  const path = window.location.pathname || '';
+  if (isRedirectingToLogin || path === '/login' || path.startsWith('/login/')) {
+    console.warn('[AUTH] Already on login page or redirect in progress, skipping redirect');
     return;
   }
   isRedirectingToLogin = true;
   // Use SPA navigation to avoid full page reload loops.
-  window.history.replaceState({}, "", "/login");
-  window.dispatchEvent(new PopStateEvent("popstate"));
+  window.history.replaceState({}, '', '/login');
+  window.dispatchEvent(new PopStateEvent('popstate'));
   // Release lock on next tick in case user logs in again.
   setTimeout(() => {
     isRedirectingToLogin = false;
@@ -65,58 +72,72 @@ const clearAuthAndRedirect = () => {
  */
 const refreshAccessToken = async (): Promise<string> => {
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
-  const refreshToken = isShopkeeper 
-    ? sessionStorage.getItem("staffRefreshToken") 
-    : localStorage.getItem("partnerRefreshToken");
+  // Check all possible storage keys for refresh token
+  const refreshToken = isShopkeeper
+    ? (sessionStorage.getItem('staffRefreshToken') || localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken'))
+    : (localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken') || sessionStorage.getItem('staffRefreshToken'));
+
+  console.log('[AUTH] refreshAccessToken called', {
+    isShopkeeper,
+    pathname: window.location.pathname,
+    hasRefreshToken: !!refreshToken,
+    refreshTokenSource: sessionStorage.getItem('staffRefreshToken') ? 'staffRefreshToken(session)' : localStorage.getItem('partnerRefreshToken') ? 'partnerRefreshToken(local)' : localStorage.getItem('refreshToken') ? 'refreshToken(local)' : 'NONE'
+  });
 
   if (!refreshToken) {
-    throw new Error("No refresh token available");
+    console.error('[AUTH] refreshAccessToken: No refresh token found in any storage key');
+    throw new Error('No refresh token available');
   }
 
   const baseUrl = URL;
   if (!baseUrl) {
-    throw new Error("Base URL not configured");
+    throw new Error('Base URL not configured');
   }
 
-  const fullUrl = `${baseUrl.replace(/\/$/, "")}/partner/auth/refresh-token`;
+  const fullUrl = `${baseUrl.replace(/\/$/, '')}/partner/auth/refresh-token`;
+  console.log('[AUTH] Calling refresh-token API:', fullUrl);
 
   const response = await fetch(fullUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
   });
 
+  console.log('[AUTH] refresh-token API response status:', response.status);
+
   if (!response.ok) {
-    // Refresh token failed - clear auth and redirect
+    console.error('[AUTH] refresh-token API failed — clearing auth and redirecting');
     clearAuthAndRedirect();
-    throw new Error("Refresh token failed");
+    throw new Error('Refresh token failed');
   }
 
   const data: RefreshTokenResponse = await response.json();
 
   if (data?.data?.accessToken) {
-    // Update access token
+    console.log('[AUTH] Token refreshed successfully');
+    // Update access token in all relevant storage locations
     if (isShopkeeper) {
-      sessionStorage.setItem("staffToken", data.data.accessToken);
+      sessionStorage.setItem('staffToken', data.data.accessToken);
     } else {
-      localStorage.setItem("partnerToken", data.data.accessToken);
+      localStorage.setItem('partnerToken', data.data.accessToken);
+      localStorage.setItem('token', data.data.accessToken);
     }
 
     // Update refresh token if provided
     if (data.data.refreshToken) {
       if (isShopkeeper) {
-        sessionStorage.setItem("staffRefreshToken", data.data.refreshToken);
+        sessionStorage.setItem('staffRefreshToken', data.data.refreshToken);
       } else {
-        localStorage.setItem("partnerRefreshToken", data.data.refreshToken);
+        localStorage.setItem('partnerRefreshToken', data.data.refreshToken);
+        localStorage.setItem('refreshToken', data.data.refreshToken);
       }
     }
 
     return data.data.accessToken;
   }
 
-  throw new Error("Invalid refresh token response");
+  console.error('[AUTH] refresh-token response missing accessToken:', data);
+  throw new Error('Invalid refresh token response');
 };
 
 /**
@@ -238,16 +259,48 @@ async function fetchData<T>(
 
     if (!isAuthEndpointWithoutToken) {
       const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
-      const token = isShopkeeper ? sessionStorage.getItem("staffToken") : localStorage.getItem("partnerToken");
+      // Check multiple storage keys — login hook may store token as 'partnerToken' OR 'token'
+      const partnerTok = localStorage.getItem('partnerToken');
+      const genericTok = localStorage.getItem('token');
+      const staffTok = sessionStorage.getItem('staffToken');
+      const token = isShopkeeper
+        ? (staffTok || genericTok)
+        : (partnerTok || genericTok || staffTok);
+
+      console.log('[AUTH] fetchData token check', {
+        endpoint,
+        isShopkeeper,
+        pathname: window.location.pathname,
+        hasPartnerToken: !!partnerTok,
+        hasGenericToken: !!genericTok,
+        hasStaffToken: !!staffTok,
+        resolvedToken: token ? token.substring(0, 20) + '...' : 'NONE'
+      });
+
       if (!token) {
         // Don't fire the request tokenless — wait for refresh if one is in progress
         if (isRefreshing && refreshPromise) {
+          console.log('[AUTH] No token but refresh in progress — waiting for refresh');
           const newToken = await refreshPromise;
           options.headers = { ...options.headers, Authorization: `Bearer ${newToken}` };
         } else {
-          // No token, no refresh in progress — redirect to login
-          clearAuthAndRedirect();
-          throw { status: 401, message: "No auth token. Please login again." } as FetchError;
+          // No token and no refresh in progress — try to refresh before giving up
+          const anyRefreshToken = localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken') || sessionStorage.getItem('staffRefreshToken');
+          console.warn('[AUTH] No access token found. Attempting refresh. Has refresh token:', !!anyRefreshToken);
+          if (anyRefreshToken) {
+            try {
+              const newToken = await handleTokenRefresh();
+              options.headers = { ...options.headers, Authorization: `Bearer ${newToken}` };
+            } catch (refreshErr) {
+              console.error('[AUTH] Token refresh failed in no-token path:', refreshErr);
+              clearAuthAndRedirect();
+              throw { status: 401, message: 'No auth token. Please login again.' } as FetchError;
+            }
+          } else {
+            console.error('[AUTH] No access token AND no refresh token — logging out');
+            clearAuthAndRedirect();
+            throw { status: 401, message: 'No auth token. Please login again.' } as FetchError;
+          }
         }
       } else {
         options.headers = { ...options.headers, Authorization: `Bearer ${token}` };
@@ -283,13 +336,16 @@ async function fetchData<T>(
       !isAuthEndpointWithoutToken &&
       !isRetry
     ) {
-      // Check if we have a refresh token
-      const refreshToken = localStorage.getItem("refreshToken");
+      console.warn('[AUTH] Got 401 response for:', endpoint, '— attempting token refresh');
+      // Check if we have a refresh token — stored as 'partnerRefreshToken' OR 'refreshToken'
+      const refreshToken = localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken') || sessionStorage.getItem('staffRefreshToken');
+      console.log('[AUTH] 401 handler — has refresh token:', !!refreshToken);
 
       if (refreshToken) {
         try {
           // Wait for token refresh (handles queuing automatically)
           const newToken = await handleTokenRefresh();
+          console.log('[AUTH] Token refresh succeeded after 401, retrying request');
 
           // Retry the original request with new token
           const retryOptions: RequestInit = {
@@ -306,11 +362,12 @@ async function fetchData<T>(
 
           // If retry also fails with 401, clear auth and redirect
           if (retryResponse.status === 401) {
+            console.error('[AUTH] Retry after refresh ALSO got 401 — clearing auth');
             clearAuthAndRedirect();
             const retryDataTyped = retryData as { response?: string } | null;
             const error = {
               status: retryResponse.status,
-              message: retryDataTyped?.response || "Authentication failed",
+              message: retryDataTyped?.response || 'Authentication failed',
               data: retryData,
             } as FetchError;
             throw error;
@@ -324,30 +381,32 @@ async function fetchData<T>(
               message:
                 retryDataTyped?.response ||
                 retryResponse.statusText ||
-                "Request failed",
+                'Request failed',
               data: retryData,
             } as FetchError;
             throw error;
           }
 
           return retryData as T;
-        } catch {
+        } catch (catchErr) {
           // Refresh token failed - already handled in handleTokenRefresh
           // Clear auth and redirect
+          console.error('[AUTH] Token refresh FAILED in 401 handler — clearing auth. Error:', catchErr);
           clearAuthAndRedirect();
           const error = {
             status: 401,
-            message: "Session expired. Please login again.",
+            message: 'Session expired. Please login again.',
             data: null,
           } as FetchError;
           throw error;
         }
       } else {
         // No refresh token available - clear auth and redirect
+        console.error('[AUTH] 401 received but NO refresh token — clearing auth');
         clearAuthAndRedirect();
         const error = {
           status: 401,
-          message: "Authentication required. Please login again.",
+          message: 'Authentication required. Please login again.',
           data: null,
         } as FetchError;
         throw error;
