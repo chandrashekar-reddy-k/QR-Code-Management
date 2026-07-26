@@ -85,7 +85,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
       });
     },
 
-    onSuccess: (data: LoginResponse) => {
+    onSuccess: async (data: LoginResponse) => {
       const user = data.data.user;
       const anyUser = user as any;
 
@@ -153,6 +153,26 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
           }
         }
       }
+
+      // --- Pre-fetch full permissions from Identity Service BEFORE navigating ---
+      // This ensures the sidebar has full permissions on first render (no empty flash)
+      try {
+        const identityBase = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
+        const meRes = await fetch(`${identityBase}/api/v1/auth/me`, {
+          headers: { Authorization: `Bearer ${data.data.accessToken}` }
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          const livePerms = meData.data?.flatPermissions || meData.data?.permissions || meData.data?.user?.permissions;
+          if (Array.isArray(livePerms) && livePerms.length > 0) {
+            localStorage.setItem('permissions', JSON.stringify(livePerms));
+          } else if (livePerms && typeof livePerms === 'object') {
+            const flat = (Object.values(livePerms) as string[][]).flat();
+            if (flat.length > 0) localStorage.setItem('permissions', JSON.stringify(flat));
+          }
+        }
+      } catch { /* fallback: keep JWT-decoded permissions already stored above */ }
+      // --- end pre-fetch ---
 
       onSuccess(data);
       toast.success(data.response);

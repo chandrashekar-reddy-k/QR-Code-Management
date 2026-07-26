@@ -259,12 +259,8 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({
               {/* Connector line for mobile */}
               {idx < activeMilestones.length - 1 && (
                 <div
-<<<<<<< HEAD
                   className={`absolute left-4 top-8 w-0.5 h-full md:hidden transition-all duration-300 ${
                     isLineGreen
-=======
-                  className={`absolute left-4 top-8 w-0.5 h-full md:hidden transition-all duration-300 ${timestamp && getMilestoneTime(MILESTONES[idx + 1])
->>>>>>> erp/shopweb
                       ? "bg-indigo-500"
                       : "bg-slate-200 dark:bg-slate-700"
                     }`}
@@ -275,12 +271,8 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({
               {/* Connector line for desktop */}
               {idx < activeMilestones.length - 1 && (
                 <div
-<<<<<<< HEAD
                   className={`absolute top-4 left-[calc(50%+16px)] w-[calc(100%-32px)] h-0.5 hidden md:block transition-all duration-300 ${
                     isLineGreen
-=======
-                  className={`absolute top-4 left-[calc(50%+16px)] w-[calc(100%-32px)] h-0.5 hidden md:block transition-all duration-300 ${timestamp && getMilestoneTime(MILESTONES[idx + 1])
->>>>>>> erp/shopweb
                       ? "bg-indigo-500"
                       : "bg-slate-200 dark:bg-slate-700"
                     }`}
@@ -289,14 +281,10 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({
 
               {/* Stepper Dot */}
               <div
-<<<<<<< HEAD
                 className={`w-9 h-9 rounded-full flex items-center justify-center relative z-10 transition-all duration-300 border-2 ${
                   isFailedRefund
                     ? "bg-red-500 border-red-500 text-white"
                     : isCurrent
-=======
-                className={`w-9 h-9 rounded-full flex items-center justify-center relative z-10 transition-all duration-300 border-2 ${isCurrent
->>>>>>> erp/shopweb
                     ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-150 ring-4 ring-indigo-50"
                     : isCompleted
                       ? "bg-emerald-500 border-emerald-500 text-white"
@@ -315,14 +303,10 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({
               {/* Stepper Info */}
               <div className="ml-4 md:ml-0 md:mt-3 text-left md:text-center">
                 <p
-<<<<<<< HEAD
                   className={`text-sm font-semibold transition-colors duration-250 ${
                     isFailedRefund
                       ? "text-red-600 dark:text-red-455"
                       : isCurrent
-=======
-                  className={`text-sm font-semibold transition-colors duration-250 ${isCurrent
->>>>>>> erp/shopweb
                       ? "text-indigo-600 dark:text-indigo-400"
                       : isCompleted
                         ? "text-slate-850 dark:text-slate-200"

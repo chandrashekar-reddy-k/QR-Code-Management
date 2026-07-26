@@ -28,26 +28,34 @@ const buildPartnerSlug = (moduleName: string): string => {
 };
 
 const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
-  // Live permission state — refreshed from Identity Service token
+  const location = useLocation();
+  // Permission state — synced from localStorage (written by login + Identity Service refresh)
   const [permissions, setPermissions] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('permissions') || '[]'); } catch { return []; }
   });
 
-  // Refresh token from Identity Service and update localStorage + state
+  // Fetch full role-based permissions from Identity Service and update state
   const refreshPermissions = useCallback(async () => {
     try {
-      const token = localStorage.getItem('partnerToken');
+      const token = localStorage.getItem('partnerToken') || sessionStorage.getItem('staffToken') || localStorage.getItem('token');
       if (!token) return;
       const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
-      const localMeUrl = `${baseUrl}/api/v1/auth/me`;
-      const res = await fetch(localMeUrl, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${baseUrl}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const data = await res.json();
       if (data.data?.accessToken) {
         localStorage.setItem('partnerToken', data.data.accessToken);
       }
-      const newPermissions = data.data?.permissions || data.data?.user?.permissions || data.permissions;
-      if (newPermissions) {
+      // Identity Service may return permissions as: flat array, nested user.permissions array, or object map
+      const raw = data.data?.flatPermissions || data.data?.permissions || data.data?.user?.permissions || data.flatPermissions || data.permissions;
+      let newPermissions: string[] | null = null;
+      if (Array.isArray(raw) && raw.length > 0) {
+        newPermissions = raw;
+      } else if (raw && typeof raw === 'object') {
+        // Permissions returned as an object map — flatten all values into a single array
+        newPermissions = Object.values(raw).flat() as string[];
+      }
+      if (newPermissions && newPermissions.length > 0) {
         localStorage.setItem('permissions', JSON.stringify(newPermissions));
         setPermissions(newPermissions);
       }
@@ -55,12 +63,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   }, []);
 
   useEffect(() => {
-    // Immediate refresh on mount
+    // Fetch full permissions on mount
     refreshPermissions();
-    // Poll every 30 seconds for permission changes
-    const interval = setInterval(refreshPermissions, 30000);
-    const onFocus = () => refreshPermissions();
-    window.addEventListener('focus', onFocus);
+    // Re-fetch every 2 minutes to stay fresh
+    const interval = setInterval(refreshPermissions, 120000);
+    // Sync from storage events (cross-tab updates)
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'permissions' && e.newValue) {
         try { setPermissions(JSON.parse(e.newValue)); } catch { /* silent */ }
@@ -69,10 +76,19 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     window.addEventListener('storage', onStorage);
     return () => {
       clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
       window.removeEventListener('storage', onStorage);
     };
   }, [refreshPermissions]);
+
+  // Also sync permissions from localStorage on every route transition (handles post-login redirects)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('permissions');
+      if (stored) {
+        setPermissions(JSON.parse(stored));
+      }
+    } catch { /* silent */ }
+  }, [location.pathname]);
 
   // Permission check using live state with dynamic keyword-root matching
   const hasModuleViewPermission = useCallback((moduleName: string) => {
@@ -81,6 +97,15 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     // Super Admins, Tenant Owners or wildcard permission holders pass everything
     if (permissions.includes('*') || permissions.includes('ALL') || permissions.includes('all')) return true;
 
+    // If the user has any partner-level access, they have logged-in partner status.
+    // Generic Identity Service permissions (products.view, orders.view, dashboard.view)
+    // grant access to the full partner portal sidebar.
+    const hasPartnerAccess = permissions.some(p =>
+      p === 'products.view' || p === 'orders.view' || p === 'dashboard.view' ||
+      p.startsWith('partner_') || p.includes('.view')
+    );
+    if (hasPartnerAccess) return true;
+
     // Helper to normalize strings into core semantic word roots
     const getSemanticRoots = (str: string) => {
       return str
@@ -88,15 +113,31 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         .replace(/[^a-z0-9]+/g, ' ')
         .split(' ')
         .map(word => {
-          // Normalize common synonyms to align frontend labels with DB schema
-          if (word === 'procurement') return 'purchase';
-          if (word === 'pricing') return 'price';
+          // Map sidebar-specific terms → Identity Service generic permission words
+          if (word === 'stock') return 'products';
+          if (word === 'inventory') return 'products';
+          if (word === 'barcode') return 'products';
+          if (word === 'pos') return 'products';
+          if (word === 'point') return 'products';    // "Point of Sales"
+          if (word === 'sales') return 'products';
+          if (word === 'reservation' || word === 'reservations') return 'orders';
+          if (word === 'withdrawal') return 'orders';
+          if (word === 'wallet') return 'orders';
+          if (word === 'transaction' || word === 'transactions') return 'orders';
+          if (word === 'purchase' || word === 'procurement') return 'orders';
+          if (word === 'pricing') return 'products';
+          if (word === 'price' || word === 'prices') return 'products';
           if (word === 'logistics') return 'vsms';
+          if (word === 'slot' || word === 'slots') return 'vsms';
+          if (word === 'root') return 'vsms';
+          if (word === 'report' || word === 'reports') return 'orders';
+          if (word === 'staff') return 'partner';
+          if (word === 'access') return 'partner';
           return word;
         })
         .filter(word => {
           // Filter out generic noise words
-          return word && !['partner', 'admin', 'vsms', 'management', 'view', 'create', 'edit', 'delete', 'all', 'update', 'setup', 'and', 'erp', 'to', 'the', 'settings'].includes(word);
+          return word && !['vsms', 'management', 'view', 'create', 'edit', 'delete', 'all', 'update', 'setup', 'and', 'erp', 'to', 'the', 'settings'].includes(word);
         });
     };
 
@@ -105,8 +146,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
     // Check if any active permission in the DB matches the target roots
     return permissions.some(perm => {
-      // Only view permissions or special access permissions should show in the sidebar
-      const isViewPermission = perm.endsWith('_view') || perm.includes('view') || perm.endsWith('_track') || perm.endsWith('_tracking');
+      // Handle dot-notation (products.view) and underscore-notation (products_view)
+      const isViewPermission = perm.endsWith('_view') || perm.endsWith('.view') || 
+        perm.includes('view') || perm.endsWith('_track') || perm.endsWith('_tracking');
       if (!isViewPermission) return false;
 
       const permRoots = getSemanticRoots(perm);
@@ -159,7 +201,6 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
     return candidates.some(candidate => permissions.includes(candidate));
   }, [permissions]);
-  const location = useLocation();
 
   // ============================================
   // STATE MANAGEMENT - For menu items open/close

@@ -20,16 +20,9 @@ import { OrderHistoryMobile as AllOrders } from "../components/shopkeeper/OrderH
 import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 import { useSocket } from "../hooks/useSocket";
-import { getSLAInfo } from "../utils/slaHelper";
-<<<<<<< HEAD
-
-import { SharedOrdersContext } from "../components/shopkeeper/SharedOrdersContext";
+import { SharedOrdersContext, useSharedOrders } from "../components/shopkeeper/SharedOrdersContext";
 
 let hrmsWindowRef: Window | null = null;
-
-=======
-import { SharedOrdersContext, useSharedOrders } from "../components/shopkeeper/SharedOrdersContext";
->>>>>>> erp/shopweb
 // Local API Client instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_URL || "http://localhost:3004/api/v1",
