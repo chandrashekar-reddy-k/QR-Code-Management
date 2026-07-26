@@ -228,7 +228,7 @@ const MappingSection = ({ can, setHideMainHeader }) => {
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right duration-300">
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 relative">
+          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm flex flex-col flex-1 relative" style={{minHeight: 0}}>
             
             {/* Header */}
             <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
@@ -447,21 +447,17 @@ const MappingSection = ({ can, setHideMainHeader }) => {
               </div>
             </div>
 
-            {/* Sticky Save Button Container */}
-            {can('PROCUREMENT', 'UPDATE', 'MAPPING') && (
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent pointer-events-none">
-                <div className="flex justify-center pointer-events-auto">
-                  <button 
-                    onClick={saveMappings} 
-                    disabled={saving}
-                    className="flex items-center gap-3 bg-emerald-600 text-white px-12 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-[0_20px_50px_rgba(5,150,105,0.25)] hover:bg-emerald-700 hover:-translate-y-1 transition-all active:translate-y-0 disabled:opacity-50"
-                  >
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                    {saving ? 'Saving...' : 'Save Mapping Changes'}
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Save Button — always visible when editing a vendor's mappings */}
+            <div className="shrink-0 px-6 py-4 bg-gradient-to-t from-white via-white to-transparent border-t border-gray-50 flex justify-center">
+              <button 
+                onClick={saveMappings} 
+                disabled={saving}
+                className="flex items-center gap-3 bg-emerald-600 text-white px-12 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-[0_20px_50px_rgba(5,150,105,0.25)] hover:bg-emerald-700 hover:-translate-y-1 transition-all active:translate-y-0 disabled:opacity-50"
+              >
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                {saving ? 'Saving...' : 'Save Mapping Changes'}
+              </button>
+            </div>
           </div>
         </div>
       )}

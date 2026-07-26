@@ -217,29 +217,14 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
     // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, must not be pre-payment PENDING status
     let allOrders = distinctOrders.filter((o: any) => {
-      const oWh = o.warehouseId || o.warehouse_id;
+      const oWh = o.warehouseId?.id || o.warehouseId || o.warehouse_id?.id || o.warehouse_id;
       if (!oWh) return false;
-
-      if (userWarehouseId && oWh !== userWarehouseId) {
-        return false;
-      }
-
+      if (userWarehouseId && String(oWh) !== String(userWarehouseId)) return false;
       const status = (o.status || "").toUpperCase();
-      if (status === 'PENDING') {
-        return false;
-      }
-
-      if (!isAdmin) {
-        const isAssigned = o.shopkeeper_name || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_phone || o.assignedShopkeeperId;
-        if (!isAssigned) {
-          return false;
-        }
-      }
-
+      if (status === 'PENDING') return false;
       return true;
     });
 
-    // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
     if (!isAdmin) {
       const storedUser = sessionStorage.getItem("staffUser");
       const user = storedUser ? JSON.parse(storedUser) : null;

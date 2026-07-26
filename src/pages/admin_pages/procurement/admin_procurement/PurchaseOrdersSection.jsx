@@ -1445,12 +1445,10 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
                 ))}
               </div>
             </div>
-            {can('PROCUREMENT', 'CREATE', 'PO') && (
-              <button onClick={() => { setForm({ vendorId: '', poDate: format(new Date(), 'yyyy-MM-dd'), expectedDelivery: '', remarks: '', items: [], taxDiscount: '' }); setAttachments({ vendorQuotations: null, bills: null, supportingDocs: null }); setPoType(null); setShowTypeSelection(true); }}
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-emerald-600/20 shrink-0">
-                <Plus size={16} strokeWidth={3} /> New Purchase Order
-              </button>
-            )}
+            <button onClick={() => { setForm({ vendorId: '', poDate: format(new Date(), 'yyyy-MM-dd'), expectedDelivery: '', remarks: '', items: [], taxDiscount: '' }); setAttachments({ vendorQuotations: null, bills: null, supportingDocs: null }); setPoType(null); setShowTypeSelection(true); }}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-emerald-600/20 shrink-0">
+              <Plus size={16} strokeWidth={3} /> New Purchase Order
+            </button>
           </div>
 
           {loading ? (
@@ -1511,24 +1509,20 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
                         <div className="flex items-center justify-end gap-3">
                           {po.status === 'CREATED' ? (
                             <>
-                              {can('PROCUREMENT', 'UPDATE', 'PO') && (
-                                <button 
-                                  onClick={() => handleViewDetails(po)} 
-                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-emerald-200 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-50/50 hover:bg-emerald-600 hover:text-white transition-all active:scale-95 shadow-sm"
-                                  title="Approve PO"
-                                >
-                                  <Check size={12} strokeWidth={3} /> Approve
-                                </button>
-                              )}
-                              {can('PROCUREMENT', 'UPDATE', 'PO') && (
-                                <button 
-                                  onClick={() => handleViewDetails(po)} 
-                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-50/50 hover:bg-rose-600 hover:text-white transition-all active:scale-95 shadow-sm"
-                                  title="Cancel PO"
-                                >
-                                  <X size={12} strokeWidth={3} /> Cancel
-                                </button>
-                              )}
+                              <button 
+                                onClick={() => handleViewDetails(po)} 
+                                className="flex items-center gap-1.5 px-3 py-1.5 border border-emerald-200 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-50/50 hover:bg-emerald-600 hover:text-white transition-all active:scale-95 shadow-sm"
+                                title="Approve PO"
+                              >
+                                <Check size={12} strokeWidth={3} /> Approve
+                              </button>
+                              <button 
+                                onClick={() => updateStatus(po.id, 'CANCELLED')} 
+                                className="flex items-center gap-1.5 px-3 py-1.5 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-50/50 hover:bg-rose-600 hover:text-white transition-all active:scale-95 shadow-sm"
+                                title="Cancel PO"
+                              >
+                                <X size={12} strokeWidth={3} /> Cancel
+                              </button>
                             </>
                           ) : (
                             <>
@@ -1549,7 +1543,7 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
                             </>
                           )}
                           
-                          {can('PROCUREMENT', 'UPDATE', 'PO') && !['CLOSED', 'CANCELLED'].includes(po.status) && (
+                          {!['CLOSED', 'CANCELLED'].includes(po.status) && (
                             <div className="flex gap-1 pl-1.5 border-l border-gray-100">
                               {po.status === 'CREATED' && (
                                 <button onClick={() => updateStatus(po.id, 'APPROVED')} className="p-1 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all" title="Approve">
