@@ -200,14 +200,16 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     // Retrieve current user's warehouseId to scope dashboard orders to this store only (skip for admin)
     const cachedWh = isAdmin ? localStorage.getItem("partnerWarehouseId") : sessionStorage.getItem("staffWarehouseId");
     const storedU = isAdmin ? localStorage.getItem("partnerUser") : sessionStorage.getItem("staffUser");
-    let userWarehouseId: any = null;
-    if (cachedWh && cachedWh !== "undefined") {
-      userWarehouseId = cachedWh;
-    } else if (storedU) {
-      try {
-        const u = JSON.parse(storedU);
-        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || null;
-      } catch (e) { }
+    let userWarehouseId: string | null = null;
+    if (!isAdmin) {
+      if (cachedWh && cachedWh !== "undefined") {
+        userWarehouseId = cachedWh;
+      } else if (storedU) {
+        try {
+          const u = JSON.parse(storedU);
+          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
+        } catch (e) { }
+      }
     }
     if (userWarehouseId && typeof userWarehouseId === 'object' && userWarehouseId.id) {
       userWarehouseId = userWarehouseId.id;

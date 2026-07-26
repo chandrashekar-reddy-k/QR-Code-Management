@@ -177,27 +177,44 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     const cachedWh = localStorage.getItem(isAdmin ? "partnerWarehouseId" : "staffWarehouseId");
     const storedU = localStorage.getItem(isAdmin ? "partnerUser" : "staffUser");
     let userWarehouseId: string | null = null;
-    if (cachedWh && cachedWh !== "undefined") {
-      userWarehouseId = cachedWh;
-    } else if (storedU) {
-      try {
-        const u = JSON.parse(storedU);
-        userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || null;
-      } catch (e) { }
+    if (!isAdmin) {
+      if (cachedWh && cachedWh !== "undefined") {
+        userWarehouseId = cachedWh;
+      } else if (storedU) {
+        try {
+          const u = JSON.parse(storedU);
+          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
+        } catch (e) { }
+      }
     }
 
     // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, must not be pre-payment PENDING status
     let allOrders = distinctOrders.filter((o: any) => {
       const oWh = o.warehouseId || o.warehouse_id;
       if (!oWh) return false;
-      if (userWarehouseId && oWh !== userWarehouseId) return false;
+
+      if (userWarehouseId && oWh !== userWarehouseId) {
+        return false;
+      }
+
       const status = (o.status || "").toUpperCase();
-      if (status === 'PENDING') return false;
+      if (status === 'PENDING') {
+        return false;
+      }
+
+      if (!isAdmin) {
+        const isAssigned = o.shopkeeper_name || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_phone || o.assignedShopkeeperId;
+        if (!isAssigned) {
+          return false;
+        }
+      }
+
       return true;
     });
 
+    // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
     if (!isAdmin) {
-      const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("staffUser");
+      const storedUser = localStorage.getItem("staffUser");
       const user = storedUser ? JSON.parse(storedUser) : null;
       const skId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
       if (skId) {

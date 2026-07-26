@@ -291,10 +291,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
       }
     };
     window.addEventListener('beforeunload', handleUnload);
-    window.addEventListener('unload', handleUnload);
     return () => {
       window.removeEventListener('beforeunload', handleUnload);
-      window.removeEventListener('unload', handleUnload);
     };
   }, []);
 

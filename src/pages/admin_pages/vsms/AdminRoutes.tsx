@@ -54,7 +54,15 @@ export default function AdminRoutes() {
   const currentUser = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
 
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'TENANT_OWNER';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'TENANT_OWNER' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.portalType === 'ADMIN' || !currentUser?.customRoleId;
+  
+  const canSection = (section, action = 'READ') => {
+    if (isAdmin) return true;
+    if (currentUser?.permissions?.ROUTE_TARGET_SECTIONS && Array.isArray(currentUser.permissions.ROUTE_TARGET_SECTIONS)) {
+      return currentUser.permissions.ROUTE_TARGET_SECTIONS.includes(section);
+    }
+    return can('ROUTES', action, section);
+  };
   
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab');
@@ -102,7 +110,7 @@ export default function AdminRoutes() {
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_API_KEY
   });
 
   // Form States
@@ -568,9 +576,9 @@ export default function AdminRoutes() {
             <div className="flex items-center gap-8 w-fit min-w-max">
               {[
                 { id: 'performance', label: 'Performance', icon: Target, visible: true },
-                { id: 'villages', label: 'Village', icon: MapPin, visible: can('ROUTES', 'READ', 'VILLAGES') },
-                { id: 'routes', label: 'Routes', icon: Navigation, visible: can('ROUTES', 'READ', 'ROUTES') },
-                { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: can('ROUTES', 'READ', 'ASSIGNMENTS') },
+                { id: 'villages', label: 'Village', icon: MapPin, visible: canSection('VILLAGES') },
+                { id: 'routes', label: 'Routes', icon: Navigation, visible: canSection('ROUTES') },
+                { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: canSection('ASSIGNMENTS') },
                 { id: 'sales', label: 'Sales', icon: ShoppingBag, visible: true },
                 { id: 'collections', label: 'Collections', icon: Coins, visible: true }
               ].filter(t => t.visible).map(tab => {
