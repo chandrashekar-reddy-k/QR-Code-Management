@@ -31,9 +31,10 @@ const Reservations = () => {
   }, [realReservationsRes, setReservations]);
 
   const statusOptions = [
-    { value: 'All', label: 'All' },
-    { value: 'active', label: 'Active' },
-    { value: 'released', label: 'Released' },
+    { value: 'All', label: 'All Statuses' },
+    { value: 'active', label: 'Active (Pending)' },
+    { value: 'completed', label: 'Completed (Fulfilled)' },
+    { value: 'released', label: 'Cancelled / Released' },
   ];
 
   const handleResetFilters = () => {
@@ -67,7 +68,7 @@ const Reservations = () => {
 
     // Location filter
     if (locationFilter !== 'All') {
-      filtered = filtered.filter((r) => r.locationCode === locationFilter);
+      filtered = filtered.filter((r) => r.locationCode === locationFilter || (r as any).locationId === locationFilter);
     }
 
     // Search filter
@@ -75,9 +76,9 @@ const Reservations = () => {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (r) =>
-          r.orderId.toLowerCase().includes(term) ||
-          r.customerName.toLowerCase().includes(term) ||
-          r.items?.some(item => item.sku.toLowerCase().includes(term) || item.productName.toLowerCase().includes(term))
+          (r.orderId || '').toLowerCase().includes(term) ||
+          (r.customerName || '').toLowerCase().includes(term) ||
+          r.items?.some(item => (item.sku || '').toLowerCase().includes(term) || (item.productName || '').toLowerCase().includes(term))
       );
     }
 
@@ -89,40 +90,40 @@ const Reservations = () => {
 
         switch (sortField) {
           case 'id':
-            aValue = a.id.toLowerCase();
-            bValue = b.id.toLowerCase();
+            aValue = (a.id || '').toLowerCase();
+            bValue = (b.id || '').toLowerCase();
             break;
           case 'orderId':
-            aValue = a.orderId.toLowerCase();
-            bValue = b.orderId.toLowerCase();
+            aValue = (a.orderId || '').toLowerCase();
+            bValue = (b.orderId || '').toLowerCase();
             break;
           case 'customerName':
-            aValue = a.customerName.toLowerCase();
-            bValue = b.customerName.toLowerCase();
+            aValue = (a.customerName || '').toLowerCase();
+            bValue = (b.customerName || '').toLowerCase();
             break;
           case 'sku':
-            aValue = a.items?.[0]?.sku?.toLowerCase() || '';
-            bValue = b.items?.[0]?.sku?.toLowerCase() || '';
+            aValue = (a.items?.[0]?.sku || '').toLowerCase();
+            bValue = (b.items?.[0]?.sku || '').toLowerCase();
             break;
           case 'locationCode':
-            aValue = a.locationCode.toLowerCase();
-            bValue = b.locationCode.toLowerCase();
+            aValue = (a.locationCode || '').toLowerCase();
+            bValue = (b.locationCode || '').toLowerCase();
             break;
           case 'qty':
-            aValue = a.qty;
-            bValue = b.qty;
+            aValue = a.qty || 0;
+            bValue = b.qty || 0;
             break;
           case 'status':
-            aValue = a.status.toLowerCase();
-            bValue = b.status.toLowerCase();
+            aValue = (a.status || '').toLowerCase();
+            bValue = (b.status || '').toLowerCase();
             break;
           case 'createdAt':
-            aValue = new Date(a.createdAt).getTime();
-            bValue = new Date(b.createdAt).getTime();
+            aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             break;
           case 'expiresAt':
-            aValue = new Date(a.expiresAt).getTime();
-            bValue = new Date(b.expiresAt).getTime();
+            aValue = a.expiresAt ? new Date(a.expiresAt).getTime() : 0;
+            bValue = b.expiresAt ? new Date(b.expiresAt).getTime() : 0;
             break;
           default:
             return 0;
@@ -147,7 +148,9 @@ const Reservations = () => {
   );
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
@@ -308,20 +311,30 @@ const Reservations = () => {
               key: 'status',
               label: 'STATUS',
               sortable: true,
-              render: (reservation: Reservation) => (
-                <div className="text-center">
-                  <Badge
-                    status={reservation.status === 'active' ? 'active' : 'inactive'}
-                    size="sm"
-                    customColor={
-                      reservation.status === 'active'
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                        : 'bg-gray-100 text-gray-800'
-                    }
-                    className="rounded"
-                  />
-                </div>
-              ),
+              render: (reservation: Reservation) => {
+                const isStale = (reservation as any).isStale ?? (reservation.status === 'active' && (Date.now() - new Date(reservation.createdAt).getTime()) > 24 * 60 * 60 * 1000);
+                return (
+                  <div className="text-center flex flex-col items-center justify-center gap-1">
+                    <Badge
+                      status={reservation.status === 'active' ? 'active' : 'inactive'}
+                      size="sm"
+                      customColor={
+                        reservation.status === 'active'
+                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
+                          : (reservation as any).status === 'completed'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                          : 'bg-gray-100 text-gray-800'
+                      }
+                      className="rounded"
+                    />
+                    {isStale && (
+                      <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 rounded border border-rose-200 dark:border-rose-800">
+                        Stale (&gt;24h)
+                      </span>
+                    )}
+                  </div>
+                );
+              },
             },
             {
               key: 'createdAt',
@@ -399,8 +412,15 @@ const Reservations = () => {
               </div>
               <Pagination
                 currentPage={currentPage}
-                totalPages={totalPages}
                 onPageChange={setCurrentPage}
+                pagination={{
+                  page: currentPage,
+                  limit: itemsPerPage,
+                  total: filteredAndSorted.length,
+                  totalPages: totalPages,
+                  hasNext: currentPage < totalPages,
+                  hasPrev: currentPage > 1
+                }}
               />
             </div>
           </div>
