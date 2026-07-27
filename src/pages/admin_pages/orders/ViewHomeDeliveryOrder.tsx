@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Phone, MapPin, ChevronDown, Search } from "lucide-react";
 import fetchData from "../../../helper";
+import api from "../../../api/axios";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
@@ -189,8 +190,8 @@ const ViewHomeDeliveryOrder = () => {
   useEffect(() => {
     const fetchShopkeepers = async () => {
       try {
-        const res = await fetchData<any>("shopkeepers", "GET");
-        const list = Array.isArray(res) ? res : (res?.data && Array.isArray(res.data)) ? res.data : [];
+        const res = await api.get("/shopkeepers");
+        const list = Array.isArray(res.data) ? res.data : (res.data?.data && Array.isArray(res.data.data)) ? res.data.data : [];
         setShopkeepers(list);
       } catch (err) {
         console.error("Failed to fetch shopkeepers", err);
@@ -203,7 +204,7 @@ const ViewHomeDeliveryOrder = () => {
     if (!selectedShopkeeperId) return;
     setIsAllocatingShopkeeper(true);
     try {
-      await fetchData(`orders/${id}/allocate-shopkeeper`, "POST", {
+      await api.post(`/orders/${id}/allocate-shopkeeper`, {
         shopkeeperId: selectedShopkeeperId,
       });
       window.location.reload();
