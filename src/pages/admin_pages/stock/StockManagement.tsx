@@ -25,6 +25,7 @@ import {
   useGetAllProductList,
   useUpdateProductActive,
   useDeleteProduct,
+  useUpdateProductStock,
 } from "../../../hooks/product";
 
 // Define the API response type
@@ -105,6 +106,7 @@ const StockManagement = () => {
   );
   const { mutate: updateStatusMutation, isPending: isUpdatingStatus } = useUpdateProductActive();
   const { mutate: deleteMutation } = useDeleteProduct();
+  const { mutate: updateStockMutation } = useUpdateProductStock();
 
   // Normalise API products → ApiStock shape
   const stocks: ApiStock[] = useMemo(() => {
@@ -361,9 +363,7 @@ const StockManagement = () => {
       alert("Please enter a valid stock number");
       return;
     }
-    // Stock quantity update goes via product update endpoint
-    // Inline save clears UI; backend sync via refetch
-    refetch();
+    updateStockMutation({ productId: stockId, stock: newStock });
     setEditingStockId(null);
     setEditingStockValue("");
   };

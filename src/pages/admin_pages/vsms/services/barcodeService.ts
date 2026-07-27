@@ -13,7 +13,9 @@ export const barcodeAPI = {
   getNoBarcodeProducts: () => api.get('/barcode/reports/no-barcode'),
   getPrintHistory: () => api.get('/barcode/reports/print-history'),
   getScanHistory: () => api.get('/barcode/reports/scan-history'),
-  resetBarcode: (productId, variantId) => api.delete(`/barcode/${productId}`, { params: variantId ? { variantId } : {} })
+  resetBarcode: (productId, variantId) => api.delete(`/barcode/${productId}`, { params: variantId ? { variantId } : {} }),
+  updateProductStatus: (productId, isActive) => api.put(`/productmanagement/product/${productId}`, { isActive }),
+  updateVariantStatus: (variantId, status) => api.put(`/productmanagement/variant/${variantId}`, { status })
 };
 
 export default barcodeAPI;

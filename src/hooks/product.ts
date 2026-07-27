@@ -483,6 +483,23 @@ const useGetPendingProductList = (page: number, limit: number) => {
   });
 };
 
+const useUpdateProductStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ productId, stock }: { productId: string; stock: number }) =>
+      fetchData(`productmanagement/product/${productId}`, "PUT", { stock }),
+
+    onSuccess: (data: any) => {
+      toast.success(data.response || "Stock updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update stock");
+    },
+  });
+};
+
 export {
   useGetAllProductList,
   useGetMasterProducts,
@@ -500,9 +517,11 @@ export {
   useGetUnitsMapForUnitTypes,
   useUpdateProduct,
   useUpdateProductActive,
+  useUpdateProductStock,
   useDeleteProduct,
   useCreateVariant,
   useUpdateVariant,
   useDeleteVariant,
   useGetPendingProductList,
 };
+
