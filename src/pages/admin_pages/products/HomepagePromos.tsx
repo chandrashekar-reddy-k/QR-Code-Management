@@ -8,15 +8,44 @@ import { toast } from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetAllProductList } from '../../../hooks/product';
 import fetchData from '../../../helper';
+import { useEffect } from 'react';
+
+function FlashCountdown({ expiry }: { expiry: string }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const update = () => {
+      const diff = new Date(expiry).getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft('Expired');
+        return;
+      }
+      const h = Math.floor(diff / (3600 * 1000));
+      const m = Math.floor((diff % (3600 * 1000)) / (60 * 1000));
+      const s = Math.floor((diff % (60 * 1000)) / 1000);
+      setTimeLeft(`${h}h ${m}m ${s}s remaining`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [expiry]);
+
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-wider animate-pulse border border-amber-500/10">
+      <Clock size={11} className="shrink-0" /> {timeLeft}
+    </span>
+  );
+}
 
 export default function HomepagePromos() {
   const [activeTab, setActiveTab] = useState('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
-  const [promoForm, setPromoForm] = useState({ mrp: '', price: '', isFeatured: false });
+  const [promoForm, setPromoForm] = useState({ mrp: '', price: '', isFeatured: false, flashDuration: '24' });
   const [isRollingBack, setIsRollingBack] = useState(false);
 
   const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['product'] });
 
   const { data: productsRes, isFetching } = useGetAllProductList(1, 1000, searchQuery);
   const products = (productsRes as any)?.data?.products ?? [];
@@ -73,20 +102,20 @@ export default function HomepagePromos() {
   };
 
   const handleRemoveOffer = async (product) => {
-    optimisticUpdate(product.id, { mrp: null });
+    optimisticUpdate(product.id, { mrp: null, flashDealEnd: null });
     toast.success(`Offer removed from ${product.name}.`);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { mrp: null });
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { mrp: null, flashDealEnd: null });
       invalidate();
     } catch (err) { console.error(err); toast.error('Failed to remove offer.'); invalidate(); }
   };
 
   const handleRollbackOffer = async (product) => {
     if (!product.mrp) { toast.error('No original price to roll back to.'); return; }
-    optimisticUpdate(product.id, { price: product.mrp, mrp: null });
+    optimisticUpdate(product.id, { price: product.mrp, mrp: null, flashDealEnd: null });
     toast.success(`${product.name} rolled back to ₹${product.mrp}.`);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { price: product.mrp, mrp: null });
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { price: product.mrp, mrp: null, flashDealEnd: null });
       invalidate();
     } catch (err) { console.error(err); toast.error('Rollback failed.'); invalidate(); }
   };
@@ -114,7 +143,19 @@ export default function HomepagePromos() {
 
   const handleStartEdit = (product) => {
     setEditingProduct(product.id);
-    setPromoForm({ mrp: product.mrp ? product.mrp.toString() : '', price: product.price ? product.price.toString() : '', isFeatured: product.isFeatured || false });
+    let durationStr = '24';
+    if (product.flashDealEnd) {
+      const remainingMs = new Date(product.flashDealEnd).getTime() - Date.now();
+      if (remainingMs > 0) {
+        durationStr = Math.max(1, Math.round(remainingMs / (3600 * 1000))).toString();
+      }
+    }
+    setPromoForm({
+      mrp: product.mrp ? product.mrp.toString() : '',
+      price: product.price ? product.price.toString() : '',
+      isFeatured: product.isFeatured || false,
+      flashDuration: durationStr
+    });
   };
 
   const handleSavePromo = async (product) => {
@@ -125,21 +166,34 @@ export default function HomepagePromos() {
       toast.error('Please enter a valid sale price.');
       return;
     }
-    if (activeTab === 'offers' && (isNaN(mrpFloat) || mrpFloat <= priceFloat)) {
+    if ((activeTab === 'offers' || activeTab === 'flash') && (isNaN(mrpFloat) || mrpFloat <= priceFloat)) {
       toast.error('MRP must be higher than the sale price to create an offer.');
       return;
     }
 
+    let flashDealEndVal = null;
+    if (activeTab === 'flash') {
+      const hours = parseInt(promoForm.flashDuration);
+      if (isNaN(hours) || hours <= 0 || hours > 24) {
+        toast.error('Flash deal duration must be between 1 and 24 hours.');
+        return;
+      }
+      flashDealEndVal = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    }
+
     const changes = activeTab === 'offers'
       ? { mrp: mrpFloat, price: priceFloat, isFeatured: promoForm.isFeatured }
+      : activeTab === 'flash'
+      ? { mrp: mrpFloat, price: priceFloat, flashDealEnd: flashDealEndVal }
       : { price: priceFloat, isFeatured: promoForm.isFeatured };
+
     optimisticUpdate(product.id, changes);
     toast.success(`${product.name} updated successfully!`);
     setEditingProduct(null);
 
     try {
       await fetchData(`productmanagement/product/${product.id}`, 'PUT', {
-        ...(activeTab === 'offers' ? { mrp: mrpFloat, price: priceFloat } : { price: priceFloat }),
+        ...(activeTab === 'offers' ? { mrp: mrpFloat, price: priceFloat } : activeTab === 'flash' ? { mrp: mrpFloat, price: priceFloat, flashDealEnd: flashDealEndVal } : { price: priceFloat }),
         isFeatured: promoForm.isFeatured,
       });
       invalidate();
@@ -155,9 +209,11 @@ export default function HomepagePromos() {
       return p.isFeatured;
     } else if (activeTab === 'weekly') {
       return p.tags?.includes('weekly');
+    } else if (activeTab === 'flash') {
+      return p.flashDealEnd && new Date(p.flashDealEnd) > new Date();
     } else {
       // offers / today's deals
-      return p.mrp && p.mrp > p.price;
+      return p.mrp && p.mrp > p.price && (!p.flashDealEnd || new Date(p.flashDealEnd) <= new Date());
     }
   });
 
@@ -167,6 +223,8 @@ export default function HomepagePromos() {
       return !p.isFeatured;
     } else if (activeTab === 'weekly') {
       return !p.tags?.includes('weekly');
+    } else if (activeTab === 'flash') {
+      return !p.flashDealEnd || new Date(p.flashDealEnd) <= new Date();
     } else {
       return !p.mrp || p.mrp <= p.price;
     }
@@ -216,6 +274,16 @@ export default function HomepagePromos() {
         >
           <Clock size={16} /> Weekly Specials
         </button>
+        <button
+          onClick={() => { setActiveTab('flash'); setSearchQuery(''); }}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+            activeTab === 'flash'
+              ? 'bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Clock size={16} className="text-amber-500" /> Limited Time Deals
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -224,7 +292,7 @@ export default function HomepagePromos() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold capitalize">
-              Active {activeTab === 'popular' ? 'Popular Items' : activeTab === 'weekly' ? 'Weekly Specials' : 'Deals & Offers'}
+              Active {activeTab === 'popular' ? 'Popular Items' : activeTab === 'weekly' ? 'Weekly Specials' : activeTab === 'flash' ? 'Limited Time Deals' : 'Deals & Offers'}
             </h2>
             <div className="flex items-center gap-3">
               {isFetching && <RefreshCw size={15} className="animate-spin text-gray-400" />}
@@ -269,7 +337,12 @@ export default function HomepagePromos() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-bold text-sm truncate">{product.name}</h3>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Unit: {product.unit}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Unit: {product.unit}</span>
+                          {product.flashDealEnd && new Date(product.flashDealEnd) > new Date() && (
+                            <FlashCountdown expiry={product.flashDealEnd} />
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -298,6 +371,21 @@ export default function HomepagePromos() {
                             className="w-full bg-gray-50 dark:bg-gray-95 border border-gray-200 dark:border-gray-800 px-2.5 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
                           />
                         </div>
+                        {activeTab === 'flash' && (
+                          <div className="w-24">
+                            <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">Duration (Hrs)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="24"
+                              required
+                              value={promoForm.flashDuration}
+                              onWheel={e => e.target.blur()}
+                              onChange={e => setPromoForm({ ...promoForm, flashDuration: e.target.value })}
+                              className="w-full bg-gray-50 dark:bg-gray-95 border border-gray-200 dark:border-gray-800 px-2.5 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
+                            />
+                          </div>
+                        )}
                         <div className="flex gap-1.5 mt-4 self-end">
                           <button
                             onClick={() => handleSavePromo(product)}
@@ -425,12 +513,12 @@ export default function HomepagePromos() {
                         onClick={() => handleStartEdit(product)}
                         className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
                       >
-                        Set Offer
+                        {activeTab === 'flash' ? 'Set Flash Deal' : 'Set Offer'}
                       </button>
                     )}
                   </div>
 
-                  {/* Inline edit form for offers */}
+                  {/* Inline edit form for offers / flash deals */}
                   {editingProduct === product.id && (
                     <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2 items-end">
                       <div className="w-20">
@@ -456,6 +544,22 @@ export default function HomepagePromos() {
                           className="w-full bg-gray-50 dark:bg-gray-955 border border-gray-200 dark:border-gray-800 px-2 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
                         />
                       </div>
+                      {activeTab === 'flash' && (
+                        <div className="w-16">
+                          <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">Hrs</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="24"
+                            required
+                            placeholder="Hrs"
+                            value={promoForm.flashDuration}
+                            onWheel={e => (e.target as HTMLInputElement).blur()}
+                            onChange={e => setPromoForm({ ...promoForm, flashDuration: e.target.value })}
+                            className="w-full bg-gray-50 dark:bg-gray-955 border border-gray-200 dark:border-gray-800 px-2 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
+                          />
+                        </div>
+                      )}
                       <div className="flex gap-1.5">
                         <button
                           onClick={() => handleSavePromo(product)}
