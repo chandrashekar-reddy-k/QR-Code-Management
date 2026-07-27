@@ -415,7 +415,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
     { path: '/shopkeeper-erp?tab=all-orders', label: 'Order History', icon: History },
     { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-    { path: '/shopkeeper-erp?tab=settings', label: 'Settings', icon: Settings }
+    { path: '/shopkeeper-erp?tab=settings', label: 'PLM Settings', icon: Settings }
   ];
 
   // const categorySubItems = [
@@ -511,7 +511,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     { path: '/shopkeeper?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
     { path: '/shopkeeper?tab=all-orders', label: 'Order History', icon: History },
     { path: '/shopkeeper?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-    { path: '/shopkeeper?tab=settings', label: 'Settings', icon: Settings }
+    { path: '/shopkeeper?tab=settings', label: 'PLM Settings', icon: Settings }
   ];
 
   const contactSubItems = [

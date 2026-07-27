@@ -1,6 +1,6 @@
 // Trigger re-evaluation comment
 import { useState, useEffect } from "react";
-import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History, Settings as SettingsIcon } from "lucide-react";
 import { DashboardMobile as Dashboard } from "../components/shopkeeper/DashboardMobile";
 import { NewOrders } from "../components/shopkeeper/NewOrdersMobile";
 import { OrderDetails } from "../components/shopkeeper/OrderDetailsMobile";
@@ -248,19 +248,7 @@ export default function ShopkeeperERP() {
 
   const fetchOrders = async () => {
     try {
-      const cachedWh = sessionStorage.getItem("staffWarehouseId") || localStorage.getItem("partnerWarehouseId");
-      const storedU = sessionStorage.getItem("staffUser") || localStorage.getItem("partnerUser");
-      let userWarehouseId = "";
-      if (cachedWh && cachedWh !== "undefined") {
-        userWarehouseId = cachedWh;
-      } else if (storedU) {
-        try {
-          const u = JSON.parse(storedU);
-          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
-        } catch (e) { }
-      }
-
-      const endpoint = `/orders?_t=${Date.now()}`;
+      const endpoint = `/orders?view=shopkeeper&_t=${Date.now()}`;
       const res = await api.get(endpoint);
       const resData = res.data;
       let rawOrders: any[] = [];
@@ -354,7 +342,6 @@ export default function ShopkeeperERP() {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get("tab") || "dashboard";
-    const mapped = tab === "all-orders" ? "orderhistory" : tab;
 
     setScreen(tab as Screen);
   }, [location]);

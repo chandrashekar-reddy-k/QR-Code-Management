@@ -67,7 +67,7 @@ export default function ShopkeeperAdminERP() {
         } catch (e) { }
       }
 
-      const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}` : '/orders';
+      const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}&view=shopkeeper` : '/orders?view=shopkeeper';
       const res = await api.get(endpoint);
       const resData = res.data;
       let rawOrders: any[] = [];
@@ -123,8 +123,6 @@ export default function ShopkeeperAdminERP() {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get("tab") || "dashboard";
-    const mapped = tab === "all-orders" ? "orderhistory" : tab;
-
     setScreen(tab as Screen);
   }, [location]);
 
