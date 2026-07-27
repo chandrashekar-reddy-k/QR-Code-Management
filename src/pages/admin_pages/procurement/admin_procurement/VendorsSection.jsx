@@ -80,6 +80,18 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
       return;
     }
 
+    if (!form.vendorName || !form.vendorName.trim()) {
+      setActiveFormTab('regulation');
+      toast.error('Vendor Name is required.');
+      return;
+    }
+
+    if (!form.mobile || !form.mobile.trim()) {
+      setActiveFormTab('regulation');
+      toast.error('Phone Number is required.');
+      return;
+    }
+
     try {
       if (editVendor) {
         await procurementAPI.updateVendor(editVendor.id, form);
@@ -209,7 +221,8 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
     return false;
   };
 
-  const nextTab = () => {
+  const nextTab = (e) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const sequence = ['regulation', 'general', 'commercial', 'settlement'];
     const idx = sequence.indexOf(activeFormTab);
     if (idx < sequence.length - 1) {
@@ -217,7 +230,8 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
     }
   };
 
-  const prevTab = () => {
+  const prevTab = (e) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const sequence = ['regulation', 'general', 'commercial', 'settlement'];
     const idx = sequence.indexOf(activeFormTab);
     if (idx > 0) {
@@ -284,7 +298,15 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
         </div>
 
         {/* Form Body - Conditional tabs */}
-        <form onSubmit={handleSubmit} className="p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-between">
+        <form 
+          onSubmit={handleSubmit} 
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+              e.preventDefault();
+            }
+          }}
+          className="p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-between"
+        >
           <div className="space-y-6 w-full">
             
             {/* SECTION 1: General Info */}
@@ -298,7 +320,6 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                         <Users size={16} />
                       </div>
                       <input 
-                        required 
                         value={form.vendorName} 
                         onChange={e => setForm({ ...form, vendorName: e.target.value })}
                         className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
@@ -314,7 +335,6 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                         <Phone size={16} />
                       </div>
                       <input 
-                        required 
                         value={form.mobile} 
                         onChange={e => setForm({ ...form, mobile: e.target.value })}
                         className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
@@ -361,7 +381,6 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                         <Tag size={16} />
                       </div>
                       <select 
-                        required
                         value={form.vendorCategory} 
                         onChange={e => setForm({ ...form, vendorCategory: e.target.value })}
                         className="w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
@@ -436,7 +455,6 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                         <FileText size={16} />
                       </div>
                       <select 
-                        required
                         value={form.paymentTerms} 
                         onChange={e => setForm({ ...form, paymentTerms: e.target.value })}
                         className="w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
@@ -579,7 +597,6 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                   <div className="space-y-2 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Vendor Name *</label>
                     <input 
-                      required 
                       value={form.vendorName} 
                       onChange={e => setForm({ ...form, vendorName: e.target.value })}
                       className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
@@ -644,7 +661,6 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                   <div className="space-y-2 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Phone Number *</label>
                     <input 
-                      required
                       value={form.mobile} 
                       onChange={e => setForm({ ...form, mobile: e.target.value })}
                       className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
@@ -795,7 +811,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
               {activeFormTab !== 'general' && (
                 <button
                   type="button"
-                  onClick={prevTab}
+                  onClick={(e) => prevTab(e)}
                   className="flex items-center gap-1.5 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
                 >
                   <ChevronLeft size={12} strokeWidth={3} /> Back
@@ -808,7 +824,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
               {activeFormTab !== 'settlement' ? (
                 <button
                   type="button"
-                  onClick={nextTab}
+                  onClick={(e) => nextTab(e)}
                   className="flex items-center gap-1.5 px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all"
                 >
                   Next Section <ChevronRight size={12} strokeWidth={3} />

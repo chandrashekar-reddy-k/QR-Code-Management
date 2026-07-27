@@ -498,6 +498,13 @@ export default function BarcodeManagement() {
             supplierBarcode: formBarcodeNum
           });
         }
+        // Update product or variant status
+        if (formVariantId) {
+          await barcodeAPI.updateVariantStatus(formVariantId, formStatus);
+        } else {
+          const isActive = formStatus === 'ACTIVE';
+          await barcodeAPI.updateProductStatus(selectedProduct.id, isActive);
+        }
         toast.success('Barcode Details Updated Successfully');
       }
       setCurrentView('list');
@@ -572,11 +579,11 @@ export default function BarcodeManagement() {
     setFormBrand(prod.brand?.name || '');
     setFormUnit(prod.unit || ''); // unit is a scalar string
     setFormPackSize(prod.measurement || '');
-    setFormStatus(prod.status || 'ACTIVE');
+    setFormStatus(prod.variantId ? (prod.status || 'ACTIVE') : (prod.isActive ? 'ACTIVE' : 'INACTIVE'));
     setFormBarcodeNum(prod.barcode || (prod.supplierBarcodes?.[0]?.supplierBarcode) || '');
     setFormBarcodeType(prod.barcode ? 'VGK_INTERNAL' : 'SUPPLIER');
-    setFormVariantId('');
-    setFormVariant('');
+    setFormVariantId(prod.variantId || '');
+    setFormVariant(prod.variantName || '');
     setSelectedProductVariants(prod.variants || []);
     setCurrentView('edit');
   };
@@ -1550,7 +1557,7 @@ export default function BarcodeManagement() {
                             unit: prod.unit,
                             measurement: prod.measurement,
                             type: prod.barcode ? 'VGK (Internal)' : 'Supplier',
-                            status: prod.status || 'ACTIVE',
+                            status: prod.isActive ? 'ACTIVE' : 'INACTIVE',
                             original: prod
                           });
                         }
@@ -1580,7 +1587,8 @@ export default function BarcodeManagement() {
                                   name: `${prod.name} (${v.variantName})`,
                                   sku: v.sku || prod.sku,
                                   unit: v.unit || prod.unit,
-                                  measurement: v.measurement || prod.measurement
+                                  measurement: v.measurement || prod.measurement,
+                                  status: v.status || 'ACTIVE'
                                 }
                               });
                             }
@@ -1626,9 +1634,15 @@ export default function BarcodeManagement() {
                             </span>
                           </td>
                           <td className="py-4 px-4">
-                            <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> {row.status}
-                            </span>
+                            {row.status === 'ACTIVE' ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> {row.status}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-red-700 font-bold text-xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span> {row.status}
+                              </span>
+                            )}
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center justify-center gap-1.5">

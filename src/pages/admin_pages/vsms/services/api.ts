@@ -23,7 +23,9 @@ api.interceptors.request.use((config) => {
     !url.startsWith('/inventorymanagement') &&
     !url.startsWith('/unit') &&
     !url.startsWith('/category') &&
-    !url.startsWith('/subCategory')
+    !url.startsWith('/subCategory') &&
+    !url.startsWith('/productmanagement') &&
+    !url.startsWith('productmanagement')
   ) {
     url = '/vsms' + (url.startsWith('/') ? '' : '/') + url;
   }
