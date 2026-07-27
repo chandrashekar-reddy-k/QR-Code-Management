@@ -43,12 +43,17 @@ export default function AdminProcurement() {
   const storeId = searchParams.get('storeId');
   const user = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
+  const refreshUserProfile = useUserStore(s => s.refreshUserProfile);
 
   const [stores, setStores] = React.useState([]);
   const [branchStats, setBranchStats] = React.useState({});
   const [loading, setLoading] = React.useState(false);
 
   const isGlobalRole = user?.role === 'TENANT_OWNER' || user?.role === 'SUPER_ADMIN' || (user?.role === 'ADMIN' && !user?.customRoleId) || user?.portalType === 'ADMIN';
+
+  React.useEffect(() => {
+    refreshUserProfile();
+  }, [refreshUserProfile]);
 
   React.useEffect(() => {
     const fetchStores = async () => {

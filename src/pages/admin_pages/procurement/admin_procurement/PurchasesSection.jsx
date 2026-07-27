@@ -15,10 +15,6 @@ import { useUserStore } from '../../vsms/store/userStore';
 
 const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
   const user = useUserStore(s => s.user);
-  console.log('[PurchasesSection] User profile:', user);
-  console.log('[PurchasesSection] can helper:', can);
-  console.log('[PurchasesSection] can(PROCUREMENT, CREATE, PURCHASES) output:', can ? can('PROCUREMENT', 'CREATE', 'PURCHASES') : 'can is undefined');
-  
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -663,21 +659,6 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
 
   return (
     <div className="space-y-4 h-full overflow-y-auto custom-scrollbar pb-10 pr-2">
-      {/* VISUAL DEBUGGER */}
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs font-mono text-amber-900 space-y-2">
-        <p className="font-bold uppercase tracking-wider text-[10px] text-amber-700">🔍 Antigravity Permission Debugger</p>
-        <div className="grid grid-cols-2 gap-2">
-          <div><strong>User Role:</strong> {user?.role || 'null/undefined'}</div>
-          <div><strong>User Name:</strong> {user?.name || 'null/undefined'}</div>
-          <div><strong>User StoreID:</strong> {user?.storeId || 'null/undefined'}</div>
-          <div><strong>Can Create Purchases:</strong> {can('PROCUREMENT', 'CREATE', 'PURCHASES') ? '✅ YES' : '❌ NO'}</div>
-        </div>
-        <details>
-          <summary className="cursor-pointer font-bold text-amber-800">Show Full User JSON</summary>
-          <pre className="mt-2 bg-white/50 p-2 rounded max-h-40 overflow-auto whitespace-pre-wrap">{JSON.stringify(user, null, 2)}</pre>
-        </details>
-      </div>
-
       {(!showForm && !showQuickProduct && !showQuickVendor) && (
         <>
           <div className="flex items-center gap-2 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">

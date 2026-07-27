@@ -18,8 +18,20 @@ const fetchMe = async () => {
 export const useUserStore = create(
   persist(
     (set, get) => ({
-      user: null,
-      token: null,
+      user: (() => {
+        try {
+          const u = localStorage.getItem('partnerUser') || localStorage.getItem('user');
+          if (u) {
+            const parsed = JSON.parse(u);
+            return {
+              ...parsed,
+              storeId: parsed.storeId || parsed.warehouseId || null
+            };
+          }
+        } catch {}
+        return null;
+      })(),
+      token: localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken') || null,
 
       setUser: (user, token) => {
         if (token) {
