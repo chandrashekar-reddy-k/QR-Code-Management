@@ -403,7 +403,7 @@ export function Settings() {
       {/* Header section */}
       <div className="bg-white dark:bg-gray-800 px-4 md:px-6 py-5 border-b border-gray-200 dark:border-gray-700 shadow-sm rounded-2xl mb-6">
         <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-          <MapPin className="text-[#00891D]" size={24} /> Location Settings
+          <MapPin className="text-[#00891D]" size={24} /> PLM Settings
         </h1>
         <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs md:text-sm mt-1">
           Configure store layout structure (Racks, Shelves, Trays) and assign products to their physical locations.

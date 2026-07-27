@@ -173,59 +173,16 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       }
     }
 
-    // Retrieve current user's warehouseId to scope dashboard orders to this store only (skip for admin)
-    const cachedWh = localStorage.getItem(isAdmin ? "partnerWarehouseId" : "staffWarehouseId");
-    const storedU = localStorage.getItem(isAdmin ? "partnerUser" : "staffUser");
-    let userWarehouseId: string | null = null;
-    if (!isAdmin) {
-      if (cachedWh && cachedWh !== "undefined") {
-        userWarehouseId = cachedWh;
-      } else if (storedU) {
-        try {
-          const u = JSON.parse(storedU);
-          userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || u.id;
-        } catch (e) { }
-      }
-    }
-
-    // Filter to valid orders: must have a warehouse, must match user's warehouseId if set, must not be pre-payment PENDING status
     let allOrders = distinctOrders.filter((o: any) => {
-      const oWh = o.warehouseId || o.warehouse_id;
-      if (!oWh) return false;
-
-      if (userWarehouseId && oWh !== userWarehouseId) {
-        return false;
-      }
-
       const status = (o.status || "").toUpperCase();
       if (status === 'PENDING') {
         return false;
       }
-
-      if (!isAdmin) {
-        const isAssigned = o.shopkeeper_name || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_phone || o.assignedShopkeeperId;
-        if (!isAssigned) {
-          return false;
-        }
-      }
-
       return true;
     });
 
     // Staff Login shopkeeper dashboard remains unchanged (only shows assigned orders)
-    if (!isAdmin) {
-      const storedUser = localStorage.getItem("staffUser");
-      const user = storedUser ? JSON.parse(storedUser) : null;
-      const skId = user?.shopkeeper_id || user?.shopkeeperId || user?.id;
-      if (skId) {
-        allOrders = allOrders.filter(
-          (o: any) =>
-            o.assignedShopkeeperId === skId ||
-            o.assigned_shopkeeper_id === skId
-        );
-      }
-    }
-
+    // The backend already filters orders for the specific shopkeeper.
     setOrders(allOrders);
 
     const newOrders = allOrders.filter((o: any) => {
@@ -377,7 +334,15 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     }
   }, [orders]);
 
+  const formatIndianCurrency = (val: number) => {
+    if (val >= 10000000) return `₹${Number((val / 10000000).toFixed(2))}Cr`;
+    if (val >= 100000) return `₹${Number((val / 100000).toFixed(2))}L`;
+    if (val >= 1000) return `₹${Number((val / 1000).toFixed(2))}K`;
+    return `₹${Number(val.toFixed(2))}`;
+  };
+
   const todayRevenue = allDispatchedOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
+  const formattedRevenue = formatIndianCurrency(todayRevenue);
 
   const totalDispatched = allDispatchedOrders.length;
 
@@ -394,7 +359,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", variant: "gray" as const },
-    { label: "Revenue", value: `₹${todayRevenue}`, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
+    { label: "Revenue", value: formattedRevenue, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },
     { label: "Total Orders", value: orders.length, icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF", variant: "purple" as const },
   ];
 
@@ -690,7 +655,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                   <p className="text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 text-[12px] mt-0.5">This Week · Mon–Sun</p>
                 </div>
                 <div className="w-full outline-none focus:outline-none" style={{ outline: 'none' }}>
-                  <ResponsiveContainer width="100%" height={260} minWidth={0}>
+                  <ResponsiveContainer width="100%" height={260} minWidth={1} minHeight={1}>
                     <BarChart
                       data={weeklyData}
                       margin={{ top: 20, right: 10, left: -20, bottom: 0 }}

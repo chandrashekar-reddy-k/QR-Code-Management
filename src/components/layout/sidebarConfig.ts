@@ -61,6 +61,7 @@ export interface MenuItem {
   label: string;
   icon: LucideIcon;
   hidden?: boolean; // For commented out items
+  permission?: string;
 }
 
 export interface SubMenuItem extends MenuItem {
@@ -79,6 +80,8 @@ export interface MenuSection {
   stateKey?: string; // Key for managing open/close state
   activeCheck?: (pathname: string) => boolean; // Custom active state logic
   hidden?: boolean;
+  permission?: string;
+  hasSubPermissions?: boolean;
 }
 
 // Active state check functions
@@ -205,7 +208,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
       { path: '/shopkeeper-erp?tab=orderhistory', label: 'Order History', icon: History },
       { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-      { path: '/shopkeeper-erp?tab=settings', label: 'Location Settings', icon: Settings }
+      { path: '/shopkeeper-erp?tab=settings', label: 'PLM Settings', icon: Settings }
     ]
   },
 

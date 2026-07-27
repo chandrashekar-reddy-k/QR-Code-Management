@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { URL as configURL } from '../config';
 
@@ -6,24 +6,29 @@ const API_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_URL || c
 const SOCKET_URL = API_URL.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
 export function useSocket(storeId?: number | string) {
-  const socket = useRef<Socket | undefined>(undefined);
+  const [socket, setSocket] = useState<Socket | undefined>(undefined);
 
   useEffect(() => {
     const token = sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
     if (!token || !SOCKET_URL) return;
 
-    socket.current = io(SOCKET_URL, {
+    const newSocket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       auth: { token }
     });
+    
     if (storeId) {
-      socket.current.emit('join:store', { storeId });
+      newSocket.emit('join:store', { storeId });
     }
 
+    setSocket(newSocket);
+
     return () => {
-      socket.current?.disconnect();
+      newSocket.disconnect();
     };
   }, [storeId]);
 
-  return socket;
+  // Return an object that has a `current` property to maintain backwards compatibility
+  // with components expecting a ref, while still triggering re-renders when the state changes.
+  return { current: socket };
 }
