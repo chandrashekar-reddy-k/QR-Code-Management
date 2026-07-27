@@ -11,8 +11,9 @@ import { procurementAPI } from '../../vsms/services/procurementService';
 import { adminAPI } from '../../vsms/services/adminService';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { useUserStore } from '../../vsms/store/userStore';
 
-const PurchasesSection = ({ can, setHeaderExtra }) => {
+const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
   const user = useUserStore(s => s.user);
   console.log('[PurchasesSection] User profile:', user);
   console.log('[PurchasesSection] can helper:', can);
@@ -73,13 +74,13 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data } = await procurementAPI.getPurchases();
+        const { data } = await procurementAPI.getPurchases({ storeId });
         setPurchases(data);
       } catch { toast.error('Failed to load purchases'); }
       finally { setLoading(false); }
     };
     load();
-  }, []);
+  }, [storeId]);
 
   const openForm = async () => {
     setFormLoading(true);
