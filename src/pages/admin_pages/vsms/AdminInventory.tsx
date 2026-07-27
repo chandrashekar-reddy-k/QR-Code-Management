@@ -1959,8 +1959,8 @@ export default function AdminInventory() {
           {activeTab === 'inventory' && renderInventory()}
           {activeTab === 'return' && (
             <>
-              {/* Sub-tab Category Filter (Visible for relevant operational subtabs) */}
-              {['loading', 'return'].includes(subTab) && (
+              {/* Sub-tab Category Filter (Hidden) */}
+              {false && (
                 <div className="space-y-4 mb-8">
                   <div className="relative group">
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
