@@ -24,7 +24,7 @@ import {
   formatCreatedDate,
 } from "../../../utils/formatters/dateTimeFormatters";
 import useDebounce from "../../../hooks/useDebounce";
-import { useGetBanners, useToggleBannerStatus } from "../../../hooks/banners";
+import { useGetBanners, useToggleBannerStatus, useDeleteBanner } from "../../../hooks/banners";
 import {
   Banner,
   BannersApiResponse,
@@ -69,6 +69,7 @@ const ManageBanners = () => {
     id: number | null;
   }>({ isOpen: false, id: null });
   const toggleBannerStatusMutation = useToggleBannerStatus();
+  const deleteBannerMutation = useDeleteBanner();
 
   useEffect(() => {
     setQuery((prev) =>
@@ -113,14 +114,9 @@ const ManageBanners = () => {
     if (deleteConfirm.id === null) return;
 
     try {
-      // TODO: wire delete banner API endpoint.
+      await deleteBannerMutation.mutateAsync(String(deleteConfirm.id));
     } catch (error: unknown) {
       console.error("Error deleting banner:", error);
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Error deleting banner. Please try again.";
-      alert(message);
     } finally {
       setDeleteConfirm({ isOpen: false, id: null });
     }
@@ -343,11 +339,11 @@ const ManageBanners = () => {
             size={14}
             tooltip="Edit"
           />
-          {/* <DeleteIconButton
+          <DeleteIconButton
             onClick={() => handleDeleteClick(banner.id)}
             size={14}
             tooltip="Delete"
-          /> */}
+          />
         </div>
       ),
     },

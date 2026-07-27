@@ -180,10 +180,26 @@ const useToggleBannerStatus = () => {
   });
 };
 
+const useDeleteBanner = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (bannerId: string) =>
+      fetchData(`partner/promotions/banners/delete/${bannerId}`, "DELETE"),
+    onSuccess: (result) => {
+      toast.success(getSuccessMessage(result, "Banner deleted successfully"));
+      queryClient.invalidateQueries({ queryKey: ["banners"] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+};
+
 export {
   useGetBanners,
   useGetBannerById,
   useCreateBanner,
   useUpdateBanner,
   useToggleBannerStatus,
+  useDeleteBanner,
 };
