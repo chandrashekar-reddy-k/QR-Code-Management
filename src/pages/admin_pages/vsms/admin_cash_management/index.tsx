@@ -381,18 +381,18 @@ export default function AdminCashManagementContent() {
     } catch (error) { toast.error('Failed to record movement'); }
   };
 
-  const handleAssignFloat = async (e) => {
-    e.preventDefault();
+  const handleAssignFloat = async (e?) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!assignmentData.agentId) return toast.error('Select an agent');
     if (!assignmentData.isNoService && assignmentData.amount <= 0) return toast.error('Enter valid denominations');
     const agent = agents.find(a => a.id === assignmentData.agentId);
     if (!agent) return toast.error('Agent not found');
-    const vehicleId = agent.assignedVehicleId;
-    if (!vehicleId) return toast.error('Agent has no assigned vehicle');
+    const vehicleId = agent.assignedVehicleId || agent.assignedVehicle?.id;
+    if (!vehicleId) return toast.error('Agent has no assigned vehicle. Please assign a vehicle first.');
     const requestedAmount = assignmentData.isNoService ? 0 : assignmentData.amount;
     const availableCounterCash = storeRegisterData?.liveMetrics?.availableCash || 0;
-    if (requestedAmount > availableCounterCash) {
-      return toast.error(`Action rejected: Insufficient funds in the cash counter. The available counter balance is ₹${availableCounterCash.toFixed(2)}, which is less than the requested float assignment of ₹${requestedAmount.toFixed(2)}.`);
+    if (!assignmentData.isNoService && requestedAmount > availableCounterCash) {
+      return toast.error(`Insufficient funds: Counter has ₹${availableCounterCash.toFixed(2)}, requested ₹${requestedAmount.toFixed(2)}.`);
     }
     setIsSubmitting(true);
     try {
@@ -406,13 +406,18 @@ export default function AdminCashManagementContent() {
         date,
         storeId: storeFilterId 
       });
-      toast.success('Float assigned');
+      toast.success('Float assigned successfully');
       setShowAssignModal(false);
       setViewingAssignFloat(false);
       setAssignmentData({ agentId: '', vehicleId: '', shift: 1, amount: 0, isNoService: false, denominations: { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 } });
       fetchSummaries(); fetchStoreRegister();
-    } catch (error) { toast.error(error.response?.data?.message || 'Failed'); } finally { setIsSubmitting(false); }
+    } catch (error) { 
+      const msg = error?.response?.data?.message || error?.message || 'Failed to assign float';
+      toast.error(msg);
+      console.error('[AssignFloat] Error:', error?.response?.data || error);
+    } finally { setIsSubmitting(false); }
   };
+
 
   const handleOpenStoreRegister = async () => {
     if (storeDenomData.amount < 0) return toast.error('Enter valid denominations');

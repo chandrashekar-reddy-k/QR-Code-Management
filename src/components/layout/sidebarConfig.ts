@@ -450,7 +450,7 @@ export const sidebarConfig: MenuSection[] = [
   {
     type: "link",
     permission: "Partner: Point of Sales",
-    path: "/point-of-sales",
+    path: "/vsms/pos",
     label: "Point of Sales",
     icon: Percent,
   },
