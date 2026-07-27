@@ -52,7 +52,7 @@ export default function AdminProcurement() {
 
   React.useEffect(() => {
     const fetchStores = async () => {
-      if (isGlobalRole && !storeId) {
+      if (isGlobalRole && stores.length === 0) {
         setLoading(true);
         try {
           const res = await adminAPI.getStores();
@@ -93,7 +93,7 @@ export default function AdminProcurement() {
       }
     };
     fetchStores();
-  }, [isGlobalRole, storeId]);
+  }, [isGlobalRole, stores.length, storeId]);
 
   // Handle staff isolation
   React.useEffect(() => {
@@ -198,6 +198,29 @@ export default function AdminProcurement() {
           {!hideMainHeader && (
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div className="flex items-center gap-4">
+                {isGlobalRole && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase text-gray-400 tracking-wider">Select Warehouse:</span>
+                    <select
+                      value={storeId || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSearchParams(prev => {
+                          const p = new URLSearchParams(prev);
+                          if (val) p.set('storeId', val);
+                          else p.delete('storeId');
+                          return p;
+                        });
+                      }}
+                      className="bg-white border border-gray-200 text-xs font-bold text-gray-900 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    >
+                      <option value="">All Warehouses</option>
+                      {stores.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                 {headerExtra}
