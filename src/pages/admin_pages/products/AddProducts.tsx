@@ -3559,7 +3559,7 @@ const AddProduct = () => {
                       {taxesLoading ? "Loading taxes..." : "Select Tax"}
                     </option>
                     {activeTaxOptions.map((tax) => (
-                      <option key={tax.value} value={tax.value}>
+                      <option key={`${tax.value}-${tax.label}`} value={tax.value}>
                         {tax.label}
                       </option>
                     ))}
