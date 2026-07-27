@@ -1,6 +1,6 @@
 // Trigger re-evaluation comment
 import { useState, useEffect } from "react";
-import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History, Settings as SettingsIcon } from "lucide-react";
 import { DashboardMobile as Dashboard } from "../components/shopkeeper/DashboardMobile";
 import { NewOrders } from "../components/shopkeeper/NewOrdersMobile";
 import { OrderDetails } from "../components/shopkeeper/OrderDetailsMobile";
