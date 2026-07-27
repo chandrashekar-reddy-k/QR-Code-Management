@@ -13,6 +13,11 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
 const PurchasesSection = ({ can, setHeaderExtra }) => {
+  const user = useUserStore(s => s.user);
+  console.log('[PurchasesSection] User profile:', user);
+  console.log('[PurchasesSection] can helper:', can);
+  console.log('[PurchasesSection] can(PROCUREMENT, CREATE, PURCHASES) output:', can ? can('PROCUREMENT', 'CREATE', 'PURCHASES') : 'can is undefined');
+  
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
