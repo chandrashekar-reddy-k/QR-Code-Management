@@ -21,48 +21,82 @@ export default function HomepagePromos() {
   const { data: productsRes, isFetching } = useGetAllProductList(1, 1000, searchQuery);
   const products = (productsRes as any)?.data?.products ?? [];
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['product'] });
+  // Helper to optimistically update a product in the react-query cache
+  const optimisticUpdate = (productId: string, changes: Record<string, any>) => {
+    queryClient.setQueryData(['product', 1, 1000, searchQuery], (old: any) => {
+      if (!old?.data?.products) return old;
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          products: old.data.products.map((p: any) =>
+            p.id === productId ? { ...p, ...changes } : p
+          ),
+        },
+      };
+    });
+    // Also update any other cached product queries
+    queryClient.setQueriesData({ queryKey: ['product'] }, (old: any) => {
+      if (!old?.data?.products) return old;
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          products: old.data.products.map((p: any) =>
+            p.id === productId ? { ...p, ...changes } : p
+          ),
+        },
+      };
+    });
+  };
 
   const handleToggleFeatured = async (product) => {
+    const newVal = !product.isFeatured;
+    optimisticUpdate(product.id, { isFeatured: newVal });
+    toast.success(`${product.name} updated successfully.`);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { isFeatured: !product.isFeatured });
-      toast.success(`${product.name} updated successfully.`);
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { isFeatured: newVal });
       invalidate();
-    } catch (err) { console.error(err); toast.error('Failed to update featured status.'); }
+    } catch (err) { console.error(err); toast.error('Failed to update featured status.'); invalidate(); }
   };
 
   const handleToggleWeekly = async (product) => {
     const isWeekly = product.tags?.includes('weekly') || false;
     const currentTags = product.tags || [];
     const newTags = isWeekly ? currentTags.filter((t: string) => t !== 'weekly') : [...currentTags, 'weekly'];
+    optimisticUpdate(product.id, { tags: newTags });
+    toast.success(`${product.name} weekly status updated.`);
     try {
       await fetchData(`productmanagement/product/${product.id}`, 'PUT', { tags: newTags });
-      toast.success(`${product.name} weekly status updated.`);
       invalidate();
-    } catch (err) { console.error(err); toast.error('Failed to update weekly status.'); }
+    } catch (err) { console.error(err); toast.error('Failed to update weekly status.'); invalidate(); }
   };
 
   const handleRemoveOffer = async (product) => {
+    optimisticUpdate(product.id, { mrp: null });
+    toast.success(`Offer removed from ${product.name}.`);
     try {
       await fetchData(`productmanagement/product/${product.id}`, 'PUT', { mrp: null });
-      toast.success(`Offer removed from ${product.name}.`);
       invalidate();
-    } catch (err) { console.error(err); toast.error('Failed to remove offer.'); }
+    } catch (err) { console.error(err); toast.error('Failed to remove offer.'); invalidate(); }
   };
 
   const handleRollbackOffer = async (product) => {
     if (!product.mrp) { toast.error('No original price to roll back to.'); return; }
+    optimisticUpdate(product.id, { price: product.mrp, mrp: null });
+    toast.success(`${product.name} rolled back to ₹${product.mrp}.`);
     try {
       await fetchData(`productmanagement/product/${product.id}`, 'PUT', { price: product.mrp, mrp: null });
-      toast.success(`${product.name} rolled back to ₹${product.mrp}.`);
       invalidate();
-    } catch (err) { console.error(err); toast.error('Rollback failed.'); }
+    } catch (err) { console.error(err); toast.error('Rollback failed.'); invalidate(); }
   };
 
   const handleRollbackAll = async () => {
     const toRollback = filteredProducts.filter(p => p.mrp && p.mrp > p.price);
     if (toRollback.length === 0) { toast('No products with saved original prices to roll back.'); return; }
     setIsRollingBack(true);
+    // Optimistic: update all at once
+    toRollback.forEach(p => optimisticUpdate(p.id, { price: p.mrp, mrp: null }));
     try {
       await Promise.all(
         toRollback.map(p => fetchData(`productmanagement/product/${p.id}`, 'PUT', { price: p.mrp, mrp: null }))
@@ -72,6 +106,7 @@ export default function HomepagePromos() {
     } catch (err) {
       console.error(err);
       toast.error('Some rollbacks failed. Please try again.');
+      invalidate();
     } finally {
       setIsRollingBack(false);
     }
@@ -95,17 +130,23 @@ export default function HomepagePromos() {
       return;
     }
 
+    const changes = activeTab === 'offers'
+      ? { mrp: mrpFloat, price: priceFloat, isFeatured: promoForm.isFeatured }
+      : { price: priceFloat, isFeatured: promoForm.isFeatured };
+    optimisticUpdate(product.id, changes);
+    toast.success(`${product.name} updated successfully!`);
+    setEditingProduct(null);
+
     try {
       await fetchData(`productmanagement/product/${product.id}`, 'PUT', {
         ...(activeTab === 'offers' ? { mrp: mrpFloat, price: priceFloat } : { price: priceFloat }),
         isFeatured: promoForm.isFeatured,
       });
-      toast.success(`${product.name} updated successfully!`);
-      setEditingProduct(null);
       invalidate();
     } catch (err) {
       console.error(err);
       toast.error('Failed to save. Please try again.');
+      invalidate();
     }
   };
 
@@ -357,34 +398,79 @@ export default function HomepagePromos() {
               nonPromotedProducts.slice(0, 10).map(product => (
                 <div 
                   key={product.id}
-                  className="flex justify-between items-center p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-950 border border-gray-100 dark:border-gray-800/40"
+                  className="flex flex-col p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-950 border border-gray-100 dark:border-gray-800/40"
                 >
-                  <div className="min-w-0 pr-2">
-                    <div className="text-xs font-bold truncate text-gray-700 dark:text-gray-300">{product.name}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">Price: ₹{product.price}</div>
+                  <div className="flex justify-between items-center">
+                    <div className="min-w-0 pr-2">
+                      <div className="text-xs font-bold truncate text-gray-700 dark:text-gray-300">{product.name}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">Price: ₹{product.price}</div>
+                    </div>
+
+                    {editingProduct === product.id ? null : activeTab === 'popular' ? (
+                      <button
+                        onClick={() => handleToggleFeatured(product)}
+                        className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                      >
+                        Make Popular
+                      </button>
+                    ) : activeTab === 'weekly' ? (
+                      <button
+                        onClick={() => handleToggleWeekly(product)}
+                        className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                      >
+                        Make Weekly
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleStartEdit(product)}
+                        className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                      >
+                        Set Offer
+                      </button>
+                    )}
                   </div>
 
-                  {activeTab === 'popular' ? (
-                    <button
-                      onClick={() => handleToggleFeatured(product)}
-                      className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
-                    >
-                      Make Popular
-                    </button>
-                  ) : activeTab === 'weekly' ? (
-                    <button
-                      onClick={() => handleToggleWeekly(product)}
-                      className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
-                    >
-                      Make Weekly
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleStartEdit(product)}
-                      className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
-                    >
-                      Set Offer
-                    </button>
+                  {/* Inline edit form for offers */}
+                  {editingProduct === product.id && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2 items-end">
+                      <div className="w-20">
+                        <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">MRP (₹)</label>
+                        <input
+                          type="number"
+                          placeholder="MRP"
+                          value={promoForm.mrp}
+                          onWheel={e => (e.target as HTMLInputElement).blur()}
+                          onChange={e => setPromoForm({ ...promoForm, mrp: e.target.value })}
+                          className="w-full bg-gray-50 dark:bg-gray-955 border border-gray-200 dark:border-gray-800 px-2 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
+                        />
+                      </div>
+                      <div className="w-20">
+                        <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">Sale (₹)</label>
+                        <input
+                          type="number"
+                          required
+                          placeholder="Sale"
+                          value={promoForm.price}
+                          onWheel={e => (e.target as HTMLInputElement).blur()}
+                          onChange={e => setPromoForm({ ...promoForm, price: e.target.value })}
+                          className="w-full bg-gray-50 dark:bg-gray-955 border border-gray-200 dark:border-gray-800 px-2 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
+                        />
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handleSavePromo(product)}
+                          className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-sm transition-all"
+                        >
+                          <Check size={13} />
+                        </button>
+                        <button
+                          onClick={() => setEditingProduct(null)}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-xl transition-all"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))

@@ -68,27 +68,28 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
     e.preventDefault();
 
     // Final checks before submitting
-    if (form.isTaxable && (!form.gstNumber || !form.gstNumber.trim())) {
+    const isGstRequired = form.hasGst === 'Yes' || form.isTaxable;
+    if (isGstRequired && (!form.gstNumber || !form.gstNumber.trim())) {
       setActiveFormTab('regulation');
-      toast.error('GST Identification Number is mandatory for taxable vendors.');
+      toast.error('GST Identification Number is mandatory.');
       return;
     }
 
-    if (form.gstNumber && form.gstNumber.trim() && form.gstNumber.trim().length !== 15) {
+    if (form.hasGst === 'Yes' && form.gstNumber && form.gstNumber.trim() && form.gstNumber.trim().length !== 15) {
       setActiveFormTab('regulation');
       toast.error('GST Identification Number must be exactly 15 characters.');
       return;
     }
 
     if (!form.vendorName || !form.vendorName.trim()) {
-      setActiveFormTab('regulation');
-      toast.error('Vendor Name is required.');
+      setActiveFormTab('general');
+      toast.error('Vendor Name is required (General Details tab).');
       return;
     }
 
     if (!form.mobile || !form.mobile.trim()) {
-      setActiveFormTab('regulation');
-      toast.error('Phone Number is required.');
+      setActiveFormTab('general');
+      toast.error('Phone Number is required (General Details tab).');
       return;
     }
 
@@ -117,7 +118,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
         bankName: '', accountNumber: '', ifscCode: '', bankBranch: '',
         vendorCategory: 'RAW_MATERIAL', minOrderQty: '1', isTaxable: false
       });
-      loadVendors();
+      await loadVendors();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving vendor information');
     }
