@@ -1,6 +1,7 @@
 import { DashboardMobile } from "./DashboardMobile";
 import { useState, useEffect } from "react";
 import { useSharedOrders } from "./SharedOrdersContext";
+import { formatIndianCurrencyKPI } from "../../../src/utils/currencyFormat";
 import { getSLAInfo } from "../../utils/slaHelper";
 
 import {
@@ -334,15 +335,8 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     }
   }, [orders]);
 
-  const formatIndianCurrency = (val: number) => {
-    if (val >= 10000000) return `₹${Number((val / 10000000).toFixed(2))}Cr`;
-    if (val >= 100000) return `₹${Number((val / 100000).toFixed(2))}L`;
-    if (val >= 1000) return `₹${Number((val / 1000).toFixed(2))}K`;
-    return `₹${Number(val.toFixed(2))}`;
-  };
-
   const todayRevenue = allDispatchedOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
-  const formattedRevenue = formatIndianCurrency(todayRevenue);
+  const formattedRevenue = `₹${formatIndianCurrencyKPI(todayRevenue)}`;
 
   const totalDispatched = allDispatchedOrders.length;
 

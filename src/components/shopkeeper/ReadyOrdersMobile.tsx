@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, User, Clock } from "lucide-react";
+import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, User, Clock } from "lucide-react";
 import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
 import toast from "react-hot-toast";
@@ -54,10 +54,76 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
     }).length;
   }, [sharedOrders, handedOverIds]);
 
+  // ──────────────────────────────────────────────
+  // Skeleton loader
+  // ──────────────────────────────────────────────
+  function SkeletonBox({ className }: { className?: string }) {
+    return (
+      <div className={`rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden relative ${className}`}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
+            animation: "shimmer 1.6s ease-in-out infinite",
+          }}
+        />
+      </div>
+    );
+  }
+
   if (sharedLoading && orders.length === 0) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F5F7FA] items-center justify-center dark:bg-gray-900">
-        <Loader2 className="animate-spin text-[#2E7D32]" size={40} />
+      <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">
+        <style>{`
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+        `}</style>
+
+        {/* Header skeleton */}
+        <div style={{ background: "linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)" }} className="px-4 pt-12 pb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-full bg-white/20" />
+            <div className="flex-1 flex flex-col gap-1.5">
+              <div className="h-5 w-40 rounded-lg bg-white/30" />
+              <div className="h-3 w-28 rounded-lg bg-white/20" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white/10 rounded-xl p-2 text-center">
+                <div className="h-5 w-6 mx-auto rounded-md bg-white/30 mb-1" />
+                <div className="h-2 w-14 mx-auto rounded-md bg-white/20" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Card skeletons */}
+        <div className="flex flex-col gap-3 p-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <SkeletonBox className="h-5 w-24" />
+                    <SkeletonBox className="h-4 w-14 rounded-full" />
+                  </div>
+                  <SkeletonBox className="h-3 w-32" />
+                </div>
+                <SkeletonBox className="h-7 w-20 rounded-full" />
+              </div>
+              {/* Status row */}
+              <SkeletonBox className="h-9 w-full rounded-xl mb-2" />
+              {/* Rider row */}
+              <SkeletonBox className="h-9 w-full rounded-xl mb-3" />
+              {/* Button */}
+              <SkeletonBox className="h-11 w-full rounded-xl" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
