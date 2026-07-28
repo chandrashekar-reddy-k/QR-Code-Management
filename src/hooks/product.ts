@@ -13,7 +13,7 @@ const useGetAllProductList = (
   page: number,
   limit: number,
   search: string = "",
-  isActive: boolean = true,
+  isActive: boolean | undefined = undefined,
   /** GET `status` query: APPROVED, PENDING, REJECTED, TRUE, FALSE (omit when empty) */
   status?: string,
   warehouseId?: string,
@@ -26,8 +26,10 @@ const useGetAllProductList = (
         search: search,
         page: String(page),
         limit: String(limit),
-        isActive: String(isActive),
       });
+      if (isActive !== undefined) {
+        params.set("isActive", String(isActive));
+      }
       if (statusParam) {
         params.set("filter", statusParam);
       }

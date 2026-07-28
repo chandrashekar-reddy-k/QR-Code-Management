@@ -17,6 +17,7 @@ import {
   StatCard,
   ViewIconButton,
   EditIconButton,
+  DeleteButton,
   Pagination,
   PrimaryButton,
   SelectInput,
@@ -252,11 +253,41 @@ const ManageProducts = () => {
     currentPage,
     itemsPerPage,
     searchTerm,
-    true,
+    undefined,
     statusFilter,
   );
   const { mutate } = useDeleteProduct();
   const queryClient = useQueryClient();
+  
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirm.id === null) return;
+    const deletedId = deleteConfirm.id;
+    try {
+      mutate(deletedId, {
+        onSuccess: () => {
+          // Clear cached state for this product
+          setExpandedProductDetailsCache((prev) => {
+            const next = { ...prev };
+            delete next[deletedId];
+            return next;
+          });
+          
+          // Clear and remove all product related query caches completely
+          queryClient.removeQueries({ queryKey: ["product"] });
+          queryClient.removeQueries({ queryKey: ["productById"] });
+          queryClient.removeQueries({ queryKey: ["productListByProductId"] });
+          queryClient.invalidateQueries({ queryKey: ["product"] });
+          
+          // Trigger a hard refetch from the server
+          refetch();
+        }
+      });
+    } catch (error: unknown) {
+      console.error("Error deleting product:", error);
+    } finally {
+      setDeleteConfirm({ isOpen: false, id: null });
+    }
+  };
   const { data: expandedProductData, isLoading: isLoadingExpandedProduct } = useGetProductDetailsById(expandedProductIdForFetch || "");
 
   // When user searches by product ID (full UUID or short like "0FCBB0F0"), fetch that product and merge into list
@@ -790,18 +821,6 @@ const ManageProducts = () => {
     (window as any)._handleDeleteClick = _handleDeleteClick;
   }
 
-  const handleDeleteConfirm = async () => {
-    if (deleteConfirm.id === null) return;
-
-    try {
-      mutate(deleteConfirm.id);
-    } catch (error: unknown) {
-      console.error("Error deleting product:", error);
-    } finally {
-      setDeleteConfirm({ isOpen: false, id: null });
-    }
-  };
-
   const handleEdit = (product: TableProduct) => {
     const params = new URLSearchParams();
     params.set("returnTo", "list");
@@ -1145,6 +1164,7 @@ const ManageProducts = () => {
                           <div className="flex items-center justify-center gap-1.5">
                             <ViewIconButton onClick={() => handleView(product)} size={12} />
                             <EditIconButton onClick={() => handleEdit(product)} size={12} />
+                            <DeleteButton onClick={() => _handleDeleteClick(product.id)} size={12} />
                           </div>
                         </td>
                       </tr>
