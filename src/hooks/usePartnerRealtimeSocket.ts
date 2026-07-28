@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 
 let socket: Socket | null = null
@@ -11,6 +12,7 @@ function origin(): string {
 
 export function usePartnerRealtimeSocket() {
   const started = useRef(false)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (started.current) return
@@ -63,9 +65,16 @@ export function usePartnerRealtimeSocket() {
       toast.info('Order update received', { autoClose: 2500 })
     }
 
+    const onAgentStatusUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ['deliveryAgents'] })
+      queryClient.invalidateQueries({ queryKey: ['deliveryAgentsByWarehouse'] })
+      window.dispatchEvent(new Event('agentStatusUpdated'))
+    }
+
     socket.on('partner:order_updated', onOrder)
     socket.on('partner:new_order', onOrder)
     socket.on('partner:delivery_assigned', onOrder)
+    socket.on('partner:agent_status_updated', onAgentStatusUpdated)
 
     socket.connect()
 
@@ -74,6 +83,7 @@ export function usePartnerRealtimeSocket() {
       socket?.off('partner:order_updated', onOrder)
       socket?.off('partner:new_order', onOrder)
       socket?.off('partner:delivery_assigned', onOrder)
+      socket?.off('partner:agent_status_updated', onAgentStatusUpdated)
       socket?.disconnect()
       socket = null
     }
