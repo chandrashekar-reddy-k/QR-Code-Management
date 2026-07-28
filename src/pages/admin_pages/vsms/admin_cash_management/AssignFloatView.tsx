@@ -73,7 +73,15 @@ export default function AssignFloatView({
                 required
                 className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-bold text-gray-700 focus:border-emerald-500 outline-none"
                 value={assignmentData.agentId || ''}
-                onChange={(e) => setAssignmentData({ ...assignmentData, agentId: e.target.value })}
+                onChange={(e) => {
+                  const selectedVal = e.target.value;
+                  const agentObj = agents.find(a => a.id === selectedVal);
+                  setAssignmentData({ 
+                    ...assignmentData, 
+                    agentId: selectedVal, 
+                    vehicleId: agentObj?.assignedVehicleId || agentObj?.assignedVehicle?.id || '' 
+                  });
+                }}
               >
                 <option value="">Select agent...</option>
                 {agents.map((a) => (

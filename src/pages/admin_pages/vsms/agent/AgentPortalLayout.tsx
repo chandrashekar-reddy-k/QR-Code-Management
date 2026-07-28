@@ -100,10 +100,19 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   };
 
   const hasAgentPermission = (path: string) => {
-    let permissions: string[] = [];
-    try {
-      permissions = JSON.parse(localStorage.getItem("permissions") || "[]");
-    } catch (e) {}
+    if (!user) return false;
+
+    // Agent roles always get full access — they are not subject to fine-grained permission gates
+    const agentRoles = ['SALES_AGENT', 'VEHICLE_AGENT', 'DELIVERY_AGENT'];
+    if (agentRoles.includes(user.role)) return true;
+
+    // Check user.permissions from the store
+    const permissions = user.permissions || [];
+
+    // If wildcard permissions, allow access to all paths
+    if (Array.isArray(permissions) && (permissions.includes('*') || permissions.includes('ALL'))) {
+      return true;
+    }
 
     const slugMap: Record<string, string> = {
       '/vsms/agent-portal/today-plan': 'vsms_agent_todays_plan_view',
@@ -125,7 +134,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
 
     const slug = slugMap[path];
     if (!slug) return true;
-    return permissions.includes(slug);
+    return Array.isArray(permissions) && permissions.includes(slug);
   };
 
   const renderSidebarContent = () => (

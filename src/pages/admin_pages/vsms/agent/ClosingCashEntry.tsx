@@ -22,13 +22,15 @@ export default function ClosingCashEntry() {
   const [activeShift, setActiveShift] = useState(1);
 
   useEffect(() => {
-    if (!user?.assignedVehicle) {
+    const isAgent = ['SALES_AGENT', 'VEHICLE_AGENT', 'DELIVERY_AGENT'].includes(user?.role);
+    const hasVehicle = user?.assignedVehicle || user?.assignedVehicleId;
+    if (!hasVehicle && !isAgent) {
       toast.error('No vehicle assigned. Access denied.', { id: 'no-vehicle' });
       navigate('/vsms/agent-portal/sales', { replace: true });
       return;
     }
     loadStatus();
-  }, [user?.assignedVehicle, navigate]);
+  }, [user, navigate]);
 
   const loadStatus = async () => {
     try {

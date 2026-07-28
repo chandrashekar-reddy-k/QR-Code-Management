@@ -245,7 +245,7 @@ export default function AdminCashManagementContent() {
 
   const fetchAgents = async () => {
     try {
-      const { data } = await adminAPI.getVehicleAgents();
+      const { data } = await adminAPI.getVehicleAgents({ storeId: storeFilterId });
       setAgents(data);
     } catch (error) {
       console.error('Error fetching agents:', error);

@@ -1772,11 +1772,12 @@ export default function AdminVehicles() {
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
               {users
-                .filter(u => u.role === 'VEHICLE_AGENT' || u.role === 'DELIVERY_AGENT')
+                .filter(u => u.role === 'VEHICLE_AGENT')
+                .filter(u => u.isActive !== false) // Ensure inactive agents are not shown
                 .filter(u => !selectedVehicle?.storeId || !u.storeId || u.storeId === selectedVehicle?.storeId)
                 .filter(u => u.name.toLowerCase().includes(agentSearch.toLowerCase()))
                 .map(user => (
-                  <button key={user.id} disabled={isSubmitting} onClick={() => initiateAssignDriver(user)}
+                   <button key={user.id} disabled={isSubmitting} onClick={() => initiateAssignDriver(user)}
                     className="w-full flex items-center justify-between p-4 hover:bg-emerald-50 rounded-lg border border-transparent hover:border-emerald-100 transition-all group disabled:opacity-50">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-colors">
@@ -1785,8 +1786,8 @@ export default function AdminVehicles() {
                       <div className="flex flex-col items-start">
                         <span className="font-bold text-gray-900 dark:text-white text-sm">{user.name}</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md border tracking-tighter ${user.role === 'SALES_AGENT' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
-                            {user.role === 'SALES_AGENT' ? 'Field Agent' : user.role === 'HELPER' ? 'Helper' : user.role}
+                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md border tracking-tighter bg-emerald-50 text-emerald-700 border-emerald-100">
+                            VSMS Vehicle Agent
                           </span>
                           {user.assignedVehicleId && (
                             <span className="text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-100 px-1.5 py-0.5 rounded-md">

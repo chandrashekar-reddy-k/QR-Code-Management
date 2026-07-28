@@ -24,7 +24,7 @@ export const adminAPI = {
 
   // Vehicles
   getVehicles: (params?) => api.get('/admin/vehicles', { params }),
-  getVehicleAgents: () => api.get('/admin/vehicles/agents'),
+  getVehicleAgents: (params?) => api.get('/admin/vehicles/agents', { params }),
   createVehicle: (data) => api.post('/admin/vehicles', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
