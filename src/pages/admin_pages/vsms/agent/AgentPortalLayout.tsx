@@ -6,6 +6,7 @@ import {
   ArrowDownToLine, ArrowUpFromLine
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
+import { openHRMSPortal } from '../../../../utils/hrmsSSO';
 
 let hrmsWindowRef: Window | null = null;
 
@@ -256,33 +257,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
               <button
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-bold text-xs transition-all border border-green-200"
                 title="Open HRMS Portal"
-                onClick={async () => {
-                  const token = localStorage.getItem('token');
-                  const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
-                  const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
-                  const identityUrl = `${baseUrl}/api/v1/auth/sso/ticket`;
-                  if (token) {
-                    try {
-                      const response = await fetch(identityUrl, {
-                        method: 'POST',
-                        headers: {
-                          'Authorization': `Bearer ${token}`,
-                          'Content-Type': 'application/json'
-                        }
-                      });
-                      const body = await response.json();
-                      if (response.ok && body?.data?.ticket) {
-                        hrmsWindowRef = window.open(`${hrmsUrl}/?sso_ticket=${body.data.ticket}`, '_blank');
-                        return;
-                      }
-                    } catch (err) {
-                      console.error('Failed to generate SSO ticket:', err);
-                    }
-                    hrmsWindowRef = window.open(`${hrmsUrl}/`, '_blank');
-                  } else {
-                    hrmsWindowRef = window.open(`${hrmsUrl}/`, '_blank');
-                  }
-                }}
+                 onClick={() => openHRMSPortal()}
               >
                 <span>HRMS</span>
               </button>

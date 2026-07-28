@@ -30,6 +30,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext";
+import { openHRMSPortal } from "../../utils/hrmsSSO";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -893,33 +894,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
         <button
           className="flex items-center gap-1.5 px-3 py-2 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium text-xs transition-all border border-green-200 dark:border-green-800"
           title="Open HRMS Portal"
-          onClick={async () => {
-            const token = localStorage.getItem('token');
-            const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
-            const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
-            const identityUrl = `${baseUrl}/api/v1/auth/sso/ticket`;
-            if (token) {
-              try {
-                const response = await fetch(identityUrl, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  }
-                });
-                const body = await response.json();
-                if (response.ok && body?.data?.ticket) {
-                  hrmsWindowRef = window.open(`${hrmsUrl}/?sso_ticket=${body.data.ticket}`, '_blank');
-                  return;
-                }
-              } catch (err) {
-                console.error('Failed to generate SSO ticket:', err);
-              }
-              hrmsWindowRef = window.open(`${hrmsUrl}/`, '_blank');
-            } else {
-              hrmsWindowRef = window.open(`${hrmsUrl}/`, '_blank');
-            }
-          }}
+          onClick={() => openHRMSPortal()}
         >
           <UserCog size={16} />
           <span>HRMS</span>

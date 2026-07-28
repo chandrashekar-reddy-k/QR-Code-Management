@@ -22,6 +22,7 @@ import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 import { useSocket } from "../hooks/useSocket";
 import { getSLAInfo } from "../utils/slaHelper";
 import { SharedOrdersContext, useSharedOrders } from "../components/shopkeeper/SharedOrdersContext";
+import { openHRMSPortal } from "../utils/hrmsSSO";
 
 let hrmsWindowRef: Window | null = null;
 // Local API Client instance
@@ -525,33 +526,7 @@ export default function ShopkeeperERP() {
           {/* HRMS SSO Link */}
           <div className="px-4 py-2">
             <button
-              onClick={async () => {
-                const token = localStorage.getItem('token');
-                const hrmsUrl = import.meta.env.VITE_HRMS_URL || "http://localhost:8088";
-                const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
-                const identityUrl = `${baseUrl}/api/v1/auth/sso/ticket`;
-                if (token) {
-                  try {
-                    const response = await fetch(identityUrl, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                      }
-                    });
-                    const body = await response.json();
-                     if (response.ok && body?.data?.ticket) {
-                       hrmsWindowRef = window.open(`${hrmsUrl}/?sso_ticket=${body.data.ticket}`, '_blank');
-                       return;
-                     }
-                   } catch (err) {
-                     console.error('Failed to generate SSO ticket:', err);
-                   }
-                   hrmsWindowRef = window.open(`${hrmsUrl}/`, '_blank');
-                 } else {
-                   hrmsWindowRef = window.open(`${hrmsUrl}/`, '_blank');
-                 }
-              }}
+              onClick={() => openHRMSPortal()}
               className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 text-[#00891D] rounded-xl text-sm font-semibold transition-all border border-green-200"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
