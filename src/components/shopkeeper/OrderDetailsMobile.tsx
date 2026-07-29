@@ -6,14 +6,39 @@ interface OrderDetailsProps {
   onBack: () => void;
   onNavigate: (screen: string, data?: any) => void;
   order?: any;
+  socket?: any;
 }
 
-export function OrderDetails({ onBack, onNavigate, order }: OrderDetailsProps) {
+export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetailsProps) {
   const [fullOrder, setFullOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Tick every minute so SLA elapsed/remaining updates automatically
   const [now, setNow] = useState(new Date());
+
+  // Listen for socket events to update status in real-time
+  useEffect(() => {
+    if (!socket?.current || !fullOrder?.id) return;
+
+    const handleStatusUpdate = (data: any) => {
+      if (data.orderId === fullOrder.id) {
+        console.log("Real-time Mobile Order Status Update:", data);
+        setFullOrder((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            status: data.status,
+            confirmedAt: data.status === 'CONFIRMED' ? new Date().toISOString() : prev.confirmedAt
+          };
+        });
+      }
+    };
+
+    socket.current.on('order:status', handleStatusUpdate);
+    return () => {
+      socket.current?.off('order:status', handleStatusUpdate);
+    };
+  }, [socket?.current, fullOrder?.id]);
 
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
   const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");

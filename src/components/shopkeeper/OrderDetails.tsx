@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, MapPin, Package, CheckCircle, XCircle, Phone, Loader2, Copy, Check } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "../../api/axios";
 import Breadcrumbs from "../common/Breadcrumbs";
 import { OrderDetails as MobileOrderDetails } from "./OrderDetailsMobile";
@@ -9,11 +10,13 @@ interface OrderDetailsProps {
   onNavigate: (screen: string, data?: any) => void;
   order?: any;
   isAdmin?: boolean;
+  socket?: any;
 }
 
-export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: OrderDetailsProps) {
+export function OrderDetails({ onBack, onNavigate, order, isAdmin = false, socket }: OrderDetailsProps) {
+  const queryClient = useQueryClient();
   if (!isAdmin) {
-    return <MobileOrderDetails onBack={onBack} onNavigate={onNavigate} order={order} />;
+    return <MobileOrderDetails onBack={onBack} onNavigate={onNavigate} order={order} socket={socket} />;
   }
   const [fullOrder, setFullOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +67,32 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false }: Ord
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Listen for socket events to update status and timeline in real-time
+  useEffect(() => {
+    if (!socket?.current || !fullOrder?.id) return;
+
+    const handleStatusUpdate = (data: any) => {
+      if (data.orderId === fullOrder.id) {
+        console.log("Real-time Order Status Update:", data);
+        setFullOrder((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            status: data.status,
+            confirmedAt: data.status === 'CONFIRMED' ? new Date().toISOString() : prev.confirmedAt
+          };
+        });
+        // Invalidate the timeline query cache to update OmsStepper in real-time
+        queryClient.invalidateQueries({ queryKey: ["orderTimeline", fullOrder.id] });
+      }
+    };
+
+    socket.current.on('order:status', handleStatusUpdate);
+    return () => {
+      socket.current?.off('order:status', handleStatusUpdate);
+    };
+  }, [socket?.current, fullOrder?.id, queryClient]);
 
   const handleAccept = async () => {
     if (!fullOrder?.id) return;
