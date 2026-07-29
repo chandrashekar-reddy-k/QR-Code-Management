@@ -28,8 +28,14 @@ const MILESTONES: Milestone[] = [
   {
     key: "PLACED",
     label: "Placed",
-    statuses: ["PLACED", "CONFIRMED"],
-    description: "Order received and confirmed",
+    statuses: ["PLACED"],
+    description: "Order received",
+  },
+  {
+    key: "CONFIRMED",
+    label: "Confirmed",
+    statuses: ["CONFIRMED"],
+    description: "Order confirmed",
   },
   {
     key: "ACCEPTED",

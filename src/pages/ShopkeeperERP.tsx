@@ -431,7 +431,7 @@ export default function ShopkeeperERP() {
 
         {/* Dynamic Screens (re-mounted on navigation) */}
         {screen === "orderhistory" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
-        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} />}
+        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} socket={socket} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
         {screen === "barcode-verification" && <BarcodeVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
         {screen === "picking-complete" && <PickingComplete onNavigate={navigate} data={orderData as any} />}

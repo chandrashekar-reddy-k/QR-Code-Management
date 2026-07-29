@@ -170,7 +170,7 @@ export default function ShopkeeperAdminERP() {
         {screen === "dashboard" && <Dashboard onNavigate={navigate} isAdmin={true} />}
         {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} isAdmin={true} />}
         {screen === "orderhistory" && <OrderHistory onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} isAdmin={true} />}
-        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} isAdmin={true} />}
+        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} isAdmin={true} socket={socket} />}
         {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} isAdmin={true} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
         {screen === "barcode-verification" && <BarcodeVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}

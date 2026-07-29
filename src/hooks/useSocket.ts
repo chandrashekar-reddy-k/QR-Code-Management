@@ -17,7 +17,14 @@ export function useSocket(storeId?: number | string) {
       auth: { token }
     });
     
-    if (storeId) {
+    const onConnect = () => {
+      if (storeId) {
+        newSocket.emit('join:store', { storeId });
+      }
+    };
+
+    newSocket.on('connect', onConnect);
+    if (newSocket.connected && storeId) {
       newSocket.emit('join:store', { storeId });
     }
 

@@ -16,7 +16,14 @@ export function useSocket(storeId?: number | string) {
       transports: ['websocket', 'polling'],
       auth: { token },
     });
-    if (storeId) {
+    const onConnect = () => {
+      if (storeId) {
+        socket.current?.emit('join:store', { storeId });
+      }
+    };
+
+    socket.current.on('connect', onConnect);
+    if (socket.current.connected && storeId) {
       socket.current.emit('join:store', { storeId });
     }
 
