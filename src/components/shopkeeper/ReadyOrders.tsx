@@ -27,10 +27,16 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   const [dateFilter, setDateFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
+  const fetchAgents = () => {
     api.get('/delivery-agents')
       .then(res => setAgents(res.data))
       .catch(err => console.error("Failed to load riders", err));
+  };
+
+  useEffect(() => {
+    fetchAgents();
+    window.addEventListener('agentStatusUpdated', fetchAgents);
+    return () => window.removeEventListener('agentStatusUpdated', fetchAgents);
   }, []);
 
   const handleAssignRider = async (orderId: string, agentId: string) => {
@@ -64,7 +70,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
       result = result.filter((o: any) => {
         const orderNum = (o.order_number || "").toLowerCase();
         const trayNum = (o.tray_number || o.tray || "").toLowerCase();
-        const riderName = agents.find(a => a.id === o.agentId)?.name?.toLowerCase() || "";
+        const riderName = (o.agent?.name || agents.find(a => a.id === o.agentId)?.name || "").toLowerCase();
         return orderNum.includes(q) || trayNum.includes(q) || riderName.includes(q);
       });
     }
@@ -143,8 +149,8 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Ready for Dispatch</h1>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Orders packed, assigned, and ready for rider handover</p>
           </div>
-          
-          <button 
+
+          <button
             onClick={onBack}
             className="self-start md:self-auto flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
@@ -184,7 +190,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
           <div className="px-4 py-3 flex items-center justify-center flex-shrink-0">
             <Filter size={16} className="text-gray-500" />
           </div>
-          
+
           {/* Delivery Type Filter */}
           <div className="px-4 py-3 w-[180px] relative">
             <select
@@ -308,11 +314,9 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                         </td>
                         <td className="px-4 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
                           {(() => {
-                            const rider = agents.find(a => a.id === order.agentId);
-                            return rider ? (
-                              <span title={`Phone: ${rider.phone}`} className="cursor-help border-b border-dotted border-gray-400">
-                                {rider.name}
-                              </span>
+                            const agentName = order.agent?.name || agents.find(a => a.id === order.agentId)?.name;
+                            return agentName ? (
+                              <span className="font-medium text-gray-900 dark:text-gray-100">{agentName}</span>
                             ) : (
                               <span className="text-gray-400 font-normal">Not Assigned</span>
                             );
@@ -347,7 +351,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button 
+                            <button
                               onClick={() => onNavigate("order-details", order)}
                               className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                             >
@@ -363,7 +367,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                               if (hasRider) {
                                 return (
                                   <>
-                                    <button 
+                                    <button
                                       onClick={() => setSelectedOrderForRider(order)}
                                       className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 transition-colors font-bold text-xs"
                                     >
@@ -371,10 +375,10 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                                     </button>
                                     <button
                                       onClick={() => {
-                                        const agent = agents.find(a => a.id === order.agentId);
+                                        const agentName = order.agent?.name || agents.find(a => a.id === order.agentId)?.name || "N/A";
                                         onNavigate("handover-verification", {
                                           ...order,
-                                          riderName: agent ? agent.name : "N/A"
+                                          riderName: agentName
                                         });
                                       }}
                                       className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 bg-[#00891D] hover:bg-[#006614] transition-colors text-white font-bold text-xs shadow-sm"
@@ -386,7 +390,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                                 );
                               } else {
                                 return (
-                                  <button 
+                                  <button
                                     onClick={() => setSelectedOrderForRider(order)}
                                     className="flex items-center gap-1 rounded-lg px-2 py-1.5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 transition-colors font-bold text-xs"
                                   >
@@ -413,7 +417,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <h3 className="text-gray-900 dark:text-gray-100 font-bold text-lg mb-2">Assign Rider</h3>
             <p className="text-gray-500 text-xs mb-4">Select a delivery partner for Order #{selectedOrderForRider.order_number}</p>
-            
+
             <select
               value={selectedOrderForRider.agentId || ""}
               onChange={(e) => {
@@ -429,7 +433,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                 </option>
               ))}
             </select>
-            
+
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setSelectedOrderForRider(null)}
