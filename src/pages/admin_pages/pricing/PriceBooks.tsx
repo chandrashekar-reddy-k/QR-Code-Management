@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Edit2, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Edit2, CheckCircle2, XCircle, Trash2 } from "lucide-react";
 import fetchData from "../../../helper";
 import { toast } from "react-toastify";
 
@@ -17,6 +17,7 @@ export default function PriceBooks() {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<PriceBook | null>(null);
+  const [channels, setChannels] = useState<{ code: string; name: string }[]>([]);
 
   // Form states
   const [name, setName] = useState("");
@@ -37,8 +38,20 @@ export default function PriceBooks() {
     }
   };
 
+  const fetchChannels = async () => {
+    try {
+      const response = await fetchData<{ status: number; data: { code: string; name: string }[] }>("/pricing/channels");
+      if (response && response.data) {
+        setChannels(response.data);
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch channels", error);
+    }
+  };
+
   useEffect(() => {
     fetchPriceBooks();
+    fetchChannels();
   }, []);
 
   const handleOpenCreate = () => {
@@ -60,7 +73,7 @@ export default function PriceBooks() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !code) {
-      toast.warn("Name and unique code are required");
+      toast.warn("Name and channel code are required");
       return;
     }
 
@@ -87,6 +100,21 @@ export default function PriceBooks() {
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to update price book status");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this price book? This will also delete all associated product prices!")) {
+      return;
+    }
+    try {
+      const response = await fetchData<{ status: number; message: string }>(`/pricing/price-books/${id}`, "DELETE");
+      if (response && response.status === 200) {
+        toast.success(response.message || "Price book deleted successfully");
+        fetchPriceBooks();
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete price book");
     }
   };
 
@@ -148,13 +176,20 @@ export default function PriceBooks() {
                       )}
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right flex justify-end gap-3">
                     <button
                       onClick={() => handleOpenEdit(book)}
                       className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-all"
                       title="Edit Price Book"
                     >
                       <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(book.id)}
+                      className="text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-all"
+                      title="Delete Price Book"
+                    >
+                      <Trash2 size={16} />
                     </button>
                   </td>
                 </tr>
@@ -200,15 +235,22 @@ export default function PriceBooks() {
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
                   Channel Code
                 </label>
-                <input
-                  type="text"
+                <select
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   disabled={!!editingBook}
                   className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="e.g. POS, ONLINE, QUICK, VEHICLE"
                   required
-                />
+                >
+                  <option value="" disabled>Select a Channel</option>
+                  {channels
+                    .filter((chan) => !priceBooks.some((pb) => pb.code === chan.code))
+                    .map((chan) => (
+                      <option key={chan.code} value={chan.code}>
+                        {chan.name} ({chan.code})
+                      </option>
+                    ))}
+                </select>
               </div>
               <div className="flex items-center gap-3 pt-2">
                 <input

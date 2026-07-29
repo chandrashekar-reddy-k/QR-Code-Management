@@ -98,15 +98,9 @@ export default function ProductPricing() {
     loadData();
   }, []);
 
-  const handleEditChannelPrice = (item: any, channelCode: string, currentMrp: number, currentPrice: number) => {
-    const pb = priceBooks.find(b => b.code === channelCode);
-    if (!pb) {
-      toast.error(`Price book for channel ${channelCode} not found`);
-      return;
-    }
-
+  const handleEditChannelPrice = (item: any, pBookId: string, currentMrp: number, currentPrice: number) => {
     setProductId(item.id);
-    setPriceBookId(pb.id);
+    setPriceBookId(pBookId);
     setSelectedVariantId(item.productVariantId || "");
     setMrp(currentMrp.toString());
     setSellingPrice(currentPrice.toString());
@@ -127,6 +121,24 @@ export default function ProductPricing() {
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to delete price");
+    }
+  };
+
+  const handleDeleteRowPrices = async (productId: string, productVariantId: string | null) => {
+    if (!window.confirm("Are you sure you want to delete ALL custom prices for this row?")) {
+      return;
+    }
+    try {
+      const url = productVariantId
+        ? `/pricing/product-prices?productId=${productId}&productVariantId=${productVariantId}`
+        : `/pricing/product-prices?productId=${productId}`;
+      const response = await fetchData<{ status: number; message: string }>(url, "DELETE");
+      if (response && response.status === 200) {
+        toast.success(response.message || "Pricing records deleted successfully");
+        loadData();
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete prices");
     }
   };
 
@@ -297,10 +309,9 @@ export default function ProductPricing() {
                 <th className="px-6 py-4">Product</th>
                 <th className="px-6 py-4">SKU</th>
                 <th className="px-6 py-4">Base (MRP/Price)</th>
-                <th className="px-6 py-4">POS (MRP/Price)</th>
-                <th className="px-6 py-4">Online (MRP/Price)</th>
-                <th className="px-6 py-4">Quick (MRP/Price)</th>
-                <th className="px-6 py-4">Vehicle (MRP/Price)</th>
+                {priceBooks.map((pb) => (
+                  <th key={pb.id} className="px-6 py-4">{pb.name} ({pb.code})</th>
+                ))}
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -313,112 +324,59 @@ export default function ProductPricing() {
                     <div>MRP: Rs {item.baseMrp || 0}</div>
                     <div className="text-slate-500">Price: Rs {item.basePrice || 0}</div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs text-green-600 dark:text-green-400 group relative">
-                    <div className="flex flex-col pr-8">
-                      <div>MRP: Rs {item.posMrp || 0}</div>
-                      <div className="font-semibold">Price: Rs {item.posPrice || 0}</div>
-                    </div>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
-                      <button
-                        onClick={() => handleEditChannelPrice(item, 'POS', item.posMrp, item.posPrice)}
-                        className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 p-0.5"
-                        title="Edit POS Price"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                      {item.posIsCustom && (
-                        <button
-                          onClick={() => handleDeleteChannelPrice(item.posCustomId)}
-                          className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
-                          title="Reset to Catalog Base Price"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-indigo-600 dark:text-indigo-400 group relative">
-                    <div className="flex flex-col pr-8">
-                      <div>MRP: Rs {item.onlineMrp || 0}</div>
-                      <div className="font-semibold">Price: Rs {item.onlinePrice || 0}</div>
-                    </div>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
-                      <button
-                        onClick={() => handleEditChannelPrice(item, 'ONLINE', item.onlineMrp, item.onlinePrice)}
-                        className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-0.5"
-                        title="Edit Online Price"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                      {item.onlineIsCustom && (
-                        <button
-                          onClick={() => handleDeleteChannelPrice(item.onlineCustomId)}
-                          className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
-                          title="Reset to Catalog Base Price"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-amber-600 dark:text-amber-400 group relative">
-                    <div className="flex flex-col pr-8">
-                      <div>MRP: Rs {item.quickMrp || 0}</div>
-                      <div className="font-semibold">Price: Rs {item.quickPrice || 0}</div>
-                    </div>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
-                      <button
-                        onClick={() => handleEditChannelPrice(item, 'QUICK', item.quickMrp, item.quickPrice)}
-                        className="text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 p-0.5"
-                        title="Edit Quick Price"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                      {item.quickIsCustom && (
-                        <button
-                          onClick={() => handleDeleteChannelPrice(item.quickCustomId)}
-                          className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
-                          title="Reset to Catalog Base Price"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-rose-600 dark:text-rose-400 group relative">
-                    <div className="flex flex-col pr-8">
-                      <div>MRP: Rs {item.vehicleMrp || 0}</div>
-                      <div className="font-semibold">Price: Rs {item.vehiclePrice || 0}</div>
-                    </div>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
-                      <button
-                        onClick={() => handleEditChannelPrice(item, 'VEHICLE', item.vehicleMrp, item.vehiclePrice)}
-                        className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
-                        title="Edit Vehicle Price"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                      {item.vehicleIsCustom && (
-                        <button
-                          onClick={() => handleDeleteChannelPrice(item.vehicleCustomId)}
-                          className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
-                          title="Reset to Catalog Base Price"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right flex justify-end gap-3">
+                  {priceBooks.map((pb) => {
+                    const customPrice = item.customPrices?.[pb.id] || { mrp: item.baseMrp, sellingPrice: item.basePrice, isCustom: false, id: null };
+                    const isCustom = customPrice.isCustom;
+                    return (
+                      <td key={pb.id} className={`px-6 py-4 font-mono text-xs group relative ${
+                        isCustom
+                          ? (pb.code === 'POS' ? 'text-green-600 dark:text-green-400' :
+                             pb.code === 'ONLINE' ? 'text-indigo-600 dark:text-indigo-400' :
+                             pb.code === 'VEHICLE' ? 'text-rose-600 dark:text-rose-400' :
+                             'text-slate-600 dark:text-slate-400')
+                          : 'text-slate-400 dark:text-slate-500'
+                      }`}>
+                        <div className="flex flex-col pr-8">
+                          {isCustom ? (
+                            <>
+                              <div>MRP: Rs {customPrice.mrp || 0}</div>
+                              <div className="font-semibold">Price: Rs {customPrice.sellingPrice || 0}</div>
+                            </>
+                          ) : (
+                            <div className="italic text-slate-350 dark:text-slate-600">Standard Base</div>
+                          )}
+                        </div>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 rounded p-1">
+                          <button
+                            onClick={() => handleEditChannelPrice(item, pb.id, isCustom ? customPrice.mrp : item.baseMrp, isCustom ? customPrice.sellingPrice : item.basePrice)}
+                            className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 p-0.5"
+                            title={`Edit ${pb.name} Price`}
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          {isCustom && (
+                            <button
+                              onClick={() => handleDeleteChannelPrice(customPrice.id)}
+                              className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5"
+                              title="Reset to Catalog Base Price"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                  <td className="px-6 py-4 text-right flex justify-end gap-3 items-center">
                     <button
                       onClick={() => {
                         const product = products.find(p => p.id === item.id);
                         if (product) handleOpenHistory(product);
                       }}
-                      className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-all flex items-center gap-1.5 text-xs font-semibold"
+                      className="text-slate-500 hover:text-slate-850 dark:hover:text-slate-200 transition-all flex items-center gap-1 text-xs font-semibold"
                       title="View Price History"
                     >
-                      <History size={16} />
+                      <History size={14} />
                       History
                     </button>
                     <button
@@ -433,18 +391,26 @@ export default function ProductPricing() {
                           }
                         }
                       }}
-                      className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-all flex items-center gap-1.5 text-xs font-semibold"
+                      className="text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-all flex items-center gap-1 text-xs font-semibold"
                       title="Assign Price"
                     >
-                      <DollarSign size={16} />
+                      <DollarSign size={14} />
                       Assign
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRowPrices(item.id, item.productVariantId)}
+                      className="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-all flex items-center gap-1.5 text-xs font-semibold"
+                      title="Delete all custom prices for this row"
+                    >
+                      <Trash2 size={14} />
+                      Delete
                     </button>
                   </td>
                 </tr>
               ))}
               {filteredComparison.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-slate-400">
+                  <td colSpan={4 + priceBooks.length} className="text-center py-10 text-slate-400">
                     No products found matching filters.
                   </td>
                 </tr>

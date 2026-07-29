@@ -47,6 +47,8 @@ export default function ClosingCashEntry() {
         selectedShift = 2;
       } else if (!s1?.openingAssigned && s2?.openingAssigned) {
         selectedShift = 2;
+      } else if (s2?.openingAssigned) {
+        selectedShift = 2;
       }
       setActiveShift(selectedShift);
 

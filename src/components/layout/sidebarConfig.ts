@@ -266,7 +266,7 @@ export const sidebarConfig: MenuSection[] = [
     subItems: [
       { path: "/pricing/price-books", label: "Price Books", icon: BookOpen },
       { path: "/pricing/product-pricing", label: "Product Pricing", icon: Tag },
-      { path: "/pricing/price-comparison", label: "Price Comparison", icon: BarChart3 }
+      // { path: "/pricing/price-comparison", label: "Price Comparison", icon: BarChart3 }
     ]
   },
   {
