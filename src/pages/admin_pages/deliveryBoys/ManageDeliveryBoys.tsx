@@ -486,7 +486,7 @@ const ManageDeliveryBoys = () => {
         if (agent.role === "VEHICLE_AGENT") {
           label = "VSMS Vehicle";
           colorClass = "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300";
-        } else if (agent.role === "SHOPKEEPER") {
+        } else if (["SHOPKEEPER", "SHOPER"].includes(agent.role)) {
           label = "Shopkeeper";
           colorClass = "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
         }

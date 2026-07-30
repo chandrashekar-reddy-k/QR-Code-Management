@@ -108,7 +108,13 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     if (agentRoles.includes(user.role)) return true;
 
     // Check user.permissions from the store
-    const permissions = user.permissions || [];
+    let permissions = user.permissions || [];
+    if (!permissions || permissions.length === 0) {
+      try {
+        const permsStr = localStorage.getItem('permissions');
+        if (permsStr) permissions = JSON.parse(permsStr);
+      } catch {}
+    }
 
     // If wildcard permissions, allow access to all paths
     if (Array.isArray(permissions) && (permissions.includes('*') || permissions.includes('ALL'))) {

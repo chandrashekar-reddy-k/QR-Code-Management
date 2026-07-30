@@ -12,12 +12,12 @@ interface PackingScreenProps {
 
 export function PackingScreen({ onNavigate, onBack, order }: PackingScreenProps) {
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
-  const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
-  const userObj = storedUser ? JSON.parse(storedUser) : null;
-  const role = userObj?.role;
+  const storedPermissions = localStorage.getItem("permissions");
+  const permissions: string[] = storedPermissions ? JSON.parse(storedPermissions) : [];
+  const hasPartner = permissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
 
-  // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile packing screen UI
-  const isStaffLogin = isShopkeeper || !role || role === "SHOPKEEPER" || role === "STORE_STAFF";
+  // Staff login (determined by shopkeeper path or fallback if no partner modules are active)
+  const isStaffLogin = isShopkeeper || !hasPartner;
 
   if (isStaffLogin) {
     return <PackingScreenMobile onNavigate={onNavigate} onBack={onBack} order={order} />;

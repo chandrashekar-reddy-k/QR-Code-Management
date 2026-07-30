@@ -60,9 +60,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Dynamically determine classification based on active permissions and roles
-  const isAgentRole = role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT" || (hasAgentPermissions && !hasPartnerPermissions);
-  const isShopkeeperRole = role === "SHOPKEEPER" || (hasShopkeeperPermissions && !hasPartnerPermissions && !hasAgentPermissions);
+  // Dynamically determine classification based strictly on active permissions (modules)
+  const isShopkeeperRole = hasShopkeeperPermissions && !hasPartnerPermissions;
+  const isAgentRole = hasAgentPermissions && !hasPartnerPermissions && !isShopkeeperRole;
 
   const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
 
