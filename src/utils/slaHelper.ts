@@ -66,7 +66,7 @@ export function getSLAInfo(order: any, now: Date = new Date()): SLAInfo {
   let status: 'on_track' | 'at_risk' | 'breached';
   if (isBreached) {
     status = 'breached';
-  } else if (diffMinutes <= 10) {
+  } else if (diffMinutes < 15) {
     status = 'at_risk';
   } else {
     status = 'on_track';

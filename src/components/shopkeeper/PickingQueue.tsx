@@ -51,7 +51,7 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
   const pickingOrders = useMemo(() => {
     const filtered = sharedOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'accepted' || s === 'picking' || s === 'confirmed';
+      return s === 'accepted' || s === 'picking';
     });
     return filtered.map((o: any) => ({
       ...o,

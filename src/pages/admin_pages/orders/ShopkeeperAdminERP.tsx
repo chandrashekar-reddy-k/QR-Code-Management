@@ -67,7 +67,7 @@ export default function ShopkeeperAdminERP() {
         } catch (e) { }
       }
 
-      const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}&view=shopkeeper` : '/orders?view=shopkeeper';
+      const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}&view=shopkeeper&limit=100` : '/orders?view=shopkeeper&limit=100';
       const res = await api.get(endpoint);
       const resData = res.data;
       let rawOrders: any[] = [];

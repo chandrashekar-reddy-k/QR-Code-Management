@@ -31,7 +31,7 @@ export function SLAMonitoring({ onBack, onNavigate }: SLAMonitoringProps) {
 
   const fetchData = () => {
     Promise.all([
-      api.get('/orders?all=true'),
+      api.get('/orders?all=true&limit=100'),
       api.get('/sla')
     ]).then(([ordersRes, slaRes]) => {
       const resData = ordersRes.data;

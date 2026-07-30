@@ -211,11 +211,11 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
     const newOrders = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending';
+      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending' || s === 'confirmed';
     }).length;
     const picking = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'accepted' || s === 'picking' || s === 'confirmed';
+      return s === 'accepted' || s === 'picking';
     }).length;
     const packing = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
@@ -628,8 +628,8 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
                             if (!isAssigned) return false;
 
-                            const s = o.status?.toLowerCase();
-                            return s !== 'delivered' && s !== 'completed' && s !== 'cancelled' && s !== 'rejected' && s !== 'dispatched' && s !== 'returned' && s !== 'return' && s !== 'handed_over';
+                            const status = o.status?.toLowerCase();
+                            return ['confirmed', 'assigned', 'accepted', 'picking', 'packing', 'processing', 'ready', 'ready_for_dispatch'].includes(status);
                           });
 
                           const activeOrderCount = activeOrdersForSk.length;

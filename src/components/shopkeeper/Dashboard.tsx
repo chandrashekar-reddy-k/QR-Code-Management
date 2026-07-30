@@ -188,19 +188,19 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const newOrders = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending';
+      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending' || s === 'confirmed';
     }).length;
 
     const activeOrdersCount = allOrders.filter((o: any) => {
       const isAssigned = o.shopkeeper_phone || o.assignedShopkeeper || o.assigned_shopkeeper || o.shopkeeper_name || o.assignedShopkeeperId || o.assigned_shopkeeper_id;
-      if (!isAssigned) return false;
       const s = o.status?.toLowerCase();
-      return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'packing', 'processing', 'ready'].includes(s);
+      if (!isAdmin && !isAssigned && s !== 'confirmed') return false;
+      return ['confirmed', 'assigned', 'accepted', 'picking', 'packing', 'processing', 'ready', 'ready_for_dispatch'].includes(s);
     }).length;
 
     const picking = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'accepted' || s === 'picking' || s === 'confirmed';
+      return s === 'accepted' || s === 'picking';
     }).length;
     const packing = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
@@ -732,7 +732,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                       rejected: { color: "#DC2626", bg: "#FEF2F2" },
                     };
                     const lowerStatus = (order.status || "").toLowerCase();
-                    const isAssigned = (lowerStatus === 'new' || lowerStatus === 'placed' || lowerStatus === 'assigned') && (
+                    const isAssigned = (lowerStatus === 'new' || lowerStatus === 'placed' || lowerStatus === 'assigned' || lowerStatus === 'confirmed') && (
                       order.shopkeeper_name ||
                       order.assignedShopkeeper ||
                       order.assigned_shopkeeper ||

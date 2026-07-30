@@ -134,7 +134,7 @@ export function OrderHistory({ onBack, onNavigate, initialStatus, isAdmin = fals
       result = orders.filter((o: any) => {
         const s = o.status?.toLowerCase();
         if (statusFilter === "Active") {
-          return ['new', 'placed', 'assigned', 'accepted', 'picking', 'confirmed', 'packing', 'processing', 'ready', 'handover', 'ready_for_dispatch'].includes(s);
+          return ['confirmed', 'assigned', 'accepted', 'picking', 'packing', 'processing', 'ready', 'ready_for_dispatch'].includes(s);
         }
         if (statusFilter === "Dispatched") {
           return s === "dispatched" || s === "delivered" || s === "completed";

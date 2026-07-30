@@ -76,7 +76,7 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
   // Filter orders (new, pending, placed, assigned statuses)
   const orders = sharedOrders.filter((o: any) => {
     const s = o.status?.toLowerCase();
-    return s === 'new' || s === 'pending' || s === 'placed' || s === 'assigned';
+    return s === 'new' || s === 'pending' || s === 'placed' || s === 'assigned' || s === 'confirmed';
   });
 
   const filteredOrders = orders.filter((order) => {

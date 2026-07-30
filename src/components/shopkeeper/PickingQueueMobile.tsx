@@ -112,7 +112,7 @@ export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
     // Filter for accepted or picking statuses
     const orders = sharedOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'accepted' || s === 'picking' || s === 'confirmed';
+      return s === 'accepted' || s === 'picking';
     });
     
     // Calculate mock items data if backend doesn't return full details in this endpoint yet

@@ -53,7 +53,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   const socket = useSocket(1);
 
   const { orders: sharedOrders, refreshOrders, loading } = useSharedOrders();
-  const orders = sharedOrders.filter((o: any) => o.status === 'new' || o.status === 'assigned');
+  const orders = sharedOrders.filter((o: any) => o.status?.toLowerCase() === 'new' || o.status?.toLowerCase() === 'assigned' || o.status?.toLowerCase() === 'confirmed' || o.status?.toLowerCase() === 'placed' || o.status?.toLowerCase() === 'pending');
 
   const handleAccept = async (orderId: number) => {
     try {

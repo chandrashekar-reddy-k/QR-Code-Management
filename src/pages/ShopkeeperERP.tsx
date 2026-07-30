@@ -249,7 +249,7 @@ export default function ShopkeeperERP() {
 
   const fetchOrders = async () => {
     try {
-      const endpoint = `/orders?view=shopkeeper&_t=${Date.now()}`;
+      const endpoint = `/orders?view=shopkeeper&limit=100&_t=${Date.now()}`;
       const res = await api.get(endpoint);
       const resData = res.data;
       let rawOrders: any[] = [];

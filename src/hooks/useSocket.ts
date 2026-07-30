@@ -13,7 +13,6 @@ export function useSocket(storeId?: number | string) {
     if (!token || !SOCKET_URL) return;
 
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
       auth: { token }
     });
     
