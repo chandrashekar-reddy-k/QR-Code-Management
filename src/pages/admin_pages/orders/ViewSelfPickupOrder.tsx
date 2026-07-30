@@ -191,10 +191,26 @@ const ViewSelfPickupOrder = () => {
     } as SelfPickupOrderView;
   }, [data, id]);
 
+const getSelfPickupNextStatus = (status: OrderStatus): OrderStatus | null => {
+  switch (status) {
+    case OrderStatus.PLACED:
+      return OrderStatus.CONFIRMED;
+    case OrderStatus.CONFIRMED:
+      return OrderStatus.PROCESSING;
+    case OrderStatus.PROCESSING:
+      return OrderStatus.READY_FOR_PICKUP;
+    case OrderStatus.READY_FOR_PICKUP:
+      return OrderStatus.DELIVERED;
+    default:
+      return null;
+  }
+};
+
   useEffect(() => {
     if (transformedOrder) {
       setOrder(transformedOrder);
-      setSelectedStatus(transformedOrder.status);
+      const nextStatus = getSelfPickupNextStatus(transformedOrder.status);
+      setSelectedStatus(nextStatus || transformedOrder.status);
     }
   }, [transformedOrder]);
 
@@ -455,22 +471,6 @@ const ViewSelfPickupOrder = () => {
                 <div className="relative" ref={dropdownRef}>
                   {/* Status Flow Logic (same as ViewHomeDeliveryOrder) */}
                   {(() => {
-                    // Helper: get next status in flow
-                    const getNextStatus = (status: OrderStatus) => {
-                      switch (status) {
-                        case OrderStatus.PLACED:
-                          return OrderStatus.CONFIRMED;
-                        case OrderStatus.CONFIRMED:
-                          return OrderStatus.PROCESSING;
-                        case OrderStatus.PROCESSING:
-                          return OrderStatus.READY_FOR_PICKUP;
-                        case OrderStatus.READY_FOR_PICKUP:
-                          return OrderStatus.DELIVERED;
-                        default:
-                          return null;
-                      }
-                    };
-
                     const statusOptions = [
                       { value: OrderStatus.PLACED, label: "Placed" },
                       { value: OrderStatus.CONFIRMED, label: "Confirmed" },
@@ -480,19 +480,12 @@ const ViewSelfPickupOrder = () => {
                       { value: OrderStatus.CANCELLED, label: "Cancelled" },
                     ].map((opt) => {
                       const isCurrent = order.status === opt.value;
-                      const isNext = getNextStatus(order.status) === opt.value;
+                      const isNext = getSelfPickupNextStatus(order.status) === opt.value;
 
-                      let disabled = false;
-
-                      // Once delivered, disable everything
-                      if (order.status === OrderStatus.DELIVERED) {
-                        disabled = true;
-                      } else {
-                        // Allow only current + next status
-                        disabled = !(isCurrent || isNext);
-
-                        // Cancel allowed until delivered
-                        if (opt.value === OrderStatus.CANCELLED) {
+                      let disabled = isCurrent || order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED;
+                      if (!disabled) {
+                        disabled = !isNext;
+                        if (opt.value === OrderStatus.CANCELLED && order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED) {
                           disabled = false;
                         }
                       }

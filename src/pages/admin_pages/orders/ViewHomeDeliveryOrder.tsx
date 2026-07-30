@@ -167,6 +167,29 @@ const getStatusLabel = (status: OrderStatus): string => {
   }
 };
 
+const getNextStatus = (status: OrderStatus): OrderStatus | null => {
+  switch (status) {
+    case OrderStatus.PENDING:
+      return OrderStatus.CONFIRMED;
+    case OrderStatus.PLACED:
+      return OrderStatus.CONFIRMED;
+    case OrderStatus.CONFIRMED:
+      return OrderStatus.PROCESSING;
+    case OrderStatus.PROCESSING:
+      return OrderStatus.READY_FOR_PICKUP;
+    case OrderStatus.READY_FOR_PICKUP:
+      return OrderStatus.PICKED_UP;
+    case OrderStatus.PICKED_UP:
+      return OrderStatus.OUT_FOR_DELIVERY;
+    case OrderStatus.OUT_FOR_DELIVERY:
+      return OrderStatus.DELIVERED;
+    case OrderStatus.IN_TRANSIT:
+      return OrderStatus.DELIVERED;
+    default:
+      return null;
+  }
+};
+
 const ViewHomeDeliveryOrder = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -306,7 +329,8 @@ const ViewHomeDeliveryOrder = () => {
   useEffect(() => {
     if (transformedOrder) {
       setOrder(transformedOrder);
-      setSelectedStatus(transformedOrder.status);
+      const nextStatus = getNextStatus(transformedOrder.status);
+      setSelectedStatus(nextStatus || transformedOrder.status);
     }
   }, [transformedOrder]);
 
@@ -731,35 +755,6 @@ const ViewHomeDeliveryOrder = () => {
                 <div className="relative" ref={dropdownRef}>
                   {/* Status Flow Logic */}
                   {(() => {
-                    // Helper: get next status in flow
-                    const getNextStatus = (status: OrderStatus) => {
-                      switch (status) {
-                        case OrderStatus.PENDING:
-                          return OrderStatus.CONFIRMED;
-                        case OrderStatus.PLACED:
-                          return OrderStatus.CONFIRMED;
-                        case OrderStatus.CONFIRMED:
-                          return OrderStatus.PROCESSING;
-                        case OrderStatus.PROCESSING:
-                          return OrderStatus.READY_FOR_PICKUP;
-                        case OrderStatus.READY_FOR_PICKUP:
-                          // If agent is assigned, it might be ASSIGNED_TO_AGENT, but we allow PICKED_UP next
-                          return OrderStatus.PICKED_UP;
-                        case OrderStatus.PICKED_UP:
-                          return OrderStatus.OUT_FOR_DELIVERY;
-                        case OrderStatus.OUT_FOR_DELIVERY:
-                          return OrderStatus.DELIVERED;
-                        case OrderStatus.IN_TRANSIT:
-                          return OrderStatus.DELIVERED;
-                        default:
-                          return null;
-                      }
-                    };
-
-                    // Only current and next status are enabled, all previous are disabled
-                    // Assignment uses assign-agent only (never PUT status for OUT_FOR_DELIVERY).
-
-                    // Build status options with enable/disable logic
                     const statusOptions = [
                       { value: OrderStatus.PENDING, label: "Pending" },
                       { value: OrderStatus.PLACED, label: "Placed" },
@@ -775,30 +770,23 @@ const ViewHomeDeliveryOrder = () => {
                       { value: OrderStatus.DELIVERED, label: "Delivered" },
                       { value: OrderStatus.CANCELLED, label: "Reject (Cancel)" },
                     ].map((opt) => {
-                      // Only current and next status are enabled
                       const isCurrent = order.status === opt.value;
                       const isNext = getNextStatus(order.status) === opt.value;
-                      // Always disable if delivered
-                      let disabled = order.status === OrderStatus.DELIVERED;
-                      // Only current and next enabled, rest disabled
+                      // Disable current status (already reached) and terminal states
+                      let disabled = isCurrent || order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED;
                       if (!disabled) {
-                        disabled = !(isCurrent || isNext);
+                        disabled = !isNext;
                       }
-                      // Special: If at READY_FOR_PICKUP, all disabled (wait for agent assignment)
                       if (order.status === OrderStatus.PROCESSING && opt.value === OrderStatus.READY_FOR_PICKUP) {
-                        // Next is enabled
                         disabled = false;
                       }
                       if (order.status === OrderStatus.READY_FOR_PICKUP) {
-                        // All disabled, wait for agent assignment
                         disabled = true;
                       }
-                      // OUT_FOR_DELIVERY is set by assign-agent; show current only, do not PUT-select
                       if (opt.value === OrderStatus.OUT_FOR_DELIVERY) {
-                        disabled = order.status !== OrderStatus.OUT_FOR_DELIVERY;
+                        disabled = true;
                       }
-                      // Cancelled should always be enabled (unless delivered)
-                      if (opt.value === OrderStatus.CANCELLED && order.status !== OrderStatus.DELIVERED) {
+                      if (opt.value === OrderStatus.CANCELLED && order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED) {
                         disabled = false;
                       }
                       return { ...opt, disabled };
