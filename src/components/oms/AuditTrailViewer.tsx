@@ -82,7 +82,10 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
                 </span>
                 <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
                   <User className="w-3.5 h-3.5" />
-                  {log.actor || log.changedBy || "System"}
+                  {(() => {
+                    const actorRaw = String(log.actor || log.changedBy || "System");
+                    return actorRaw === "SYSTEM_AUTO_CONFIRM" ? "System" : actorRaw;
+                  })()}
                 </span>
               </div>
 
@@ -114,7 +117,7 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
                         <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 mt-0.5 flex-shrink-0" />
                         <span>
                           <strong className="text-slate-600 dark:text-slate-400 font-medium">Reason:</strong>{" "}
-                          {log.reason}
+                          {String(log.reason).replace(/auto-confirmed after 30 seconds/gi, "Confirmed").replace(/auto-confirmation/gi, "Confirmation")}
                         </span>
                       </p>
                     )}
@@ -123,7 +126,7 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
                         <FileText className="w-3.5 h-3.5 text-indigo-400 mt-0.5 flex-shrink-0" />
                         <span>
                           <strong className="text-slate-600 dark:text-slate-400 font-medium">Notes:</strong>{" "}
-                          {log.notes}
+                          {String(log.notes).replace(/auto-confirmed after 30 seconds/gi, "Confirmed").replace(/auto-confirmation/gi, "Confirmation")}
                         </span>
                       </p>
                     )}
