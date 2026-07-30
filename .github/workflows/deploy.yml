@@ -21,6 +21,7 @@ jobs:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          command_timeout: 10m
 
           script: |
             set -e
