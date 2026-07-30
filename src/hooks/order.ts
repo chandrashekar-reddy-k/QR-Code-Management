@@ -115,7 +115,7 @@ const useGetPickupOrders = ({
   });
 };
 
-const useGetOrderById = (orderId: string | undefined) => {
+const useGetOrderById = (orderId: string | undefined, options?: { refetchInterval?: number | false }) => {
   return useQuery({
     queryKey: ["order", orderId],
     queryFn: () => {
@@ -127,6 +127,7 @@ const useGetOrderById = (orderId: string | undefined) => {
     },
     enabled: !!orderId,
     retry: false,
+    ...options,
   });
 };
 
@@ -136,6 +137,9 @@ export enum OrderStatus {
   PENDING = "PENDING",
   PLACED = "PLACED",
   CONFIRMED = "CONFIRMED",
+  ACCEPTED = "ACCEPTED",
+  PICKING = "PICKING",
+  PACKING = "PACKING",
   PROCESSING = "PROCESSING",
   READY_FOR_PICKUP = "READY_FOR_PICKUP",
   OUT_FOR_DELIVERY = "OUT_FOR_DELIVERY",

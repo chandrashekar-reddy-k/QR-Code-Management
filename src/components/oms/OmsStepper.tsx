@@ -46,7 +46,7 @@ const MILESTONES: Milestone[] = [
   {
     key: "PROCESSING",
     label: "Processing",
-    statuses: ["PROCESSING"],
+    statuses: ["PROCESSING", "PICKING", "PACKING"],
     description: "Picking and packing items",
   },
   {
@@ -196,8 +196,47 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({
     });
   };
 
-  // Safely normalise currentStatus
-  const normalizedStatus = (currentStatus ?? "").toUpperCase();
+  // Safely normalise currentStatus and derive effective status (PICKING / PACKING / ACCEPTED) from timeline history
+  let rawStatus = (currentStatus ?? "").toUpperCase();
+  let effectiveStatus = rawStatus;
+
+  if (rawStatus === "PROCESSING" || rawStatus === "CONFIRMED" || rawStatus === "") {
+    const hasPackingEvent = milestonesHistory.some((h: any) =>
+      h && (
+        (typeof h.status === "string" && h.status.toUpperCase() === "PACKING") ||
+        (h.reason && String(h.reason).toLowerCase().includes("packing")) ||
+        (h.notes && String(h.notes).toLowerCase().includes("packing"))
+      )
+    );
+
+    const hasPickingEvent = milestonesHistory.some((h: any) =>
+      h && (
+        (typeof h.status === "string" && h.status.toUpperCase() === "PICKING") ||
+        (h.reason && String(h.reason).toLowerCase().includes("picking")) ||
+        (h.notes && String(h.notes).toLowerCase().includes("picking"))
+      )
+    );
+
+    const hasAcceptedEvent = milestonesHistory.some((h: any) =>
+      h && (
+        (typeof h.status === "string" && h.status.toUpperCase() === "ACCEPTED") ||
+        (h.reason && String(h.reason).toLowerCase().includes("accepted")) ||
+        (h.notes && String(h.notes).toLowerCase().includes("accepted"))
+      )
+    );
+
+    if (rawStatus === "PROCESSING" || hasPickingEvent || hasPackingEvent) {
+      if (hasPackingEvent) {
+        effectiveStatus = "PACKING";
+      } else {
+        effectiveStatus = "PICKING";
+      }
+    } else if (rawStatus === "CONFIRMED" && hasAcceptedEvent) {
+      effectiveStatus = "ACCEPTED";
+    }
+  }
+
+  const normalizedStatus = effectiveStatus;
 
   // Find index of current status in MILESTONES
   const isCancelled = normalizedStatus === "CANCELLED" || normalizedStatus === "FAILED";
@@ -319,7 +358,13 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({
                         : "text-slate-400 dark:text-slate-500"
                     }`}
                 >
-                  {isFailedRefund ? "Refund Failed" : rState.label}
+                  {isFailedRefund
+                    ? "Refund Failed"
+                    : milestone.key === "PROCESSING" && normalizedStatus === "PICKING"
+                    ? "Picking"
+                    : milestone.key === "PROCESSING" && normalizedStatus === "PACKING"
+                    ? "Packing"
+                    : rState.label}
                 </p>
                 {timestamp ? (
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
@@ -327,7 +372,11 @@ export const OmsStepper: React.FC<OmsStepperProps> = ({
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-350 dark:text-slate-600 font-normal mt-0.5 md:max-w-[120px] md:mx-auto">
-                    {milestone.description}
+                    {milestone.key === "PROCESSING" && normalizedStatus === "PICKING"
+                      ? "Shopkeeper is picking items"
+                      : milestone.key === "PROCESSING" && normalizedStatus === "PACKING"
+                      ? "Shopkeeper is packing items"
+                      : milestone.description}
                   </p>
                 )}
               </div>

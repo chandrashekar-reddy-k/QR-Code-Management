@@ -274,25 +274,41 @@ const SelfPickupOrders = () => {
 
   // Transform API orders to table format
   const tableOrders: TableOrder[] = useMemo(() => {
-    return orders.map((order) => ({
-      id: order.id,
+    return orders.map((order) => {
+      const isAcceptedBySk = Boolean(
+        (order as any).shopkeeperAcceptedAt ||
+        (order as any).acceptedByShopkeeperAt ||
+        (order as any).allocationStatus === "Accepted"
+      );
 
-  userId: order.consumer?.id || 0,
-    userName: order.consumer?.name || "N/A",
-     mobile: order.consumer?.phone || "N/A",
+      const rawStatus = (order.status || "pending").toUpperCase();
+      let resolvedStatus = rawStatus;
+      if (rawStatus === "CONFIRMED" && isAcceptedBySk) {
+        resolvedStatus = "ACCEPTED";
+      } else if (rawStatus === "PROCESSING") {
+        if (Boolean((order as any).pickingCompletedAt) || Boolean((order as any).packingStartedAt)) {
+          resolvedStatus = "PACKING";
+        } else {
+          resolvedStatus = "PICKING";
+        }
+      }
 
-      sellerId: order.sellerId || order.vendorId || 0,
-      sellerName: order.sellerName || order.vendorName || "N/A",
-
-  total: order.totalAmount || 0,
-    additionalCharges: order.deliveryCharge || 0,
-      walletUsed: order.walletUsed || 0,
-  finalTotal: order.totalAmount || 0,
-
-   paymentMethod: order.payment?.method || "N/A",
-      status: order.status || "pending",
+      return {
+        id: order.id,
+        userId: order.consumer?.id || 0,
+        userName: order.consumer?.name || "N/A",
+        mobile: order.consumer?.phone || "N/A",
+        sellerId: order.sellerId || order.vendorId || 0,
+        sellerName: order.sellerName || order.vendorName || "N/A",
+        total: order.totalAmount || 0,
+        additionalCharges: order.deliveryCharge || 0,
+        walletUsed: order.walletUsed || 0,
+        finalTotal: order.totalAmount || 0,
+        paymentMethod: order.payment?.method || "N/A",
+        status: resolvedStatus,
         orderDate: order.createdAt || new Date().toISOString(),
-    }));
+      };
+    });
   }, [orders]);
 
   // Client-side sorting (if needed)
@@ -437,6 +453,15 @@ const SelfPickupOrders = () => {
     case "confirmed":
       return "Confirmed";
 
+    case "accepted":
+      return "Accepted";
+
+    case "picking":
+      return "Picking";
+
+    case "packing":
+      return "Packing";
+
     case "processing":
       return "Processing";
 
@@ -464,8 +489,17 @@ const SelfPickupOrders = () => {
     case "confirmed":
       return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
 
-    case "processing":
+    case "accepted":
+      return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300";
+
+    case "picking":
+      return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300";
+
+    case "packing":
       return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300";
+
+    case "processing":
+      return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
 
     case "ready_for_pickup":
       return "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300";

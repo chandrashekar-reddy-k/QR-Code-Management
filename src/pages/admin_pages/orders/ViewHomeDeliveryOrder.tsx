@@ -193,7 +193,7 @@ const getNextStatus = (status: OrderStatus): OrderStatus | null => {
 const ViewHomeDeliveryOrder = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const { data, isLoading } = useGetOrderById(id);
+  const { data, isLoading } = useGetOrderById(id, { refetchInterval: 5000 });
   const { data: agentsData, isLoading: isLoadingAgents } = useGetDeliveryAgents();
   const updateStatusMutation = useUpdateOrderStatus(id);
   const assignAgentMutation = useAssignDeliveryAgent(id);
@@ -275,11 +275,11 @@ const ViewHomeDeliveryOrder = () => {
     // Calculate subtotal (totalAmount - deliveryCharge - discount)
     const subtotal = orderData.totalAmount - (orderData.deliveryCharge || 0) - (orderData.discount || 0);
 
-    // Find agent name from deliveryAgents list using agentId
+    // Find agent name from deliveryAgents list using agentId or assignment snapshot
     const assignedAgent = orderData.agentId
       ? deliveryAgents.find((agent) => agent.id === orderData.agentId)
       : null;
-    const agentName = assignedAgent?.name || null;
+    const agentName = assignedAgent?.name || (orderData as any).assignment?.agent?.name || (orderData as any).agent?.name || (orderData.agentId ? `Agent (${String(orderData.agentId).slice(0, 8)})` : null);
 
     // Payment method and status mapping
     let paymentMethod = "N/A";
@@ -310,7 +310,20 @@ const ViewHomeDeliveryOrder = () => {
       deliveredAt: orderData.deliveredAt || null,
       paymentMethod,
       paymentStatus,
-      status: (orderData.status as OrderStatus) || OrderStatus.PLACED,
+      status: (() => {
+        const rawStatus = ((orderData as any).status || "").toUpperCase();
+        const isAcceptedBySk = Boolean(
+          (orderData as any).shopkeeperAcceptedAt ||
+          (orderData as any).acceptedByShopkeeperAt ||
+          (orderData as any).allocationStatus === "Accepted"
+        );
+        if (rawStatus === "CONFIRMED" && isAcceptedBySk) return "ACCEPTED" as OrderStatus;
+        if (rawStatus === "PROCESSING") {
+          if ((orderData as any).pickingCompletedAt || (orderData as any).packingStartedAt) return "PACKING" as OrderStatus;
+          return "PICKING" as OrderStatus;
+        }
+        return (orderData.status as OrderStatus) || OrderStatus.PLACED;
+      })(),
       deliveryAgent: agentName,
       specialInstructions: orderData.specialInstructions || null,
       products: transformedProducts,
@@ -553,6 +566,24 @@ const ViewHomeDeliveryOrder = () => {
                 </span>
                 <span className="text-sm sm:text-base font-semibold text-gray-800">
                   {order.id.slice(0, 8)}
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                <span className="text-xs sm:text-sm font-medium text-gray-500 uppercase mb-1 sm:mb-0 sm:w-48">
+                  Current Status
+                </span>
+                <span
+                  className={`px-3 py-1 text-xs rounded-full font-semibold ${
+                    (order.status as string) === "PICKING"
+                      ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                      : (order.status as string) === "PACKING"
+                      ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                      : (order.status as string) === "ACCEPTED"
+                      ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                      : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  {getStatusLabel(order.status)}
                 </span>
               </div>
               <div className="flex flex-col sm:flex-row">

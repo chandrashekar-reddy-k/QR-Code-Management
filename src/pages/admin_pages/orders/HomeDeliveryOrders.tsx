@@ -385,20 +385,39 @@ const HomeDeliveryOrders = () => {
         ? addressParts.join(", ") 
         : "N/A";
 
+      const isAcceptedBySk = Boolean(
+        (order as any).shopkeeperAcceptedAt ||
+        (order as any).acceptedByShopkeeperAt ||
+        (order as any).allocationStatus === "Accepted"
+      );
+
+      const rawStatus = (order.status || "PENDING").toUpperCase();
+      let resolvedStatus = rawStatus;
+
+      if (rawStatus === "CONFIRMED" && isAcceptedBySk) {
+        resolvedStatus = "ACCEPTED";
+      } else if (rawStatus === "PROCESSING") {
+        if (Boolean((order as any).pickingCompletedAt) || Boolean((order as any).packingStartedAt)) {
+          resolvedStatus = "PACKING";
+        } else {
+          resolvedStatus = "PICKING";
+        }
+      }
+
       return {
         id: order.id,
         userId: order.consumer?.id ? parseInt(order.consumer.id.slice(0, 8), 16) || 0 : 0,
         userName: order.consumer?.name || "N/A",
         mobile: order.consumer?.phone || "N/A",
         deliveryAddress: deliveryAddress,
-        PaymentMethod: order.payment?.method || "N/A",// Payment method not in API response
+        PaymentMethod: order.payment?.method || "N/A",
         deliveryPartner: order.agentId ? "Assigned" : null,
         deliveryType: (order as { deliveryType?: string })?.deliveryType || "N/A",
         status: order.payment?.status === "REFUNDED" 
           ? "REFUNDED" 
           : order.payment?.status === "REFUND_PENDING" 
             ? "REFUND_PENDING" 
-            : (order.status || "PENDING"),
+            : resolvedStatus,
         paymentStatus: order.payment?.status || "N/A",
         orderDate: order.createdAt || new Date().toISOString(),
       };
@@ -497,6 +516,15 @@ const HomeDeliveryOrders = () => {
     if (statusUpper === "CONFIRMED") {
       return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300";
     }
+    if (statusUpper === "ACCEPTED") {
+      return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300";
+    }
+    if (statusUpper === "PICKING") {
+      return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300";
+    }
+    if (statusUpper === "PACKING") {
+      return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300";
+    }
     if (statusUpper === "PROCESSING") {
       return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
     }
@@ -542,6 +570,9 @@ const HomeDeliveryOrders = () => {
     const statusMap: Record<string, string> = {
       PENDING: "Pending",
       CONFIRMED: "Confirmed",
+      ACCEPTED: "Accepted",
+      PICKING: "Picking",
+      PACKING: "Packing",
       PROCESSING: "Processing",
       READY_FOR_PICKUP: "Ready for Pickup",
       OUT_FOR_DELIVERY: "Out for Delivery",
