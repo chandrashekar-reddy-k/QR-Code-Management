@@ -11,6 +11,7 @@ interface DeliveryOrdersParams {
   deliveryType?: string;
   cartType?: string;
   routeMapId?: string;
+  refetchInterval?: number | false;
 }
 
 const useGetDeliveryOrders = ({
@@ -22,6 +23,7 @@ const useGetDeliveryOrders = ({
   deliveryType = "",
   cartType = "",
   routeMapId = "",
+  refetchInterval = 10000,
 }: DeliveryOrdersParams) => {
   return useQuery({
     queryKey: [
@@ -63,6 +65,9 @@ const useGetDeliveryOrders = ({
       return fetchData(endpoint, "GET");
     },
     retry: false,
+    refetchInterval,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 };
 
@@ -72,6 +77,7 @@ interface PickupOrdersParams {
   search?: string;
   status?: string;
   dateFilter?: string;
+  refetchInterval?: number | false;
 }
 
 const useGetPickupOrders = ({
@@ -80,6 +86,7 @@ const useGetPickupOrders = ({
   search = "",
   status = "",
   dateFilter = "",
+  refetchInterval = 10000,
 }: PickupOrdersParams) => {
   return useQuery({
     queryKey: ["pickupOrders", page, limit, search, status, dateFilter],
@@ -102,6 +109,9 @@ const useGetPickupOrders = ({
       return fetchData(endpoint, "GET");
     },
     retry: false,
+    refetchInterval,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 };
 

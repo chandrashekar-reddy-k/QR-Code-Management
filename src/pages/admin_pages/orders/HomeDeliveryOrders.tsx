@@ -12,6 +12,7 @@ import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import { formatDate } from "../../../utils/formatters";
 import { useGetDeliveryOrders, useBulkTransitionOrders, useGeneratePickingList } from "../../../hooks/order";
 import { useGetRouteMaps, type RouteMapItem } from "../../../hooks/deliverySettings";
+import { useSocket } from "../../../hooks/useSocket";
 import { toast } from "react-toastify";
 
 // Interface for Home Delivery Order from API
@@ -273,6 +274,35 @@ const HomeDeliveryOrders = () => {
       setRouteFilter("");
     }
   }, [deliveryTypeFilter, routeFilter]);
+
+  const socketObj = useSocket();
+
+  useEffect(() => {
+    const s = socketObj?.current;
+    if (!s) return;
+
+    const handleOrderEvent = () => {
+      if (refetch) {
+        refetch();
+      }
+    };
+
+    s.on("order:new", handleOrderEvent);
+    s.on("order:status", handleOrderEvent);
+    s.on("order:created", handleOrderEvent);
+    s.on("order:updated", handleOrderEvent);
+    s.on("partner:order_created", handleOrderEvent);
+    s.on("partner:order_updated", handleOrderEvent);
+
+    return () => {
+      s.off("order:new", handleOrderEvent);
+      s.off("order:status", handleOrderEvent);
+      s.off("order:created", handleOrderEvent);
+      s.off("order:updated", handleOrderEvent);
+      s.off("partner:order_created", handleOrderEvent);
+      s.off("partner:order_updated", handleOrderEvent);
+    };
+  }, [socketObj?.current, refetch]);
 
   useEffect(() => {
     if (refetch) {

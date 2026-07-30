@@ -12,16 +12,21 @@ import {
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import { useGetPickupOrders, useBulkTransitionOrders, useGeneratePickingList } from "../../../hooks/order";
+import { useSocket } from "../../../hooks/useSocket";
 import { toast } from "react-toastify";
 
 // Interface for Self Pickup Order from API
 interface ApiSelfPickupOrder {
   id: number | string;
-  
-  consumer: {
-    id: string;
-    name: string;
-    phone: string;
+  orderNumber?: string;
+  status?: string;
+  totalAmount?: number;
+  deliveryCharge?: number;
+  createdAt?: string;
+  consumer?: {
+    id: string | number;
+    name?: string;
+    phone?: string;
   };
   vendorId?: number;
   vendorName?: string;
@@ -31,13 +36,13 @@ interface ApiSelfPickupOrder {
   additionalCharges?: number;
   walletUsed?: number;
   finalTotal?: number;
-  payment: {
-    status: string;
-    method: string;
+  payment?: {
+    status?: string;
+    method?: string;
   };
-  orderDate: string;
+  orderDate?: string;
   availability?: boolean | string;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 interface ApiStats {
@@ -71,7 +76,7 @@ interface ApiResponse {
 // Table order type for internal use
 interface TableOrder {
   id: number | string;
-  userId: number;
+  userId: number | string;
   userName: string;
   sellerId: number;
   sellerName: string;
@@ -207,6 +212,35 @@ const SelfPickupOrders = () => {
     dateFilter: dateFilter,
   });
 
+  const socketObj = useSocket();
+
+  useEffect(() => {
+    const s = socketObj?.current;
+    if (!s) return;
+
+    const handleOrderEvent = () => {
+      if (refetch) {
+        refetch();
+      }
+    };
+
+    s.on("order:new", handleOrderEvent);
+    s.on("order:status", handleOrderEvent);
+    s.on("order:created", handleOrderEvent);
+    s.on("order:updated", handleOrderEvent);
+    s.on("partner:order_created", handleOrderEvent);
+    s.on("partner:order_updated", handleOrderEvent);
+
+    return () => {
+      s.off("order:new", handleOrderEvent);
+      s.off("order:status", handleOrderEvent);
+      s.off("order:created", handleOrderEvent);
+      s.off("order:updated", handleOrderEvent);
+      s.off("partner:order_created", handleOrderEvent);
+      s.off("partner:order_updated", handleOrderEvent);
+    };
+  }, [socketObj?.current, refetch]);
+
   useEffect(() => {
     if (refetch) {
       refetch();
@@ -335,21 +369,26 @@ const SelfPickupOrders = () => {
     const totalOrders = stats?.totalOrders || allOrders.length;
     const newOrders =
       stats?.newOrders ||
-      allOrders.filter(
-        (o) =>
-          o.status?.toLowerCase() === "pending" ||
-          o.status?.toLowerCase() === "confirmed"
-      ).length;
+      allOrders.filter((o) => {
+        const s = typeof o.status === "string" ? o.status.toLowerCase() : "";
+        return s === "pending" || s === "confirmed";
+      }).length;
     const packedOrders =
       stats?.packedOrders ||
-      allOrders.filter((o) => o.status?.toLowerCase() === "ready").length;
+      allOrders.filter((o) => {
+        const s = typeof o.status === "string" ? o.status.toLowerCase() : "";
+        return s === "ready" || s === "ready_for_pickup";
+      }).length;
     const completedOrders =
       stats?.completedOrders ||
-      allOrders.filter((o) => o.status?.toLowerCase() === "picked").length;
+      allOrders.filter((o) => {
+        const s = typeof o.status === "string" ? o.status.toLowerCase() : "";
+        return s === "picked" || s === "delivered";
+      }).length;
     const totalRevenue =
       stats?.totalRevenue ||
       allOrders.reduce(
-        (sum, o) => sum + (o.finalTotal || o.total || 0),
+        (sum, o) => sum + (o.finalTotal || o.totalAmount || o.total || 0),
         0
       );
 
