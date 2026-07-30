@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowLeft, Clock, MapPin, Zap, ShoppingCart, Phone, AlertCircle, CheckCircle, XCircle, ChevronRight, Loader2, User } from "lucide-react";
 import api from "../../api/axios";
-import { useSocket } from "../../hooks/useSocket";
 import { ShopkeeperModal } from "./ShopkeeperModal";
 import { useSharedOrders } from "./SharedOrdersContext";
 
@@ -49,11 +48,15 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   }
   const isStaff = isShopkeeper || (userRole && !["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole.toUpperCase()));
 
-  // Real-time integration using storeId 1 as per dummy data
-  const socket = useSocket(1);
-
   const { orders: sharedOrders, refreshOrders, loading } = useSharedOrders();
-  const orders = sharedOrders.filter((o: any) => o.status?.toLowerCase() === 'new' || o.status?.toLowerCase() === 'assigned' || o.status?.toLowerCase() === 'confirmed' || o.status?.toLowerCase() === 'placed' || o.status?.toLowerCase() === 'pending');
+  const orders = sharedOrders
+    .filter((o: any) => o.status?.toLowerCase() === 'new' || o.status?.toLowerCase() === 'assigned' || o.status?.toLowerCase() === 'confirmed' || o.status?.toLowerCase() === 'placed' || o.status?.toLowerCase() === 'pending')
+    .sort((a: any, b: any) => {
+      const timeA = new Date(a.created_at || a.createdAt || a.orderDate || 0).getTime();
+      const timeB = new Date(b.created_at || b.createdAt || b.orderDate || 0).getTime();
+      if (timeA !== timeB) return timeB - timeA;
+      return String(b.id || b.order_number || "").localeCompare(String(a.id || a.order_number || ""));
+    });
 
   const handleAccept = async (orderId: number) => {
     try {
