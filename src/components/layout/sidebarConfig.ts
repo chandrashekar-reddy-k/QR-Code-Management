@@ -537,7 +537,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/vsms/routes-coverage', label: 'Routes & Coverage', icon: MapPin },
       { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
       { path: '/vsms/cash-management', label: 'Cash Management', icon: Wallet },
-      { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },
+      // { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },
       { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
     ],
   },
