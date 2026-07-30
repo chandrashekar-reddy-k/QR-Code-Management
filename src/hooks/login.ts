@@ -91,20 +91,40 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
 
       // Only persist tokens for users who should go to dashboard (password already created is FALSE)
       if (!user.isCreatedPassword) {
-        // Decode permissions from the token first to validate portal access
-        let decoded: { permissions?: string[]; roles?: string[] } = {};
+        let permissions: string[] = [];
         try {
-          const base64Url = data.data.accessToken.split('.')[1];
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-          }).join(''));
-          decoded = JSON.parse(jsonPayload);
+          const identityBase = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
+          const meRes = await fetch(`${identityBase}/api/v1/auth/me`, {
+            headers: { Authorization: `Bearer ${data.data.accessToken}` }
+          });
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            const livePerms = meData.data?.flatPermissions || meData.data?.permissions || meData.data?.user?.permissions;
+            if (Array.isArray(livePerms)) {
+              permissions = livePerms;
+            } else if (livePerms && typeof livePerms === 'object') {
+              permissions = (Object.values(livePerms) as string[][]).flat();
+            }
+          }
         } catch (err) {
-          console.error("Failed to decode token:", err);
+          console.error("Failed to pre-fetch permissions from /me endpoint:", err);
         }
 
-        const permissions: string[] = decoded.permissions || [];
+        // If /me fetch failed or returned no permissions, fall back to decoding JWT
+        if (permissions.length === 0) {
+          try {
+            const base64Url = data.data.accessToken.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decoded = JSON.parse(jsonPayload);
+            permissions = decoded.permissions || [];
+          } catch (err) {
+            console.error("Failed to decode token:", err);
+          }
+        }
+
         const role = (user.role || "").toUpperCase();
 
         // Block admin/super-admin accounts by role — they should use the Admin Portal,
@@ -128,13 +148,9 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         localStorage.setItem("token", data.data.accessToken);
         localStorage.setItem("refreshToken", data.data.refreshToken);
         localStorage.setItem("user", JSON.stringify(user));
-        if (permissions.length > 0) {
-          localStorage.setItem('permissions', JSON.stringify(permissions));
-        } else {
-          localStorage.setItem('permissions', JSON.stringify([]));
-        }
+        localStorage.setItem('permissions', JSON.stringify(permissions));
 
-        const isStaffRole = ['SHOPKEEPER', 'WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(user.role) || (hasShopkeeper && !hasPartner);
+        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(user.role?.toUpperCase());
         if (isStaffRole) {
           sessionStorage.setItem("staffToken", data.data.accessToken);
           sessionStorage.setItem("staffRefreshToken", data.data.refreshToken);
@@ -153,26 +169,6 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
           }
         }
       }
-
-      // --- Pre-fetch full permissions from Identity Service BEFORE navigating ---
-      // This ensures the sidebar has full permissions on first render (no empty flash)
-      try {
-        const identityBase = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
-        const meRes = await fetch(`${identityBase}/api/v1/auth/me`, {
-          headers: { Authorization: `Bearer ${data.data.accessToken}` }
-        });
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          const livePerms = meData.data?.flatPermissions || meData.data?.permissions || meData.data?.user?.permissions;
-          if (Array.isArray(livePerms) && livePerms.length > 0) {
-            localStorage.setItem('permissions', JSON.stringify(livePerms));
-          } else if (livePerms && typeof livePerms === 'object') {
-            const flat = (Object.values(livePerms) as string[][]).flat();
-            if (flat.length > 0) localStorage.setItem('permissions', JSON.stringify(flat));
-          }
-        }
-      } catch { /* fallback: keep JWT-decoded permissions already stored above */ }
-      // --- end pre-fetch ---
 
       onSuccess(data);
       toast.success(data.response);

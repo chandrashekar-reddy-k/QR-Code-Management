@@ -16,12 +16,13 @@ type Step = "staff-scan" | "rider-scan" | "complete";
 
 export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerificationProps) {
 
-  const storedPartnerUser = localStorage.getItem("partnerUser");
-  const partnerUserObj = storedPartnerUser ? JSON.parse(storedPartnerUser) : null;
-  const partnerRole = partnerUserObj?.role;
+  const storedPermissions = localStorage.getItem("permissions");
+  const permissions: string[] = storedPermissions ? JSON.parse(storedPermissions) : [];
+  const hasPartner = permissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
+  const hasShopkeeper = permissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
 
-  // Staff login (SHOPKEEPER / STORE_STAFF) uses the original mobile handover verification UI
-  const isStaffLogin = !partnerRole || partnerRole === "SHOPKEEPER" || partnerRole === "STORE_STAFF";
+  // Staff login (determined by shopkeeper permissions, fallback if no partner modules are active)
+  const isStaffLogin = hasShopkeeper || !hasPartner;
 
   if (isStaffLogin) {
     return <HandoverVerificationMobile onBack={onBack} onNavigate={onNavigate} data={data} />;

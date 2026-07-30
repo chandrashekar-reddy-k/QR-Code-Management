@@ -35,6 +35,8 @@ interface ApiStock {
   variant: string;
   type: string;
   stock: number;
+  vehicleStock: number;
+  totalStock: number;
   image: string | null;
   isActive: boolean;
   createdAt: string;
@@ -73,6 +75,8 @@ interface TableStock {
   variant: string;
   type: string;
   stock: number;
+  vehicleStock: number;
+  totalStock: number;
   image: string | null;
   status: "active" | "inactive";
 }
@@ -121,6 +125,8 @@ const StockManagement = () => {
       variant: (p as Record<string, unknown>).variantName as string ?? "—",
       type: (p as Record<string, unknown>).unitType as string ?? "—",
       stock: (p as Record<string, unknown>).stock as number ?? 0,
+      vehicleStock: (p as Record<string, unknown>).vehicleStock as number ?? 0,
+      totalStock: (p as Record<string, unknown>).totalStock as number ?? 0,
       image: Array.isArray((p as Record<string, unknown>).images)
         ? ((p as Record<string, unknown>).images as string[])[0] ?? null
         : null,
@@ -156,6 +162,8 @@ const StockManagement = () => {
       variant: stock.variant,
       type: stock.type,
       stock: stock.stock,
+      vehicleStock: stock.vehicleStock,
+      totalStock: stock.totalStock,
       image: stock.image,
       status: stock.isActive ? "active" : "inactive",
     }));
@@ -240,6 +248,14 @@ const StockManagement = () => {
             aValue = a.stock;
             bValue = b.stock;
             break;
+          case "vehicleStock":
+            aValue = a.vehicleStock;
+            bValue = b.vehicleStock;
+            break;
+          case "totalStock":
+            aValue = a.totalStock;
+            bValue = b.totalStock;
+            break;
           case "status":
             aValue = a.status;
             bValue = b.status;
@@ -275,13 +291,15 @@ const StockManagement = () => {
 
   // Export stocks to CSV
   const handleExport = () => {
-    const headers = ["ID", "Name", "Variant", "Type", "Stock", "Status"];
+    const headers = ["ID", "Name", "Variant", "Type", "In Store", "In Vehicle", "Total Stock", "Status"];
     const rows = stocks.map((stock: ApiStock) => [
       stock.id,
       stock.name,
       stock.variant,
       stock.type,
       stock.stock,
+      stock.vehicleStock,
+      stock.totalStock,
       stock.isActive ? "active" : "inactive",
     ]);
 
@@ -643,7 +661,7 @@ const StockManagement = () => {
               },
               {
                 key: "stock",
-                label: "STOCK",
+                label: "IN STORE",
                 sortable: true,
                 render: (stock: TableStock) => (
                   <div className="text-center">
@@ -685,6 +703,30 @@ const StockManagement = () => {
                         </button>
                       </div>
                     )}
+                  </div>
+                ),
+              },
+              {
+                key: "vehicleStock",
+                label: "IN VEHICLE",
+                sortable: true,
+                render: (stock: TableStock) => (
+                  <div className="text-center">
+                    <span className="text-xs sm:text-sm text-gray-800">
+                      {stock.vehicleStock}
+                    </span>
+                  </div>
+                ),
+              },
+              {
+                key: "totalStock",
+                label: "TOTAL STOCK",
+                sortable: true,
+                render: (stock: TableStock) => (
+                  <div className="text-center">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${stock.totalStock > 10 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                      {stock.totalStock}
+                    </span>
                   </div>
                 ),
               },

@@ -22,18 +22,29 @@ const Login = () => {
     setErrorMessage("");
     const user = data.data.user;
 
-    // Decode permissions dynamically from the token to determine portal destination
+    // Decode permissions dynamically from local storage (or fallback to token)
     let userPermissions: string[] = [];
     try {
-      const base64Url = data.data.accessToken.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      const decoded = JSON.parse(jsonPayload);
-      userPermissions = decoded.permissions || [];
-    } catch (err) {
-      console.error("SSO route parser error:", err);
+      const permsStr = localStorage.getItem('permissions');
+      if (permsStr) {
+        userPermissions = JSON.parse(permsStr);
+      }
+    } catch (e) {
+      console.error("Failed to parse permissions from localStorage:", e);
+    }
+
+    if (userPermissions.length === 0) {
+      try {
+        const base64Url = data.data.accessToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const decoded = JSON.parse(jsonPayload);
+        userPermissions = decoded.permissions || [];
+      } catch (err) {
+        console.error("SSO route parser error:", err);
+      }
     }
 
     const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
@@ -55,15 +66,7 @@ const Login = () => {
       } else if (hasAgent) {
         navigate("/vsms/agent-portal/today-plan");
       } else {
-        // Fallback to legacy static role checks
-        const role = user.role?.toUpperCase();
-        if (role === "SHOPKEEPER") {
-          navigate("/shopkeeper");
-        } else if (role === "VEHICLE_AGENT" || role === "DELIVERY_AGENT") {
-          navigate("/vsms/agent-portal/today-plan");
-        } else {
-          navigate("/");
-        }
+        navigate("/");
       }
     }
   };

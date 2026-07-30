@@ -23,8 +23,14 @@ export const useUserStore = create(
           const u = localStorage.getItem('partnerUser') || localStorage.getItem('user');
           if (u) {
             const parsed = JSON.parse(u);
+            let permissions = [];
+            try {
+              const permsStr = localStorage.getItem('permissions');
+              if (permsStr) permissions = JSON.parse(permsStr);
+            } catch {}
             return {
               ...parsed,
+              permissions,
               storeId: parsed.storeId || parsed.warehouseId || null
             };
           }
@@ -38,7 +44,15 @@ export const useUserStore = create(
           localStorage.setItem('partnerToken', token);
           localStorage.setItem('token', token);
         }
-        set({ user, token: token || get().token });
+        let permissions = [];
+        try {
+          const permsStr = localStorage.getItem('permissions');
+          if (permsStr) permissions = JSON.parse(permsStr);
+        } catch {}
+        set({ 
+          user: user ? { ...user, permissions: user.permissions || permissions } : null, 
+          token: token || get().token 
+        });
       },
 
       refreshUserProfile: async () => {
@@ -94,12 +108,16 @@ export const useUserStore = create(
         const user = get().user;
         if (!user) return false;
 
+        const permsKeys = Object.keys(user.permissions || {});
+        const hasShopkeeper = permsKeys.some(p => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
+        const hasPartner = permsKeys.some(p => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
+
         // Super Admins, Tenant Owners, Global Admins, Partners, or Users without customRoleId bypass all permission gates
         if (
           user.role === 'SUPER_ADMIN' ||
           user.role === 'TENANT_OWNER' ||
-          user.role === 'PARTNER' ||
-          user.role === 'SHOPKEEPER' ||
+          hasPartner ||
+          hasShopkeeper ||
           (user.role === 'ADMIN' && !user.customRoleId) ||
           user.portalType === 'ADMIN'
         ) {
