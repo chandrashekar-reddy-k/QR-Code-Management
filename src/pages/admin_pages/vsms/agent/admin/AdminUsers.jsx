@@ -40,7 +40,8 @@ export default function AdminUsers({ type }) {
     attendanceEnabled: true,
     assignedVehicleId: '',
     shiftId: '',
-    kycStatus: 'PENDING'
+    kycStatus: 'PENDING',
+    department: 'Operations'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitting = isSubmitting; // Alias for backward compatibility if any
@@ -157,6 +158,7 @@ export default function AdminUsers({ type }) {
         dailyTarget: 10000, baseSalary: 12000, 
         customRoleId: '', attendanceEnabled: true,
         assignedVehicleId: '', shiftId: '', kycStatus: 'PENDING',
+        department: 'Operations',
         tempFiles: []
       });
       fetchUsers();
@@ -459,7 +461,7 @@ export default function AdminUsers({ type }) {
                   {can(memberModule, 'UPDATE') && (
                     <button onClick={() => {
                       const { password, ...userWithoutPass } = user;
-                      setEditingUser({ ...userWithoutPass, password: '' });
+                      setEditingUser({ ...userWithoutPass, password: '', department: user.department || 'Operations' });
                       setShowEditModal(true);
                     }}
                       className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">
@@ -637,7 +639,7 @@ export default function AdminUsers({ type }) {
                         <button
                           onClick={() => {
                             const { password, ...userWithoutPass } = user;
-                            setEditingUser({ ...userWithoutPass, password: '' });
+                            setEditingUser({ ...userWithoutPass, password: '', department: user.department || 'Operations' });
                             setShowEditModal(true);
                           }}
                           title="Edit Profile"
@@ -953,6 +955,24 @@ export default function AdminUsers({ type }) {
                       </select>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <Building2 size={14} className="text-emerald-500" /> Department / Allocation
+                      </label>
+                      <select required className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-black text-emerald-700 outline-none focus:bg-white focus:border-emerald-100 transition-all cursor-pointer"
+                        value={newUser.department || 'Operations'} onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}>
+                        <option value="Operations">Operations</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Logistics">Logistics</option>
+                        <option value="Management">Management</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="HR">HR</option>
+                        <option value="Finance">Finance</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1199,6 +1219,28 @@ export default function AdminUsers({ type }) {
                         {customRoles.map(role => (
                           <option key={role.id} value={role.id}>{role.name}</option>
                         ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <Building2 size={14} className="text-emerald-500" /> Department / Allocation
+                      </label>
+                      <select
+                        required
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-black text-emerald-700 outline-none focus:bg-white focus:border-emerald-100 focus:ring-8 focus:ring-emerald-500/5 transition-all cursor-pointer"
+                        value={editingUser.department || 'Operations'}
+                        onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
+                      >
+                        <option value="Operations">Operations</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Logistics">Logistics</option>
+                        <option value="Management">Management</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="HR">HR</option>
+                        <option value="Finance">Finance</option>
                       </select>
                     </div>
                   </div>
