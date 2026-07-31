@@ -18,6 +18,7 @@ export interface DataTableProps<T> {
   loading?: boolean;
   emptyMessage?: string;
   keyExtractor: (item: T) => string | number;
+  rowClassName?: (item: T) => string;
 }
 
 type ComparableValue =
@@ -89,6 +90,7 @@ function DataTable<T>({
   loading = false,
   emptyMessage = 'No data available',
   keyExtractor,
+  rowClassName,
 }: DataTableProps<T>) {
   const [internalSortField, setInternalSortField] = useState<string | null>(null);
   const [internalSortDirection, setInternalSortDirection] = useState<'asc' | 'desc' | null>(null);
@@ -208,7 +210,9 @@ function DataTable<T>({
     sortedData.map((item) => (
       <tr
         key={keyExtractor(item)}
-        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+          rowClassName ? rowClassName(item) : ""
+        }`}
       >
         {columns.map((column) => (
           <td

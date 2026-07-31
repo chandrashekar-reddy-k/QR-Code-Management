@@ -6,7 +6,13 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
-  const token = isShopkeeper ? sessionStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
+  const partnerTok = localStorage.getItem('partnerToken');
+  const genericTok = localStorage.getItem('token');
+  const staffTok = sessionStorage.getItem('staffToken');
+  const token = isShopkeeper
+    ? (staffTok || genericTok)
+    : (partnerTok || genericTok || staffTok);
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

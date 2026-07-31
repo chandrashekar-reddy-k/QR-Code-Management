@@ -18,6 +18,8 @@ import { publicRoutes, protectedRoutes } from "./routes";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastContainer } from "react-toastify";
+import { NewOrderAlertProvider } from "./contexts/NewOrderAlertContext";
+import { OmsNewOrderAlertOverlay } from "./components/common/OmsNewOrderAlertOverlay";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -178,10 +180,13 @@ function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <Provider store={store}>
-          <Router>
-            <Routes>{renderRoutes()}</Routes>
-          </Router>
-          <ToastContainer />
+          <NewOrderAlertProvider>
+            <Router>
+              <Routes>{renderRoutes()}</Routes>
+              <OmsNewOrderAlertOverlay />
+            </Router>
+            <ToastContainer />
+          </NewOrderAlertProvider>
         </Provider>
       </QueryClientProvider>
     </ThemeProvider>
