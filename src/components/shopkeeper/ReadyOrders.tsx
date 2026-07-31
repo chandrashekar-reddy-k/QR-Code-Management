@@ -3,6 +3,7 @@ import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, Loader2, ChevronR
 import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
 import { getSLAInfo } from "../../utils/slaHelper";
+import { Button, Modal, SearchInput } from "../ui";
 
 interface ReadyOrdersProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -19,13 +20,15 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
 
   const [agents, setAgents] = useState<any[]>([]);
-  const [, setAssigningId] = useState<string | null>(null);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
   const [selectedOrderForRider, setSelectedOrderForRider] = useState<any | null>(null);
 
   const [deliveryTypeFilter, setDeliveryTypeFilter] = useState("");
   const [slaStatusFilter, setSlaStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [agentSearchTerm, setAgentSearchTerm] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   const fetchAgents = () => {
     api.get('/delivery-agents')
@@ -122,6 +125,15 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
 
     return result;
   }, [orders, deliveryTypeFilter, slaStatusFilter, dateFilter, searchQuery, agents]);
+
+  const filteredAgents = useMemo(() => {
+    return agents.filter((agent) => {
+      const name = agent.name || "";
+      const phone = agent.phone || agent.mobileNumber || "";
+      const search = agentSearchTerm.toLowerCase();
+      return name.toLowerCase().includes(search) || phone.includes(search);
+    });
+  }, [agents, agentSearchTerm]);
 
   if (sharedLoading && orders.length === 0) {
     return (
@@ -412,39 +424,108 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
       </div>
 
       {/* Assign Rider Modal */}
-      {selectedOrderForRider && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-gray-900 dark:text-gray-100 font-bold text-lg mb-2">Assign Rider</h3>
-            <p className="text-gray-500 text-xs mb-4">Select a delivery partner for Order #{selectedOrderForRider.order_number}</p>
-
-            <select
-              value={selectedOrderForRider.agentId || ""}
-              onChange={(e) => {
-                handleAssignRider(selectedOrderForRider.id, e.target.value);
-                setSelectedOrderForRider(null);
-              }}
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 rounded-lg p-2.5 text-sm text-gray-955 focus:border-[#00891D] focus:outline-none mb-4"
-            >
-              <option value="">Select Rider...</option>
-              {agents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name} ({agent.phone})
-                </option>
-              ))}
-            </select>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setSelectedOrderForRider(null)}
-                className="px-4 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg"
-              >
-                Cancel
-              </button>
-            </div>
+      <Modal
+        isOpen={!!selectedOrderForRider}
+        onClose={() => {
+          setSelectedOrderForRider(null);
+          setSelectedAgentId(null);
+          setAgentSearchTerm("");
+        }}
+        title="Assign Delivery Agent"
+        size="sm"
+        showCloseButton={true}
+      >
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={16}
+            />
+            <SearchInput
+              placeholder="Search"
+              value={agentSearchTerm}
+              onChange={(e) => setAgentSearchTerm(e.target.value)}
+              className="pl-9"
+            />
           </div>
+
+          {/* Delivery Agents List */}
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {filteredAgents.length > 0 ? (
+              filteredAgents.map((agent) => {
+                const phone = agent.phone || agent.mobileNumber || agent.mobile || "";
+                const isOnline = agent.availabilityStatus === "ONLINE" || agent.status === "ACTIVE" || agent.availabilityStatus === "ACTIVE";
+                const profilePic = agent.profilePic || agent.profilePicUrl || agent.profileImage;
+
+                return (
+                  <label
+                    key={agent.id}
+                    className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                      selectedAgentId === agent.id
+                        ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                        : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {profilePic ? (
+                        <img src={profilePic} alt={agent.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold uppercase text-lg">
+                          {agent.name ? agent.name.charAt(0) : "A"}
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
+                            {agent.name}
+                          </span>
+                          <div
+                            className="w-2 h-2 rounded-full bg-green-500"
+                          />
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
+                          <span>{phone}</span>
+                          <span className="text-[10px]">•</span>
+                        </div>
+                      </div>
+                    </div>
+                    <input
+                      type="radio"
+                      name="deliveryAgent"
+                      value={agent.id}
+                      checked={selectedAgentId === agent.id}
+                      onChange={() => setSelectedAgentId(agent.id)}
+                      className="w-4 h-4 text-green-600 dark:text-green-400 border-gray-300 dark:border-gray-600 focus:ring-green-500 dark:focus:ring-green-400 focus:ring-2 bg-white dark:bg-gray-700 cursor-pointer"
+                    />
+                  </label>
+                );
+              })
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                No riders found
+              </p>
+            )}
+          </div>
+
+          <Button
+            onClick={() => {
+              if (selectedOrderForRider && selectedAgentId) {
+                handleAssignRider(selectedOrderForRider.id, selectedAgentId);
+                setSelectedOrderForRider(null);
+                setSelectedAgentId(null);
+                setAgentSearchTerm("");
+              }
+            }}
+            variant="primary"
+            size="lg"
+            className="w-full bg-[#52B148] hover:bg-[#43963A] text-white border-0"
+            disabled={!selectedAgentId || assigningId === selectedOrderForRider?.id}
+          >
+            {assigningId === selectedOrderForRider?.id ? "Assigning..." : "Assign"}
+          </Button>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
