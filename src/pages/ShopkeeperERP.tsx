@@ -278,6 +278,14 @@ export default function ShopkeeperERP() {
         }
       }
 
+      // Sort filteredOrders latest first (descending order by date/createdAt)
+      filteredOrders.sort((a: any, b: any) => {
+        const timeA = new Date(a.created_at || a.createdAt || a.orderDate || 0).getTime();
+        const timeB = new Date(b.created_at || b.createdAt || b.orderDate || 0).getTime();
+        if (timeA !== timeB) return timeB - timeA;
+        return String(b.id || b.order_number || "").localeCompare(String(a.id || a.order_number || ""));
+      });
+
       setOrders(filteredOrders);
       setLoading(false);
     } catch (err) {
