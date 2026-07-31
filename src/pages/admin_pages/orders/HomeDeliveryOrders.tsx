@@ -633,13 +633,24 @@ const HomeDeliveryOrders = () => {
       key: "id",
       label: "ID",
       sortable: true,
-      render: (order: TableOrder) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 font-medium">
-            {order.id.slice(0, 8)}
-          </span>
-        </div>
-      ),
+      render: (order: TableOrder) => {
+        const isNewOrder = order.status?.toUpperCase() === "PLACED" || order.status?.toUpperCase() === "NEW";
+        return (
+          <div className="text-center flex flex-col items-center justify-center gap-0.5">
+            <div className="flex items-center gap-1">
+              <span className="text-xs sm:text-sm text-gray-800 font-medium">
+                {order.id.slice(0, 8)}
+              </span>
+              {isNewOrder && <span className="text-orange-500 text-xs animate-bounce">🔔</span>}
+            </div>
+            {isNewOrder && (
+              <span className="px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider rounded-full bg-amber-500 text-white shadow-sm">
+                NEW
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "userName",
@@ -954,6 +965,9 @@ const HomeDeliveryOrders = () => {
             sortDirection={sortDirection}
             onSort={handleSort}
             keyExtractor={(order) => order.id}
+            rowClassName={(order) => 
+              (order.status?.toUpperCase() === 'PLACED' || order.status?.toUpperCase() === 'NEW') ? 'new-order-row' : ''
+            }
             emptyMessage="No orders found"
             loading={isLoading}
           />
