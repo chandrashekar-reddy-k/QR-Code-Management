@@ -19,6 +19,8 @@ import { OrderHistory } from "../../../components/shopkeeper/OrderHistory";
 import { StaffTracker } from "../../../components/shopkeeper/StaffTracker";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 import { SharedOrdersContext } from "../../../components/shopkeeper/SharedOrdersContext";
+import { ShopkeeperNewOrderAlertProvider } from "../../../contexts/ShopkeeperNewOrderAlertContext";
+import { ShopkeeperNewOrderPopup } from "../../../components/shopkeeper/ShopkeeperNewOrderPopup";
 import { useSocket } from "../../../hooks/useSocket";
 import api from "../../../api/axios";
 
@@ -200,11 +202,14 @@ export default function ShopkeeperAdminERP() {
 
   return (
     <SharedOrdersContext.Provider value={{ orders, loading, refreshOrders: fetchOrders }}>
-      <div className="flex flex-col gap-6 w-full min-h-screen bg-gray-100 dark:bg-gray-900">
-        <div className="flex-1 w-full">
-          {renderScreen()}
+      <ShopkeeperNewOrderAlertProvider>
+        <div className="flex flex-col gap-6 w-full min-h-screen bg-gray-100 dark:bg-gray-900">
+          <div className="flex-1 w-full">
+            {renderScreen()}
+          </div>
         </div>
-      </div>
+        <ShopkeeperNewOrderPopup />
+      </ShopkeeperNewOrderAlertProvider>
     </SharedOrdersContext.Provider>
   );
 }
