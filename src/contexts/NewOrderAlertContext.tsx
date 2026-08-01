@@ -59,7 +59,14 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   const [activeOrder, setActiveOrder] = useState<NewOrderAlertData | null>(null);
   const [countdown, setCountdown] = useState<number>(30);
   const [isBuzzing, setIsBuzzing] = useState<boolean>(false);
-  const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
+  const [audioEnabled, setAudioEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("order_alert_audio_enabled");
+      return saved !== null ? saved === "true" : true; // Default to true if not explicitly disabled
+    } catch {
+      return true;
+    }
+  });
   const [todayStats, setTodayStats] = useState<TodayStats>({
     newCount: 0,
     pendingCount: 0,
@@ -96,6 +103,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   //    from a real user-gesture click chain)
   // -----------------------------------------------------------------------
   const enableAudio = useCallback(() => {
+    localStorage.setItem("order_alert_audio_enabled", "true");
     setAudioEnabled(true);
     const alarm = alarmRef.current;
     if (!alarm) return;
@@ -122,6 +130,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   }, []);
 
   const disableAudio = useCallback(() => {
+    localStorage.setItem("order_alert_audio_enabled", "false");
     const alarm = alarmRef.current;
     if (alarm) {
       alarm.pause();
@@ -136,6 +145,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   const toggleAudio = useCallback(() => {
     setAudioEnabled((prev) => {
       const next = !prev;
+      localStorage.setItem("order_alert_audio_enabled", String(next));
       if (!next) {
         if (alarmRef.current) {
           alarmRef.current.pause();
@@ -150,15 +160,32 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
     });
   }, [enableAudio]);
 
-  // Auto-unlock on first pointerdown / keydown
+  const unlockAudioSilent = useCallback(() => {
+    if (audioUnlocked.current) return;
+    const alarm = alarmRef.current;
+    if (!alarm) return;
+    alarm.muted = true;
+    alarm
+      .play()
+      .then(() => {
+        alarm.pause();
+        alarm.currentTime = 0;
+        alarm.muted = false;
+        alarm.volume = 1.0;
+        audioUnlocked.current = true;
+        console.log("[ALARM] Audio unlocked silently");
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
-    window.addEventListener("pointerdown", enableAudio);
-    window.addEventListener("keydown",     enableAudio);
+    window.addEventListener("pointerdown", unlockAudioSilent);
+    window.addEventListener("keydown",     unlockAudioSilent);
     return () => {
-      window.removeEventListener("pointerdown", enableAudio);
-      window.removeEventListener("keydown",     enableAudio);
+      window.removeEventListener("pointerdown", unlockAudioSilent);
+      window.removeEventListener("keydown",     unlockAudioSilent);
     };
-  }, [enableAudio]);
+  }, [unlockAudioSilent]);
 
   // -----------------------------------------------------------------------
   // 3. playAlarm / stopAlarm

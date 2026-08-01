@@ -1,18 +1,50 @@
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useShopkeeperNewOrderAlert } from "../../contexts/ShopkeeperNewOrderAlertContext";
-import { Bell, ShoppingBag, X, VolumeX, CheckCircle2, Check, XCircle } from "lucide-react";
+import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2, Check, XCircle } from "lucide-react";
 import api from "../../api/axios";
 import { toast } from "react-hot-toast";
 
 export function ShopkeeperNewOrderPopup() {
-  const { activeOrder, isBuzzing, queueLength, dismissAlert, audioEnabled, enableAudio } = useShopkeeperNewOrderAlert();
-  const navigate = useNavigate();
+  const { activeOrder, isBuzzing, queueLength, dismissAlert, audioEnabled, toggleAudio } = useShopkeeperNewOrderAlert();
   const [isExiting, setIsExiting] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [soundBannerDismissed, setSoundBannerDismissed] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [isHolding, setIsHolding] = useState(false);
+
+  // Long press timer ref for disabling sound
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLongPressRef = useRef(false);
+
+  const startPress = (e: React.PointerEvent) => {
+    isLongPressRef.current = false;
+    setIsHolding(true);
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      setIsHolding(false);
+      toggleAudio();
+    }, 450);
+  };
+
+  const cancelPress = () => {
+    setIsHolding(false);
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleBannerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isLongPressRef.current) {
+      isLongPressRef.current = false;
+      return;
+    }
+  };
 
   // Sync state with context activeOrder
   useEffect(() => {
@@ -34,8 +66,8 @@ export function ShopkeeperNewOrderPopup() {
     if (!activeOrder || isExiting || isAccepting) return;
 
     if (timeLeft <= 0) {
-      // Auto-dismiss the order when timer reaches 0
-      dismissAlert(activeOrder.orderId, false);
+      // Auto-accept the order when timer reaches 0
+      handleAccept();
       return;
     }
 
@@ -44,7 +76,7 @@ export function ShopkeeperNewOrderPopup() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeOrder, isExiting, isAccepting, timeLeft, dismissAlert]);
+  }, [activeOrder, isExiting, isAccepting, timeLeft]);
 
   const handleClose = (rejected = false) => {
     if (!activeOrder) return;
@@ -87,22 +119,49 @@ export function ShopkeeperNewOrderPopup() {
   };
 
   if (!activeOrder && !isExiting) {
-    // Still show the sound-enable banner even when no order is active
-    if (!audioEnabled && !soundBannerDismissed) {
+    if (!soundBannerDismissed) {
       return (
         <div
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gray-900 dark:bg-gray-800 text-white px-4 py-3 rounded-2xl shadow-2xl border border-orange-500/60 cursor-pointer hover:bg-gray-800 transition-all"
-          onClick={() => { enableAudio(); setSoundBannerDismissed(true); }}
-          title="Click to enable new order alarm sound"
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gray-900 dark:bg-gray-800 text-white px-4 py-3 rounded-2xl shadow-2xl border cursor-pointer select-none transition-all ${
+            isHolding ? "scale-95 border-amber-400" : audioEnabled ? "border-emerald-500/60 hover:bg-gray-800" : "border-orange-500/60 hover:bg-gray-800"
+          }`}
+          onClick={handleBannerClick}
+          onPointerDown={startPress}
+          onPointerUp={cancelPress}
+          onPointerLeave={cancelPress}
+          onPointerCancel={cancelPress}
+          title={audioEnabled ? "Long press (hold) to disable sound alerts" : "Long press (hold) to enable sound"}
         >
-          <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 animate-pulse">
-            <VolumeX size={18} className="text-white" />
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse ${
+            audioEnabled ? "bg-emerald-500 text-white" : "bg-orange-500 text-white"
+          }`}>
+            {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </div>
           <div>
-            <p className="text-sm font-bold leading-tight">Enable Order Alerts Sound</p>
-            <p className="text-xs text-gray-400 mt-0.5">Click once to allow alarm audio</p>
+            <p className="text-sm font-bold leading-tight">
+              {audioEnabled ? "Order Alert Sound Enabled" : "Enable Order Alerts Sound"}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {audioEnabled
+                ? (isHolding ? "Hold to disable..." : "Long press (hold) to disable sound")
+                : (isHolding ? "Hold to enable..." : "Long press (hold) to enable sound")}
+            </p>
           </div>
-          <X size={16} className="text-gray-400 ml-1" onClick={(e) => { e.stopPropagation(); setSoundBannerDismissed(true); }} />
+          <button
+            type="button"
+            className="sound-banner-close-btn text-gray-400 ml-1 hover:text-white p-1 rounded-full transition-colors z-10"
+            onMouseDown={(e) => { e.stopPropagation(); cancelPress(); }}
+            onMouseUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => { e.stopPropagation(); cancelPress(); }}
+            onTouchEnd={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setSoundBannerDismissed(true);
+            }}
+          >
+            <X size={16} />
+          </button>
         </div>
       );
     }

@@ -30,6 +30,8 @@ interface ShopkeeperNewOrderAlertContextType {
   dismissAlert: (orderId: string, rejected: boolean) => void;
   audioEnabled: boolean;
   enableAudio: () => void;
+  disableAudio: () => void;
+  toggleAudio: () => void;
 }
 
 // -----------------------------------------------------------------------------
@@ -46,7 +48,14 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
   const [alertQueue, setAlertQueue] = useState<NewOrderAlertData[]>([]);
   const [activeOrder, setActiveOrder] = useState<NewOrderAlertData | null>(null);
   const [isBuzzing, setIsBuzzing] = useState<boolean>(false);
-  const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
+  const [audioEnabled, setAudioEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("shopkeeper_order_alert_audio_enabled");
+      return saved !== null ? saved === "true" : true; // Default to true if not explicitly disabled
+    } catch {
+      return true;
+    }
+  });
 
   // Refs
   const seenOrderIdsRef = useRef<Set<string>>(new Set());
@@ -77,42 +86,98 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
   // 2. enableAudio — one-time audio unlock via silent play
   // -----------------------------------------------------------------------
   const enableAudio = useCallback(() => {
-    if (audioUnlocked.current) return;
-
+    localStorage.setItem("shopkeeper_order_alert_audio_enabled", "true");
+    setAudioEnabled(true);
     const alarm = alarmRef.current;
     if (!alarm) return;
 
+    if (!audioUnlocked.current) {
+      alarm.muted = true;
+      alarm
+        .play()
+        .then(() => {
+          alarm.pause();
+          alarm.currentTime = 0;
+          alarm.muted  = false;
+          alarm.volume = 1.0;
+          audioUnlocked.current = true;
+          console.log("[SK ALARM] Audio unlocked");
+        })
+        .catch((err) => {
+          alarm.muted = false;
+          console.warn("[SK ALARM] Unlock attempt blocked:", err.message);
+        });
+    } else {
+      alarm.muted = false;
+    }
+  }, []);
+
+  const disableAudio = useCallback(() => {
+    localStorage.setItem("shopkeeper_order_alert_audio_enabled", "false");
+    const alarm = alarmRef.current;
+    if (alarm) {
+      alarm.pause();
+      alarm.currentTime = 0;
+      alarm.muted = true;
+    }
+    setAudioEnabled(false);
+    setIsBuzzing(false);
+    console.log("[SK ALARM] Audio disabled/muted");
+  }, []);
+
+  const toggleAudio = useCallback(() => {
+    setAudioEnabled((prev) => {
+      const next = !prev;
+      localStorage.setItem("shopkeeper_order_alert_audio_enabled", String(next));
+      if (!next) {
+        if (alarmRef.current) {
+          alarmRef.current.pause();
+          alarmRef.current.currentTime = 0;
+          alarmRef.current.muted = true;
+        }
+        setIsBuzzing(false);
+      } else {
+        enableAudio();
+      }
+      return next;
+    });
+  }, [enableAudio]);
+
+  const unlockAudioSilent = useCallback(() => {
+    if (audioUnlocked.current) return;
+    const alarm = alarmRef.current;
+    if (!alarm) return;
     alarm.muted = true;
     alarm
       .play()
       .then(() => {
         alarm.pause();
         alarm.currentTime = 0;
-        alarm.muted  = false;
+        alarm.muted = false;
         alarm.volume = 1.0;
         audioUnlocked.current = true;
-        setAudioEnabled(true);
-        console.log("[SK ALARM] Audio unlocked");
+        console.log("[SK ALARM] Audio unlocked silently");
       })
-      .catch((err) => {
-        alarm.muted = false;
-        console.warn("[SK ALARM] Unlock attempt blocked:", err.message);
-      });
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    window.addEventListener("pointerdown", enableAudio);
-    window.addEventListener("keydown",     enableAudio);
+    window.addEventListener("pointerdown", unlockAudioSilent);
+    window.addEventListener("keydown",     unlockAudioSilent);
     return () => {
-      window.removeEventListener("pointerdown", enableAudio);
-      window.removeEventListener("keydown",     enableAudio);
+      window.removeEventListener("pointerdown", unlockAudioSilent);
+      window.removeEventListener("keydown",     unlockAudioSilent);
     };
-  }, [enableAudio]);
+  }, [unlockAudioSilent]);
 
   // -----------------------------------------------------------------------
   // 3. playAlarm / stopAlarm
   // -----------------------------------------------------------------------
   const playAlarm = useCallback(() => {
+    if (!audioEnabled) {
+      console.log("[SK ALARM] Sound muted — skipping playback");
+      return;
+    }
     const alarm = alarmRef.current;
     if (!alarm) return;
     alarm.currentTime = 0;
@@ -126,7 +191,7 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
       .catch((err) => {
         console.error("[SK ALARM] Playback blocked:", err.message);
       });
-  }, []);
+  }, [audioEnabled]);
 
   const stopAlarm = useCallback(() => {
     const alarm = alarmRef.current;
@@ -359,6 +424,8 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
         dismissAlert,
         audioEnabled,
         enableAudio,
+        disableAudio,
+        toggleAudio,
       }}
     >
       {children}
