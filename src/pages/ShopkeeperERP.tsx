@@ -23,7 +23,8 @@ import { useSocket } from "../hooks/useSocket";
 import { getSLAInfo } from "../utils/slaHelper";
 import { SharedOrdersContext, useSharedOrders } from "../components/shopkeeper/SharedOrdersContext";
 import { openHRMSPortal } from "../utils/hrmsSSO";
-
+import { ShopkeeperNewOrderAlertProvider } from "../contexts/ShopkeeperNewOrderAlertContext";
+import { ShopkeeperNewOrderPopup } from "../components/shopkeeper/ShopkeeperNewOrderPopup";
 let hrmsWindowRef: Window | null = null;
 // Local API Client instance
 const api = axios.create({
@@ -472,151 +473,154 @@ export default function ShopkeeperERP() {
 
   return (
     <SharedOrdersContext.Provider value={{ orders, loading, refreshOrders: fetchOrders }}>
-      <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
-        {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex-shrink-0 h-screen sticky top-0">
-          {/* Logo or Brand */}
-          <div className="py-4 pl-5 pr-3 flex-shrink-0 border-b border-gray-50 dark:border-gray-700">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0 h-12 flex items-center justify-center overflow-hidden">
-                <img
-                  src="/villagekart_svg_icon-2.svg"
-                  alt="VillagKart"
-                  className="max-w-[260px] w-full h-full object-contain object-center"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = "none";
-                    const parent = target.parentElement;
-                    if (parent) {
-                      const icon = document.createElement("div");
-                      icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
-                      parent.appendChild(icon);
-                    }
-                  }}
-                />
+      <ShopkeeperNewOrderAlertProvider>
+        <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
+          {/* Desktop Sidebar */}
+          <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex-shrink-0 h-screen sticky top-0">
+            {/* Logo or Brand */}
+            <div className="py-4 pl-5 pr-3 flex-shrink-0 border-b border-gray-50 dark:border-gray-700">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0 h-12 flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/villagekart_svg_icon-2.svg"
+                    alt="VillagKart"
+                    className="max-w-[260px] w-full h-full object-contain object-center"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const icon = document.createElement("div");
+                        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
+                        parent.appendChild(icon);
+                      }
+                    }}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Navigation Items */}
-          <nav className="flex-1 p-4 space-y-1">
-            {[
-              { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
-              { id: "new-orders", label: "Inbox Orders", icon: <ShoppingBag size={18} /> },
-              { id: "orderhistory", label: "Order History", icon: <History size={18} /> },
-              { id: "picking-queue", label: "Picking Queue", icon: <Package size={18} /> },
-              { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={18} /> },
-              { id: "profile", label: "Profile", icon: <User size={18} /> },
-              { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
-            ].filter(item => hasShopkeeperPermission(item.id)).map((item) => {
-              const isActive = screen === item.id || (
-                item.id === "new-orders" && screen === "order-details"
-              ) || (
-                  item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
+            {/* Navigation Items */}
+            <nav className="flex-1 p-4 space-y-1">
+              {[
+                { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+                { id: "new-orders", label: "Inbox Orders", icon: <ShoppingBag size={18} /> },
+                { id: "orderhistory", label: "Order History", icon: <History size={18} /> },
+                { id: "picking-queue", label: "Picking Queue", icon: <Package size={18} /> },
+                { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={18} /> },
+                { id: "profile", label: "Profile", icon: <User size={18} /> },
+                { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
+              ].filter(item => hasShopkeeperPermission(item.id)).map((item) => {
+                const isActive = screen === item.id || (
+                  item.id === "new-orders" && screen === "order-details"
                 ) || (
-                  item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
-                );
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => navigate(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
-                      ? "bg-[#00891D]/10 text-[#00891D]"
-                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
-                  }`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-          {/* HRMS SSO Link */}
-          <div className="px-4 py-2">
-            <button
-              onClick={() => openHRMSPortal()}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 text-[#00891D] rounded-xl text-sm font-semibold transition-all border border-green-200"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-              <span>HRMS Portal</span>
-            </button>
-          </div>
-
-          {/* Sign Out Button */}
-          <div className="p-4 border-t border-gray-50">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-all"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </aside>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Mobile Header / Navigation */}
-          <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-            <img
-              src="/villagekart_svg_icon-2.svg"
-              alt="VillagKart"
-              className="h-8 w-auto object-contain object-left max-w-[200px]"
-            />
-            <button
-              onClick={() => navigate("orderhistory")}
-              className="flex items-center gap-1.5 text-[#00891D] font-semibold text-xs bg-[#00891D]/10 px-3 py-1.5 rounded-lg active:scale-95 transition-all"
-            >
-              <History size={14} />
-              <span>History</span>
-            </button>
-          </header>
-
-          {/* Content Body */}
-          <main className="flex-1 p-4 md:p-6 overflow-y-auto w-full">
-            {renderScreen()}
-          </main>
-
-          {/* Mobile Bottom Navigation */}
-          <nav className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-around py-2 sticky bottom-0 z-30">
-            {[
-              { id: "dashboard", label: "Home", icon: <LayoutDashboard size={18} /> },
-              { id: "new-orders", label: "Inbox", icon: <ShoppingBag size={18} /> },
-              { id: "picking-queue", label: "Picking", icon: <Package size={18} /> },
-              { id: "packing-queue", label: "Packing", icon: <PackageCheck size={18} /> },
-              { id: "profile", label: "Profile", icon: <User size={18} /> },
-            ].filter(item => hasShopkeeperPermission(item.id)).map((item) => {
-              const isActive = screen === item.id || (
-                item.id === "new-orders" && screen === "order-details"
-              ) || (
-                  item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
-                ) || (
-                  item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
-                );
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => navigate(item.id)}
-                  className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold transition-all ${isActive ? "text-[#00891D]" : "text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
+                    item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
+                  ) || (
+                    item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
+                  );
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
+                        ? "bg-[#00891D]/10 text-[#00891D]"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
                     }`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+            {/* HRMS SSO Link */}
+            <div className="px-4 py-2">
+              <button
+                onClick={() => openHRMSPortal()}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 hover:bg-green-100 text-[#00891D] rounded-xl text-sm font-semibold transition-all border border-green-200"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>HRMS Portal</span>
+              </button>
+            </div>
+
+            {/* Sign Out Button */}
+            <div className="p-4 border-t border-gray-50">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-all"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </aside>
+
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Mobile Header / Navigation */}
+            <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+              <img
+                src="/villagekart_svg_icon-2.svg"
+                alt="VillagKart"
+                className="h-8 w-auto object-contain object-left max-w-[200px]"
+              />
+              <button
+                onClick={() => navigate("orderhistory")}
+                className="flex items-center gap-1.5 text-[#00891D] font-semibold text-xs bg-[#00891D]/10 px-3 py-1.5 rounded-lg active:scale-95 transition-all"
+              >
+                <History size={14} />
+                <span>History</span>
+              </button>
+            </header>
+
+            {/* Content Body */}
+            <main className="flex-1 p-4 md:p-6 overflow-y-auto w-full">
+              {renderScreen()}
+            </main>
+
+            {/* Mobile Bottom Navigation */}
+            <nav className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-around py-2 sticky bottom-0 z-30">
+              {[
+                { id: "dashboard", label: "Home", icon: <LayoutDashboard size={18} /> },
+                { id: "new-orders", label: "Inbox", icon: <ShoppingBag size={18} /> },
+                { id: "picking-queue", label: "Picking", icon: <Package size={18} /> },
+                { id: "packing-queue", label: "Packing", icon: <PackageCheck size={18} /> },
+                { id: "profile", label: "Profile", icon: <User size={18} /> },
+              ].filter(item => hasShopkeeperPermission(item.id)).map((item) => {
+                const isActive = screen === item.id || (
+                  item.id === "new-orders" && screen === "order-details"
+                ) || (
+                    item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
+                  ) || (
+                    item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
+                  );
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(item.id)}
+                    className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold transition-all ${isActive ? "text-[#00891D]" : "text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500"
+                      }`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </div>
-      </div>
+        <ShopkeeperNewOrderPopup />
+      </ShopkeeperNewOrderAlertProvider>
     </SharedOrdersContext.Provider>
   );
 }

@@ -12,6 +12,7 @@ export function ShopkeeperNewOrderPopup() {
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [soundBannerDismissed, setSoundBannerDismissed] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
 
   // Sync state with context activeOrder
   useEffect(() => {
@@ -19,12 +20,31 @@ export function ShopkeeperNewOrderPopup() {
       if (activeOrder.orderId !== currentOrderId) {
         setIsExiting(false);
         setCurrentOrderId(activeOrder.orderId);
+        setTimeLeft(30);
       }
     } else {
       setCurrentOrderId(null);
       setIsExiting(false);
+      setTimeLeft(30);
     }
   }, [activeOrder, currentOrderId]);
+
+  // Timer logic
+  useEffect(() => {
+    if (!activeOrder || isExiting || isAccepting) return;
+
+    if (timeLeft <= 0) {
+      // Auto-dismiss the order when timer reaches 0
+      dismissAlert(activeOrder.orderId, false);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeOrder, isExiting, isAccepting, timeLeft, dismissAlert]);
 
   const handleClose = (rejected = false) => {
     if (!activeOrder) return;
@@ -176,6 +196,7 @@ export function ShopkeeperNewOrderPopup() {
               <span className="text-emerald-600 dark:text-emerald-400">NEW ORDER</span>{" "}
               <span className="text-gray-900 dark:text-gray-100">RECEIVED!</span>
             </h2>
+            <p className="text-xs font-bold text-red-500 mt-1">Disappearing in {timeLeft}s...</p>
           </div>
 
           {/* Order Highlight Box */}
@@ -242,9 +263,14 @@ export function ShopkeeperNewOrderPopup() {
             <button
               onClick={handleReject}
               disabled={isAccepting}
-              className="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 text-gray-700 dark:text-gray-200 font-bold text-sm py-3 px-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600 hover:border-red-200 dark:hover:border-red-800 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 text-gray-700 dark:text-gray-200 font-bold text-sm py-3 px-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600 hover:border-red-200 dark:hover:border-red-800 transition-colors flex items-center justify-center gap-2 relative overflow-hidden"
             >
-              <XCircle size={18} /> Reject
+              <div className="absolute bottom-0 left-0 h-1 bg-red-500/20 w-full" />
+              <div 
+                className="absolute bottom-0 left-0 h-1 bg-red-500 transition-all duration-1000 ease-linear" 
+                style={{ width: `${(timeLeft / 30) * 100}%` }}
+              />
+              <span className="relative z-10 flex items-center gap-2"><XCircle size={18} /> Ignore ({timeLeft}s)</span>
             </button>
           </div>
 
