@@ -106,10 +106,5 @@ temp/
 
 # Lock files (uncomment if you want to ignore them)
 package-lock.json
-<<<<<<< HEAD
 yarn.lock
 pnpm-lock.yaml
-=======
-# yarn.lock
-# pnpm-lock.yaml
->>>>>>> erp/shopweb
