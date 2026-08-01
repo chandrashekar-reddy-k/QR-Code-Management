@@ -211,6 +211,7 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
   // -----------------------------------------------------------------------
   useEffect(() => {
     let isPolling = false;
+    let firstPoll = true;
 
     const poll = async () => {
       if (isPolling) return;
@@ -230,13 +231,26 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
         let polled: any[] = [];
         if (Array.isArray(res.data)) polled = res.data;
 
-        polled.forEach((o) => {
-          const id = String(o.id || o.orderId || o.orderNumber || "");
-          const status = (o.status || "").toUpperCase();
-          if (id && status === "CONFIRMED" && !seenOrderIdsRef.current.has(id) && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
-            handleIncomingOrder(o);
-          }
-        });
+        if (firstPoll) {
+          // Silently absorb all pre-existing CONFIRMED unassigned orders on first load so they don't ring the alarm immediately
+          polled.forEach((o) => {
+            const id = String(o.id || o.orderId || o.orderNumber || "");
+            const status = (o.status || "").toUpperCase();
+            if (id && status === "CONFIRMED" && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
+              seenOrderIdsRef.current.add(id);
+              rejectedOrderIdsRef.current.add(id); // Assume they were seen previously
+            }
+          });
+          firstPoll = false;
+        } else {
+          polled.forEach((o) => {
+            const id = String(o.id || o.orderId || o.orderNumber || "");
+            const status = (o.status || "").toUpperCase();
+            if (id && status === "CONFIRMED" && !seenOrderIdsRef.current.has(id) && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
+              handleIncomingOrder(o);
+            }
+          });
+        }
       } catch (err) {
         // ignore
       } finally {
