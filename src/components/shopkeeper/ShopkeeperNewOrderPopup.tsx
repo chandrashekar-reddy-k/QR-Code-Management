@@ -5,8 +5,11 @@ import { NotificationSettingsModal } from "../common/NotificationSettingsModal";
 import api from "../../api/axios";
 import { toast } from "react-hot-toast";
 
+import { useSharedOrders } from "./SharedOrdersContext";
+
 export function ShopkeeperNewOrderPopup() {
   const { activeOrder, isBuzzing, queueLength, dismissAlert, audioEnabled, toggleAudio } = useShopkeeperNewOrderAlert();
+  const { refreshOrders } = useSharedOrders();
   const [isExiting, setIsExiting] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [soundBannerDismissed, setSoundBannerDismissed] = useState(false);
@@ -68,8 +71,9 @@ export function ShopkeeperNewOrderPopup() {
     if (!activeOrder || isExiting || isAccepting) return;
 
     if (timeLeft <= 0) {
-      // Auto-accept the order when timer reaches 0
-      handleAccept();
+      console.log(`[DEBUG - POPUP] Shopkeeper popup timeout expired for order ${activeOrder.orderId}. Closing silently, NO auto-assignment.`);
+      // Just close the popup when timer reaches 0 (do not auto-accept or reject)
+      handleClose(false);
       return;
     }
 
@@ -114,10 +118,22 @@ export function ShopkeeperNewOrderPopup() {
     if (!activeOrder) return;
     try {
       await api.put(`/orders/${activeOrder.orderId}/reject`);
+      
+      // Also update local Rejected KPI immediately, same as NewOrdersMobile
+      try {
+        const saved = JSON.parse(localStorage.getItem('shopkeeperRejectedIds') || '[]');
+        if (!saved.includes(String(activeOrder.orderId))) {
+          saved.push(String(activeOrder.orderId));
+          localStorage.setItem('shopkeeperRejectedIds', JSON.stringify(saved));
+          window.dispatchEvent(new Event('shopkeeperRejectedIdsUpdated'));
+        }
+      } catch (e) {}
+
+      await refreshOrders();
     } catch (e) {
       console.error('Failed to ignore order on backend', e);
     }
-    handleClose(true); // marked as rejected locally
+    handleClose(true); // marked as rejected locally (will also try to update local KPI in dismissAlert, which is fine since it checks for duplicates)
   };
 
   if (!activeOrder && !isExiting) {

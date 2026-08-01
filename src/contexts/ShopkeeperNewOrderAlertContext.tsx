@@ -312,7 +312,11 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
         }
       } catch (e) {}
     }
-    seenOrderIdsRef.current.delete(orderId); // Allow it to re-queue if it hasn't been rejected and hasn't been accepted yet
+    
+    // We DO NOT delete from seenOrderIdsRef here. 
+    // This ensures that if the popup times out and closes silently, it won't keep popping up 
+    // every 5 seconds when the polling loop finds the order is still CONFIRMED and unassigned.
+
     stopAlarm();
     setActiveOrder(null);
   }, [stopAlarm]);
