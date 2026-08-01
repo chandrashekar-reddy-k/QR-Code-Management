@@ -192,9 +192,16 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     if (isAdmin) return;
     try {
       const res = await api.get('/orders?view=shopkeeper_ignored&limit=1');
-      if (res.data?.total !== undefined) {
-        setIgnoredOrdersCount(res.data.total);
+      const resData = res.data;
+      let totalCount = 0;
+      if (Array.isArray(resData)) {
+        totalCount = resData.length;
+      } else if (resData?.meta?.total !== undefined) {
+        totalCount = resData.meta.total;
+      } else if (resData?.total !== undefined) {
+        totalCount = resData.total;
       }
+      setIgnoredOrdersCount(totalCount);
     } catch (e) {
       console.error('Failed to fetch ignored orders count', e);
     }
@@ -320,6 +327,17 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     window.addEventListener('shopkeeperRejectedIdsUpdated', handleRejectUpdate);
     return () => window.removeEventListener('shopkeeperRejectedIdsUpdated', handleRejectUpdate);
   }, [sharedOrders]); // Dependency needed since calculateStats uses sharedOrders from closure
+
+  // Keep stats in sync when ignoredOrdersCount is updated independently
+  useEffect(() => {
+    setStats((prev: any) => ({
+      ...prev,
+      todaySummary: {
+        ...prev.todaySummary,
+        rejected: ignoredOrdersCount
+      }
+    }));
+  }, [ignoredOrdersCount]);
 
   useEffect(() => {
     if (isAdmin) {

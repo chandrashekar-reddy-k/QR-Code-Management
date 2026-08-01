@@ -69,14 +69,26 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
       const fetchIgnored = async () => {
         try {
           const res = await api.get('/orders?view=shopkeeper_ignored&limit=100');
-          if (res.data?.orders) {
-            setIgnoredOrdersList(res.data.orders);
+          const resData = res.data;
+          let rawOrders: any[] = [];
+          if (Array.isArray(resData)) {
+            rawOrders = resData;
+          } else if (resData && Array.isArray(resData.data)) {
+            rawOrders = resData.data;
+          } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
+            rawOrders = resData.data.orders;
+          } else if (resData && Array.isArray(resData.orders)) {
+            rawOrders = resData.orders;
           }
+          setIgnoredOrdersList(rawOrders);
         } catch (e) {
           console.error("Failed to fetch ignored orders", e);
         }
       };
+      
       fetchIgnored();
+      window.addEventListener('shopkeeperRejectedIdsUpdated', fetchIgnored);
+      return () => window.removeEventListener('shopkeeperRejectedIdsUpdated', fetchIgnored);
     }
   }, [isAdmin, sharedOrders]);
 
