@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ArrowLeft, Clock, Search, ShoppingBag, X } from "lucide-react";
 
 interface OrderHistoryMobileProps {
@@ -39,14 +39,17 @@ const tabMap: Record<string, string> = {
   READY: "Ready",
   DISPATCHED: "Dispatched",
   REJECTED: "Rejected",
+  IGNORED: "Ignored Orders",
   RETURNS: "Returns",
 };
 
 import { useSharedOrders } from "./SharedOrdersContext";
+import api from "../../api/axios";
 
 export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin = false }: OrderHistoryMobileProps) {
   const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
   const [searchQuery, setSearchQuery] = useState("");
+  const [ignoredOrdersList, setIgnoredOrdersList] = useState<any[]>([]);
 
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
   const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
@@ -61,6 +64,22 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
     return "All";
   });
 
+  useEffect(() => {
+    if (!isAdmin) {
+      const fetchIgnored = async () => {
+        try {
+          const res = await api.get('/orders?view=shopkeeper_ignored&limit=100');
+          if (res.data?.orders) {
+            setIgnoredOrdersList(res.data.orders);
+          }
+        } catch (e) {
+          console.error("Failed to fetch ignored orders", e);
+        }
+      };
+      fetchIgnored();
+    }
+  }, [isAdmin, sharedOrders]);
+
   const handedOverIds = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('handedOverIds') || '[]');
@@ -71,7 +90,7 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
 
   const dynamicTabs = useMemo(() => {
     if (!isAdmin) {
-      return ["All", "New", "Picking", "Packing", "Ready", "Handed Over", "Rejected", "Returns"];
+      return ["All", "New", "Picking", "Packing", "Ready", "Handed Over", "Ignored Orders", "Returns"];
     }
     return ["All", "New", "Picking", "Packing", "Ready", "Dispatched", "Rejected", "Returns"];
   }, [isAdmin]);
@@ -126,7 +145,9 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
   const filteredOrders = useMemo(() => {
     let result = orders;
 
-    if (activeTab !== "All") {
+    if (activeTab === "Ignored Orders") {
+      result = ignoredOrdersList;
+    } else if (activeTab !== "All") {
       result = orders.filter((o: any) => {
         const s = o.status?.toLowerCase();
         if (activeTab === "New") return s === "new" || s === "placed" || s === "assigned";
@@ -276,14 +297,22 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
                 onClick={() => onNavigate && onNavigate("order-details", order)}
                 className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-left flex items-start gap-3 cursor-pointer hover:border-green-300 transition-colors dark:bg-gray-800 dark:border-gray-700"
               >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: statusBg }}>
-                  <ShoppingBag size={18} color={statusColor} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: activeTab === "Ignored Orders" ? "#FEF2F2" : statusBg }}>
+                  <ShoppingBag size={18} style={{ color: activeTab === "Ignored Orders" ? "#DC2626" : statusColor }} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-800 font-bold text-sm dark:text-gray-200">{order.order_number || order.orderNumber}</span>
-                    <span className="rounded-full px-2 py-0.5 uppercase text-[10px] font-bold" style={{ backgroundColor: statusBg, color: statusColor }}>
-                      {formatStatusDisplay(order.status)}
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-semibold text-gray-900 truncate pr-2 text-[15px] dark:text-white">
+                      {order.order_number || order.orderNumber || order.id}
+                    </span>
+                    <span
+                      className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide whitespace-nowrap uppercase"
+                      style={{
+                        backgroundColor: activeTab === "Ignored Orders" ? "#FEF2F2" : statusBg,
+                        color: activeTab === "Ignored Orders" ? "#DC2626" : statusColor,
+                      }}
+                    >
+                      {activeTab === "Ignored Orders" ? "Ignored" : formatStatusDisplay(order.status)}
                     </span>
                   </div>
                   {shouldShowShopkeeper && (

@@ -76,7 +76,13 @@ export function ShopkeeperNewOrderPopup() {
     }
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
+    if (!activeOrder) return;
+    try {
+      await api.put(`/orders/${activeOrder.orderId}/reject`);
+    } catch (e) {
+      console.error('Failed to ignore order on backend', e);
+    }
     handleClose(true); // marked as rejected locally
   };
 

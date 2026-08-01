@@ -71,6 +71,17 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
   const handleReject = async (orderId: number) => {
     try {
       await api.put(`/orders/${orderId}/reject`);
+      
+      // Also update local Rejected KPI
+      try {
+        const saved = JSON.parse(localStorage.getItem('shopkeeperRejectedIds') || '[]');
+        if (!saved.includes(String(orderId))) {
+          saved.push(String(orderId));
+          localStorage.setItem('shopkeeperRejectedIds', JSON.stringify(saved));
+          window.dispatchEvent(new Event('shopkeeperRejectedIdsUpdated'));
+        }
+      } catch (e) {}
+      
       await refreshOrders();
     } catch (err) {
       console.error(err);

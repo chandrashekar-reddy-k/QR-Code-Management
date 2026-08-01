@@ -136,6 +136,7 @@ function KPICard({ label, value, icon: Icon, color, bg, onClick, isAdmin = false
 export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps) {
   const { theme, toggleTheme } = useTheme();
   const [orders, setOrders] = useState<any[]>([]);
+  const [ignoredOrdersCount, setIgnoredOrdersCount] = useState<number>(0);
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
 
   const storedUser = isAdmin ? localStorage.getItem("partnerUser") : sessionStorage.getItem("staffUser");
@@ -186,6 +187,18 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       console.error("Failed to load user name in Dashboard", err);
     }
   }, []);
+
+  const fetchIgnoredOrdersCount = async () => {
+    if (isAdmin) return;
+    try {
+      const res = await api.get('/orders?view=shopkeeper_ignored&limit=1');
+      if (res.data?.total !== undefined) {
+        setIgnoredOrdersCount(res.data.total);
+      }
+    } catch (e) {
+      console.error('Failed to fetch ignored orders count', e);
+    }
+  };
 
   const calculateStats = () => {
     const seenIds = new Set();
@@ -246,10 +259,16 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
       return s === 'dispatched';
     }).length;
 
-    const rejected = allOrders.filter((o: any) => {
-      const s = o.status?.toLowerCase();
-      return s === 'rejected' || s === 'cancelled';
-    }).length;
+    let rejected = 0;
+    if (isAdmin) {
+      rejected = allOrders.filter((o: any) => {
+        const s = o.status?.toLowerCase();
+        return s === 'rejected' || s === 'cancelled';
+      }).length;
+    } else {
+      // Ignored orders are tracked in state
+      rejected = ignoredOrdersCount;
+    }
 
     const breached = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
@@ -290,7 +309,17 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
   useEffect(() => {
     calculateStats();
+    fetchIgnoredOrdersCount();
   }, [sharedOrders]);
+
+  useEffect(() => {
+    const handleRejectUpdate = () => {
+      calculateStats();
+      fetchIgnoredOrdersCount();
+    };
+    window.addEventListener('shopkeeperRejectedIdsUpdated', handleRejectUpdate);
+    return () => window.removeEventListener('shopkeeperRejectedIdsUpdated', handleRejectUpdate);
+  }, [sharedOrders]); // Dependency needed since calculateStats uses sharedOrders from closure
 
   useEffect(() => {
     if (isAdmin) {
@@ -391,7 +420,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
   const secondRowKpis = [
     { label: "Handed Over", value: totalHandedOver, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "orderhistory", statusFilter: "DISPATCHED", variant: "green" as const },
-    { label: "Rejected", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "orderhistory", statusFilter: "REJECTED", variant: "red" as const },
+    { label: isAdmin ? "Rejected" : "Ignored Orders", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "orderhistory", statusFilter: isAdmin ? "REJECTED" : "IGNORED", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", screen: "sla-monitoring", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns", variant: "gray" as const },
     { label: "Revenue", value: formattedRevenue, icon: IndianRupee, color: "#F59E0B", bg: "#FEF3C7", variant: "yellow" as const },

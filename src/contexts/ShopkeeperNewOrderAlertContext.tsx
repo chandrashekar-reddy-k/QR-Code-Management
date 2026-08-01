@@ -200,6 +200,16 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
   const dismissAlert = useCallback((orderId: string, rejected: boolean) => {
     if (rejected) {
       rejectedOrderIdsRef.current.add(orderId);
+      
+      // Save locally to update Shopkeeper-specific Rejected KPI on Dashboard
+      try {
+        const saved = JSON.parse(localStorage.getItem('shopkeeperRejectedIds') || '[]');
+        if (!saved.includes(orderId)) {
+          saved.push(orderId);
+          localStorage.setItem('shopkeeperRejectedIds', JSON.stringify(saved));
+          window.dispatchEvent(new Event('shopkeeperRejectedIdsUpdated'));
+        }
+      } catch (e) {}
     }
     seenOrderIdsRef.current.delete(orderId); // Allow it to re-queue if it hasn't been rejected and hasn't been accepted yet
     stopAlarm();
@@ -298,16 +308,29 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
 
     const handleAssignmentDismissal = (data: any) => {
       const orderId = String(data.id || data.orderId || "");
-      const assignedId = data.assignedShopkeeperId || data.assigned_shopkeeper_id;
-      if (
-        activeOrder &&
-        orderId === activeOrder.orderId &&
-        assignedId
-      ) {
+      const assignedId = String(data.assignedShopkeeperId || data.assigned_shopkeeper_id || data.shopkeeperId || "");
+      
+      let currentUserId = "";
+      try {
+        const storedU = localStorage.getItem("partnerUser") || sessionStorage.getItem("staffUser") || "";
+        if (storedU) currentUserId = String(JSON.parse(storedU).id || "");
+      } catch (e) {}
+
+      if (activeOrder && orderId === activeOrder.orderId && assignedId) {
+        if (assignedId !== currentUserId) {
+          import("react-hot-toast").then((module) => {
+            module.default.error("Order accepted by another shopkeeper.", {
+              icon: "ℹ️",
+              style: { background: "#333", color: "#fff" }
+            });
+          });
+        }
         // Active order was accepted by someone else
         dismissAlert(orderId, false); // Just close it, not rejected
-        setAlertQueue(q => q.filter(o => o.orderId !== orderId));
       }
+      
+      // Always remove it from the queue so it doesn't pop up later
+      setAlertQueue(q => q.filter(o => o.orderId !== orderId));
     };
 
     // If an order gets assigned to another shopkeeper, dismiss it locally
@@ -315,13 +338,7 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
     socket.on("partner:order_updated", handleAssignmentDismissal);
     
     socket.on("shopkeeper:order_accepted", (data: any) => {
-      const orderId = String(data.id || data.orderId || "");
-      if (activeOrder && orderId === activeOrder.orderId) {
-        dismissAlert(orderId, false);
-        setAlertQueue(q => q.filter(o => o.orderId !== orderId));
-      } else {
-        setAlertQueue(q => q.filter(o => o.orderId !== orderId));
-      }
+      handleAssignmentDismissal(data);
     });
 
     return () => {
