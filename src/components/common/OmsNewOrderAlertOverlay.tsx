@@ -4,7 +4,7 @@ import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
 import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2 } from "lucide-react";
 
 export function OmsNewOrderAlertOverlay() {
-  const { activeOrder, countdown, isBuzzing, queueLength, todayStats, dismissAlert, audioEnabled, enableAudio, disableAudio, acceptOrder } = useNewOrderAlert();
+  const { activeOrder, countdown, isBuzzing, queueLength, todayStats, dismissAlert, audioEnabled, toggleAudio, acceptOrder } = useNewOrderAlert();
   const navigate = useNavigate();
   const location = useLocation();
   const [isExiting, setIsExiting] = useState(false);
@@ -17,14 +17,18 @@ export function OmsNewOrderAlertOverlay() {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressRef = useRef(false);
 
-  const startPress = () => {
+  const startPress = (e: React.PointerEvent) => {
+    // Prevent default context popup or text selection on long press
     isLongPressRef.current = false;
     setIsHolding(true);
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
     longPressTimerRef.current = setTimeout(() => {
       isLongPressRef.current = true;
       setIsHolding(false);
-      disableAudio(); // Explicitly DISABLE audio on long press
-    }, 500);
+      toggleAudio();
+    }, 450); // 450ms for responsive long press
   };
 
   const cancelPress = () => {
@@ -40,10 +44,6 @@ export function OmsNewOrderAlertOverlay() {
     if (isLongPressRef.current) {
       isLongPressRef.current = false;
       return;
-    }
-    // Click explicitly ENABLES audio if currently disabled
-    if (!audioEnabled) {
-      enableAudio();
     }
   };
 
@@ -87,12 +87,11 @@ export function OmsNewOrderAlertOverlay() {
             isHolding ? "scale-95 border-amber-400" : audioEnabled ? "border-emerald-500/60 hover:bg-gray-800" : "border-orange-500/60 hover:bg-gray-800"
           }`}
           onClick={handleBannerClick}
-          onMouseDown={startPress}
-          onMouseUp={cancelPress}
-          onMouseLeave={cancelPress}
-          onTouchStart={startPress}
-          onTouchEnd={cancelPress}
-          title={audioEnabled ? "Long press (hold) to disable sound alerts" : "Click or long press to enable sound"}
+          onPointerDown={startPress}
+          onPointerUp={cancelPress}
+          onPointerLeave={cancelPress}
+          onPointerCancel={cancelPress}
+          title={audioEnabled ? "Long press (hold) to disable sound alerts" : "Long press (hold) to enable sound"}
         >
           <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse ${
             audioEnabled ? "bg-emerald-500 text-white" : "bg-orange-500 text-white"
@@ -104,17 +103,26 @@ export function OmsNewOrderAlertOverlay() {
               {audioEnabled ? "Order Alert Sound Enabled" : "Enable Order Alerts Sound"}
             </p>
             <p className="text-xs text-gray-400 mt-0.5">
-              {audioEnabled ? (isHolding ? "Hold to disable..." : "Long press (hold) to disable sound") : "Click to enable audio"}
+              {audioEnabled
+                ? (isHolding ? "Hold to disable..." : "Long press (hold) to disable sound")
+                : (isHolding ? "Hold to enable..." : "Long press (hold) to enable sound")}
             </p>
           </div>
-          <X
-            size={16}
-            className="text-gray-400 ml-1 hover:text-white transition-colors"
+          <button
+            type="button"
+            className="sound-banner-close-btn text-gray-400 ml-1 hover:text-white p-1 rounded-full transition-colors z-10"
+            onMouseDown={(e) => { e.stopPropagation(); cancelPress(); }}
+            onMouseUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => { e.stopPropagation(); cancelPress(); }}
+            onTouchEnd={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               setSoundBannerDismissed(true);
             }}
-          />
+          >
+            <X size={16} />
+          </button>
         </div>
       );
     }
