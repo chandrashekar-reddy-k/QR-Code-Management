@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import api from "../api/axios";
 
@@ -39,6 +39,7 @@ interface NewOrderAlertContextType {
   audioEnabled: boolean;
   enableAudio: () => void;
   refetchStats: () => Promise<void>;
+  acceptOrder: (orderId: string) => Promise<void>;
 }
 
 // -----------------------------------------------------------------------------
@@ -245,6 +246,9 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
       );
       setCountdown(remaining);
       if (remaining <= 0) {
+        if (activeOrder.status !== "CONFIRMED") {
+          api.put(`/orders/${activeOrder.orderId}/accept`).catch(err => console.error("Auto confirm failed", err));
+        }
         stopAlarm();
         setActiveOrder(null);
       }
@@ -254,6 +258,8 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
     const id = setInterval(tick, 500);
     return () => clearInterval(id);
   }, [activeOrder, stopAlarm]);
+
+
 
   // -----------------------------------------------------------------------
   // 7. dismissAlert
@@ -306,6 +312,25 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
       if (err?.response?.status !== 401) console.warn("[STATS] Fetch failed:", err?.message);
     }
   }, []);
+
+  const acceptOrder = useCallback(async (orderId: string) => {
+    try {
+      try {
+        await api.put(`/orders/${orderId}/accept`);
+      } catch (err1) {
+        try {
+          await api.put(`/partner/orders/${orderId}/status`, { status: "CONFIRMED" });
+        } catch (err2) {
+          await api.put(`/orders/${orderId}/status`, { status: "CONFIRMED" });
+        }
+      }
+      setActiveOrder((prev) => (prev && prev.orderId === orderId ? { ...prev, status: "CONFIRMED" } : prev));
+      refetchStats();
+      stopAlarm();
+    } catch (err) {
+      console.error("[ALARM] Failed to accept order:", err);
+    }
+  }, [refetchStats, stopAlarm]);
 
   // -----------------------------------------------------------------------
   // 9. Polling fallback — 5 s interval
@@ -435,6 +460,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         audioEnabled,
         enableAudio,
         refetchStats,
+        acceptOrder,
       }}
     >
       {children}

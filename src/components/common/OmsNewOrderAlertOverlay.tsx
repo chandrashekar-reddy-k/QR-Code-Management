@@ -1,14 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
-import { Bell, ShoppingBag, Eye, X, Volume2, VolumeX, CheckCircle2 } from "lucide-react";
+import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2 } from "lucide-react";
 
 export function OmsNewOrderAlertOverlay() {
-  const { activeOrder, countdown, isBuzzing, queueLength, todayStats, dismissAlert, audioEnabled, enableAudio } = useNewOrderAlert();
+  const { activeOrder, countdown, isBuzzing, queueLength, todayStats, dismissAlert, audioEnabled, enableAudio, acceptOrder } = useNewOrderAlert();
   const navigate = useNavigate();
   const [isExiting, setIsExiting] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [soundBannerDismissed, setSoundBannerDismissed] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
 
   // Sync state with context activeOrder
   useEffect(() => {
@@ -81,6 +82,20 @@ export function OmsNewOrderAlertOverlay() {
       navigate(`/self-pickup-orders`);
     } else {
       navigate(`/home-delivery-orders`);
+    }
+  };
+
+  const handleAcceptOrder = async () => {
+    if (!activeOrder || isAccepting) return;
+    setIsAccepting(true);
+    try {
+      await acceptOrder(activeOrder.orderId);
+      setTimeout(() => {
+        handleClose();
+        setIsAccepting(false);
+      }, 350);
+    } catch (err) {
+      setIsAccepting(false);
     }
   };
 
@@ -230,17 +245,26 @@ export function OmsNewOrderAlertOverlay() {
           </div>
 
           {/* Action Buttons & Timer */}
-          <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="flex items-stretch gap-3">
+              <button
+                onClick={handleAcceptOrder}
+                disabled={isAccepting}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-75 text-white font-black text-sm py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 uppercase tracking-wide"
+              >
+                <CheckCircle2 size={18} /> {isAccepting ? "CONFIRMING..." : "ACCEPT ORDER"}
+              </button>
+              <div className="bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/50 rounded-xl px-4 py-1.5 text-center flex-shrink-0 min-w-[100px] flex flex-col justify-center">
+                <span className="text-xl font-black text-orange-600 dark:text-orange-400 leading-none block">{formattedTimer}</span>
+                <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block mt-0.5 whitespace-nowrap">Auto close in</span>
+              </div>
+            </div>
             <button
               onClick={handleViewOrder}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 px-4 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white font-extrabold text-xs py-3 px-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-colors flex items-center justify-center uppercase tracking-wide"
             >
-              <Eye size={16} /> View Order Details
+              VIEW ORDER DETAILS
             </button>
-            <div className="bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/50 rounded-xl px-4 py-1.5 text-center flex-shrink-0 min-w-[100px]">
-              <span className="text-xl font-black text-orange-600 dark:text-orange-400 leading-none block">{formattedTimer}</span>
-              <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 block">Auto close in</span>
-            </div>
           </div>
 
           {/* Queue Counter if Multiple Orders */}
