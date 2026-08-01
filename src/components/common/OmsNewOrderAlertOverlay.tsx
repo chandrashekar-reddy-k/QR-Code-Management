@@ -1,15 +1,51 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
 import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2 } from "lucide-react";
 
 export function OmsNewOrderAlertOverlay() {
-  const { activeOrder, countdown, isBuzzing, queueLength, todayStats, dismissAlert, audioEnabled, enableAudio, acceptOrder } = useNewOrderAlert();
+  const { activeOrder, countdown, isBuzzing, queueLength, todayStats, dismissAlert, audioEnabled, enableAudio, disableAudio, acceptOrder } = useNewOrderAlert();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isExiting, setIsExiting] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [soundBannerDismissed, setSoundBannerDismissed] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [isHolding, setIsHolding] = useState(false);
+
+  // Long press timer ref for disabling sound
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLongPressRef = useRef(false);
+
+  const startPress = () => {
+    isLongPressRef.current = false;
+    setIsHolding(true);
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      setIsHolding(false);
+      disableAudio(); // Explicitly DISABLE audio on long press
+    }, 500);
+  };
+
+  const cancelPress = () => {
+    setIsHolding(false);
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleBannerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isLongPressRef.current) {
+      isLongPressRef.current = false;
+      return;
+    }
+    // Click explicitly ENABLES audio if currently disabled
+    if (!audioEnabled) {
+      enableAudio();
+    }
+  };
 
   // Sync state with context activeOrder
   useEffect(() => {
@@ -44,22 +80,41 @@ export function OmsNewOrderAlertOverlay() {
   }
 
   if (!activeOrder && !isExiting) {
-    // Still show the sound-enable banner even when no order is active
-    if (!audioEnabled && !soundBannerDismissed) {
+    if (!soundBannerDismissed) {
       return (
         <div
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gray-900 dark:bg-gray-800 text-white px-4 py-3 rounded-2xl shadow-2xl border border-orange-500/60 cursor-pointer hover:bg-gray-800 transition-all"
-          onClick={() => { enableAudio(); setSoundBannerDismissed(true); }}
-          title="Click to enable new order alarm sound"
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gray-900 dark:bg-gray-800 text-white px-4 py-3 rounded-2xl shadow-2xl border cursor-pointer select-none transition-all ${
+            isHolding ? "scale-95 border-amber-400" : audioEnabled ? "border-emerald-500/60 hover:bg-gray-800" : "border-orange-500/60 hover:bg-gray-800"
+          }`}
+          onClick={handleBannerClick}
+          onMouseDown={startPress}
+          onMouseUp={cancelPress}
+          onMouseLeave={cancelPress}
+          onTouchStart={startPress}
+          onTouchEnd={cancelPress}
+          title={audioEnabled ? "Long press (hold) to disable sound alerts" : "Click or long press to enable sound"}
         >
-          <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 animate-pulse">
-            <VolumeX size={18} className="text-white" />
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse ${
+            audioEnabled ? "bg-emerald-500 text-white" : "bg-orange-500 text-white"
+          }`}>
+            {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </div>
           <div>
-            <p className="text-sm font-bold leading-tight">Enable Order Alerts Sound</p>
-            <p className="text-xs text-gray-400 mt-0.5">Click once to allow alarm audio</p>
+            <p className="text-sm font-bold leading-tight">
+              {audioEnabled ? "Order Alert Sound Enabled" : "Enable Order Alerts Sound"}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {audioEnabled ? (isHolding ? "Hold to disable..." : "Long press (hold) to disable sound") : "Click to enable audio"}
+            </p>
           </div>
-          <X size={16} className="text-gray-400 ml-1" onClick={(e) => { e.stopPropagation(); setSoundBannerDismissed(true); }} />
+          <X
+            size={16}
+            className="text-gray-400 ml-1 hover:text-white transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSoundBannerDismissed(true);
+            }}
+          />
         </div>
       );
     }

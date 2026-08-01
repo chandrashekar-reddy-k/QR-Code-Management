@@ -38,6 +38,8 @@ interface NewOrderAlertContextType {
   dismissAlert: () => void;
   audioEnabled: boolean;
   enableAudio: () => void;
+  disableAudio: () => void;
+  toggleAudio: () => void;
   refetchStats: () => Promise<void>;
   acceptOrder: (orderId: string) => Promise<void>;
 }
@@ -94,28 +96,59 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   //    from a real user-gesture click chain)
   // -----------------------------------------------------------------------
   const enableAudio = useCallback(() => {
-    if (audioUnlocked.current) return;
-
+    setAudioEnabled(true);
     const alarm = alarmRef.current;
     if (!alarm) return;
 
-    alarm.muted = true;
-    alarm
-      .play()
-      .then(() => {
-        alarm.pause();
-        alarm.currentTime = 0;
-        alarm.muted  = false;
-        alarm.volume = 1.0;
-        audioUnlocked.current = true;
-        setAudioEnabled(true);
-        console.log("[ALARM] Audio unlocked — alarm will play on next new order");
-      })
-      .catch((err) => {
-        alarm.muted = false;
-        console.warn("[ALARM] Unlock attempt blocked:", err.message);
-      });
+    if (!audioUnlocked.current) {
+      alarm.muted = true;
+      alarm
+        .play()
+        .then(() => {
+          alarm.pause();
+          alarm.currentTime = 0;
+          alarm.muted  = false;
+          alarm.volume = 1.0;
+          audioUnlocked.current = true;
+          console.log("[ALARM] Audio unlocked — alarm will play on next new order");
+        })
+        .catch((err) => {
+          alarm.muted = false;
+          console.warn("[ALARM] Unlock attempt blocked:", err.message);
+        });
+    } else {
+      alarm.muted = false;
+    }
   }, []);
+
+  const disableAudio = useCallback(() => {
+    const alarm = alarmRef.current;
+    if (alarm) {
+      alarm.pause();
+      alarm.currentTime = 0;
+      alarm.muted = true;
+    }
+    setAudioEnabled(false);
+    setIsBuzzing(false);
+    console.log("[ALARM] Audio disabled/muted");
+  }, []);
+
+  const toggleAudio = useCallback(() => {
+    setAudioEnabled((prev) => {
+      const next = !prev;
+      if (!next) {
+        if (alarmRef.current) {
+          alarmRef.current.pause();
+          alarmRef.current.currentTime = 0;
+          alarmRef.current.muted = true;
+        }
+        setIsBuzzing(false);
+      } else {
+        enableAudio();
+      }
+      return next;
+    });
+  }, [enableAudio]);
 
   // Auto-unlock on first pointerdown / keydown
   useEffect(() => {
@@ -131,6 +164,10 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   // 3. playAlarm / stopAlarm
   // -----------------------------------------------------------------------
   const playAlarm = useCallback(() => {
+    if (!audioEnabled) {
+      console.log("[ALARM] Sound muted by user — skipping playback");
+      return;
+    }
     const alarm = alarmRef.current;
     if (!alarm) return;
     alarm.currentTime = 0;
@@ -146,7 +183,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         console.error("[ALARM] Playback blocked:", err.message,
           "— click Enable Sound banner first");
       });
-  }, []);
+  }, [audioEnabled]);
 
   const stopAlarm = useCallback(() => {
     const alarm = alarmRef.current;
@@ -459,6 +496,8 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         dismissAlert,
         audioEnabled,
         enableAudio,
+        disableAudio,
+        toggleAudio,
         refetchStats,
         acceptOrder,
       }}
