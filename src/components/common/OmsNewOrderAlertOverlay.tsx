@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
 import { Bell, ShoppingBag, Eye, X, Volume2, VolumeX, CheckCircle2 } from "lucide-react";
@@ -9,6 +9,7 @@ export function OmsNewOrderAlertOverlay() {
   const [isExiting, setIsExiting] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [soundBannerDismissed, setSoundBannerDismissed] = useState(false);
+  const location = useLocation();
 
   // Sync state with context activeOrder
   useEffect(() => {
@@ -37,6 +38,10 @@ export function OmsNewOrderAlertOverlay() {
       setIsExiting(false);
     }, 250);
   };
+
+  if (location.pathname.startsWith('/shopkeeper')) {
+    return null;
+  }
 
   if (!activeOrder && !isExiting) {
     // Still show the sound-enable banner even when no order is active

@@ -211,7 +211,6 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
   // -----------------------------------------------------------------------
   useEffect(() => {
     let isPolling = false;
-    let firstPoll = true;
 
     const poll = async () => {
       if (isPolling) return;
@@ -231,24 +230,13 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
         let polled: any[] = [];
         if (Array.isArray(res.data)) polled = res.data;
 
-        if (firstPoll) {
-          // Silently absorb all pre-existing CONFIRMED unassigned orders on first load so they don't ring the alarm immediately
-          polled.forEach((o) => {
-            const id = String(o.id || o.orderId || o.orderNumber || "");
-            if (id && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
-              seenOrderIdsRef.current.add(id);
-              rejectedOrderIdsRef.current.add(id); // Assume they were seen previously
-            }
-          });
-          firstPoll = false;
-        } else {
-          polled.forEach((o) => {
-            const id = String(o.id || o.orderId || o.orderNumber || "");
-            if (id && !seenOrderIdsRef.current.has(id) && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
-              handleIncomingOrder(o);
-            }
-          });
-        }
+        polled.forEach((o) => {
+          const id = String(o.id || o.orderId || o.orderNumber || "");
+          const status = (o.status || "").toUpperCase();
+          if (id && status === "CONFIRMED" && !seenOrderIdsRef.current.has(id) && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
+            handleIncomingOrder(o);
+          }
+        });
       } catch (err) {
         // ignore
       } finally {
@@ -287,15 +275,14 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
     });
     socketRef.current = socket;
 
-    const newOrderEvents = ["order:status", "shopkeeper:new_order"];
+    const newOrderEvents = ["order:status", "shopkeeper:new_order", "partner:order_updated"];
     newOrderEvents.forEach((ev) =>
       socket.on(ev, (data: any) => {
         handleIncomingOrder(data);
       })
     );
 
-    // If an order gets assigned to another shopkeeper, dismiss it locally
-    socket.on("order:status", (data: any) => {
+    const handleAssignmentDismissal = (data: any) => {
       const orderId = String(data.id || data.orderId || "");
       const assignedId = data.assignedShopkeeperId || data.assigned_shopkeeper_id;
       if (
@@ -307,7 +294,11 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
         dismissAlert(orderId, false); // Just close it, not rejected
         setAlertQueue(q => q.filter(o => o.orderId !== orderId));
       }
-    });
+    };
+
+    // If an order gets assigned to another shopkeeper, dismiss it locally
+    socket.on("order:status", handleAssignmentDismissal);
+    socket.on("partner:order_updated", handleAssignmentDismissal);
     
     socket.on("shopkeeper:order_accepted", (data: any) => {
       const orderId = String(data.id || data.orderId || "");
