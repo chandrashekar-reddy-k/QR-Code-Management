@@ -80,6 +80,9 @@ interface ImportProduct {
     minOrderQty?: number;
     maxOrderQty?: number;
     isImported?: boolean;
+    unitName?: string;
+    unitShortCode?: string;
+    unitTypeName?: string;
   }>;
 }
 
@@ -380,6 +383,44 @@ const ImportProducts = () => {
     sortDirection,
   ]);
 
+  // Flatten filtered and sorted products to display variants directly as main table rows
+  const flattenedProducts = useMemo(() => {
+    const list: any[] = [];
+    filteredAndSortedProducts.forEach((p) => {
+      if (p.variants && p.variants.length > 0) {
+        p.variants.forEach((v) => {
+          list.push({
+            id: p.id,
+            variantId: v.id,
+            isImported: v.isImported,
+            image: v.image || p.image,
+            productName: `${p.productName} (${v.variantName || v.name || "-"})`,
+            categoryName: p.categoryName,
+            subCategoryName: p.subCategoryName,
+            brandName: p.brandName,
+            sku: v.sku || p.sku,
+            units: v.unit || p.units,
+            unitType: v.unitType || p.unitType,
+            unitName: v.unitName || p.unitName,
+            unitShortCode: v.unitShortCode || p.unitShortCode,
+            unitTypeName: v.unitTypeName || p.unitTypeName,
+            price: v.price || p.price,
+            mrp: v.mrp || p.mrp,
+            finalPrice: v.finalPrice || p.finalPrice,
+            isVariantRow: true,
+            parentProduct: p
+          });
+        });
+      } else {
+        list.push({
+          ...p,
+          isVariantRow: false
+        });
+      }
+    });
+    return list;
+  }, [filteredAndSortedProducts]);
+
   // Pagination
   const apiTotalItems =
     (masterProductsData as any)?.data?.stats?.total ??
@@ -388,18 +429,21 @@ const ImportProducts = () => {
 
   const totalPages = Math.max(1, Math.ceil(apiTotalItems / itemsPerPage));
   // Server already returns the current page; do not slice again.
-  const paginatedProducts = filteredAndSortedProducts;
+  const paginatedProducts = flattenedProducts;
 
   useEffect(() => {
     if (paginatedProducts.length > 0) {
-      const allOnPageSelected = paginatedProducts.every(
-        (p) => p.isImported === true || selectedProducts.has(p.id),
-      );
+      const allOnPageSelected = paginatedProducts.every((p) => {
+        if (p.isVariantRow) {
+          return p.isImported === true || selectedVariantIds.has(String(p.variantId));
+        }
+        return p.isImported === true || selectedProducts.has(p.id);
+      });
       setSelectAll(allOnPageSelected);
     } else {
       setSelectAll(false);
     }
-  }, [selectedProducts, paginatedProducts]);
+  }, [selectedProducts, selectedVariantIds, paginatedProducts]);
 
   const showingFrom =
     apiTotalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -416,7 +460,20 @@ const ImportProducts = () => {
     if (checked) {
       setSelectedProducts((prev) => {
         const next = new Set(prev);
-        paginatedProducts.forEach((p) => next.add(p.id));
+        paginatedProducts.forEach((p) => {
+          if (!p.isVariantRow) {
+            next.add(p.id);
+          }
+        });
+        return next;
+      });
+      setSelectedVariantIds((prev) => {
+        const next = new Set(prev);
+        paginatedProducts.forEach((p) => {
+          if (p.isVariantRow && p.isImported !== true) {
+            next.add(String(p.variantId));
+          }
+        });
         return next;
       });
       setSelectAll(true);
@@ -424,20 +481,17 @@ const ImportProducts = () => {
       setSelectedProducts((prev) => {
         const next = new Set(prev);
         paginatedProducts.forEach((p) => {
-          if (p.isImported !== true) next.delete(p.id);
-        });
-        products.forEach((p) => {
-          if (p.isImported === true) next.add(p.id);
+          if (!p.isVariantRow && p.isImported !== true) {
+            next.delete(p.id);
+          }
         });
         return next;
       });
       setSelectedVariantIds((prev) => {
         const next = new Set(prev);
         paginatedProducts.forEach((p) => {
-          if (p.isImported !== true) {
-            (p.variants ?? []).forEach((v) => {
-              if (v.isImported !== true) next.delete(String(v.id));
-            });
+          if (p.isVariantRow && p.isImported !== true) {
+            next.delete(String(p.variantId));
           }
         });
         return next;
@@ -638,27 +692,36 @@ const ImportProducts = () => {
       key: "select",
       label: "SELECT ALL",
       sortable: false,
-      render: (product: ImportProduct) => (
-        <div className="text-center">
-          <input
-            type="checkbox"
-            checked={
-              product.isImported === true || selectedProducts.has(product.id)
-            }
-            disabled={product.isImported === true}
-            onChange={(e) =>
-              handleSelectProduct(product.id, e.target.checked)
-            }
-            className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
-      ),
+      render: (product: any) => {
+        const isChecked = product.isVariantRow
+          ? product.isImported === true || selectedVariantIds.has(String(product.variantId))
+          : product.isImported === true || selectedProducts.has(product.id);
+        const isDisabled = product.isImported === true;
+        
+        return (
+          <div className="text-center">
+            <input
+              type="checkbox"
+              checked={isChecked}
+              disabled={isDisabled}
+              onChange={(e) => {
+                if (product.isVariantRow) {
+                  toggleVariantSelection(product.id, String(product.variantId), e.target.checked, product.isImported);
+                } else {
+                  handleSelectProduct(product.id, e.target.checked);
+                }
+              }}
+              className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
+        );
+      },
     },
     {
       key: "image",
       label: "IMAGE",
       sortable: false,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="flex items-center justify-center">
           {product.image ? (
             <img
@@ -681,7 +744,7 @@ const ImportProducts = () => {
       key: "productName",
       label: "PRODUCT",
       sortable: true,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="text-center">
           <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">
             {product.productName}
@@ -689,59 +752,11 @@ const ImportProducts = () => {
         </div>
       ),
     },
-    // {
-    //   key: "categoryName",
-    //   label: "CATEGORY",
-    //   sortable: true,
-    //   render: (product: ImportProduct) => (
-    //     <div className="text-center">
-    //       <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
-    //         {product.categoryName}
-    //       </span>
-    //     </div>
-    //   ),
-    // },
-    // {
-    //   key: "subCategoryName",
-    //   label: "SUB CATEGORY",
-    //   sortable: true,
-    //   render: (product: ImportProduct) => (
-    //     <div className="text-center">
-    //       <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
-    //         {product.subCategoryName}
-    //       </span>
-    //     </div>
-    //   ),
-    // },
-    // {
-    //   key: "brandName",
-    //   label: "BRAND",
-    //   sortable: true,
-    //   render: (product: ImportProduct) => (
-    //     <div className="text-center">
-    //       <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
-    //         {product.brandName}
-    //       </span>
-    //     </div>
-    //   ),
-    // },
-    //{
-    // key: "units",
-    // label: "UNITS",
-    //sortable: true,
-    // render: (product: ImportProduct) => (
-    //   <div className="text-center">
-    //    <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
-    //     {product.units || "-"}
-    //    </span>
-    //  </div>
-    //  ),
-    //},
     {
       key: "units",
       label: "UNITS",
       sortable: true,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="text-center">
           <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
             {product.unitShortCode || product.unitName || product.units || "-"}
@@ -749,24 +764,11 @@ const ImportProducts = () => {
         </div>
       ),
     },
-
-    //{
-    //  key: "unitType",
-    // label: "UNIT TYPE",
-    //  sortable: true,
-    // render: (product: ImportProduct) => (
-    //   <div className="text-center">
-    //    <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
-    //     {product.unitType || "-"}
-    //     </span>
-    //    </div>
-    //  ),
-    // },
     {
       key: "unitType",
       label: "UNIT TYPE",
       sortable: true,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="text-center">
           <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
             {product.unitTypeName || product.unitType || "-"}
@@ -774,12 +776,11 @@ const ImportProducts = () => {
         </div>
       ),
     },
-
     {
       key: "price",
       label: "PRICE",
       sortable: true,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="flex items-center justify-center gap-1.5">
           <IndianRupee size={12} className="text-gray-400 dark:text-gray-500" />
           <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
@@ -792,7 +793,7 @@ const ImportProducts = () => {
       key: "mrp",
       label: "MRP",
       sortable: true,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="flex items-center justify-center gap-1.5">
           <IndianRupee size={12} className="text-gray-400 dark:text-gray-500" />
           <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
@@ -805,7 +806,7 @@ const ImportProducts = () => {
       key: "finalPrice",
       label: "FINAL PRICE",
       sortable: true,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="flex items-center justify-center gap-1.5">
           <IndianRupee size={12} className="text-gray-400 dark:text-gray-500" />
           <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
@@ -818,27 +819,17 @@ const ImportProducts = () => {
       key: "variants",
       label: "VARIANTS",
       sortable: false,
-      render: (product: ImportProduct) => {
-        const count = product.variants?.length ?? 0;
-        return (
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => toggleVariants(product.id)}
-              className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 underline decoration-dotted hover:text-green-600 dark:hover:text-green-400 transition-colors"
-              title="Click to view variants"
-            >
-              {count}
-            </button>
-          </div>
-        );
-      },
+      render: (product: any) => (
+        <div className="text-center text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+          {product.isVariantRow ? "Variant" : "-"}
+        </div>
+      ),
     },
     {
       key: "sku",
       label: "SKU",
       sortable: true,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="text-center">
           <span className="text-xs sm:text-sm text-gray-800 dark:text-gray-200">
             {product.sku}
@@ -850,7 +841,7 @@ const ImportProducts = () => {
       key: "actions",
       label: "ACTIONS",
       sortable: false,
-      render: (product: ImportProduct) => (
+      render: (product: any) => (
         <div className="flex items-center justify-center gap-2">
           <ViewIconButton
             onClick={() => navigate(`/products/import/view/${product.id}`)}
@@ -1046,177 +1037,23 @@ const ImportProducts = () => {
               </thead>
               <tbody>
                 {paginatedProducts.map((product) => {
-                  const isExpanded = expandedRows.has(product.id);
-                  const variants = product.variants ?? [];
+                  const rowKey = product.isVariantRow ? `${product.id}-${product.variantId}` : product.id;
                   return (
-                    <Fragment key={product.id}>
-                      <tr
-                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                      >
-                        {columns.map((column) => (
-                          <td
-                            key={column.key}
-                            className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-800 dark:text-gray-200"
-                          >
-                            {column.render
-                              ? column.render(product)
-                              : (product as any)[column.key]}
-                          </td>
-                        ))}
-                      </tr>
-                      {isExpanded && (
-                        <tr key={`${product.id}-variants`}>
-                          <td
-                            colSpan={columns.length}
-                            className="px-0 py-0 bg-gray-50 dark:bg-gray-900"
-                          >
-                            <div className="px-4 py-4">
-                              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                <div className="overflow-x-auto">
-                                  <table className="w-full border-collapse">
-                                    <thead>
-                                      <tr className="bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          SELECT
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          S.NO
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          IMAGE
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          NAME
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          UNIT
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          UNIT TYPE
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          PRICE
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          MRP
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          FINAL PRICE
-                                        </th>
-                                        <th className="px-3 py-2 text-center text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300">
-                                          SKU
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {variants.length > 0 ? (
-                                        variants.map((variant, idx) => {
-                                          const variantId = String(
-                                            variant.id ?? "",
-                                          );
-                                          const variantImported =
-                                            variant.isImported === true;
-                                          const variantChecked =
-                                            variantImported ||
-                                            selectedVariantIds.has(variantId);
-                                          const variantImage =
-                                            variant.image ||
-                                            (Array.isArray(
-                                              variant.primaryImages,
-                                            )
-                                              ? variant.primaryImages[0]
-                                              : "") ||
-                                            (Array.isArray(variant.images)
-                                              ? variant.images[0]
-                                              : "");
-                                          return (
-                                            <tr
-                                              key={`${product.id}-${variant.id}-${idx}`}
-                                              className="border-b border-gray-100 dark:border-gray-700"
-                                            >
-                                              <td className="px-3 py-2 text-center">
-                                                <input
-                                                  type="checkbox"
-                                                  checked={variantChecked}
-                                                  disabled={variantImported}
-                                                  onChange={(e) =>
-                                                    toggleVariantSelection(
-                                                      product.id,
-                                                      variantId,
-                                                      e.target.checked,
-                                                      variant.isImported,
-                                                    )
-                                                  }
-                                                  className="w-4 h-4 text-green-600 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                />
-                                              </td>
-                                              <td className="px-3 py-2 text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                {idx + 1}
-                                              </td>
-                                              <td className="px-3 py-2 text-center">
-                                                {variantImage ? (
-                                                  <img
-                                                    src={variantImage}
-                                                    alt={
-                                                      variant.name || "Variant"
-                                                    }
-                                                    className="w-10 h-10 object-cover rounded mx-auto"
-                                                  />
-                                                ) : (
-                                                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                                                    No image
-                                                  </span>
-                                                )}
-                                              </td>
-                                              <td className="px-3 py-2 text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                {variant.name || "-"}
-                                              </td>
-                                              <td className="px-3 py-2 text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                {variant.unit || "-"}
-                                              </td>
-                                              <td className="px-3 py-2 text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                {variant.unitType || "-"}
-                                              </td>
-                                              <td className="px-3 py-2 text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                {formatCurrency(
-                                                  variant.price || 0,
-                                                )}
-                                              </td>
-                                              <td className="px-3 py-2 text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                {formatCurrency(
-                                                  variant.mrp || 0,
-                                                )}
-                                              </td>
-                                              <td className="px-3 py-2 text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                {formatCurrency(
-                                                  variant.finalPrice || 0,
-                                                )}
-                                              </td>
-                                              <td className="px-3 py-2 text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                                                {variant.sku || "-"}
-                                              </td>
-                                            </tr>
-                                          );
-                                        })
-                                      ) : (
-                                        <tr>
-                                          <td
-                                            colSpan={10}
-                                            className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
-                                          >
-                                            No variants available
-                                          </td>
-                                        </tr>
-                                      )}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
+                    <tr
+                      key={rowKey}
+                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      {columns.map((column) => (
+                        <td
+                          key={column.key}
+                          className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-800 dark:text-gray-200"
+                        >
+                          {column.render
+                            ? column.render(product)
+                            : (product as any)[column.key]}
+                        </td>
+                      ))}
+                    </tr>
                   );
                 })}
               </tbody>

@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
@@ -11,8 +13,6 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-// import { productsAPI } from "../../../lib/api"; 
-import JoditEditor from "jodit-react";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import {
@@ -788,6 +788,7 @@ const AddProduct = () => {
     { id: "vendor5", name: "Best Deal Wholesale" },
     { id: "vendor6", name: "Quality Goods Corp" },
   ];
+
 
   // Fetch Categories from partner API: GET productmanagement/product/categories/list
   // Response: { total, page, limit, data: [ { id, name, isActive, subCategories: [...] }, ... ] }
@@ -3650,25 +3651,24 @@ const AddProduct = () => {
 
                 {/* Description and Short Description side by side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Description{" "}
                       <span className="text-red-500 dark:text-red-400">*</span>
                     </label>
-                    <div
-                      className={`border rounded-lg ${errors.description
-                          ? "border-red-500 dark:border-red-600"
-                          : "border-gray-300 dark:border-gray-600"
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      placeholder="Enter description"
+                      rows={10}
+                      className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 resize-none bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 ${errors.description
+                          ? "border-red-500 dark:border-red-600 focus:ring-red-400"
+                          : "border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500"
                         }`}
-                    >
-                      <JoditEditor
-                        key={descriptionEditorKey}
-                        value={formData.description}
-                        onBlur={handleDescriptionBlur}
-                        onChange={handleDescriptionChange}
-                        config={joditDescriptionConfig}
-                      />
-                    </div>
+                      style={{ minHeight: "250px" }}
+                    />
                     {errors.description && (
                       <p className="text-red-500 dark:text-red-400 text-[10px] mt-0.5">
                         {errors.description}
@@ -4170,7 +4170,6 @@ const AddProduct = () => {
                           {/* 4. Basic Information Section */}
                           <div className="border border-gray-200 rounded-lg overflow-hidden">
                             <button
-                              piush
                               type="button"
                               onClick={() => toggleSection(variant.id, "basic")}
                               className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
