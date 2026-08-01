@@ -75,6 +75,11 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
     alarm.onerror = () => console.warn("[ALARM] MP3 failed to load — check public/sounds/");
     alarmRef.current = alarm;
 
+    // Register FCM Web Push token for background OS notifications
+    import("../utils/firebase").then(({ requestFcmToken }) => {
+      requestFcmToken();
+    }).catch(() => {});
+
     return () => {
       alarm.pause();
       alarm.currentTime = 0;
@@ -245,6 +250,37 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
     };
 
     setAlertQueue((prev) => [...prev, formatted]);
+
+    // Trigger Web Browser Desktop Notification
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "granted") {
+        try {
+          const notif = new Notification("🚨 NEW ORDER RECEIVED!", {
+            body: `Order #${formatted.orderNumber} • ₹${formatted.totalAmount} • ${formatted.itemCount} items\nCustomer: ${formatted.customerName}`,
+            icon: "/favicon.ico",
+            badge: "/favicon.ico",
+            tag: formatted.orderId,
+            requireInteraction: true,
+          });
+          notif.onclick = () => {
+            window.focus();
+            notif.close();
+          };
+        } catch (err) {
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((reg) => {
+              reg.showNotification("🚨 NEW ORDER RECEIVED!", {
+                body: `Order #${formatted.orderNumber} • ₹${formatted.totalAmount} • ${formatted.itemCount} items`,
+                icon: "/favicon.ico",
+                tag: formatted.orderId,
+              });
+            }).catch(() => {});
+          }
+        }
+      } else if (Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
+      }
+    }
   }, []);
 
   // -----------------------------------------------------------------------
@@ -438,6 +474,17 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
 // -----------------------------------------------------------------------------
 export function useShopkeeperNewOrderAlert() {
   const context = useContext(ShopkeeperNewOrderAlertContext);
-  if (!context) throw new Error("useShopkeeperNewOrderAlert must be used within a ShopkeeperNewOrderAlertProvider");
+  if (!context) {
+    return {
+      activeOrder: null,
+      isBuzzing: false,
+      queueLength: 0,
+      audioEnabled: true,
+      enableAudio: () => {},
+      disableAudio: () => {},
+      toggleAudio: () => {},
+      dismissAlert: () => {},
+    };
+  }
   return context;
 }

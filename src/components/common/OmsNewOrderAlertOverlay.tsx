@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
-import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2 } from "lucide-react";
+import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2, Settings } from "lucide-react";
+import { NotificationSettingsModal } from "./NotificationSettingsModal";
 
 export function OmsNewOrderAlertOverlay() {
   const { activeOrder, countdown, isBuzzing, queueLength, todayStats, dismissAlert, audioEnabled, toggleAudio, acceptOrder } = useNewOrderAlert();
@@ -12,12 +13,13 @@ export function OmsNewOrderAlertOverlay() {
   const [soundBannerDismissed, setSoundBannerDismissed] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isHolding, setIsHolding] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Long press timer ref for disabling sound
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressRef = useRef(false);
 
-  const startPress = (e: React.PointerEvent) => {
+  const startPress = () => {
     // Prevent default context popup or text selection on long press
     isLongPressRef.current = false;
     setIsHolding(true);
@@ -108,25 +110,57 @@ export function OmsNewOrderAlertOverlay() {
                 : (isHolding ? "Hold to enable..." : "Long press (hold) to enable sound")}
             </p>
           </div>
-          <button
-            type="button"
-            className="sound-banner-close-btn text-gray-400 ml-1 hover:text-white p-1 rounded-full transition-colors z-10"
-            onMouseDown={(e) => { e.stopPropagation(); cancelPress(); }}
-            onMouseUp={(e) => e.stopPropagation()}
-            onTouchStart={(e) => { e.stopPropagation(); cancelPress(); }}
-            onTouchEnd={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setSoundBannerDismissed(true);
-            }}
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="sound-banner-close-btn text-gray-400 hover:text-white p-1 rounded-full transition-colors z-10"
+              onMouseDown={(e) => { e.stopPropagation(); cancelPress(); }}
+              onMouseUp={(e) => e.stopPropagation()}
+              onTouchStart={(e) => { e.stopPropagation(); cancelPress(); }}
+              onTouchEnd={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setIsSettingsOpen(true);
+              }}
+              title="Notification Setup & Sound Settings"
+            >
+              <Settings size={16} />
+            </button>
+            <button
+              type="button"
+              className="sound-banner-close-btn text-gray-400 hover:text-white p-1 rounded-full transition-colors z-10"
+              onMouseDown={(e) => { e.stopPropagation(); cancelPress(); }}
+              onMouseUp={(e) => e.stopPropagation()}
+              onTouchStart={(e) => { e.stopPropagation(); cancelPress(); }}
+              onTouchEnd={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setSoundBannerDismissed(true);
+              }}
+              title="Close Banner"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <NotificationSettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            audioEnabled={audioEnabled}
+            toggleAudio={toggleAudio}
+          />
         </div>
       );
     }
-    return null;
+    return (
+      <NotificationSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        audioEnabled={audioEnabled}
+        toggleAudio={toggleAudio}
+      />
+    );
   }
 
   // Fallback to last shown order data while exiting to avoid layout flashes
@@ -399,19 +433,19 @@ export function OmsNewOrderAlertOverlay() {
         <div className="grid grid-cols-4 gap-2 text-center text-xs">
           <div>
             <span className="text-[10px] text-gray-400 font-medium block">New</span>
-            <span className="font-black text-orange-600 dark:text-orange-400 text-base">{todayStats.newCount}</span>
+            <span className="font-black text-orange-600 dark:text-orange-400 text-base">{todayStats?.newCount ?? 0}</span>
           </div>
           <div>
             <span className="text-[10px] text-gray-400 font-medium block">Pending</span>
-            <span className="font-black text-gray-600 dark:text-gray-400 text-base">{todayStats.pendingCount}</span>
+            <span className="font-black text-gray-600 dark:text-gray-400 text-base">{todayStats?.pendingCount ?? 0}</span>
           </div>
           <div>
             <span className="text-[10px] text-gray-400 font-medium block">Confirmed</span>
-            <span className="font-black text-blue-600 dark:text-blue-400 text-base">{todayStats.confirmedCount}</span>
+            <span className="font-black text-blue-600 dark:text-blue-400 text-base">{todayStats?.confirmedCount ?? 0}</span>
           </div>
           <div>
             <span className="text-[10px] text-gray-400 font-medium block">Completed</span>
-            <span className="font-black text-emerald-600 dark:text-emerald-400 text-base">{todayStats.completedCount}</span>
+            <span className="font-black text-emerald-600 dark:text-emerald-400 text-base">{todayStats?.completedCount ?? 0}</span>
           </div>
         </div>
       </div>

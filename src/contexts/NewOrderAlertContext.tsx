@@ -91,6 +91,11 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
     alarm.onerror = () => console.warn("[ALARM] MP3 failed to load — check public/sounds/");
     alarmRef.current = alarm;
 
+    // Register FCM Web Push token for background OS notifications
+    import("../utils/firebase").then(({ requestFcmToken }) => {
+      requestFcmToken();
+    }).catch(() => {});
+
     return () => {
       alarm.pause();
       alarm.currentTime = 0;
@@ -267,6 +272,37 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
 
     setAlertQueue((prev) => [...prev, formatted]);
     setTodayStats((prev) => ({ ...prev, newCount: prev.newCount + 1 }));
+
+    // Trigger Web Browser Desktop Notification
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "granted") {
+        try {
+          const notif = new Notification("🚨 NEW ORDER RECEIVED!", {
+            body: `Order #${formatted.orderNumber} • ₹${formatted.totalAmount} • ${formatted.itemCount} items\nCustomer: ${formatted.customerName}`,
+            icon: "/favicon.ico",
+            badge: "/favicon.ico",
+            tag: formatted.orderId,
+            requireInteraction: true,
+          });
+          notif.onclick = () => {
+            window.focus();
+            notif.close();
+          };
+        } catch (err) {
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((reg) => {
+              reg.showNotification("🚨 NEW ORDER RECEIVED!", {
+                body: `Order #${formatted.orderNumber} • ₹${formatted.totalAmount} • ${formatted.itemCount} items`,
+                icon: "/favicon.ico",
+                tag: formatted.orderId,
+              });
+            }).catch(() => {});
+          }
+        }
+      } else if (Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
+      }
+    }
   }, []);
 
   // Debug helper: testNewOrder() in browser console
@@ -539,6 +575,20 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
 // -----------------------------------------------------------------------------
 export function useNewOrderAlert() {
   const context = useContext(NewOrderAlertContext);
-  if (!context) throw new Error("useNewOrderAlert must be used within a NewOrderAlertProvider");
+  if (!context) {
+    return {
+      activeOrder: null,
+      countdown: 30,
+      isBuzzing: false,
+      queueLength: 0,
+      todayStats: null,
+      audioEnabled: true,
+      enableAudio: () => {},
+      disableAudio: () => {},
+      toggleAudio: () => {},
+      dismissAlert: () => {},
+      acceptOrder: async () => {},
+    };
+  }
   return context;
 }

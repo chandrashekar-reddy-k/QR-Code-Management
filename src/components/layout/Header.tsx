@@ -24,13 +24,15 @@ import {
   Handshake,
   Hash,
   ChevronDown,
-  Pencil ,
   Key,
 } from "lucide-react";
+import api from "../../api/axios";
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext";
 import { openHRMSPortal } from "../../utils/hrmsSSO";
+import { NotificationSettingsModal } from "../common/NotificationSettingsModal";
+import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -277,7 +279,7 @@ interface User {
   supplier: unknown | null;
 }
 
-let hrmsWindowRef: Window | null = null;
+let hrmsWindowRef: any = null;
 
 const Header = ({ onMenuClick }: HeaderProps) => {
   // Hook to close HRMS window if the partner portal tab is closed/unloaded
@@ -300,6 +302,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { audioEnabled, toggleAudio } = useNewOrderAlert();
+  const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -329,11 +333,9 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await fetchData<{ status: boolean; notifications: any[] }>("/vsms/barcode/reports/scan-history"); // Use scan activity / fallback dynamic endpoint if available
-        // Or if there is a generic notification endpoint, query it:
-        const notifRes = await fetchData<{ notifications: any[] }>("/vsms/notifications");
-        if (notifRes && notifRes.notifications) {
-          setNotifications(notifRes.notifications.slice(0, 10));
+        const notifRes = await api.get("/vsms/notifications");
+        if (notifRes.data && notifRes.data.notifications) {
+          setNotifications(notifRes.data.notifications.slice(0, 10));
         }
       } catch (err) {
         // Fallback to demo items if notifications endpoint returns error/empty
@@ -900,6 +902,16 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           <span>HRMS</span>
         </button>
 
+        {/* Notification Setup & Sound Settings */}
+        <button
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
+          title="Notification Setup & Sound Settings"
+          onClick={() => setIsNotifModalOpen(true)}
+        >
+          <Bell size={20} className="text-orange-500 animate-pulse" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-gray-800"></span>
+        </button>
+
         {/* Settings */}
         <button
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -908,6 +920,13 @@ const Header = ({ onMenuClick }: HeaderProps) => {
         >
           <Settings size={20} className="text-gray-600 dark:text-gray-300" />
         </button>
+
+        <NotificationSettingsModal
+          isOpen={isNotifModalOpen}
+          onClose={() => setIsNotifModalOpen(false)}
+          audioEnabled={audioEnabled}
+          toggleAudio={toggleAudio}
+        />
 
         {/* User Menu */}
         <div className="relative">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useShopkeeperNewOrderAlert } from "../../contexts/ShopkeeperNewOrderAlertContext";
-import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2, Check, XCircle } from "lucide-react";
+import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2, Check, XCircle, Settings } from "lucide-react";
+import { NotificationSettingsModal } from "../common/NotificationSettingsModal";
 import api from "../../api/axios";
 import { toast } from "react-hot-toast";
 
@@ -12,12 +13,13 @@ export function ShopkeeperNewOrderPopup() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isHolding, setIsHolding] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Long press timer ref for disabling sound
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressRef = useRef(false);
 
-  const startPress = (e: React.PointerEvent) => {
+  const startPress = () => {
     isLongPressRef.current = false;
     setIsHolding(true);
     if (longPressTimerRef.current) {
@@ -147,25 +149,57 @@ export function ShopkeeperNewOrderPopup() {
                 : (isHolding ? "Hold to enable..." : "Long press (hold) to enable sound")}
             </p>
           </div>
-          <button
-            type="button"
-            className="sound-banner-close-btn text-gray-400 ml-1 hover:text-white p-1 rounded-full transition-colors z-10"
-            onMouseDown={(e) => { e.stopPropagation(); cancelPress(); }}
-            onMouseUp={(e) => e.stopPropagation()}
-            onTouchStart={(e) => { e.stopPropagation(); cancelPress(); }}
-            onTouchEnd={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setSoundBannerDismissed(true);
-            }}
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="sound-banner-close-btn text-gray-400 hover:text-white p-1 rounded-full transition-colors z-10"
+              onMouseDown={(e) => { e.stopPropagation(); cancelPress(); }}
+              onMouseUp={(e) => e.stopPropagation()}
+              onTouchStart={(e) => { e.stopPropagation(); cancelPress(); }}
+              onTouchEnd={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setIsSettingsOpen(true);
+              }}
+              title="Notification Setup & Sound Settings"
+            >
+              <Settings size={16} />
+            </button>
+            <button
+              type="button"
+              className="sound-banner-close-btn text-gray-400 hover:text-white p-1 rounded-full transition-colors z-10"
+              onMouseDown={(e) => { e.stopPropagation(); cancelPress(); }}
+              onMouseUp={(e) => e.stopPropagation()}
+              onTouchStart={(e) => { e.stopPropagation(); cancelPress(); }}
+              onTouchEnd={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setSoundBannerDismissed(true);
+              }}
+              title="Close Banner"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <NotificationSettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            audioEnabled={audioEnabled}
+            toggleAudio={toggleAudio}
+          />
         </div>
       );
     }
-    return null;
+    return (
+      <NotificationSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        audioEnabled={audioEnabled}
+        toggleAudio={toggleAudio}
+      />
+    );
   }
 
   // Fallback to last shown order data while exiting to avoid layout flashes
