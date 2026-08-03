@@ -804,7 +804,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
                       assigned: { color: "#4B5563", bg: "#F3F4F6" },
                       accepted: { color: "#1D4ED8", bg: "#EFF6FF" },
                       picking: { color: "#7C3AED", bg: "#F5F3FF" },
-                      confirmed: { color: "#7C3AED", bg: "#F5F3FF" },
+                      confirmed: { color: "#4B5563", bg: "#F3F4F6" },
                       packing: { color: "#EA580C", bg: "#FFF7ED" },
                       processing: { color: "#EA580C", bg: "#FFF7ED" },
                       ready: { color: "#0D9488", bg: "#F0FDFA" },
@@ -1073,6 +1073,8 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
           {recentOrders.map((order) => {
             const statusStyles: Record<string, { color: string; bg: string }> = {
               new: { color: "#1565C0", bg: "#E3F2FD" },
+              accepted: { color: "#1D4ED8", bg: "#EFF6FF" },
+              confirmed: { color: "#4B5563", bg: "#F3F4F6" },
               picking: { color: "#6A1B9A", bg: "#F3E5F5" },
               packing: { color: "#E65100", bg: "#FFF3E0" },
               ready: { color: "#14B8A6", bg: "#E8F5E9" },

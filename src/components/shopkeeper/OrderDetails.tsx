@@ -583,7 +583,7 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false, socke
             className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
           >
             <XCircle size={16} color="#D32F2F" />
-            <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>Reject</span>
+            <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>Ignore</span>
           </button>
           <button
             onClick={handleAccept}
