@@ -717,7 +717,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                       assigned: { color: "#4B5563", bg: "#F3F4F6" },
                       accepted: { color: "#1D4ED8", bg: "#EFF6FF" },
                       picking: { color: "#7C3AED", bg: "#F5F3FF" },
-                      confirmed: { color: "#7C3AED", bg: "#F5F3FF" },
+                      confirmed: { color: "#4B5563", bg: "#F3F4F6" },
                       packing: { color: "#EA580C", bg: "#FFF7ED" },
                       processing: { color: "#EA580C", bg: "#FFF7ED" },
                       ready: { color: "#0D9488", bg: "#F0FDFA" },
@@ -732,7 +732,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                       rejected: { color: "#DC2626", bg: "#FEF2F2" },
                     };
                     const lowerStatus = (order.status || "").toLowerCase();
-                    const isAssigned = (lowerStatus === 'new' || lowerStatus === 'placed' || lowerStatus === 'assigned' || lowerStatus === 'confirmed') && (
+                    const isAssigned = (lowerStatus === 'new' || lowerStatus === 'placed' || lowerStatus === 'assigned') && (
                       order.shopkeeper_name ||
                       order.assignedShopkeeper ||
                       order.assigned_shopkeeper ||

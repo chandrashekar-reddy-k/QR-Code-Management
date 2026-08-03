@@ -216,7 +216,7 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
                       className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border border-red-200 bg-red-50"
                     >
                       <XCircle size={16} color="#D32F2F" />
-                      <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>Reject</span>
+                      <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>Ignore</span>
                     </button>
                     <button
                       onClick={() => handleAccept(order.id)}

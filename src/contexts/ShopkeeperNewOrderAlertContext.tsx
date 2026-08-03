@@ -424,6 +424,7 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
       if (activeOrder && orderId === activeOrder.orderId && assignedId) {
         if (assignedId !== currentUserId) {
           import("react-hot-toast").then((module) => {
+            module.default.dismiss(orderId); // Clear related toast if any
             module.default.error("Order accepted by another shopkeeper.", {
               icon: "ℹ️",
               style: { background: "#333", color: "#fff" }
@@ -441,6 +442,7 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
     // If an order gets assigned to another shopkeeper, dismiss it locally
     socket.on("order:status", handleAssignmentDismissal);
     socket.on("partner:order_updated", handleAssignmentDismissal);
+    socket.on("order-claimed", handleAssignmentDismissal);
     
     socket.on("shopkeeper:order_accepted", (data: any) => {
       handleAssignmentDismissal(data);
