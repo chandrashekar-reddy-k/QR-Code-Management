@@ -327,9 +327,6 @@ export default function HomepagePromos() {
   };
 
   const filteredProducts = products.filter(p => {
-    // Only show items in stock
-    if (p.stock !== undefined && p.stock <= 0) return false;
-
     if (activeTab === 'popular') {
       return p.isFeatured;
     } else if (activeTab === 'weekly') {
@@ -505,8 +502,13 @@ export default function HomepagePromos() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-bold text-sm truncate">{product.name}</h3>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Unit: {product.unit}</p>
+                        <h3 className="font-bold text-sm truncate">
+                          {product.name}
+                          {product.stock !== undefined && product.stock <= 0 && (
+                            <span className="ml-2 text-[9px] text-red-500 font-extrabold uppercase tracking-wider">(Out of Stock)</span>
+                          )}
+                        </h3>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Unit: {product.unit} | Stock: {product.stock || 0}</p>
                       </div>
                     </div>
 
