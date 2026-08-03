@@ -16,17 +16,7 @@ type Step = "staff-scan" | "rider-scan" | "complete";
 
 export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerificationProps) {
 
-  const storedPermissions = localStorage.getItem("permissions");
-  const permissions: string[] = storedPermissions ? JSON.parse(storedPermissions) : [];
-  const hasPartner = permissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
-  const hasShopkeeper = permissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
-
-  // Staff login (determined by shopkeeper permissions, fallback if no partner modules are active)
-  const isStaffLogin = hasShopkeeper || !hasPartner;
-
-  if (isStaffLogin) {
-    return <HandoverVerificationMobile onBack={onBack} onNavigate={onNavigate} data={data} />;
-  }
+  // Mobile view removed as per user request to use the web version.
 
 
   const [step, setStep] = useState<Step>("staff-scan");

@@ -228,7 +228,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const dispatched = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'dispatched';
+      return s === 'dispatched' || s === 'picked_up' || s === 'out_for_delivery' || s === 'shipped';
     }).length;
 
     const rejected = allOrders.filter((o: any) => {
@@ -238,7 +238,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const breached = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
+      if (s === 'dispatched' || s === 'picked_up' || s === 'out_for_delivery' || s === 'shipped' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
         return false;
       }
       return getSLAInfo(o).remainingMinutes < 15;
