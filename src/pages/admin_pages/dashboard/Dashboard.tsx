@@ -178,6 +178,18 @@ const Dashboard = () => {
           setAvgOrderValue(stats.avgOrderValue ? stats.avgOrderValue.toFixed(2) : "0");
           setTotalCustomers(stats.totalCustomers ?? 0);
           setTotalSales(stats.totalSales ?? 0);
+
+          // Map new partner-specific stats
+          setTotalOrderCount(stats.totalOrders ?? 0);
+          setTotalProductsCount(stats.totalProducts ?? 0);
+          setReturnRequests(stats.returnRequests ?? 0);
+          setCategoriesPercent(stats.categoriesPercent ? Math.round(stats.categoriesPercent) : 0);
+          setActiveSellers(stats.activeSellers !== undefined ? `₹${stats.activeSellers.toFixed(2)}` : "₹0.00");
+          if (stats.chartData && stats.chartData.length > 0) {
+            setOrdersChartData(stats.chartData);
+          } else {
+            setOrdersChartData(mockOrdersChartData);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch warehouse stats:", err);
@@ -189,9 +201,10 @@ const Dashboard = () => {
         const ordersRes = await fetchData<any>(`partner/orders?page=${currentPage}&limit=${itemsPerPage}&view=shopkeeper`, "GET");
         if (ordersRes?.data?.orders) {
           orders = ordersRes.data.orders;
-          setTotalOrders(ordersRes.pagination?.total || orders.length || 38);
-          setTotalOrdersCount(ordersRes.pagination?.total || 100);
-          setTotalOrderCount(ordersRes.pagination?.total || 0);
+          const totalOrdersFromRes = ordersRes.pagination?.total !== undefined ? ordersRes.pagination.total : orders.length;
+          setTotalOrders(totalOrdersFromRes);
+          setTotalOrdersCount(totalOrdersFromRes);
+          setTotalOrderCount(totalOrdersFromRes);
 
           // Map recent orders
           const mappedOrders = orders.map((o: any, idx: number) => ({
@@ -238,25 +251,26 @@ const Dashboard = () => {
         setOrderStatusData(mockOrderStatusData);
       }
 
-      // 3. Fetch products list count
-      try {
-        const productsRes = await fetchData<any>("productmanagement/product?page=1&limit=1", "GET");
-        if (productsRes?.pagination?.total) {
-          setTotalProductsCount(productsRes.pagination.total);
+      // 3. Fetch products list count (fallback if warehouse stats doesn't return it)
+      if (stats.totalProducts === undefined) {
+        try {
+          const productsRes = await fetchData<any>("productmanagement/product?page=1&limit=1", "GET");
+          if (productsRes?.pagination?.total !== undefined) {
+            setTotalProductsCount(productsRes.pagination.total);
+          }
+        } catch (err) {
+          console.error("Failed to fetch products count:", err);
         }
-      } catch (err) {
-        console.error("Failed to fetch products count:", err);
       }
-
-      // Set default mock values for chart
-      setOrdersChartData(mockOrdersChartData);
 
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       setOrderStatusData(mockOrderStatusData);
       setRecentOrders(mockRecentOrders);
-      setOrdersChartData(mockOrdersChartData);
-      setTotalOrders(38);
+      if (!ordersChartData || ordersChartData.length === 0) {
+        setOrdersChartData(mockOrdersChartData);
+      }
+      setTotalOrders(0);
     } finally {
       setLoading(false);
     }

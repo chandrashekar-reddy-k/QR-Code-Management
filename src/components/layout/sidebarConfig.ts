@@ -189,6 +189,7 @@ export const sidebarConfig: MenuSection[] = [
     path: "/",
     label: "Dashboard",
     icon: Home,
+    permission: "Partner: Dashboard",
   },
 
   {
@@ -290,8 +291,8 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
-    permission: "Partner: Purchase Management",
-    label: "Purchase Management",
+    permission: "Partner: Procurement Management",
+    label: "Procurement Management",
     icon: ShoppingCart,
     stateKey: "isProcurementOpen",
     hasSubPermissions: true,

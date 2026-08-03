@@ -691,7 +691,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const filteredPricingSubItems = pricingSubItems.filter(() => hasModuleViewPermission("Pricing Engine"));
   const filteredProductMasterDataSubItems = productMasterDataSubItems.filter(() => hasModuleViewPermission("Product Management"));
   const filteredBarcodeSubItems = barcodeSubItems.filter(item => hasSubPermission("Barcode Management", item.label) || hasModuleViewPermission(item.label));
-  const filteredProcurementSubItems = procurementSubItems.filter(() => hasModuleViewPermission("Purchase Management"));
+  const filteredProcurementSubItems = procurementSubItems.filter(() => hasModuleViewPermission("Procurement Management"));
   const filteredPartnerSubItems = partnerSubItems.filter(() => hasModuleViewPermission("Partner Management"));
   const filteredOrdersSubItems = ordersSubItems.filter(() => hasModuleViewPermission("Orders Management"));
   const filteredSellerSubItems = sellerSubItems.filter(() => hasModuleViewPermission("Vendor Management"));
@@ -885,7 +885,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       if (!section.path || !section.label || !section.icon) return null;
 
       // Permission gate for link items
-      if (section.label !== "Dashboard" && !hasModuleViewPermission(section.permission || section.label)) {
+      if (!hasModuleViewPermission(section.permission || section.label)) {
         return null;
       }
 
@@ -1133,7 +1133,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
             if (item.hidden) return false;
             if (item.type === "link") {
               if (!item.path || !item.label) return false;
-              if (item.label === "Dashboard") return true;
+              if (item.label === "Dashboard") {
+                return hasModuleViewPermission(item.permission || item.label);
+              }
               return hasModuleViewPermission(item.permission || item.label);
             }
             if (item.type === "collapsible") {
