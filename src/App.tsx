@@ -86,6 +86,24 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
       `${parentPart}_${labelPart}_view`
     ];
 
+    if (labelPart === 'ready_for_dispatch') {
+      candidates.push(`${portal}_${parentPart}_ready_dispatch_view`);
+      candidates.push(`${parentPart}_ready_dispatch_view`);
+      candidates.push(`${portal}_ready_dispatch_view`);
+      candidates.push('ready_dispatch_view');
+      candidates.push('partner_shopkeeper_erp_ready_dispatch_view');
+      candidates.push('shopkeeper_erp_ready_dispatch_view');
+    }
+
+    if (labelPart === 'plm_settings') {
+      candidates.push(`${portal}_${parentPart}_settings_view`);
+      candidates.push(`${parentPart}_settings_view`);
+      candidates.push(`${portal}_settings_view`);
+      candidates.push('settings_view');
+      candidates.push('partner_shopkeeper_erp_settings_view');
+      candidates.push('shopkeeper_erp_settings_view');
+    }
+
     if (labelPart !== 'dashboard') {
       candidates.push(`${portal}_${labelPart}_view`);
       candidates.push(`${labelPart}_view`);
