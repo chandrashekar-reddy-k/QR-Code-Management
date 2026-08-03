@@ -17,15 +17,7 @@ interface SidebarProps {
   setIsOpen?: (open: boolean) => void; // Function to open/close sidebar
 }
 
-// Build a slug from module name using Partner: prefix
-const buildPartnerSlug = (moduleName: string): string => {
-  const prefix = "Partner: ";
-  const mappedModuleName = moduleName;
-  return (prefix + mappedModuleName)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '') + '_view';
-};
+
 
 const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const location = useLocation();
@@ -40,22 +32,24 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       const token = localStorage.getItem('partnerToken') || sessionStorage.getItem('staffToken') || localStorage.getItem('token');
       if (!token) return;
       const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
-      const res = await fetch(`${baseUrl}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${baseUrl}/api/v1/auth/me?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const data = await res.json();
       if (data.data?.accessToken) {
         localStorage.setItem('partnerToken', data.data.accessToken);
+        localStorage.setItem('token', data.data.accessToken);
+        localStorage.setItem('authToken', data.data.accessToken);
       }
       // Identity Service may return permissions as: flat array, nested user.permissions array, or object map
       const raw = data.data?.flatPermissions || data.data?.permissions || data.data?.user?.permissions || data.flatPermissions || data.permissions;
       let newPermissions: string[] | null = null;
-      if (Array.isArray(raw) && raw.length > 0) {
+      if (Array.isArray(raw)) {
         newPermissions = raw;
       } else if (raw && typeof raw === 'object') {
         // Permissions returned as an object map — flatten all values into a single array
         newPermissions = Object.values(raw).flat() as string[];
       }
-      if (newPermissions && newPermissions.length > 0) {
+      if (newPermissions && Array.isArray(newPermissions)) {
         localStorage.setItem('permissions', JSON.stringify(newPermissions));
         setPermissions(newPermissions);
       }
@@ -65,8 +59,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   useEffect(() => {
     // Fetch full permissions on mount
     refreshPermissions();
-    // Re-fetch every 2 minutes to stay fresh
-    const interval = setInterval(refreshPermissions, 120000);
+    // Re-fetch every 30 seconds to stay fresh
+    const interval = setInterval(refreshPermissions, 30000);
     // Sync from storage events (cross-tab updates)
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'permissions' && e.newValue) {
@@ -97,63 +91,24 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     // Super Admins, Tenant Owners or wildcard permission holders pass everything
     if (permissions.includes('*') || permissions.includes('ALL') || permissions.includes('all')) return true;
 
-    // If the user has any partner-level access, they have logged-in partner status.
-    // Generic Identity Service permissions (products.view, orders.view, dashboard.view)
-    // grant access to the full partner portal sidebar.
-    const hasPartnerAccess = permissions.some(p =>
-      p === 'products.view' || p === 'orders.view' || p === 'dashboard.view' ||
-      p.startsWith('partner_') || p.includes('.view')
-    );
-    if (hasPartnerAccess) return true;
+    // 1. Direct Slug matching from DB
+    const cleanName = moduleName.startsWith("Partner: ") ? moduleName.slice(9) : moduleName;
+    const slugCode = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const expectedSlug = `partner_${slugCode}_view`;
+    if (permissions.includes(expectedSlug)) return true;
 
-    // Helper to normalize strings into core semantic word roots
-    const getSemanticRoots = (str: string) => {
-      return str
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, ' ')
-        .split(' ')
-        .map(word => {
-          // Map sidebar-specific terms → Identity Service generic permission words
-          if (word === 'stock') return 'products';
-          if (word === 'inventory') return 'products';
-          if (word === 'barcode') return 'products';
-          if (word === 'pos') return 'products';
-          if (word === 'point') return 'products';    // "Point of Sales"
-          if (word === 'sales') return 'products';
-          if (word === 'reservation' || word === 'reservations') return 'orders';
-          if (word === 'withdrawal') return 'orders';
-          if (word === 'wallet') return 'orders';
-          if (word === 'transaction' || word === 'transactions') return 'orders';
-          if (word === 'purchase' || word === 'procurement') return 'orders';
-          if (word === 'pricing') return 'products';
-          if (word === 'price' || word === 'prices') return 'products';
-          if (word === 'logistics') return 'vsms';
-          if (word === 'slot' || word === 'slots') return 'vsms';
-          if (word === 'root') return 'vsms';
-          if (word === 'report' || word === 'reports') return 'orders';
-          if (word === 'staff') return 'partner';
-          if (word === 'access') return 'partner';
-          return word;
-        })
-        .filter(word => {
-          // Filter out generic noise words
-          return word && !['vsms', 'management', 'view', 'create', 'edit', 'delete', 'all', 'update', 'setup', 'and', 'erp', 'to', 'the', 'settings'].includes(word);
-        });
-    };
+    // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
+    if (slugCode.includes("barcode")) {
+      return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
+    }
+    if (slugCode.includes("pos") || slugCode.includes("point_of_sale")) {
+      return permissions.some(p => (p.toLowerCase().includes("pos") || p.toLowerCase().includes("point_of_sale")) && p.toLowerCase().includes("view"));
+    }
+    if (slugCode === 'withdrawal_request' || slugCode === 'wallet_transactions' || slugCode === 'financial' || slugCode === 'financials') {
+      return permissions.includes('partner_financial_view') || permissions.includes('partner_financials_view');
+    }
 
-    const targetRoots = getSemanticRoots(moduleName);
-    if (targetRoots.length === 0) return true; // Show items with no specific semantic constraints
-
-    // Check if any active permission in the DB matches the target roots
-    return permissions.some(perm => {
-      // Handle dot-notation (products.view) and underscore-notation (products_view)
-      const isViewPermission = perm.endsWith('_view') || perm.endsWith('.view') || 
-        perm.includes('view') || perm.endsWith('_track') || perm.endsWith('_tracking');
-      if (!isViewPermission) return false;
-
-      const permRoots = getSemanticRoots(perm);
-      return targetRoots.every(root => permRoots.includes(root));
-    });
+    return false;
   }, [permissions]);
 
   const hasSubPermission = useCallback((parent: string, label: string) => {
@@ -168,10 +123,13 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
     const candidates = [
       `${portal}_${parentPart}_${labelPart}_view`,
-      `${parentPart}_${labelPart}_view`,
-      `${portal}_${labelPart}_view`,
-      `${labelPart}_view`
+      `${parentPart}_${labelPart}_view`
     ];
+
+    if (labelPart !== 'dashboard') {
+      candidates.push(`${portal}_${labelPart}_view`);
+      candidates.push(`${labelPart}_view`);
+    }
 
     // Strip duplicate parent words from the sub-item name dynamically (e.g. "asset" in "fleet_assets" and "asset_assignment")
     const wordsInParent = parentPart.split('_');
@@ -953,7 +911,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         if (!section.hasSubPermissions) {
           return isParentAllowed;
         }
-        return hasModuleViewPermission(item.permission || item.label) || hasSubPermission(section.label, item.permission || item.label);
+        return hasModuleViewPermission(item.permission || item.label) || hasSubPermission(section.label || "", item.permission || item.label);
       });
 
       // Permission gate: Hide collapsible menu if parent module is denied AND no sub-items are allowed
@@ -1151,6 +1109,30 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       <nav className="flex-1 p-2 overflow-y-auto overflow-x-hidden sidebar-scrollbar min-h-0">
         {sidebarConfig.map((section, index) => {
           if (section.hidden) return null;
+
+          // Helper to check if a specific menu section/item is allowed to be visible
+          const checkItemVisible = (item: typeof section) => {
+            if (item.hidden) return false;
+            if (item.type === "link") {
+              if (!item.path || !item.label) return false;
+              if (item.label === "Dashboard") return true;
+              return hasModuleViewPermission(item.permission || item.label);
+            }
+            if (item.type === "collapsible") {
+              if (!item.label || !item.subItems) return false;
+              const isParentAllowed = hasModuleViewPermission(item.permission || item.label);
+              const visibleSubItems = item.subItems.filter((sub) => {
+                if (sub.hidden) return false;
+                if (!item.hasSubPermissions) {
+                  return isParentAllowed;
+                }
+                return hasModuleViewPermission(sub.permission || sub.label) || hasSubPermission(item.label || "", sub.permission || sub.label);
+              });
+              return isParentAllowed || visibleSubItems.length > 0;
+            }
+            return false;
+          };
+
           const key =
             section.sectionTitle ||
             section.path ||
@@ -1158,6 +1140,18 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
             `sidebar-${index}`;
           switch (section.type) {
             case "section":
+              // Check if there are any visible items in this section before the next section starts
+              let hasVisibleItems = false;
+              for (let i = index + 1; i < sidebarConfig.length; i++) {
+                const nextItem = sidebarConfig[i];
+                if (nextItem.type === "section") break;
+                if (checkItemVisible(nextItem)) {
+                  hasVisibleItems = true;
+                  break;
+                }
+              }
+              if (!hasVisibleItems) return null;
+
               return section.sectionTitle ? (
                 <div key={key}>{renderSectionHeader(section.sectionTitle)}</div>
               ) : null;

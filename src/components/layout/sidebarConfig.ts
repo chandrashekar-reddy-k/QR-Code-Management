@@ -485,10 +485,12 @@ export const sidebarConfig: MenuSection[] = [
     label: "Promotions and Offers",
     icon: ClipboardList,
     stateKey: "isPromotionsOffersOpen",
+    hasSubPermissions: true,
     subItems: [
       { path: "/promo-codes/manage", label: "Promo Codes", icon: Ticket },
       { path: "/banners", label: "Banners", icon: ImageIcon },
       { path: "/campaigns", label: "Campaigns", icon: Sliders },
+      { path: "/home-sliders/manage", label: "Home Sliders", icon: Sliders },
     ],
   },
 
@@ -568,6 +570,7 @@ export const sidebarConfig: MenuSection[] = [
     label: "Settings",
     icon: Settings,
     stateKey: "isSystemOpen",
+    hasSubPermissions: true,
     subItems: [
       {
         path: "/system/store-settings",
@@ -587,6 +590,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/system/contact-us", label: "Contact Us", icon: Phone },
       { path: "/system/about-us", label: "About Us", icon: Info },
       { path: "/system/seo-settings", label: "SEO Settings", icon: Globe },
+      { path: "/languages", label: "Languages", icon: Globe },
     ],
   },
 
