@@ -327,6 +327,9 @@ export default function HomepagePromos() {
   };
 
   const filteredProducts = products.filter(p => {
+    // Only show items in stock
+    if (p.stock !== undefined && p.stock <= 0) return false;
+
     if (activeTab === 'popular') {
       return p.isFeatured;
     } else if (activeTab === 'weekly') {
@@ -659,40 +662,51 @@ export default function HomepagePromos() {
             {nonPromotedProducts.length === 0 ? (
               <p className="text-center text-xs text-gray-400 py-6 italic">No other products available.</p>
             ) : (
-              nonPromotedProducts.slice(0, 10).map(product => (
-                <div 
-                  key={product.id}
-                  className="flex flex-col p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-950 border border-gray-100 dark:border-gray-800/40"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="min-w-0 pr-2">
-                      <div className="text-xs font-bold truncate text-gray-700 dark:text-gray-300">{product.name}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">Price: ₹{product.price}</div>
-                    </div>
+              nonPromotedProducts.slice(0, 10).map(product => {
+                const isOutOfStock = product.stock <= 0;
+                return (
+                  <div 
+                    key={product.id}
+                    className={`flex flex-col p-3 rounded-2xl border border-gray-100 dark:border-gray-800/40 ${
+                      isOutOfStock ? 'opacity-50 bg-gray-50/50 dark:bg-gray-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-950'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="min-w-0 pr-2">
+                        <div className="text-xs font-bold truncate text-gray-700 dark:text-gray-300">
+                          {product.name}
+                          {isOutOfStock && <span className="ml-2 text-[9px] text-red-500 font-extrabold uppercase">(Out of Stock)</span>}
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Price: ₹{product.price} | Stock: {product.stock || 0}</div>
+                      </div>
 
-                    {editingProduct === product.id ? null : activeTab === 'popular' ? (
-                      <button
-                        onClick={() => handleToggleFeatured(product)}
-                        className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
-                      >
-                        Make Popular
-                      </button>
-                    ) : activeTab === 'weekly' ? (
-                      <button
-                        onClick={() => handleToggleWeekly(product)}
-                        className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
-                      >
-                        Make Weekly
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleStartEdit(product)}
-                        className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
-                      >
-                        {activeTab === 'flash' ? 'Set Flash Deal' : 'Set Offer'}
-                      </button>
-                    )}
-                  </div>
+                      {isOutOfStock ? (
+                        <span className="px-3 py-1.5 bg-red-50 text-red-500 dark:bg-red-950/20 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                          Unavailable
+                        </span>
+                      ) : editingProduct === product.id ? null : activeTab === 'popular' ? (
+                        <button
+                          onClick={() => handleToggleFeatured(product)}
+                          className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                        >
+                          Make Popular
+                        </button>
+                      ) : activeTab === 'weekly' ? (
+                        <button
+                          onClick={() => handleToggleWeekly(product)}
+                          className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                        >
+                          Make Weekly
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleStartEdit(product)}
+                          className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                        >
+                          {activeTab === 'flash' ? 'Set Flash Deal' : 'Set Offer'}
+                        </button>
+                      )}
+                    </div>
 
                   {editingProduct === product.id && (
                     <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2 items-end">
@@ -752,8 +766,9 @@ export default function HomepagePromos() {
                     </div>
                   )}
                 </div>
-              ))
-            )}
+              );
+            })
+          )}
           </div>
         </div>
 
