@@ -55,10 +55,10 @@ export function HandoverVerification({ onBack, onNavigate, data }: HandoverVerif
     if (!order.id) return;
     setLoading(true);
     try {
-      await api.put(`/orders/${order.id}/status`, { status: 'dispatched' });
+      await api.put(`/orders/${order.id}/handover`);
       setStep("complete");
     } catch (err) {
-      console.error("Failed to update status", err);
+      console.error("Failed to complete handover", err);
     } finally {
       setLoading(false);
     }
