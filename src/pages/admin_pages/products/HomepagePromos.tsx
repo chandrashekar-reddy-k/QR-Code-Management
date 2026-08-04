@@ -46,8 +46,10 @@ export default function HomepagePromos() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['product'] });
 
-  // Load products list via the hook
-  const { data: productsRes, isFetching } = useGetAllProductList(1, 1000, searchQuery);
+  const partnerWarehouseId = localStorage.getItem('partnerWarehouseId') || '';
+
+  // Load products list via the hook - filter to only active, approved products for this partner's warehouse
+  const { data: productsRes, isFetching } = useGetAllProductList(1, 1000, searchQuery, true, "APPROVED", partnerWarehouseId);
   const products = (productsRes as any)?.data?.products ?? [];
 
   // Determine global/shared flash deal end time if there are active deals

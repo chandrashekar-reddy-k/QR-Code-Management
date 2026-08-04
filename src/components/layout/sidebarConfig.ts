@@ -486,7 +486,6 @@ export const sidebarConfig: MenuSection[] = [
     label: "Promotions and Offers",
     icon: ClipboardList,
     stateKey: "isPromotionsOffersOpen",
-    hasSubPermissions: true,
     subItems: [
       { path: "/promo-codes/manage", label: "Promo Codes", icon: Ticket },
       { path: "/banners", label: "Banners", icon: ImageIcon },
@@ -571,7 +570,6 @@ export const sidebarConfig: MenuSection[] = [
     label: "Settings",
     icon: Settings,
     stateKey: "isSystemOpen",
-    hasSubPermissions: true,
     subItems: [
       {
         path: "/system/store-settings",

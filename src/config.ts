@@ -4,11 +4,15 @@ export const CONSUMER_SOCKET_ORIGIN =
 
 /** Partner API base URL */
 export const URL =
-  import.meta.env.VITE_URL || "https://devpartnerapi.villagkart.com/api/v1/";
+  window.location.hostname === 'localhost' 
+    ? 'http://localhost:3004/api/v1/' 
+    : (import.meta.env.VITE_URL || "https://devpartnerapi.villagkart.com/api/v1/");
 
 /** Admin API base URL */
 export const URL_ADMIN =
-  import.meta.env.VITE_URL_ADMIN || "https://superadminapi.villagkart.com/api/v1/";
+  window.location.hostname === 'localhost' 
+    ? 'http://localhost:3004/api/v1/' 
+    : (import.meta.env.VITE_URL_ADMIN || "https://superadminapi.villagkart.com/api/v1/");
 
 /** Agent API base URL (served by main partner-apis, merged from vsms-agent-apis) */
 export const URL_AGENT =

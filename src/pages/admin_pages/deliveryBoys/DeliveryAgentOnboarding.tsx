@@ -442,6 +442,134 @@ const DeliveryAgentOnboarding = () => {
     role: "DELIVERY_AGENT",
   });
 
+  const handleAutofill = () => {
+    const firstNames = ["Rahul", "Amit", "Vijay", "Suresh", "Ramesh", "Deepak", "Anil", "Sunil", "Vikram", "Rajesh", "Priya", "Neha", "Anjali", "Kiran", "Jyoti"];
+    const lastNames = ["Kumar", "Sharma", "Verma", "Singh", "Patel", "Reddy", "Yadav", "Joshi", "Gupta", "Rao", "Nair", "Choudhury", "Das", "Mishra", "Mehta"];
+    const fatherNames = ["Suresh Kumar", "Ramesh Sharma", "Vijay Singh", "Anil Patel", "Babu Rao", "Narayana Reddy", "Karan Singh", "Mohan Das"];
+    const genders = ["MALE", "FEMALE", "OTHER"];
+    const maritalStatuses = ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"];
+    const domains = ["gmail.com", "yahoo.com", "outlook.com", "villagkart.com"];
+    const nationalities = ["Indian", "Nepalese", "Bhutanese"];
+
+    const getRandomElement = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+    const fName = getRandomElement(firstNames);
+    const lName = getRandomElement(lastNames);
+    const fullName = `${fName} ${lName}`;
+    const surname = lName;
+    const fatherOrSpouseName = getRandomElement(fatherNames);
+    const email = `${fName.toLowerCase()}.${lName.toLowerCase()}${Math.floor(Math.random() * 1000)}@${getRandomElement(domains)}`;
+    
+    const start = new Date();
+    start.setFullYear(start.getFullYear() - 50);
+    const end = new Date();
+    end.setFullYear(end.getFullYear() - 18);
+    const randomDate = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+    const dob = randomDate.toISOString().split("T")[0];
+
+    const phone = `${Math.floor(7000000000 + Math.random() * 3000000000)}`;
+    const alternatePhone = `${Math.floor(7000000000 + Math.random() * 3000000000)}`;
+
+    const gender = getRandomElement(genders);
+    const maritalStatus = getRandomElement(maritalStatuses);
+    const nationality = getRandomElement(nationalities);
+
+    // 1. Step 1 State
+    setS1({
+      fullName,
+      surname,
+      fatherOrSpouseName,
+      email,
+      dob,
+      gender,
+      phone,
+      alternatePhone,
+      maritalStatus,
+      nationality,
+      role: "DELIVERY_AGENT",
+    });
+
+    // 2. Step 2 State (Address Info)
+    const colonies = ["Phase 1", "Sector 3", "Vasant Nagar", "Green Hills"];
+    const mandals = ["Kukatpally", "Madhapur", "Serilingampally", "Begumpet"];
+    const states = ["Telangana", "Andhra Pradesh", "Karnataka"];
+    const cities = ["Hyderabad", "Vijayawada", "Bangalore"];
+
+    const permAddr = {
+      doorNo: `${Math.floor(10 + Math.random() * 500)}/${Math.floor(1 + Math.random() * 20)}`,
+      roadNo: `Road No. ${Math.floor(1 + Math.random() * 10)}`,
+      colony: getRandomElement(colonies),
+      mandal: getRandomElement(mandals),
+      state: getRandomElement(states),
+      city: getRandomElement(cities),
+      pincode: `${Math.floor(500001 + Math.random() * 99)}`,
+    };
+
+    setPermanentAddress(permAddr);
+    setSameAsPermanent(true);
+    setCommunicationAddress(permAddr);
+
+    // 3. Step 3 State (Education & Experience)
+    const qualifications = ["B.Tech", "MCA", "B.Sc", "B.Com", "Intermediate", "SSC"];
+    const institutions = ["JNTU", "OU", "AU", "State Board", "Chaitanya College"];
+    
+    setEducation([
+      {
+        qualification: getRandomElement(qualifications),
+        institution: getRandomElement(institutions),
+        yearOfPassing: `${2015 + Math.floor(Math.random() * 10)}`,
+        marksOrCgpa: `${70 + Math.floor(Math.random() * 25)}%`,
+      }
+    ]);
+
+    setHasExperience("yes");
+    const companies = ["Amazon Logistics", "Delhivery", "BlueDart", "Zomato", "Swiggy"];
+    const designations = ["Delivery Partner", "Logistics Associate", "Delivery Executive"];
+    setExperience([
+      {
+        organization: getRandomElement(companies),
+        designation: getRandomElement(designations),
+        fromDate: `${2018 + Math.floor(Math.random() * 3)}`,
+        toDate: `${2022 + Math.floor(Math.random() * 3)}`,
+        responsibilities: "Responsible for safe and timely delivery of shipments.",
+      }
+    ]);
+
+    // Mock pay slip files
+    const mockFile = new File(["mock content"], "pay_slip.pdf", { type: "application/pdf" });
+    setPaySlipFiles([mockFile]);
+    setExistingPaySlipUrls([]);
+
+    // 4. Step 4 State (Documents)
+    setStep4Docs(initialStep4Slots().map(slot => ({
+      ...slot,
+      fileUrl: "https://example.com/mock_doc.pdf",
+      fileName: "mock_doc.pdf",
+      uploading: false,
+    })));
+
+    // 5. Step 5 State (Bank & Settlement)
+    const banks = ["SBI", "HDFC", "ICICI", "Axis Bank", "PNB"];
+    const branches = ["Gachibowli", "Madhapur", "Kukatpally", "Ameerpet"];
+    setBank({
+      accountHolderName: fullName,
+      bankName: getRandomElement(banks),
+      branchName: getRandomElement(branches),
+      accountNumber: `${Math.floor(100000000000 + Math.random() * 900000000000)}`,
+      ifscCode: `IFSC${Math.floor(10000 + Math.random() * 90000)}`,
+      upiId: `${fName.toLowerCase()}@ybl`,
+    });
+
+    const mockChequeFile = new File(["mock cheque"], "cheque.pdf", { type: "application/pdf" });
+    setCancelledChequeFile(mockChequeFile);
+    setExistingCancelledChequeUrl("https://example.com/mock_cheque.pdf");
+    setDeclaration1(true);
+    setDeclaration2(true);
+
+    // Clear all validation errors
+    setErrors({});
+  };
+
   // Step 2 — same structure as deliveryBoys/AddDeliveryAgent
   const [permanentAddress, setPermanentAddress] =
     useState<DetailedAddressForm>(emptyDetailedAddress);
@@ -1549,7 +1677,16 @@ const DeliveryAgentOnboarding = () => {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           {isEditMode ? "Edit Delivery Agent" : "Add Delivery Agent"}
         </h1>
-        <BackButton to="/delivery-boys/manage" />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAutofill}
+            className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm flex items-center gap-1 min-h-[36px]"
+          >
+            ✨ Autofill
+          </button>
+          <BackButton to="/delivery-boys/manage" />
+        </div>
       </div>
       <div className="mb-4">
         <Breadcrumbs />

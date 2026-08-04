@@ -26,15 +26,19 @@ export default function BundleDeals() {
     items: [] // { productId, quantity, name, price }
   });
 
+  // Retrieve warehouseId from local storage or store to isolate product selection
+  const partnerWarehouseId = localStorage.getItem('partnerWarehouseId') || '';
+
   // Query products list via product management hook (1000 items limit to cover inventory list)
-  const { data: productsRes } = useGetAllProductList(1, 1000);
+  // Filtering: active (true) and APPROVED status only, restricted to partner's warehouse
+  const { data: productsRes } = useGetAllProductList(1, 1000, "", true, "APPROVED", partnerWarehouseId);
   const products = (productsRes as any)?.data?.products ?? [];
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch bundles
-      const bundleRes = await adminAPI.getBundles();
+      // showAll=true: admin portal should always see all own bundles (no storefront product filter)
+      const bundleRes = await adminAPI.getBundles({ showAll: 'true' });
       setBundles(bundleRes.data?.data || []);
     } catch (error) {
       console.error(error);

@@ -7,7 +7,7 @@ import { URL as configURL } from '../../../../config';
 const fetchMe = async () => {
   const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
   if (!token) return null;
-  const baseURL = configURL || '';
+  const baseURL = window.location.hostname === 'localhost' ? 'http://localhost:3004/api/v1' : (configURL || '');
   const cleanBaseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
   const { data } = await axios.get(`${cleanBaseURL}/vsms/auth/me`, {
     headers: { Authorization: `Bearer ${token}` }
@@ -108,17 +108,27 @@ export const useUserStore = create(
         const user = get().user;
         if (!user) return false;
 
-        const permsKeys = Object.keys(user.permissions || {});
-        const hasShopkeeper = permsKeys.some(p => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
-        const hasPartner = permsKeys.some(p => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
+        let hasPartner = false;
+        let hasShopkeeper = false;
+        if (Array.isArray(user.permissions)) {
+          hasPartner = user.permissions.some(p => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
+          hasShopkeeper = user.permissions.some(p => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
+        } else if (user.permissions && typeof user.permissions === 'object') {
+          const permsKeys = Object.keys(user.permissions);
+          hasPartner = permsKeys.some(p => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
+          hasShopkeeper = permsKeys.some(p => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
+        }
 
         // Super Admins, Tenant Owners, Global Admins, Partners, or Users without customRoleId bypass all permission gates
+        const normalizedRole = user.role ? user.role.trim().toUpperCase() : '';
         if (
-          user.role === 'SUPER_ADMIN' ||
-          user.role === 'TENANT_OWNER' ||
+          normalizedRole === 'SUPER_ADMIN' ||
+          normalizedRole === 'TENANT_OWNER' ||
+          normalizedRole === 'PARTNER' ||
+          normalizedRole === 'SHOPKEEPER' ||
           hasPartner ||
           hasShopkeeper ||
-          (user.role === 'ADMIN' && !user.customRoleId) ||
+          (normalizedRole === 'ADMIN' && !user.customRoleId) ||
           user.portalType === 'ADMIN'
         ) {
           return true;

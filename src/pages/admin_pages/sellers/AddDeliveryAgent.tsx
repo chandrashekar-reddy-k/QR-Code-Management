@@ -23,6 +23,98 @@ const AddDeliveryAgent = () => {
   const [declaration1, setDeclaration1] = useState(false);
   const [declaration2, setDeclaration2] = useState(false);
 
+  // Step 1 Form State
+  const [formData, setFormData] = useState({
+    fullName: "",
+    surname: "",
+    fatherSpouseName: "",
+    emailId: "",
+    dob: "",
+    gender: "",
+    mobileNumber: "",
+    alternateMobileNumber: "",
+    maritalStatus: "",
+    nationality: "Indian",
+    portalType: "delivery_agent_portal",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateStep1 = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.fullName.trim()) newErrors.fullName = "Full Name is required";
+    if (!formData.surname.trim()) newErrors.surname = "Surname is required";
+    if (!formData.fatherSpouseName.trim()) newErrors.fatherSpouseName = "Father's / Spouse Name is required";
+    if (!formData.emailId.trim()) {
+      newErrors.emailId = "Email ID is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.emailId)) {
+      newErrors.emailId = "Email ID is invalid";
+    }
+    if (!formData.dob) newErrors.dob = "Date of Birth is required";
+    if (!formData.gender) newErrors.gender = "Gender is required";
+    if (!formData.mobileNumber.trim()) {
+      newErrors.mobileNumber = "Mobile Number is required";
+    } else if (!/^\d{10}$/.test(formData.mobileNumber)) {
+      newErrors.mobileNumber = "Mobile Number must be 10 digits";
+    }
+    if (formData.alternateMobileNumber && !/^\d{10}$/.test(formData.alternateMobileNumber)) {
+      newErrors.alternateMobileNumber = "Alternate Mobile Number must be 10 digits";
+    }
+    if (!formData.maritalStatus) newErrors.maritalStatus = "Marital Status is required";
+    if (!formData.portalType) newErrors.portalType = "Portal Type is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAutofill = () => {
+    const firstNames = ["Rahul", "Amit", "Vijay", "Suresh", "Ramesh", "Deepak", "Anil", "Sunil", "Vikram", "Rajesh", "Priya", "Neha", "Anjali", "Kiran", "Jyoti"];
+    const lastNames = ["Kumar", "Sharma", "Verma", "Singh", "Patel", "Reddy", "Yadav", "Joshi", "Gupta", "Rao", "Nair", "Choudhury", "Das", "Mishra", "Mehta"];
+    const fatherNames = ["Suresh Kumar", "Ramesh Sharma", "Vijay Singh", "Anil Patel", "Babu Rao", "Narayana Reddy", "Karan Singh", "Mohan Das"];
+    const genders = ["male", "female", "other"];
+    const maritalStatuses = ["single", "married", "divorced", "widowed"];
+    const domains = ["gmail.com", "yahoo.com", "outlook.com", "villagkart.com"];
+    const nationalities = ["Indian", "Nepalese", "Bhutanese"];
+
+    const getRandomElement = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+    const fName = getRandomElement(firstNames);
+    const lName = getRandomElement(lastNames);
+    const fullName = `${fName} ${lName}`;
+    const surname = lName;
+    const fatherSpouseName = getRandomElement(fatherNames);
+    const emailId = `${fName.toLowerCase()}.${lName.toLowerCase()}${Math.floor(Math.random() * 1000)}@${getRandomElement(domains)}`;
+    
+    const start = new Date();
+    start.setFullYear(start.getFullYear() - 50);
+    const end = new Date();
+    end.setFullYear(end.getFullYear() - 18);
+    const randomDate = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+    const dob = randomDate.toISOString().split("T")[0];
+
+    const mobileNumber = `${Math.floor(7000000000 + Math.random() * 3000000000)}`;
+    const alternateMobileNumber = `${Math.floor(7000000000 + Math.random() * 3000000000)}`;
+
+    const gender = getRandomElement(genders);
+    const maritalStatus = getRandomElement(maritalStatuses);
+    const nationality = getRandomElement(nationalities);
+
+    setFormData({
+      fullName,
+      surname,
+      fatherSpouseName,
+      emailId,
+      dob,
+      gender,
+      mobileNumber,
+      alternateMobileNumber,
+      maritalStatus,
+      nationality,
+      portalType: "delivery_agent_portal",
+    });
+
+    setErrors({});
+  };
+
   // Check if step is completed
   const isStepCompleted = (step: number): boolean => {
     return completedSteps.includes(step);
@@ -37,6 +129,11 @@ const AddDeliveryAgent = () => {
 
   // Handle next step
   const handleNext = () => {
+    if (currentStep === 1) {
+      if (!validateStep1()) {
+        return;
+      }
+    }
     setCompletedSteps([...completedSteps, currentStep]);
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
@@ -124,7 +221,18 @@ const AddDeliveryAgent = () => {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Add Delivery Agent
         </h1>
-        <BackButton to="/delivery-boys/manage" />
+        <div className="flex items-center gap-2">
+          {currentStep === 1 && (
+            <button
+              type="button"
+              onClick={handleAutofill}
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm flex items-center gap-1 min-h-[36px]"
+            >
+              ✨ Autofill
+            </button>
+          )}
+          <BackButton to="/delivery-boys/manage" />
+        </div>
       </div>
 
       {/* Breadcrumbs */}
@@ -229,36 +337,62 @@ const AddDeliveryAgent = () => {
                   <TextInput
                     label="Full Name"
                     type="text"
-                    placeholder="Enter Name"
+                    placeholder="Enter full name"
+                    required
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    error={errors.fullName}
                   />
 
                   <TextInput
-                    label="Surname"
+                    label="Sur Name"
                     type="text"
-                    placeholder="Enter Name"
+                    placeholder="Enter surname"
+                    required
+                    value={formData.surname}
+                    onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
+                    error={errors.surname}
                   />
 
                   <TextInput
                     label="Father's / Spouse Name"
                     type="text"
-                    placeholder="Enter Email ID"
+                    placeholder="Enter name"
+                    required
+                    value={formData.fatherSpouseName}
+                    onChange={(e) => setFormData({ ...formData, fatherSpouseName: e.target.value })}
+                    error={errors.fatherSpouseName}
                   />
 
                   {/* Row 2 */}
                   <TextInput
-                    label="EmailID"
+                    label="Email ID"
                     type="email"
-                    placeholder="Enter Email ID"
+                    placeholder="Enter email address"
+                    required
+                    value={formData.emailId}
+                    onChange={(e) => setFormData({ ...formData, emailId: e.target.value })}
+                    error={errors.emailId}
                   />
 
                   <TextInput
-                    label="Date of Birth"
-                    type="text"
-                    placeholder="Date of birth"
+                    label="Date Of Birth"
+                    type="date"
+                    placeholder="dd-mm-yyyy"
+                    required
+                    value={formData.dob}
+                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                    error={errors.dob}
                   />
 
-                  <SelectInput label="Gender">
-                    <option value="">Gender</option>
+                  <SelectInput
+                    label="Gender"
+                    required
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    error={errors.gender}
+                    placeholder="Select Gender"
+                  >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
@@ -268,17 +402,34 @@ const AddDeliveryAgent = () => {
                   <TextInput
                     label="Mobile Number"
                     type="tel"
-                    placeholder="Enter Mobile Number"
+                    placeholder="Enter mobile number"
+                    onlyNumbers
+                    maxLength={10}
+                    required
+                    value={formData.mobileNumber}
+                    onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
+                    error={errors.mobileNumber}
                   />
 
                   <TextInput
                     label="Alternate Mobile Number"
                     type="tel"
-                    placeholder="Enter Email ID"
+                    placeholder="Enter alternate mobile number"
+                    onlyNumbers
+                    maxLength={10}
+                    value={formData.alternateMobileNumber}
+                    onChange={(e) => setFormData({ ...formData, alternateMobileNumber: e.target.value })}
+                    error={errors.alternateMobileNumber}
                   />
 
-                  <SelectInput label="Marital Status">
-                    <option value="">Select</option>
+                  <SelectInput
+                    label="Marital Status"
+                    required
+                    value={formData.maritalStatus}
+                    onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })}
+                    error={errors.maritalStatus}
+                    placeholder="Select Marital Status"
+                  >
                     <option value="single">Single</option>
                     <option value="married">Married</option>
                     <option value="divorced">Divorced</option>
@@ -286,10 +437,23 @@ const AddDeliveryAgent = () => {
                   </SelectInput>
 
                   {/* Row 4 */}
-                  <SelectInput label="Nationality">
-                    <option value="">Select</option>
-                    <option value="indian">Indian</option>
-                    <option value="other">Other</option>
+                  <TextInput
+                    label="Nationality"
+                    type="text"
+                    placeholder="e.g. Indian"
+                    value={formData.nationality}
+                    onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                  />
+
+                  <SelectInput
+                    label="Portal Type"
+                    required
+                    value={formData.portalType}
+                    onChange={(e) => setFormData({ ...formData, portalType: e.target.value })}
+                    error={errors.portalType}
+                    disabled
+                  >
+                    <option value="delivery_agent_portal">Delivery Agent Portal</option>
                   </SelectInput>
                 </div>
               </FormSection>
