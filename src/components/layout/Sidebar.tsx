@@ -117,6 +117,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_inventory_management_view') || permissions.includes('partner_stock_history_view')) return true;
     }
 
+    // Shopkeeper fallback — old slug was 'shopkeeper_erp_admin', keep supporting it
+    if (slugCode === 'shopkeeper') {
+      if (permissions.includes('partner_shopkeeper_erp_admin_view') || permissions.includes('partner_shopkeeper_erp_view') || permissions.includes('partner_shopkeeper_view')) return true;
+    }
+
     // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
@@ -237,6 +242,13 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       candidates.push(`${portal}_${cleanParentPart}_${cleanLabelPart}_view`);
       candidates.push(`${cleanParentPart}_${labelPart}_view`);
       candidates.push(`${cleanParentPart}_${cleanLabelPart}_view`);
+    }
+
+    // Shopkeeper backward-compat: old DB slugs used 'shopkeeper_erp_admin' as parent
+    if (parentPart === 'shopkeeper') {
+      candidates.push(`partner_shopkeeper_erp_admin_${labelPart}_view`);
+      candidates.push(`partner_shopkeeper_erp_${labelPart}_view`);
+      candidates.push(`shopkeeper_erp_admin_${labelPart}_view`);
     }
 
     return candidates.some(candidate => permissions.includes(candidate));
@@ -778,8 +790,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const filteredOrdersSubItems = ordersSubItems.filter(() => hasModuleViewPermission("Orders Management"));
   const filteredSellerSubItems = sellerSubItems.filter(() => hasModuleViewPermission("Vendor Management"));
   const filteredStaffSubItems = staffSubItems.filter(() => hasModuleViewPermission("Staff Management"));
-  const filteredShopkeeperSubItems = (typeof shopkeeperSubItems !== 'undefined' ? shopkeeperSubItems : []).filter(item => hasSubPermission("Shopkeeper ERP (Admin)", item.label));
-  const filteredShopkeeperErpAdminSubItems = shopkeeperErpAdminSubItems.filter(item => hasSubPermission("Shopkeeper ERP (Admin)", item.label));
+  const filteredShopkeeperSubItems = (typeof shopkeeperSubItems !== 'undefined' ? shopkeeperSubItems : []).filter(item => hasSubPermission("Shopkeeper", item.label));
+  const filteredShopkeeperErpAdminSubItems = shopkeeperErpAdminSubItems.filter(item => hasSubPermission("Shopkeeper", item.label));
   const filteredDeliveryBoySubItems = deliveryBoySubItems.filter(() => hasModuleViewPermission("Delivery Management"));
   const filteredPromotionsSubItems = promotionsSubItems.filter(() => hasModuleViewPermission("Promotions & Offers"));
   const filteredVsmsSubItems = vsmsSubItems.filter(item => {
