@@ -446,6 +446,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/banners", label: "Banners", icon: ImageIcon },
       { path: "/campaigns", label: "Campaigns", icon: Sliders },
       { path: "/home-sliders/manage", label: "Home Sliders", icon: Sliders },
+    ],
   },
 
   {
