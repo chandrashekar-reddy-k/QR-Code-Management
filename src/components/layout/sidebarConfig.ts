@@ -213,18 +213,18 @@ export const sidebarConfig: MenuSection[] = [
   },
 
   // Access Management
-  {
-    type: "link",
-    permission: "Partner: Access Management",
-    path: "/access-management",
-    label: "Role Management",
-    icon: Shield,
-  },
+  // {
+  //   type: "link",
+  //   permission: "Partner: Access Management",
+  //   path: "/access-management",
+  //   label: "Role Management",
+  //   icon: Shield,
+  // },
   // Staff Management
   {
     type: "collapsible",
     permission: "Partner: Staff Management",
-    label: "User Management",
+    label: "Staff Management",
     icon: Users,
     stateKey: "isStaffManagementOpen",
     activeCheck: activeCheckers.isStaffManagementActive,
@@ -347,7 +347,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/stock', label: 'Stock Management', icon: Boxes },
     ],
   },
-// kjsghjkdsfhgk
+  // kjsghjkdsfhgk
   // Delivery Settings
   {
     type: "collapsible",
