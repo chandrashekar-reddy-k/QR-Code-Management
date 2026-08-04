@@ -186,10 +186,15 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     if (parentPart === 'inventory_management') {
       candidates.push(`partner_vsms_logistics_${labelPart}_view`);
       candidates.push(`vsms_logistics_${labelPart}_view`);
+      // If user has module-level access, show all sub-items
+      candidates.push('partner_inventory_management_view');
+      candidates.push('partner_vsms_logistics_view');
+      candidates.push('partner_vsms_view');
       if (labelPart === 'vehicle_stock_audits') {
         candidates.push('partner_vsms_stock_history_view');
         candidates.push('partner_stock_history_view');
         candidates.push('partner_vsms_logistics_stock_history_view');
+        candidates.push('partner_inventory_management_vehicle_stock_audits_view');
       }
     }
 
