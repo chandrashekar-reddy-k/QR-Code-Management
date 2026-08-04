@@ -120,7 +120,7 @@ export default function AdminVehicles() {
       setLoading(true);
       const [vRes, uRes, sRes, stockRes, auditRes] = await Promise.all([
         adminAPI.getVehicles({ storeId: storeFilterId }),
-        adminAPI.getUsers({ storeId: storeFilterId }),
+        adminAPI.getVehicleAgents({ storeId: storeFilterId }),
         adminAPI.getStores(),
         adminAPI.getInventoryInit({ storeId: storeFilterId }),
         adminAPI.getAuditHistory({ storeId: storeFilterId })

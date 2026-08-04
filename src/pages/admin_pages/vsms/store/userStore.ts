@@ -61,16 +61,26 @@ export const useUserStore = create(
         try {
           const data = await fetchMe();
           if (!data) return;
-          set({
-            user: {
-              ...data,
-              permissions: data.customRole?.permissions || data.permissions || null,
-              customRoleName: data.customRoleName || data.customRole?.name || null,
-              portalType: data.portalType || data.customRole?.portalType || null,
-              customRoleId: data.customRoleId || data.customRole?.id || null,
-              storeId: data.storeId || data.warehouseId || null,
-            }
-          });
+          
+          const whId = data.warehouseId || data.storeId || (data.store && data.store.id) || null;
+          if (whId) {
+            localStorage.setItem('partnerWarehouseId', whId);
+          }
+          
+          const updatedUser = {
+            ...data,
+            permissions: data.customRole?.permissions || data.permissions || null,
+            customRoleName: data.customRoleName || data.customRole?.name || null,
+            portalType: data.portalType || data.customRole?.portalType || null,
+            customRoleId: data.customRoleId || data.customRole?.id || null,
+            storeId: whId,
+            warehouseId: whId,
+          };
+          
+          localStorage.setItem('partnerUser', JSON.stringify(updatedUser));
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          set({ user: updatedUser });
         } catch (error) {
           console.error('Failed to refresh user profile:', error);
         }
