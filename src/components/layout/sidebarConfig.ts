@@ -282,6 +282,7 @@ export const sidebarConfig: MenuSection[] = [
         icon: Banknote,
       },
       { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
+      { path: '/inventory/monitoring/reservations', label: 'Reservations', icon: Clock },
     ],
   },
   // User Management
@@ -415,13 +416,14 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/shopkeeper-erp?tab=settings', label: 'PLM Settings', icon: Settings }
     ]
   },
-  {
-    type: "link",
-    permission: "Partner: Reservations",
-    path: "/inventory/monitoring/reservations",
-    label: "Reservations",
-    icon: Clock,
-  },
+  // Reservations moved into Order Management
+  // {
+  //   type: "link",
+  //   permission: "Partner: Reservations",
+  //   path: "/inventory/monitoring/reservations",
+  //   label: "Reservations",
+  //   icon: Clock,
+  // },
   {
     type: "collapsible",
     permission: "Partner: Pricing Engine",
@@ -537,10 +539,10 @@ export const sidebarConfig: MenuSection[] = [
   // },
 
   // FINANCIAL Section
-  {
-    type: "section",
-    sectionTitle: "FINANCIAL",
-  },
+  // {
+  //   type: "section",
+  //   sectionTitle: "FINANCIAL",
+  // },
   // {
   //   type: "link",
   //   permission: "Partner: Withdrawal Request",
@@ -585,18 +587,18 @@ export const sidebarConfig: MenuSection[] = [
   // },
 
 
-  {
-    type: "collapsible",
-    permission: "Partner: VSMS Logistics",
-    label: "VSMS Logistics",
-    icon: Truck,
-    stateKey: "isVsmsOpen",
-    hasSubPermissions: true,
-    subItems: [
-      // { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },
-      // { path: '/vsms/sales', label: 'Sales History', icon: Receipt }, // moved to Order Management
-    ],
-  },
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: VSMS Logistics",
+  //   label: "VSMS Logistics",
+  //   icon: Truck,
+  //   stateKey: "isVsmsOpen",
+  //   hasSubPermissions: true,
+  //   subItems: [
+  //     // { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },
+  //     // { path: '/vsms/sales', label: 'Sales History', icon: Receipt }, // moved to Order Management
+  //   ],
+  // },
   // {
   //   type: "collapsible",
   //   permission: "Partner: Fleet Assets",
