@@ -179,6 +179,8 @@ export const initialStateCheckers = {
     pathname.startsWith("/pricing"),
   isBarcodeOpen: (pathname: string) =>
     pathname.startsWith("/vsms/barcodes"),
+  isRouteManagementOpen: (pathname: string) =>
+    pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage",
 };
 
 // Menu configuration
@@ -190,6 +192,20 @@ export const sidebarConfig: MenuSection[] = [
     label: "Dashboard",
     icon: Home,
     permission: "Partner: Dashboard",
+  },
+
+  // Route Management
+  {
+    type: "collapsible",
+    permission: "Partner: Route Management",
+    label: "Route Management",
+    icon: Map,
+    stateKey: "isRouteManagementOpen",
+    hasSubPermissions: true,
+    subItems: [
+      { path: '/vsms/vehicles', label: 'Fleet Vehicles', icon: Truck },
+      { path: '/vsms/routes-coverage', label: 'Routes & Coverage', icon: MapPin },
+    ],
   },
 
   {
@@ -533,10 +549,8 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isVsmsOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/vsms/vehicles', label: 'Fleet Vehicles', icon: Truck },
       { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
       { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
-      { path: '/vsms/routes-coverage', label: 'Routes & Coverage', icon: MapPin },
       { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
       { path: '/vsms/cash-management', label: 'Cash Management', icon: Wallet },
       // { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },

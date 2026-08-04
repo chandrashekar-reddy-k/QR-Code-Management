@@ -97,6 +97,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     const expectedSlug = `partner_${slugCode}_view`;
     if (permissions.includes(expectedSlug)) return true;
 
+    // Route Management fallback to VSMS Logistics
+    if (slugCode === 'route_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_route_management_view')) return true;
+    }
+
     // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
@@ -126,6 +131,23 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       `${parentPart}_${labelPart}_view`
     ];
 
+    if (parentPart === 'route_management') {
+      candidates.push(`partner_vsms_logistics_${labelPart}_view`);
+      candidates.push(`vsms_logistics_${labelPart}_view`);
+      if (labelPart === 'fleet_vehicles') {
+        candidates.push('partner_vsms_logistics_vehicles_view');
+        candidates.push('partner_vehicles_view');
+        candidates.push('partner_fleet_vehicles_view');
+        candidates.push('partner_vsms_vehicles_view');
+      }
+      if (labelPart === 'routes_coverage') {
+        candidates.push('partner_vsms_logistics_routes_view');
+        candidates.push('partner_routes_view');
+        candidates.push('partner_routes_coverage_view');
+        candidates.push('partner_vsms_routes_view');
+      }
+    }
+
     if (labelPart === 'ready_for_dispatch') {
       candidates.push(`${portal}_${parentPart}_ready_dispatch_view`);
       candidates.push(`${parentPart}_ready_dispatch_view`);
@@ -145,6 +167,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     }
 
     if (labelPart !== 'dashboard') {
+      candidates.push(`${portal}_text_${labelPart}_view`);
+      candidates.push(`${portal}__${labelPart}_view`);
       candidates.push(`${portal}_${labelPart}_view`);
       candidates.push(`${labelPart}_view`);
     }
@@ -282,6 +306,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   );
   const [isVsmsOpen, setIsVsmsOpen] = useState(false);
   const [isAssetsOpen, setIsAssetsOpen] = useState(false);
+  const [isRouteManagementOpen, setIsRouteManagementOpen] = useState(
+    location.pathname === '/vsms/vehicles' || location.pathname === '/vsms/routes-coverage'
+  );
 
   // ============================================
   // STATE MAPS - For dynamic state access
@@ -310,6 +337,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen: setIsProcurementOpen,
       isVsmsOpen: setIsVsmsOpen,
       isAssetsOpen: setIsAssetsOpen,
+      isRouteManagementOpen: setIsRouteManagementOpen,
     }),
     []
   );
@@ -337,6 +365,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen,
       isVsmsOpen,
       isAssetsOpen,
+      isRouteManagementOpen,
     }),
     [
       isProductsOpen,
@@ -360,6 +389,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen,
       isVsmsOpen,
       isAssetsOpen,
+      isRouteManagementOpen,
     ]
   );
 
