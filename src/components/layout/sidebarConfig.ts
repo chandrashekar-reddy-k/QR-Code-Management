@@ -259,6 +259,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
     ],
   },
+  {
     type: "collapsible",
     permission: "Partner: Shopkeeper ERP (Admin)",
     label: "Shopkeeper ERP (Admin)",
