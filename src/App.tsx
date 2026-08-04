@@ -73,6 +73,11 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_vehicle_management_view')) return true;
     }
 
+    // Cash Management fallback to VSMS Logistics
+    if (slugCode === 'cash_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_cash_management_view')) return true;
+    }
+
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
     }
