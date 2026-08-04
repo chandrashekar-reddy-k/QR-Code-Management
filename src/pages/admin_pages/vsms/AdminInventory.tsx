@@ -1801,7 +1801,7 @@ export default function AdminInventory() {
                       else if (subTab === 'tracking') label = 'Vehicle Stock';
                       else if (subTab === 'refills') label = 'Refills';
                       else if (subTab === 'audits') label = 'Audit History';
-                      else if (subTab === 'opening') label = 'Opening Stock';
+                      // Opening Stock tab removed from UI
                     }
                     return activeTab === 'main_master' ? label : `${storePrefix}${label}`;
                   })()}
@@ -1933,7 +1933,6 @@ export default function AdminInventory() {
                   { id: 'tracking', label: 'Vehicle Stock', icon: Package },
                   { id: 'refills', label: 'Refills', icon: RefreshCw },
                   { id: 'audits', label: 'Audit History', icon: ClipboardList },
-                  { id: 'opening', label: 'Opening Stock', icon: PlusCircle },
                 ].map(tab => {
                   const Icon = tab.icon;
                   const isActive = subTab === tab.id;
@@ -2042,7 +2041,7 @@ export default function AdminInventory() {
               {subTab === 'tracking' && renderTracking()}
               {subTab === 'refills' && renderRefills()}
               {subTab === 'audits' && renderAuditHistory()}
-              {subTab === 'opening' && renderOpeningStock()}
+              {/* Opening Stock tab removed from navigation — renderOpeningStock() preserved for reference */}
             </>
           )}
 
