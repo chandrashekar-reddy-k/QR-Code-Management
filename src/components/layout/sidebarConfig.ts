@@ -346,7 +346,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
     ],
   },
-
+// kjsghjkdsfhgk
   // Delivery Settings
   {
     type: "collapsible",
