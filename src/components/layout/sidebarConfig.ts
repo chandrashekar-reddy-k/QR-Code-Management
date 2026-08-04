@@ -281,6 +281,7 @@ export const sidebarConfig: MenuSection[] = [
         label: "Refunds",
         icon: Banknote,
       },
+      { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
     ],
   },
   // User Management
@@ -593,7 +594,7 @@ export const sidebarConfig: MenuSection[] = [
     hasSubPermissions: true,
     subItems: [
       // { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },
-      { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
+      // { path: '/vsms/sales', label: 'Sales History', icon: Receipt }, // moved to Order Management
     ],
   },
   // {
