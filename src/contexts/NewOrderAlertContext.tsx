@@ -230,7 +230,41 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   // 4. handleIncomingOrder — normalise + deduplicate + enqueue
   //    Does NOT call playAlarm() — alarm fires in queue processor below.
   // -----------------------------------------------------------------------
-  const handleIncomingOrder = useCallback((rawOrder: any) => {
+interface RawIncomingOrder {
+  id?: string;
+  orderId?: string;
+  order_id?: string;
+  orderNumber?: string;
+  order_number?: string;
+  placedAt?: string;
+  created_at?: string;
+  createdAt?: string;
+  autoConfirmAt?: string;
+  status?: string;
+  customer_name?: string;
+  customerName?: string;
+  userName?: string;
+  customer_phone?: string;
+  customerPhone?: string;
+  phone?: string;
+  payment_method?: string;
+  paymentMethod?: string;
+  paymentMode?: string;
+  address?: string | { line1?: string; line2?: string; city?: string; state?: string; pincode?: string };
+  deliveryAddress?: string | { line1?: string; line2?: string; city?: string; state?: string; pincode?: string };
+  delivery_address?: string | { line1?: string; line2?: string; city?: string; state?: string; pincode?: string };
+  total_amount?: number | string;
+  totalAmount?: number | string;
+  total?: number | string;
+  item_count?: number;
+  itemCount?: number;
+  items?: unknown[];
+  fulfillmentType?: string;
+  deliveryType?: string;
+  order_type?: string;
+}
+
+  const handleIncomingOrder = useCallback((rawOrder: RawIncomingOrder) => {
     const orderId = String(
       rawOrder.id       ||
       rawOrder.orderId  ||
@@ -288,7 +322,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
             window.focus();
             notif.close();
           };
-        } catch (err) {
+        } catch {
           if ("serviceWorker" in navigator) {
             navigator.serviceWorker.ready.then((reg) => {
               reg.showNotification("🚨 NEW ORDER RECEIVED!", {
@@ -307,7 +341,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
 
   // Debug helper: testNewOrder() in browser console
   useEffect(() => {
-    (window as any).testNewOrder = () =>
+    (window as Window & { testNewOrder?: () => void }).testNewOrder = () =>
       handleIncomingOrder({
         id:            `TEST-${Math.floor(Math.random() * 99999)}`,
         orderNumber:   `VK-${Math.floor(Math.random() * 99999)}`,
@@ -317,7 +351,9 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         autoConfirmAt: new Date(Date.now() + 30_000).toISOString(),
         placedAt:      new Date().toISOString(),
       });
-    return () => { delete (window as any).testNewOrder; };
+    return () => {
+      (window as Window & { testNewOrder?: unknown }).testNewOrder = undefined;
+    };
   }, [handleIncomingOrder]);
 
   // -----------------------------------------------------------------------
@@ -379,14 +415,14 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         api.get("partner/orders/pickup-store?page=1&limit=50"),
       ]);
 
-      let orders: any[] = [];
+      const orders: Record<string, unknown>[] = [];
       if (dRes.status === "fulfilled") {
         const d = dRes.value.data?.data?.orders || dRes.value.data?.orders || [];
-        if (Array.isArray(d)) orders.push(...d);
+        if (Array.isArray(d)) orders.push(...d as Record<string, unknown>[]);
       }
       if (pRes.status === "fulfilled") {
         const p = pRes.value.data?.data?.orders || pRes.value.data?.orders || [];
-        if (Array.isArray(p)) orders.push(...p);
+        if (Array.isArray(p)) orders.push(...p as Record<string, unknown>[]);
       }
 
       let newC = 0, pendingC = 0, confirmedC = 0, completedC = 0;
@@ -399,7 +435,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         completedC = s.ready   || 0;
       } catch {
         for (const o of orders) {
-          const s = o.status?.toUpperCase() || "";
+          const s = (o.status as string)?.toUpperCase() || "";
           if (s === "PLACED") newC++;
           else if (s === "PENDING") pendingC++;
           else if (["CONFIRMED","ACCEPTED","PICKING","PACKING","READY_FOR_PICKUP"].includes(s)) confirmedC++;
@@ -408,8 +444,9 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
       }
 
       setTodayStats({ newCount: newC, pendingCount: pendingC, confirmedCount: confirmedC, completedCount: completedC });
-    } catch (err: any) {
-      if (err?.response?.status !== 401) console.warn("[STATS] Fetch failed:", err?.message);
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number }; message?: string };
+      if (error?.response?.status !== 401) console.warn("[STATS] Fetch failed:", error?.message);
     }
   }, []);
 
@@ -417,10 +454,10 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
     try {
       try {
         await api.put(`/orders/${orderId}/accept`);
-      } catch (err1) {
+      } catch {
         try {
           await api.put(`/partner/orders/${orderId}/status`, { status: "CONFIRMED" });
-        } catch (err2) {
+        } catch {
           await api.put(`/orders/${orderId}/status`, { status: "CONFIRMED" });
         }
       }
@@ -450,7 +487,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
           api.get("partner/orders/pickup-store?status=PLACED&limit=10"),
         ]);
 
-        const polled: any[] = [];
+        const polled: Record<string, unknown>[] = [];
         if (dRes.status === "fulfilled") {
           const d = dRes.value.data?.data?.orders || dRes.value.data?.orders || [];
           if (Array.isArray(d)) polled.push(...d);
@@ -516,18 +553,18 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
     socketRef.current = socket;
 
     socket.on("connect",       ()    => console.log("[SOCKET] Connected to /partner namespace"));
-    socket.on("connect_error", (err) => console.error("[SOCKET] Connection error:", err.message));
-    socket.onAny((event: string, ...args: any[]) => console.log("[SOCKET EVENT]", event, args));
+    socket.on("connect_error", (err: { message: string }) => console.error("[SOCKET] Connection error:", err.message));
+    socket.onAny((event: string, ...args: unknown[]) => console.log("[SOCKET EVENT]", event, args));
 
     const newOrderEvents = ["partner:new_order", "order:new", "order:created", "partner:order_created", "NEW_ORDER"];
     newOrderEvents.forEach((ev) =>
-      socket.on(ev, (data: any) => {
+      socket.on(ev, (data: unknown) => {
         console.log(`[SOCKET] ${ev} received`);
-        handleIncomingOrder(data);
+        handleIncomingOrder(data as RawIncomingOrder);
       })
     );
 
-    socket.on("partner:order_updated", (data: any) => {
+    socket.on("partner:order_updated", (data: { status?: string; orderId?: string; id?: string }) => {
       refetchStats();
       if (
         activeOrder &&

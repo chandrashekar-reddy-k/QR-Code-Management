@@ -25,7 +25,7 @@ import { SharedOrdersContext, useSharedOrders } from "../components/shopkeeper/S
 import { openHRMSPortal } from "../utils/hrmsSSO";
 import { ShopkeeperNewOrderAlertProvider } from "../contexts/ShopkeeperNewOrderAlertContext";
 import { ShopkeeperNewOrderPopup } from "../components/shopkeeper/ShopkeeperNewOrderPopup";
-let hrmsWindowRef: Window | null = null;
+const hrmsWindowRef: Window | null = null;
 // Local API Client instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_URL || "http://localhost:3004/api/v1",
@@ -97,22 +97,24 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
         if (skId && typeof skId === 'object' && skId.id) skId = skId.id;
 
         const shopkeeperOrders = skId
-          ? allOrders.filter((o: any) => {
+          ? allOrders.filter((o: Record<string, unknown>) => {
               let oAssignedId = o.assignedShopkeeperId || o.assigned_shopkeeper_id || o.shopkeeper_id;
-              if (oAssignedId && typeof oAssignedId === 'object' && oAssignedId.id) oAssignedId = oAssignedId.id;
+              if (oAssignedId && typeof oAssignedId === 'object' && 'id' in oAssignedId) {
+                oAssignedId = (oAssignedId as { id: string }).id;
+              }
               return String(oAssignedId) === String(skId);
             })
           : [];
 
         const total = shopkeeperOrders.length;
         const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
-        const completed = shopkeeperOrders.filter((o: any) => {
-          const s = o.status?.toLowerCase();
+        const completed = shopkeeperOrders.filter((o: Record<string, unknown>) => {
+          const s = (o.status as string)?.toLowerCase();
           return s === 'dispatched' || handedOverIds.map(String).includes(String(o.id || o.order_number));
         }).length;
-        const breached = shopkeeperOrders.filter((o: any) => getSLAInfo(o).isBreached).length;
+        const breached = shopkeeperOrders.filter((o: Record<string, unknown>) => getSLAInfo(o).isBreached).length;
         const slaPercent = total > 0 ? Math.round(((total - breached) / total) * 100) : 100;
-        const selfPickup = shopkeeperOrders.filter((o: any) => o.order_type === 'Self Pickup' && o.status === 'ready').length;
+        const selfPickup = shopkeeperOrders.filter((o: Record<string, unknown>) => o.order_type === 'Self Pickup' && o.status === 'ready').length;
 
         setStats({ orders: total, completed, sla: slaPercent, selfPickup });
       } catch (err) {
@@ -193,9 +195,9 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-gray-800 dark:text-gray-200 font-medium text-sm">{item.label}</p>
-                    {("badge" in item && (item as any).badge > 0) && (
+                    {("badge" in item && (item as { badge?: number }).badge !== undefined && ((item as { badge?: number }).badge || 0) > 0) && (
                       <span className="bg-[#EF5A06] text-white rounded-full px-2 py-0.5 text-[10px] font-bold">
-                        {(item as any).badge}
+                        {(item as { badge?: number }).badge}
                       </span>
                     )}
                   </div>
@@ -244,7 +246,7 @@ export default function ShopkeeperERP() {
   const location = useLocation();
   const reactNavigate = useReactNavigate();
 
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const socket = useSocket(1);
 
@@ -252,14 +254,14 @@ export default function ShopkeeperERP() {
     try {
       const endpoint = `/orders?view=shopkeeper&limit=100&_t=${Date.now()}`;
       const res = await api.get(endpoint);
-      const resData = res.data;
-      let rawOrders: any[] = [];
+      const resData = res.data as { data?: { orders?: Record<string, unknown>[] } | Record<string, unknown>[]; orders?: Record<string, unknown>[] };
+      let rawOrders: Record<string, unknown>[] = [];
       if (Array.isArray(resData)) {
         rawOrders = resData;
-      } else if (resData && Array.isArray(resData.data)) {
-        rawOrders = resData.data;
-      } else if (resData && resData.data && Array.isArray(resData.data.orders)) {
-        rawOrders = resData.data.orders;
+      } else if (resData && Array.isArray((resData as { data?: Record<string, unknown>[] }).data)) {
+        rawOrders = (resData as { data?: Record<string, unknown>[] }).data || [];
+      } else if (resData && resData.data && Array.isArray((resData.data as { orders?: Record<string, unknown>[] }).orders)) {
+        rawOrders = (resData.data as { orders?: Record<string, unknown>[] }).orders || [];
       } else if (resData && Array.isArray(resData.orders)) {
         rawOrders = resData.orders;
       }
@@ -280,9 +282,9 @@ export default function ShopkeeperERP() {
       }
 
       // Sort filteredOrders latest first (descending order by date/createdAt)
-      filteredOrders.sort((a: any, b: any) => {
-        const timeA = new Date(a.created_at || a.createdAt || a.orderDate || 0).getTime();
-        const timeB = new Date(b.created_at || b.createdAt || b.orderDate || 0).getTime();
+      filteredOrders.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+        const timeA = new Date((a.created_at || a.createdAt || a.orderDate || 0) as string).getTime();
+        const timeB = new Date((b.created_at || b.createdAt || b.orderDate || 0) as string).getTime();
         if (timeA !== timeB) return timeB - timeA;
         return String(b.id || b.order_number || "").localeCompare(String(a.id || a.order_number || ""));
       });
@@ -298,18 +300,19 @@ export default function ShopkeeperERP() {
   useEffect(() => {
     fetchOrders();
     const interval = setInterval(fetchOrders, 5000);
-    if (socket.current) {
-      socket.current.on('order:status', fetchOrders);
-      socket.current.on('order:new', fetchOrders);
+    const currentSocket = socket.current;
+    if (currentSocket) {
+      currentSocket.on('order:status', fetchOrders);
+      currentSocket.on('order:new', fetchOrders);
     }
     return () => {
       clearInterval(interval);
-      if (socket.current) {
-        socket.current.off('order:status', fetchOrders);
-        socket.current.off('order:new', fetchOrders);
+      if (currentSocket) {
+        currentSocket.off('order:status', fetchOrders);
+        currentSocket.off('order:new', fetchOrders);
       }
     };
-  }, [socket.current]);
+  }, [socket]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("staffToken");
@@ -338,7 +341,9 @@ export default function ShopkeeperERP() {
       if (hrmsWindowRef && !hrmsWindowRef.closed) {
         try {
           hrmsWindowRef.close();
-        } catch (err) {}
+        } catch (err) {
+          console.warn("HRMS window cleanup error:", err);
+        }
       }
     };
     window.addEventListener('beforeunload', handleUnload);
@@ -440,12 +445,12 @@ export default function ShopkeeperERP() {
 
         {/* Dynamic Screens (re-mounted on navigation) */}
         {screen === "orderhistory" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
-        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} socket={socket} />}
-        {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
-        {screen === "barcode-verification" && <BarcodeVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
-        {screen === "picking-complete" && <PickingComplete onNavigate={navigate} data={orderData as any} />}
-        {screen === "packing-screen" && <PackingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
-        {screen === "handover-verification" && <HandoverVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
+        {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as Record<string, unknown>} socket={socket} />}
+        {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as Record<string, unknown>} />}
+        {screen === "barcode-verification" && <BarcodeVerification onBack={goBack} onNavigate={navigate} data={orderData as Record<string, unknown>} />}
+        {screen === "picking-complete" && <PickingComplete onNavigate={navigate} data={orderData as Record<string, unknown>} />}
+        {screen === "packing-screen" && <PackingScreen onNavigate={navigate} onBack={goBack} order={orderData as Record<string, unknown>} />}
+        {screen === "handover-verification" && <HandoverVerification onBack={goBack} onNavigate={navigate} data={orderData as Record<string, unknown>} />}
       </div>
     );
   };
@@ -454,7 +459,9 @@ export default function ShopkeeperERP() {
     let permissions: string[] = [];
     try {
       permissions = JSON.parse(localStorage.getItem("permissions") || "[]");
-    } catch (e) {}
+    } catch (err) {
+      console.warn("Failed to parse permissions", err);
+    }
     
     const slugMap: Record<string, string> = {
       "dashboard": "shopkeeper_dashboard_view",

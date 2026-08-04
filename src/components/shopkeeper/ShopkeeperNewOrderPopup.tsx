@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useShopkeeperNewOrderAlert } from "../../contexts/ShopkeeperNewOrderAlertContext";
 import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2, Check, XCircle, Settings } from "lucide-react";
 import { NotificationSettingsModal } from "../common/NotificationSettingsModal";
@@ -66,6 +66,15 @@ export function ShopkeeperNewOrderPopup() {
     }
   }, [activeOrder, currentOrderId]);
 
+  const handleClose = useCallback((rejected = false) => {
+    if (!activeOrder) return;
+    setIsExiting(true);
+    setTimeout(() => {
+      dismissAlert(activeOrder.orderId, rejected);
+      setIsExiting(false);
+    }, 250);
+  }, [activeOrder, dismissAlert]);
+
   // Timer logic
   useEffect(() => {
     if (!activeOrder || isExiting || isAccepting) return;
@@ -82,16 +91,7 @@ export function ShopkeeperNewOrderPopup() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeOrder, isExiting, isAccepting, timeLeft]);
-
-  const handleClose = (rejected = false) => {
-    if (!activeOrder) return;
-    setIsExiting(true);
-    setTimeout(() => {
-      dismissAlert(activeOrder.orderId, rejected);
-      setIsExiting(false);
-    }, 250);
-  };
+  }, [activeOrder, isExiting, isAccepting, timeLeft, handleClose]);
 
   const handleAccept = async () => {
     if (!activeOrder) return;
@@ -102,8 +102,9 @@ export function ShopkeeperNewOrderPopup() {
       // Once accepted, we dismiss it (not rejected, but handled)
       handleClose(false);
       // Let the socket event trigger fetchOrders in the background
-    } catch (error: any) {
-      if (error.response?.status === 409) {
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number } };
+      if (err.response?.status === 409) {
         toast.error("Order accepted by another shopkeeper");
         handleClose(false);
       } else {
@@ -127,7 +128,9 @@ export function ShopkeeperNewOrderPopup() {
           localStorage.setItem('shopkeeperRejectedIds', JSON.stringify(saved));
           window.dispatchEvent(new Event('shopkeeperRejectedIdsUpdated'));
         }
-      } catch (e) {}
+      } catch (err) {
+        console.warn("Failed to update rejected ids in localStorage", err);
+      }
 
       await refreshOrders();
     } catch (e) {

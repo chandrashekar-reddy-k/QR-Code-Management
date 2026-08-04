@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
 import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2, Settings } from "lucide-react";
 import { NotificationSettingsModal } from "./NotificationSettingsModal";
@@ -62,20 +62,20 @@ export function OmsNewOrderAlertOverlay() {
     }
   }, [activeOrder, currentOrderId]);
 
-  // Handle countdown hitting 0
-  useEffect(() => {
-    if (countdown === 0 && activeOrder && !isExiting) {
-      handleClose();
-    }
-  }, [countdown, activeOrder, isExiting]);
-
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsExiting(true);
     setTimeout(() => {
       dismissAlert();
       setIsExiting(false);
     }, 250);
-  };
+  }, [dismissAlert]);
+
+  // Handle countdown hitting 0
+  useEffect(() => {
+    if (countdown === 0 && activeOrder && !isExiting) {
+      handleClose();
+    }
+  }, [countdown, activeOrder, isExiting, handleClose]);
 
   if (location.pathname.startsWith('/shopkeeper')) {
     return null;
@@ -195,7 +195,7 @@ export function OmsNewOrderAlertOverlay() {
         handleClose();
         setIsAccepting(false);
       }, 350);
-    } catch (err) {
+    } catch {
       setIsAccepting(false);
     }
   };
