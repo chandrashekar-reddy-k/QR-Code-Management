@@ -63,6 +63,11 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
     const expectedSlug = `partner_${slugCode}_view`;
     if (permissions.includes(expectedSlug)) return true;
 
+    // Route Management fallback to VSMS Logistics
+    if (slugCode === 'route_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_route_management_view')) return true;
+    }
+
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
     }
@@ -86,6 +91,23 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
       `${parentPart}_${labelPart}_view`
     ];
 
+    if (parentPart === 'route_management') {
+      candidates.push(`partner_vsms_logistics_${labelPart}_view`);
+      candidates.push(`vsms_logistics_${labelPart}_view`);
+      if (labelPart === 'fleet_vehicles') {
+        candidates.push('partner_vsms_logistics_vehicles_view');
+        candidates.push('partner_vehicles_view');
+        candidates.push('partner_fleet_vehicles_view');
+        candidates.push('partner_vsms_vehicles_view');
+      }
+      if (labelPart === 'routes_coverage') {
+        candidates.push('partner_vsms_logistics_routes_view');
+        candidates.push('partner_routes_view');
+        candidates.push('partner_routes_coverage_view');
+        candidates.push('partner_vsms_routes_view');
+      }
+    }
+
     if (labelPart === 'ready_for_dispatch') {
       candidates.push(`${portal}_${parentPart}_ready_dispatch_view`);
       candidates.push(`${parentPart}_ready_dispatch_view`);
@@ -105,6 +127,8 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
     }
 
     if (labelPart !== 'dashboard') {
+      candidates.push(`${portal}_text_${labelPart}_view`);
+      candidates.push(`${portal}__${labelPart}_view`);
       candidates.push(`${portal}_${labelPart}_view`);
       candidates.push(`${labelPart}_view`);
     }
