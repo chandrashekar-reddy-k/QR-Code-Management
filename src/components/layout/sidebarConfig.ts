@@ -399,7 +399,7 @@ export const sidebarConfig: MenuSection[] = [
   {
     type: "collapsible",
     permission: "Partner: Shopkeeper ERP (Admin)",
-    label: "Shopkeeper ERP (Admin)",
+    label: "Shopkeeper",
     icon: Store,
     stateKey: "isShopkeeperErpAdminOpen",
     hasSubPermissions: true,
