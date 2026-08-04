@@ -181,6 +181,8 @@ export const initialStateCheckers = {
     pathname.startsWith("/vsms/barcodes"),
   isRouteManagementOpen: (pathname: string) =>
     pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage",
+  isVehicleManagementOpen: (pathname: string) =>
+    pathname === "/vsms/fuel-maintenance" || pathname === "/vsms/damages",
 };
 
 // Menu configuration
@@ -208,7 +210,55 @@ export const sidebarConfig: MenuSection[] = [
     ],
   },
 
+  // Access Management
   {
+    type: "link",
+    permission: "Partner: Access Management",
+    path: "/access-management",
+    label: "Role Management",
+    icon: Shield,
+  },
+
+  // User Management
+  {
+    type: "collapsible",
+    permission: "Partner: User Management",
+    label: "User Management",
+    icon: Users,
+    stateKey: "isUserManagementOpen",
+    activeCheck: activeCheckers.isUserManagementActive,
+    subItems: [
+      {
+        path: "/user-management/customers",
+        label: "Customers",
+        icon: Users,
+      },
+      {
+        path: "/user-management/customer-categories",
+        label: "Customer Categories",
+        icon: Tag,
+      },
+      // Hidden as per sidebar screenshots
+      // { path: '/delivery-boys/requests', label: 'Delivery agent', icon: Truck, hidden: true },
+      // { path: '/vendors/requests', label: 'Vendors', icon: Store, hidden: true },
+      // { path: '/user-management/admins', label: 'Admins', icon: UserCog, hidden: true },
+      // { path: '/user-management/partners', label: 'Partners', icon: Handshake, hidden: true },
+    ],
+  },
+
+  // Vehicle Management
+  {
+    type: "collapsible",
+    permission: "Partner: Vehicle Management",
+    label: "Vehicle Management",
+    icon: Truck,
+    stateKey: "isVehicleManagementOpen",
+    hasSubPermissions: true,
+    subItems: [
+      { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
+      { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
+    ],
+  },
     type: "collapsible",
     permission: "Partner: Shopkeeper ERP (Admin)",
     label: "Shopkeeper ERP (Admin)",
@@ -402,32 +452,7 @@ export const sidebarConfig: MenuSection[] = [
     ],
   },
 
-  // User Management
-  // {
-  //   type: "collapsible",
-  //   permission: "Partner: User Management",
-  //   label: "User Management",
-  //   icon: Users,
-  //   stateKey: "isUserManagementOpen",
-  //   activeCheck: activeCheckers.isUserManagementActive,
-  //   subItems: [
-  //     {
-  //       path: "/user-management/customers",
-  //       label: "Customers",
-  //       icon: Users,
-  //     },
-  //     {
-  //       path: "/user-management/customer-categories",
-  //       label: "Customer Categories",
-  //       icon: Tag,
-  //     },
-  //     // Hidden as per sidebar screenshots
-  //     // { path: '/delivery-boys/requests', label: 'Delivery agent', icon: Truck, hidden: true },
-  //     // { path: '/vendors/requests', label: 'Vendors', icon: Store, hidden: true },
-  //     // { path: '/user-management/admins', label: 'Admins', icon: UserCog, hidden: true },
-  //     // { path: '/user-management/partners', label: 'Partners', icon: Handshake, hidden: true },
-  //   ],
-  // },
+
 
   // Delivery Settings
   {
@@ -549,8 +574,6 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isVsmsOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
-      { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
       { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
       { path: '/vsms/cash-management', label: 'Cash Management', icon: Wallet },
       // { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },

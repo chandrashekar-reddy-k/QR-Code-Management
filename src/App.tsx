@@ -68,6 +68,11 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_route_management_view')) return true;
     }
 
+    // Vehicle Management fallback to VSMS Logistics
+    if (slugCode === 'vehicle_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_vehicle_management_view')) return true;
+    }
+
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
     }
@@ -105,6 +110,21 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
         candidates.push('partner_routes_view');
         candidates.push('partner_routes_coverage_view');
         candidates.push('partner_vsms_routes_view');
+      }
+    }
+
+    if (parentPart === 'vehicle_management') {
+      candidates.push(`partner_vsms_logistics_${labelPart}_view`);
+      candidates.push(`vsms_logistics_${labelPart}_view`);
+      if (labelPart === 'fuel_maintenance') {
+        candidates.push('partner_vsms_logistics_fuel_maintenance_view');
+        candidates.push('partner_fuel_maintenance_view');
+        candidates.push('partner_vsms_fuel_maintenance_view');
+      }
+      if (labelPart === 'vehicle_damages') {
+        candidates.push('partner_vsms_logistics_damages_view');
+        candidates.push('partner_damages_view');
+        candidates.push('partner_vsms_damages_view');
       }
     }
 
