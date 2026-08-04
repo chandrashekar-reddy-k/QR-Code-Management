@@ -112,6 +112,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_cash_management_view')) return true;
     }
 
+    // Inventory Management fallback to VSMS Logistics
+    if (slugCode === 'inventory_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_inventory_management_view') || permissions.includes('partner_stock_history_view')) return true;
+    }
+
     // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
@@ -170,6 +175,16 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         candidates.push('partner_vsms_logistics_damages_view');
         candidates.push('partner_damages_view');
         candidates.push('partner_vsms_damages_view');
+      }
+    }
+
+    if (parentPart === 'inventory_management') {
+      candidates.push(`partner_vsms_logistics_${labelPart}_view`);
+      candidates.push(`vsms_logistics_${labelPart}_view`);
+      if (labelPart === 'vehicle_stock_audits') {
+        candidates.push('partner_vsms_stock_history_view');
+        candidates.push('partner_stock_history_view');
+        candidates.push('partner_vsms_logistics_stock_history_view');
       }
     }
 
@@ -337,6 +352,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isVehicleManagementOpen, setIsVehicleManagementOpen] = useState(
     location.pathname === '/vsms/fuel-maintenance' || location.pathname === '/vsms/damages'
   );
+  const [isInventoryManagementOpen, setIsInventoryManagementOpen] = useState(
+    location.pathname === '/vsms/stock-history'
+  );
 
   // ============================================
   // STATE MAPS - For dynamic state access
@@ -367,6 +385,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen: setIsAssetsOpen,
       isRouteManagementOpen: setIsRouteManagementOpen,
       isVehicleManagementOpen: setIsVehicleManagementOpen,
+      isInventoryManagementOpen: setIsInventoryManagementOpen,
     }),
     []
   );
@@ -396,6 +415,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
       isRouteManagementOpen,
       isVehicleManagementOpen,
+      isInventoryManagementOpen,
     }),
     [
       isProductsOpen,
@@ -421,6 +441,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
       isRouteManagementOpen,
       isVehicleManagementOpen,
+      isInventoryManagementOpen,
     ]
   );
 

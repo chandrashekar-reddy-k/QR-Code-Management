@@ -183,6 +183,8 @@ export const initialStateCheckers = {
     pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage",
   isVehicleManagementOpen: (pathname: string) =>
     pathname === "/vsms/fuel-maintenance" || pathname === "/vsms/damages",
+  isInventoryManagementOpen: (pathname: string) =>
+    pathname === "/vsms/stock-history",
 };
 
 // Menu configuration
@@ -327,6 +329,19 @@ export const sidebarConfig: MenuSection[] = [
       // Hidden as per sidebar screenshots
       // { path: '/products/approve', label: 'Approve Requests', icon: CheckCircle, hidden: true },
       // { path: '/products/ratings', label: 'Product Ratings', icon: Star, hidden: true },
+    ],
+  },
+
+  // Inventory Management
+  {
+    type: "collapsible",
+    permission: "Partner: Inventory Management",
+    label: "Inventory Management",
+    icon: Boxes,
+    stateKey: "isInventoryManagementOpen",
+    hasSubPermissions: true,
+    subItems: [
+      { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
     ],
   },
 
@@ -577,7 +592,6 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isVsmsOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
       // { path: '/vsms/pos', label: 'Point of Sale', icon: ScanLine },
       { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
     ],
