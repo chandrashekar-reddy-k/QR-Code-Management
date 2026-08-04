@@ -344,6 +344,7 @@ export const sidebarConfig: MenuSection[] = [
     hasSubPermissions: true,
     subItems: [
       { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
+      { path: '/stock', label: 'Stock Management', icon: Boxes },
     ],
   },
 // kjsghjkdsfhgk
@@ -475,14 +476,15 @@ export const sidebarConfig: MenuSection[] = [
     icon: Wallet,
   },
 
-  {
-    type: "link",
-    permission: "Partner: Stock Management",
-    path: "/stock",
-    label: "Stock Management",
-    icon: Boxes,
-    activeCheck: activeCheckers.isStockManagementActive,
-  },
+  // Stock Management moved into Inventory Management
+  // {
+  //   type: "link",
+  //   permission: "Partner: Stock Management",
+  //   path: "/stock",
+  //   label: "Stock Management",
+  //   icon: Boxes,
+  //   activeCheck: activeCheckers.isStockManagementActive,
+  // },
 
   {
     type: "collapsible",

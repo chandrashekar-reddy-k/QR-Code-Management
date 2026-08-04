@@ -196,6 +196,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         candidates.push('partner_vsms_logistics_stock_history_view');
         candidates.push('partner_inventory_management_vehicle_stock_audits_view');
       }
+      if (labelPart === 'stock_management') {
+        candidates.push('partner_stock_management_view');
+        candidates.push('partner_stock_view');
+        candidates.push('stock_management_view');
+      }
     }
 
     if (labelPart === 'ready_for_dispatch') {
