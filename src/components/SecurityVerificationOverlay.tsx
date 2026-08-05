@@ -82,7 +82,8 @@ export default function SecurityVerificationOverlay({ user, onVerified }: Securi
       return;
     }
 
-    const apiBase = import.meta.env.VITE_URL || "http://localhost:3004/api/v1/";
+    const rawApiBase = import.meta.env.VITE_URL || "http://localhost:3004/api/v1/";
+    const apiBase = rawApiBase.endsWith("/") ? rawApiBase : `${rawApiBase}/`;
 
     setOtpSending(true);
     try {
@@ -123,7 +124,8 @@ export default function SecurityVerificationOverlay({ user, onVerified }: Securi
       return;
     }
 
-    const apiBase = import.meta.env.VITE_URL || "http://localhost:3004/api/v1/";
+    const rawApiBase = import.meta.env.VITE_URL || "http://localhost:3004/api/v1/";
+    const apiBase = rawApiBase.endsWith("/") ? rawApiBase : `${rawApiBase}/`;
 
     setOtpVerifying(true);
     try {
