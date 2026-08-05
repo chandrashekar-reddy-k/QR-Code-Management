@@ -514,11 +514,17 @@ const ImportProducts = () => {
       return next;
     });
 
-    if (!checked && product) {
+    if (product) {
       setSelectedVariantIds((prev) => {
         const next = new Set(prev);
         (product.variants ?? []).forEach((v) => {
-          if (v.isImported !== true) next.delete(String(v.id));
+          if (v.isImported !== true) {
+            if (checked) {
+              next.add(String(v.id));
+            } else {
+              next.delete(String(v.id));
+            }
+          }
         });
         return next;
       });

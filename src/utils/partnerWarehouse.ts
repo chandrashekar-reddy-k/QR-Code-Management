@@ -22,6 +22,8 @@ export function extractWarehouseIdFromUser(user: unknown): string | undefined {
   const direct =
     asId(u.warehouseId) ||
     asId(u.warehouse_id) ||
+    asId(u.storeId) ||
+    asId(u.store_id) ||
     asId(u.partnerWarehouseId) ||
     asId(u.partner_warehouse_id) ||
     asId(u.defaultWarehouseId) ||

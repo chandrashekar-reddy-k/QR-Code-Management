@@ -26,15 +26,19 @@ export default function BundleDeals() {
     items: [] // { productId, quantity, name, price }
   });
 
+  // Retrieve warehouseId from local storage or store to isolate product selection
+  const partnerWarehouseId = localStorage.getItem('partnerWarehouseId') || '';
+
   // Query products list via product management hook (1000 items limit to cover inventory list)
-  const { data: productsRes } = useGetAllProductList(1, 1000);
+  // Filtering: active (true) and APPROVED status only, restricted to partner's warehouse
+  const { data: productsRes } = useGetAllProductList(1, 1000, "", true, "APPROVED", partnerWarehouseId);
   const products = (productsRes as any)?.data?.products ?? [];
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch bundles
-      const bundleRes = await adminAPI.getBundles();
+      // showAll=true: admin portal should always see all own bundles (no storefront product filter)
+      const bundleRes = await adminAPI.getBundles({ showAll: 'true' });
       setBundles(bundleRes.data?.data || []);
     } catch (error) {
       console.error(error);
@@ -437,17 +441,31 @@ export default function BundleDeals() {
                   {/* Dropdown options */}
                   {filteredProductOptions.length > 0 && (
                     <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl max-h-48 overflow-y-auto z-10 p-2 space-y-1">
-                      {filteredProductOptions.map(p => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => handleAddProductToBundle(p)}
-                          className="w-full text-left px-4 py-2.5 hover:bg-violet-50 dark:hover:bg-violet-950/20 hover:text-violet-600 rounded-xl text-xs font-bold transition-all flex justify-between items-center"
-                        >
-                          <span>{p.name}</span>
-                          <span className="text-gray-400">₹{p.price}</span>
-                        </button>
-                      ))}
+                      {filteredProductOptions.map(p => {
+                        const isOutOfStock = p.stock <= 0;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            disabled={isOutOfStock}
+                            onClick={() => handleAddProductToBundle(p)}
+                            className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex justify-between items-center ${
+                              isOutOfStock 
+                                ? 'opacity-50 cursor-not-allowed bg-gray-50/50 dark:bg-gray-900/20' 
+                                : 'hover:bg-violet-50 dark:hover:bg-violet-950/20 hover:text-violet-600'
+                            }`}
+                          >
+                            <span>
+                              {p.name}
+                              {isOutOfStock && <span className="ml-2 text-[10px] text-red-500 font-extrabold uppercase">(Out of Stock)</span>}
+                            </span>
+                            <span className="text-gray-400">
+                              ₹{p.price}
+                              {!isOutOfStock ? ` (Stock: ${p.stock})` : ' (Stock: 0)'}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

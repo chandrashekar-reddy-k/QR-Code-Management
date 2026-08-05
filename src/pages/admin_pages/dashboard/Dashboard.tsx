@@ -26,6 +26,7 @@ import { usePartnerRealtimeSocket } from "../../../hooks/usePartnerRealtimeSocke
 import BusinessSettingsModal from "../../../components/common/BusinessSettingsModal";
 import { kpiIcons } from "../../../assets/icons";
 import { IconWrapper } from "../../../components/ui/Icon";
+import fetchData from "../../../helper";
 
 // Global size constants for KPI cards (first 4 cards)
 const KPI_CARD_HEIGHT = "135px";
@@ -35,8 +36,6 @@ const KPI_CARD_CLASSES = `bg-white rounded-xl shadow-md border border-gray-200 p
 const SECONDARY_KPI_CARD_HEIGHT = "125px";
 const SECONDARY_KPI_CARD_CLASSES = `bg-white rounded-xl shadow-md border border-gray-200 p-4 flex flex-col justify-between`;
 
-
-
 const Dashboard = () => {
   usePartnerRealtimeSocket();
   const [loading, setLoading] = useState(true);
@@ -44,7 +43,22 @@ const Dashboard = () => {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const totalOrdersCount = 100;
+  const [totalOrdersCount, setTotalOrdersCount] = useState(100);
+
+  // Dynamic KPI states
+  const [totalCustomers, setTotalCustomers] = useState<number>(40689);
+  const [totalOrderCount, setTotalOrderCount] = useState<number>(10293);
+  const [totalSales, setTotalSales] = useState<number>(89000);
+  const [totalProductsCount, setTotalProductsCount] = useState<number>(2040);
+
+  const [todayOrders, setTodayOrders] = useState<number>(250);
+  const [todayRevenue, setTodayRevenue] = useState<number>(150);
+  const [activeSellers, setActiveSellers] = useState<string>("₹86.50");
+  const [pendingOrders, setPendingOrders] = useState<number>(320);
+  const [avgOrderValue, setAvgOrderValue] = useState<string>("1,250");
+  const [returnRequests, setReturnRequests] = useState<number>(430);
+  const [deliveryBoysPercent, setDeliveryBoysPercent] = useState<number>(92);
+  const [categoriesPercent, setCategoriesPercent] = useState<number>(18);
 
   // Chart states
   const [timeFilter, setTimeFilter] = useState<
@@ -121,7 +135,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   // Open Business Settings automatically based on login data flag `categoriesPresent`
   // If categoriesPresent === true  -> don't show popup
@@ -150,14 +164,113 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      setOrderStatusData(mockOrderStatusData);
-      setRecentOrders(mockRecentOrders);
+
+      // 1. Fetch warehouse stats
+      let stats: any = {};
+      try {
+        const statsRes = await fetchData<any>("partner/orders/warehouse-stats", "GET");
+        if (statsRes?.data) {
+          stats = statsRes.data;
+          setTodayOrders(stats.todayOrders ?? 0);
+          setPendingOrders(stats.pending ?? 0);
+          setDeliveryBoysPercent(stats.slaSuccessRate ? Math.round(stats.slaSuccessRate) : 100);
+          setTodayRevenue(stats.todayRevenue ?? 0);
+          setAvgOrderValue(stats.avgOrderValue ? stats.avgOrderValue.toFixed(2) : "0");
+          setTotalCustomers(stats.totalCustomers ?? 0);
+          setTotalSales(stats.totalSales ?? 0);
+
+          // Map new partner-specific stats
+          setTotalOrderCount(stats.totalOrders ?? 0);
+          setTotalProductsCount(stats.totalProducts ?? 0);
+          setReturnRequests(stats.returnRequests ?? 0);
+          setCategoriesPercent(stats.categoriesPercent ? Math.round(stats.categoriesPercent) : 0);
+          setActiveSellers(stats.activeSellers !== undefined ? `₹${stats.activeSellers.toFixed(2)}` : "₹0.00");
+          if (stats.chartData && stats.chartData.length > 0) {
+            setOrdersChartData(stats.chartData);
+          } else {
+            setOrdersChartData(mockOrdersChartData);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch warehouse stats:", err);
+      }
+
+      // 2. Fetch recent orders
+      let orders: any[] = [];
+      try {
+        const ordersRes = await fetchData<any>(`partner/orders?page=${currentPage}&limit=${itemsPerPage}&view=shopkeeper`, "GET");
+        if (ordersRes?.data?.orders) {
+          orders = ordersRes.data.orders;
+          const totalOrdersFromRes = ordersRes.pagination?.total !== undefined ? ordersRes.pagination.total : orders.length;
+          setTotalOrders(totalOrdersFromRes);
+          setTotalOrdersCount(totalOrdersFromRes);
+          setTotalOrderCount(totalOrdersFromRes);
+
+          // Map recent orders
+          const mappedOrders = orders.map((o: any, idx: number) => ({
+            id: o.orderNumber || o.id || idx + 1,
+            user: o.consumer?.name || "Customer",
+            phone: o.consumer?.phone || "-",
+            deliveryAddress: o.address ? `${o.address.line1 || ""}, ${o.address.city || ""}, ${o.address.pincode || ""}` : "-",
+            paymentMethod: o.payment?.method || "-",
+            deliveryPartner: o.assignedShopkeeper?.name || "-",
+            status: o.status === "CONFIRMED" ? "New Order" : o.status === "PROCESSING" ? "Packed" : o.status === "READY_FOR_PICKUP" ? "Shipped" : o.status === "DELIVERED" ? "Delivered" : o.status,
+            dateTime: o.createdAt ? new Date(o.createdAt).toLocaleString() : "12-11-2025, 10:00 AM",
+          }));
+          setRecentOrders(mappedOrders);
+
+          // Calculate dynamic orderStatusData from countByStatus if available
+          if (ordersRes.data.statusCounts) {
+            const counts = ordersRes.data.statusCounts;
+            const delivered = counts.DELIVERED || 0;
+            const cancelled = counts.CANCELLED || 0;
+            const processing = (counts.PROCESSING || 0) + (counts.ACCEPTED || 0);
+            const pending = (counts.PENDING || 0) + (counts.PLACED || 0) + (counts.CONFIRMED || 0);
+            const total = delivered + cancelled + processing + pending;
+
+            if (total > 0) {
+              setOrderStatusData([
+                { name: "Delivered", value: Math.round((delivered / total) * 100), color: "#00891D" },
+                { name: "Cancelled", value: Math.round((cancelled / total) * 100), color: "#FF0000" },
+                { name: "Processing", value: Math.round((processing / total) * 100), color: "#F59E0B" },
+                { name: "Pending", value: Math.round((pending / total) * 100), color: "#EF5A06" },
+              ]);
+            } else {
+              setOrderStatusData(mockOrderStatusData);
+            }
+          } else {
+            setOrderStatusData(mockOrderStatusData);
+          }
+        } else {
+          setRecentOrders(mockRecentOrders);
+          setOrderStatusData(mockOrderStatusData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recent orders:", err);
+        setRecentOrders(mockRecentOrders);
+        setOrderStatusData(mockOrderStatusData);
+      }
+
+      // 3. Fetch products list count (fallback if warehouse stats doesn't return it)
+      if (stats.totalProducts === undefined) {
+        try {
+          const productsRes = await fetchData<any>("productmanagement/product?page=1&limit=1", "GET");
+          if (productsRes?.pagination?.total !== undefined) {
+            setTotalProductsCount(productsRes.pagination.total);
+          }
+        } catch (err) {
+          console.error("Failed to fetch products count:", err);
+        }
+      }
+
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       setOrderStatusData(mockOrderStatusData);
       setRecentOrders(mockRecentOrders);
-      setOrdersChartData(mockOrdersChartData);
-      setTotalOrders(38);
+      if (!ordersChartData || ordersChartData.length === 0) {
+        setOrdersChartData(mockOrdersChartData);
+      }
+      setTotalOrders(0);
     } finally {
       setLoading(false);
     }
@@ -223,14 +336,14 @@ const Dashboard = () => {
                     Total Customers
                   </h3>
                   <p className="text-2xl font-bold text-gray-900">
-                    40,689
+                    {totalCustomers.toLocaleString()}
                   </p>
                 </div>
                 <IconWrapper
                   iconSrc={kpiIcons.totalCustomers}
                   variant="purple"
                   size="md"
-                />
+                  />
               </div>
               <span className="text-[13px] font-medium flex items-center gap-1 h-5">
                 <TrendingUp size={15} className="text-green-600" />
@@ -251,14 +364,14 @@ const Dashboard = () => {
                     Total Order
                   </h3>
                   <p className="text-2xl font-bold text-gray-900">
-                    10293
+                    {totalOrderCount.toLocaleString()}
                   </p>
                 </div>
                 <IconWrapper
                   iconSrc={kpiIcons.totalOrders}
                   variant="orange"
                   size="md"
-                />
+                  />
               </div>
               <span className="text-[13px] font-medium flex items-center gap-1 h-5">
                 <TrendingUp size={15} className="text-green-600" />
@@ -277,14 +390,14 @@ const Dashboard = () => {
                     Total Sales
                   </h3>
                   <p className="text-2xl font-bold text-gray-900">
-                    ₹89,000
+                    ₹{totalSales.toLocaleString()}
                   </p>
                 </div>
                 <IconWrapper
                   iconSrc={kpiIcons.totalSales}
                   variant="green"
                   size="md"
-                />
+                  />
               </div>
               <span className="text-[13px] font-medium flex items-center gap-1 h-5">
                 <TrendingDown size={15} className="text-red-600" />
@@ -305,14 +418,14 @@ const Dashboard = () => {
                     Total Products
                   </h3>
                   <p className="text-2xl font-bold text-gray-900">
-                    2040
+                    {totalProductsCount.toLocaleString()}
                   </p>
                 </div>
                 <IconWrapper
                   iconSrc={kpiIcons.totalProducts}
                   variant="pink"
                   size="md"
-                />
+                  />
               </div>
               <span className="text-[13px] font-medium flex items-center gap-1 h-5">
                 <TrendingUp size={15} className="text-green-600" />
@@ -338,9 +451,7 @@ const Dashboard = () => {
                 <option>This Month</option>
                 <option>This Year</option>
               </select>
-            </div>
-
-            {/* Additional KPI Cards - Second Section */}
+            </div>             {/* Additional KPI Cards - Second Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-full mb-4 sm:mb-6">
               <div
                 className={SECONDARY_KPI_CARD_CLASSES}
@@ -352,7 +463,7 @@ const Dashboard = () => {
                       Today's Orders
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      250
+                      {todayOrders.toLocaleString()}
                     </p>
                   </div>
                   <IconWrapper
@@ -380,7 +491,7 @@ const Dashboard = () => {
                       Today's Revenue
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      150
+                      ₹{todayRevenue.toLocaleString()}
                     </p>
                   </div>
                   <IconWrapper
@@ -408,7 +519,7 @@ const Dashboard = () => {
                       Active Sellers
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      ₹86.50
+                      {activeSellers}
                     </p>
                   </div>
                   <IconWrapper
@@ -436,7 +547,7 @@ const Dashboard = () => {
                       Pending Orders
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      320
+                      {pendingOrders.toLocaleString()}
                     </p>
                   </div>
                   <IconWrapper
@@ -467,7 +578,7 @@ const Dashboard = () => {
                       Average Order Value
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      1,250
+                      {avgOrderValue}
                     </p>
                   </div>
                   <IconWrapper
@@ -495,7 +606,7 @@ const Dashboard = () => {
                       Return Requests
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      430
+                      {returnRequests.toLocaleString()}
                     </p>
                   </div>
                   <IconWrapper
@@ -523,7 +634,7 @@ const Dashboard = () => {
                       Delivery Boys
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      92%
+                      {deliveryBoysPercent}%
                     </p>
                   </div>
                   <IconWrapper
@@ -551,7 +662,7 @@ const Dashboard = () => {
                       Categories
                     </h3>
                     <p className="text-2xl font-bold text-gray-900">
-                      18%
+                      {categoriesPercent}%
                     </p>
                   </div>
                   <IconWrapper
@@ -1041,21 +1152,23 @@ const Dashboard = () => {
                     className="text-gray-600"
                   />
                 </button>
-                {[1, 2, 3].map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${currentPage === page
-                        ? "bg-orange-500 text-white"
-                        : "text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {Array.from({ length: Math.ceil(totalOrdersCount / itemsPerPage) }, (_, idx) => idx + 1)
+                  .slice(0, 5)
+                  .map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${currentPage === page
+                          ? "bg-orange-500 text-white"
+                          : "text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
                 <button
                   onClick={() => setCurrentPage((prev) => prev + 1)}
-                  disabled={currentPage >= 3}
+                  disabled={currentPage >= Math.ceil(totalOrdersCount / itemsPerPage)}
                   className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   aria-label="Next page"
                 >

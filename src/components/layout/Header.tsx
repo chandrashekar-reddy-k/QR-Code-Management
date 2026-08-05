@@ -892,6 +892,17 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           )}
         </div>
 
+        {/* Point of Sales Link */}
+        <button
+          className="flex items-center gap-1.5 px-3 py-2 text-white hover:opacity-90 rounded-lg font-medium text-xs transition-all border border-[#00891D]"
+          style={{ backgroundColor: '#00891D' }}
+          title="Point of Sales"
+          onClick={() => navigate('/vsms/pos')}
+        >
+          <ShoppingCart size={16} />
+          <span>POS</span>
+        </button>
+
         {/* HRMS SSO Link */}
         <button
           className="flex items-center gap-1.5 px-3 py-2 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium text-xs transition-all border border-green-200 dark:border-green-800"
@@ -992,20 +1003,20 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   )}
                 </div>
                 {/* My Account */}
-{/* My Account */}
-<button
-  onClick={() => {
-    setShowDropdown(false);
-    navigate("/my-account");
-  }}
-  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
->
-  <div className="relative w-5 h-5">
-    <User size={18} strokeWidth={1.8} />
-  </div>
+                {/* My Account */}
+                <button
+                  onClick={() => {
+                    setShowDropdown(false);
+                    navigate("/my-account");
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <div className="relative w-5 h-5">
+                    <User size={18} strokeWidth={1.8} />
+                  </div>
 
-  My Account
-</button>
+                  My Account
+                </button>
                 {/* Change Password */}
                 <button
                   onClick={() => {

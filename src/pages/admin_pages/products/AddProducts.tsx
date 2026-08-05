@@ -2999,6 +2999,11 @@ const AddProduct = () => {
               (currentProduct?.subCategory as { id?: string } | undefined)
                 ?.id ??
               undefined,
+            brandId:
+              payload.brandId ??
+              currentProduct?.brandId ??
+              (currentProduct?.brand as { id?: string } | undefined)?.id ??
+              undefined,
             images: Array.isArray(payload.images)
               ? payload.images
               : Array.isArray(currentProduct?.images)
@@ -3122,6 +3127,10 @@ const AddProduct = () => {
         }
         if (String(formData.subCategory ?? "").trim()) {
           updatePayload.subCategoryId = String(formData.subCategory).trim();
+        }
+        // Always reflect latest brand from form in edit payload.
+        if (formData.brands !== undefined) {
+          updatePayload.brandId = String(formData.brands || "").trim() || null;
         }
         if (Array.isArray(payload.images) && payload.images.length > 0) {
           updatePayload.images = payload.images;
@@ -3320,15 +3329,27 @@ const AddProduct = () => {
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-          {shouldShowVariants
-            ? isEditVariantMode
-              ? "Update Variant"
-              : "Add Variant"
-            : isEditMode
-              ? "Edit Product"
-              : "Add Product"}
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+            {shouldShowVariants
+              ? isEditVariantMode
+                ? "Update Variant"
+                : "Add Variant"
+              : isEditMode
+                ? "Edit Product"
+                : "Add Product"}
+          </h1>
+          {isEditMode && !shouldShowVariants && (
+            <button
+              type="button"
+              onClick={() => navigate(`/products/create?productId=${id}&addVariant=true`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+            >
+              <Plus size={14} />
+              Add Variant
+            </button>
+          )}
+        </div>
         <BackButton to={backUrl} />
       </div>
 

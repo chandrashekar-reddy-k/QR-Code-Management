@@ -146,7 +146,7 @@ export default function ShopkeeperAdminERP() {
       return;
     }
 
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "orderhistory", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "ready-orders", "settings", "orderhistory", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper-erp?tab=${dest}`);
       setScreen(dest as Screen);
@@ -161,7 +161,7 @@ export default function ShopkeeperAdminERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "settings", "orderhistory", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "ready-orders", "settings", "orderhistory", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper-erp?tab=${prev}`);
         setScreen(prev as Screen);

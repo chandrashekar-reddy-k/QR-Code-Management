@@ -228,7 +228,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const dispatched = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'dispatched';
+      return s === 'dispatched' || s === 'picked_up' || s === 'out_for_delivery' || s === 'shipped';
     }).length;
 
     const rejected = allOrders.filter((o: any) => {
@@ -238,7 +238,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const breached = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
+      if (s === 'dispatched' || s === 'picked_up' || s === 'out_for_delivery' || s === 'shipped' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected') {
         return false;
       }
       return getSLAInfo(o).remainingMinutes < 15;
@@ -717,7 +717,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                       assigned: { color: "#4B5563", bg: "#F3F4F6" },
                       accepted: { color: "#1D4ED8", bg: "#EFF6FF" },
                       picking: { color: "#7C3AED", bg: "#F5F3FF" },
-                      confirmed: { color: "#7C3AED", bg: "#F5F3FF" },
+                      confirmed: { color: "#4B5563", bg: "#F3F4F6" },
                       packing: { color: "#EA580C", bg: "#FFF7ED" },
                       processing: { color: "#EA580C", bg: "#FFF7ED" },
                       ready: { color: "#0D9488", bg: "#F0FDFA" },
@@ -732,7 +732,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
                       rejected: { color: "#DC2626", bg: "#FEF2F2" },
                     };
                     const lowerStatus = (order.status || "").toLowerCase();
-                    const isAssigned = (lowerStatus === 'new' || lowerStatus === 'placed' || lowerStatus === 'assigned' || lowerStatus === 'confirmed') && (
+                    const isAssigned = (lowerStatus === 'new' || lowerStatus === 'placed' || lowerStatus === 'assigned') && (
                       order.shopkeeper_name ||
                       order.assignedShopkeeper ||
                       order.assigned_shopkeeper ||

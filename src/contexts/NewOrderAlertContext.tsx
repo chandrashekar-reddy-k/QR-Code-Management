@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import api from "../api/axios";
@@ -76,9 +77,9 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
 
   // Refs
   const seenOrderIdsRef = useRef<Set<string>>(new Set());
-  const alarmRef        = useRef<HTMLAudioElement | null>(null);
-  const audioUnlocked   = useRef<boolean>(false);
-  const socketRef       = useRef<Socket | null>(null);
+  const alarmRef = useRef<HTMLAudioElement | null>(null);
+  const audioUnlocked = useRef<boolean>(false);
+  const socketRef = useRef<Socket | null>(null);
 
   // -----------------------------------------------------------------------
   // 1. Create ONE persistent HTMLAudioElement on mount; destroy on unmount
@@ -86,20 +87,20 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     const alarm = new Audio("/sounds/flutie8211-low-pitch-alarm-buzzer-451576.mp3");
     alarm.preload = "auto";
-    alarm.loop    = true;
-    alarm.volume  = 1.0;
+    alarm.loop = true;
+    alarm.volume = 1.0;
     alarm.onerror = () => console.warn("[ALARM] MP3 failed to load — check public/sounds/");
     alarmRef.current = alarm;
 
     // Register FCM Web Push token for background OS notifications
     import("../utils/firebase").then(({ requestFcmToken }) => {
       requestFcmToken();
-    }).catch(() => {});
+    }).catch(() => { });
 
     return () => {
       alarm.pause();
       alarm.currentTime = 0;
-      alarmRef.current  = null;
+      alarmRef.current = null;
     };
   }, []);
 
@@ -120,7 +121,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         .then(() => {
           alarm.pause();
           alarm.currentTime = 0;
-          alarm.muted  = false;
+          alarm.muted = false;
           alarm.volume = 1.0;
           audioUnlocked.current = true;
           console.log("[ALARM] Audio unlocked — alarm will play on next new order");
@@ -180,15 +181,15 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         audioUnlocked.current = true;
         console.log("[ALARM] Audio unlocked silently");
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
     window.addEventListener("pointerdown", unlockAudioSilent);
-    window.addEventListener("keydown",     unlockAudioSilent);
+    window.addEventListener("keydown", unlockAudioSilent);
     return () => {
       window.removeEventListener("pointerdown", unlockAudioSilent);
-      window.removeEventListener("keydown",     unlockAudioSilent);
+      window.removeEventListener("keydown", unlockAudioSilent);
     };
   }, [unlockAudioSilent]);
 
@@ -204,7 +205,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
     if (!alarm) return;
     alarm.currentTime = 0;
     alarm.volume = 1.0;
-    alarm.muted  = false;
+    alarm.muted = false;
     alarm
       .play()
       .then(() => {
@@ -230,10 +231,44 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   // 4. handleIncomingOrder — normalise + deduplicate + enqueue
   //    Does NOT call playAlarm() — alarm fires in queue processor below.
   // -----------------------------------------------------------------------
-  const handleIncomingOrder = useCallback((rawOrder: any) => {
+  interface RawIncomingOrder {
+    id?: string;
+    orderId?: string;
+    order_id?: string;
+    orderNumber?: string;
+    order_number?: string;
+    placedAt?: string;
+    created_at?: string;
+    createdAt?: string;
+    autoConfirmAt?: string;
+    status?: string;
+    customer_name?: string;
+    customerName?: string;
+    userName?: string;
+    customer_phone?: string;
+    customerPhone?: string;
+    phone?: string;
+    payment_method?: string;
+    paymentMethod?: string;
+    paymentMode?: string;
+    address?: string | { line1?: string; line2?: string; city?: string; state?: string; pincode?: string };
+    deliveryAddress?: string | { line1?: string; line2?: string; city?: string; state?: string; pincode?: string };
+    delivery_address?: string | { line1?: string; line2?: string; city?: string; state?: string; pincode?: string };
+    total_amount?: number | string;
+    totalAmount?: number | string;
+    total?: number | string;
+    item_count?: number;
+    itemCount?: number;
+    items?: unknown[];
+    fulfillmentType?: string;
+    deliveryType?: string;
+    order_type?: string;
+  }
+
+  const handleIncomingOrder = useCallback((rawOrder: RawIncomingOrder) => {
     const orderId = String(
-      rawOrder.id       ||
-      rawOrder.orderId  ||
+      rawOrder.id ||
+      rawOrder.orderId ||
       rawOrder.order_id ||
       rawOrder.orderNumber ||
       rawOrder.order_number ||
@@ -251,20 +286,20 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
 
     console.log("[NEW ORDER] Queuing:", orderId);
 
-    const placedAt      = rawOrder.placedAt    || rawOrder.created_at || rawOrder.createdAt || new Date().toISOString();
+    const placedAt = rawOrder.placedAt || rawOrder.created_at || rawOrder.createdAt || new Date().toISOString();
     const autoConfirmAt = rawOrder.autoConfirmAt || new Date(Date.now() + 30_000).toISOString();
 
     const formatted: NewOrderAlertData = {
-      eventId:         orderId,
+      eventId: orderId,
       orderId,
-      orderNumber:     rawOrder.order_number || rawOrder.orderNumber || orderId,
-      status:          rawOrder.status?.toUpperCase() || "PLACED",
-      customerName:    rawOrder.customer_name  || rawOrder.customerName  || rawOrder.userName || "Customer",
-      customerPhone:   rawOrder.customer_phone || rawOrder.customerPhone || rawOrder.phone    || "",
-      paymentMethod:   rawOrder.payment_method || rawOrder.paymentMethod || rawOrder.paymentMode || "ONLINE",
+      orderNumber: rawOrder.order_number || rawOrder.orderNumber || orderId,
+      status: rawOrder.status?.toUpperCase() || "PLACED",
+      customerName: rawOrder.customer_name || rawOrder.customerName || rawOrder.userName || "Customer",
+      customerPhone: rawOrder.customer_phone || rawOrder.customerPhone || rawOrder.phone || "",
+      paymentMethod: rawOrder.payment_method || rawOrder.paymentMethod || rawOrder.paymentMode || "ONLINE",
       deliveryAddress: (() => { const raw = rawOrder.address || rawOrder.deliveryAddress || rawOrder.delivery_address || ""; if (!raw) return ""; if (typeof raw === 'string') return raw; if (typeof raw === 'object') return [raw.line1, raw.line2, raw.city, raw.state, raw.pincode].filter(Boolean).join(', '); return String(raw); })(),
-      totalAmount:     Number(rawOrder.total_amount || rawOrder.totalAmount || rawOrder.total || 0),
-      itemCount:       rawOrder.item_count || rawOrder.itemCount || rawOrder.items?.length || 1,
+      totalAmount: Number(rawOrder.total_amount || rawOrder.totalAmount || rawOrder.total || 0),
+      itemCount: rawOrder.item_count || rawOrder.itemCount || rawOrder.items?.length || 1,
       fulfillmentType: rawOrder.fulfillmentType || rawOrder.deliveryType || rawOrder.order_type || "HOME_DELIVERY",
       placedAt,
       autoConfirmAt,
@@ -288,7 +323,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
             window.focus();
             notif.close();
           };
-        } catch (err) {
+        } catch {
           if ("serviceWorker" in navigator) {
             navigator.serviceWorker.ready.then((reg) => {
               reg.showNotification("🚨 NEW ORDER RECEIVED!", {
@@ -296,28 +331,30 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
                 icon: "/favicon.ico",
                 tag: formatted.orderId,
               });
-            }).catch(() => {});
+            }).catch(() => { });
           }
         }
       } else if (Notification.permission === "default") {
-        Notification.requestPermission().catch(() => {});
+        Notification.requestPermission().catch(() => { });
       }
     }
   }, []);
 
   // Debug helper: testNewOrder() in browser console
   useEffect(() => {
-    (window as any).testNewOrder = () =>
+    (window as Window & { testNewOrder?: () => void }).testNewOrder = () =>
       handleIncomingOrder({
-        id:            `TEST-${Math.floor(Math.random() * 99999)}`,
-        orderNumber:   `VK-${Math.floor(Math.random() * 99999)}`,
-        status:        "PLACED",
-        totalAmount:   1250,
-        itemCount:     3,
+        id: `TEST-${Math.floor(Math.random() * 99999)}`,
+        orderNumber: `VK-${Math.floor(Math.random() * 99999)}`,
+        status: "PLACED",
+        totalAmount: 1250,
+        itemCount: 3,
         autoConfirmAt: new Date(Date.now() + 30_000).toISOString(),
-        placedAt:      new Date().toISOString(),
+        placedAt: new Date().toISOString(),
       });
-    return () => { delete (window as any).testNewOrder; };
+    return () => {
+      (window as Window & { testNewOrder?: unknown }).testNewOrder = undefined;
+    };
   }, [handleIncomingOrder]);
 
   // -----------------------------------------------------------------------
@@ -379,37 +416,38 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
         api.get("partner/orders/pickup-store?page=1&limit=50"),
       ]);
 
-      let orders: any[] = [];
+      const orders: Record<string, unknown>[] = [];
       if (dRes.status === "fulfilled") {
         const d = dRes.value.data?.data?.orders || dRes.value.data?.orders || [];
-        if (Array.isArray(d)) orders.push(...d);
+        if (Array.isArray(d)) orders.push(...d as Record<string, unknown>[]);
       }
       if (pRes.status === "fulfilled") {
         const p = pRes.value.data?.data?.orders || pRes.value.data?.orders || [];
-        if (Array.isArray(p)) orders.push(...p);
+        if (Array.isArray(p)) orders.push(...p as Record<string, unknown>[]);
       }
 
       let newC = 0, pendingC = 0, confirmedC = 0, completedC = 0;
       try {
         const statsRes = await api.get("partner/orders/warehouse-stats");
         const s = statsRes.data?.data || statsRes.data || {};
-        newC       = s.new     || 0;
-        pendingC   = s.pending || 0;
+        newC = s.new || 0;
+        pendingC = s.pending || 0;
         confirmedC = s.packing || 0;
-        completedC = s.ready   || 0;
+        completedC = s.ready || 0;
       } catch {
         for (const o of orders) {
-          const s = o.status?.toUpperCase() || "";
+          const s = (o.status as string)?.toUpperCase() || "";
           if (s === "PLACED") newC++;
           else if (s === "PENDING") pendingC++;
-          else if (["CONFIRMED","ACCEPTED","PICKING","PACKING","READY_FOR_PICKUP"].includes(s)) confirmedC++;
-          else if (["DELIVERED","COMPLETED","DISPATCHED"].includes(s)) completedC++;
+          else if (["CONFIRMED", "ACCEPTED", "PICKING", "PACKING", "READY_FOR_PICKUP"].includes(s)) confirmedC++;
+          else if (["DELIVERED", "COMPLETED", "DISPATCHED"].includes(s)) completedC++;
         }
       }
 
       setTodayStats({ newCount: newC, pendingCount: pendingC, confirmedCount: confirmedC, completedCount: completedC });
-    } catch (err: any) {
-      if (err?.response?.status !== 401) console.warn("[STATS] Fetch failed:", err?.message);
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number }; message?: string };
+      if (error?.response?.status !== 401) console.warn("[STATS] Fetch failed:", error?.message);
     }
   }, []);
 
@@ -417,10 +455,10 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
     try {
       try {
         await api.put(`/orders/${orderId}/accept`);
-      } catch (err1) {
+      } catch {
         try {
           await api.put(`/partner/orders/${orderId}/status`, { status: "CONFIRMED" });
-        } catch (err2) {
+        } catch {
           await api.put(`/orders/${orderId}/status`, { status: "CONFIRMED" });
         }
       }
@@ -450,7 +488,7 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
           api.get("partner/orders/pickup-store?status=PLACED&limit=10"),
         ]);
 
-        const polled: any[] = [];
+        const polled: Record<string, unknown>[] = [];
         if (dRes.status === "fulfilled") {
           const d = dRes.value.data?.data?.orders || dRes.value.data?.orders || [];
           if (Array.isArray(d)) polled.push(...d);
@@ -493,41 +531,41 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   // 10. Socket.IO — primary real-time channel
   // -----------------------------------------------------------------------
   useEffect(() => {
-    const API_URL    = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_URL || "http://localhost:3004";
+    const API_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_URL || "http://localhost:3004";
     const SOCKET_URL = API_URL.replace(/\/api\/v1\/?$/, "").replace(/\/api\/?$/, "").replace(/\/+$/, "");
 
     let token =
-      sessionStorage.getItem("staffToken")   ||
+      sessionStorage.getItem("staffToken") ||
       sessionStorage.getItem("partnerToken") ||
-      sessionStorage.getItem("token")        ||
-      localStorage.getItem("staffToken")     ||
-      localStorage.getItem("partnerToken")   ||
-      localStorage.getItem("token")          ||
-      localStorage.getItem("authToken")      ||
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("staffToken") ||
+      localStorage.getItem("partnerToken") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken") ||
       localStorage.getItem("accessToken");
 
     if (token?.startsWith("Bearer ")) token = token.substring(7);
     if (!SOCKET_URL || !token) return;
 
     const socket = io(`${SOCKET_URL}/partner`, {
-      auth:       { token },
+      auth: { token },
       transports: ["websocket", "polling"],
     });
     socketRef.current = socket;
 
-    socket.on("connect",       ()    => console.log("[SOCKET] Connected to /partner namespace"));
-    socket.on("connect_error", (err) => console.error("[SOCKET] Connection error:", err.message));
-    socket.onAny((event: string, ...args: any[]) => console.log("[SOCKET EVENT]", event, args));
+    socket.on("connect", () => console.log("[SOCKET] Connected to /partner namespace"));
+    socket.on("connect_error", (err: { message: string }) => console.error("[SOCKET] Connection error:", err.message));
+    socket.onAny((event: string, ...args: unknown[]) => console.log("[SOCKET EVENT]", event, args));
 
     const newOrderEvents = ["partner:new_order", "order:new", "order:created", "partner:order_created", "NEW_ORDER"];
     newOrderEvents.forEach((ev) =>
-      socket.on(ev, (data: any) => {
+      socket.on(ev, (data: unknown) => {
         console.log(`[SOCKET] ${ev} received`);
-        handleIncomingOrder(data);
+        handleIncomingOrder(data as RawIncomingOrder);
       })
     );
 
-    socket.on("partner:order_updated", (data: any) => {
+    socket.on("partner:order_updated", (data: { status?: string; orderId?: string; id?: string }) => {
       refetchStats();
       if (
         activeOrder &&
@@ -583,11 +621,11 @@ export function useNewOrderAlert() {
       queueLength: 0,
       todayStats: null,
       audioEnabled: true,
-      enableAudio: () => {},
-      disableAudio: () => {},
-      toggleAudio: () => {},
-      dismissAlert: () => {},
-      acceptOrder: async () => {},
+      enableAudio: () => { },
+      disableAudio: () => { },
+      toggleAudio: () => { },
+      dismissAlert: () => { },
+      acceptOrder: async () => { },
     };
   }
   return context;

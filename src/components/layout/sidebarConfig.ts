@@ -189,6 +189,7 @@ export const sidebarConfig: MenuSection[] = [
     path: "/",
     label: "Dashboard",
     icon: Home,
+    permission: "Partner: Dashboard",
   },
 
   {
@@ -202,7 +203,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
       { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
       { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
-      { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
+      { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle, permission: 'Packing Queue' },
       { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
       { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
       { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
@@ -290,8 +291,8 @@ export const sidebarConfig: MenuSection[] = [
   },
   {
     type: "collapsible",
-    permission: "Partner: Purchase Management",
-    label: "Purchase Management",
+    permission: "Partner: Procurement Management",
+    label: "Procurement Management",
     icon: ShoppingCart,
     stateKey: "isProcurementOpen",
     hasSubPermissions: true,
@@ -350,23 +351,23 @@ export const sidebarConfig: MenuSection[] = [
       },
     ],
   },
-  {
-    type: "collapsible",
-    permission: "Partner: Vendor Management",
-    label: "Vendor Management",
-    icon: Store,
-    stateKey: "isVendorManagementOpen",
-    activeCheck: activeCheckers.isVendorManagementActive,
-    subItems: [
-      { path: "/vendors/manage", label: "Manage Vendors", icon: UserCheck },
-      {
-        path: "/vendors/wallet-transactions",
-        label: "Vendors Wallet Transactions",
-        icon: Wallet,
-      },
-      { path: "/vendors/policies", label: "Vendors Policies", icon: FileText },
-    ],
-  },
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: Vendor Management",
+  //   label: "Vendor Management",
+  //   icon: Store,
+  //   stateKey: "isVendorManagementOpen",
+  //   activeCheck: activeCheckers.isVendorManagementActive,
+  //   subItems: [
+  //     { path: "/vendors/manage", label: "Manage Vendors", icon: UserCheck },
+  //     {
+  //       path: "/vendors/wallet-transactions",
+  //       label: "Vendors Wallet Transactions",
+  //       icon: Wallet,
+  //     },
+  //     { path: "/vendors/policies", label: "Vendors Policies", icon: FileText },
+  //   ],
+  // },
 
   // Staff Management
   {
@@ -386,31 +387,31 @@ export const sidebarConfig: MenuSection[] = [
   },
 
   // User Management
-  {
-    type: "collapsible",
-    permission: "Partner: User Management",
-    label: "User Management",
-    icon: Users,
-    stateKey: "isUserManagementOpen",
-    activeCheck: activeCheckers.isUserManagementActive,
-    subItems: [
-      {
-        path: "/user-management/customers",
-        label: "Customers",
-        icon: Users,
-      },
-      {
-        path: "/user-management/customer-categories",
-        label: "Customer Categories",
-        icon: Tag,
-      },
-      // Hidden as per sidebar screenshots
-      // { path: '/delivery-boys/requests', label: 'Delivery agent', icon: Truck, hidden: true },
-      // { path: '/vendors/requests', label: 'Vendors', icon: Store, hidden: true },
-      // { path: '/user-management/admins', label: 'Admins', icon: UserCog, hidden: true },
-      // { path: '/user-management/partners', label: 'Partners', icon: Handshake, hidden: true },
-    ],
-  },
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: User Management",
+  //   label: "User Management",
+  //   icon: Users,
+  //   stateKey: "isUserManagementOpen",
+  //   activeCheck: activeCheckers.isUserManagementActive,
+  //   subItems: [
+  //     {
+  //       path: "/user-management/customers",
+  //       label: "Customers",
+  //       icon: Users,
+  //     },
+  //     {
+  //       path: "/user-management/customer-categories",
+  //       label: "Customer Categories",
+  //       icon: Tag,
+  //     },
+  //     // Hidden as per sidebar screenshots
+  //     // { path: '/delivery-boys/requests', label: 'Delivery agent', icon: Truck, hidden: true },
+  //     // { path: '/vendors/requests', label: 'Vendors', icon: Store, hidden: true },
+  //     // { path: '/user-management/admins', label: 'Admins', icon: UserCog, hidden: true },
+  //     // { path: '/user-management/partners', label: 'Partners', icon: Handshake, hidden: true },
+  //   ],
+  // },
 
   // Delivery Settings
   {
@@ -450,33 +451,33 @@ export const sidebarConfig: MenuSection[] = [
   },
 
   // Point of Sales
-  {
-    type: "link",
-    permission: "Partner: Point of Sales",
-    path: "/vsms/pos",
-    label: "Point of Sales",
-    icon: Percent,
-  },
+  // {
+  //   type: "link",
+  //   permission: "Partner: Point of Sales",
+  //   path: "/vsms/pos",
+  //   label: "Point of Sales",
+  //   icon: Percent,
+  // },
 
   // FINANCIAL Section
   {
     type: "section",
     sectionTitle: "FINANCIAL",
   },
-  {
-    type: "link",
-    permission: "Partner: Withdrawal Request",
-    path: "/withdrawal-request",
-    label: "Withdrawal Request",
-    icon: DollarSign,
-  },
-  {
-    type: "link",
-    permission: "Partner: Wallet Transactions",
-    path: "/wallet-transactions",
-    label: "Wallet Transactions",
-    icon: Wallet,
-  },
+  // {
+  //   type: "link",
+  //   permission: "Partner: Withdrawal Request",
+  //   path: "/withdrawal-request",
+  //   label: "Withdrawal Request",
+  //   icon: DollarSign,
+  // },
+  // {
+  //   type: "link",
+  //   permission: "Partner: Wallet Transactions",
+  //   path: "/wallet-transactions",
+  //   label: "Wallet Transactions",
+  //   icon: Wallet,
+  // },
 
   // Promotions and Offers
   {
@@ -485,7 +486,6 @@ export const sidebarConfig: MenuSection[] = [
     label: "Promotions and Offers",
     icon: ClipboardList,
     stateKey: "isPromotionsOffersOpen",
-    hasSubPermissions: true,
     subItems: [
       { path: "/promo-codes/manage", label: "Promo Codes", icon: Ticket },
       { path: "/banners", label: "Banners", icon: ImageIcon },
@@ -494,31 +494,31 @@ export const sidebarConfig: MenuSection[] = [
     ],
   },
 
-  // REPORTS Section
-  {
-    type: "section",
-    sectionTitle: "REPORTS",
-  },
-  {
-    type: "collapsible",
-    permission: "Partner: Reports",
-    label: "Reports",
-    icon: BarChart3,
-    stateKey: "isReportsOpen",
-    subItems: [
-      {
-        path: "/reports/product-sales-reports",
-        label: "Product Sales Report",
-        icon: BarChart3,
-      },
-      {
-        path: "/reports/sales-reports",
-        label: "Sales Reports",
-        icon: BarChart3,
-      },
-      { path: "/reports/pos-reports", label: "POS Reports", icon: BarChart3 },
-    ],
-  },
+  // // REPORTS Section
+  // {
+  //   type: "section",
+  //   sectionTitle: "REPORTS",
+  // },
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: Reports",
+  //   label: "Reports",
+  //   icon: BarChart3,
+  //   stateKey: "isReportsOpen",
+  //   subItems: [
+  //     {
+  //       path: "/reports/product-sales-reports",
+  //       label: "Product Sales Report",
+  //       icon: BarChart3,
+  //     },
+  //     {
+  //       path: "/reports/sales-reports",
+  //       label: "Sales Reports",
+  //       icon: BarChart3,
+  //     },
+  //     { path: "/reports/pos-reports", label: "POS Reports", icon: BarChart3 },
+  //   ],
+  // },
 
   // VSMS Logistics Section
   {
@@ -543,25 +543,25 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
     ],
   },
-  {
-    type: "collapsible",
-    permission: "Partner: Fleet Assets",
-    label: "Fleet Assets",
-    icon: Database,
-    stateKey: "isAssetsOpen",
-    hasSubPermissions: true,
-    subItems: [
-      { path: '/vsms/assets?tab=master', label: 'Assets Registry', icon: Package },
-      { path: '/vsms/assets?tab=tracking', label: 'Asset Assignment', icon: Users },
-      { path: '/vsms/assets?tab=transfers', label: 'Asset Transfers', icon: ArrowRightLeft },
-      { path: '/vsms/assets?tab=vehicle-mapping', label: 'Vehicle Mapping', icon: Truck },
-      { path: '/vsms/assets?tab=issues', label: 'Asset Maintenance', icon: Wrench },
-      { path: '/vsms/assets?tab=depreciation', label: 'Depreciation', icon: Percent },
-      { path: '/vsms/assets?tab=audit', label: 'Asset Audit', icon: ClipboardList },
-      { path: '/vsms/assets?tab=requests', label: 'Asset Requests', icon: HelpCircle },
-      { path: '/vsms/assets?tab=reports', label: 'Asset Reports', icon: BarChart3 },
-    ],
-  },
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: Fleet Assets",
+  //   label: "Fleet Assets",
+  //   icon: Database,
+  //   stateKey: "isAssetsOpen",
+  //   hasSubPermissions: true,
+  //   subItems: [
+  //     { path: '/vsms/assets?tab=master', label: 'Assets Registry', icon: Package },
+  //     { path: '/vsms/assets?tab=tracking', label: 'Asset Assignment', icon: Users },
+  //     { path: '/vsms/assets?tab=transfers', label: 'Asset Transfers', icon: ArrowRightLeft },
+  //     { path: '/vsms/assets?tab=vehicle-mapping', label: 'Vehicle Mapping', icon: Truck },
+  //     { path: '/vsms/assets?tab=issues', label: 'Asset Maintenance', icon: Wrench },
+  //     { path: '/vsms/assets?tab=depreciation', label: 'Depreciation', icon: Percent },
+  //     { path: '/vsms/assets?tab=audit', label: 'Asset Audit', icon: ClipboardList },
+  //     { path: '/vsms/assets?tab=requests', label: 'Asset Requests', icon: HelpCircle },
+  //     { path: '/vsms/assets?tab=reports', label: 'Asset Reports', icon: BarChart3 },
+  //   ],
+  // },
 
   // Settings
   {
@@ -570,7 +570,6 @@ export const sidebarConfig: MenuSection[] = [
     label: "Settings",
     icon: Settings,
     stateKey: "isSystemOpen",
-    hasSubPermissions: true,
     subItems: [
       {
         path: "/system/store-settings",
@@ -594,151 +593,151 @@ export const sidebarConfig: MenuSection[] = [
     ],
   },
 
-  // Root Map Creation
-  {
-    type: "link",
-    permission: "Partner: Root Map Creation",
-    path: "/root-map-creation",
-    label: "Root Map Creation",
-    icon: Map,
-  },
+  // // Root Map Creation
+  // {
+  //   type: "link",
+  //   permission: "Partner: Root Map Creation",
+  //   path: "/root-map-creation",
+  //   label: "Root Map Creation",
+  //   icon: Map,
+  // },
 
-  // Slot Management
-  {
-    type: "link",
-    permission: "Partner: Slot Management",
-    path: "/slot-management",
-    label: "Slot Management",
-    icon: Calendar,
-  },
+  // // Slot Management
+  // {
+  //   type: "link",
+  //   permission: "Partner: Slot Management",
+  //   path: "/slot-management",
+  //   label: "Slot Management",
+  //   icon: Calendar,
+  // },
 
-  // Delivery Zone Management
-  {
-    type: "link",
-    permission: "Partner: Delivery Zone Management",
-    path: "/delivery-zone-management",
-    label: "Delivery Zone Management",
-    icon: MapPin,
-  },
+  // // Delivery Zone Management
+  // {
+  //   type: "link",
+  //   permission: "Partner: Delivery Zone Management",
+  //   path: "/delivery-zone-management",
+  //   label: "Delivery Zone Management",
+  //   icon: MapPin,
+  // },
 
-  // Notifications
-  {
-    type: "collapsible",
-    permission: "Partner: Notifications",
-    label: "Notifications",
-    icon: Bell,
-    stateKey: "isNotificationsOpen",
-    subItems: [
-      {
-        path: "/notifications/customer",
-        label: "Customer Notification",
-        icon: Bell,
-      },
-      {
-        path: "/notifications/warehouse",
-        label: "Warehouse Notification",
-        icon: Bell,
-      },
-      {
-        path: "/notifications/vendor",
-        label: "Vendor Notification",
-        icon: Bell,
-      },
-      { path: "/notifications/staff", label: "Staff Notification", icon: Bell },
-      {
-        path: "/notifications/delivery-agent",
-        label: "Delivery Agent Notification",
-        icon: Bell,
-      },
-    ],
-  },
+  // // Notifications
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: Notifications",
+  //   label: "Notifications",
+  //   icon: Bell,
+  //   stateKey: "isNotificationsOpen",
+  //   subItems: [
+  //     {
+  //       path: "/notifications/customer",
+  //       label: "Customer Notification",
+  //       icon: Bell,
+  //     },
+  //     {
+  //       path: "/notifications/warehouse",
+  //       label: "Warehouse Notification",
+  //       icon: Bell,
+  //     },
+  //     {
+  //       path: "/notifications/vendor",
+  //       label: "Vendor Notification",
+  //       icon: Bell,
+  //     },
+  //     { path: "/notifications/staff", label: "Staff Notification", icon: Bell },
+  //     {
+  //       path: "/notifications/delivery-agent",
+  //       label: "Delivery Agent Notification",
+  //       icon: Bell,
+  //     },
+  //   ],
+  // },
 
-  // Referral Notification
-  {
-    type: "link",
-    permission: "Partner: Referral Notifications",
-    path: "/referral-notification",
-    label: "Referral Notification",
-    icon: Bell,
-  },
+  // // Referral Notification
+  // {
+  //   type: "link",
+  //   permission: "Partner: Referral Notifications",
+  //   path: "/referral-notification",
+  //   label: "Referral Notification",
+  //   icon: Bell,
+  // },
 
-  // Ratings and Reviews
-  {
-    type: "collapsible",
-    permission: "Partner: Ratings & Reviews",
-    label: "Ratings and Reviews",
-    icon: StarIcon,
-    stateKey: "isRatingsReviewsOpen",
-    subItems: [], // Empty submenu as per screenshot
-  },
+  // // Ratings and Reviews
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: Ratings & Reviews",
+  //   label: "Ratings and Reviews",
+  //   icon: StarIcon,
+  //   stateKey: "isRatingsReviewsOpen",
+  //   subItems: [], // Empty submenu as per screenshot
+  // },
 
-  // Product
-  {
-    type: "link",
-    permission: "Partner: Product Management",
-    path: "/product",
-    label: "Product",
-    icon: Package,
-  },
+  // // Product
+  // {
+  //   type: "link",
+  //   permission: "Partner: Product Management",
+  //   path: "/product",
+  //   label: "Product",
+  //   icon: Package,
+  // },
 
-  // Service
-  {
-    type: "link",
-    permission: "Partner: Service",
-    path: "/service",
-    label: "Service",
-    icon: Settings,
-  },
+  // // Service
+  // {
+  //   type: "link",
+  //   permission: "Partner: Service",
+  //   path: "/service",
+  //   label: "Service",
+  //   icon: Settings,
+  // },
 
-  // Contact Us
-  {
-    type: "collapsible",
-    permission: "Partner: Contact Us",
-    label: "Contact Us",
-    icon: Phone,
-    stateKey: "isContactUsOpen",
-    subItems: [], // Empty submenu as per screenshot
-  },
+  // // Contact Us
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: Contact Us",
+  //   label: "Contact Us",
+  //   icon: Phone,
+  //   stateKey: "isContactUsOpen",
+  //   subItems: [], // Empty submenu as per screenshot
+  // },
 
-  // Access Management
-  {
-    type: "link",
-    permission: "Partner: Access Management",
-    path: "/access-management",
-    label: "Access Management",
-    icon: Shield,
-  },
+  // // Access Management
+  // {
+  //   type: "link",
+  //   permission: "Partner: Access Management",
+  //   path: "/access-management",
+  //   label: "Access Management",
+  //   icon: Shield,
+  // },
 
-  // Resource Management
-  {
-    type: "link",
-    permission: "Partner: Resource Management",
-    path: "/resource-management",
-    label: "Resource Management",
-    icon: FileText,
-  },
+  // // Resource Management
+  // {
+  //   type: "link",
+  //   permission: "Partner: Resource Management",
+  //   path: "/resource-management",
+  //   label: "Resource Management",
+  //   icon: FileText,
+  // },
 
-  // Vehicles
-  {
-    type: "link",
-    permission: "Partner: Resource Management",
-    path: "/vehicles",
-    label: "Vehicles",
-    icon: Car,
-  },
+  // // Vehicles
+  // {
+  //   type: "link",
+  //   permission: "Partner: Resource Management",
+  //   path: "/vehicles",
+  //   label: "Vehicles",
+  //   icon: Car,
+  // },
 
   // Locations
-  {
-    type: "collapsible",
-    permission: "Partner: Locations",
-    label: "Locations",
-    icon: MapPin,
-    stateKey: "isLocationsOpen",
-    subItems: [
-      { path: "/locations/states", label: "States", icon: MapPin },
-      { path: "/locations/cities", label: "Cities", icon: Building2 },
-      { path: "/locations/zip-codes", label: "Zip Codes", icon: MapPin },
-      { path: "/locations/areas", label: "Areas", icon: Navigation },
-    ],
-  },
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: Locations",
+  //   label: "Locations",
+  //   icon: MapPin,
+  //   stateKey: "isLocationsOpen",
+  //   subItems: [
+  //     { path: "/locations/states", label: "States", icon: MapPin },
+  //     { path: "/locations/cities", label: "Cities", icon: Building2 },
+  //     { path: "/locations/zip-codes", label: "Zip Codes", icon: MapPin },
+  //     { path: "/locations/areas", label: "Areas", icon: Navigation },
+  //   ],
+  // },
 ];

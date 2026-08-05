@@ -26,7 +26,6 @@ export async function uploadImageFile(file: File): Promise<string> {
     try {
       const res = await fetch(fullUrl, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
 

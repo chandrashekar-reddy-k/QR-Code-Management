@@ -339,6 +339,20 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
                     <span className="text-gray-500 dark:text-gray-400">{order.order_type || "Home Delivery"} · ₹{order.total_value || order.totalAmount}</span>
                     <span className="text-gray-400">
                       {(() => {
+                        if (activeTab === "Ignored Orders") {
+                          let ts = null;
+                          if (order.statusHistory && Array.isArray(order.statusHistory)) {
+                            const ignoreEvent = order.statusHistory.find((h: any) => h.reason === 'IGNORED_BY_SHOPKEEPER');
+                            if (ignoreEvent && ignoreEvent.createdAt) {
+                              ts = ignoreEvent.createdAt;
+                            }
+                          }
+                          if (!ts) return "Ignored at: —";
+                          const date = new Date(ts);
+                          if (isNaN(date.getTime())) return "Ignored at: —";
+                          return `Ignored at: ${date.toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+                        }
+
                         const statusTimeMap: Record<string, { label: string; fields: string[] }> = {
                           new: { label: "Placed", fields: ["createdAt", "created_at"] },
                           accepted: { label: "Accepted", fields: ["acceptedByShopkeeperAt", "shopkeeperAcceptedAt", "confirmedAt", "acceptedAt", "accepted_at", "confirmed_at"] },
@@ -363,9 +377,9 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
                           }
                         }
 
-                        if (!ts) return `${label}: ΓÇö`;
+                        if (!ts) return `${label}: —`;
                         const date = new Date(ts);
-                        if (isNaN(date.getTime())) return `${label}: ΓÇö`;
+                        if (isNaN(date.getTime())) return `${label}: —`;
                         return `${label}: ${date.toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', hour12: true })}`;
                       })()}
                     </span>
