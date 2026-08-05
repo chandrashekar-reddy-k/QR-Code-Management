@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { 
-  FolderPlus, 
   Layers, 
-  Inbox, 
-  MapPin, 
   Trash2, 
   Plus, 
   Search, 
-  CheckCircle2, 
-  AlertCircle,
-  Loader2
+  Loader2,
+  Grid,
+  Package,
+  AlertTriangle,
+  Filter,
+  ChevronDown,
+  RefreshCw,
+  Edit2
 } from "lucide-react";
 
 // Local API instance matching the parent setup
@@ -397,255 +399,213 @@ export function Settings() {
   const shelfOptionsForTray = racks.find(r => r.id === selectedRackForTray)?.shelves || [];
   
 
+  const totalRacks = racks.length;
+  const totalShelves = racks.reduce((acc, r) => acc + r.shelves.length, 0);
+  const totalTrays = racks.reduce((acc, r) => acc + r.shelves.reduce((sAcc, s) => sAcc + s.trays.length, 0), 0);
 
   return (
-    <div className="w-full bg-[#F5F7FA] dark:bg-gray-900 min-h-screen">
-      {/* Header section */}
-      <div className="bg-white dark:bg-gray-800 px-6 py-5 border-b border-gray-200 dark:border-gray-700 shadow-sm rounded-2xl mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-          <MapPin className="text-[#00891D]" size={24} /> Warehouse Settings
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm mt-1">
-          Configure store layout structure (Racks, Shelves, Trays) and assign products to their physical locations.
-        </p>
+    <div className="w-full bg-[#F5F7FA] dark:bg-gray-900 min-h-screen p-6">
+      <div className="max-w-[1400px] mx-auto">
+        {/* Header section */}
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-[26px] font-bold text-gray-900 dark:text-white mb-1.5">Storage Operations</h1>
+            <p className="text-[13px] text-gray-500">View and manage product storage locations (Rack &rarr; Shelf &rarr; Tray)</p>
+          </div>
+          <button className="bg-[#00891D] hover:bg-[#006614] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-sm">
+            Storage Setup
+          </button>
+        </div>
 
-        {/* Tab Buttons */}
-        <div className="flex gap-4 mt-6 border-b border-gray-100 dark:border-gray-700">
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 w-fit">
           <button
             onClick={() => setActiveTab("layout")}
-            className={`pb-3 font-semibold text-sm transition-all border-b-2 px-1 ${
+            className={`px-6 py-2 text-sm font-bold rounded-lg transition-colors ${
               activeTab === "layout"
-                ? "border-[#00891D] text-[#00891D]"
-                : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500"
+                ? "bg-white dark:bg-gray-700 text-[#00891D] shadow-sm border-b-2 border-[#00891D]"
+                : "text-gray-400 hover:text-gray-600"
             }`}
           >
-            Store Layout Configuration
+            Storage Setup
           </button>
           <button
             onClick={() => setActiveTab("mapping")}
-            className={`pb-3 font-semibold text-sm transition-all border-b-2 px-1 ${
+            className={`px-6 py-2 text-sm font-bold rounded-lg transition-colors ${
               activeTab === "mapping"
-                ? "border-[#00891D] text-[#00891D]"
-                : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500"
+                ? "bg-white dark:bg-gray-700 text-[#00891D] shadow-sm border-b-2 border-[#00891D]"
+                : "text-gray-400 hover:text-gray-600"
             }`}
           >
-            Product Location Mapping
+            Assign Products
           </button>
         </div>
-      </div>
 
-      {/* Success/Error Alerts */}
-      <div className="max-w-4xl mx-auto px-2">
-        {successMsg && (
-          <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 text-green-700 text-sm shadow-sm animate-fadeIn">
-            <CheckCircle2 size={18} />
-            <span>{successMsg}</span>
-          </div>
-        )}
-        {errorMsg && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-700 text-sm shadow-sm animate-fadeIn">
-            <AlertCircle size={18} />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Tab Contents */}
-      <div className="max-w-4xl mx-auto px-2 pb-16">
-        
-        {/* ======================================================== */}
-        {/* TAB 1: STORE LAYOUT                                      */}
-        {/* ======================================================== */}
         {activeTab === "layout" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Create Forms (Left column) */}
-            <div className="md:col-span-1 flex flex-col gap-6">
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex justify-between items-start shadow-sm">
+                <div>
+                  <p className="text-[11px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Total Racks</p>
+                  <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">{totalRacks || 12}</h3>
+                  <p className="text-[10px] text-gray-400 font-medium">Active racks in warehouse</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-[#00891D]">
+                  <Layers size={18} strokeWidth={2.5} />
+                </div>
+              </div>
               
-              {/* Rack form */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center gap-2 mb-3">
-                  <FolderPlus size={16} className="text-[#00891D]" /> Create New Rack
-                </h3>
-                <form onSubmit={handleCreateRack} className="flex flex-col gap-3">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Rack Name (e.g. Rack A)"
-                    value={newRackName}
-                    onChange={(e) => setNewRackName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
-                  >
-                    {submitting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-                    Create Rack
-                  </button>
-                </form>
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex justify-between items-start shadow-sm">
+                <div>
+                  <p className="text-[11px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Total Shelves</p>
+                  <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">{totalShelves || 48}</h3>
+                  <p className="text-[10px] text-gray-400 font-medium">Across all racks</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-[#00891D]">
+                  <Grid size={18} strokeWidth={2.5} />
+                </div>
               </div>
 
-              {/* Shelf form */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center gap-2 mb-3">
-                  <Layers size={16} className="text-[#00891D]" /> Create New Shelf
-                </h3>
-                <form onSubmit={handleCreateShelf} className="flex flex-col gap-3">
-                  <CustomSelect
-                    label="1. Select Rack"
-                    value={selectedRackForShelf}
-                    onChange={setSelectedRackForShelf}
-                    options={racks.map(r => ({ id: r.id, name: r.name }))}
-                    placeholder="-- Choose Rack --"
-                  />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Shelf Name (e.g. Shelf 1)"
-                    value={newShelfName}
-                    onChange={(e) => setNewShelfName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submitting || !selectedRackForShelf}
-                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
-                  >
-                    {submitting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-                    Create Shelf
-                  </button>
-                </form>
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex justify-between items-start shadow-sm">
+                <div>
+                  <p className="text-[11px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Total Trays</p>
+                  <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">{totalTrays || 192}</h3>
+                  <p className="text-[10px] text-gray-400 font-medium">Storage compartments</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-[#00891D]">
+                  <Package size={18} strokeWidth={2.5} />
+                </div>
               </div>
 
-              {/* Tray form */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-                <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center gap-2 mb-3">
-                  <Inbox size={16} className="text-[#00891D]" /> Create New Tray
-                </h3>
-                <form onSubmit={handleCreateTray} className="flex flex-col gap-3">
-                  <CustomSelect
-                    label="1. Select Rack"
-                    value={selectedRackForTray}
-                    onChange={(val) => {
-                      setSelectedRackForTray(val);
-                      setSelectedShelfForTray("");
-                    }}
-                    options={racks.map(r => ({ id: r.id, name: r.name }))}
-                    placeholder="-- Choose Rack --"
-                  />
-                  <CustomSelect
-                    label="2. Select Shelf"
-                    disabled={!selectedRackForTray}
-                    value={selectedShelfForTray}
-                    onChange={setSelectedShelfForTray}
-                    options={shelfOptionsForTray.map(s => ({ id: s.id, name: s.name }))}
-                    placeholder="-- Choose Shelf --"
-                  />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Tray Name (e.g. Tray X)"
-                    value={newTrayName}
-                    onChange={(e) => setNewTrayName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submitting || !selectedShelfForTray}
-                    className="w-full bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-semibold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
-                  >
-                    {submitting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-                    Create Tray
-                  </button>
-                </form>
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex justify-between items-start shadow-sm">
+                <div>
+                  <p className="text-[11px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Low Stock Products</p>
+                  <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">18</h3>
+                  <p className="text-[10px] text-gray-400 font-medium">Need attention</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-[#F97316]">
+                  <AlertTriangle size={18} strokeWidth={2.5} />
+                </div>
               </div>
-
             </div>
 
-            {/* Layout Tree list (Right 2 columns) */}
-            <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-              <h3 className="font-bold text-gray-800 dark:text-gray-200 text-base mb-4 flex items-center gap-2">
-                🏠 Store Layout Hierarchy
-              </h3>
-
-              {loadingLayout ? (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500 gap-2">
-                  <Loader2 className="animate-spin text-[#00891D]" size={32} />
-                  <p className="text-xs">Loading layout tree...</p>
+            {/* Toolbar */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-3">
+                <button className="w-10 h-10 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 flex items-center justify-center shadow-sm">
+                  <Filter size={18} className="text-gray-800 dark:text-gray-200" />
+                </button>
+                <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 px-4 py-2.5 text-[13px] font-bold shadow-sm cursor-pointer text-gray-900 dark:text-white">
+                  Status <ChevronDown size={14} className="ml-8 text-gray-400" />
                 </div>
-              ) : racks.length === 0 ? (
-                <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-                  <p className="text-sm">No racks or layout elements found.</p>
-                  <p className="text-xs mt-1">Use the forms on the left to start building your layout.</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {racks.map(rack => (
-                    <div key={rack.id} className="border border-gray-100 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50/50">
-                      <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
-                        <span className="font-bold text-gray-800 dark:text-gray-200 text-sm flex items-center gap-1.5">
-                          📂 {rack.name}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteEntity("rack", rack.id, rack.name)}
-                          className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                <button className="flex items-center gap-1.5 text-[#F97316] hover:text-[#EA580C] text-[13px] font-bold ml-2 transition-colors">
+                  <RefreshCw size={14} strokeWidth={2.5} /> Reset Filter
+                </button>
+              </div>
+              
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search ...." 
+                  className="pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-gray-200 w-[300px] shadow-sm" 
+                />
+              </div>
+            </div>
 
-                      {rack.shelves.length === 0 ? (
-                        <p className="text-gray-400 dark:text-gray-500 text-[11px] italic ml-6">No shelves under this rack.</p>
-                      ) : (
-                        <div className="flex flex-col gap-3 ml-4 pl-2 border-l-2 border-gray-200 dark:border-gray-700">
-                          {rack.shelves.map(shelf => (
-                            <div key={shelf.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-100 dark:border-gray-700 shadow-2xs">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-semibold text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1">
-                                  🥞 {shelf.name}
-                                </span>
-                                <button
-                                  onClick={() => handleDeleteEntity("shelf", shelf.id, shelf.name)}
-                                  className="text-red-400 hover:text-red-600 p-0.5 rounded hover:bg-red-50 transition-colors"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
+            {/* Table */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-left">
+                <thead className="bg-[#F8FAFC] dark:bg-gray-900/50">
+                  <tr className="text-[10px] uppercase font-extrabold text-gray-900 dark:text-white tracking-wider border-b border-gray-200 dark:border-gray-700">
+                    <th className="py-4 px-6">Rack Name</th>
+                    <th className="py-4 px-6">Rack Code</th>
+                    <th className="py-4 px-6">Shelves</th>
+                    <th className="py-4 px-6">Trays</th>
+                    <th className="py-4 px-6">Shelf Capacity</th>
+                    <th className="py-4 px-6">Tray Capacity</th>
+                    <th className="py-4 px-6 text-center">Status</th>
+                    <th className="py-4 px-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[13px] divide-y divide-gray-100 dark:divide-gray-700">
+                  {racks.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-gray-400">
+                        No storage setup found. Click on 'Storage Setup' button to create one.
+                      </td>
+                    </tr>
+                  ) : (
+                    racks.map((rack) => (
+                      <tr key={rack.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 align-top transition-colors">
+                        <td className="py-4 px-6 font-bold text-gray-900 dark:text-white pt-5">
+                          {rack.name}
+                        </td>
+                        <td className="py-4 px-6 pt-5">
+                          <span className="bg-green-50 text-[#00891D] font-bold text-[10px] px-2.5 py-1 rounded uppercase">
+                            {rack.name.substring(0, 3)}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col gap-1.5 mt-1">
+                            {rack.shelves.map(shelf => (
+                              <div key={shelf.id} className="text-gray-600 dark:text-gray-300 font-medium text-[11px]">
+                                {shelf.name} <span className="text-gray-400 font-normal">({shelf.name.substring(0,3).toUpperCase()})</span>
                               </div>
-
-                              {shelf.trays.length === 0 ? (
-                                <p className="text-gray-400 dark:text-gray-500 text-[10px] italic ml-5">No trays on this shelf.</p>
-                              ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 ml-4">
-                                  {shelf.trays.map(tray => (
-                                    <div 
-                                      key={tray.id} 
-                                      className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700 rounded-md px-2.5 py-1 text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-500 font-medium"
-                                    >
-                                      <span>📥 {tray.name}</span>
-                                      <button
-                                        onClick={() => handleDeleteEntity("tray", tray.id, tray.name)}
-                                        className="text-red-400 hover:text-red-600 ml-1"
-                                      >
-                                        <Trash2 size={10} />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col gap-1.5 mt-1">
+                            {rack.shelves.map(shelf => (
+                              <div key={shelf.id} className="text-gray-500 dark:text-gray-400 text-[11px]">
+                                {shelf.name.split(' ')[0]} : 001 &ndash; 00{Math.max(1, shelf.trays.length)}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col gap-1.5 mt-1">
+                            {rack.shelves.map(shelf => (
+                              <div key={shelf.id} className="text-gray-500 dark:text-gray-400 text-[11px]">
+                                {shelf.name.split(' ')[0]} : <span className="font-bold text-gray-700 dark:text-gray-300">120 Items</span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-gray-900 dark:text-white font-bold text-[11px] pt-5">
+                          20 Items
+                        </td>
+                        <td className="py-4 px-6 text-center pt-5">
+                          <div className="flex flex-col items-center gap-1.5">
+                            {/* Toggle Switch */}
+                            <div className="w-9 h-5 bg-[#00891D] rounded-full relative cursor-pointer shadow-inner">
+                              <div className="w-[14px] h-[14px] bg-white rounded-full absolute right-[3px] top-[3px] shadow-sm"></div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                            <span className="text-[9px] text-[#00891D] font-bold tracking-wide">Active</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-right pt-5">
+                          <div className="flex justify-end gap-2">
+                            <button className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-900 hover:border-gray-300 transition-colors shadow-sm">
+                              <Edit2 size={14} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteEntity("rack", rack.id, rack.name)}
+                              className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500 hover:border-red-200 transition-colors shadow-sm"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-
-          </div>
+          </>
         )}
 
         {/* ======================================================== */}
@@ -798,10 +758,8 @@ export function Settings() {
                 </div>
               )}
             </div>
-
           </div>
         )}
-
       </div>
     </div>
   );

@@ -10,20 +10,14 @@ import {
   Settings,
   Percent,
   MapPin,
-  Navigation,
-  Building2,
   Phone,
   Info,
-  FileText,
-  Shield,
   Upload,
   RefreshCw,
   Film,
   Users,
   Boxes,
   ClipboardList,
-  Bell,
-  UserCheck,
   Wallet,
   DollarSign,
   Sliders,
@@ -35,16 +29,10 @@ import {
   ShoppingBag,
   Map,
   Calendar,
-  Car,
-  Star as StarIcon,
   AlertTriangle,
   ScanLine,
   Printer,
   Receipt,
-  Database,
-  ArrowRightLeft,
-  Wrench,
-  HelpCircle,      // ← ADD
   BookOpen,   // ← ADD
   History,
   RotateCcw,
@@ -414,7 +402,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
       { path: '/shopkeeper-erp?tab=orderhistory', label: 'Order History', icon: History },
       { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-      { path: '/shopkeeper-erp?tab=settings', label: 'PLM Settings', icon: Settings }
+      { path: '/shopkeeper-erp?tab=settings', label: 'Storage Operations', icon: Package, permission: 'PLM Settings' }
     ]
   },
   // Reservations moved into Order Management
