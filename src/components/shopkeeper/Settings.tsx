@@ -143,6 +143,8 @@ export function Settings() {
   
   // Layout states
   const [racks, setRacks] = useState<Rack[]>([]);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Mapping states
   const [products, setProducts] = useState<Product[]>([]);
@@ -232,8 +234,8 @@ export function Settings() {
 
   const fetchLayout = async () => {
     try {
-      const res = await api.get("/partner/settings/layout");
-      if (res.data?.success) {
+      const res = await api.get(`/partner/settings/layout?t=${Date.now()}`);
+      if (res.data?.success || res.data?.status) {
         setRacks(res.data.data);
       }
     } catch (err: any) {
@@ -243,11 +245,27 @@ export function Settings() {
   };
 
   const toggleStatus = async (rackId: string) => {
+    // Optimistic UI update
+    setRacks(prevRacks => 
+      prevRacks.map(rack => 
+        rack.id === rackId ? { ...rack, isActive: !rack.isActive } : rack
+      )
+    );
+
     try {
       await api.patch(`/partner/settings/racks/${rackId}/status`);
-      fetchLayout(); // Refresh the list
+      // We don't strictly need to fetch layout immediately since we updated optimistically, 
+      // but doing it in the background keeps it perfectly in sync without blocking the UI.
+      fetchLayout(); 
     } catch (error) {
       console.error("Error toggling status", error);
+      // Revert optimistic update on failure
+      setRacks(prevRacks => 
+        prevRacks.map(rack => 
+          rack.id === rackId ? { ...rack, isActive: !rack.isActive } : rack
+        )
+      );
+      showError("Failed to toggle rack status. Changes reverted.");
     }
   };
 
@@ -298,7 +316,8 @@ export function Settings() {
       fetchLayout();
     } catch (err: any) {
       console.error("Error deleting", type, err);
-      alert(`Failed to delete ${type}. It might not be empty.`);
+      const serverMessage = err.response?.data?.response || err.response?.data?.message;
+      alert(serverMessage || `Failed to delete ${type}. It might not be empty.`);
     }
   };
 
@@ -371,17 +390,14 @@ export function Settings() {
         {/* Header section */}
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h1 className="text-[26px] font-bold text-gray-900 dark:text-white mb-1.5">Storage Operations</h1>
+            <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Storage Operations</h1>
             <p className="text-[13px] text-gray-500">View and manage product storage locations (Rack &rarr; Shelf &rarr; Tray)</p>
           </div>
-          <button onClick={() => setIsSetupWizardOpen(true)}
-            className="bg-[#00891D] hover:bg-[#006614] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-sm">
-            Storage Setup
-          </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 w-fit">
+        {/* Tabs and Action Button */}
+        <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 w-fit">
           <button
             onClick={() => setActiveTab("layout")}
             className={`px-6 py-2 text-sm font-bold rounded-lg transition-colors ${
@@ -402,6 +418,12 @@ export function Settings() {
           >
             Assign Products
           </button>
+        </div>
+        
+        <button onClick={() => setIsSetupWizardOpen(true)}
+          className="bg-[#00891D] hover:bg-[#006614] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-sm">
+          Storage Setup
+        </button>
         </div>
 
         {activeTab === "layout" && (
@@ -459,10 +481,25 @@ export function Settings() {
                 <button className="w-10 h-10 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 flex items-center justify-center shadow-sm">
                   <Filter size={18} className="text-gray-800 dark:text-gray-200" />
                 </button>
-                <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 px-4 py-2.5 text-[13px] font-bold shadow-sm cursor-pointer text-gray-900 dark:text-white">
-                  Status <ChevronDown size={14} className="ml-8 text-gray-400" />
+                <div className="relative">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 px-4 py-2.5 text-[13px] font-bold shadow-sm cursor-pointer text-gray-900 dark:text-white appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
-                <button className="flex items-center gap-1.5 text-[#F97316] hover:text-[#EA580C] text-[13px] font-bold ml-2 transition-colors">
+                <button 
+                  onClick={() => {
+                    setStatusFilter('ALL');
+                    setSearchQuery("");
+                  }}
+                  className="flex items-center gap-1.5 text-[#F97316] hover:text-[#EA580C] text-[13px] font-bold ml-2 transition-colors"
+                >
                   <RefreshCw size={14} strokeWidth={2.5} /> Reset Filter
                 </button>
               </div>
@@ -472,7 +509,9 @@ export function Settings() {
                 <input 
                   type="text" 
                   placeholder="Search ...." 
-                  className="pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-gray-200 w-[300px] shadow-sm" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 w-[300px] shadow-sm" 
                 />
               </div>
             </div>
@@ -481,15 +520,15 @@ export function Settings() {
             <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
               <table className="w-full text-left">
                 <thead className="bg-[#F8FAFC] dark:bg-gray-900/50">
-                  <tr className="text-[10px] uppercase font-extrabold text-gray-900 dark:text-white tracking-wider border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-4 px-6">Rack Name</th>
-                    <th className="py-4 px-6">Rack Code</th>
-                    <th className="py-4 px-6">Shelves</th>
-                    <th className="py-4 px-6">Trays</th>
-                    <th className="py-4 px-6">Shelf Capacity</th>
-                    <th className="py-4 px-6">Tray Capacity</th>
-                    <th className="py-4 px-6 text-center">Status</th>
-                    <th className="py-4 px-6 text-right">Actions</th>
+                  <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ height: "64px" }}>
+                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Rack Name</th>
+                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Rack Code</th>
+                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shelves</th>
+                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Trays</th>
+                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Shelf Capacity</th>
+                    <th className="text-left px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Tray Capacity</th>
+                    <th className="text-center px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="text-right px-[24px] py-[16px] text-[12px] font-medium text-[#9EA3AE] dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="text-[13px] divide-y divide-gray-100 dark:divide-gray-700">
@@ -500,17 +539,33 @@ export function Settings() {
                       </td>
                     </tr>
                   ) : (
-                    racks.map((rack) => (
+                    racks
+                      .filter(rack => {
+                        let matchStatus = true;
+                        if (statusFilter === 'ACTIVE') matchStatus = rack.isActive;
+                        if (statusFilter === 'INACTIVE') matchStatus = !rack.isActive;
+                        
+                        let matchSearch = true;
+                        if (searchQuery.trim() !== '') {
+                          const query = searchQuery.toLowerCase();
+                          matchSearch = 
+                            rack.name.toLowerCase().includes(query) || 
+                            (rack.code && rack.code.toLowerCase().includes(query)) || false;
+                        }
+                        
+                        return matchStatus && matchSearch;
+                      })
+                      .map((rack) => (
                       <tr key={rack.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 align-top transition-colors">
-                        <td className="py-4 px-6 font-bold text-gray-900 dark:text-white pt-5">
+                        <td className="px-[24px] py-[16px] text-[14px] text-gray-900 dark:text-gray-100">
                           {rack.name}
                         </td>
-                        <td className="py-4 px-6 pt-5">
+                        <td className="px-[24px] py-[16px]">
                           <span className="bg-green-50 text-[#00891D] font-bold text-[10px] px-2.5 py-1 rounded uppercase">
                             {rack.code || rack.name.substring(0, 3)}
                           </span>
                         </td>
-                        <td className="py-4 px-6">
+                        <td className="px-[24px] py-[16px] text-[14px] text-gray-900 dark:text-gray-100">
                           <div className="flex flex-col gap-1.5 mt-1">
                             {rack.shelves.map(shelf => {
                               const match = shelf.name.match(/^(.*?)\s*\((.*?)\)$/);
@@ -524,7 +579,7 @@ export function Settings() {
                             })}
                           </div>
                         </td>
-                        <td className="py-4 px-6">
+                        <td className="px-[24px] py-[16px] text-[14px] text-gray-900 dark:text-gray-100">
                           <div className="flex flex-col gap-1.5 mt-1">
                             {rack.shelves.map(shelf => {
                               const displayName = shelf.name.match(/^(.*?)\s*\(/)?.[1] || shelf.name.split(' ')[0];
@@ -536,7 +591,7 @@ export function Settings() {
                             })}
                           </div>
                         </td>
-                        <td className="py-4 px-6">
+                        <td className="px-[24px] py-[16px] text-[14px] text-gray-900 dark:text-gray-100">
                           <div className="flex flex-col gap-1.5 mt-1">
                             {rack.shelves.map(shelf => {
                               const displayName = shelf.name.match(/^(.*?)\s*\(/)?.[1] || shelf.name.split(' ')[0];
@@ -550,10 +605,10 @@ export function Settings() {
                             })}
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-gray-900 dark:text-white font-bold text-[11px] pt-5">
+                        <td className="px-[24px] py-[16px] text-[14px] text-gray-900 dark:text-gray-100 font-bold">
                           {rack.shelves[0]?.trays[0]?.capacity || 10} Items
                         </td>
-                        <td className="py-4 px-6 text-center pt-5">
+                        <td className="px-[24px] py-[16px] text-center">
                           <div className="flex flex-col items-center gap-1.5">
                             {/* Toggle Switch */}
                             <div 
@@ -567,7 +622,7 @@ export function Settings() {
                             </span>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-right pt-5">
+                        <td className="px-[24px] py-[16px] text-right">
                           <div className="flex justify-end gap-2">
                             <button 
                               onClick={() => {
