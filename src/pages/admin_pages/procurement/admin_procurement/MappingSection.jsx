@@ -8,7 +8,7 @@ import { procurementAPI } from '../../vsms/services/procurementService';
 import { adminAPI } from '../../vsms/services/adminService';
 import toast from 'react-hot-toast';
 
-const MappingSection = ({ can, setHideMainHeader }) => {
+const MappingSection = ({ can, setHideMainHeader, storeId }) => {
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [products, setProducts] = useState([]);
@@ -37,8 +37,8 @@ const MappingSection = ({ can, setHideMainHeader }) => {
     const load = async () => {
       try {
         const [v, p] = await Promise.all([
-          procurementAPI.getVendors({ limit: 100 }),
-          adminAPI.getItems()
+          procurementAPI.getVendors({ limit: 100, storeId: storeId || undefined }),
+          adminAPI.getItems({ storeId: storeId || undefined })
         ]);
         setVendors(v.data?.data || v.data || []);
         setProducts(p.data?.data || p.data || []);
@@ -49,7 +49,7 @@ const MappingSection = ({ can, setHideMainHeader }) => {
       }
     };
     load();
-  }, []);
+  }, [storeId]);
 
   const selectVendor = async (v) => {
     setSelectedVendor(v);

@@ -169,7 +169,7 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
   );
 };
 
-const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
+const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [pos, setPOs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -249,12 +249,12 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
   const loadPOs = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await procurementAPI.getPurchaseOrders({ status: statusFilter || undefined });
+      const { data } = await procurementAPI.getPurchaseOrders({ status: statusFilter || undefined, storeId: storeId || undefined });
       const poArray = data?.data || data || [];
       setPOs(Array.isArray(poArray) ? poArray : []);
     } catch { toast.error('Failed to load POs'); }
     finally { setLoading(false); }
-  }, [statusFilter]);
+  }, [statusFilter, storeId]);
 
   useEffect(() => { loadPOs(); }, [loadPOs]);
 
@@ -262,8 +262,8 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
     const preloadData = async () => {
       try {
         const [vendorsRes, productsRes] = await Promise.all([
-          procurementAPI.getVendors({ status: 'ACTIVE' }),
-          productsAPI.getAll({ showAll: true })
+          procurementAPI.getVendors({ status: 'ACTIVE', storeId: storeId || undefined }),
+          productsAPI.getAll({ showAll: true, storeId: storeId || undefined })
         ]);
         const vData = vendorsRes.data?.data || vendorsRes.data || [];
         setVendors(Array.isArray(vData) ? vData : []);
@@ -274,7 +274,7 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
       }
     };
     preloadData();
-  }, []);
+  }, [storeId]);
   
   useEffect(() => {
     if (setHideMainHeader) {
@@ -570,6 +570,7 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
       }
 
       const payload = {
+        storeId: storeId || undefined,
         vendorId: finalVendorId,
         poDate: form.poDate,
         expectedDelivery: form.expectedDelivery || null,

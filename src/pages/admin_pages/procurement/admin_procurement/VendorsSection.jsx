@@ -42,14 +42,14 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
   const loadVendors = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await procurementAPI.getVendors({ status: statusFilter || undefined });
+      const { data } = await procurementAPI.getVendors({ status: statusFilter || undefined, storeId: storeId || undefined });
       setVendors(data?.data || data || []);
     } catch { 
       toast.error('Failed to load vendors'); 
     } finally { 
       setLoading(false); 
     }
-  }, [statusFilter]);
+  }, [statusFilter, storeId]);
 
   useEffect(() => { 
     loadVendors(); 
@@ -95,10 +95,10 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
 
     try {
       if (editVendor) {
-        await procurementAPI.updateVendor(editVendor.id, form);
+        await procurementAPI.updateVendor(editVendor.id, { ...form, storeId: storeId || undefined });
         toast.success('Vendor details updated successfully');
       } else {
-        await procurementAPI.createVendor(form);
+        await procurementAPI.createVendor({ ...form, storeId: storeId || undefined });
         toast.success('Vendor onboarding request registered successfully');
       }
       setShowForm(false);
