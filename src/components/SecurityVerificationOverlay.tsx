@@ -82,9 +82,11 @@ export default function SecurityVerificationOverlay({ user, onVerified }: Securi
       return;
     }
 
+    const apiBase = import.meta.env.VITE_URL || "http://localhost:3004/api/v1/";
+
     setOtpSending(true);
     try {
-      const response = await fetch("http://localhost:3004/api/v1/partner/auth/security/send-otp", {
+      const response = await fetch(`${apiBase}partner/auth/security/send-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -121,9 +123,11 @@ export default function SecurityVerificationOverlay({ user, onVerified }: Securi
       return;
     }
 
+    const apiBase = import.meta.env.VITE_URL || "http://localhost:3004/api/v1/";
+
     setOtpVerifying(true);
     try {
-      const response = await fetch("http://localhost:3004/api/v1/partner/auth/security/verify-otp", {
+      const response = await fetch(`${apiBase}partner/auth/security/verify-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
