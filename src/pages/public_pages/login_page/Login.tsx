@@ -11,15 +11,29 @@ import {
 } from "../../../validationSchema/auth";
 import { loginSchema, agentLoginSchema } from "../../../validationSchema/auth";
 import useLogin, { useAgentLogin, LoginResponse } from "../../../hooks/login";
+import SecurityVerificationOverlay from "../../../components/SecurityVerificationOverlay";
 
 const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
+  const [pendingLoginData, setPendingLoginData] = useState<LoginResponse | null>(null);
+
   const onSuccess = (data: LoginResponse) => {
     if (!data) return;
     setErrorMessage("");
+
+    const isVerified = sessionStorage.getItem('security_verified') === 'true';
+    if (!isVerified) {
+      setPendingLoginData(data);
+      return;
+    }
+
+    proceedRedirect(data);
+  };
+
+  const proceedRedirect = (data: LoginResponse) => {
     const user = data.data.user;
 
     // Decode permissions dynamically from local storage (or fallback to token)
@@ -101,6 +115,16 @@ const Login = () => {
 
   return (
     <>
+      {pendingLoginData && (
+        <SecurityVerificationOverlay
+          user={pendingLoginData.data.user}
+          onVerified={() => {
+            sessionStorage.setItem('security_verified', 'true');
+            proceedRedirect(pendingLoginData);
+            setPendingLoginData(null);
+          }}
+        />
+      )}
       <style>{`
         /* Login form: always light fields (white bg, dark text) - never dark */
         .login-form-light input {

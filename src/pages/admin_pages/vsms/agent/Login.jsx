@@ -5,6 +5,7 @@ import { useUserStore } from '../store/userStore';
 import { Lock, Phone, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import logo from '../assets/VillagKart_Logo.png';
+import SecurityVerificationOverlay from '../../../../components/SecurityVerificationOverlay';
 
 export default function Login() {
   const [mobile, setMobile] = useState('');
@@ -14,6 +15,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const { setUser } = useUserStore();
   const navigate = useNavigate();
+  const [pendingLoginData, setPendingLoginData] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,13 +28,14 @@ export default function Login() {
     try {
       const { data } = await authAPI.login({ mobile, password });
       setUser(data, data.token);
-      toast.success(`Welcome back, ${data.name || 'Agent'}!`);
 
-      if (data.role === 'TENANT_OWNER' || data.role === 'ADMIN') {
-        navigate('/admin');
-      } else {
-        navigate('/');
+      const isVerified = sessionStorage.getItem('security_verified') === 'true';
+      if (!isVerified) {
+        setPendingLoginData(data);
+        return;
       }
+
+      proceedRedirect(data);
     } catch (err) {
       setLoginError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -40,8 +43,27 @@ export default function Login() {
     }
   };
 
+  const proceedRedirect = (data) => {
+    toast.success(`Welcome back, ${data.name || 'Agent'}!`);
+    if (data.role === 'TENANT_OWNER' || data.role === 'ADMIN') {
+      navigate('/admin');
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
+      {pendingLoginData && (
+        <SecurityVerificationOverlay
+          user={pendingLoginData}
+          onVerified={() => {
+            sessionStorage.setItem('security_verified', 'true');
+            proceedRedirect(pendingLoginData);
+            setPendingLoginData(null);
+          }}
+        />
+      )}
       {/* Soft Immersive Background Effects */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-100/60 blur-[120px] animate-pulse" />
