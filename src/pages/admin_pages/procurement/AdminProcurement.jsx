@@ -40,7 +40,6 @@ const TABS = [
 export default function AdminProcurement() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'vendors';
-  const storeId = searchParams.get('storeId');
   const user = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
   const refreshUserProfile = useUserStore(s => s.refreshUserProfile);
@@ -51,45 +50,33 @@ export default function AdminProcurement() {
 
   const isGlobalRole = user?.role === 'TENANT_OWNER' || user?.role === 'SUPER_ADMIN' || (user?.role === 'ADMIN' && !user?.customRoleId) || user?.portalType === 'ADMIN';
 
+  // Robustly resolve the current active warehouse ID
+  const effectiveStoreId = 
+    searchParams.get('storeId') || 
+    user?.storeId || 
+    user?.warehouseId || 
+    user?.store?.id || 
+    user?.warehouse?.id || 
+    localStorage.getItem('partnerWarehouseId') || 
+    localStorage.getItem('selectedStoreId') || 
+    localStorage.getItem('storeId') || 
+    localStorage.getItem('warehouseId') || 
+    (stores.length > 0 ? stores[0].id : null);
+
+  const storeId = effectiveStoreId;
+
   React.useEffect(() => {
     refreshUserProfile();
   }, [refreshUserProfile]);
 
   React.useEffect(() => {
     const fetchStores = async () => {
-      if (isGlobalRole && stores.length === 0) {
+      if (stores.length === 0) {
         setLoading(true);
         try {
           const res = await adminAPI.getStores();
           const storeData = res.data?.success ? res.data.data : (res.data || []);
           setStores(storeData);
-
-          // Auto-select if only one store exists
-          if (storeData.length === 1 && !storeId) {
-            setSearchParams(prev => {
-              const p = new URLSearchParams(prev);
-              p.set('storeId', storeData[0].id);
-              return p;
-            });
-          }
-
-          // Fetch procurement specific stats
-          const stats = {};
-          await Promise.all(storeData.map(async (s) => {
-            try {
-              const [poRes, purRes] = await Promise.all([
-                procurementAPI.getPurchaseOrders({ storeId: s.id }),
-                procurementAPI.getPurchases({ storeId: s.id })
-              ]);
-              stats[s.id] = {
-                pendingPO: (poRes.data || []).filter(p => p.status === 'PENDING').length,
-                totalSpent: (purRes.data || []).reduce((sum, p) => sum + p.totalAmount, 0)
-              };
-            } catch (e) {
-              stats[s.id] = { pendingPO: 0, totalSpent: 0 };
-            }
-          }));
-          setBranchStats(stats);
         } catch (err) {
           console.error(err);
         } finally {
@@ -98,18 +85,18 @@ export default function AdminProcurement() {
       }
     };
     fetchStores();
-  }, [isGlobalRole, stores.length, storeId]);
+  }, [stores.length]);
 
-  // Handle staff isolation
+  // Keep searchParams in sync with effectiveStoreId
   React.useEffect(() => {
-    if (!isGlobalRole && !storeId && user?.storeId) {
+    if (effectiveStoreId && !searchParams.get('storeId')) {
       setSearchParams(prev => {
         const p = new URLSearchParams(prev);
-        p.set('storeId', user.storeId);
+        p.set('storeId', effectiveStoreId);
         return p;
-      });
+      }, { replace: true });
     }
-  }, [isGlobalRole, storeId, user]);
+  }, [effectiveStoreId, searchParams, setSearchParams]);
 
   const canViewSection = (sectionKey) => {
     if (!user?.customRoleId || user?.role === 'TENANT_OWNER') return true;
@@ -200,33 +187,8 @@ export default function AdminProcurement() {
       ) : (
         <div key={storeId} className="flex-1 flex flex-col min-h-0 animate-in fade-in duration-700">
           {/* Header */}
-          {!hideMainHeader && (
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-              <div className="flex items-center gap-4">
-                {isGlobalRole && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase text-gray-400 tracking-wider">Select Warehouse:</span>
-                    <select
-                      value={storeId || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setSearchParams(prev => {
-                          const p = new URLSearchParams(prev);
-                          if (val) p.set('storeId', val);
-                          else p.delete('storeId');
-                          return p;
-                        });
-                      }}
-                      className="bg-white border border-gray-200 text-xs font-bold text-gray-900 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    >
-                      <option value="">All Warehouses</option>
-                      {stores.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+          {!hideMainHeader && headerExtra && (
+            <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-8">
               <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                 {headerExtra}
               </div>

@@ -6,7 +6,7 @@ import { procurementAPI } from '../../vsms/services/procurementService';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
-const ReportsSection = () => {
+const ReportsSection = ({ setHeaderExtra, setHideMainHeader, storeId }) => {
   const [activeReport, setActiveReport] = useState('overview');
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -23,32 +23,33 @@ const ReportsSection = () => {
     setLoading(true);
     try {
       let data;
+      const params = { storeId: storeId || undefined };
       switch (type) {
         case 'overview': {
           const [v, p] = await Promise.all([
-            procurementAPI.getVendorReport(),
-            procurementAPI.getProfitabilityReport()
+            procurementAPI.getVendorReport(params),
+            procurementAPI.getProfitabilityReport(params)
           ]);
           data = { vendors: v.data, profitability: p.data };
           break;
         }
         case 'low-stock': {
-          const r = await procurementAPI.getLowStockAlert();
+          const r = await procurementAPI.getLowStockAlert(params);
           data = r.data;
           break;
         }
         case 'outstanding': {
-          const r = await procurementAPI.getOutstandingPayables();
+          const r = await procurementAPI.getOutstandingPayables(params);
           data = r.data;
           break;
         }
         case 'aging': {
-          const r = await procurementAPI.getAgingReport();
+          const r = await procurementAPI.getAgingReport(params);
           data = r.data;
           break;
         }
         case 'profitability': {
-          const r = await procurementAPI.getProfitabilityReport();
+          const r = await procurementAPI.getProfitabilityReport(params);
           data = r.data;
           break;
         }
@@ -57,7 +58,7 @@ const ReportsSection = () => {
       setReportData(data);
     } catch { toast.error('Failed to load report'); }
     finally { setLoading(false); }
-  }, []);
+  }, [storeId]);
 
   useEffect(() => { loadReport(activeReport); }, [activeReport, loadReport]);
 

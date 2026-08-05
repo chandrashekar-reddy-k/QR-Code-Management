@@ -8,7 +8,7 @@ import { procurementAPI } from '../../vsms/services/procurementService';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
-const PaymentsSection = ({ can, setHideMainHeader }) => {
+const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) => {
   const [payments, setPayments] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,8 +62,8 @@ const PaymentsSection = ({ can, setHideMainHeader }) => {
       try {
         setLoading(true);
         const [pmtsRes, purchRes] = await Promise.all([
-          procurementAPI.getPayments(),
-          procurementAPI.getPurchases()
+          procurementAPI.getPayments({ storeId: storeId || undefined }),
+          procurementAPI.getPurchases({ storeId: storeId || undefined })
         ]);
         setPayments(pmtsRes.data || []);
         setPurchases(purchRes.data || []);
@@ -74,7 +74,7 @@ const PaymentsSection = ({ can, setHideMainHeader }) => {
       }
     };
     load();
-  }, []);
+  }, [storeId]);
 
   const openForm = async () => {
     try {

@@ -83,14 +83,14 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
     // We always refetch products to ensure latest prices/taxes are used
     try {
       const [v, p, c, u, sc, s, po, g] = await Promise.all([
-        procurementAPI.getVendors({ status: 'ACTIVE' }),
-        adminAPI.getItems(),
+        procurementAPI.getVendors({ status: 'ACTIVE', storeId: storeId || undefined }),
+        adminAPI.getItems({ storeId: storeId || undefined }),
         adminAPI.getCategories(),
         adminAPI.getUnits(),
         adminAPI.getSubCategories(),
         adminAPI.getSettings(),
-        procurementAPI.getPurchaseOrders({ status: 'APPROVED,ORDERED,DELIVERED' }),
-        procurementAPI.getGRNs({ status: 'APPROVED,PARTIAL' })
+        procurementAPI.getPurchaseOrders({ status: 'APPROVED,ORDERED,DELIVERED', storeId: storeId || undefined }),
+        procurementAPI.getGRNs({ status: 'APPROVED,PARTIAL', storeId: storeId || undefined })
       ]);
       setVendors(v.data?.data || v.data || []);
       setProducts(p.data.filter(x => x.isActive || x.status === 'APPROVED'));

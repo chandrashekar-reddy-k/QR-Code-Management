@@ -97,6 +97,31 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     const expectedSlug = `partner_${slugCode}_view`;
     if (permissions.includes(expectedSlug)) return true;
 
+    // Route Management fallback to VSMS Logistics
+    if (slugCode === 'route_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_route_management_view')) return true;
+    }
+
+    // Vehicle Management fallback to VSMS Logistics
+    if (slugCode === 'vehicle_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_vehicle_management_view')) return true;
+    }
+
+    // Cash Management fallback to VSMS Logistics
+    if (slugCode === 'cash_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_cash_management_view')) return true;
+    }
+
+    // Inventory Management fallback to VSMS Logistics
+    if (slugCode === 'inventory_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_inventory_management_view') || permissions.includes('partner_stock_history_view')) return true;
+    }
+
+    // Shopkeeper fallback — old slug was 'shopkeeper_erp_admin', keep supporting it
+    if (slugCode === 'shopkeeper') {
+      if (permissions.includes('partner_shopkeeper_erp_admin_view') || permissions.includes('partner_shopkeeper_erp_view') || permissions.includes('partner_shopkeeper_view')) return true;
+    }
+
     // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
@@ -126,6 +151,58 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       `${parentPart}_${labelPart}_view`
     ];
 
+    if (parentPart === 'route_management') {
+      candidates.push(`partner_vsms_logistics_${labelPart}_view`);
+      candidates.push(`vsms_logistics_${labelPart}_view`);
+      if (labelPart === 'fleet_vehicles') {
+        candidates.push('partner_vsms_logistics_vehicles_view');
+        candidates.push('partner_vehicles_view');
+        candidates.push('partner_fleet_vehicles_view');
+        candidates.push('partner_vsms_vehicles_view');
+      }
+      if (labelPart === 'routes_coverage') {
+        candidates.push('partner_vsms_logistics_routes_view');
+        candidates.push('partner_routes_view');
+        candidates.push('partner_routes_coverage_view');
+        candidates.push('partner_vsms_routes_view');
+      }
+    }
+
+    if (parentPart === 'vehicle_management') {
+      candidates.push(`partner_vsms_logistics_${labelPart}_view`);
+      candidates.push(`vsms_logistics_${labelPart}_view`);
+      if (labelPart === 'fuel_maintenance') {
+        candidates.push('partner_vsms_logistics_fuel_maintenance_view');
+        candidates.push('partner_fuel_maintenance_view');
+        candidates.push('partner_vsms_fuel_maintenance_view');
+      }
+      if (labelPart === 'vehicle_damages') {
+        candidates.push('partner_vsms_logistics_damages_view');
+        candidates.push('partner_damages_view');
+        candidates.push('partner_vsms_damages_view');
+      }
+    }
+
+    if (parentPart === 'inventory_management') {
+      candidates.push(`partner_vsms_logistics_${labelPart}_view`);
+      candidates.push(`vsms_logistics_${labelPart}_view`);
+      // If user has module-level access, show all sub-items
+      candidates.push('partner_inventory_management_view');
+      candidates.push('partner_vsms_logistics_view');
+      candidates.push('partner_vsms_view');
+      if (labelPart === 'vehicle_stock_audits') {
+        candidates.push('partner_vsms_stock_history_view');
+        candidates.push('partner_stock_history_view');
+        candidates.push('partner_vsms_logistics_stock_history_view');
+        candidates.push('partner_inventory_management_vehicle_stock_audits_view');
+      }
+      if (labelPart === 'stock_management') {
+        candidates.push('partner_stock_management_view');
+        candidates.push('partner_stock_view');
+        candidates.push('stock_management_view');
+      }
+    }
+
     if (labelPart === 'ready_for_dispatch') {
       candidates.push(`${portal}_${parentPart}_ready_dispatch_view`);
       candidates.push(`${parentPart}_ready_dispatch_view`);
@@ -145,6 +222,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     }
 
     if (labelPart !== 'dashboard') {
+      candidates.push(`${portal}_text_${labelPart}_view`);
+      candidates.push(`${portal}__${labelPart}_view`);
       candidates.push(`${portal}_${labelPart}_view`);
       candidates.push(`${labelPart}_view`);
     }
@@ -173,6 +252,13 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       candidates.push(`${portal}_${cleanParentPart}_${cleanLabelPart}_view`);
       candidates.push(`${cleanParentPart}_${labelPart}_view`);
       candidates.push(`${cleanParentPart}_${cleanLabelPart}_view`);
+    }
+
+    // Shopkeeper backward-compat: old DB slugs used 'shopkeeper_erp_admin' as parent
+    if (parentPart === 'shopkeeper') {
+      candidates.push(`partner_shopkeeper_erp_admin_${labelPart}_view`);
+      candidates.push(`partner_shopkeeper_erp_${labelPart}_view`);
+      candidates.push(`shopkeeper_erp_admin_${labelPart}_view`);
     }
 
     return candidates.some(candidate => permissions.includes(candidate));
@@ -282,6 +368,15 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   );
   const [isVsmsOpen, setIsVsmsOpen] = useState(false);
   const [isAssetsOpen, setIsAssetsOpen] = useState(false);
+  const [isRouteManagementOpen, setIsRouteManagementOpen] = useState(
+    location.pathname === '/vsms/vehicles' || location.pathname === '/vsms/routes-coverage'
+  );
+  const [isVehicleManagementOpen, setIsVehicleManagementOpen] = useState(
+    location.pathname === '/vsms/fuel-maintenance' || location.pathname === '/vsms/damages'
+  );
+  const [isInventoryManagementOpen, setIsInventoryManagementOpen] = useState(
+    location.pathname === '/vsms/stock-history'
+  );
 
   // ============================================
   // STATE MAPS - For dynamic state access
@@ -310,6 +405,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen: setIsProcurementOpen,
       isVsmsOpen: setIsVsmsOpen,
       isAssetsOpen: setIsAssetsOpen,
+      isRouteManagementOpen: setIsRouteManagementOpen,
+      isVehicleManagementOpen: setIsVehicleManagementOpen,
+      isInventoryManagementOpen: setIsInventoryManagementOpen,
     }),
     []
   );
@@ -337,6 +435,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen,
       isVsmsOpen,
       isAssetsOpen,
+      isRouteManagementOpen,
+      isVehicleManagementOpen,
+      isInventoryManagementOpen,
     }),
     [
       isProductsOpen,
@@ -360,6 +461,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isProcurementOpen,
       isVsmsOpen,
       isAssetsOpen,
+      isRouteManagementOpen,
+      isVehicleManagementOpen,
+      isInventoryManagementOpen,
     ]
   );
 
@@ -696,8 +800,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const filteredOrdersSubItems = ordersSubItems.filter(() => hasModuleViewPermission("Orders Management"));
   const filteredSellerSubItems = sellerSubItems.filter(() => hasModuleViewPermission("Vendor Management"));
   const filteredStaffSubItems = staffSubItems.filter(() => hasModuleViewPermission("Staff Management"));
-  const filteredShopkeeperSubItems = (typeof shopkeeperSubItems !== 'undefined' ? shopkeeperSubItems : []).filter(item => hasSubPermission("Shopkeeper ERP (Admin)", item.label));
-  const filteredShopkeeperErpAdminSubItems = shopkeeperErpAdminSubItems.filter(item => hasSubPermission("Shopkeeper ERP (Admin)", item.label));
+  const filteredShopkeeperSubItems = (typeof shopkeeperSubItems !== 'undefined' ? shopkeeperSubItems : []).filter(item => hasSubPermission("Shopkeeper", item.label));
+  const filteredShopkeeperErpAdminSubItems = shopkeeperErpAdminSubItems.filter(item => hasSubPermission("Shopkeeper", item.label));
   const filteredDeliveryBoySubItems = deliveryBoySubItems.filter(() => hasModuleViewPermission("Delivery Management"));
   const filteredPromotionsSubItems = promotionsSubItems.filter(() => hasModuleViewPermission("Promotions & Offers"));
   const filteredVsmsSubItems = vsmsSubItems.filter(item => {
