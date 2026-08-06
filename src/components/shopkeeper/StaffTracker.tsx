@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Users, Search, RefreshCw, AlertCircle, ShoppingBag, CheckCircle, ArrowLeft, Calendar, Clock } from "lucide-react";
+import { Users, Search, RefreshCw, AlertCircle, ArrowLeft, Clock, Filter, Eye, UserMinus, ChevronDown, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
 import { getSLAInfo } from "../../utils/slaHelper";
@@ -58,8 +58,9 @@ export function StaffTracker() {
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [detailedStaff, setDetailedStaff] = useState<DetailedStaff | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
 
-  const { orders: sharedOrders } = useSharedOrders();
+  const { orders: sharedOrders, loading: sharedOrdersLoading } = useSharedOrders();
 
   const computedStaff = useMemo(() => {
     return staff.map(s => {
@@ -76,7 +77,7 @@ export function StaffTracker() {
         const allocationStatus = o.allocationStatus || o.allocation_status;
         return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'picked', 'packing', 'packed', 'processing', 'ready', 'handed_over'].includes(status) || allocationStatus === 'HandedOver';
       });
-      
+
       // True active orders (excluding HandedOver) determining Busy state
       const trueActiveOrders = displayableOrders.filter(o => {
         const allocationStatus = o.allocationStatus || o.allocation_status;
@@ -86,10 +87,10 @@ export function StaffTracker() {
 
       const isBusy = trueActiveOrders.length > 0;
       let activeOrder = null;
-      
+
       // Prefer true active order, don't show handed over orders in main view
       const oToDisplay = isBusy ? trueActiveOrders[0] : null;
-      
+
       if (oToDisplay) {
         const o = oToDisplay;
         activeOrder = {
@@ -139,7 +140,7 @@ export function StaffTracker() {
       const liveOrder = sharedOrders.find(so => so.id === o.id || so.order_number === o.orderNumber || so._id === o.id);
       const allocationStatus = liveOrder?.allocationStatus || liveOrder?.allocation_status || (o as any).allocationStatus;
       if (allocationStatus === 'HandedOver') return false;
-      
+
       const s = o.status?.toLowerCase() || '';
       return ['new', 'assigned', 'accepted', 'confirmed', 'picking', 'picked', 'packing', 'packed', 'processing', 'ready'].includes(s);
     });
@@ -209,91 +210,187 @@ export function StaffTracker() {
   if (computedDetailedStaff) {
     const detailedStaff = computedDetailedStaff;
     return (
-      <div className="w-full flex flex-col gap-6" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
+      <div className="w-full flex flex-col gap-4" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
+
         {/* Detail View Header */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-1 mb-2">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setSelectedStaffId(null)}
-              className="p-2.5 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 dark:text-gray-500 rounded-xl transition-all"
+              onClick={() => { setSelectedStaffId(null); setHistoryPage(1); }}
+              className="text-gray-600 hover:text-gray-900 transition-colors flex items-center justify-center p-1"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={24} strokeWidth={2} />
             </button>
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">{detailedStaff.name}</h2>
-              <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm mt-0.5">
-                Employee ID: {detailedStaff.employeeId || "N/A"} • Phone: {detailedStaff.phone || "N/A"}
-              </p>
-            </div>
+            <h2 className="text-2xl font-bold text-[#111827]">{detailedStaff.name}</h2>
           </div>
-          <span className={`self-start sm:self-center px-3 py-1 rounded-full text-xs font-bold ${detailedStaff.status === "Busy"
-              ? "bg-red-50 text-red-600 border border-red-100"
-              : "bg-green-50 text-green-600 border border-green-100"
-            }`}>
-            {detailedStaff.status === "Busy" ? "Busy" : "Idle"}
-          </span>
+          <div className="flex items-center gap-4 text-xs font-medium text-gray-500 ml-10">
+            <span>Employee ID: <span className="text-gray-700 font-semibold">{detailedStaff.employeeId || "N/A"}</span></span>
+            <span>Phone: <span className="text-gray-700 font-semibold">{detailedStaff.phone || "N/A"}</span></span>
+          </div>
         </div>
 
-        {/* Detailed Orders Section */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-4">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-            <ShoppingBag className="text-[#00891D]" size={20} />
-            Assigned Order History
-          </h3>
+        {/* Detailed Orders Table Container */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          {/* Container Header */}
+          <div className="px-6 py-4 flex items-center justify-between bg-white border-b border-gray-100">
+            <h3 className="font-bold text-gray-900 text-[15px]">
+              Assigned Order History
+            </h3>
+            <div className="px-3 py-1 bg-[#E8F5E9] text-[#00891D] text-xs font-bold rounded-full">
+              {detailedStaff.orders.length} orders
+            </div>
+          </div>
 
-          {loadingDetails ? (
-            <div className="flex items-center justify-center p-12">
-              <RefreshCw className="animate-spin text-[#00891D]" size={24} />
-            </div>
-          ) : detailedStaff.orders.length === 0 ? (
-            <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
-              No orders have been assigned to this staff member yet.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {detailedStaff.orders.map((order) => (
-                <div key={order.id} className="border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">Order #{order.orderNumber}</span>
-                      <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 dark:text-gray-500 font-bold px-2 py-0.5 rounded uppercase">
-                        {order.fulfillmentType === "STORE_PICKUP" ? "Self Pickup" : "Home Delivery"}
-                      </span>
-                      {order.trayNumber && (
-                        <span className="text-[10px] bg-orange-50 text-orange-600 font-bold px-2 py-0.5 rounded border border-orange-100">
-                          Tray {order.trayNumber}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">Customer: {order.customerName}</span>
-                    <span className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-1">
-                      <Calendar size={12} />
-                      {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-900 font-bold bg-[#F9FAFB]/50">
+                  <th className="px-6 py-4 font-bold">ORDER ID</th>
+                  <th className="px-6 py-4 font-bold">ORDER DATE & TIME</th>
+                  <th className="px-6 py-4 font-bold">CUSTOMER</th>
+                  <th className="px-6 py-4 font-bold">DELIVERY TYPE</th>
+                  <th className="px-6 py-4 font-bold">TRAY</th>
+                  <th className="px-6 py-4 font-bold">STATUS</th>
+                  <th className="px-6 py-4 font-bold">ITEMS PICKED</th>
+                  <th className="px-6 py-4 font-bold">LAST ACTIVITY</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {loadingDetails ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <RefreshCw className="animate-spin text-[#00891D] mb-3" size={24} />
+                        <p className="text-gray-500 text-sm">Loading staff history...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : detailedStaff.orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400 text-sm">
+                        No orders have been assigned to this staff member yet.
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  (() => {
+                    const limit = 10;
+                    const startIndex = (historyPage - 1) * limit;
+                    const paginatedOrders = detailedStaff.orders.slice(startIndex, startIndex + limit);
+                    return paginatedOrders.map((order) => {
+                      const statusUpper = (order.status || "").toUpperCase();
 
-                  <div className="flex flex-col items-start sm:items-end gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
-                      ['DELIVERED', 'OUT_FOR_DELIVERY', 'DISPATCHED', 'COMPLETED'].includes((order.status || "").toUpperCase())
-                        ? "bg-green-50 text-green-600"
-                        : ['NEW', 'PLACED', 'ASSIGNED'].includes((order.status || "").toUpperCase())
-                          ? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                          : ['ACCEPTED'].includes((order.status || "").toUpperCase())
-                            ? "bg-indigo-50 text-indigo-600"
-                            : ['CANCELLED', 'REJECTED', 'FAILED'].includes((order.status || "").toUpperCase())
-                              ? "bg-red-50 text-red-600"
-                              : "bg-orange-50 text-orange-600"
-                    }`}>
-                      {((order.status || "").toUpperCase() === 'NEW' || (order.status || "").toUpperCase() === 'PLACED') ? 'Assigned' : order.status}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">
-                      Items Picked: {order.pickedCount} / {order.itemCount}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                      let statusBg = "bg-gray-100 text-gray-600";
+                      if (['DELIVERED', 'OUT_FOR_DELIVERY', 'DISPATCHED', 'COMPLETED', 'ACCEPTED'].includes(statusUpper)) {
+                        statusBg = "bg-[#E8F5E9] text-[#00891D]";
+                      } else if (['NEW', 'PLACED', 'ASSIGNED'].includes(statusUpper)) {
+                        statusBg = "bg-gray-100 text-gray-600";
+                      } else if (['CANCELLED', 'REJECTED', 'FAILED'].includes(statusUpper)) {
+                        statusBg = "bg-red-50 text-red-600";
+                      } else if (['READY'].includes(statusUpper)) {
+                        statusBg = "bg-[#FFF4ED] text-[#EF5A06]";
+                      } else {
+                        statusBg = "bg-blue-50 text-blue-600";
+                      }
+
+                      const displayStatus = ['NEW', 'PLACED'].includes(statusUpper) ? 'Assigned' : order.status;
+
+                      // Parse Date
+                      const orderDate = new Date(order.createdAt);
+                      const dateStr = orderDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                      const timeStr = orderDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                      // Time Since Last Activity (falling back to createdAt if no updatedAt is present)
+                      const diffMin = Math.floor((Date.now() - orderDate.getTime()) / 60000);
+                      let activityTimeStr = '';
+                      if (diffMin <= 0) activityTimeStr = 'Just now';
+                      else if (diffMin < 60) activityTimeStr = `${diffMin} min ago`;
+                      else if (diffMin < 1440) activityTimeStr = `${Math.floor(diffMin / 60)} hours ago`;
+                      else activityTimeStr = `${Math.floor(diffMin / 1440)} days ago`;
+
+                      // To match the screenshot strictly, single 'hour' or 'day' should drop 's'
+                      if (activityTimeStr === '1 hours ago') activityTimeStr = '1 hour ago';
+                      if (activityTimeStr === '1 days ago') activityTimeStr = '1 day ago';
+
+                      return (
+                        <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <span className="text-[13px] font-bold text-[#00891D]">#{order.orderNumber}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-[13px] text-gray-600 font-medium">
+                              {dateStr}, {timeStr}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-[13px] font-semibold text-gray-900">
+                              {order.customerName || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-[13px] text-gray-600">
+                              {order.fulfillmentType === "STORE_PICKUP" ? "Self Pickup" : "Home Delivery"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-[13px] text-gray-600">
+                              {order.trayNumber ? `P${order.trayNumber.padStart(2, '0')}` : "-"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${statusBg}`}>
+                              {displayStatus}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-[13px] font-semibold text-gray-700">
+                              {order.pickedCount} / {order.itemCount}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-[13px] text-gray-600">
+                              {activityTimeStr}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
+            <span className="text-[13px] text-gray-500">
+              Showing <span className="font-semibold text-gray-900">
+                {detailedStaff.orders.length > 0 ? (historyPage - 1) * 10 + 1 : 0}
+              </span> to <span className="font-semibold text-gray-900">
+                {Math.min(historyPage * 10, detailedStaff.orders.length)}
+              </span> of <span className="font-semibold text-gray-900">{detailedStaff.orders.length}</span> orders
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                disabled={historyPage === 1}
+                className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button className="w-8 h-8 flex items-center justify-center rounded bg-[#00891D] text-white font-medium text-sm">
+                {historyPage}
+              </button>
+              <button
+                onClick={() => setHistoryPage(p => Math.min(Math.ceil(detailedStaff.orders.length / 10), p + 1))}
+                disabled={historyPage >= Math.ceil(detailedStaff.orders.length / 10)}
+                className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
@@ -302,63 +399,87 @@ export function StaffTracker() {
   return (
     <div className="w-full flex flex-col gap-6" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
       {/* Header section with Stats */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-            <Users className="text-[#00891D]" size={24} />
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[22px] font-bold text-[#111827]">
             Staff Status Tracker
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm mt-1">Real-time status tracking of all shopkeeper staff members</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2.5 rounded-xl border border-gray-100 dark:border-gray-700 text-center min-w-[80px]">
-            <p className="text-gray-800 dark:text-gray-200 font-bold text-lg">{stats.total}</p>
-            <p className="text-gray-400 dark:text-gray-500 text-[10px] font-semibold uppercase">Total Staff</p>
+        <div className="flex gap-4">
+          <div className="flex-1 bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-xs font-semibold mb-1">Total Staff</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+              <Users className="text-[#00891D]" size={20} />
+            </div>
           </div>
-          <div className="bg-red-50 px-4 py-2.5 rounded-xl border border-red-100 text-center min-w-[80px]">
-            <p className="text-red-600 font-bold text-lg">{stats.busy}</p>
-            <p className="text-red-500 text-[10px] font-semibold uppercase">Busy</p>
+
+          <div className="flex-1 bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-xs font-semibold mb-1">Busy</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.busy}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <Clock className="text-yellow-600" size={20} />
+            </div>
           </div>
-          <div className="bg-green-50 px-4 py-2.5 rounded-xl border border-green-100 text-center min-w-[80px]">
-            <p className="text-green-600 font-bold text-lg">{stats.idle}</p>
-            <p className="text-green-500 text-[10px] font-semibold uppercase">Idle</p>
+
+          <div className="flex-1 bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-xs font-semibold mb-1">Idle</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.idle}</p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
+              <UserMinus className="text-orange-500" size={20} />
+            </div>
           </div>
-          <button
-            onClick={fetchStaffData}
-            disabled={loading}
-            className="p-3 bg-[#00891D]/10 hover:bg-[#00891D]/20 text-[#00891D] rounded-xl transition-all active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-          </button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="flex-1 relative">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
+        <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden h-[42px]">
+          <div className="flex items-center justify-center px-4 border-r border-gray-200 text-gray-900 h-full">
+            <Filter size={18} strokeWidth={2.5} />
+          </div>
+
+          <div className="relative border-r border-gray-200 h-full">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "All" | "Busy" | "Idle")}
+              className="appearance-none bg-none pl-5 pr-10 py-2.5 text-sm font-bold text-gray-900 bg-transparent hover:bg-gray-50 focus:outline-none cursor-pointer border-0 h-full w-[120px]"
+            >
+              <option value="All">Status</option>
+              <option value="Busy">Busy</option>
+              <option value="Idle">Idle</option>
+            </select>
+            <ChevronDown size={18} strokeWidth={2.5} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-900 pointer-events-none" />
+          </div>
+
+          <button
+            onClick={() => {
+              setStatusFilter("All");
+              fetchStaffData();
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 text-[#EF5A06] font-medium text-sm hover:bg-orange-50 transition-colors h-full"
+          >
+            <RotateCcw size={16} strokeWidth={2} />
+            Reset Filter
+          </button>
+        </div>
+
+        <div className="relative w-[300px]">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by staff name, ID or phone..."
+            placeholder="Search ...."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-150 focus:outline-none focus:border-[#00891D] text-sm text-gray-700 dark:text-gray-300"
+            className="w-full pl-10 pr-4 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:border-[#00891D] text-sm text-gray-700"
           />
-        </div>
-        <div className="flex gap-2">
-          {(["All", "Busy", "Idle"] as const).map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setStatusFilter(filter)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${statusFilter === filter
-                  ? "bg-[#00891D] text-white"
-                  : "bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:bg-gray-700"
-                }`}
-            >
-              {filter}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -370,199 +491,230 @@ export function StaffTracker() {
         </div>
       )}
 
-      {/* Staff Grid/List - Updated to Row Layout */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm min-h-[300px]">
-          <RefreshCw className="animate-spin text-[#00891D] mb-3" size={32} />
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">Loading staff status data...</p>
-        </div>
-      ) : filteredStaff.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm min-h-[300px]">
-          <Users className="text-gray-300 mb-3" size={48} />
-          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">No staff members found matching criteria.</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {filteredStaff.map((member) => (
-            <div
-              key={member.id}
-              onClick={() => setSelectedStaffId(member.id)}
-              className={`bg-white dark:bg-gray-800 rounded-2xl border transition-all p-5 shadow-sm hover:shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer ${member.status === "Busy" ? "border-red-100 hover:border-red-200" : "border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:border-gray-700"
-                }`}
-            >
-              {/* Staff Personal Info */}
-              <div className="flex-1 min-w-[200px]">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-bold text-gray-800 dark:text-gray-200 text-base">{member.name}</h3>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${member.status === "Busy"
-                      ? "bg-red-50 text-red-600 border border-red-100"
-                      : "bg-green-50 text-green-600 border border-green-100"
-                    }`}>
-                    {member.status}
-                  </span>
-                  {member.status === "Busy" && member.activeOrder && member.activeOrder.activeOrdersCount !== undefined && member.activeOrder.activeOrdersCount > 1 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap">
-                      {member.activeOrder.activeOrdersCount} Active Orders
-                    </span>
-                  )}
-                </div>
-                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-                  ID: {member.employeeId || "N/A"} • Phone: {member.phone || "No phone"}
-                </p>
-              </div>
-
-              {/* Active Order Details */}
-              <div className="flex-[2] min-w-[300px]">
-                {member.activeOrder ? (
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between gap-4">
-
-                    {/* Left: Order Info & Progress */}
-                    <div className="flex flex-col gap-2.5 flex-1">
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-800 dark:text-gray-200">
-                          <ShoppingBag size={14} className="text-[#00891D]" />
-                          Order #{member.activeOrder.orderNumber}
-                          <span className="text-[9px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 font-bold px-1.5 py-0.5 rounded uppercase">
-                            {member.activeOrder.fulfillmentType === "STORE_PICKUP" ? "Self Pickup" : "Home Delivery"}
-                          </span>
-                          {member.activeOrder.trayNumber && (
-                            <span className="bg-orange-50 text-orange-600 font-bold px-1.5 py-0.5 rounded text-[9px] border border-orange-100 uppercase">
-                              Tray {member.activeOrder.trayNumber}
-                            </span>
-                          )}
-                        </div>
-
-                      </div>
-
-                      {/* Mini Progress bar */}
-                      <div className="w-full max-w-[220px] flex flex-col gap-1.5 mt-0.5 ml-6">
-                        <div className="flex justify-between text-[9px] text-gray-500 dark:text-gray-400 font-bold tracking-wide">
-                          <span>PROGRESS</span>
-                          <span>
-                            {member.activeOrder.pickedCount}/{member.activeOrder.itemCount} • {member.activeOrder.itemCount > 0 ? Math.round((member.activeOrder.pickedCount / member.activeOrder.itemCount) * 100) : 0}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-600 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-[#00891D] h-full rounded-full transition-all duration-500"
-                            style={{ width: `${member.activeOrder.itemCount > 0 ? (member.activeOrder.pickedCount / member.activeOrder.itemCount) * 100 : 0}%` }}
-                          />
-                        </div>
-                      </div>
+      {/* Table Area */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-900 font-bold bg-white">
+                <th className="px-3 py-3 font-bold">STAFF MEMBER</th>
+                <th className="px-3 py-3 font-bold">STAFF ID / PHONE</th>
+                <th className="px-3 py-3 font-bold">ACTIVE ORDERS</th>
+                <th className="px-3 py-3 font-bold">CURRENT ORDER</th>
+                <th className="px-3 py-3 font-bold">STATUS</th>
+                <th className="px-3 py-3 font-bold">WORK TIME</th>
+                <th className="px-3 py-3 font-bold">TIME REMAINING</th>
+                <th className="px-3 py-3 font-bold">LAST ACTIVITY</th>
+                <th className="px-3 py-3 font-bold">ACTION</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {loading || sharedOrdersLoading ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <RefreshCw className="animate-spin text-[#00891D] mb-3" size={24} />
+                      <p className="text-gray-500 text-sm">Loading staff status data...</p>
                     </div>
+                  </td>
+                </tr>
+              ) : filteredStaff.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <Users className="text-gray-300 mb-3" size={32} />
+                      <p className="text-gray-500 text-sm">No staff members found matching criteria.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredStaff.map((member) => {
+                  const initials = member.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+                  const isBusy = member.status === "Busy";
+                  const avatarBg = isBusy ? "bg-orange-50 text-orange-600" : "bg-green-50 text-[#00891D]";
+                  const statusBg = isBusy ? "bg-[#FFF4ED] text-[#EF5A06]" : "bg-[#E8F5E9] text-[#00891D]";
 
-                    {/* Right: Status, Timers & Activity */}
-                    <div className="flex flex-col sm:items-end gap-2.5 flex-1 justify-center">
-                      <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                          ['DELIVERED', 'OUT_FOR_DELIVERY', 'DISPATCHED', 'delivered', 'out_for_delivery', 'dispatched'].includes(member.activeOrder.status)
-                            ? "bg-green-50 text-green-600 border border-green-100"
-                            : ['PICKING', 'picking'].includes(member.activeOrder.status)
-                              ? "bg-purple-50 text-purple-600 border border-purple-100"
-                              : ['PACKING', 'packing'].includes(member.activeOrder.status)
-                                ? "bg-orange-50 text-orange-600 border border-orange-100"
-                                : ['READY', 'ready', 'READY_FOR_DISPATCH', 'ready_for_dispatch', 'HANDOVER', 'handover'].includes(member.activeOrder.status)
-                                  ? "bg-teal-50 text-teal-600 border border-teal-100"
-                                  : ['CANCELLED', 'cancelled', 'REJECTED', 'rejected'].includes(member.activeOrder.status)
-                                    ? "bg-red-50 text-red-600 border border-red-100"
-                                    : ['ACCEPTED', 'accepted'].includes(member.activeOrder.status)
-                                      ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                                      : ['ASSIGNED', 'assigned', 'NEW', 'placed', 'new', 'PLACED'].includes(member.activeOrder.status)
-                                        ? "bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-                                        : "bg-blue-50 text-blue-600 border border-blue-100"
-                          }`}>
-                          {['new', 'placed', 'NEW', 'PLACED'].includes(member.activeOrder.status)
-                            ? 'Assigned'
-                            : member.activeOrder.status === 'ready' || member.activeOrder.status === 'READY'
-                              ? 'Ready for Dispatch'
-                              : member.activeOrder.status === 'handed_over' || member.activeOrder.status === 'HANDED_OVER'
-                                ? 'HANDED OVER'
-                                : member.activeOrder.status}
-                        </span>
+                  // Time Calculation logic
+                  let workingLabel = '-';
+                  let slaInfo = null;
+                  let activityStr = '-';
+                  let activityTimeStr = '';
 
-                        {(() => {
-                          const acceptedAt = member.activeOrder.shopkeeperAcceptedAt
-                            ? new Date(member.activeOrder.shopkeeperAcceptedAt).getTime()
-                            : null;
-                          const elapsedMin = acceptedAt
-                            ? Math.floor((Date.now() - acceptedAt) / 60000)
-                            : 0;
+                  if (member.activeOrder) {
+                    const acceptedAt = member.activeOrder.shopkeeperAcceptedAt
+                      ? new Date(member.activeOrder.shopkeeperAcceptedAt).getTime()
+                      : null;
+                    const elapsedMin = acceptedAt
+                      ? Math.floor((Date.now() - acceptedAt) / 60000)
+                      : 0;
 
-                          let workingLabel = 'Not started';
-                          if (acceptedAt) {
-                            workingLabel = elapsedMin >= 60 ? `Work: ${Math.floor(elapsedMin / 60)}h ${elapsedMin % 60}m` : `Work: ${elapsedMin}m`;
-                          }
+                    if (acceptedAt) {
+                      workingLabel = elapsedMin >= 60 ? `${Math.floor(elapsedMin / 60)}H ${elapsedMin % 60}M` : `${elapsedMin}M`;
+                    }
 
-                          const slaInfo = getSLAInfo({
-                            shopkeeper_accepted_at: member.activeOrder.shopkeeperAcceptedAt,
-                            sla_minutes: member.activeOrder.slaMinutes,
-                            status: member.activeOrder.status
-                          });
+                    slaInfo = getSLAInfo({
+                      shopkeeper_accepted_at: member.activeOrder.shopkeeperAcceptedAt,
+                      sla_minutes: member.activeOrder.slaMinutes,
+                      status: member.activeOrder.status
+                    });
 
-                          const isUrgent = slaInfo.status === 'at_risk';
-                          const slaBreached = slaInfo.status === 'breached';
-                          const slaColor = slaBreached ? "#D32F2F" : isUrgent ? "#EF5A06" : "#00891D";
-                          const slaBg = slaBreached ? "#FFEBEE" : isUrgent ? "#FFEBEE" : "#E8F5E9";
-                          const slaBorder = slaBreached ? "#FFCDD2" : isUrgent ? "#FFCDD2" : "#C8E6C9";
+                    if (member.activeOrder.updatedAt) {
+                      const updatedTime = new Date(member.activeOrder.updatedAt).getTime();
+                      const diffMin = Math.floor((Date.now() - updatedTime) / 60000);
+                      activityTimeStr = diffMin <= 0 ? 'Just now' : diffMin >= 60 ? `${Math.floor(diffMin / 60)}h ${diffMin % 60}m ago` : `${diffMin}m ago`;
 
-                          return (
-                            <>
-                              <div className="flex items-center gap-1 rounded-md px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                                <span className="text-gray-600 dark:text-gray-300 font-bold text-[9px] uppercase tracking-wider">{workingLabel}</span>
-                              </div>
-                              <div className="flex items-center gap-1 rounded-md px-1.5 py-0.5 border" style={{ backgroundColor: slaBg, borderColor: slaBorder }}>
-                                <Clock size={10} color={slaColor} />
-                                <span style={{ color: slaColor, fontWeight: 700, fontSize: "9px", textTransform: 'uppercase', letterSpacing: '0.05em' }}>{slaInfo.displayText}</span>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
+                      const s = member.activeOrder.status.toLowerCase();
+                      if (s === 'picking') activityStr = 'Started Picking';
+                      else if (s === 'packing') activityStr = 'Started Packing';
+                      else if (s === 'picked') activityStr = 'Finished Picking';
+                      else if (s === 'packed' || s === 'ready' || s === 'ready_for_dispatch') activityStr = 'Ready for Dispatch';
+                      else if (s === 'handed_over' || s === 'handedover') activityStr = 'Handed Over';
+                      else if (s === 'accepted') activityStr = 'Accepted';
+                      else if (s === 'assigned') activityStr = 'Assigned';
+                      else activityStr = member.activeOrder.status;
+                    }
+                  }
 
-                      {/* Latest Activity */}
-                      {(() => {
-                        if (!member.activeOrder.updatedAt) return null;
-                        const updatedTime = new Date(member.activeOrder.updatedAt).getTime();
-                        const diffMin = Math.floor((Date.now() - updatedTime) / 60000);
-                        const timeStr = diffMin <= 0 ? 'Just now' : diffMin >= 60 ? `${Math.floor(diffMin / 60)}h ${diffMin % 60}m ago` : `${diffMin}m ago`;
-
-                        const s = member.activeOrder.status.toLowerCase();
-                        let activityStr = '';
-                        if (s === 'picking') activityStr = 'Started Picking';
-                        else if (s === 'packing') activityStr = 'Started Packing';
-                        else if (s === 'picked') activityStr = 'Finished Picking';
-                        else if (s === 'packed' || s === 'ready' || s === 'ready_for_dispatch') activityStr = 'Ready for Dispatch';
-                        else if (s === 'handed_over' || s === 'handedover') activityStr = 'Handed Over to Store Manager';
-                        else if (s === 'accepted') activityStr = 'Accepted';
-                        else if (s === 'assigned') activityStr = 'Assigned';
-                        else activityStr = member.activeOrder.status;
-
-                        return (
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-                            <span className="text-gray-400">Latest:</span> <span className="text-gray-700 dark:text-gray-300">{activityStr}</span> • {timeStr}
+                  return (
+                    <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
+                      {/* Staff Member */}
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full ${avatarBg} flex items-center justify-center font-bold text-sm shrink-0`}>
+                            {initials}
                           </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 text-xs py-2">
-                    <CheckCircle size={14} className="text-green-500" />
-                    <span>Idle • Ready for assignment</span>
-                  </div>
-                )}
-              </div>
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="font-bold text-gray-900 text-sm ">{member.name}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${statusBg}`}>
+                              {member.status}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
 
-              {/* Action or indicator */}
-              <div className="text-right text-xs text-gray-400 dark:text-gray-500 border-t md:border-t-0 pt-3 md:pt-0">
-                <span className="bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700 text-[#00891D] font-bold">
-                  View History
-                </span>
-              </div>
-            </div>
-          ))}
+                      {/* Staff ID / Phone */}
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] text-gray-600">{member.employeeId || "N/A"}</span>
+                          <span className="text-[13px] text-gray-400">{member.phone || "No phone"}</span>
+                        </div>
+                      </td>
+
+                      {/* Active Orders */}
+                      <td className="px-3 py-3">
+                        <span className="text-[13px] font-medium text-gray-700">
+                          {isBusy && member.activeOrder?.activeOrdersCount ? `${member.activeOrder.activeOrdersCount} Active Orders` : "-"}
+                        </span>
+                      </td>
+
+                      {/* Current Order */}
+                      <td className="px-3 py-3">
+                        {member.activeOrder ? (
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="text-[13px] font-semibold text-gray-900 ">Order #{member.activeOrder.orderNumber}</span>
+                            <span className="text-[10px] text-gray-400 uppercase tracking-wide">{member.activeOrder.fulfillmentType === "STORE_PICKUP" ? "Self Pickup" : "Home Delivery"}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-3 py-3">
+                        {member.activeOrder ? (
+                          <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${['DELIVERED', 'OUT_FOR_DELIVERY', 'DISPATCHED', 'delivered', 'out_for_delivery', 'dispatched'].includes(member.activeOrder.status)
+                              ? "bg-green-50 text-green-600"
+                              : ['PICKING', 'picking'].includes(member.activeOrder.status)
+                                ? "bg-purple-50 text-purple-600"
+                                : ['PACKING', 'packing'].includes(member.activeOrder.status)
+                                  ? "bg-orange-50 text-orange-600"
+                                  : ['READY', 'ready', 'READY_FOR_DISPATCH', 'ready_for_dispatch', 'HANDOVER', 'handover'].includes(member.activeOrder.status)
+                                    ? "bg-teal-50 text-teal-600"
+                                    : ['CANCELLED', 'cancelled', 'REJECTED', 'rejected'].includes(member.activeOrder.status)
+                                      ? "bg-red-50 text-red-600"
+                                      : ['ACCEPTED', 'accepted'].includes(member.activeOrder.status)
+                                        ? "bg-[#E8F0FE] text-[#1A73E8]"
+                                        : ['ASSIGNED', 'assigned', 'NEW', 'placed', 'new', 'PLACED'].includes(member.activeOrder.status)
+                                          ? "bg-gray-100 text-gray-600"
+                                          : "bg-blue-50 text-blue-600"
+                            }`}>
+                            {['new', 'placed', 'NEW', 'PLACED'].includes(member.activeOrder.status)
+                              ? 'Assigned'
+                              : member.activeOrder.status === 'ready' || member.activeOrder.status === 'READY'
+                                ? 'Ready for Dispatch'
+                                : member.activeOrder.status === 'handed_over' || member.activeOrder.status === 'HANDED_OVER'
+                                  ? 'HANDED OVER'
+                                  : member.activeOrder.status}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* Work Time */}
+                      <td className="px-3 py-3">
+                        <span className="text-[13px] font-medium text-gray-700">{workingLabel}</span>
+                      </td>
+
+                      {/* Time Remaining */}
+                      <td className="px-3 py-3">
+                        {slaInfo ? (
+                          <div className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide ${slaInfo.status === 'breached' ? 'text-[#D32F2F]' : slaInfo.status === 'at_risk' ? 'text-[#EF5A06]' : 'text-[#00891D]'}`}>
+                            {(slaInfo.status === 'breached' || slaInfo.status === 'at_risk') && <AlertCircle size={12} />}
+                            {slaInfo.displayText.replace('Time left: ', '')}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* Last Activity */}
+                      <td className="px-3 py-3">
+                        {member.activeOrder ? (
+                          <div className="flex flex-col">
+                            <span className="text-[12px] text-gray-900 font-medium">{activityStr}</span>
+                            <span className="text-[11px] text-gray-400">{activityTimeStr}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-3 py-3">
+                        <button
+                          onClick={() => setSelectedStaffId(member.id)}
+                          className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between px-3 py-3 border-t border-gray-100 bg-white">
+          <span className="text-[13px] text-gray-500">
+            Showing 1 to {filteredStaff.length} of {filteredStaff.length} staff
+          </span>
+          <div className="flex items-center gap-1">
+            <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50">
+              <ChevronLeft size={16} />
+            </button>
+            <button className="w-8 h-8 flex items-center justify-center rounded bg-[#EF5A06] text-white font-medium text-sm">
+              1
+            </button>
+            <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-50">
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
