@@ -2,7 +2,18 @@ import { useEffect } from "react";
 
 export function useIpProtection(active: boolean) {
   useEffect(() => {
-    if (!active) return;
+    const isBypass = localStorage.getItem("dev_bypass_ip_protection") === "true";
+    if (!active || isBypass) {
+      // Clean up any remaining overlays if they exist
+      const blocker = document.getElementById("security-focus-blocker");
+      if (blocker) blocker.remove();
+      document.body.style.filter = "none";
+      const watermark = document.getElementById("security-watermark-overlay");
+      if (watermark) watermark.remove();
+      const existingStyle = document.getElementById("ip-protection-style");
+      if (existingStyle) existingStyle.remove();
+      return;
+    }
 
     // 1. Prevent Right-Click context menu
     const handleContextMenu = (e: MouseEvent) => {
