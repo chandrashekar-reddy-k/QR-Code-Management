@@ -70,6 +70,7 @@ interface ProductLocation {
   id: string;
   productId: string;
   productVariantId: string | null;
+  quantity?: number;
   product: Product;
   tray: {
     id: string;
@@ -140,7 +141,7 @@ function CustomSelect({ label, value, onChange, options, placeholder, disabled =
   );
 }
 
-export function Settings() {
+export function StorageOperations() {
   const [activeTab, setActiveTab] = useState<"layout" | "mapping">("layout");
   const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
   const [editRackId, setEditRackId] = useState<string | null>(null);
@@ -148,7 +149,7 @@ export function Settings() {
   
   // Layout states
   const [racks, setRacks] = useState<Rack[]>([]);
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'Available' | 'Low Stock' | 'Full' | 'Empty' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [searchQuery, setSearchQuery] = useState("");
 
   // Mapping states
@@ -167,6 +168,8 @@ export function Settings() {
   const [viewingMappingId, setViewingMappingId] = useState<string | null>(null);
 
   // Accordion states for Storage Structure
+  const [isStorageStructureFullScreen, setIsStorageStructureFullScreen] = useState(false);
+  const [lastInteractedRackId, setLastInteractedRackId] = useState<string | null>(null);
   const [expandedRacks, setExpandedRacks] = useState<Record<string, boolean>>({});
   const [expandedShelves, setExpandedShelves] = useState<Record<string, boolean>>({});
 
@@ -178,6 +181,18 @@ export function Settings() {
         .map(m => m.tray?.id || (m as any).trayId)
         .filter(Boolean)
     );
+  }, [mappings, editingMappingId]);
+
+  const trayOccupiedQuantities = React.useMemo(() => {
+    const quantities = new Map<string, number>();
+    mappings.forEach(m => {
+      if (m.id === editingMappingId) return;
+      const trayId = m.tray?.id || (m as any).trayId;
+      if (!trayId) return;
+      const current = quantities.get(trayId) || 0;
+      quantities.set(trayId, current + (m.quantity || 0));
+    });
+    return quantities;
   }, [mappings, editingMappingId]);
 
   const mappedVariantIds = React.useMemo(() => {
@@ -199,11 +214,49 @@ export function Settings() {
   }, [products, mappings, mappedVariantIds, editingMappingId]);
 
   const filteredProducts = React.useMemo(() => {
-    return unmappedProducts.filter(p =>
-      p.name.toLowerCase().includes(searchProductQuery.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(searchProductQuery.toLowerCase()))
-    );
-  }, [unmappedProducts, searchProductQuery]);
+    return unmappedProducts;
+  }, [unmappedProducts]);
+
+  const mappingsWithStatus = React.useMemo(() => {
+    return mappings.map((map: any) => {
+      const qty = map.quantity || 0;
+      const capacity = map.tray?.capacity || 20;
+      
+      let status = 'Available';
+      if (qty === 0) status = 'Empty';
+      else if (qty >= capacity) status = 'Full';
+      else if (qty < capacity / 3) status = 'Low Stock';
+      
+      return { ...map, calculatedQty: qty, calculatedStatus: status, calculatedCapacity: capacity };
+    });
+  }, [mappings]);
+
+  const filteredMappings = React.useMemo(() => {
+    let result = mappingsWithStatus;
+
+    if (statusFilter !== 'ALL') {
+      result = result.filter((map: any) => map.calculatedStatus === statusFilter);
+    }
+
+    if (searchQuery.trim()) {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter((mapping: any) => {
+        const productName = mapping.product?.name?.toLowerCase() || '';
+        const productSku = mapping.product?.sku?.toLowerCase() || '';
+        const rackName = mapping.tray?.shelf?.rack?.name?.toLowerCase() || '';
+        const shelfName = mapping.tray?.shelf?.name?.toLowerCase() || '';
+        const trayName = mapping.tray?.name?.toLowerCase() || '';
+        
+        return productName.includes(lowerQuery) || 
+               productSku.includes(lowerQuery) ||
+               rackName.includes(lowerQuery) || 
+               shelfName.includes(lowerQuery) || 
+               trayName.includes(lowerQuery);
+      });
+    }
+
+    return result;
+  }, [mappingsWithStatus, searchQuery, statusFilter]);
 
   const availableRacks = React.useMemo(() => {
     return racks.filter(rack => {
@@ -352,10 +405,11 @@ export function Settings() {
 
   const handleEditMapping = (map: any) => {
     setEditingMappingId(map.id);
-    setSelectedProductKey(`${map.product.id}##${map.product.productVariantId}`);
+    setSelectedProductKey(`${map.productId}##${map.productVariantId || null}`);
     setSelectedRackForMap(map.tray.shelf.rack.id);
     setSelectedShelfForMap(map.tray.shelf.id);
     setSelectedTrayForMap(map.tray.id);
+    setQuantity(map.quantity?.toString() || "0");
     
     setExpandedRacks(prev => ({ ...prev, [map.tray.shelf.rack.id]: true }));
     setExpandedShelves(prev => ({ ...prev, [map.tray.shelf.id]: true }));
@@ -377,7 +431,8 @@ export function Settings() {
       await api.post("/partner/settings/product-locations", {
         productId,
         productVariantId,
-        trayId: selectedTrayForMap
+        trayId: selectedTrayForMap,
+        quantity: quantity ? Number(quantity) : 0
       });
       showSuccess("Product successfully mapped to tray!");
       setSelectedProductKey("");
@@ -403,6 +458,108 @@ export function Settings() {
   const totalRacks = racks.length;
   const totalShelves = racks.reduce((acc, r) => acc + r.shelves.length, 0);
   const totalTrays = racks.reduce((acc, r) => acc + r.shelves.reduce((sAcc, s) => sAcc + s.trays.length, 0), 0);
+
+  if (isStorageStructureFullScreen) {
+    const targetRackId = selectedRackForMap || lastInteractedRackId || (racks.length > 0 ? racks[0].id : null);
+    const targetRack = racks.find(r => r.id === targetRackId);
+
+    return (
+      <div className="w-full bg-[#F5F7FA] dark:bg-gray-900 min-h-screen p-6">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex items-center gap-3 mb-6 mt-2">
+            <button 
+              onClick={() => setIsStorageStructureFullScreen(false)} 
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ArrowLeft size={24} className="text-gray-700 dark:text-gray-300" />
+            </button>
+            <h1 className="text-[28px] font-bold text-[#111827] dark:text-gray-100 leading-none">Storage Structure</h1>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-gray-700">
+            {!targetRack ? (
+              <div className="text-gray-500 text-center py-12">No rack found.</div>
+            ) : (
+              <div className="flex flex-col">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-[#F0FDF4] rounded-lg border border-[#00891D]/20">
+                    <div className="w-5 h-5 bg-[#00891D] rounded-sm flex flex-col justify-evenly p-0.5">
+                      <div className="w-full h-0.5 bg-white rounded-full"></div>
+                      <div className="w-full h-0.5 bg-white rounded-full"></div>
+                      <div className="w-full h-0.5 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold text-gray-800 dark:text-gray-200 leading-tight">{targetRack.name}</span>
+                      <span className="text-[11px] font-bold bg-[#F0FDF4] text-[#00891D] px-2 py-0.5 rounded-full border border-[#00891D]/20">{targetRack.code || targetRack.name.substring(0, 3).toUpperCase()}</span>
+                    </div>
+                    <span className="text-xs text-gray-400 font-medium">Rack | Max Shelves: {targetRack.shelves?.length || 0}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col ml-5 pl-8 border-l-2 border-gray-100 dark:border-gray-700 space-y-8 pb-4 relative">
+                  {targetRack.shelves?.map((shelf) => (
+                    <div key={shelf.id} className="flex flex-col relative">
+                      <div className="absolute -left-[34px] top-4 w-6 border-b-2 border-gray-100 dark:border-gray-700"></div>
+                      
+                      <div className="flex items-center gap-3 mb-4 relative z-10 -ml-[38px]">
+                        <div className="w-8 h-8 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700 shadow-sm relative">
+                           <div className="w-4 h-4 bg-[#F0FDF4] rounded-sm flex flex-col justify-evenly p-[1.5px] border border-[#00891D]/20">
+                              <div className="w-full h-[1.5px] bg-[#00891D] rounded-full"></div>
+                              <div className="w-full h-[1.5px] bg-[#00891D] rounded-full"></div>
+                           </div>
+                        </div>
+                        <div className="flex flex-col bg-white dark:bg-gray-800 pr-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-tight">{shelf.name}</span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">({shelf.name.substring(0, 4).toUpperCase()})</span>
+                          </div>
+                          <span className="text-[11px] text-gray-400 font-medium mt-0.5">Shelf | Max Trays: {shelf.trays?.length || 0}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3 pl-8">
+                        {shelf.trays?.map(tray => {
+                          const isSelected = selectedTrayForMap === tray.id;
+                          const trayQty = trayOccupiedQuantities.get(tray.id) || 0;
+                          return (
+                            <div 
+                              key={tray.id}
+                              className={`flex flex-col p-3 rounded-xl border-2 transition-all min-w-[130px] ${
+                                isSelected 
+                                  ? 'border-[#00891D] bg-[#F0FDF4] shadow-sm' 
+                                  : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 shadow-sm'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 mb-2">
+                                <Package size={14} className={isSelected ? "text-[#00891D]" : "text-gray-400"} strokeWidth={isSelected ? 2.5 : 2} />
+                                <span className={`text-[12px] font-bold leading-tight ${isSelected ? 'text-[#00891D]' : 'text-gray-700 dark:text-gray-300'}`}>
+                                  {tray.name}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                <span className={`text-[10px] font-medium ${isSelected ? 'text-[#00891D]/80' : 'text-gray-500'}`}>
+                                  Capacity: {tray.capacity || 20}
+                                </span>
+                                <span className={`text-[10px] font-medium ${isSelected ? 'text-[#00891D]/80' : 'text-gray-500'}`}>
+                                  Occupied: {trayQty}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isSetupWizardOpen) {
     return (
@@ -846,9 +1003,9 @@ export function Settings() {
                                         <div className="absolute w-8 h-[2px] bg-gray-100 dark:bg-gray-700 left-0 top-[50px]"></div>
                                         
                                         <div className="flex gap-4 overflow-x-auto pb-4 items-center pl-2">
-                                           {s.trays.map((t, i) => {
+                                           {s.trays.map((t) => {
                                               const isSelected = t.id === tray?.id;
-                                              const qty = (map.product.name.length * 7 + i * 13) % 25; 
+                                              const trayQty = trayOccupiedQuantities.get(t.id) || 0;
                                               const capacity = t.capacity || 20;
                                               return (
                                                  <div key={t.id} className={`flex flex-col gap-1.5 min-w-[120px] p-3.5 rounded-xl border transition-colors relative bg-white dark:bg-gray-800 ${isSelected ? 'border-[#00891D] border-2 bg-green-50/30 dark:bg-green-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
@@ -857,7 +1014,7 @@ export function Settings() {
                                                        <span className={`font-bold text-sm ${isSelected ? 'text-[#00891D]' : 'text-gray-700 dark:text-gray-300'}`}>Tray {t.name}</span>
                                                     </div>
                                                     <span className={`text-[11px] ${isSelected ? 'text-[#00891D]/80' : 'text-gray-400'}`}>Capacity: {capacity}</span>
-                                                    <span className={`text-[11px] ${isSelected ? 'text-[#00891D]/80' : 'text-gray-400'}`}>Occupied: {isSelected ? qty : 0}</span>
+                                                    <span className={`text-[11px] ${isSelected ? 'text-[#00891D]/80' : 'text-gray-400'}`}>Occupied: {trayQty}</span>
                                                  </div>
                                               );
                                            })}
@@ -982,7 +1139,7 @@ export function Settings() {
                       className="bg-[#00891D] hover:bg-[#006614] disabled:bg-gray-300 text-white font-bold text-[13px] px-6 py-2.5 rounded-lg transition-colors flex items-center justify-center w-full sm:w-auto"
                     >
                       {submitting ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
-                      Assign Product
+                      {editingMappingId ? 'Update Product' : 'Assign Product'}
                     </button>
                   </div>
                 </form>
@@ -995,7 +1152,11 @@ export function Settings() {
                     <h3 className="font-bold text-gray-800 dark:text-gray-200 text-base">Storage Structure</h3>
                     <p className="text-[11px] text-gray-500 mt-0.5">Navigate your storage hierarchy.</p>
                   </div>
-                  <button type="button" className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-500">
+                  <button 
+                    type="button" 
+                    className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-500"
+                    onClick={() => setIsStorageStructureFullScreen(true)}
+                  >
                     <Maximize size={14} strokeWidth={2.5} />
                   </button>
                 </div>
@@ -1005,7 +1166,10 @@ export function Settings() {
                     <div key={rack.id} className="flex flex-col mb-1">
                       <div 
                         className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl cursor-pointer transition-colors"
-                        onClick={() => setExpandedRacks(prev => ({...prev, [rack.id]: !prev[rack.id]}))}
+                        onClick={() => {
+                          setExpandedRacks(prev => ({...prev, [rack.id]: !prev[rack.id]}));
+                          setLastInteractedRackId(rack.id);
+                        }}
                       >
                         <div className="flex items-center gap-3">
                           <Package size={20} className="text-[#00891D]" strokeWidth={2} />
@@ -1041,7 +1205,7 @@ export function Settings() {
                                 <div className="flex flex-col pl-7 mt-1 gap-1.5 pb-2">
                                   {shelf.trays.map(tray => {
                                     const isSelected = selectedTrayForMap === tray.id;
-                                    const isTrayOccupied = occupiedTrayIds.has(tray.id);
+                                    const trayQty = trayOccupiedQuantities.get(tray.id) || 0;
                                     return (
                                       <div 
                                         key={tray.id} 
@@ -1057,7 +1221,7 @@ export function Settings() {
                                         </div>
                                         <div className="flex flex-col">
                                           <span className={`text-[13px] font-bold leading-tight ${isSelected ? 'text-[#00891D]' : 'text-gray-700 dark:text-gray-300'}`}>{tray.name}</span>
-                                          <span className="text-[11px] text-gray-500 font-medium mt-0.5">Capacity: {tray.capacity || 20} | Occupied: {isTrayOccupied ? tray.capacity || 20 : 0}</span>
+                                          <span className="text-[11px] text-gray-500 font-medium mt-0.5">Capacity: {tray.capacity || 20} | Occupied: {trayQty}</span>
                                         </div>
                                       </div>
                                     )
@@ -1081,18 +1245,40 @@ export function Settings() {
                     <button className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2.5 rounded-xl shadow-sm text-gray-700 dark:text-gray-300 flex-shrink-0">
                       <Filter size={18} />
                     </button>
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer flex-shrink-0">
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Status</span>
-                      <ChevronDown size={16} className="text-gray-500" />
+                    <div className="relative flex-shrink-0">
+                      <select
+                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-4 pr-10 py-2.5 rounded-xl shadow-sm text-sm font-bold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer appearance-none outline-none"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                      >
+                        <option value="ALL">All status</option>
+                        <option value="Available">Available</option>
+                        <option value="Low Stock">Low Stock</option>
+                        <option value="Full">Full</option>
+                        <option value="Empty">Empty</option>
+                      </select>
+                      <ChevronDown size={16} className="text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <button className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 text-orange-500 flex-shrink-0">
+                    <button 
+                      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 text-orange-500 flex-shrink-0"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStatusFilter("ALL");
+                      }}
+                    >
                       <RefreshCw size={14} className="text-orange-500" />
                       <span className="text-sm font-bold">Reset Filter</span>
                     </button>
                   </div>
                   <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 w-full sm:w-[300px]">
                     <Search size={18} className="text-gray-400" />
-                    <input type="text" placeholder="Search ...." className="bg-transparent border-none focus:outline-none text-sm w-full dark:text-white" />
+                    <input 
+                      type="text" 
+                      placeholder="Search ...." 
+                      className="bg-transparent border-none focus:outline-none text-sm w-full dark:text-white"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)} 
+                    />
                   </div>
                 </div>
 
@@ -1103,10 +1289,10 @@ export function Settings() {
                       <Loader2 className="animate-spin text-[#00891D]" size={32} />
                       <p className="text-xs">Loading mappings...</p>
                     </div>
-                  ) : mappings.length === 0 ? (
+                  ) : filteredMappings.length === 0 ? (
                     <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-                      <p className="text-sm">No mapped products found.</p>
-                      <p className="text-xs mt-1">Select a product and layout items above to map your inventory.</p>
+                      <p className="text-sm">{mappings.length === 0 ? "No mapped products found." : "No results match your search."}</p>
+                      <p className="text-xs mt-1">{mappings.length === 0 ? "Select a product and layout items above to map your inventory." : "Try adjusting your search criteria."}</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -1126,15 +1312,12 @@ export function Settings() {
                           </tr>
                         </thead>
                         <tbody className="text-[13px]">
-                          {mappings.map((map, index) => {
-                            const qty = (map.product.name.length * 7 + index * 13) % 25; 
-                            const capacity = map.tray.capacity || 20;
-                            let status = 'Available';
-                            if (qty === 0) status = 'Empty';
-                            else if (qty >= capacity) status = 'Full';
-                            else if (qty < capacity / 3) status = 'Low Stock';
+                          {filteredMappings.map((map: any) => {
+                            const qty = map.calculatedQty; 
+                            const capacity = map.calculatedCapacity;
+                            const status = map.calculatedStatus;
 
-                            const locCode = `STP-${map.tray.shelf.name.substring(0,4).toUpperCase()}-${map.tray.name}`;
+                            const locCode = `${map.tray.shelf.rack.name}-${map.tray.shelf.name}-${map.tray.name}`;
 
                             return (
                               <tr key={map.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">

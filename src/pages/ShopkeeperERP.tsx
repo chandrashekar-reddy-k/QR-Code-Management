@@ -15,7 +15,6 @@ import { HandoverVerificationMobile as HandoverVerification } from "../component
 import { SelfPickup } from "../components/shopkeeper/SelfPickupMobile";
 import { Returns } from "../components/shopkeeper/ReturnsMobile";
 import { SLAMonitoring } from "../components/shopkeeper/SLAMonitoringMobile";
-import { Settings } from "../components/shopkeeper/Settings 2";
 import { OrderHistoryMobile as AllOrders } from "../components/shopkeeper/OrderHistoryMobile";
 import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
@@ -58,8 +57,7 @@ type Screen =
   | "self-pickup"
   | "returns"
   | "sla-monitoring"
-  | "profile"
-  | "settings";
+  | "profile";
 
 function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) => void; onBack: () => void }) {
   const [stats, setStats] = useState({ orders: 0, completed: 0, sla: 100, selfPickup: 0 });
@@ -373,7 +371,7 @@ export default function ShopkeeperERP() {
     }
 
     // Check if the destination is a primary tab in the sidebar
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "orderhistory"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "orderhistory"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper?tab=${dest}`);
       setScreen(dest as Screen);
@@ -395,7 +393,7 @@ export default function ShopkeeperERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "orderhistory"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "orderhistory"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper?tab=${prev}`);
         setScreen(prev as Screen);
@@ -439,9 +437,6 @@ export default function ShopkeeperERP() {
         <div style={{ display: screen === "profile" ? "block" : "none" }}>
           <ProfileScreen onNavigate={navigate} onBack={goBack} />
         </div>
-        <div style={{ display: screen === "settings" ? "block" : "none" }}>
-          <Settings />
-        </div>
 
         {/* Dynamic Screens (re-mounted on navigation) */}
         {screen === "orderhistory" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
@@ -470,7 +465,6 @@ export default function ShopkeeperERP() {
       "picking-queue": "shopkeeper_picking_queue_view",
       "packing-queue": "shopkeeper_packing_queue_view",
       "profile": "shopkeeper_profile_view",
-      "settings": "shopkeeper_settings_view",
     };
     
     const slug = slugMap[tabId];

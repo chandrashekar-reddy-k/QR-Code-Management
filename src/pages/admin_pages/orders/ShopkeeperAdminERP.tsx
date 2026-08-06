@@ -14,7 +14,7 @@ import { HandoverVerification } from "../../../components/shopkeeper/HandoverVer
 import { SelfPickup } from "../../../components/shopkeeper/SelfPickup";
 import { Returns } from "../../../components/shopkeeper/Returns";
 import { SLAMonitoring } from "../../../components/shopkeeper/SLAMonitoring";
-import { Settings } from "../../../components/shopkeeper/Settings";
+import { StorageOperations } from "../../../components/shopkeeper/StorageOperations";
 import { OrderHistory } from "../../../components/shopkeeper/OrderHistory";
 import { StaffTracker } from "../../../components/shopkeeper/StaffTracker";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
@@ -193,7 +193,7 @@ export default function ShopkeeperAdminERP() {
         {screen === "returns" && <Returns onBack={goBack} />}
         {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} />}
         {screen === "staff-tracker" && <StaffTracker />}
-        {screen === "settings" && <Settings />}
+        {screen === "settings" && <StorageOperations />}
       </div>
     );
   };
