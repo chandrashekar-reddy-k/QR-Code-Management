@@ -65,6 +65,9 @@ const Login = () => {
     const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
     const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
 
+    const roleUpper = (user.role || "").toUpperCase();
+    const isAgentRole = ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper);
+
     if (user.isCreatedPassword) {
       navigate("/create-password", {
         state: {
@@ -73,12 +76,12 @@ const Login = () => {
         },
       });
     } else {
-      if (hasPartner) {
+      if (isAgentRole || hasAgent) {
+        navigate("/vsms/agent-portal/today-plan");
+      } else if (hasPartner) {
         navigate("/");
       } else if (hasShopkeeper) {
         navigate("/shopkeeper");
-      } else if (hasAgent) {
-        navigate("/vsms/agent-portal/today-plan");
       } else {
         navigate("/");
       }

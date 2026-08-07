@@ -150,7 +150,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem('permissions', JSON.stringify(permissions));
 
-        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(user.role?.toUpperCase());
+        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'SALES_AGENT', 'VSMS_AGENT'].includes(user.role?.toUpperCase());
         if (isStaffRole) {
           sessionStorage.setItem("staffToken", data.data.accessToken);
           sessionStorage.setItem("staffRefreshToken", data.data.refreshToken);
@@ -158,6 +158,14 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
           sessionStorage.setItem("staffRole", user.role);
           if (anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id) {
             sessionStorage.setItem("staffWarehouseId", anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id || "");
+          }
+          // Also set partner fields as fallback
+          localStorage.setItem("partnerToken", data.data.accessToken);
+          localStorage.setItem("partnerRefreshToken", data.data.refreshToken);
+          localStorage.setItem("partnerUser", JSON.stringify(user));
+          localStorage.setItem("partnerRole", user.role);
+          if (anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id) {
+            localStorage.setItem("partnerWarehouseId", anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id || "");
           }
         } else {
           localStorage.setItem("partnerToken", data.data.accessToken);

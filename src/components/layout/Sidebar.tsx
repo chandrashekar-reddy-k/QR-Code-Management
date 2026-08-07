@@ -117,6 +117,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_inventory_management_view') || permissions.includes('partner_stock_history_view')) return true;
     }
 
+    // Delivery Settings fallback
+    if (slugCode === 'delivery_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_delivery_management_view') || permissions.includes('partner_route_management_view')) return true;
+    }
+
     // Shopkeeper fallback — old slug was 'shopkeeper_erp_admin', keep supporting it
     if (slugCode === 'shopkeeper') {
       if (permissions.includes('partner_shopkeeper_erp_admin_view') || permissions.includes('partner_shopkeeper_erp_view') || permissions.includes('partner_shopkeeper_view')) return true;
@@ -165,6 +170,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         candidates.push('partner_routes_view');
         candidates.push('partner_routes_coverage_view');
         candidates.push('partner_vsms_routes_view');
+      }
+      if (labelPart === 'scheduled_deliveries') {
+        candidates.push('partner_vsms_logistics_view');
+        candidates.push('partner_vsms_view');
+        candidates.push('partner_route_management_view');
       }
     }
 

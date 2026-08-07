@@ -528,10 +528,12 @@ const AdminPOS = lazy(() => import("../pages/admin_pages/vsms/AdminPOS"));
 const BarcodeManagement = lazy(() => import("../pages/admin_pages/vsms/BarcodeManagement"));
 const AdminSalesPage = lazy(() => import("../pages/admin_pages/vsms/AdminSales"));
 const AdminAssets = lazy(() => import("../pages/admin_pages/vsms/AdminAssets"));
+const PartnerScheduledOrders = lazy(() => import("../pages/admin_pages/vsms/PartnerScheduledOrders"));
 
 // VSMS Agent Portal Pages
 const AgentPortalLayout = lazy(() => import("../pages/admin_pages/vsms/agent/AgentPortalLayout"));
 const TodayPlan = lazy(() => import("../pages/admin_pages/vsms/agent/TodayPlan"));
+const ScheduledDeliveries = lazy(() => import("../pages/admin_pages/vsms/agent/ScheduledDeliveries"));
 const SalesEntry = lazy(() => import("../pages/admin_pages/vsms/agent/SalesEntry"));
 const CashWallet = lazy(() => import("../pages/admin_pages/vsms/agent/CashWallet"));
 const AgentAttendance = lazy(() => import("../pages/admin_pages/vsms/agent/AgentAttendance"));
@@ -1750,6 +1752,11 @@ export const protectedRoutes: RouteConfig[] = [
     component: AdminSalesPage,
     requiresAuth: true,
   },
+  {
+    path: "/vsms/scheduled-deliveries",
+    component: PartnerScheduledOrders,
+    requiresAuth: true,
+  },
   // VSMS Agent Portal Routes
   {
     path: "/vsms/agent-portal",
@@ -1759,6 +1766,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/agent-portal/today-plan",
     component: () => <AgentPortalLayout><TodayPlan /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/scheduled-deliveries",
+    component: () => <AgentPortalLayout><ScheduledDeliveries /></AgentPortalLayout>,
     requiresAuth: true,
   },
   {

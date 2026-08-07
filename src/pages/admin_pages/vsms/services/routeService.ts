@@ -12,6 +12,16 @@ export const getTomorrowPlan = async () => {
     return response.data;
 };
 
+export const getScheduledDeliveries = async () => {
+    const response = await api.get('/agent-routes/scheduled-deliveries');
+    return response.data;
+};
+
+export const updateScheduledDeliveryStatus = async (orderId, status, reason = '') => {
+    const response = await api.put(`/agent-routes/scheduled-deliveries/${orderId}/status`, { status, reason });
+    return response.data;
+};
+
 export const getCoverageStatus = async () => {
     const response = await api.get('/agent-routes/coverage-status');
     return response.data;

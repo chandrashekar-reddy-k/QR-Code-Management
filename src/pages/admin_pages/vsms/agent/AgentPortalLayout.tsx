@@ -15,6 +15,7 @@ const menuSections = [
     title: 'Core Operations',
     items: [
       { path: '/vsms/agent-portal/today-plan', label: "Today's Plan", icon: MapPin },
+      { path: '/vsms/agent-portal/scheduled-deliveries', label: "Scheduled Deliveries", icon: Package },
       { path: '/vsms/agent-portal/sales', label: "Sales POS", icon: BarChart2 },
       { path: '/vsms/agent-portal/inventory', label: "Vehicle & Stock", icon: Truck },
     ]
@@ -123,6 +124,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
 
     const slugMap: Record<string, string> = {
       '/vsms/agent-portal/today-plan': 'vsms_agent_todays_plan_view',
+      '/vsms/agent-portal/scheduled-deliveries': 'vsms_agent_scheduled_deliveries_view',
       '/vsms/agent-portal/sales': 'vsms_agent_sales_pos_view',
       '/vsms/agent-portal/inventory': 'vsms_agent_vehicle_stock_view',
       '/vsms/agent-portal/opening-cash': 'vsms_agent_opening_cash_view',

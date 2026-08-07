@@ -114,6 +114,7 @@ export const activeCheckers = {
     pathname.startsWith("/home-delivery-orders") ||
     pathname.startsWith("/self-pickup-orders") ||
     pathname.startsWith("/refunds") ||
+    pathname.startsWith("/vsms/scheduled-deliveries") ||
     pathname.startsWith("/return-requests"),
   isStaffManagementActive: (pathname: string) =>
     pathname.startsWith("/delivery-boys") &&
@@ -128,6 +129,7 @@ export const initialStateCheckers = {
     pathname.startsWith("/home-delivery-orders") ||
     pathname.startsWith("/self-pickup-orders") ||
     pathname.startsWith("/refunds") ||
+    pathname.startsWith("/vsms/scheduled-deliveries") ||
     pathname.startsWith("/return-requests"),
   isMyCategoryManagementOpen: (pathname: string) =>
     pathname.startsWith("/my-categories") ||
@@ -281,6 +283,7 @@ export const sidebarConfig: MenuSection[] = [
         label: "Refunds",
         icon: Banknote,
       },
+      { path: '/vsms/scheduled-deliveries', label: 'Scheduled Deliveries', icon: ShoppingBag },
       { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
       { path: '/inventory/monitoring/reservations', label: 'Reservations', icon: Clock },
     ],

@@ -29,6 +29,36 @@ export default function Login() {
       const { data } = await authAPI.login({ mobile, password });
       setUser(data, data.token);
 
+      // Save staff session details for ProtectedRoute in App.tsx
+      const userPayload = {
+        id: data.id,
+        name: data.name,
+        phone: data.mobile,
+        email: data.email || "",
+        role: data.role,
+        avatar: data.avatar || null,
+        isCreatedPassword: false,
+        store: data.storeId ? { id: data.storeId } : null,
+        supplier: null,
+      };
+
+      sessionStorage.setItem("staffToken", data.token);
+      sessionStorage.setItem("staffRefreshToken", data.token);
+      sessionStorage.setItem("staffUser", JSON.stringify(userPayload));
+      sessionStorage.setItem("staffRole", data.role);
+      if (data.storeId) {
+        sessionStorage.setItem("staffWarehouseId", data.storeId);
+      }
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("user", JSON.stringify(userPayload));
+      localStorage.setItem("partnerUser", JSON.stringify(userPayload));
+      localStorage.setItem("partnerRole", data.role);
+      if (data.permissions) {
+        localStorage.setItem("permissions", JSON.stringify(data.permissions));
+      } else {
+        localStorage.setItem("permissions", JSON.stringify(['*'])); // Fallback default to allow access
+      }
+
       const isVerified = sessionStorage.getItem('security_verified') === 'true';
       if (!isVerified) {
         setPendingLoginData(data);

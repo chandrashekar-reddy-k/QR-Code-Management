@@ -30,6 +30,13 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
   // Super admin / wildcard bypass
   if (permissions.includes('*') || permissions.includes('ALL') || permissions.includes('all')) return true;
 
+  // VSMS routes are protected by backend auth middleware + role checks.
+  // Allow access to any /vsms/* path without enforcing frontend sidebar permission slugs.
+  if (pathname.startsWith('/vsms/') || pathname === '/vsms') return true;
+
+  // Delivery Settings routes are accessible if user has any delivery management access
+  if (pathname.startsWith('/delivery-settings/')) return true;
+
   let targetItem: any = null;
   let parentCollapsible: any = null;
 
@@ -85,6 +92,11 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_inventory_management_view') || permissions.includes('partner_stock_history_view')) return true;
     }
 
+    // Delivery Settings fallback
+    if (slugCode === 'delivery_management') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_delivery_management_view') || permissions.includes('partner_route_management_view')) return true;
+    }
+
     // Shopkeeper fallback — old slug was 'shopkeeper_erp_admin', keep supporting it
     if (slugCode === 'shopkeeper') {
       if (permissions.includes('partner_shopkeeper_erp_admin_view') || permissions.includes('partner_shopkeeper_erp_view') || permissions.includes('partner_shopkeeper_view')) return true;
@@ -116,6 +128,10 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
     if (parentPart === 'route_management') {
       candidates.push(`partner_vsms_logistics_${labelPart}_view`);
       candidates.push(`vsms_logistics_${labelPart}_view`);
+      // Anyone with route management or vsms access can see all sub-items
+      candidates.push('partner_vsms_logistics_view');
+      candidates.push('partner_vsms_view');
+      candidates.push('partner_route_management_view');
       if (labelPart === 'fleet_vehicles') {
         candidates.push('partner_vsms_logistics_vehicles_view');
         candidates.push('partner_vehicles_view');
@@ -128,6 +144,19 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
         candidates.push('partner_routes_coverage_view');
         candidates.push('partner_vsms_routes_view');
       }
+      if (labelPart === 'scheduled_deliveries') {
+        candidates.push('partner_vsms_logistics_view');
+        candidates.push('partner_vsms_view');
+        candidates.push('partner_route_management_view');
+      }
+    }
+
+    if (parentPart === 'delivery_settings' || parentPart === 'delivery_management') {
+      // Anyone with vsms or delivery management can open delivery settings sub-pages
+      candidates.push('partner_vsms_logistics_view');
+      candidates.push('partner_vsms_view');
+      candidates.push('partner_route_management_view');
+      candidates.push('partner_delivery_management_view');
     }
 
     if (parentPart === 'vehicle_management') {
@@ -254,7 +283,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         try { setPermissions(JSON.parse(e.newValue)); } catch { /* silent */ }
       }
     };
-    
+
     // Periodically poll/sync state changes from local updates in the same window context
     const interval = setInterval(() => {
       try {
@@ -263,7 +292,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         if (JSON.stringify(currentPerms) !== JSON.stringify(permissions)) {
           setPermissions(currentPerms);
         }
-      } catch {}
+      } catch { }
     }, 1500);
 
     window.addEventListener('storage', onStorage);
@@ -333,9 +362,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Dynamically determine classification based strictly on active permissions (modules)
+  // Dynamically determine classification based strictly on active permissions (modules) or user role
   const isShopkeeperRole = hasShopkeeperPermissions && !hasPartnerPermissions;
-  const isAgentRole = hasAgentPermissions && !hasPartnerPermissions && !isShopkeeperRole;
+  const isAgentRole = (hasAgentPermissions || ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(role.toUpperCase())) && !hasPartnerPermissions && !isShopkeeperRole;
 
   if (isAgentRole) {
     if (!isAgentPortal) {
