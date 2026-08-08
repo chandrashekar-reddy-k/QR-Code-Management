@@ -21,6 +21,8 @@ import { ToastContainer } from "react-toastify";
 import { NewOrderAlertProvider } from "./contexts/NewOrderAlertContext";
 import { OmsNewOrderAlertOverlay } from "./components/common/OmsNewOrderAlertOverlay";
 import { sidebarConfig } from "./components/layout/sidebarConfig";
+import SecurityVerificationOverlay from "./components/SecurityVerificationOverlay";
+import { useIpProtection } from "./hooks/useIpProtection";
 
 // Helper to check if a route is allowed based on active database permissions
 const isRouteAllowed = (pathname: string, permissions: string[]) => {
@@ -233,7 +235,7 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
 };
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
   const location = useLocation();
 
   // Reactive permissions state synchronized with local storage
@@ -272,10 +274,38 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, [permissions]);
 
   const isShopkeeperPortal = location.pathname.startsWith('/shopkeeper') && !location.pathname.startsWith('/shopkeeper-erp');
-  const token = isShopkeeperPortal ? sessionStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
+  const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
+  const isStaffPortal = isShopkeeperPortal || isAgentPortal;
+  const token = isStaffPortal ? sessionStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
+
+  const [securityVerified, setSecurityVerified] = useState(() => {
+    return sessionStorage.getItem('security_verified') === 'true';
+  });
+
+  // Enable IP protection for all logged-in sessions
+  useIpProtection(!!token);
 
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Parse user details
+  let user = null;
+  try {
+    const userStr = isStaffPortal ? sessionStorage.getItem('staffUser') : localStorage.getItem('partnerUser');
+    user = userStr ? JSON.parse(userStr) : null;
+  } catch (e) { }
+
+  if (!securityVerified) {
+    return (
+      <SecurityVerificationOverlay
+        user={user}
+        onVerified={() => {
+          sessionStorage.setItem('security_verified', 'true');
+          setSecurityVerified(true);
+        }}
+      />
+    );
   }
 
   // Parse user role from storage
@@ -306,8 +336,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Dynamically determine classification based strictly on active permissions (modules)
   const isShopkeeperRole = hasShopkeeperPermissions && !hasPartnerPermissions;
   const isAgentRole = hasAgentPermissions && !hasPartnerPermissions && !isShopkeeperRole;
-
-  const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
 
   if (isAgentRole) {
     if (!isAgentPortal) {
@@ -347,7 +375,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     <NewOrderAlertProvider>
       <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 overflow-x-hidden relative">
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-        <div className="flex-1 md:ml-72 min-w-0 overflow-x-hidden h-screen overflow-y-auto bg-gray-100 dark:bg-gray-900">
+        <div className={`flex-1 min-w-0 overflow-x-hidden h-screen overflow-y-auto bg-gray-100 dark:bg-gray-900 transition-all duration-300 ${sidebarOpen ? 'md:ml-72' : 'md:ml-0'}`}>
           <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
           <main className="p-2 md:p-4 overflow-x-hidden bg-gray-100 dark:bg-gray-900 min-h-screen">
             <ErrorBoundary>

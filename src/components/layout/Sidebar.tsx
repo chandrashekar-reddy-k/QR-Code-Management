@@ -1191,7 +1191,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   return (
     <aside
       className={`w-72 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 h-screen flex flex-col fixed left-0 top-0 z-50 overflow-hidden transition-transform duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700 ${isOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0`}
+        }`}
       style={{ fontFamily: "'Segoe UI', sans-serif" }}
     >
       {/* Header Section - Logo and Close Button */}

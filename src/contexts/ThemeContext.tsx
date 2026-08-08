@@ -23,16 +23,12 @@ interface ThemeProviderProps {
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first, then system preference
     const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
-      return savedTheme;
+    if (savedTheme === 'dark') {
+      localStorage.setItem('theme', 'light');
+      return 'light';
     }
-    // Check system preference
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
+    return savedTheme || 'light';
   });
 
   useEffect(() => {

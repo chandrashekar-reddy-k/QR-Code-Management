@@ -732,10 +732,9 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   return (
     <header className="bg-white dark:bg-gray-800 py-4 px-2 md:px-4 flex items-center justify-between sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-2 md:gap-3 flex-1">
-        {/* Mobile Menu Button */}
         <button
           onClick={onMenuClick}
-          className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           aria-label="Toggle menu"
         >
           <Menu size={22} className="text-gray-600 dark:text-gray-300" />
