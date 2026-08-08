@@ -8,11 +8,13 @@ import { useSocket } from "../../hooks/useSocket";
 
 interface SLAMonitoringProps {
   onNavigate?: (screen: string, data?: any) => void;
+  onBack?: () => void;
+  canConfigureSla?: boolean;
 }
 
 const ORANGE = "#EF5A06";
 
-export function SLAMonitoring({ onNavigate }: SLAMonitoringProps) {
+export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonitoringProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [slaData, setSlaData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,15 +32,47 @@ export function SLAMonitoring({ onNavigate }: SLAMonitoringProps) {
   const [slaHours, setSlaHours] = useState("00");
   const [slaMinutes, setSlaMinutes] = useState("00");
   const [savingConfig, setSavingConfig] = useState(false);
+  const [configError, setConfigError] = useState("");
+  const [configSuccess, setConfigSuccess] = useState(false);
+
+  // Load current SLA config when modal opens
+  const openSlaConfig = async () => {
+    setConfigError("");
+    setConfigSuccess(false);
+    try {
+      const res = await api.get('/sla-config');
+      const data = res.data as { hours?: number; minutes?: number };
+      setSlaHours(String(data.hours ?? 0).padStart(2, '0'));
+      setSlaMinutes(String(data.minutes ?? 0).padStart(2, '0'));
+    } catch {
+      // Default to 00:30 if fetch fails
+      setSlaHours("00");
+      setSlaMinutes("30");
+    }
+    setShowSlaConfig(true);
+  };
 
   const handleSaveConfig = async () => {
+    setConfigError("");
+    const h = parseInt(slaHours || '0', 10);
+    const m = parseInt(slaMinutes || '0', 10);
+    if (h === 0 && m === 0) {
+      setConfigError("Total SLA duration must be greater than zero.");
+      return;
+    }
     setSavingConfig(true);
     try {
-      // Ready for future integration: POST/PUT to SLA config endpoint
-      await new Promise(res => setTimeout(res, 400)); // placeholder
+      await api.put('/sla-config', { hours: h, minutes: m });
+      setConfigSuccess(true);
+      setTimeout(() => {
+        setShowSlaConfig(false);
+        setConfigSuccess(false);
+      }, 900);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Failed to save SLA configuration.";
+      setConfigError(msg);
     } finally {
       setSavingConfig(false);
-      setShowSlaConfig(false);
     }
   };
 
@@ -304,12 +338,14 @@ export function SLAMonitoring({ onNavigate }: SLAMonitoringProps) {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setShowSlaConfig(true)}
-          className="bg-[#00891D] hover:bg-[#006614] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors shadow-sm"
-        >
-          Configure SLA
-        </button>
+        {canConfigureSla && (
+          <button
+            onClick={openSlaConfig}
+            className="bg-[#00891D] hover:bg-[#006614] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors shadow-sm"
+          >
+            Configure SLA
+          </button>
+        )}
       </div>
 
       {/* Configure SLA Modal */}
@@ -404,6 +440,14 @@ export function SLAMonitoring({ onNavigate }: SLAMonitoringProps) {
               </div>
             </div>
 
+            {/* Error / Success feedback */}
+            {configError && (
+              <p className="text-center text-sm text-red-500 mb-4">{configError}</p>
+            )}
+            {configSuccess && (
+              <p className="text-center text-sm text-green-600 font-semibold mb-4">✓ SLA configuration saved!</p>
+            )}
+
             {/* Action Buttons */}
             <div className="flex items-center justify-center gap-4">
               <button
@@ -414,10 +458,10 @@ export function SLAMonitoring({ onNavigate }: SLAMonitoringProps) {
               </button>
               <button
                 onClick={handleSaveConfig}
-                disabled={savingConfig}
+                disabled={savingConfig || configSuccess}
                 className="px-8 py-2.5 rounded-xl bg-[#00891D] hover:bg-[#006614] text-white text-sm font-semibold transition-colors disabled:opacity-60"
               >
-                {savingConfig ? 'Saving...' : 'Save Configuration'}
+                {savingConfig ? 'Saving...' : configSuccess ? 'Saved!' : 'Save Configuration'}
               </button>
             </div>
           </div>

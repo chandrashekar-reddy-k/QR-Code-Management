@@ -191,7 +191,7 @@ export default function ShopkeeperAdminERP() {
         {screen === "handover-verification" && <HandoverVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
         {screen === "self-pickup" && <SelfPickup onBack={goBack} />}
         {screen === "returns" && <Returns onBack={goBack} />}
-        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} />}
+        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} canConfigureSla={true} />}
         {screen === "staff-tracker" && <StaffTracker />}
         {screen === "settings" && <StorageOperations />}
       </div>
