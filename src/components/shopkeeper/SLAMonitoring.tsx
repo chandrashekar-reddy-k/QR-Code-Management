@@ -25,6 +25,23 @@ export function SLAMonitoring({ onNavigate }: SLAMonitoringProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Configure SLA modal state
+  const [showSlaConfig, setShowSlaConfig] = useState(false);
+  const [slaHours, setSlaHours] = useState("00");
+  const [slaMinutes, setSlaMinutes] = useState("00");
+  const [savingConfig, setSavingConfig] = useState(false);
+
+  const handleSaveConfig = async () => {
+    setSavingConfig(true);
+    try {
+      // Ready for future integration: POST/PUT to SLA config endpoint
+      await new Promise(res => setTimeout(res, 400)); // placeholder
+    } finally {
+      setSavingConfig(false);
+      setShowSlaConfig(false);
+    }
+  };
+
   const socket = useSocket(1);
 
   const fetchData = () => {
@@ -287,8 +304,125 @@ export function SLAMonitoring({ onNavigate }: SLAMonitoringProps) {
             </div>
           </div>
         </div>
-
+        <button
+          onClick={() => setShowSlaConfig(true)}
+          className="bg-[#00891D] hover:bg-[#006614] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors shadow-sm"
+        >
+          Configure SLA
+        </button>
       </div>
+
+      {/* Configure SLA Modal */}
+      {showSlaConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            onClick={() => setShowSlaConfig(false)}
+          />
+          {/* Modal */}
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8">
+            {/* Modal Header */}
+            <div className="flex items-center gap-3 mb-7">
+              <button
+                onClick={() => setShowSlaConfig(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
+              >
+                <ChevronRight size={18} className="rotate-180" />
+              </button>
+              <h2 className="text-[18px] font-bold text-gray-900 dark:text-white">Configure SLA</h2>
+            </div>
+
+            {/* Fields Row */}
+            <div className="grid grid-cols-2 gap-5 mb-8">
+              {/* Hours */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Hours <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={slaHours}
+                    onChange={e => setSlaHours(e.target.value.padStart(2, '0').slice(-2))}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00891D] focus:border-[#00891D] appearance-none"
+                    placeholder="00"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setSlaHours(h => String(Math.min(99, parseInt(h || '0') + 1)).padStart(2, '0'))}
+                      className="w-5 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600"
+                    >
+                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5L5 1L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSlaHours(h => String(Math.max(0, parseInt(h || '0') - 1)).padStart(2, '0'))}
+                      className="w-5 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600"
+                    >
+                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Minutes */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Minutes <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={slaMinutes}
+                    onChange={e => setSlaMinutes(e.target.value.padStart(2, '0').slice(-2))}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00891D] focus:border-[#00891D] appearance-none"
+                    placeholder="00"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setSlaMinutes(m => String(Math.min(59, parseInt(m || '0') + 1)).padStart(2, '0'))}
+                      className="w-5 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600"
+                    >
+                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5L5 1L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSlaMinutes(m => String(Math.max(0, parseInt(m || '0') - 1)).padStart(2, '0'))}
+                      className="w-5 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600"
+                    >
+                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => setShowSlaConfig(false)}
+                className="px-8 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="px-8 py-2.5 rounded-xl bg-[#00891D] hover:bg-[#006614] text-white text-sm font-semibold transition-colors disabled:opacity-60"
+              >
+                {savingConfig ? 'Saving...' : 'Save Configuration'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">

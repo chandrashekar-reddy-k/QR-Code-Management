@@ -397,10 +397,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
       { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
       { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle, permission: 'Packing Queue' },
-      { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
-      { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
       { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-      { path: '/shopkeeper-erp?tab=orderhistory', label: 'Order History', icon: History },
       { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
       { path: '/shopkeeper-erp?tab=settings', label: 'Storage Operations', icon: Package, permission: 'PLM Settings' }
     ]

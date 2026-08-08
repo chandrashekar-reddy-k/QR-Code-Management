@@ -490,10 +490,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
     { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
     { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
-    { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
-    { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
     { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-    { path: '/shopkeeper-erp?tab=all-orders', label: 'Order History', icon: History },
     { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
     { path: '/shopkeeper-erp?tab=settings', label: 'Storage Operations', icon: Package, permission: 'PLM Settings' }
   ];
@@ -586,10 +583,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     { path: '/shopkeeper?tab=picking-queue', label: 'Picking Queue', icon: Package },
     { path: '/shopkeeper?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
     { path: '/shopkeeper?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
-    { path: '/shopkeeper?tab=self-pickup', label: 'Self Pickup', icon: Store },
-    { path: '/shopkeeper?tab=returns', label: 'Returns', icon: RotateCcw },
     { path: '/shopkeeper?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-    { path: '/shopkeeper?tab=all-orders', label: 'Order History', icon: History },
     { path: '/shopkeeper?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
     { path: '/shopkeeper?tab=settings', label: 'Storage Operations', icon: Package, permission: 'PLM Settings' }
   ];

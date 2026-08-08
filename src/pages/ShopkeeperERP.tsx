@@ -96,12 +96,12 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
         const shopkeeperOrders = skId
           ? allOrders.filter((o: Record<string, unknown>) => {
-              let oAssignedId = o.assignedShopkeeperId || o.assigned_shopkeeper_id || o.shopkeeper_id;
-              if (oAssignedId && typeof oAssignedId === 'object' && 'id' in oAssignedId) {
-                oAssignedId = (oAssignedId as { id: string }).id;
-              }
-              return String(oAssignedId) === String(skId);
-            })
+            let oAssignedId = o.assignedShopkeeperId || o.assigned_shopkeeper_id || o.shopkeeper_id;
+            if (oAssignedId && typeof oAssignedId === 'object' && 'id' in oAssignedId) {
+              oAssignedId = (oAssignedId as { id: string }).id;
+            }
+            return String(oAssignedId) === String(skId);
+          })
           : [];
 
         const total = shopkeeperOrders.length;
@@ -120,7 +120,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
       }
     };
     computeStats();
-    
+
     // Add interval to dynamically update SLA
     const interval = setInterval(computeStats, 60000);
     return () => clearInterval(interval);
@@ -457,7 +457,7 @@ export default function ShopkeeperERP() {
     } catch (err) {
       console.warn("Failed to parse permissions", err);
     }
-    
+
     const slugMap: Record<string, string> = {
       "dashboard": "shopkeeper_dashboard_view",
       "new-orders": "shopkeeper_inbox_orders_view",
@@ -466,7 +466,7 @@ export default function ShopkeeperERP() {
       "packing-queue": "shopkeeper_packing_queue_view",
       "profile": "shopkeeper_profile_view",
     };
-    
+
     const slug = slugMap[tabId];
     if (!slug) return true;
     return permissions.includes(slug);
@@ -524,9 +524,9 @@ export default function ShopkeeperERP() {
                     key={item.id}
                     onClick={() => navigate(item.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
-                        ? "bg-[#00891D]/10 text-[#00891D]"
-                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
-                    }`}
+                      ? "bg-[#00891D]/10 text-[#00891D]"
+                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
+                      }`}
                   >
                     {item.icon}
                     <span>{item.label}</span>
