@@ -30,7 +30,7 @@ const LiveCashTab = ({ filteredSummaries, handleOpenView }) => {
                 const s2 = summary.shiftDetails?.shift2;
                 const activeShift = s2?.opening && !s2?.closing ? 2 : (s1?.opening && !s1?.closing ? 1 : null);
                 const metrics = activeShift === 2 ? s2.live : (activeShift === 1 ? s1.live : null);
-                const agent = summary.vehicle?.assignedUsers?.find(u => u.role === 'SALES_AGENT');
+                const agent = summary.vehicle?.assignedUsers?.find(u => ['SALES_AGENT', 'DELIVERY_AGENT', 'VEHICLE_AGENT'].includes(u.role));
 
                 return (
                   <tr key={summary.id} className="hover:bg-emerald-50/20 transition-colors group">
