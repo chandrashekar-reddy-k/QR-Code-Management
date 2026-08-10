@@ -33,7 +33,8 @@ api.interceptors.response.use(
       
       if (refreshToken) {
         try {
-          const res = await axios.post(`${api.defaults.baseURL}/partner/auth/refresh-token`, {
+          const cleanBaseURL = api.defaults.baseURL.replace(/\/$/, '');
+          const res = await axios.post(`${cleanBaseURL}/partner/auth/refresh-token`, {
             refreshToken
           });
           if (res.data?.data?.accessToken) {
