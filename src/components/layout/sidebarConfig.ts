@@ -33,10 +33,7 @@ import {
   ScanLine,
   Printer,
   Receipt,
-  BookOpen,   // ← ADD
-  History,
-  RotateCcw,
-  CheckCircle,
+  BookOpen,
   Link2,
   Banknote,
 } from "lucide-react";
@@ -393,10 +390,7 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isShopkeeperErpAdminOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
-      { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
-      { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
-      { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle, permission: 'Packing Queue' },
+      { path: '/shopkeeper-erp?tab=order-processing', label: 'Order Processing', icon: ClipboardList },
       { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
       { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
       { path: '/shopkeeper-erp?tab=settings', label: 'Storage Operations', icon: Package, permission: 'PLM Settings' }

@@ -439,6 +439,7 @@ export default function ShopkeeperERP() {
         </div>
 
         {/* Dynamic Screens (re-mounted on navigation) */}
+        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} />}
         {screen === "orderhistory" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
         {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as Record<string, unknown>} socket={socket} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as Record<string, unknown>} />}

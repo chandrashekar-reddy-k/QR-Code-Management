@@ -622,7 +622,7 @@ export function StaffTracker() {
                       {/* Status */}
                       <td className="px-3 py-3">
                         {member.activeOrder ? (
-                          <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${['DELIVERED', 'OUT_FOR_DELIVERY', 'DISPATCHED', 'delivered', 'out_for_delivery', 'dispatched'].includes(member.activeOrder.status)
+                          <span className={`whitespace-nowrap px-2 py-1 rounded-md text-[10px] font-bold uppercase ${['DELIVERED', 'OUT_FOR_DELIVERY', 'DISPATCHED', 'delivered', 'out_for_delivery', 'dispatched'].includes(member.activeOrder.status)
                               ? "bg-green-50 text-green-600"
                               : ['PICKING', 'picking'].includes(member.activeOrder.status)
                                 ? "bg-purple-50 text-purple-600"

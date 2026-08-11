@@ -174,6 +174,13 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
       candidates.push('shopkeeper_erp_ready_dispatch_view');
     }
 
+    if (labelPart === 'order_processing') {
+      candidates.push('partner_shopkeeper_erp_admin_view');
+      candidates.push('partner_shopkeeper_view');
+      candidates.push('partner_order_processing_view');
+      candidates.push('order_processing_view');
+    }
+
     if (labelPart === 'plm_settings') {
       candidates.push(`${portal}_${parentPart}_settings_view`);
       candidates.push(`${parentPart}_settings_view`);
