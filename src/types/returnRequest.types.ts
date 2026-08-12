@@ -6,6 +6,8 @@ export interface ReturnRequestItem {
   unitPrice: number;
   totalPrice: number;
   status: string;
+  qcStatus?: string;
+  qcNotes?: string;
 }
 
 export interface ReturnRequest {
@@ -19,5 +21,7 @@ export interface ReturnRequest {
   reason: string;
   date: string;
   orderNumber?: string;
+  orderId?: string | number;
+  returnType?: string;
   items?: ReturnRequestItem[];
 }

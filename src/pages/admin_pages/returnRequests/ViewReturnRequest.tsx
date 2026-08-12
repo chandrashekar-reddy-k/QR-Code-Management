@@ -14,14 +14,21 @@ import {
 } from "lucide-react";
 import { useGetReturnRequestById, useReceiveReturnItem } from "../../../hooks/returnRequest";
 import { toast } from "react-toastify";
-import { ReturnRequest } from "../../../types";
+import { ReturnRequest, ReturnRequestItem } from "../../../types";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
 import { Badge, Button } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 
+interface KPICardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  colorClass: string;
+}
+
 // Enhanced KPI Card Component
-const KPICard = ({ title, value, icon: Icon, colorClass }: any) => (
+const KPICard = ({ title, value, icon: Icon, colorClass }: KPICardProps) => (
   <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md rounded-2xl p-4 border border-white/20 dark:border-slate-700/50 shadow-sm flex items-center gap-4 hover:-translate-y-1 transition-all duration-300">
     <div className={`p-3 rounded-xl ${colorClass}`}>
       <Icon size={20} />
@@ -59,7 +66,7 @@ const ViewReturnRequest = () => {
   useEffect(() => {
     if (request?.items) {
       const initialQcData: Record<string, { qcStatus: 'PASSED' | 'FAILED' | '', qcNotes: string }> = {};
-      request.items.forEach((item: any) => {
+      request.items.forEach((item: ReturnRequestItem) => {
         // We only initialize empty QC data if the item doesn't have it yet and is approved for return
         if (!item.qcStatus && (item.status === 'APPROVED' || item.status === 'PARTIALLY_APPROVED')) {
           initialQcData[item.id] = { qcStatus: '', qcNotes: '' };
@@ -100,7 +107,7 @@ const ViewReturnRequest = () => {
     let approved = 0, rejected = 0, pending = 0;
     let refundAmount = 0;
 
-    request.items.forEach((item: any) => {
+    request.items.forEach((item: ReturnRequestItem) => {
       const status = item.status || 'pending';
       if (status === 'APPROVED') {
         approved++;
@@ -301,7 +308,7 @@ const ViewReturnRequest = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {request.items && request.items.length > 0 ? (
-                  request.items.map((item: any, index: number) => (
+                  request.items.map((item: ReturnRequestItem, index: number) => (
                     <div key={item.id || index} className="group flex flex-col justify-between p-5 bg-white/40 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                       <div>
                         <div className="flex justify-between items-start mb-3">

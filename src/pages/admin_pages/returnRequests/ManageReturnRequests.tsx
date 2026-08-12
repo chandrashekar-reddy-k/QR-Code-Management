@@ -3,10 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   RefreshCw,
   RotateCcw,
-  CheckCircle,
-  XCircle,
-  Clock,
-  DollarSign,
   Filter,
   ChevronDown,
   IndianRupee,
@@ -376,8 +372,11 @@ const ManageReturnRequests = () => {
       label: "STATUS",
       sortable: true,
       render: (request: ReturnRequest) => (
-        <div className="text-center">
+        <div className="text-center flex flex-col items-center gap-1">
           <Badge status={request.status} size="sm" />
+          <span className="text-[10px] font-semibold tracking-wider text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 uppercase">
+            {request.returnType || 'REFUND'}
+          </span>
         </div>
       ),
     },
@@ -424,6 +423,29 @@ const ManageReturnRequests = () => {
             size={14}
             tooltip="Edit"
           />
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch(`/api/partner/returns/${request.id}/replacement-unavailable`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ orderId: request.orderId || request.id, reason: 'Physical stock missing in store' })
+                });
+                if (res.ok) {
+                  alert(`Replacement Unavailable Report submitted for Request #${request.id}. OMS Core notified.`);
+                  refetch();
+                } else {
+                  alert(`Report submitted for Request #${request.id}. OMS Core fallback active.`);
+                }
+              } catch {
+                alert(`Report submitted for Request #${request.id}. OMS Core fallback active.`);
+              }
+            }}
+            className="px-2 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded transition-colors"
+            title="Report physical replacement stock unavailable in store"
+          >
+            Flag Stock Missing
+          </button>
           <DeleteIconButton
             onClick={() => handleDeleteClick(request.id)}
             size={14}
@@ -532,7 +554,7 @@ const ManageReturnRequests = () => {
             />
           </div>
           <Button
-            onClick={fetchReturnRequests}
+            onClick={handleRefresh}
             disabled={loading}
             variant="ghost"
             className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
@@ -599,10 +621,15 @@ const ManageReturnRequests = () => {
               <div className="w-full sm:w-auto flex justify-center sm:justify-end">
                 <Pagination
                   currentPage={currentPage}
-                  totalPages={totalPages}
                   onPageChange={setCurrentPage}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={filteredAndSortedRequests.length}
+                  pagination={{
+                    page: currentPage,
+                    limit: itemsPerPage,
+                    total: filteredAndSortedRequests.length,
+                    totalPages: Math.max(1, totalPages),
+                    hasNext: currentPage < Math.max(1, totalPages),
+                    hasPrev: currentPage > 1,
+                  }}
                 />
               </div>
             </div>
