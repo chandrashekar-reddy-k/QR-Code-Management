@@ -420,6 +420,28 @@ export const sidebarConfig: MenuSection[] = [
       { path: '/shopkeeper-erp?tab=settings', label: 'PLM Settings', icon: Settings }
     ]
   },
+  {
+    type: "collapsible",
+    permission: "Partner: Packing ERP",
+    label: "Packing ERP",
+    icon: Boxes,
+    stateKey: "isPackingErpOpen",
+    activeCheck: (pathname: string) => pathname.startsWith("/packing-erp"),
+    subItems: [
+      { path: "/packing-erp/dashboard", label: "Dashboard", icon: Home },
+      { path: "/packing-erp/master-data", label: "Master Data", icon: Database },
+      { path: "/packing-erp/product-bom", label: "Product BOM", icon: ClipboardList },
+      { path: "/packing-erp/work-orders", label: "Work Orders", icon: FileText },
+      { path: "/packing-erp/approvals", label: "Approvals", icon: CheckCircle },
+      { path: "/packing-erp/material-issue", label: "Material Issue", icon: ArrowRightLeft },
+      { path: "/packing-erp/packing-execution", label: "Packing Execution", icon: Package },
+      { path: "/packing-erp/barcodes-labels", label: "Barcodes & Labels", icon: ScanLine },
+      { path: "/packing-erp/quality-check", label: "Quality Check", icon: Shield },
+      { path: "/packing-erp/finished-goods", label: "Finished Goods", icon: Boxes },
+      { path: "/packing-erp/repacking", label: "Repacking", icon: RotateCcw },
+      { path: "/packing-erp/reports", label: "Reports", icon: BarChart3 },
+    ],
+  },
   // Reservations moved into Order Management
   // {
   //   type: "link",

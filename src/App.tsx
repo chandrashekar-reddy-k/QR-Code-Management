@@ -37,6 +37,9 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
   // Delivery Settings routes are accessible if user has any delivery management access
   if (pathname.startsWith('/delivery-settings/')) return true;
 
+  // Packing ERP routes are allowed during integration phase
+  if (pathname.startsWith('/packing-erp/') || pathname === '/packing-erp' || pathname.startsWith('/packer/')) return true;
+
   let targetItem: any = null;
   let parentCollapsible: any = null;
 
@@ -304,8 +307,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   const isShopkeeperPortal = location.pathname.startsWith('/shopkeeper') && !location.pathname.startsWith('/shopkeeper-erp');
   const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
-  const isStaffPortal = isShopkeeperPortal || isAgentPortal;
-  const token = isStaffPortal ? sessionStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
+  const isPackerOperatorPortal = location.pathname.startsWith('/packer/operator') || location.pathname.startsWith('/packer');
+  const isStaffPortal = isShopkeeperPortal || isAgentPortal || isPackerOperatorPortal;
+  const token = isStaffPortal ? (sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token')) : localStorage.getItem('partnerToken');
 
   const [securityVerified, setSecurityVerified] = useState(() => {
     return sessionStorage.getItem('security_verified') === 'true';
@@ -321,7 +325,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Parse user details
   let user = null;
   try {
-    const userStr = isStaffPortal ? sessionStorage.getItem('staffUser') : localStorage.getItem('partnerUser');
+    const userStr = isStaffPortal ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser')) : localStorage.getItem('partnerUser');
     user = userStr ? JSON.parse(userStr) : null;
   } catch (e) { }
 
@@ -388,6 +392,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!isShopkeeperPortal) {
       return <Navigate to="/shopkeeper" replace />;
     }
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  if (isPackerOperatorPortal) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
