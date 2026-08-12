@@ -4,12 +4,16 @@ import api from "../../api/axios";
 
 interface OrderDetailsProps {
   onBack: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onNavigate: (screen: string, data?: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   order?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   socket?: any;
 }
 
 export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetailsProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [fullOrder, setFullOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,12 +22,13 @@ export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetails
 
   // Listen for socket events to update status in real-time
   useEffect(() => {
-    if (!socket?.current || !fullOrder?.id) return;
+    const socketInst = socket?.current;
+    if (!socketInst || !fullOrder?.id) return;
 
-    const handleStatusUpdate = (data: any) => {
+    const handleStatusUpdate = (data: { orderId: string; status: string }) => {
       if (data.orderId === fullOrder.id) {
         console.log("Real-time Mobile Order Status Update:", data);
-        setFullOrder((prev: any) => {
+        setFullOrder((prev: Record<string, unknown> | null) => {
           if (!prev) return prev;
           return {
             ...prev,
@@ -34,11 +39,11 @@ export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetails
       }
     };
 
-    socket.current.on('order:status', handleStatusUpdate);
+    socketInst.on('order:status', handleStatusUpdate);
     return () => {
-      socket.current?.off('order:status', handleStatusUpdate);
+      socketInst.off('order:status', handleStatusUpdate);
     };
-  }, [socket?.current, fullOrder?.id]);
+  }, [socket, fullOrder?.id]);
 
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
   const storedUser = isShopkeeper ? sessionStorage.getItem("staffUser") : localStorage.getItem("partnerUser");
@@ -169,7 +174,9 @@ export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetails
     if (handedOverIds.map(String).includes(String(fullOrder.id || fullOrder.order_number))) {
       orderStatus = 'dispatched';
     }
-  } catch {}
+  } catch (err) {
+    console.warn("Failed to parse handedOverIds from localStorage:", err);
+  }
 
   const completedAtStr = fullOrder.deliveredAt || fullOrder.delivered_at || fullOrder.dispatched_at || fullOrder.dispatchedAt || (orderStatus === "dispatched" ? (fullOrder.updatedAt || new Date()) : null);
 
@@ -430,18 +437,64 @@ export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetails
             {mergedItems.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "12px" }}>No items found for this order.</p>
             ) : (
-              mergedItems.map((item: any) => (
-                <div key={item.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                  <div className="w-10 h-10 rounded bg-white flex items-center justify-center text-xl overflow-hidden shadow-sm dark:bg-gray-800">
-                    {item.image_url ? <img src={item.image_url} alt="" /> : '📦'}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              mergedItems.map((item: any) => {
+                const isCancelled = item.isCancelled || item.is_cancelled;
+                return (
+                  <div key={item.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                    <div className="w-10 h-10 rounded bg-white flex items-center justify-center text-xl overflow-hidden shadow-sm dark:bg-gray-800">
+                      {item.image_url ? <img src={item.image_url} alt="" /> : '📦'}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className={`text-gray-800 dark:text-gray-200 ${isCancelled ? 'line-through text-gray-400' : ''}`} style={{ fontWeight: 600, fontSize: "14px" }}>
+                          {item.name || item.product?.name}
+                        </p>
+                        {isCancelled && (
+                          <span className="text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded text-[11px] font-semibold dark:bg-red-950 dark:border-red-900 dark:text-red-400">
+                            Out of Stock (Refunded)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "13px", fontWeight: 500, marginTop: "2px" }}>
+                        Qty: {item.quantity} · Location: <span style={{ color: "#D32F2F", fontWeight: 700 }}>{(item.aisle_location || item.product?.aisle_location) ?? ''}</span>
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>
+                        ₹{item.price ?? item.totalPrice ?? item.product?.price}
+                      </span>
+                      {!isCancelled && !['DELIVERED', 'CANCELLED', 'FAILED'].includes(fullOrder?.status as string) && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm(`Mark "${item.name || item.product?.name || 'Item'}" out of stock? Customer will be refunded ₹${item.price ?? item.totalPrice ?? 0}.`)) return;
+                            try {
+                              setLoading(true);
+                              const res = await api.post(`/partner/orders/${fullOrder?.id}/items/${item.id}/mark-unavailable`, {
+                                reason: "Out of stock during picking"
+                              });
+                              if (res.data?.data?.order) {
+                                setFullOrder(res.data.data.order);
+                              } else {
+                                const refresh = await api.get(`/orders/${fullOrder?.id}`);
+                                setFullOrder(refresh.data);
+                              }
+                            } catch (err: unknown) {
+                              const errObj = err as { response?: { data?: { message?: string } } };
+                              alert(errObj?.response?.data?.message || "Failed to mark item unavailable");
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded text-[11px] font-medium hover:bg-red-100 transition-colors"
+                        >
+                          Out of Stock
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-gray-800 dark:text-gray-200" style={{ fontWeight: 600, fontSize: "14px" }}>{item.name || item.product?.name}</p>
-                    <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: "13px", fontWeight: 500, marginTop: "2px" }}>Qty: {item.quantity} · Location: <span style={{ color: "#D32F2F", fontWeight: 700 }}>{(item.aisle_location || item.product?.aisle_location) ?? ''}</span></p>
-                  </div>
-                  <span className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>₹{item.price ?? item.product?.price}</span>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
           <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2 dark:border-gray-700">
