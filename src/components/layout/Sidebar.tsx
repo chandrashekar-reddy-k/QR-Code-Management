@@ -115,8 +115,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     // Inventory Management fallback to VSMS Logistics
     if (slugCode === 'inventory_management') {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_inventory_management_view') || permissions.includes('partner_stock_history_view')) return true;
-    }
-
+    }    
+    
     // Delivery Settings fallback
     if (slugCode === 'delivery_management') {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_delivery_management_view') || permissions.includes('partner_route_management_view')) return true;
@@ -124,7 +124,12 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
     // Shopkeeper fallback — old slug was 'shopkeeper_erp_admin', keep supporting it
     if (slugCode === 'shopkeeper') {
-      if (permissions.includes('partner_shopkeeper_erp_admin_view') || permissions.includes('partner_shopkeeper_erp_view') || permissions.includes('partner_shopkeeper_view')) return true;
+      if (permissions.includes('partner_shopkeeper_erp_admin_view') || 
+          permissions.includes('partner_shopkeeper_erp_view') || 
+          permissions.includes('partner_shopkeeper_view') ||
+          permissions.includes('shopkeeper_erp_admin_view') ||
+          permissions.includes('shopkeeper_erp_view') ||
+          permissions.includes('shopkeeper_view')) return true;
     }
 
     // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
@@ -264,8 +269,15 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       candidates.push(`${cleanParentPart}_${cleanLabelPart}_view`);
     }
 
-    // Shopkeeper backward-compat: old DB slugs used 'shopkeeper_erp_admin' as parent
     if (parentPart === 'shopkeeper') {
+      if (permissions.includes('shopkeeper_view') || 
+          permissions.includes('shopkeeper_erp_view') || 
+          permissions.includes('shopkeeper_erp_admin_view') ||
+          permissions.includes('partner_shopkeeper_view') ||
+          permissions.includes('partner_shopkeeper_erp_view') ||
+          permissions.includes('partner_shopkeeper_erp_admin_view')) {
+        return true;
+      }
       candidates.push(`partner_shopkeeper_erp_admin_${labelPart}_view`);
       candidates.push(`partner_shopkeeper_erp_${labelPart}_view`);
       candidates.push(`shopkeeper_erp_admin_${labelPart}_view`);
