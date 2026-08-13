@@ -1,35 +1,79 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, RotateCcw, Package, Clock, CheckCircle, AlertTriangle, Eye, Play, Pause, RefreshCw, Search } from 'lucide-react';
+import {
+  Package,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Filter,
+  RotateCcw,
+  Search,
+} from 'lucide-react';
 import { workOrderService, WorkOrder, WoStatus } from '../../../api/packing/workOrderService';
 import DataTable from '../../../components/packing/ui/DataTable';
+import ViewIconButton from '../../../components/ui/Button/ViewIconButton';
 
-const getStatusBadge = (status: WoStatus) => {
-  switch (status) {
+const formatStatus = (s: string) => {
+  if (!s) return 'Draft';
+  if (s === 'QC_PENDING') return 'QC Pending';
+  if (s === 'QC_PASSED') return 'QC Passed';
+  if (s === 'COMPLETED') return 'Packing Completed';
+  return s.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const getStatusColor = (statusLabel: string) => {
+  switch (statusLabel.toUpperCase()) {
+    case 'DRAFT':
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+    case 'PENDING':
+      return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
+    case 'APPROVED':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+    case 'MATERIAL ISSUED':
     case 'MATERIAL_ISSUED':
-      return <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 whitespace-nowrap">Material Issued</span>;
+      return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
+    case 'PACKING STARTED':
     case 'PACKING_STARTED':
-      return <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 whitespace-nowrap">Packing Started</span>;
+      return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
+    case 'PACKING IN PROGRESS':
     case 'PACKING_IN_PROGRESS':
-      return <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 whitespace-nowrap">In Progress</span>;
+    case 'IN PROGRESS':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+    case 'PACKING COMPLETED':
     case 'PACKING_COMPLETED':
-      return <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">Packing Completed</span>;
+    case 'COMPLETED':
+      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+    case 'CANCELLED':
+      return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
     default:
-      return <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-gray-100 text-gray-700">{status}</span>;
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
   }
 };
 
-const getPriorityBadge = (priority: string) => {
-  switch (priority) {
-    case 'URGENT':
-      return <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Urgent</span>;
-    case 'HIGH':
-      return <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">High</span>;
+const getPriorityColor = (priority: string) => {
+  switch (priority?.toUpperCase()) {
+    case 'LOW':
+      return 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300';
     case 'MEDIUM':
-      return <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Medium</span>;
+      return 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300';
+    case 'HIGH':
+      return 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300';
+    case 'URGENT':
+      return 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300';
     default:
-      return <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-gray-300">Low</span>;
+      return 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
   }
+};
+
+const fmtDateTime = (dStr?: string) => {
+  if (!dStr) return '—';
+  const d = new Date(dStr);
+  if (isNaN(d.getTime())) return dStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${day}-${month}-${year} ${time}`;
 };
 
 export const PackingExecution: React.FC = () => {
@@ -71,14 +115,14 @@ export const PackingExecution: React.FC = () => {
   // Apply filters and search
   const filteredData = useMemo(() => {
     return eligibleWOs.filter((item) => {
+      const label = formatStatus(item.status);
       const matchesSearch =
         item.woNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.batchNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.operator?.name || item.supervisor?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
-        statusFilter === 'ALL' || item.status === statusFilter;
+        statusFilter === 'ALL' || item.status === statusFilter || label === statusFilter;
       const matchesPriority =
         priorityFilter === 'ALL' || item.priority === priorityFilter;
 
@@ -96,7 +140,7 @@ export const PackingExecution: React.FC = () => {
     if (!w.completedAt) return true;
     return new Date(w.completedAt).toDateString() === new Date().toDateString();
   }).length;
-  const highPriorityCount = eligibleWOs.filter(
+  const delayedCount = eligibleWOs.filter(
     (w) => w.priority === 'URGENT' || w.priority === 'HIGH'
   ).length;
 
@@ -109,10 +153,10 @@ export const PackingExecution: React.FC = () => {
   const columns = [
     {
       key: 'woNumber',
-      label: 'WO NUMBER',
-      className: 'w-[12%] text-center p-3',
+      label: 'WORK ORDER NO.',
+      className: 'w-[12%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
-        <span className="font-mono font-bold text-slate-800 dark:text-white">
+        <span className="font-mono font-bold text-xs text-slate-800 dark:text-white">
           {row.woNumber}
         </span>
       ),
@@ -120,39 +164,29 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'product',
       label: 'PRODUCT',
-      className: 'w-[18%] text-left p-3',
+      className: 'w-[18%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
-        <span className="font-semibold text-slate-800 dark:text-gray-200 truncate block max-w-[180px]">
+        <span className="font-semibold text-xs text-slate-800 dark:text-gray-200 truncate block max-w-[180px]">
           {row.product?.name || '-'}
         </span>
       ),
     },
     {
-      key: 'batchNumber',
-      label: 'BATCH NO.',
-      className: 'w-[12%] text-center p-3',
-      render: (row: WorkOrder) => (
-        <span className="font-mono text-xs text-slate-600 dark:text-gray-300 font-semibold">
-          {row.batchNumber || `BATCH-${row.woNumber}`}
-        </span>
-      ),
-    },
-    {
       key: 'operator',
-      label: 'ASSIGNED OPERATOR',
-      className: 'w-[14%] text-left p-3',
+      label: 'OPERATOR',
+      className: 'w-[16%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
-        <span className="font-medium text-slate-700 dark:text-gray-300">
-          {row.operator?.name || row.supervisor?.name || 'Unassigned'}
+        <span className="text-xs font-medium text-slate-700 dark:text-gray-300">
+          {row.operator?.name || row.supervisor?.name || row.operatorId || 'Unassigned'}
         </span>
       ),
     },
     {
       key: 'requiredQty',
-      label: 'REQ QTY',
-      className: 'w-[8%] text-center p-3',
+      label: 'REQ. QTY',
+      className: 'w-[8%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
-        <span className="font-bold text-slate-800 dark:text-white">
+        <span className="font-bold text-xs text-slate-800 dark:text-white font-mono">
           {row.requiredQty}
         </span>
       ),
@@ -160,9 +194,9 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'packedQty',
       label: 'PACKED QTY',
-      className: 'w-[8%] text-center p-3',
+      className: 'w-[8%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
-        <span className="font-bold text-slate-800 dark:text-white">
+        <span className="font-bold text-xs text-slate-800 dark:text-white font-mono">
           {row.actualProduced || 0}
         </span>
       ),
@@ -170,7 +204,7 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'progress',
       label: 'PROGRESS',
-      className: 'w-[12%] text-center p-3',
+      className: 'w-[12%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => {
         const req = row.requiredQty || 1;
         const packed = row.actualProduced || 0;
@@ -178,7 +212,7 @@ export const PackingExecution: React.FC = () => {
 
         return (
           <div className="flex items-center justify-center gap-2">
-            <div className="w-16 h-2 bg-slate-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#00891D]"
                 style={{ width: `${pct}%` }}
@@ -194,32 +228,58 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'priority',
       label: 'PRIORITY',
-      className: 'w-[8%] text-center p-3',
+      className: 'w-[10%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
-        <div className="flex justify-center">{getPriorityBadge(row.priority)}</div>
+        <div className="flex justify-center">
+          <span
+            className={`px-2 py-0.5 text-[11px] rounded-full font-semibold whitespace-nowrap ${getPriorityColor(
+              row.priority
+            )}`}
+          >
+            {row.priority}
+          </span>
+        </div>
       ),
     },
     {
       key: 'status',
       label: 'STATUS',
-      className: 'w-[10%] text-center p-3',
+      className: 'w-[12%] text-center whitespace-nowrap',
+      render: (row: WorkOrder) => {
+        const label = formatStatus(row.status);
+        return (
+          <div className="flex justify-center">
+            <span
+              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full whitespace-nowrap ${getStatusColor(
+                label
+              )}`}
+            >
+              {label}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'startedAt',
+      label: 'START DATE & TIME',
+      className: 'w-[14%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
-        <div className="flex justify-center">{getStatusBadge(row.status)}</div>
+        <span className="font-mono text-xs text-slate-600 dark:text-gray-400">
+          {fmtDateTime(row.startedAt || row.updatedAt || row.createdAt)}
+        </span>
       ),
     },
     {
       key: 'action',
       label: 'ACTION',
-      className: 'w-[8%] text-center p-3',
+      className: 'w-[6%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
-        <div className="flex justify-center items-center gap-2">
-          <button
+        <div className="flex justify-center">
+          <ViewIconButton
             onClick={() => navigate(`/packing-erp/packing-execution/${row.id}`)}
-            className="p-1.5 rounded-lg text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
-            title="View Details & Execute Packing"
-          >
-            <Eye size={16} />
-          </button>
+            title="View Details"
+          />
         </div>
       ),
     },
@@ -230,26 +290,19 @@ export const PackingExecution: React.FC = () => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
-            Packing Execution Workspace
+            Packing Execution
           </h2>
           <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-            Monitor and execute floor packing jobs for issued materials.
+            Home &gt; Packing Execution
           </p>
         </div>
-        <button
-          onClick={fetchOrders}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-700 text-slate-600 dark:text-gray-300 transition-colors cursor-pointer"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh</span>
-        </button>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
               Total Packing Jobs
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">
@@ -263,7 +316,7 @@ export const PackingExecution: React.FC = () => {
 
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
               In Progress
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">
@@ -277,7 +330,7 @@ export const PackingExecution: React.FC = () => {
 
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
               Completed Today
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">
@@ -291,11 +344,11 @@ export const PackingExecution: React.FC = () => {
 
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-              High Priority Jobs
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
+              Delayed Jobs
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">
-              {highPriorityCount}
+              {delayedCount}
             </p>
           </div>
           <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
@@ -317,11 +370,11 @@ export const PackingExecution: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[140px] shrink-0"
           >
-            <option value="ALL" className="dark:bg-gray-800">All Stages</option>
+            <option value="ALL" className="dark:bg-gray-800">Status</option>
             <option value="MATERIAL_ISSUED" className="dark:bg-gray-800">Material Issued</option>
             <option value="PACKING_STARTED" className="dark:bg-gray-800">Packing Started</option>
-            <option value="PACKING_IN_PROGRESS" className="dark:bg-gray-800">In Progress</option>
-            <option value="PACKING_COMPLETED" className="dark:bg-gray-800">Completed</option>
+            <option value="PACKING_IN_PROGRESS" className="dark:bg-gray-800">Packing In Progress</option>
+            <option value="PACKING_COMPLETED" className="dark:bg-gray-800">Packing Completed</option>
           </select>
 
           <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />
@@ -356,7 +409,7 @@ export const PackingExecution: React.FC = () => {
           />
           <input
             type="text"
-            placeholder="Search WO No, product, or operator..."
+            placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00891D]/20 focus:border-[#00891D] transition-all shadow-xs"
@@ -370,7 +423,7 @@ export const PackingExecution: React.FC = () => {
           columns={columns}
           data={filteredData}
           loading={loading}
-          emptyMessage="No packing execution jobs found."
+          emptyMessage="No work orders found"
           keyExtractor={(row: WorkOrder) => row.id}
         />
       </div>

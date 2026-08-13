@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { workOrderService, WorkOrder } from '../../../api/packing/workOrderService';
 import DataTable from '../../../components/packing/ui/DataTable';
+import ViewIconButton from '../../../components/ui/Button/ViewIconButton';
 import {
   Package,
   Search,
@@ -11,7 +12,6 @@ import {
   Clock,
   Calendar,
   RotateCcw,
-  Eye,
 } from 'lucide-react';
 
 export const PackingMaterialIssue: React.FC = () => {
@@ -58,7 +58,6 @@ export const PackingMaterialIssue: React.FC = () => {
       const matchesSearch =
         item.woNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.product?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.recipe?.code || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.operator?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus =
@@ -71,76 +70,42 @@ export const PackingMaterialIssue: React.FC = () => {
   const columns = [
     {
       key: 'woNumber',
-      label: 'WO No',
-      className: 'w-[12%] text-center p-3',
+      label: 'WO NO',
+      className: 'w-[12%] text-center',
       render: (row: WorkOrder) => (
-        <span className="font-mono text-slate-800 dark:text-white font-bold">
+        <span className="font-mono text-gray-700 dark:text-gray-300 font-bold">
           {row.woNumber}
         </span>
       ),
     },
     {
       key: 'product',
-      label: 'Output Product',
-      className: 'w-[18%] text-left p-3',
-      render: (row: WorkOrder) => (
-        <span className="font-semibold text-slate-800 dark:text-gray-200 truncate block max-w-[180px]">
-          {row.product?.name || '-'}
-        </span>
-      ),
+      label: 'PRODUCT',
+      className: 'w-[20%] text-center',
+      render: (row: WorkOrder) => row.product?.name || row.productId,
     },
     {
-      key: 'recipe',
-      label: 'Product BOM',
-      className: 'w-[14%] text-left p-3',
+      key: 'operator',
+      label: 'OPERATOR',
+      className: 'w-[20%] text-center',
       render: (row: WorkOrder) => (
-        <span className="font-mono text-slate-600 dark:text-gray-300">
-          {row.recipe?.code || row.recipeId || '-'}
+        <span className="font-medium text-gray-700 dark:text-gray-300">
+          {row.operator?.name || row.supervisor?.name || row.operatorId || 'Unassigned'}
         </span>
       ),
     },
     {
       key: 'reqQty',
-      label: 'Planned Qty',
-      className: 'w-[10%] text-center p-3',
+      label: 'REQ QTY',
+      className: 'w-[10%] text-center',
       render: (row: WorkOrder) => (
-        <span className="font-bold text-slate-800 dark:text-white">
-          {row.requiredQty}
-        </span>
+        <span className="font-mono">{row.requiredQty}</span>
       ),
     },
     {
-      key: 'rawMaterials',
-      label: 'Raw Materials',
-      className: 'w-[10%] text-center p-3',
-      render: (row: WorkOrder) => {
-        const rawCount =
-          row.recipe?.items?.filter((i) => !i.isPackaging).length || 0;
-        return (
-          <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-            {rawCount} items
-          </span>
-        );
-      },
-    },
-    {
-      key: 'packagingMaterials',
-      label: 'Packaging',
-      className: 'w-[10%] text-center p-3',
-      render: (row: WorkOrder) => {
-        const pkgCount =
-          row.recipe?.items?.filter((i) => i.isPackaging).length || 0;
-        return (
-          <span className="font-semibold text-purple-600 dark:text-purple-400">
-            {pkgCount} items
-          </span>
-        );
-      },
-    },
-    {
       key: 'priority',
-      label: 'Priority',
-      className: 'w-[10%] text-center p-3',
+      label: 'PRIORITY',
+      className: 'w-[10%] text-center',
       render: (row: WorkOrder) => (
         <div className="flex justify-center">
           <span
@@ -149,7 +114,7 @@ export const PackingMaterialIssue: React.FC = () => {
                 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                 : row.priority === 'HIGH'
                 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
-                : 'bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
             }`}
           >
             {row.priority}
@@ -159,8 +124,8 @@ export const PackingMaterialIssue: React.FC = () => {
     },
     {
       key: 'status',
-      label: 'Status',
-      className: 'w-[10%] text-center p-3',
+      label: 'STATUS',
+      className: 'w-[10%] text-center',
       render: (row: WorkOrder) => {
         let displayStatus = 'PENDING';
         let colorClass =
@@ -169,7 +134,11 @@ export const PackingMaterialIssue: React.FC = () => {
         if (row.status === 'MATERIAL_ISSUED') {
           displayStatus = 'ISSUED';
           colorClass =
-            'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+            'bg-[#00891D]/10 text-[#00891D] border-[#00891D]/20 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
+        } else if (row.status === 'COMPLETED') {
+          displayStatus = 'COMPLETED';
+          colorClass =
+            'bg-[#00891D]/10 text-[#00891D] border-[#00891D]/20 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
         }
 
         return (
@@ -184,18 +153,27 @@ export const PackingMaterialIssue: React.FC = () => {
       },
     },
     {
-      key: 'action',
-      label: 'Action',
-      className: 'w-[6%] text-center p-3',
+      key: 'expectedDate',
+      label: 'EXPECTED DATE',
+      className: 'w-[12%] text-center',
       render: (row: WorkOrder) => (
-        <div className="flex justify-center">
-          <button
+        <span className="font-mono text-gray-500 dark:text-gray-400">
+          {row.expectedDate
+            ? new Date(row.expectedDate).toLocaleDateString()
+            : 'N/A'}
+        </span>
+      ),
+    },
+    {
+      key: 'action',
+      label: 'ACTION',
+      className: 'w-[6%] text-center',
+      render: (row: WorkOrder) => (
+        <div className="flex justify-center gap-2">
+          <ViewIconButton
             onClick={() => navigate(`/packing-erp/material-issue/${row.id}`)}
-            className="p-1.5 rounded-lg text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
-            title="View & Issue Materials"
-          >
-            <Eye size={16} />
-          </button>
+            title="View Material Issue Details"
+          />
         </div>
       ),
     },
@@ -206,10 +184,10 @@ export const PackingMaterialIssue: React.FC = () => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
-            Material Issue Queue
+            Material Issue
           </h2>
           <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-            Dispatch raw materials and packaging for approved work orders.
+            Home &gt; Operations &gt; Material Issue
           </p>
         </div>
         <button
@@ -226,7 +204,7 @@ export const PackingMaterialIssue: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-              Total Requests
+              TOTAL REQUESTS
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">
               {totalRequests}
@@ -240,7 +218,7 @@ export const PackingMaterialIssue: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-              Pending Issues
+              PENDING ISSUES
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">
               {pendingCount}
@@ -254,7 +232,7 @@ export const PackingMaterialIssue: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-              Issued Today
+              ISSUED TODAY
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">
               {issuedToday}
@@ -268,7 +246,7 @@ export const PackingMaterialIssue: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-              Delayed Requests
+              DELAYED REQUESTS
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">
               {delayed}
@@ -293,9 +271,9 @@ export const PackingMaterialIssue: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[140px] shrink-0"
           >
-            <option value="APPROVED" className="dark:bg-gray-800">Pending (Approved WOs)</option>
+            <option value="ALL" className="dark:bg-gray-800">All Statuses</option>
+            <option value="APPROVED" className="dark:bg-gray-800">Pending</option>
             <option value="MATERIAL_ISSUED" className="dark:bg-gray-800">Issued</option>
-            <option value="ALL" className="dark:bg-gray-800">All Eligible</option>
           </select>
 
           <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />
@@ -319,7 +297,7 @@ export const PackingMaterialIssue: React.FC = () => {
           />
           <input
             type="text"
-            placeholder="Search WO No, product, or operator..."
+            placeholder="Search by WO No, Product, or Operator..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00891D]/20 focus:border-[#00891D] transition-all shadow-xs"

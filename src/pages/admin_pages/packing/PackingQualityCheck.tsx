@@ -2,89 +2,237 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ShieldCheck,
   X,
+  Image as ImageIcon,
+  Filter,
   Clock,
   CheckCircle,
+  AlertTriangle,
   Users,
   Search,
-  Eye,
-  UserPlus,
-  PauseCircle,
-  XCircle,
-  RefreshCw,
-  Check,
-  PackageCheck
+  ChevronDown,
+  Loader2,
+  Package,
+  RotateCcw,
 } from 'lucide-react';
-import { qualityCheckService, QCRecord, PendingQCWorkOrder, QCUser } from '../../../api/packing/qualityCheckService';
+import {
+  qualityCheckService,
+  QCRecord,
+  PendingQCWorkOrder,
+  QCUser,
+} from '../../../api/packing/qualityCheckService';
 import { workOrderService } from '../../../api/packing/workOrderService';
+import ViewIconButton from '../../../components/ui/Button/ViewIconButton';
 import toast from 'react-hot-toast';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const fmtDate = (dateStr?: string) => {
+const fmt = (dateStr?: string) => {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  return `${String(d.getDate()).padStart(2, '0')}-${String(
+    d.getMonth() + 1
+  ).padStart(2, '0')}-${d.getFullYear()} ${d.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
 };
 
-const ELIGIBLE_ADMIN_QC_STATUSES = [
-  'LABELS_APPLIED',
-  'QC_PENDING',
-  'QC_STARTED',
-  'QC_IN_PROGRESS',
-  'QC_HOLD',
-  'QC_PASSED',
-  'QC_FAILED',
-];
+const RESULT_LABEL: Record<string, string> = {
+  PASS: 'Passed',
+  PARTIAL_PASS: 'Partial Pass',
+  FAIL: 'Failed',
+  REWORK: 'Rework',
+  DISCARD: 'Discard',
+};
+const PRIORITY_LABEL: Record<string, string> = {
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  URGENT: 'Urgent',
+};
+const PRIORITY_COLOR = (p: string) =>
+  p === 'HIGH' || p === 'URGENT'
+    ? 'text-red-600 dark:text-red-400 font-bold'
+    : p === 'MEDIUM'
+    ? 'text-yellow-600 dark:text-yellow-400 font-semibold'
+    : 'text-gray-500 dark:text-gray-400';
 
-interface UnifiedRow {
+const STATUS_BADGE: Record<string, string> = {
+  'QC Pending': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
+  'Labels Applied': 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+  'Labels Printed': 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800',
+  'Application Assigned': 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800',
+  'Application In Progress': 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800',
+  'Packing Completed': 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800',
+  Passed: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800',
+  'Partial Pass': 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800',
+  Failed: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800',
+  Rework: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800',
+  Discard: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800',
+};
+
+const STATUS_DOT: Record<string, string> = {
+  'QC Pending': 'bg-amber-400',
+  'Labels Applied': 'bg-blue-400',
+  'Labels Printed': 'bg-indigo-400',
+  'Application Assigned': 'bg-indigo-400',
+  'Application In Progress': 'bg-indigo-400',
+  'Packing Completed': 'bg-teal-400',
+  Passed: 'bg-emerald-500',
+  'Partial Pass': 'bg-emerald-400',
+  Failed: 'bg-rose-500',
+  Rework: 'bg-orange-400',
+  Discard: 'bg-rose-500',
+};
+
+const RESULT_BADGE = (r: string) =>
+  r === 'PASS' || r === 'PARTIAL_PASS'
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
+    : r === 'FAIL' || r === 'DISCARD'
+    ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800'
+    : r === 'REWORK'
+    ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800'
+    : 'bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600';
+
+interface TableRow {
+  _type: 'PENDING' | 'COMPLETED';
   id: string;
   woId: string;
   woNumber: string;
   productName: string;
-  sku: string;
   batchNumber: string;
-  packedQty: number;
-  assignedChecker: string;
-  inspectorId?: string;
-  status: string;
+  packedTime: string;
+  packedBy: string;
+  assignedTo: string;
+  displayStatus: string;
   priority: string;
-  startedAt: string;
-  updatedAt: string;
-  result: 'PASS' | 'FAIL' | 'HOLD' | 'IN_PROGRESS' | 'PENDING';
-  holdReason?: string;
-  progressText?: string;
-  checksState?: Record<string, any>;
-  overallRemarks?: string;
-  photoUrls?: string[];
   rawQC?: QCRecord;
   rawWO?: PendingQCWorkOrder;
 }
+
+const DEFAULT_CHECKS = {
+  sealIntegrity: true,
+  packagingDamage: true,
+  tamperCheck: true,
+  weightAccuracy: true,
+  quantityVerification: true,
+  productAppearance: true,
+  barcodeReadability: true,
+  labelPlacement: true,
+  mrpVerification: true,
+  manufacturingDate: true,
+  expiryDate: true,
+};
+
+const CHECKLIST_SECTIONS = [
+  {
+    section: 'Packaging',
+    color: 'text-blue-600 dark:text-blue-400',
+    items: [
+      { key: 'sealIntegrity', label: 'Seal Integrity' },
+      { key: 'packagingDamage', label: 'Packaging Damage' },
+      { key: 'tamperCheck', label: 'Tamper Check' },
+    ] as { key: keyof typeof DEFAULT_CHECKS; label: string }[],
+  },
+  {
+    section: 'Product',
+    color: 'text-violet-600 dark:text-violet-400',
+    items: [
+      { key: 'weightAccuracy', label: 'Weight Accuracy' },
+      { key: 'quantityVerification', label: 'Quantity Verification' },
+      { key: 'productAppearance', label: 'Product Appearance' },
+    ] as { key: keyof typeof DEFAULT_CHECKS; label: string }[],
+  },
+  {
+    section: 'Label',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    items: [
+      { key: 'barcodeReadability', label: 'Barcode Readability' },
+      { key: 'labelPlacement', label: 'Label Placement' },
+      { key: 'mrpVerification', label: 'MRP Verification' },
+      { key: 'manufacturingDate', label: 'Mfg Date' },
+      { key: 'expiryDate', label: 'Expiry Date' },
+    ] as { key: keyof typeof DEFAULT_CHECKS; label: string }[],
+  },
+];
+
+const Sel = ({
+  label,
+  value,
+  onChange,
+  children,
+  className = '',
+}: {
+  label?: string;
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div className="flex flex-col gap-1">
+    {label && (
+      <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 uppercase">
+        {label}
+      </span>
+    )}
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`appearance-none bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg pl-3 pr-7 py-2 text-xs font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D] ${className}`}
+      >
+        {children}
+      </select>
+      <ChevronDown
+        size={12}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none"
+      />
+    </div>
+  </div>
+);
 
 export const PackingQualityCheck: React.FC = () => {
   const [pendingWOs, setPendingWOs] = useState<PendingQCWorkOrder[]>([]);
   const [completedQCs, setCompletedQCs] = useState<QCRecord[]>([]);
   const [inspectors, setInspectors] = useState<QCUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Filters
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterInspector, setFilterInspector] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
-  const [filterResult, setFilterResult] = useState('');
+  const [filterBatch, setFilterBatch] = useState('');
+  const [filterWO, setFilterWO] = useState('');
+  const [filterProduct, setFilterProduct] = useState('');
 
-  // Assignment Modal State
-  const [selectedAssignWO, setSelectedAssignWO] = useState<PendingQCWorkOrder | null>(null);
-  const [assignInspectorId, setAssignInspectorId] = useState('');
+  // Assign bar
+  const [assignWO, setAssignWO] = useState('');
+  const [assignTo, setAssignTo] = useState('');
   const [assignPriority, setAssignPriority] = useState('HIGH');
-  const [isAssigning, setIsAssigning] = useState(false);
+  const [assignTime, setAssignTime] = useState('30 mins');
 
-  // View Inspection Modal State
-  const [selectedRow, setSelectedRow] = useState<UnifiedRow | null>(null);
+  // Modals
+  const [selectedQC, setSelectedQC] = useState<QCRecord | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedWO, setSelectedWO] = useState<PendingQCWorkOrder | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
-  // ─── Data Loading ───────────────────────────────────────────────────────────
-  const loadData = useCallback(async (showLoading = true) => {
+  // Form fields
+  const [formBatchNo, setFormBatchNo] = useState('');
+  const [formCheckedQty, setFormCheckedQty] = useState(10);
+  const [formPackedQty, setFormPackedQty] = useState(0);
+  const [formInspectionType, setFormInspectionType] = useState('Sampling Inspection');
+  const [formResult, setFormResult] = useState('PASS');
+  const [formSeverity, setFormSeverity] = useState('MINOR');
+  const [formFailureReason, setFormFailureReason] = useState('');
+  const [formRemarks, setFormRemarks] = useState('');
+  const [formPhotos, setFormPhotos] = useState<{ id: string; url: string; file: File }[]>([]);
+  const [checks, setChecks] = useState({ ...DEFAULT_CHECKS });
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadAll = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
       const [woRes, qcRes, userRes] = await Promise.all([
@@ -92,752 +240,1091 @@ export const PackingQualityCheck: React.FC = () => {
         qualityCheckService.getQualityChecks(),
         qualityCheckService.getUsers(),
       ]);
-
-      // Only show Work Orders that have completed Label Application
-      const filteredWOs = (woRes || []).filter((wo) => ELIGIBLE_ADMIN_QC_STATUSES.includes(wo.status));
-      setPendingWOs(filteredWOs);
+      setPendingWOs(woRes || []);
       setCompletedQCs(qcRes.data || []);
       setInspectors(userRes || []);
     } catch (err) {
-      console.error('Failed to load Quality Check admin data:', err);
-      toast.error('Failed to load quality check records.');
+      console.error('Failed to load QC data', err);
     } finally {
       if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData(true);
-    const interval = setInterval(() => loadData(false), 5000);
+    loadAll(true);
+    const interval = setInterval(() => loadAll(false), 5000);
     return () => clearInterval(interval);
-  }, [loadData]);
+  }, [loadAll, refreshKey]);
 
-  // ─── KPIs Calculation ──────────────────────────────────────────────────────
+  // KPIs
   const todayStr = new Date().toDateString();
+  const passedToday = useMemo(
+    () =>
+      completedQCs.filter(
+        (q) =>
+          new Date(q.createdAt).toDateString() === todayStr &&
+          (q.result === 'PASS' || q.result === 'PARTIAL_PASS')
+      ).length,
+    [completedQCs, todayStr]
+  );
+  const failedToday = useMemo(
+    () =>
+      completedQCs.filter(
+        (q) =>
+          new Date(q.createdAt).toDateString() === todayStr &&
+          (q.result === 'REJECT' || q.result === 'DISCARD')
+      ).length,
+    [completedQCs, todayStr]
+  );
+  const reworkCount = completedQCs.filter((q) => q.result === 'REWORK').length;
 
-  const kpiStats = useMemo(() => {
-    const pendingCount = pendingWOs.filter((w) => ['LABELS_APPLIED', 'QC_PENDING', 'QC_STARTED'].includes(w.status)).length;
-    const inProgressCount = pendingWOs.filter((w) => w.status === 'QC_IN_PROGRESS').length;
-    const onHoldCount = pendingWOs.filter((w) => w.status === 'QC_HOLD').length;
-
-    const passedTodayCount = completedQCs.filter(
-      (q) => new Date(q.createdAt).toDateString() === todayStr && (q.result === 'PASS' || q.result === 'PARTIAL_PASS')
-    ).length;
-
-    const failedTodayCount = completedQCs.filter(
-      (q) => new Date(q.createdAt).toDateString() === todayStr && (q.result === 'REJECT' || q.result === 'DISCARD' || q.result === 'REWORK')
-    ).length;
-
-    const totalToday = completedQCs.filter((q) => new Date(q.createdAt).toDateString() === todayStr).length;
-
-    return {
-      pending: pendingCount,
-      inProgress: inProgressCount,
-      passedToday: passedTodayCount,
-      failedToday: failedTodayCount,
-      onHold: onHoldCount,
-      totalToday,
-    };
-  }, [pendingWOs, completedQCs, todayStr]);
-
-  // ─── Unified Data Rows ─────────────────────────────────────────────────────
-  const unifiedRows = useMemo<UnifiedRow[]>(() => {
-    const rows: UnifiedRow[] = [];
-
-    // Map Work Orders currently in pending/active QC stages
-    pendingWOs.forEach((wo) => {
-      // Look for backend persisted quality check payload for active progress
-      const matchingQC = completedQCs.find((q) => q.woId === wo.id);
-      const payload: any = matchingQC?.checksPayload || {};
-
-      let progressText = undefined;
-      let checksStateMap: Record<string, any> | undefined = undefined;
-      let overallRemarksStr = matchingQC?.remarks || payload?.overallRemarks || '';
-
-      if (payload && payload.checksState) {
-        checksStateMap = payload.checksState;
-        const evaluated = Object.values(payload.checksState).filter((c: any) => c.status !== null).length;
-        const total = Object.keys(payload.checksState).length;
-        if (total > 0) {
-          progressText = `${evaluated} / ${total} Checks Completed`;
-        }
-      }
-
-      let res: UnifiedRow['result'] = 'PENDING';
-      if (wo.status === 'QC_IN_PROGRESS') res = 'IN_PROGRESS';
-      if (wo.status === 'QC_HOLD') res = 'HOLD';
-      if (wo.status === 'QC_PASSED') res = 'PASS';
-      if (wo.status === 'QC_FAILED') res = 'FAIL';
-
+  // Table rows
+  const unifiedData = useMemo<TableRow[]>(() => {
+    const rows: TableRow[] = [];
+    pendingWOs.forEach((wo) =>
       rows.push({
-        id: `WO-${wo.id}`,
+        _type: 'PENDING',
+        id: `PENDING-${wo.id}`,
         woId: wo.id,
         woNumber: wo.woNumber,
-        productName: wo.product?.name || 'Assigned Product',
-        sku: wo.product?.sku || 'N/A',
-        batchNumber: wo.batchNumber || 'N/A',
-        packedQty: wo.actualProduced || wo.requiredQty,
-        assignedChecker: wo.inspector?.name || (wo as any).inspectorName || 'Unassigned',
-        inspectorId: wo.inspector?.id,
-        status: wo.status,
-        priority: wo.priority || 'MEDIUM',
-        startedAt: wo.startedAt || wo.createdAt,
-        updatedAt: wo.updatedAt,
-        result: res,
-        holdReason: payload?.holdReason || matchingQC?.failureReason || 'Pending Resolution',
-        progressText,
-        checksState: checksStateMap,
-        overallRemarks: overallRemarksStr,
-        photoUrls: payload?.photos || [],
+        productName: wo.product?.name ?? '—',
+        batchNumber: wo.batchNumber ?? '—',
+        packedTime: wo.updatedAt || wo.createdAt,
+        packedBy: wo.supervisor?.name ?? wo.operator?.name ?? '—',
+        assignedTo: (wo as any).inspector?.name ?? (wo as any).inspectorName ?? 'Unassigned',
+        displayStatus:
+          wo.status === 'LABELS_APPLIED'
+            ? 'Labels Applied'
+            : wo.status === 'LABEL_APPLICATION_ASSIGNED'
+            ? 'Application Assigned'
+            : wo.status === 'LABEL_APPLICATION_IN_PROGRESS'
+            ? 'Application In Progress'
+            : wo.status === 'LABELS_PRINTED'
+            ? 'Labels Printed'
+            : wo.status === 'PACKING_COMPLETED'
+            ? 'Packing Completed'
+            : 'QC Pending',
+        priority: wo.priority,
         rawWO: wo,
-        rawQC: matchingQC,
-      });
-    });
-
-    // Map completed Quality Check records that are no longer in pendingWOs
-    completedQCs.forEach((qc) => {
-      const existsInWO = rows.some((r) => r.woId === qc.woId);
-      if (!existsInWO) {
-        const isPass = qc.result === 'PASS' || qc.result === 'PARTIAL_PASS';
-        const isHold = qc.result === 'HOLD';
-        const isFail = qc.result === 'REJECT' || qc.result === 'DISCARD' || qc.result === 'REWORK';
-
-        const payload: any = qc.checksPayload || {};
-        let checksStateMap: Record<string, any> | undefined = undefined;
-        let progressText = undefined;
-
-        if (payload && payload.checksState) {
-          checksStateMap = payload.checksState;
-          const evaluated = Object.values(payload.checksState).filter((c: any) => c.status !== null).length;
-          const total = Object.keys(payload.checksState).length;
-          progressText = `${evaluated} / ${total} Checks Completed`;
-        }
-
-        rows.push({
-          id: `QC-${qc.id}`,
-          woId: qc.woId,
-          woNumber: qc.workOrder?.woNumber || `WO-${qc.woId.substring(0, 6)}`,
-          productName: qc.workOrder?.product?.name || 'Product',
-          sku: qc.workOrder?.product?.sku || 'N/A',
-          batchNumber: qc.workOrder?.batchNumber || 'N/A',
-          packedQty: qc.checkedQty || qc.workOrder?.actualProduced || qc.workOrder?.requiredQty || 0,
-          assignedChecker: qc.inspector?.name || 'Inspector',
-          inspectorId: qc.inspectorId,
-          status: isPass ? 'QC_PASSED' : isHold ? 'QC_HOLD' : isFail ? 'QC_FAILED' : 'QC_COMPLETED',
-          priority: qc.workOrder?.priority || 'MEDIUM',
-          startedAt: qc.createdAt,
-          updatedAt: qc.updatedAt || qc.createdAt,
-          result: isPass ? 'PASS' : isHold ? 'HOLD' : 'FAIL',
-          holdReason: qc.failureReason || payload?.holdReason,
-          progressText,
-          checksState: checksStateMap,
-          overallRemarks: qc.remarks || payload?.overallRemarks || '',
-          photoUrls: payload?.photos || [],
-          rawQC: qc,
-        });
-      }
-    });
-
-    // Sort by updatedAt desc
-    return rows.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      })
+    );
+    completedQCs.forEach((qc) =>
+      rows.push({
+        _type: 'COMPLETED',
+        id: qc.id,
+        woId: qc.woId,
+        woNumber: qc.workOrder?.woNumber ?? '—',
+        productName: qc.workOrder?.product?.name ?? '—',
+        batchNumber: qc.workOrder?.batchNumber ?? '—',
+        packedTime: qc.workOrder?.updatedAt ?? qc.createdAt,
+        packedBy: qc.workOrder?.operator?.name ?? qc.workOrder?.supervisor?.name ?? '—',
+        assignedTo: qc.inspector?.name ?? '—',
+        displayStatus: RESULT_LABEL[qc.result] ?? qc.result,
+        priority: qc.workOrder?.priority ?? 'MEDIUM',
+        rawQC: qc,
+      })
+    );
+    return rows;
   }, [pendingWOs, completedQCs]);
 
-  // Filtered rows
-  const filteredRows = useMemo(() => {
-    return unifiedRows.filter((r) => {
-      if (filterStatus && r.status !== filterStatus) return false;
-      if (filterInspector && r.assignedChecker !== filterInspector) return false;
-      if (filterPriority && r.priority !== filterPriority) return false;
-      if (filterResult && r.result !== filterResult) return false;
+  const filteredData = useMemo(() => {
+    let d = unifiedData;
+    if (filterStatus) {
+      d = d.filter((r) =>
+        filterStatus === 'PENDING'
+          ? r._type === 'PENDING'
+          : filterStatus === 'COMPLETED'
+          ? r._type === 'COMPLETED'
+          : r.displayStatus === filterStatus
+      );
+    }
+    if (filterInspector) d = d.filter((r) => r.assignedTo === filterInspector);
+    if (filterPriority) d = d.filter((r) => r.priority === filterPriority);
+    if (filterBatch)
+      d = d.filter((r) =>
+        r.batchNumber.toLowerCase().includes(filterBatch.toLowerCase())
+      );
+    if (filterWO)
+      d = d.filter((r) =>
+        r.woNumber.toLowerCase().includes(filterWO.toLowerCase())
+      );
+    if (filterProduct)
+      d = d.filter((r) =>
+        r.productName.toLowerCase().includes(filterProduct.toLowerCase())
+      );
+    if (search) {
+      const t = search.toLowerCase();
+      d = d.filter(
+        (r) =>
+          r.productName.toLowerCase().includes(t) ||
+          r.woNumber.toLowerCase().includes(t) ||
+          r.batchNumber.toLowerCase().includes(t) ||
+          r.assignedTo.toLowerCase().includes(t)
+      );
+    }
+    return d;
+  }, [
+    unifiedData,
+    filterStatus,
+    filterInspector,
+    filterPriority,
+    filterBatch,
+    filterWO,
+    filterProduct,
+    search,
+  ]);
 
-      if (search) {
-        const s = search.toLowerCase();
-        const matchesWo = r.woNumber.toLowerCase().includes(s);
-        const matchesProd = r.productName.toLowerCase().includes(s);
-        const matchesBatch = r.batchNumber.toLowerCase().includes(s);
-        const matchesChecker = r.assignedChecker.toLowerCase().includes(s);
-        if (!matchesWo && !matchesProd && !matchesBatch && !matchesChecker) return false;
-      }
-      return true;
-    });
-  }, [unifiedRows, filterStatus, filterInspector, filterPriority, filterResult, search]);
-
-  // ─── QC Assignment Handler ─────────────────────────────────────────────────
-  const handleAssignSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAssignWO || !assignInspectorId) return;
-
+  // Task Assignment
+  const handleAssignTask = async () => {
+    if (!assignWO || !assignTo) return;
     try {
-      setIsAssigning(true);
-      await workOrderService.updateWorkOrderStatus(selectedAssignWO.id, 'QC_PENDING', {
-        inspectorId: assignInspectorId,
+      const wo = pendingWOs.find((w) => w.id === assignWO);
+      if (!wo) return;
+      await workOrderService.updateWorkOrderStatus(assignWO, 'QC_PENDING', {
+        inspectorId: assignTo,
         priority: assignPriority,
       });
-
-      const assignedInspector = inspectors.find((i) => i.id === assignInspectorId);
-      toast.success(`Work Order #${selectedAssignWO.woNumber} assigned to ${assignedInspector?.name || 'QC Inspector'}.`);
-      setSelectedAssignWO(null);
-      setAssignInspectorId('');
-      loadData(false);
+      const assignedInspector = inspectors.find((i) => i.id === assignTo);
+      toast.success(
+        `Inspection task assigned to ${
+          assignedInspector?.name || 'QC Inspector'
+        }. It will reflect in their QC portal.`
+      );
+      setAssignWO('');
+      setAssignTo('');
+      loadAll(false);
     } catch (err: any) {
-      console.error('Failed to assign QC inspector:', err);
-      toast.error(err?.response?.data?.message || 'Failed to assign inspector.');
-    } finally {
-      setIsAssigning(false);
+      console.error('Failed to assign task', err);
+      toast.error(
+        err.response?.data?.message || err.message || 'Failed to assign inspector task'
+      );
     }
   };
 
-  // Status Badge Helper
-  const renderStatusBadge = (row: UnifiedRow) => {
-    switch (row.status) {
-      case 'LABELS_APPLIED':
-        return (
-          <span className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 w-fit">
-            <span className="w-2 h-2 rounded-full bg-blue-500"></span> Labels Applied
-          </span>
-        );
-      case 'QC_PENDING':
-        return (
-          <span className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 w-fit">
-            <span className="w-2 h-2 rounded-full bg-amber-500"></span> QC Pending
-          </span>
-        );
-      case 'QC_IN_PROGRESS':
-        return (
-          <div className="flex flex-col gap-1">
-            <span className="bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 border border-orange-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 w-fit">
-              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span> QC In Progress
-            </span>
-            {row.progressText && <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 ml-1">{row.progressText}</span>}
-          </div>
-        );
-      case 'QC_HOLD':
-        return (
-          <span className="bg-yellow-50 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400 border border-yellow-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 w-fit">
-            <PauseCircle size={12} /> QC Hold
-          </span>
-        );
-      case 'QC_PASSED':
-        return (
-          <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 w-fit">
-            <CheckCircle size={12} /> QC Passed
-          </span>
-        );
-      case 'QC_FAILED':
-        return (
-          <span className="bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 w-fit">
-            <XCircle size={12} /> QC Failed
-          </span>
-        );
-      default:
-        return (
-          <span className="bg-gray-50 text-gray-700 border border-gray-200 px-2.5 py-1 rounded-lg text-xs font-bold w-fit">
-            {row.status}
-          </span>
-        );
+  // Form helpers
+  const openForm = (wo: PendingQCWorkOrder) => {
+    setSelectedWO(wo);
+    const packed = wo.actualProduced ?? wo.requiredQty;
+    setFormPackedQty(packed);
+    setFormCheckedQty(Math.max(1, Math.round(packed * 0.2)));
+    setFormBatchNo(wo.batchNumber ?? `BATCH-${wo.woNumber.split('-').pop()}`);
+    setFormInspectionType('Sampling Inspection');
+    setFormResult('PASS');
+    setFormSeverity('MINOR');
+    setFormFailureReason('');
+    setFormRemarks('');
+    setFormPhotos([]);
+    setChecks({ ...DEFAULT_CHECKS });
+    setIsFormOpen(true);
+  };
+
+  const handleCheckboxChange = (key: keyof typeof checks) => {
+    const u = { ...checks, [key]: !checks[key] };
+    setChecks(u);
+    setFormResult(Object.values(u).every((v) => v) ? 'PASS' : 'REWORK');
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setFormPhotos((prev) => [
+      ...prev,
+      ...Array.from(e.target.files!).map((f) => ({
+        id: Math.random().toString(36).slice(2),
+        url: URL.createObjectURL(f),
+        file: f,
+      })),
+    ]);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedWO) return;
+    setSubmitting(true);
+    try {
+      await qualityCheckService.submitQualityCheck({
+        woId: selectedWO.id,
+        checkedQty: formCheckedQty,
+        result: formResult,
+        severity: ['REWORK', 'REJECT', 'DISCARD'].includes(formResult)
+          ? formSeverity
+          : undefined,
+        failureReason: ['REWORK', 'REJECT', 'DISCARD'].includes(formResult)
+          ? formFailureReason
+          : undefined,
+        remarks: formRemarks,
+        checksPayload: checks,
+      });
+      setIsFormOpen(false);
+      setSelectedWO(null);
+      setRefreshKey((k) => k + 1);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Failed to submit inspection.');
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const resetFilters = () => {
+    setSearch('');
+    setFilterStatus('');
+    setFilterInspector('');
+    setFilterPriority('');
+    setFilterBatch('');
+    setFilterWO('');
+    setFilterProduct('');
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs">
+    <div className="space-y-6 text-left pb-10">
+      {/* Title & Subtitle */}
+      <div className="flex justify-between items-end">
         <div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="text-green-600" size={28} />
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Quality Check Management</h1>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">
-            Monitor live QC inspections, assign inspectors, review checklist progress & handle exceptions
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
+            Quality Check
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+            Home &gt; Quality Check
           </p>
         </div>
+      </div>
 
-        <div className="flex items-center gap-3">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1 truncate max-w-[100px]">
+              Pending Assi...
+            </p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-white">
+              {pendingWOs.length}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+            <Clock size={20} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
+              QC Inspectors
+            </p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-white">
+              {inspectors.length}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <Users size={20} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
+              Rework
+            </p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-white">
+              {reworkCount}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+            <Package size={20} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
+              Passed Today
+            </p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-white">
+              {passedToday}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+            <CheckCircle size={20} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
+              Failed Today
+            </p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-white">
+              {failedToday}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+            <AlertTriangle size={20} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
+              Total QC Done
+            </p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-white">
+              {completedQCs.length}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+            <ShieldCheck size={20} />
+          </div>
+        </div>
+      </div>
+
+      {/* Assign Task Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs">
+        <div className="px-4 py-3 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between">
+          <span className="text-sm font-bold text-slate-800 dark:text-white">
+            Assign Inspection Task
+          </span>
           <button
-            onClick={() => loadData(true)}
-            className="flex items-center gap-2 bg-slate-50 dark:bg-gray-700 hover:bg-slate-100 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-gray-600 transition-all cursor-pointer"
+            onClick={() => {
+              setSelectedWO(null);
+              setIsFormOpen(true);
+            }}
+            className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Data
+            <ShieldCheck size={14} /> New Inspection Log
           </button>
         </div>
-      </div>
 
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {/* Pending QC */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-xs">
-          <div className="flex justify-between items-start mb-3">
-            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-100">
-              <Clock size={20} />
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{kpiStats.pending}</h3>
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mt-1">Pending QC</p>
-        </div>
+        <div className="p-4 flex flex-wrap gap-x-4 gap-y-3 items-end">
+          <Sel
+            label="SELECT PRODUCT / WORK ORDER"
+            value={assignWO}
+            onChange={setAssignWO}
+            className="min-w-[220px]"
+          >
+            <option value="">-- Choose pending WO --</option>
+            {pendingWOs.map((wo) => (
+              <option key={wo.id} value={wo.id}>
+                {wo.woNumber} — {wo.product?.name ?? 'Unknown'}
+              </option>
+            ))}
+          </Sel>
 
-        {/* In Progress */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-xs">
-          <div className="flex justify-between items-start mb-3">
-            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 border border-orange-100">
-              <PackageCheck size={20} />
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{kpiStats.inProgress}</h3>
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mt-1">In Progress</p>
-        </div>
+          <Sel
+            label="ASSIGN TO (QC INSPECTOR)"
+            value={assignTo}
+            onChange={setAssignTo}
+            className="min-w-[180px]"
+          >
+            <option value="">
+              {inspectors.length === 0
+                ? 'No inspectors found'
+                : '-- Select Inspector --'}
+            </option>
+            {inspectors.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </Sel>
 
-        {/* Passed Today */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-xs">
-          <div className="flex justify-between items-start mb-3">
-            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-100">
-              <CheckCircle size={20} />
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{kpiStats.passedToday}</h3>
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mt-1">Passed Today</p>
-        </div>
+          <Sel
+            label="PRIORITY"
+            value={assignPriority}
+            onChange={setAssignPriority}
+            className="w-32"
+          >
+            {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const).map((p) => (
+              <option key={p} value={p}>
+                {PRIORITY_LABEL[p]}
+              </option>
+            ))}
+          </Sel>
 
-        {/* Failed Today */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-xs">
-          <div className="flex justify-between items-start mb-3">
-            <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-100">
-              <XCircle size={20} />
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{kpiStats.failedToday}</h3>
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mt-1">Failed Today</p>
-        </div>
+          <Sel
+            label="EXPECTED TIME"
+            value={assignTime}
+            onChange={setAssignTime}
+            className="w-28"
+          >
+            {['15 mins', '30 mins', '45 mins', '1 hour', '2 hours'].map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </Sel>
 
-        {/* On Hold */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-xs">
-          <div className="flex justify-between items-start mb-3">
-            <div className="p-2.5 rounded-xl bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 border border-yellow-100">
-              <PauseCircle size={20} />
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{kpiStats.onHold}</h3>
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mt-1">On Hold</p>
-        </div>
-
-        {/* Total Today */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-xs">
-          <div className="flex justify-between items-start mb-3">
-            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 border border-blue-100">
-              <ShieldCheck size={20} />
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{kpiStats.totalToday}</h3>
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mt-1">Total QC Today</p>
-        </div>
-      </div>
-
-      {/* FILTER & SEARCH CONTROL BAR */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs space-y-3">
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-2.5 text-gray-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search by WO No, Product, Batch, or Inspector..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-green-500"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {/* Status Filter */}
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-slate-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-bold px-3 py-2 rounded-xl"
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] text-transparent select-none">Action</span>
+            <button
+              disabled={!assignWO || !assignTo}
+              className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+              onClick={handleAssignTask}
             >
-              <option value="">All Statuses</option>
-              <option value="LABELS_APPLIED">Labels Applied</option>
-              <option value="QC_PENDING">QC Pending</option>
-              <option value="QC_IN_PROGRESS">QC In Progress</option>
-              <option value="QC_HOLD">QC Hold</option>
-              <option value="QC_PASSED">QC Passed</option>
-              <option value="QC_FAILED">QC Failed</option>
-            </select>
-
-            {/* Inspector Filter */}
-            <select
-              value={filterInspector}
-              onChange={(e) => setFilterInspector(e.target.value)}
-              className="bg-slate-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-bold px-3 py-2 rounded-xl"
-            >
-              <option value="">All Inspectors</option>
-              {inspectors.map((insp) => (
-                <option key={insp.id} value={insp.name}>
-                  {insp.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Priority Filter */}
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className="bg-slate-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-bold px-3 py-2 rounded-xl"
-            >
-              <option value="">All Priorities</option>
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent</option>
-            </select>
-
-            {/* Result Filter */}
-            <select
-              value={filterResult}
-              onChange={(e) => setFilterResult(e.target.value)}
-              className="bg-slate-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-bold px-3 py-2 rounded-xl"
-            >
-              <option value="">All Results</option>
-              <option value="PENDING">Pending</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="PASS">QC Passed</option>
-              <option value="FAIL">QC Failed</option>
-              <option value="HOLD">QC Hold</option>
-            </select>
+              <Users size={14} /> Assign Inspector
+            </button>
           </div>
         </div>
       </div>
 
-      {/* QC QUEUE TABLE */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-slate-50/50 dark:bg-gray-900/50">
-          <h2 className="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
-            Quality Check Workstation Queue ({filteredRows.length})
-          </h2>
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
+        <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 shadow-xs h-10 overflow-x-auto w-full xl:w-auto">
+          <div className="px-3 flex items-center justify-center text-slate-500 dark:text-gray-400 shrink-0">
+            <Filter size={16} />
+          </div>
+          <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />
+
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[120px] shrink-0"
+          >
+            <option value="" className="dark:bg-gray-800">All Status</option>
+            <option value="PENDING" className="dark:bg-gray-800">Pending QC</option>
+            <option value="COMPLETED" className="dark:bg-gray-800">Completed</option>
+            <option value="Passed" className="dark:bg-gray-800">Passed</option>
+            <option value="Partial Pass" className="dark:bg-gray-800">Partial Pass</option>
+            <option value="Failed" className="dark:bg-gray-800">Failed</option>
+            <option value="Rework" className="dark:bg-gray-800">Rework</option>
+            <option value="Discard" className="dark:bg-gray-800">Discard</option>
+          </select>
+
+          <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />
+
+          <select
+            value={filterInspector}
+            onChange={(e) => setFilterInspector(e.target.value)}
+            className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[140px] shrink-0"
+          >
+            <option value="" className="dark:bg-gray-800">All Inspectors</option>
+            {inspectors.map((u) => (
+              <option key={u.id} value={u.name} className="dark:bg-gray-800">
+                {u.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />
+
+          <select
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[120px] shrink-0"
+          >
+            <option value="" className="dark:bg-gray-800">All Priority</option>
+            {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const).map((p) => (
+              <option key={p} value={p} className="dark:bg-gray-800">
+                {PRIORITY_LABEL[p]}
+              </option>
+            ))}
+          </select>
+
+          <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />
+
+          <button
+            onClick={resetFilters}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors bg-transparent cursor-pointer shrink-0"
+          >
+            <RotateCcw size={14} />
+            Reset Filter
+          </button>
         </div>
 
+        <div className="relative w-full xl:w-72">
+          <Search
+            className="absolute left-3 top-2.5 text-slate-400 dark:text-gray-500"
+            size={18}
+          />
+          <input
+            type="text"
+            placeholder="Search orders, batches, products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00891D]/20 focus:border-[#00891D] transition-all shadow-xs"
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs overflow-hidden">
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-          </div>
-        ) : filteredRows.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">
-            <ShieldCheck size={48} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-            <p className="font-bold text-sm">No Quality Check records found matching criteria.</p>
-            <p className="text-xs text-gray-400 mt-1">Ensure Work Orders have completed Label Application.</p>
+          <div className="flex items-center justify-center py-16 gap-2 text-slate-400 dark:text-gray-500">
+            <Loader2 size={20} className="animate-spin" />
+            <span className="text-sm">Loading quality check data...</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 font-bold uppercase text-[10px]">
-                  <th className="py-3 px-4">Work Order</th>
-                  <th className="py-3 px-4">Product & SKU</th>
-                  <th className="py-3 px-4">Batch</th>
-                  <th className="py-3 px-4">Packed Qty</th>
-                  <th className="py-3 px-4">Assigned Checker</th>
-                  <th className="py-3 px-4">Status & Progress</th>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Last Activity</th>
-                  <th className="py-3 px-4 text-center">Actions</th>
+                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  {[
+                    'PRODUCT / WORK ORDER',
+                    'BATCH NO',
+                    'TIME AND DATE',
+                    'ASSIGNED TO',
+                    'STATUS',
+                    'PRIORITY',
+                    'ACTION',
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap text-left"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
-                {filteredRows.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-50/80 dark:hover:bg-gray-700/50 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-gray-900 dark:text-white">
-                      {row.woNumber}
-                    </td>
-
-                    <td className="py-3 px-4 font-semibold">
-                      <div>{row.productName}</div>
-                      <div className="text-[10px] text-gray-400 font-mono">SKU: {row.sku}</div>
-                    </td>
-
-                    <td className="py-3 px-4 font-mono text-gray-600 dark:text-gray-300">
-                      {row.batchNumber}
-                    </td>
-
-                    <td className="py-3 px-4 font-bold text-green-700 dark:text-green-400 font-mono">
-                      {row.packedQty} units
-                    </td>
-
-                    <td className="py-3 px-4 font-bold">
-                      <div className="flex items-center gap-1.5">
-                        <Users size={14} className="text-gray-400" />
-                        <span className={row.assignedChecker === 'Unassigned' ? 'text-gray-400 italic' : 'text-gray-800 dark:text-gray-200'}>
-                          {row.assignedChecker}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4">
-                      {renderStatusBadge(row)}
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                        row.priority === 'URGENT' || row.priority === 'HIGH'
-                          ? 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400'
-                          : 'bg-slate-100 text-slate-700 dark:bg-gray-700 dark:text-gray-300'
-                      }`}>
-                        {row.priority}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4 text-gray-500 font-mono text-[11px]">
-                      {fmtDate(row.updatedAt)}
-                    </td>
-
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        {['LABELS_APPLIED', 'QC_PENDING'].includes(row.status) && row.rawWO && (
-                          <button
-                            onClick={() => {
-                              setSelectedAssignWO(row.rawWO!);
-                              setAssignInspectorId(row.inspectorId || '');
-                            }}
-                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold border border-blue-200 text-xs flex items-center gap-1 cursor-pointer"
-                            title="Assign QC Checker"
-                          >
-                            <UserPlus size={14} /> Assign
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => setSelectedRow(row)}
-                          className="p-1.5 rounded-lg bg-slate-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-slate-200 font-bold border border-gray-200 dark:border-gray-600 text-xs flex items-center gap-1 cursor-pointer"
-                          title="View Inspection Details"
-                        >
-                          <Eye size={14} /> View Details
-                        </button>
-                      </div>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {filteredData.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-12 text-center text-sm text-gray-400 dark:text-gray-500"
+                    >
+                      No quality check records found.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredData.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors"
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="font-semibold text-slate-900 dark:text-white text-xs">
+                          {row.productName}
+                        </div>
+                        <div className="font-mono text-[10px] text-gray-400 dark:text-gray-500">
+                          {row.woNumber}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-600 dark:text-gray-300 whitespace-nowrap">
+                        {row.batchNumber}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-700 dark:text-gray-300 font-medium whitespace-nowrap">
+                        {fmt(row.packedTime)}
+                      </td>
+                      <td className="px-4 py-3 text-xs font-medium text-slate-700 dark:text-gray-300 whitespace-nowrap">
+                        <span
+                          className={
+                            row.assignedTo === 'Unassigned' || row.assignedTo === '—'
+                              ? 'text-gray-400 dark:text-gray-500 font-normal italic'
+                              : 'text-slate-800 dark:text-gray-200 font-semibold'
+                          }
+                        >
+                          {row.assignedTo}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${
+                            STATUS_BADGE[row.displayStatus] ??
+                            'bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              STATUS_DOT[row.displayStatus] ?? 'bg-gray-400'
+                            }`}
+                          />
+                          {row.displayStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`text-[11px] ${PRIORITY_COLOR(row.priority)}`}>
+                          {PRIORITY_LABEL[row.priority] ?? row.priority}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-left whitespace-nowrap">
+                        {row._type === 'PENDING' ? (
+                          <ViewIconButton
+                            onClick={() => row.rawWO && openForm(row.rawWO)}
+                            title="View Status"
+                          />
+                        ) : (
+                          <ViewIconButton
+                            onClick={() => row.rawQC && setSelectedQC(row.rawQC)}
+                            title="View Details"
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         )}
+
+        {/* Footer */}
+        {!loading && (
+          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500">
+            {filteredData.length} of {unifiedData.length} records &nbsp;·&nbsp;
+            {pendingWOs.length} pending&nbsp;·&nbsp;{completedQCs.length} completed
+          </div>
+        )}
       </div>
 
-      {/* ASSIGNMENT MODAL */}
-      {selectedAssignWO && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full overflow-hidden">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900">
-              <h3 className="font-bold text-gray-900 dark:text-white text-xs uppercase">
-                Assign QC Checker — {selectedAssignWO.woNumber}
-              </h3>
-              <button onClick={() => setSelectedAssignWO(null)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                <X size={18} />
+      {/* QC Detail Modal */}
+      {selectedQC && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-center items-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 w-full max-w-lg shadow-2xl p-6 text-left space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start border-b border-slate-100 dark:border-gray-700 pb-3 sticky top-0 bg-white dark:bg-gray-800">
+              <div>
+                <span className="text-[10px] font-mono font-bold text-slate-400">
+                  {selectedQC.qcNumber}
+                </span>
+                <h3 className="font-bold text-slate-800 dark:text-white text-base">
+                  {selectedQC.workOrder?.product?.name ?? '—'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedQC(null)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-700 text-slate-500 hover:text-rose-600 cursor-pointer"
+              >
+                <X size={18} strokeWidth={2.5} />
               </button>
             </div>
 
-            <form onSubmit={handleAssignSubmit} className="p-5 space-y-4 text-xs">
+            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 dark:bg-gray-900 p-3 rounded-lg border border-slate-100 dark:border-gray-700 text-slate-800 dark:text-gray-200">
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Work Order Details</label>
-                <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 space-y-1">
-                  <p className="font-bold text-gray-800 dark:text-white">{selectedAssignWO.product?.name}</p>
-                  <p className="text-gray-500 font-mono">Batch: {selectedAssignWO.batchNumber || 'N/A'}</p>
-                  <p className="text-green-600 font-bold">Packed Qty: {selectedAssignWO.actualProduced || selectedAssignWO.requiredQty} units</p>
-                </div>
+                <strong>QC No:</strong> {selectedQC.qcNumber}
               </div>
-
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Select QC Inspector *</label>
-                <select
-                  value={assignInspectorId}
-                  onChange={(e) => setAssignInspectorId(e.target.value)}
-                  className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 font-bold text-xs"
-                  required
+                <strong>Work Order:</strong> {selectedQC.workOrder?.woNumber ?? '—'}
+              </div>
+              <div>
+                <strong>Inspector:</strong> {selectedQC.inspector?.name ?? '—'}
+              </div>
+              <div>
+                <strong>Date:</strong> {fmt(selectedQC.createdAt)}
+              </div>
+              <div>
+                <strong>Checked Qty:</strong> {selectedQC.checkedQty}
+              </div>
+              <div>
+                <strong>Batch No:</strong> {selectedQC.workOrder?.batchNumber ?? '—'}
+              </div>
+              <div className="col-span-2">
+                <strong>Result:</strong>{' '}
+                <span
+                  className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${RESULT_BADGE(
+                    selectedQC.result
+                  )}`}
                 >
-                  <option value="">-- Choose Inspector --</option>
-                  {inspectors.map((insp) => (
-                    <option key={insp.id} value={insp.id}>
-                      {insp.name} ({insp.email})
+                  {RESULT_LABEL[selectedQC.result] ?? selectedQC.result}
+                </span>
+              </div>
+              {selectedQC.severity && (
+                <div>
+                  <strong>Severity:</strong> {selectedQC.severity}
+                </div>
+              )}
+              {selectedQC.failureReason && (
+                <div className="col-span-2">
+                  <strong>Failure Reason:</strong> {selectedQC.failureReason}
+                </div>
+              )}
+            </div>
+
+            {selectedQC.checksPayload &&
+              Object.keys(selectedQC.checksPayload).length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase">
+                    Inspection Checklist
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {Object.entries(selectedQC.checksPayload).map(([key, passed]) => (
+                      <div
+                        key={key}
+                        className="flex justify-between p-2 border border-slate-100 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900"
+                      >
+                        <span className="capitalize text-slate-700 dark:text-gray-300">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <span
+                          className={
+                            passed
+                              ? 'text-emerald-600 font-bold'
+                              : 'text-rose-600 font-bold'
+                          }
+                        >
+                          {passed ? '✓' : '✗'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {selectedQC.remarks && (
+              <div className="text-xs border-t border-slate-100 dark:border-gray-700 pt-3">
+                <strong className="text-slate-800 dark:text-gray-200">Remarks:</strong>
+                <p className="text-slate-600 dark:text-gray-400 mt-1 italic">
+                  {selectedQC.remarks}
+                </p>
+              </div>
+            )}
+
+            <div className="pt-3 flex justify-end">
+              <button
+                onClick={() => setSelectedQC(null)}
+                className="bg-slate-800 dark:bg-gray-700 hover:bg-slate-900 dark:hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-xs cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QC Form Modal */}
+      {isFormOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex justify-center items-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-xl max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="p-5 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center bg-slate-900 text-white rounded-t-xl sticky top-0 z-10">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <ShieldCheck size={18} /> Quality Inspection Checklist Log
+              </h3>
+              <button
+                onClick={() => {
+                  setIsFormOpen(false);
+                  setSelectedWO(null);
+                }}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleFormSubmit}
+              className="p-6 space-y-5 flex-1 text-left text-xs"
+            >
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                  Select Work Order *
+                </label>
+                <select
+                  required
+                  className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                  value={selectedWO?.id ?? ''}
+                  onChange={(e) => {
+                    const wo = pendingWOs.find((w) => w.id === e.target.value);
+                    if (wo) openForm(wo);
+                  }}
+                >
+                  <option value="" className="dark:bg-gray-800">-- Choose Pending QC Batch --</option>
+                  {pendingWOs.map((w) => (
+                    <option key={w.id} value={w.id} className="dark:bg-gray-800">
+                      {w.woNumber} — {w.product?.name ?? 'Unknown'}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Priority</label>
-                <select
-                  value={assignPriority}
-                  onChange={(e) => setAssignPriority(e.target.value)}
-                  className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 font-bold text-xs"
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="URGENT">Urgent</option>
-                </select>
+              {selectedWO && (
+                <div className="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase">
+                    Work Order Summary
+                  </span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 text-[9px] uppercase font-semibold">
+                        WO Number
+                      </span>
+                      <span className="font-bold text-slate-800 dark:text-white font-mono">
+                        {selectedWO.woNumber}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 text-[9px] uppercase font-semibold">
+                        Product
+                      </span>
+                      <span className="font-bold text-slate-800 dark:text-white">
+                        {selectedWO.product?.name ?? '—'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 text-[9px] uppercase font-semibold">
+                        Batch Number
+                      </span>
+                      <span className="font-bold text-slate-800 dark:text-white font-mono">
+                        {selectedWO.batchNumber ?? '—'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 text-[9px] uppercase font-semibold">
+                        Required Qty
+                      </span>
+                      <span className="font-bold text-slate-800 dark:text-white">
+                        {selectedWO.requiredQty} units
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Batch Number
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm font-mono bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    value={formBatchNo}
+                    onChange={(e) => setFormBatchNo(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Inspection Type *
+                  </label>
+                  <select
+                    required
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    value={formInspectionType}
+                    onChange={(e) => setFormInspectionType(e.target.value)}
+                  >
+                    <option className="dark:bg-gray-800">100% Inspection</option>
+                    <option className="dark:bg-gray-800">Sampling Inspection</option>
+                    <option className="dark:bg-gray-800">Random Inspection</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Packed Qty
+                  </label>
+                  <input
+                    type="number"
+                    readOnly
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-slate-50 dark:bg-gray-900 text-slate-500 dark:text-gray-400 font-mono"
+                    value={formPackedQty}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Checked Qty *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm font-mono bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    value={formCheckedQty}
+                    onChange={(e) => setFormCheckedQty(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Sampling %
+                  </label>
+                  <div
+                    className={`w-full p-2 border rounded-lg text-sm font-bold text-center ${
+                      formPackedQty > 0
+                        ? (() => {
+                            const p = Math.min(
+                              100,
+                              Math.round((formCheckedQty / formPackedQty) * 100)
+                            );
+                            return p >= 50
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
+                              : p >= 20
+                              ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800'
+                              : 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800';
+                          })()
+                        : 'bg-slate-50 border-slate-200 text-slate-400 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500'
+                    }`}
+                  >
+                    {formPackedQty > 0
+                      ? `${Math.min(
+                          100,
+                          Math.round((formCheckedQty / formPackedQty) * 100)
+                        )}%`
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-slate-100 dark:border-gray-700 rounded-lg bg-slate-50 dark:bg-gray-900 overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800">
+                  <span className="font-bold text-[10px] text-slate-500 dark:text-gray-400 uppercase">
+                    Verification Checklist
+                  </span>
+                </div>
+                {CHECKLIST_SECTIONS.map(({ section, color, items }) => (
+                  <div
+                    key={section}
+                    className="px-3 pt-2.5 pb-3 space-y-2 border-b border-slate-100 dark:border-gray-800 last:border-b-0"
+                  >
+                    <span className={`block text-[10px] font-bold uppercase ${color}`}>
+                      {section}
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {items.map(({ key, label }) => (
+                        <label
+                          key={key}
+                          className={`flex items-center gap-2 bg-white dark:bg-gray-800 border p-2 rounded-lg cursor-pointer transition-colors ${
+                            checks[key]
+                              ? 'border-slate-200 dark:border-gray-700'
+                              : 'border-rose-200 dark:border-rose-800'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded accent-[#00891D] shrink-0"
+                            checked={checks[key]}
+                            onChange={() => handleCheckboxChange(key)}
+                          />
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-gray-300 leading-tight">
+                            {label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    QC Decision *
+                  </label>
+                  <select
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-semibold focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                    value={formResult}
+                    onChange={(e) => {
+                      setFormResult(e.target.value);
+                      if (
+                        !['REWORK', 'REJECT', 'DISCARD'].includes(e.target.value)
+                      )
+                        setFormFailureReason('');
+                    }}
+                  >
+                    <option value="PASS" className="dark:bg-gray-800">Pass (Post to FG)</option>
+                    <option value="PARTIAL_PASS" className="dark:bg-gray-800">Partial Pass</option>
+                    <option value="REWORK" className="dark:bg-gray-800">Rework Required</option>
+                    <option value="REJECT" className="dark:bg-gray-800">Fail Batch</option>
+                    <option value="DISCARD" className="dark:bg-gray-800">Discard Batch</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Photo Evidence
+                  </label>
+                  <label className="w-full h-[42px] px-3 rounded-lg border border-dashed border-slate-300 dark:border-gray-600 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer bg-slate-50 dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-700 text-slate-500 dark:text-gray-400">
+                    <ImageIcon size={14} /> Upload photos
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {formPhotos.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formPhotos.map((p) => (
+                    <div
+                      key={p.id}
+                      className="relative group w-14 h-14 rounded-lg border border-slate-200 dark:border-gray-700 overflow-hidden bg-slate-100 dark:bg-gray-900"
+                    >
+                      <img
+                        src={p.url}
+                        alt="QC Evidence"
+                        className="object-cover w-full h-full cursor-pointer"
+                        onClick={() => setPreviewPhoto(p.url)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormPhotos((prev) => prev.filter((x) => x.id !== p.id))
+                        }
+                        className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 text-rose-500 shadow-xs opacity-0 group-hover:opacity-100"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {['REWORK', 'REJECT', 'DISCARD'].includes(formResult) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                      Severity *
+                    </label>
+                    <select
+                      className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-semibold focus:outline-none"
+                      value={formSeverity}
+                      onChange={(e) => setFormSeverity(e.target.value)}
+                    >
+                      <option value="MINOR" className="dark:bg-gray-800">Minor</option>
+                      <option value="MAJOR" className="dark:bg-gray-800">Major</option>
+                      <option value="CRITICAL" className="dark:bg-gray-800">Critical</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                      Failure Reason *
+                    </label>
+                    <select
+                      required
+                      className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-semibold focus:outline-none"
+                      value={formFailureReason}
+                      onChange={(e) => setFormFailureReason(e.target.value)}
+                    >
+                      <option value="" className="dark:bg-gray-800">-- Select Reason --</option>
+                      <option className="dark:bg-gray-800">Seal Defect</option>
+                      <option className="dark:bg-gray-800">Barcode Issue</option>
+                      <option className="dark:bg-gray-800">Label Error</option>
+                      <option className="dark:bg-gray-800">Weight Mismatch</option>
+                      <option className="dark:bg-gray-800">Product Contamination</option>
+                      <option className="dark:bg-gray-800">Damaged Packaging</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                  Inspection Remarks / Observations
+                </label>
+                <textarea
+                  rows={2}
+                  className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                  placeholder="Additional notes for rework or FG team..."
+                  value={formRemarks}
+                  onChange={(e) => setFormRemarks(e.target.value)}
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100 dark:border-gray-700">
                 <button
                   type="button"
-                  onClick={() => setSelectedAssignWO(null)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 font-bold text-gray-600 dark:text-gray-300 cursor-pointer"
+                  onClick={() => {
+                    setIsFormOpen(false);
+                    setSelectedWO(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 font-bold hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isAssigning}
-                  className="px-5 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold cursor-pointer disabled:opacity-50"
+                  disabled={submitting}
+                  className="px-5 py-2 rounded-lg bg-[#00891D] hover:bg-[#006b17] text-white font-bold cursor-pointer disabled:opacity-50"
                 >
-                  {isAssigning ? 'Assigning...' : 'Confirm Assignment'}
+                  {submitting ? 'Submitting...' : 'Submit Inspection Log'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW INSPECTION DETAILS MODAL */}
-      {selectedRow && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-slate-50 dark:bg-gray-900 sticky top-0 z-10">
-              <div>
-                <h3 className="font-black text-gray-900 dark:text-white text-sm">
-                  QC Inspection Record — {selectedRow.woNumber}
-                </h3>
-                <p className="text-[10px] text-gray-400 font-mono">Work Order ID: {selectedRow.woId}</p>
-              </div>
-              <button onClick={() => setSelectedRow(null)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5 text-xs">
-              {/* Summary Cards Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Product Name</span>
-                  <p className="font-bold text-gray-900 dark:text-white">{selectedRow.productName}</p>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Batch Number</span>
-                  <p className="font-mono font-bold text-gray-900 dark:text-white">{selectedRow.batchNumber}</p>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Packed Quantity</span>
-                  <p className="font-mono font-bold text-green-600">{selectedRow.packedQty} units</p>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">QC Inspector</span>
-                  <p className="font-bold text-gray-900 dark:text-white">{selectedRow.assignedChecker}</p>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Workflow Status</span>
-                  <div className="mt-0.5">{renderStatusBadge(selectedRow)}</div>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Priority</span>
-                  <p className="font-bold text-gray-900 dark:text-white">{selectedRow.priority}</p>
-                </div>
-              </div>
-
-              {/* QC Hold Reason Alert */}
-              {selectedRow.status === 'QC_HOLD' && (
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800 rounded-xl space-y-1">
-                  <h4 className="font-bold text-yellow-800 dark:text-yellow-400 flex items-center gap-1.5">
-                    <PauseCircle size={16} /> QC Hold Notice
-                  </h4>
-                  <p className="text-xs text-yellow-900 dark:text-yellow-300 font-medium">
-                    Reason: {selectedRow.holdReason || 'Inspection held pending further review or lab testing.'}
-                  </p>
-                  <p className="text-[10px] text-yellow-700 dark:text-yellow-400 font-medium">
-                    Assigned Inspector: {selectedRow.assignedChecker}
-                  </p>
-                </div>
-              )}
-
-              {/* Workflow Result Banner */}
-              <div className="p-4 rounded-xl border flex items-center justify-between bg-slate-50 dark:bg-gray-900">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Inspection Result</span>
-                  <h4 className="text-base font-black text-gray-900 dark:text-white">
-                    {selectedRow.result === 'PASS'
-                      ? 'QC PASSED — Eligible for Finished Goods'
-                      : selectedRow.result === 'FAIL'
-                      ? 'QC FAILED — Eligible for Repacking'
-                      : selectedRow.result === 'HOLD'
-                      ? 'QC HOLD — Under Review'
-                      : 'IN PROGRESS — Inspection Active'}
-                  </h4>
-                </div>
-              </div>
-
-              {/* Checklist Breakdown */}
-              {selectedRow.checksState && (
-                <div className="space-y-3">
-                  <h4 className="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
-                    Checklist Checkpoints Breakdown
-                  </h4>
-                  <div className="space-y-2 border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-slate-50 dark:bg-gray-900">
-                    {Object.entries(selectedRow.checksState).map(([chkId, item]: [string, any]) => (
-                      <div key={chkId} className="flex justify-between items-center p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-                        <div>
-                          <span className="font-bold text-gray-800 dark:text-gray-200 capitalize">{chkId.replace('-', ' ')}</span>
-                          {item.remarks && <p className="text-[10px] text-red-500 font-medium">{item.remarks}</p>}
-                        </div>
-                        <div>
-                          {item.status === 'PASS' ? (
-                            <span className="text-green-600 font-bold flex items-center gap-1 text-[11px]">
-                              <Check size={14} /> PASS
-                            </span>
-                          ) : item.status === 'FAIL' ? (
-                            <span className="text-red-600 font-bold flex items-center gap-1 text-[11px]">
-                              <XCircle size={14} /> FAIL
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 font-bold text-[11px]">NOT EVALUATED</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Overall Remarks */}
-              {selectedRow.overallRemarks && (
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Overall Inspector Remarks</span>
-                  <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-medium">
-                    {selectedRow.overallRemarks}
-                  </div>
-                </div>
-              )}
-
-              {/* Evidence Photos */}
-              {selectedRow.photoUrls && selectedRow.photoUrls.length > 0 && (
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Photo Evidence References</span>
-                  <div className="flex gap-2">
-                    {selectedRow.photoUrls.map((url, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setPreviewPhoto(url)}
-                        className="w-16 h-16 rounded-xl border border-gray-200 overflow-hidden cursor-pointer bg-gray-100"
-                      >
-                        <img src={url} alt="Evidence" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end pt-3 border-t border-gray-100 dark:border-gray-700">
-                <button
-                  onClick={() => setSelectedRow(null)}
-                  className="px-6 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-bold text-xs"
-                >
-                  Close Window
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
