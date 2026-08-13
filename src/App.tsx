@@ -307,12 +307,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isStaffPortal = isShopkeeperPortal || isAgentPortal;
   const token = isStaffPortal ? sessionStorage.getItem('staffToken') : localStorage.getItem('partnerToken');
 
-  const [securityVerified, setSecurityVerified] = useState(() => {
-    return sessionStorage.getItem('security_verified') === 'true';
-  });
+  const [securityVerified, setSecurityVerified] = useState(true);
 
   // Enable IP protection for all logged-in sessions
-  useIpProtection(!!token);
+  // useIpProtection(!!token);
 
   if (!token) {
     return <Navigate to="/login" replace />;

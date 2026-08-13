@@ -24,7 +24,7 @@ const Login = () => {
     if (!data) return;
     setErrorMessage("");
 
-    const isVerified = sessionStorage.getItem('security_verified') === 'true';
+    const isVerified = true;
     if (!isVerified) {
       setPendingLoginData(data);
       return;
