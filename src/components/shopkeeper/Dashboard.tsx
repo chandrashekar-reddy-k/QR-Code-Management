@@ -133,9 +133,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
 
-
-
-  const fetchShopkeepers = async () => {
+  const fetchShopkeepers = useCallback(async () => {
     if (!isAdmin) return;
     try {
       const res = await api.get('/shopkeepers');
@@ -143,7 +141,8 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     } catch (err) {
       console.error("Failed to load active shopkeepers", err);
     }
-  };
+  }, [isAdmin]);
+
   const [stats, setStats] = useState<any>({
     activeOrders: 0,
     picking: 0,
@@ -163,7 +162,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const { orders: sharedOrders } = useSharedOrders();
 
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const seenIds = new Set();
     const distinctOrders = [];
     for (const o of sharedOrders) {
@@ -263,11 +262,11 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const sortedOrders = [...allOrders].sort((a, b) => getOrderTime(b) - getOrderTime(a));
     setRecentOrders(sortedOrders.slice(0, 5));
-  };
+  }, [sharedOrders, isAdmin]);
 
   useEffect(() => {
     calculateStats();
-  }, [sharedOrders]);
+  }, [sharedOrders, calculateStats]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -275,7 +274,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       const interval = setInterval(fetchShopkeepers, 30000);
       return () => clearInterval(interval);
     }
-  }, [isAdmin]);
+  }, [isAdmin, fetchShopkeepers]);
 
   useEffect(() => {
     const localSlaTimer = setInterval(() => {
