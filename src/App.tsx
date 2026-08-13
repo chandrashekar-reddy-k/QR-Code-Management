@@ -28,7 +28,7 @@ import { useIpProtection } from "./hooks/useIpProtection";
 const isRouteAllowed = (pathname: string, permissions: string[]) => {
   if (!permissions || !Array.isArray(permissions)) return false;
   // Super admin / wildcard bypass
-  if (permissions.includes('*') || permissions.includes('ALL') || permissions.includes('all')) return true;
+  if (permissions.includes('*') || permissions.includes('ALL') || permissions.includes('all') || permissions.includes('partner_*')) return true;
 
   // VSMS routes are protected by backend auth middleware + role checks.
   // Allow access to any /vsms/* path without enforcing frontend sidebar permission slugs.

@@ -95,6 +95,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     const cleanName = moduleName.startsWith("Partner: ") ? moduleName.slice(9) : moduleName;
     const slugCode = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
     const expectedSlug = `partner_${slugCode}_view`;
+    if (permissions.includes('partner_*') && expectedSlug.startsWith('partner_')) return true;
     if (permissions.includes(expectedSlug)) return true;
 
     // Route Management fallback to VSMS Logistics
@@ -149,6 +150,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const hasSubPermission = useCallback((parent: string, label: string) => {
     if (!permissions || !Array.isArray(permissions)) return false;
     if (permissions.includes('*') || permissions.includes('ALL') || permissions.includes('all')) return true;
+    if (permissions.includes('partner_*')) return true;
 
     const toSlugPart = (str: string) => str.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
