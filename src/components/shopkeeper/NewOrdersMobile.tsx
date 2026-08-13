@@ -44,13 +44,15 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
     try {
       const u = JSON.parse(storedU);
       userRole = u.role;
-    } catch (e) { }
+    } catch (e) {
+      console.warn("Failed to parse stored user in NewOrdersMobile:", e);
+    }
   }
   const isStaff = isShopkeeper || (userRole && !["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole.toUpperCase()));
 
   const { orders: sharedOrders, refreshOrders, loading } = useSharedOrders();
   const orders = sharedOrders
-    .filter((o: any) => o.status?.toLowerCase() === 'new' || o.status?.toLowerCase() === 'assigned' || o.status?.toLowerCase() === 'confirmed' || o.status?.toLowerCase() === 'placed' || o.status?.toLowerCase() === 'pending')
+    .filter((o: any) => o.status?.toLowerCase() === 'new' || o.status?.toLowerCase() === 'assigned' || o.status?.toLowerCase() === 'confirmed' || o.status?.toLowerCase() === 'placed')
     .sort((a: any, b: any) => {
       const timeA = new Date(a.created_at || a.createdAt || a.orderDate || 0).getTime();
       const timeB = new Date(b.created_at || b.createdAt || b.orderDate || 0).getTime();
@@ -80,7 +82,9 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
           localStorage.setItem('shopkeeperRejectedIds', JSON.stringify(saved));
           window.dispatchEvent(new Event('shopkeeperRejectedIdsUpdated'));
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn("Failed to update shopkeeperRejectedIds in localStorage:", e);
+      }
       
       await refreshOrders();
     } catch (err) {

@@ -231,7 +231,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
 
     const newOrders = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending' || s === 'confirmed';
+      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'confirmed';
     }).length;
     const picking = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
@@ -286,7 +286,9 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
         if (handedOverIds.map(String).includes(String(o.id || o.order_number))) {
           isLocalDispatched = true;
         }
-      } catch {}
+      } catch (err) {
+        console.warn("Failed to parse handedOverIds in DashboardMobile:", err);
+      }
 
       if (s === 'dispatched' || s === 'delivered' || s === 'completed' || s === 'cancelled' || s === 'rejected' || isLocalDispatched) {
         return false;
@@ -402,7 +404,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
         total_amount: o.total_amount
       })));
     }
-  }, [orders]);
+  }, [allDispatchedOrders]);
 
   const todayRevenue = allDispatchedOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
   const formattedRevenue = `₹${formatIndianCurrencyKPI(todayRevenue)}`;
