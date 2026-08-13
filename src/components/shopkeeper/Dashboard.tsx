@@ -188,7 +188,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const newOrders = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending' || s === 'confirmed';
+      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'confirmed';
     }).length;
 
     const activeOrdersCount = allOrders.filter((o: any) => {
@@ -333,7 +333,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
         total_amount: o.total_amount
       })));
     }
-  }, [orders]);
+  }, [allDispatchedOrders]);
 
   const todayRevenue = allDispatchedOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
   const formattedRevenue = `₹${formatIndianCurrencyKPI(todayRevenue)}`;
