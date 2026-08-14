@@ -78,7 +78,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
               avatar: data.data.user?.avatar || null,
               store: null,
               supplier: null,
-              isCreatedPassword: false
+              isCreatedPassword: data.data.user?.mustChangePassword === true
             }
           }
         } as LoginResponse;
