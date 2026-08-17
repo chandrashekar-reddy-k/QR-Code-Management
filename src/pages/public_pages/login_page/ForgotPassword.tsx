@@ -223,48 +223,27 @@ const ForgotPassword = () => {
         }
       `}</style>
 
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 lg:h-screen bg-[#F7F7FA]">
-        {/* Left half: branding + illustration (same as Login) */}
-        <div className="relative min-h-[40vh] lg:h-full flex flex-col p-6 lg:p-10 overflow-hidden bg-[#F7F7FA]">
-          <div className="relative z-10 flex flex-col h-full flex-1 min-h-0">
-            <div className="flex-shrink-0">
-              <img
-                src="/villagkart_logo_name_new.svg"
-                alt="VillagKart"
-                className="h-14 lg:h-20 w-auto max-w-[280px] lg:max-w-[320px] object-contain"
-              />
-            </div>
-            <div className="mt-6 lg:mt-8 flex-shrink-0">
-               <p className="text-xl lg:text-2xl font-bold text-[#00891D]">
-             Partner panel
-              </p>
-              <p className="text-xl lg:text-2xl font-bold text-gray-900">Forgot Password!</p>
-              <p className="text-xl lg:text-2xl font-bold text-[#00891D]">
-               Enter your email to receive a password reset link
-              </p>
-            </div>
-            <div className="flex-1 min-h-0 mt-6 lg:mt-8 flex items-end justify-center overflow-hidden">
-              <img
-                src="/login_page_image.svg"
-                alt=""
-                className="w-full max-w-full h-full min-h-0 object-contain object-bottom"
-              />
-            </div>
+      <div className="min-h-screen w-full bg-[#FFFFFF] flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+        <div className="w-full max-w-[420px] bg-white rounded-3xl p-6 sm:p-8 flex flex-col items-center">
+          {/* Logo Header */}
+          <div className="flex items-center justify-center mb-6">
+            <img
+              src="/villagkart_logo_name_new.svg"
+              alt="VillagKart"
+              className="h-10 sm:h-12 w-auto object-contain"
+            />
           </div>
-        </div>
 
-        {/* Right half: form content */}
-        <div className="w-full min-h-[60vh] lg:min-h-0 lg:h-full flex items-center justify-center p-6 lg:p-12 bg-[#F7F7FA] dark:bg-[#F7F7FA] forgot-form-light">
-          <div className="w-full max-w-md">
-            <div className="lg:hidden mb-8">
-              <img
-                src="/villagkart_logo_name_new.svg"
-                alt="VillagKart"
-                className="h-14 w-auto max-w-[260px] object-contain"
-              />
-            </div>
+          {/* Hero Illustration */}
+          <div className="w-full max-w-[320px] aspect-[336/250] rounded-2xl overflow-hidden mb-6 flex items-center justify-center bg-transparent">
+            <img
+              src="/forgot_password_hero.png"
+              alt="VillagKart Security & Password Reset"
+              className="w-full h-full object-contain"
+            />
+          </div>
 
-            <div>
+          <div className="w-full">
             {showNewPassword ? (
               <NewPassword
                 emailOrPhone={userEmail}
@@ -276,14 +255,18 @@ const ForgotPassword = () => {
               />
             ) : !showOTPVerification ? (
               <>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-8">
-                  Reset Your Password Here
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#D96B27] mb-2 tracking-tight text-center">
+                  Forgot Password
                 </h1>
+                <p className="text-xs font-bold text-gray-700 mb-6 text-center">
+                  Reset your Password here
+                </p>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1.5">
-                      Enter your Email Address here
+                    <label className="block text-xs font-bold text-gray-800 mb-1.5">
+                      Enter your Mobile Number / Email <span className="text-red-500">*</span>
                     </label>
                     <Controller
                       name="email"
@@ -291,34 +274,36 @@ const ForgotPassword = () => {
                       render={({ field }) => (
                         <input
                           {...field}
-                          type="email"
-                          placeholder="Email Address"
+                          type="text"
+                          placeholder="Enter your Email / Mobile"
                           maxLength={MAX_EMAIL_LENGTH}
                           autoComplete="email"
-                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00891D] focus:border-[#00891D] transition-colors ${
-                            errors.email ? "!border-red-400" : ""
-                          }`}
+                          className={`w-full px-4 py-3 bg-[#FAFAFA] border ${
+                            errors.email
+                              ? "border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                              : "border-gray-200 focus:border-[#00891D] focus:ring-1 focus:ring-[#00891D]"
+                          } rounded-xl text-gray-900 placeholder-gray-400 text-sm outline-none transition-all`}
                         />
                       )}
                     />
                     {errors.email && (
-                      <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+                      <p className="mt-1 text-xs text-red-600 font-medium">{errors.email.message}</p>
                     )}
                   </div>
 
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-[#00891D] text-white py-3.5 rounded-lg font-medium hover:bg-[#007018] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#00891D] hover:bg-[#007018] text-white py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-2"
                   >
-                    {isLoading ? "Sending link..." : "Send Reset Link"}
+                    {isLoading ? "Sending..." : "Send Reset Link"}
                   </button>
 
-                  <div className="flex justify-center">
+                  <div className="flex justify-center pt-2">
                     <button
                       type="button"
                       onClick={() => navigate("/login")}
-                      className="text-sm font-medium text-gray-600 hover:text-[#00891D] transition-colors"
+                      className="text-xs font-bold text-gray-600 hover:text-[#00891D] transition-colors"
                     >
                       Back to Login
                     </button>
@@ -336,27 +321,23 @@ const ForgotPassword = () => {
                     }}
                     className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
                   >
-                    <ArrowLeft size={18} />
-                    <span className="text-sm font-medium">Back</span>
+                    <ArrowLeft size={16} />
+                    <span className="text-xs font-bold">Back</span>
                   </button>
                 </div>
 
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                  Reset Your Password here
+                <h1 className="text-2xl font-extrabold text-[#D96B27] mb-1 text-center">
+                  Verification Code
                 </h1>
-                <p className="text-gray-500 text-sm mb-4">
-                  Email Authentication for password reset
+                <p className="text-gray-500 text-xs mb-1 text-center">
+                  We sent a 6-digit code to
                 </p>
-                <p className="text-gray-500 text-sm mb-1">
-                  We sent a reset link to{" "}
-                  <span className="font-medium text-gray-900">{userEmail}</span>
-                </p>
-                <p className="text-gray-500 text-sm mb-8">
-                  Enter 6 digit code that mentioned in the email
+                <p className="text-gray-900 font-bold text-xs mb-6 text-center">
+                  {userEmail}
                 </p>
 
                 <div className="space-y-6">
-                  <div className="flex justify-center gap-3">
+                  <div className="flex justify-center gap-2 sm:gap-3">
                     {otp.map((digit, index) => (
                       <input
                         key={index}
@@ -368,7 +349,7 @@ const ForgotPassword = () => {
                         onChange={(e) => handleOtpChange(index, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(index, e)}
                         onPaste={index === 0 ? handleOtpPaste : undefined}
-                        className="w-14 h-14 text-center text-xl font-semibold border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00891D] focus:border-[#00891D] bg-white text-gray-900 border-gray-200 transition-colors"
+                        className="w-12 h-12 sm:w-14 sm:h-14 text-center text-lg sm:text-xl font-bold border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00891D] focus:border-[#00891D] bg-[#FAFAFA] text-gray-900 border-gray-200 transition-colors"
                       />
                     ))}
                   </div>
@@ -377,26 +358,26 @@ const ForgotPassword = () => {
                     type="button"
                     onClick={handleResetPassword}
                     disabled={isLoading || otp.join("").length !== 6}
-                    className="w-full bg-[#00891D] hover:bg-[#007018] text-white py-3.5 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#00891D] hover:bg-[#007018] text-white py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {isLoading ? "Verifying..." : "Reset Password"}
+                    {isLoading ? "Verifying..." : "Verify & Reset"}
                   </button>
 
                   <div className="text-center">
-                    <p className="text-sm text-gray-500">
-                      Haven&apos;t got the email yet?{" "}
+                    <p className="text-xs text-gray-500">
+                      Haven&apos;t got the code yet?{" "}
                       {canResend ? (
                         <button
                           type="button"
                           onClick={handleResendOtp}
                           disabled={isLoading || resendOtpMutation.isPending}
-                          className="text-[#00891D] hover:underline font-medium disabled:opacity-50"
+                          className="text-[#00891D] hover:underline font-bold disabled:opacity-50"
                         >
-                          {resendOtpMutation.isPending ? "Sending..." : "Resend OTP"}
+                          {resendOtpMutation.isPending ? "Sending..." : "Resend Code"}
                         </button>
                       ) : (
-                        <span className="text-gray-600 font-medium">
-                          Resend OTP in {resendTimer}s
+                        <span className="text-gray-600 font-bold">
+                          Resend in {resendTimer}s
                         </span>
                       )}
                     </p>
@@ -404,7 +385,6 @@ const ForgotPassword = () => {
                 </div>
               </>
             )}
-            </div>
           </div>
         </div>
       </div>

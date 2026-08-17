@@ -156,152 +156,132 @@ const Login = () => {
         }
       `}</style>
 
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 lg:h-screen bg-[#F7F7FA]">
-        {/* Left half: branding + illustration */}
-        <div className="hidden lg:flex relative h-full flex-col p-10 overflow-hidden bg-[#F7F7FA]">
-          <div className="relative z-10 flex flex-col h-full flex-1 min-h-0">
-            {/* Logo */}
-            <div className="flex-shrink-0">
-              <img
-                src="/villagkart_logo_name_new.svg"
-                alt="VillagKart"
-                className="h-14 lg:h-20 w-auto max-w-[280px] lg:max-w-[320px] object-contain"
-              />
-            </div>
-
-            {/* Tagline */}
-            <div className="mt-6 lg:mt-8 flex-shrink-0">
-              <p className="text-xl lg:text-2xl font-bold text-gray-900">
-                Welcome back!
-              </p>
-              <p className="text-xl lg:text-2xl font-bold text-[#00891D]">
-                Please login to your account
-              </p>
-            </div>
-
-            {/* Illustration - fills the left half properly */}
-            <div className="flex-1 min-h-0 mt-6 lg:mt-8 flex items-end justify-center overflow-hidden">
-              <img
-                src="/login_page_image.svg"
-                alt=""
-                className="w-full max-w-full h-full min-h-0 object-contain object-bottom"
-              />
-            </div>
+      <div className="min-h-screen w-full bg-[#FFFFFF] flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+        <div className="w-full max-w-[420px] bg-white rounded-3xl p-6 sm:p-8 flex flex-col items-center">
+          {/* Logo Header */}
+          <div className="flex items-center justify-center mb-6">
+            <img
+              src="/villagkart_logo_name_new.svg"
+              alt="VillagKart"
+              className="h-10 sm:h-12 w-auto object-contain"
+            />
           </div>
-        </div>
 
-        {/* Right half: login form (exactly 50% on desktop) - always light fields */}
-        <div className="w-full min-h-[60vh] lg:min-h-0 lg:h-full flex items-center justify-center p-6 lg:p-12 bg-[#F7F7FA] dark:bg-[#F7F7FA] login-form-light">
-          <div className="w-full max-w-md">
-            {/* Mobile logo */}
-            <div className="lg:hidden mb-8">
-              <img
-                src="/villagkart_logo_name_new.svg"
-                alt="VillagKart"
-                className="h-14 w-auto max-w-[260px] object-contain"
+          {/* Hero Illustration */}
+          <div className="w-full max-w-[340px] aspect-[336/270] rounded-2xl overflow-hidden mb-6 flex items-center justify-center bg-transparent">
+            <img
+              src="/login_hero.png"
+              alt="VillagKart Delivery Operations"
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          {/* Hey Welcome Title */}
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#D96B27] mb-6 tracking-tight text-center">
+            Hey Welcome!
+          </h1>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
+            {/* Identifier Field */}
+            <div>
+              <label className="block text-sm font-bold text-gray-800 mb-1.5">
+                Enter your Mobile Number <span className="text-red-500">*</span>
+              </label>
+              <Controller
+                name="identifier"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder="Enter your Ema Mobile Number"
+                    maxLength={MAX_EMAIL_LENGTH}
+                    className={`w-full px-4 py-3 bg-[#FAFAFA] border ${
+                      errors.identifier || errorMessage
+                        ? "border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                        : "border-gray-200 focus:border-[#00891D] focus:ring-1 focus:ring-[#00891D]"
+                    } rounded-xl text-gray-900 placeholder-gray-400 text-sm outline-none transition-all`}
+                  />
+                )}
               />
+              {errors.identifier && (
+                <p className="mt-1 text-xs text-red-600 font-medium">
+                  {errors.identifier.message}
+                </p>
+              )}
             </div>
 
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-900 mb-6">
-              Hey Welcome!
-            </h1>
+            {/* Password Field */}
+            <div>
+              <label className="block text-sm font-bold text-gray-800 mb-1.5">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <Controller
+                name="password"
+                control={control}
+                render={({ field }) => (
+                  <div className="relative">
+                    <input
+                      {...field}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your Password"
+                      maxLength={MAX_PASSWORD_LENGTH}
+                      autoComplete="current-password"
+                      className={`w-full px-4 py-3 pr-11 bg-[#FAFAFA] border ${
+                        errors.password || errorMessage
+                          ? "border-red-400 bg-red-50/20 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                          : "border-gray-200 focus:border-[#00891D] focus:ring-1 focus:ring-[#00891D]"
+                      } rounded-xl text-gray-900 placeholder-gray-400 text-sm outline-none transition-all`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
+                )}
+              />
+              {errors.password && (
+                <p className="mt-1 text-xs text-red-600 font-medium">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
 
+            {/* Forgot Password Link */}
+            <div className="flex justify-end pt-0.5">
+              <button
+                type="button"
+                onClick={() => navigate("/forgot-password")}
+                className="text-xs font-semibold text-gray-600 hover:text-[#00891D] transition-colors"
+              >
+                Forgot Password
+              </button>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full bg-[#00891D] hover:bg-[#007018] text-white py-3.5 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-2"
+            >
+              {isPending ? "Logging in..." : "Login"}
+            </button>
+
+            {/* Error Message Box underneath Login button matching design */}
             {errorMessage && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm font-medium">
+              <div className="mt-3 p-3.5 bg-red-50/70 border border-red-200 rounded-xl text-red-600 text-sm font-bold text-left animate-in fade-in duration-200">
                 {errorMessage}
               </div>
             )}
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1.5">
-                  Enter your Email or Mobile Number here
-                </label>
-                <Controller
-                  name="identifier"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="text"
-                      placeholder="Email or Mobile Number"
-                      maxLength={MAX_EMAIL_LENGTH}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00891D] focus:border-[#00891D] transition-colors ${
-                        errors.identifier
-                          ? "!border-red-400 !focus:ring-red-500"
-                          : ""
-                      }`}
-                    />
-                  )}
-                />
-                {errors.identifier && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors.identifier.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1.5">
-                  Password
-                </label>
-                <Controller
-                  name="password"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="relative">
-                      <input
-                        {...field}
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Password"
-                        maxLength={MAX_PASSWORD_LENGTH}
-                        autoComplete="current-password"
-                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00891D] focus:border-[#00891D] transition-colors ${
-                          errors.password
-                            ? "!border-red-400 !focus:ring-red-500"
-                            : ""
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-600 transition-colors"
-                      >
-                        {showPassword ? (
-                          <EyeOff size={20} />
-                        ) : (
-                          <Eye size={20} />
-                        )}
-                      </button>
-                    </div>
-                  )}
-                />
-                {errors.password && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => navigate("/forgot-password")}
-                  className="text-sm font-medium text-gray-600 hover:text-[#00891D] transition-colors"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full bg-[#00891D] text-white py-3.5 rounded-lg font-medium transition-all hover:bg-[#007018] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isPending ? "Signing in..." : "Login"}
-              </button>
-            </form>
-          </div>
+          </form>
         </div>
       </div>
     </>

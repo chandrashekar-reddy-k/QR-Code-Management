@@ -347,10 +347,10 @@ export default function ShopkeeperERP() {
       }
     };
     window.addEventListener('beforeunload', handleUnload);
-    window.addEventListener('unload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
     return () => {
       window.removeEventListener('beforeunload', handleUnload);
-      window.removeEventListener('unload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
     };
   }, []);
 

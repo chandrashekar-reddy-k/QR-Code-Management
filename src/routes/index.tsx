@@ -532,6 +532,7 @@ const PartnerScheduledOrders = lazy(() => import("../pages/admin_pages/vsms/Part
 
 // VSMS Agent Portal Pages
 const AgentPortalLayout = lazy(() => import("../pages/admin_pages/vsms/agent/AgentPortalLayout"));
+const AgentHome = lazy(() => import("../pages/admin_pages/vsms/agent/AgentHome"));
 const TodayPlan = lazy(() => import("../pages/admin_pages/vsms/agent/TodayPlan"));
 const ScheduledDeliveries = lazy(() => import("../pages/admin_pages/vsms/agent/ScheduledDeliveries"));
 const SalesEntry = lazy(() => import("../pages/admin_pages/vsms/agent/SalesEntry"));
@@ -1760,7 +1761,12 @@ export const protectedRoutes: RouteConfig[] = [
   // VSMS Agent Portal Routes
   {
     path: "/vsms/agent-portal",
-    component: AgentPortalLayout,
+    component: () => <AgentPortalLayout><AgentHome /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/home",
+    component: () => <AgentPortalLayout><AgentHome /></AgentPortalLayout>,
     requiresAuth: true,
   },
   {

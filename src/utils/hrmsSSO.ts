@@ -7,7 +7,7 @@
  */
 
 const IDENTITY_BASE = () =>
-  (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+  (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
 
 const PARTNER_API_BASE = () =>
   (import.meta.env.VITE_URL || 'http://localhost:3004/api/v1').replace(/\/+$/, '');

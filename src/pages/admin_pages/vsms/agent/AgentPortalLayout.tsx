@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { 
-  MapPin, Package, Wallet, Clock, BarChart2, User, Activity, 
+  Home, MapPin, Package, Wallet, Clock, BarChart2, User, Activity, 
   FileText, Truck, AlertTriangle, Receipt, LogOut, Menu, X, Store,
-  ArrowDownToLine, ArrowUpFromLine
+  ArrowDownToLine, ArrowUpFromLine, ShoppingBag
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
@@ -14,6 +14,7 @@ const menuSections = [
   {
     title: 'Core Operations',
     items: [
+      { path: '/vsms/agent-portal/home', label: 'Home Dashboard', icon: Home },
       { path: '/vsms/agent-portal/today-plan', label: "Today's Plan", icon: MapPin },
       { path: '/vsms/agent-portal/scheduled-deliveries', label: "Scheduled Deliveries", icon: Package },
       { path: '/vsms/agent-portal/sales', label: "Sales POS", icon: BarChart2 },
@@ -79,10 +80,10 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       }
     };
     window.addEventListener('beforeunload', handleUnload);
-    window.addEventListener('unload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
     return () => {
       window.removeEventListener('beforeunload', handleUnload);
-      window.removeEventListener('unload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
     };
   }, []);
 
@@ -104,13 +105,14 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   const hasAgentPermission = (path: string) => {
     if (!user) return false;
 
-    // Agent roles always get full access — they are not subject to fine-grained permission gates
-    const agentRoles = ['SALES_AGENT', 'VEHICLE_AGENT', 'DELIVERY_AGENT'];
-    if (agentRoles.includes(user.role)) return true;
+    // Agent roles always get full access to operations
+    const agentRoles = ['VSMS_AGENT', 'SALES_AGENT', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'AGENT', 'FIELD_AGENT'];
+    const currentRole = (user.role || localStorage.getItem('role') || localStorage.getItem('partnerRole') || '').trim().toUpperCase();
+    if (agentRoles.includes(currentRole) || currentRole.endsWith('_AGENT') || currentRole === 'AGENT') return true;
 
-    // Check user.permissions from the store
-    let permissions = user.permissions || [];
-    if (!permissions || permissions.length === 0) {
+    // Check user.permissions or flatPermissions
+    let permissions = user.flatPermissions || user.permissions;
+    if (!permissions || (Array.isArray(permissions) && permissions.length === 0) || (typeof permissions === 'object' && !Array.isArray(permissions) && Object.keys(permissions).length === 0)) {
       try {
         const permsStr = localStorage.getItem('permissions');
         if (permsStr) permissions = JSON.parse(permsStr);
@@ -143,7 +145,17 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
 
     const slug = slugMap[path];
     if (!slug) return true;
-    return Array.isArray(permissions) && permissions.includes(slug);
+
+    if (Array.isArray(permissions)) {
+      if (permissions.includes(slug)) return true;
+      const hasAnyVsmsAgentPerm = permissions.some((p: string) => typeof p === 'string' && p.startsWith('vsms_agent_'));
+      if (hasAnyVsmsAgentPerm) {
+        return permissions.includes(slug);
+      }
+    }
+
+    // Default to true for any agent portal user
+    return true;
   };
 
   const renderSidebarContent = () => (
@@ -252,24 +264,18 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
 
       {/* Main Content Area (Header + Main Page Content) */}
       <div className="flex-1 min-w-0 flex flex-col md:ml-72 min-h-screen">
-        {/* Header Bar */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-30 flex-shrink-0">
-          <div className="px-4 py-3 flex items-center justify-between md:justify-end">
-            <button
-              onClick={() => setIsOpen(true)}
-              className="md:hidden p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
-            >
-              <Menu size={20} />
-            </button>
+        {/* Header Bar (Visible on Desktop/Tablet, Clean on Mobile) */}
+        <header className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-30 flex-shrink-0">
+          <div className="px-6 py-3 flex items-center justify-end">
             <div className="flex items-center gap-3">
               <button
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-bold text-xs transition-all border border-green-200"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-bold text-xs transition-all border border-green-200 cursor-pointer"
                 title="Open HRMS Portal"
-                 onClick={() => openHRMSPortal()}
+                onClick={() => openHRMSPortal()}
               >
                 <span>HRMS</span>
               </button>
-              <span className="hidden sm:inline text-xs font-black text-slate-700 uppercase tracking-wider">
+              <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
                 Welcome back, {agentName}
               </span>
               <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-black">
@@ -280,9 +286,84 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 pb-24 md:pb-6 overflow-y-auto">
           {children ?? <Outlet />}
         </main>
+
+        {/* Mobile Bottom Navigation Bar (Figma Specs: Width 393px, Height 68px, Border-top 1px, Padding-top 8px, Padding-bottom 12px, BG #FFFFFF) */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] border-t border-gray-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+          <div className="max-w-[393px] w-full h-[68px] mx-auto pt-2 pb-3 px-3 flex items-center justify-between">
+            <NavLink
+              to="/vsms/agent-portal/home"
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
+                  isActive
+                    ? 'text-[#00891D] font-extrabold'
+                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                }`
+              }
+            >
+              <Home size={20} strokeWidth={2.3} />
+              <span className="text-[10px] font-bold tracking-tight">Home</span>
+            </NavLink>
+
+            <NavLink
+              to="/vsms/agent-portal/inventory"
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
+                  isActive
+                    ? 'text-[#00891D] font-extrabold'
+                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                }`
+              }
+            >
+              <Truck size={20} strokeWidth={2.3} />
+              <span className="text-[10px] font-bold tracking-tight">Vehicle & Stock</span>
+            </NavLink>
+
+            <NavLink
+              to="/vsms/agent-portal/sales"
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
+                  isActive
+                    ? 'text-[#00891D] font-extrabold'
+                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                }`
+              }
+            >
+              <ShoppingBag size={20} strokeWidth={2.3} />
+              <span className="text-[10px] font-bold tracking-tight">Sales Grid</span>
+            </NavLink>
+
+            <NavLink
+              to="/vsms/agent-portal/scheduled-deliveries"
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
+                  isActive
+                    ? 'text-[#00891D] font-extrabold'
+                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                }`
+              }
+            >
+              <Package size={20} strokeWidth={2.3} />
+              <span className="text-[10px] font-bold tracking-tight">Online Orders</span>
+            </NavLink>
+
+            <NavLink
+              to="/vsms/agent-portal/profile"
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
+                  isActive
+                    ? 'text-[#00891D] font-extrabold'
+                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                }`
+              }
+            >
+              <User size={20} strokeWidth={2.3} />
+              <span className="text-[10px] font-bold tracking-tight">Profile</span>
+            </NavLink>
+          </div>
+        </div>
       </div>
     </div>
   );
