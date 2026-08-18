@@ -142,13 +142,13 @@ export default function PaymentScreen() {
           </div>
         </div>
 
-        {/* Choose Payment Method Section (Figma Specs: 356x245, r:12px, p:16px, gap:16px) */}
-        <div className="w-full max-w-[356px] min-h-[245px] mx-auto bg-white rounded-[12px] p-4 border border-gray-100/90 shadow-sm flex flex-col justify-between gap-4 transition-all">
+        {/* Choose Payment Method Section */}
+        <div className="w-full bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-4">
           <h3 className="text-xs font-black text-gray-900 tracking-tight">Choose Payment Method</h3>
 
-          <div className="space-y-3 flex-1 flex flex-col justify-center">
+          <div className="space-y-3">
             {/* Row 1: 3 Column Cards (Cash, UPI, Card) */}
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-3">
               {PAYMENT_MODES.slice(0, 3).map((mode) => {
                 const Icon = mode.icon;
                 const isSelected = selected === mode.id;
@@ -156,24 +156,24 @@ export default function PaymentScreen() {
                   <button
                     key={mode.id}
                     onClick={() => setSelected(mode.id)}
-                    className={`py-3 px-2 rounded-xl flex flex-col items-center justify-center gap-1.5 relative transition-all border ${
+                    className={`py-4 px-2 rounded-2xl flex flex-col items-center justify-center gap-2 relative transition-all border ${
                       isSelected
                         ? 'bg-[#F2FDF4] border-[#00891D] shadow-sm'
-                        : 'bg-[#FAFAFA] border-gray-100 shadow-none hover:border-gray-200'
+                        : 'bg-white border-gray-200 shadow-none hover:border-gray-300'
                     }`}
                   >
                     {isSelected && (
-                      <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-[#00891D] flex items-center justify-center text-white">
-                        <Check size={9} strokeWidth={3} />
+                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#00891D] flex items-center justify-center text-white">
+                        <Check size={10} strokeWidth={3} />
                       </div>
                     )}
                     <Icon
-                      size={20}
-                      className={isSelected ? 'text-[#00891D]' : 'text-gray-500'}
+                      size={22}
+                      className={isSelected ? 'text-[#00891D]' : 'text-gray-600'}
                     />
                     <span
-                      className={`text-[11px] font-extrabold ${
-                        isSelected ? 'text-[#00891D]' : 'text-gray-600'
+                      className={`text-xs font-extrabold ${
+                        isSelected ? 'text-[#00891D]' : 'text-gray-700'
                       }`}
                     >
                       {mode.label}
@@ -184,7 +184,7 @@ export default function PaymentScreen() {
             </div>
 
             {/* Row 2: 2 Column Cards (Credit Udhar, Cash + UPI) */}
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               {PAYMENT_MODES.slice(3, 5).map((mode) => {
                 const Icon = mode.icon;
                 const isSelected = selected === mode.id;
@@ -192,32 +192,32 @@ export default function PaymentScreen() {
                   <button
                     key={mode.id}
                     onClick={() => setSelected(mode.id)}
-                    className={`py-3 px-2 rounded-xl flex flex-col items-center justify-center gap-1.5 relative transition-all border ${
+                    className={`py-4 px-2 rounded-2xl flex flex-col items-center justify-center gap-2 relative transition-all border ${
                       isSelected
                         ? 'bg-[#F2FDF4] border-[#00891D] shadow-sm'
-                        : 'bg-[#FAFAFA] border-gray-100 shadow-none hover:border-gray-200'
+                        : 'bg-white border-gray-200 shadow-none hover:border-gray-300'
                     }`}
                   >
                     {isSelected && (
-                      <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-[#00891D] flex items-center justify-center text-white">
-                        <Check size={9} strokeWidth={3} />
+                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#00891D] flex items-center justify-center text-white">
+                        <Check size={10} strokeWidth={3} />
                       </div>
                     )}
                     {mode.id === 'CASH_UPI' ? (
-                      <div className="flex items-center gap-1 text-gray-500">
-                        <Banknote size={15} className={isSelected ? 'text-[#00891D]' : 'text-gray-500'} />
-                        <span className="text-[10px] font-bold text-gray-400">+</span>
-                        <Smartphone size={15} className={isSelected ? 'text-[#00891D]' : 'text-gray-500'} />
+                      <div className="flex items-center gap-1 text-gray-600">
+                        <Banknote size={18} className={isSelected ? 'text-[#00891D]' : 'text-gray-600'} />
+                        <span className="text-xs font-extrabold text-gray-400">+</span>
+                        <Smartphone size={18} className={isSelected ? 'text-[#00891D]' : 'text-gray-600'} />
                       </div>
                     ) : (
                       <Icon
-                        size={20}
-                        className={isSelected ? 'text-[#00891D]' : 'text-gray-500'}
+                        size={22}
+                        className={isSelected ? 'text-[#00891D]' : 'text-gray-600'}
                       />
                     )}
                     <span
-                      className={`text-[11px] font-extrabold ${
-                        isSelected ? 'text-[#00891D]' : 'text-gray-600'
+                      className={`text-xs font-extrabold ${
+                        isSelected ? 'text-[#00891D]' : 'text-gray-700'
                       }`}
                     >
                       {mode.label}
@@ -230,19 +230,19 @@ export default function PaymentScreen() {
         </div>
 
         {/* Payment Details Card */}
-        <div className="bg-white rounded-3xl p-5 border border-gray-100/80 shadow-sm space-y-4">
+        <div className="bg-white rounded-3xl p-5 border border-gray-100/90 shadow-sm space-y-4">
           <h3 className="text-sm font-extrabold text-gray-900">Payment Details</h3>
 
           {/* Cash Received Input */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-extrabold text-gray-900">Cash Received</label>
-            <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 flex items-center gap-1.5 focus-within:border-[#00891D] transition-colors">
-              <span className="text-sm font-extrabold text-gray-900">₹</span>
+            <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 flex items-center gap-2 focus-within:border-[#00891D] transition-colors">
+              <span className="text-sm font-extrabold text-gray-600">₹</span>
               <input
                 type="number"
                 value={cashReceived}
                 onChange={(e) => setCashReceived(e.target.value)}
-                placeholder="0"
+                placeholder="3000"
                 className="w-full text-sm font-black text-gray-900 bg-transparent border-none outline-none"
               />
             </div>
@@ -251,7 +251,7 @@ export default function PaymentScreen() {
           {/* Change Display */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-extrabold text-gray-900">Change</label>
-            <div className="w-full bg-[#F9FAFB] border border-gray-100 rounded-2xl px-4 py-3">
+            <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3">
               <p className="text-sm font-extrabold text-gray-700">
                 ₹ {changeDue.toFixed(2)}
               </p>

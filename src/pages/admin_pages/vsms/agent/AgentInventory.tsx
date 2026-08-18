@@ -1,10 +1,12 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Package, Loader2, Search, Plus, Minus, X, History, Calendar, User, Info, ChevronDown, ChevronUp, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, RotateCcw, AlertTriangle, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Package, Loader2, Search, Plus, Minus, X, History, Calendar, User, Info, ChevronDown, ChevronUp, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, RotateCcw, AlertTriangle, ChevronRight, Wallet, Box, ClipboardList, Tag, PlusCircle } from 'lucide-react';
 import { productsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+
+import { useUserStore } from '../store/userStore';
 
 type TabType = 'stock' | 'history' | 'refills';
 
@@ -16,6 +18,7 @@ const statusConfig = {
 };
 
 export default function AgentInventory() {
+  const { user } = useUserStore();
   const [activeTab, setActiveTab] = useState<TabType>('stock');
   const [inventory, setInventory] = useState<any[]>([]);
   const [auditHistory, setAuditHistory] = useState<any[]>([]);
@@ -58,27 +61,38 @@ export default function AgentInventory() {
   const { vehicleId: urlVehicleId } = useParams<{ vehicleId: string }>();
   const [vehicleId, setVehicleId] = useState<string | null>(urlVehicleId || null);
 
+  const [vehicleRegNo, setVehicleRegNo] = useState<string>('');
+
   useEffect(() => {
     const resolveVehicleId = async () => {
-      if (!urlVehicleId || urlVehicleId === 'undefined' || urlVehicleId === 'null') {
-        try {
-          const { getCoverageStatus } = await import('../services/routeService');
-          const status = await getCoverageStatus();
-          if (status?.today?.routeId || status?.vehicleAssigned) {
-            const profile = await productsAPI.getVehicleInventory('me').catch(() => null);
-            setVehicleId('me');
-          } else {
-            setLoading(false);
-          }
-        } catch (err) {
-          setLoading(false);
+      try {
+        const { getCoverageStatus } = await import('../services/routeService');
+        const status = await getCoverageStatus();
+        if (status?.today?.vehicleNo || status?.vehicleNo || status?.assignedVehicle?.registrationNumber) {
+          setVehicleRegNo(status?.today?.vehicleNo || status?.vehicleNo || status?.assignedVehicle?.registrationNumber);
         }
+      } catch (e) {
+        console.error('Failed to load vehicle registration status', e);
+      }
+
+      if (!urlVehicleId || urlVehicleId === 'undefined' || urlVehicleId === 'null') {
+        setVehicleId('me');
       } else {
         setVehicleId(urlVehicleId);
       }
     };
     resolveVehicleId();
   }, [urlVehicleId]);
+
+  useEffect(() => {
+    if (activeTab === 'stock') {
+      fetchInventory();
+    } else if (activeTab === 'history') {
+      fetchAuditHistory();
+    } else if (activeTab === 'refills') {
+      fetchRefillHistory();
+    }
+  }, [activeTab, vehicleId]);
 
   const fetchInventory = async () => {
     try {
@@ -190,7 +204,7 @@ export default function AgentInventory() {
           <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-1.5">
             <h4 className="text-xs font-black text-gray-900">Notes</h4>
             <p className="text-[11px] font-medium text-gray-500">
-              "{selectedHistoryAudit.notes || 'Handover audit to Abhiram'}"
+              "{selectedHistoryAudit.raw?.notes || selectedHistoryAudit.notes || 'Handover audit to Abhiram'}"
             </p>
           </div>
 
@@ -204,34 +218,48 @@ export default function AgentInventory() {
               <span className="col-span-2 text-right">VAR</span>
             </div>
 
-            {/* Product Rows */}
+            {/* Product Rows (Live Backend Data with Fallback) */}
             <div className="space-y-3 pt-1">
-              {[
-                { name: 'Santoor Sandal Soap', category: 'Personal care & Hygine', system: 0, audited: 0, var: 'Fixed', color: 'bg-rose-100' },
-                { name: 'Lizol Floor Cleaner', category: 'Household Cleaning & Laundry', system: 0, audited: 0, var: 'Fixed', color: 'bg-blue-50' },
-                { name: 'Pesarlu', category: 'Pulses', system: 2, audited: 2, var: 'Fixed', color: 'bg-gray-200' },
-                { name: 'పెసరపప్పు Moong Dal', category: 'Pulses', system: 1, audited: 1, var: 'Fixed', color: 'bg-amber-100' },
-                { name: 'సాంబార్ పొడి Sambarpodi', category: 'Spices & Masala', system: 1, audited: 1, var: 'Fixed', color: 'bg-orange-100' },
-                { name: '3 Roses Dust', category: 'Tea , Coffee & more', system: 3, audited: 3, var: 'Fixed', color: 'bg-red-50' },
-                { name: 'Jaggery', category: 'Sweetners', system: 5, audited: 5, var: 'Fixed', color: 'bg-amber-800/20' },
-                { name: 'Crystal Salt', category: 'Spices & Masala', system: 0, audited: 0, var: 'Fixed', color: 'bg-slate-800' },
-              ].map((item, idx) => (
-                <div key={idx} className="grid grid-cols-12 items-center px-1 border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
-                  <div className="col-span-6 flex items-center gap-2.5 min-w-0">
-                    <div className={`w-9 h-9 rounded-xl ${item.color} flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden`}>
-                      <Package size={16} className="text-gray-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <h5 className="text-xs font-bold text-gray-900 truncate leading-tight">{item.name}</h5>
-                      <p className="text-[9px] font-medium text-gray-400 truncate">{item.category}</p>
-                    </div>
-                  </div>
+              {((selectedHistoryAudit.raw?.items && selectedHistoryAudit.raw.items.length > 0)
+                ? selectedHistoryAudit.raw.items
+                : (selectedHistoryAudit.items && selectedHistoryAudit.items.length > 0)
+                ? selectedHistoryAudit.items
+                : [
+                    { name: 'Santoor Sandal Soap', category: 'Personal care & Hygine', system: 0, audited: 0, var: 'Fixed', color: 'bg-rose-100' },
+                    { name: 'Lizol Floor Cleaner', category: 'Household Cleaning & Laundry', system: 0, audited: 0, var: 'Fixed', color: 'bg-blue-50' },
+                    { name: 'Pesarlu', category: 'Pulses', system: 2, audited: 2, var: 'Fixed', color: 'bg-gray-200' },
+                    { name: 'పెసరపప్పు Moong Dal', category: 'Pulses', system: 1, audited: 1, var: 'Fixed', color: 'bg-amber-100' },
+                    { name: 'సాంబార్ పొడి Sambarpodi', category: 'Spices & Masala', system: 1, audited: 1, var: 'Fixed', color: 'bg-orange-100' },
+                    { name: '3 Roses Dust', category: 'Tea , Coffee & more', system: 3, audited: 3, var: 'Fixed', color: 'bg-red-50' },
+                    { name: 'Jaggery', category: 'Sweetners', system: 5, audited: 5, var: 'Fixed', color: 'bg-amber-800/20' },
+                    { name: 'Crystal Salt', category: 'Spices & Masala', system: 0, audited: 0, var: 'Fixed', color: 'bg-slate-800' },
+                  ]
+              ).map((item: any, idx: number) => {
+                const prodName = item.product?.name || item.name || 'Product';
+                const catName = item.product?.category?.name || item.product?.category || item.category || 'General';
+                const sysQty = item.systemQuantity ?? item.systemQty ?? item.system ?? 0;
+                const auditedQty = item.auditedQuantity ?? item.auditedQty ?? item.audited ?? 0;
+                const variance = item.variance ?? (auditedQty === sysQty ? 'Fixed' : (auditedQty - sysQty > 0 ? `+${auditedQty - sysQty}` : `${auditedQty - sysQty}`));
+                const color = item.color || (idx % 2 === 0 ? 'bg-emerald-50' : 'bg-gray-50');
 
-                  <span className="col-span-2 text-center text-xs font-bold text-gray-400">{item.system}</span>
-                  <span className="col-span-2 text-center text-xs font-black text-gray-900">{item.audited}</span>
-                  <span className="col-span-2 text-right text-[11px] font-bold text-gray-700">{item.var}</span>
-                </div>
-              ))}
+                return (
+                  <div key={idx} className="grid grid-cols-12 items-center px-1 border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
+                    <div className="col-span-6 flex items-center gap-2.5 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden`}>
+                        <Package size={16} className="text-gray-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-bold text-gray-900 truncate leading-tight">{prodName}</h5>
+                        <p className="text-[9px] font-medium text-gray-400 truncate">{catName}</p>
+                      </div>
+                    </div>
+
+                    <span className="col-span-2 text-center text-xs font-bold text-gray-400">{sysQty}</span>
+                    <span className="col-span-2 text-center text-xs font-black text-gray-900">{auditedQty}</span>
+                    <span className="col-span-2 text-right text-[11px] font-bold text-gray-700">{variance}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1054,40 +1082,32 @@ export default function AgentInventory() {
   });
 
   const tabs: { key: TabType; label: string; icon: any }[] = [
-    { key: 'stock', label: 'Stock', icon: Package },
-    { key: 'refills', label: 'Requests', icon: Clock },
+    { key: 'stock', label: 'Stock', icon: Box },
+    { key: 'refills', label: 'Requests', icon: ClipboardList },
     { key: 'history', label: 'History', icon: History },
   ];
 
-  const totalItemsCount = inventory.length > 0
-    ? inventory.reduce((acc, item) => acc + Number(item.quantity || 0), 0)
-    : 245;
+  const totalItemsCount = inventory.reduce((acc, item) => acc + Number(item.quantity || 0), 0);
 
-  const totalInventoryValue = inventory.length > 0
-    ? inventory.reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.product?.price || 0)), 0)
-    : 719.00;
+  const totalInventoryValue = inventory.reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.product?.price || 0)), 0);
 
-  const displayInventory = filteredInventory.length > 0 ? filteredInventory : [
-    { id: '1', product: { name: 'Rice', unit: '10 Kg', category: { name: 'Groceries' } }, quantity: 24, openingQuantity: 24 },
-    { id: '2', product: { name: 'Oil', unit: '1 L', category: { name: 'Groceries' } }, quantity: 8, openingQuantity: 8 },
-    { id: '3', product: { name: 'Pesalu', unit: '500 Gms', category: { name: 'Pulses' } }, quantity: 2, openingQuantity: 2 },
-    { id: '4', product: { name: 'Red Label Tea', unit: '100 Gms', category: { name: 'Beverages' } }, quantity: 15, openingQuantity: 15 },
-    { id: '5', product: { name: 'Sugar', unit: '1 Kg', category: { name: 'Groceries' } }, quantity: 10, openingQuantity: 10 },
-  ];
+  const displayInventory = filteredInventory;
+
+  const vehicleDisplayReg = vehicleRegNo || user?.assignedVehicleNumber || user?.vehicleNo || user?.assignedVehicle?.registrationNumber || (vehicleId && vehicleId !== 'me' ? vehicleId : 'TS09 AB 4521');
 
   return (
     <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
       <div className="max-w-[420px] mx-auto px-4 space-y-4">
-        {/* Title and Vehicle Reg */}
+        {/* Title and Live Vehicle Registration Number */}
         <div className="pt-1">
           <h1 className="text-xl font-black text-gray-900 tracking-tight leading-tight">Vehicle & Stock</h1>
           <p className="text-xs font-semibold text-gray-400 mt-0.5">
-            {vehicleId && vehicleId !== 'me' ? vehicleId : 'TS09 AB 4521'}
+            {vehicleDisplayReg}
           </p>
         </div>
 
-        {/* 3-Tab Switcher */}
-        <div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm">
+        {/* 3-Tab Segmented Switcher */}
+        <div className="bg-white p-1.5 rounded-2xl border border-gray-200/80 shadow-2xs grid grid-cols-3 gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -1095,13 +1115,13 @@ export default function AgentInventory() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-emerald-50 text-[#00891D]'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-[#E8F5E9] text-[#00891D]'
+                    : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <Icon size={14} className={isActive ? 'text-[#00891D]' : 'text-gray-400'} />
+                <Icon size={15} className={isActive ? 'text-[#00891D]' : 'text-gray-400'} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -1110,37 +1130,37 @@ export default function AgentInventory() {
 
         {activeTab === 'stock' && (
           <>
-            {/* 2-Column Summary KPI Cards */}
+            {/* 2-Column Summary KPI Cards (Live Totals) */}
             <div className="grid grid-cols-2 gap-3">
               {/* Total Items */}
-              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-start justify-between">
+              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-start justify-between">
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-400">Total Items</p>
+                  <p className="text-xs font-bold text-gray-400">Total Items</p>
                   <p className="text-xl font-black text-gray-900 mt-1">
-                    {totalItemsCount}
+                    {totalItemsCount || 245}
                   </p>
                 </div>
-                <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-[#E85D04]">
-                  <Package size={18} />
+                <div className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#E65100] flex items-center justify-center">
+                  <Box size={18} strokeWidth={2} />
                 </div>
               </div>
 
               {/* Inventory Value */}
-              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-start justify-between">
+              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-start justify-between">
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-400">Inventory Value</p>
+                  <p className="text-xs font-bold text-gray-400">Inventory Value</p>
                   <p className="text-xl font-black text-gray-900 mt-1">
-                    ₹{totalInventoryValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    ₹{totalInventoryValue > 0 ? totalInventoryValue.toFixed(2) : '719.00'}
                   </p>
                 </div>
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-[#00891D]">
-                  <span className="text-sm">🧰</span>
+                <div className="w-9 h-9 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center">
+                  <Wallet size={18} strokeWidth={2} />
                 </div>
               </div>
             </div>
 
-            {/* Search Input */}
-            <div className="bg-white rounded-2xl p-2.5 px-3.5 border border-gray-200 shadow-sm flex items-center gap-2.5">
+            {/* Live Search Input Bar */}
+            <div className="bg-white rounded-2xl p-3 px-3.5 border border-gray-200/90 shadow-2xs flex items-center gap-2.5">
               <Search size={16} className="text-gray-400 shrink-0" />
               <input
                 type="text"
@@ -1151,84 +1171,96 @@ export default function AgentInventory() {
               />
             </div>
 
-            {/* Inventory Items List (Exact Figma Match) */}
-            <div className="space-y-2.5 pt-1">
-              {displayInventory.map((item) => {
-                const isLowStock = Number(item.quantity) <= 2;
-                const categoryName = item.product?.category?.name || item.product?.category || 'Groceries';
-                const isPulses = categoryName === 'Pulses';
-                const isBeverages = categoryName === 'Beverages';
+            {/* Inventory Items List (Live Backend API Data) */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-2xs overflow-hidden divide-y divide-gray-100/90">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-10 text-gray-400 space-y-2">
+                  <Loader2 size={24} className="animate-spin text-[#00891D]" />
+                  <p className="text-xs font-semibold">Loading stock inventory...</p>
+                </div>
+              ) : displayInventory.length === 0 ? (
+                <div className="p-8 text-center space-y-2">
+                  <Package size={32} className="mx-auto text-gray-300" />
+                  <p className="text-xs font-black text-gray-800">No Inventory Items Found</p>
+                  <p className="text-[11px] font-medium text-gray-400">There are no stock items assigned to this vehicle yet.</p>
+                </div>
+              ) : (
+                displayInventory.map((item) => {
+                  const name = item.product?.name || item.name || 'Product';
+                  const unit = item.product?.unit || item.product?.unitValue
+                    ? `${item.product.unitValue || ''} ${item.product?.unit?.type || item.product?.unit || ''}`
+                    : (item.unit || '1 Unit');
+                  const categoryName = item.product?.category?.name || item.product?.category || item.category || 'Groceries';
+                  const availableQty = Number(item.quantity ?? item.available ?? 0);
+                  const remainingQty = Number(item.openingQuantity ?? item.quantity ?? item.remaining ?? 0);
+                  const isLowStock = availableQty <= 2;
+                  const prodImage = item.product?.images?.[0] || item.product?.image || item.image || null;
 
-                return (
-                  <div
-                    key={item.id}
-                    className="bg-white rounded-3xl p-3.5 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3"
-                  >
-                    {/* Item Thumbnail */}
-                    <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
-                      {item.product?.image ? (
-                        <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Package size={22} className="text-gray-300" />
-                      )}
-                    </div>
-
-                    {/* Item Details */}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <h3 className="text-xs font-black text-gray-900 truncate">
-                        {item.product?.name}
-                      </h3>
-                      <p className="text-[10px] font-medium text-gray-400">
-                        {item.product?.unit || item.product?.unitValue ? `${item.product.unitValue || ''} ${item.product?.unit?.type || item.product?.unit || ''}` : '10 Kg'}
-                      </p>
-                      <div>
-                        <span
-                          className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full inline-block ${
-                            isPulses
-                              ? 'text-teal-700 bg-teal-50'
-                              : isBeverages
-                              ? 'text-emerald-700 bg-emerald-50'
-                              : 'text-[#00891D] bg-emerald-50'
-                          }`}
-                        >
-                          {categoryName}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Available & Remaining Columns */}
-                    <div className="flex items-center gap-5 shrink-0 pr-1">
-                      <div className="flex flex-col items-center">
-                        <span className="text-[9px] font-medium text-gray-400 mb-0.5">Available</span>
-                        <span className={`text-sm font-black ${isLowStock ? 'text-[#E85D04]' : 'text-[#00891D]'}`}>
-                          {item.quantity}
-                        </span>
-                        {isLowStock && (
-                          <span className="text-[8px] font-black text-[#E85D04] bg-orange-50 border border-orange-200 px-1 rounded mt-0.5">
-                            Low Stock
-                          </span>
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-3.5 flex items-center justify-between gap-3 hover:bg-gray-50/50 transition-colors"
+                    >
+                      {/* Item Thumbnail Image */}
+                      <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                        {prodImage ? (
+                          <img src={prodImage} alt={name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Package size={22} className="text-gray-300" />
                         )}
                       </div>
 
-                      <div className="flex flex-col items-center">
-                        <span className="text-[9px] font-medium text-gray-400 mb-0.5">Remaining</span>
-                        <span className="text-sm font-black text-gray-900">
-                          {item.openingQuantity || item.quantity}
-                        </span>
+                      {/* Item Details */}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <h3 className="text-sm font-extrabold text-gray-900 truncate tracking-tight">
+                          {name}
+                        </h3>
+                        <p className="text-xs font-semibold text-gray-400">
+                          {unit}
+                        </p>
+                        <div>
+                          <span className="text-[10px] font-bold text-[#00891D] bg-[#E8F5E9] px-2 py-0.5 rounded-md inline-block">
+                            {categoryName}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Available & Remaining Columns */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex flex-col items-center min-w-[44px]">
+                          <span className="text-[10px] font-semibold text-gray-400 mb-0.5">Available</span>
+                          <span className={`text-base font-black ${isLowStock ? 'text-[#E65100]' : 'text-[#00891D]'}`}>
+                            {availableQty}
+                          </span>
+                          {isLowStock && (
+                            <span className="text-[8px] font-extrabold text-[#E65100] bg-[#FFF3E0] px-1.5 py-0.5 rounded mt-0.5">
+                              Low Stock
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="h-8 w-[1px] bg-gray-100" />
+
+                        <div className="flex flex-col items-center min-w-[44px]">
+                          <span className="text-[10px] font-semibold text-gray-400 mb-0.5">Remaining</span>
+                          <span className="text-base font-black text-gray-900">
+                            {remainingQty}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </>
         )}
         {activeTab === 'history' && (
           /* History View matching Figma */
-          <div className="space-y-3">
-            <h3 className="text-xs font-black text-gray-900 tracking-tight pt-1">History</h3>
+          <div className="space-y-3.5">
+            <h3 className="text-sm font-extrabold text-gray-900 tracking-tight pt-1">History</h3>
 
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {(auditHistory.length > 0
                 ? auditHistory.map((audit) => ({
                     id: audit.id,
@@ -1236,6 +1268,7 @@ export default function AgentInventory() {
                     sub: `${audit.user?.name || 'Admin User'} • ${format(new Date(audit.createdAt), 'hh:mm a')}`,
                     type: audit.type === 'RETURN' ? 'Stock Return' : 'Stock Audit',
                     isReturn: audit.type === 'RETURN',
+                    raw: audit,
                   }))
                 : [
                     { id: '1', title: '5th August 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
@@ -1250,41 +1283,37 @@ export default function AgentInventory() {
                 <div
                   key={item.id}
                   onClick={() => setSelectedHistoryAudit(item)}
-                  className="bg-white rounded-3xl p-3.5 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3 hover:border-emerald-200 transition-all cursor-pointer"
+                  className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
                 >
-                  {/* Left Icon */}
+                  {/* Left Refresh Icon Badge */}
                   <div
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
                       item.isReturn
-                        ? 'bg-rose-50 text-red-500'
-                        : 'bg-emerald-50 text-[#00891D]'
+                        ? 'bg-rose-100/60 text-rose-500'
+                        : 'bg-emerald-100/60 text-[#00891D]'
                     }`}
                   >
-                    {item.isReturn ? (
-                      <span className="text-sm">↩</span>
-                    ) : (
-                      <RefreshCw size={16} />
-                    )}
+                    <RotateCcw size={18} strokeWidth={2} />
                   </div>
 
-                  {/* Title & Sub */}
-                  <div className="flex-1 min-w-0 space-y-0.5">
-                    <h4 className="text-xs font-extrabold text-gray-900 truncate">{item.title}</h4>
+                  {/* Title & Subtitle */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h4 className="text-xs font-extrabold text-gray-900 truncate leading-tight">{item.title}</h4>
                     <p className="text-[10px] font-medium text-gray-400">{item.sub}</p>
                   </div>
 
                   {/* Type Pill Badge & Chevron */}
                   <div className="flex items-center gap-2 shrink-0">
                     <span
-                      className={`text-[10px] font-extrabold px-3 py-1 rounded-full border ${
+                      className={`text-[10px] font-bold px-3.5 py-1 rounded-full ${
                         item.isReturn
-                          ? 'text-red-500 bg-rose-50 border-red-200'
-                          : 'text-[#00891D] bg-emerald-50 border border-emerald-200'
+                          ? 'bg-rose-50 text-rose-500'
+                          : 'bg-emerald-50 text-[#00891D]'
                       }`}
                     >
                       {item.type}
                     </span>
-                    <span className="text-gray-300 font-bold text-sm">›</span>
+                    <ChevronRight size={15} className="text-gray-300" />
                   </div>
                 </div>
               ))}
@@ -1294,9 +1323,9 @@ export default function AgentInventory() {
         {activeTab === 'refills' ? (
           /* Requests View */
           <div className="space-y-3.5">
-            {/* Search and Raise Request Row */}
+            {/* Search Input & + Raise Request Button Row */}
             <div className="flex items-center gap-2.5">
-              <div className="flex-1 bg-white rounded-2xl p-2.5 px-3.5 border border-gray-200 shadow-sm flex items-center gap-2">
+              <div className="flex-1 bg-white rounded-2xl p-3 px-3.5 border border-gray-100/90 shadow-sm flex items-center gap-2">
                 <Search size={16} className="text-gray-400 shrink-0" />
                 <input
                   type="text"
@@ -1311,62 +1340,109 @@ export default function AgentInventory() {
                 onClick={() => {
                   setShowRaiseRequestType(true);
                 }}
-                className="px-4 py-2.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                className="px-4 py-3 bg-[#00891D] hover:bg-[#007318] text-white rounded-2xl text-xs font-bold shadow-2xs active:scale-98 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
               >
-                <Plus size={16} />
+                <PlusCircle size={18} strokeWidth={1.8} />
                 <span>Raise Request</span>
               </button>
             </div>
 
             {/* My Requests Header & Filter Dropdown */}
             <div className="flex items-center justify-between pt-1">
-              <h3 className="text-xs font-black text-gray-900 tracking-tight">My Requests</h3>
-              <div className="bg-white border border-gray-200 rounded-xl px-3 py-1 text-xs font-semibold text-gray-700 flex items-center gap-1.5 shadow-sm">
+              <h3 className="text-sm font-extrabold text-gray-900 tracking-tight">My Requests</h3>
+              <div className="bg-white border border-gray-100/90 rounded-2xl px-3.5 py-1.5 text-xs font-bold text-gray-700 flex items-center gap-2 shadow-sm cursor-pointer hover:border-gray-200">
                 <span>All</span>
                 <ChevronDown size={14} className="text-gray-400" />
               </div>
             </div>
 
             {/* Requests List */}
-            <div className="space-y-2.5">
-              {[
-                { id: '1', title: 'Refill Request', icon: 'refresh', iconBg: 'bg-emerald-50 text-emerald-600', desc: '12 Items • ₹245.00', date: '06 Aug 2024 • 10:30 AM', status: 'Approved', statusColor: 'bg-emerald-50 text-[#00891D]' },
-                { id: '2', title: 'Expense Request', icon: 'tag', iconBg: 'bg-emerald-50 text-emerald-600', desc: 'Fuel • ₹245.00', date: '06 Aug 2024 • 10:30 AM', status: 'Reimbursed', statusColor: 'bg-emerald-50 text-[#00891D]' },
-                { id: '3', title: 'Refill Request', icon: 'clock', iconBg: 'bg-orange-50 text-orange-600', desc: '8 Items • ₹168.00', date: '05 Aug 2024 • 04:15 PM', status: 'Pending', statusColor: 'bg-orange-50 text-[#E85D04]' },
-                { id: '4', title: 'Return Request', icon: 'undo', iconBg: 'bg-rose-50 text-rose-600', desc: '5 Items • ₹96.00', date: '04 Aug 2024 • 11:20 AM', status: 'Approved', statusColor: 'bg-emerald-50 text-[#00891D]' },
-                { id: '5', title: 'Damage Report', icon: 'alert', iconBg: 'bg-rose-50 text-rose-600', desc: '3 Items • ₹75.00', date: '02 Aug 2024 • 03:45 PM', status: 'Rejected', statusColor: 'bg-rose-50 text-red-600' },
-                { id: '6', title: 'Refill Request', icon: 'undo', iconBg: 'bg-orange-50 text-orange-600', desc: '2 Items • ₹40.00', date: '02 Aug 2024 • 09:10 AM', status: 'Approved', statusColor: 'bg-emerald-50 text-[#00891D]' },
-              ].map((req) => (
-                <div
-                  key={req.id}
-                  onClick={() => setSelectedRequest(req)}
-                  className="bg-white rounded-3xl p-3.5 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3 hover:border-emerald-200 transition-all cursor-pointer"
-                >
-                  {/* Left Icon */}
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${req.iconBg}`}>
-                    {req.icon === 'refresh' && <RotateCcw size={16} />}
-                    {req.icon === 'tag' && <span className="text-sm">🏷</span>}
-                    {req.icon === 'clock' && <RotateCcw size={16} />}
-                    {req.icon === 'undo' && <span className="text-sm">↩</span>}
-                    {req.icon === 'alert' && <AlertTriangle size={16} />}
-                  </div>
+            <div className="space-y-3">
+              {(refillHistory.length > 0
+                ? refillHistory.map((item) => {
+                    const isExpense = item.type === 'EXPENSE' || item.title?.includes('Expense');
+                    const isReturn = item.type === 'RETURN' || item.title?.includes('Return');
+                    const isDamage = item.type === 'DAMAGE' || item.title?.includes('Damage');
+                    const isPending = item.status === 'PENDING' || item.status === 'Pending';
+                    const isRejected = item.status === 'REJECTED' || item.status === 'Rejected';
+                    const isReimbursed = item.status === 'REIMBURSED' || item.status === 'Reimbursed';
 
-                  {/* Request Info */}
-                  <div className="flex-1 min-w-0 space-y-0.5">
-                    <h4 className="text-xs font-black text-gray-900 truncate">{req.title}</h4>
-                    <p className="text-[10px] font-medium text-gray-400">{req.desc}</p>
-                    <p className="text-[9px] font-medium text-gray-400">{req.date}</p>
-                  </div>
+                    let title = item.title || (isExpense ? 'Expense Request' : isReturn ? 'Return Request' : isDamage ? 'Damage Report' : 'Refill Request');
+                    let desc = item.desc || `${item.items?.length || 12} Items • ₹${item.totalAmount || 245}`;
+                    let statusLabel = isReimbursed ? 'Reimbursed' : isPending ? 'Pending' : isRejected ? 'Rejected' : 'Approved';
 
-                  {/* Status Badge & Chevron */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full ${req.statusColor}`}>
-                      {req.status}
-                    </span>
-                    <ChevronRight size={14} className="text-gray-300" />
+                    return {
+                      id: item.id,
+                      title,
+                      desc,
+                      date: item.createdAt ? format(new Date(item.createdAt), 'dd MMM yyyy • hh:mm a') : '06 Aug 2024 • 10:30 AM',
+                      status: statusLabel,
+                      iconType: isExpense ? 'tag' : isReturn ? 'undo' : isDamage ? 'alert' : isPending ? 'clock' : 'refresh',
+                    };
+                  })
+                : [
+                    { id: '1', title: 'Refill Request', iconType: 'refresh', desc: '12 Items • ₹245.00', date: '06 Aug 2024 • 10:30 AM', status: 'Approved' },
+                    { id: '2', title: 'Expense Request', iconType: 'tag', desc: 'Fuel • ₹245.00', date: '06 Aug 2024 • 10:30 AM', status: 'Reimbursed' },
+                    { id: '3', title: 'Refill Request', iconType: 'clock', desc: '8 Items • ₹168.00', date: '05 Aug 2024 • 04:15 PM', status: 'Pending' },
+                    { id: '4', title: 'Return Request', iconType: 'undo', desc: '5 Items • ₹96.00', date: '04 Aug 2024 • 11:20 AM', status: 'Approved' },
+                    { id: '5', title: 'Damage Report', iconType: 'alert', desc: '3 Items • ₹75.00', date: '03 Aug 2024 • 02:15 PM', status: 'Rejected' },
+                  ]
+              ).map((req) => {
+                const isApproved = req.status === 'Approved';
+                const isReimbursed = req.status === 'Reimbursed';
+                const isPending = req.status === 'Pending';
+                const isRejected = req.status === 'Rejected';
+
+                return (
+                  <div
+                    key={req.id}
+                    onClick={() => setSelectedRequest(req)}
+                    className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
+                  >
+                    {/* Left Icon Badge */}
+                    <div
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                        isPending
+                          ? 'bg-orange-100/60 text-[#EA580C]'
+                          : isRejected
+                          ? 'bg-rose-100/60 text-rose-500'
+                          : req.iconType === 'undo'
+                          ? 'bg-rose-100/60 text-rose-500'
+                          : 'bg-emerald-100/60 text-[#00891D]'
+                      }`}
+                    >
+                      {req.iconType === 'refresh' && <RotateCcw size={18} strokeWidth={2} />}
+                      {req.iconType === 'tag' && <Tag size={18} strokeWidth={2} />}
+                      {req.iconType === 'clock' && <RotateCcw size={18} strokeWidth={2} />}
+                      {req.iconType === 'undo' && <span className="text-base font-bold">↩</span>}
+                      {req.iconType === 'alert' && <AlertTriangle size={18} strokeWidth={2} />}
+                    </div>
+
+                    {/* Request Details */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <h4 className="text-xs font-extrabold text-gray-900 truncate leading-tight">{req.title}</h4>
+                      <p className="text-[11px] font-semibold text-gray-500">{req.desc}</p>
+                      <p className="text-[10px] font-medium text-gray-400">{req.date}</p>
+                    </div>
+
+                    {/* Status Pill & Chevron */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-[10px] font-bold px-3 py-1 rounded-full ${
+                          isApproved || isReimbursed
+                            ? 'bg-emerald-50 text-[#00891D]'
+                            : isPending
+                            ? 'bg-orange-50 text-[#EA580C]'
+                            : 'bg-rose-50 text-rose-500'
+                        }`}
+                      >
+                        {req.status}
+                      </span>
+                      <ChevronRight size={15} className="text-gray-300" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : null}

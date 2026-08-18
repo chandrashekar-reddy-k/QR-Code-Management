@@ -167,100 +167,105 @@ export default function SalesEntry() {
     setFiltered(result);
   }, [search, products, filterFreeOnly, filterCategory, filterSubCategory]);
   return (
-    <div className="min-h-screen pb-32 pt-2 bg-[#FAFAFA]">
-      <div className="max-w-[420px] mx-auto px-4 space-y-3.5">
-        {/* Title */}
-        <div className="pt-1">
-          <h1 className="text-xl font-black text-gray-900 tracking-tight">Sales Grid</h1>
-        </div>
+    <div className="min-h-screen pb-32 bg-[#FAFAFA]">
+      {/* Sticky Header Section (Title + Customer Name & Mobile Card + Search + Categories fixed together) */}
+      <div className="sticky top-0 z-40 bg-[#FAFAFA] pt-2 pb-2.5 border-b border-gray-100 shadow-2xs">
+        <div className="max-w-[420px] mx-auto px-4 space-y-3">
+          {/* Title */}
+          <div>
+            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Sales Grid</h1>
+          </div>
 
-        {/* Customer Input Card */}
-        <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            {/* Customer Name */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900 flex items-center gap-0.5">
-                Customer Name <span className="text-red-500 font-black">*</span>
-              </label>
+          {/* Customer Input Card (Customer Name & Mobile Number) */}
+          <div className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-2xs space-y-2.5">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Customer Name */}
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold text-gray-900 flex items-center gap-0.5">
+                  Customer Name <span className="text-red-500 font-extrabold">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Customer Name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
+                />
+              </div>
+
+              {/* Mobile Number */}
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold text-gray-900 flex items-center gap-0.5">
+                  Mobile Number <span className="text-red-500 font-extrabold">*</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="Enter Mobile Number"
+                  value={customerMobile}
+                  onChange={(e) => setCustomerMobile(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Search Bar with Barcode Scanner Icon */}
+          <div className="bg-white rounded-2xl p-2.5 px-3.5 border border-gray-200 shadow-2xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <Search size={16} className="text-gray-400 shrink-0" />
               <input
                 type="text"
-                placeholder="Customer Name"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
+                placeholder="Search items..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
               />
             </div>
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="text-gray-400 hover:text-gray-600 cursor-pointer shrink-0"
+              title="Scan Barcode"
+            >
+              <ScanBarcode size={18} />
+            </button>
+          </div>
 
-            {/* Mobile Number */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900 flex items-center gap-0.5">
-                Mobile Number <span className="text-red-500 font-black">*</span>
-              </label>
-              <input
-                type="tel"
-                placeholder="Enter Mobile Number"
-                value={customerMobile}
-                onChange={(e) => setCustomerMobile(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
-              />
-            </div>
+          {/* Category Pills (Horizontal Scroll from Live Backend Data) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+            <button
+              type="button"
+              onClick={() => setFilterCategory('ALL')}
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                filterCategory === 'ALL'
+                  ? 'bg-[#00891D] text-white shadow-2xs'
+                  : 'bg-[#EAEAEA] text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Items
+            </button>
+            {categories.map((cat) => {
+              const isSelected = filterCategory === cat.name;
+              return (
+                <button
+                  key={cat.id || cat.name}
+                  type="button"
+                  onClick={() => setFilterCategory(cat.name)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#00891D] text-white shadow-2xs'
+                      : 'bg-[#EAEAEA] text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
           </div>
         </div>
+      </div>
 
-        {/* Search Bar with Barcode Scanner Icon */}
-        <div className="bg-white rounded-2xl p-2.5 px-3.5 border border-gray-200 shadow-sm flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <Search size={16} className="text-gray-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search items..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowScanner(true)}
-            className="text-gray-400 hover:text-gray-600 cursor-pointer shrink-0"
-            title="Scan Barcode"
-          >
-            <ScanBarcode size={18} />
-          </button>
-        </div>
-
-        {/* Category Pills (Horizontal Scroll from Live Backend Data) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setFilterCategory('ALL')}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
-              filterCategory === 'ALL'
-                ? 'bg-[#00891D] text-white shadow-sm'
-                : 'bg-gray-100/90 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            All Items
-          </button>
-          {categories.map((cat) => {
-            const isSelected = filterCategory === cat.name;
-            return (
-              <button
-                key={cat.id || cat.name}
-                type="button"
-                onClick={() => setFilterCategory(cat.name)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
-                  isSelected
-                    ? 'bg-[#00891D] text-white shadow-sm'
-                    : 'bg-gray-100/90 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {cat.name}
-              </button>
-            );
-          })}
-        </div>
-
+      <div className="max-w-[420px] mx-auto px-4 pt-3 space-y-3.5">
         {/* 3-Column Product Grid (100% Live Backend Data) */}
         <div className="pt-0.5">
           <ProductGrid

@@ -84,25 +84,22 @@ export default function PartnerScheduledOrders() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00891D] flex items-center justify-center">
-                  <Package size={16} />
+                  <Calendar size={16} />
                 </div>
                 <h3 className="text-xs font-black text-gray-900">Order Details</h3>
               </div>
-              <span className="text-[10px] font-black text-white bg-[#00891D] px-3 py-1 rounded-full">
+              <span className="text-[10px] font-black text-white bg-[#00891D] px-3.5 py-1 rounded-full">
                 Scheduled
               </span>
             </div>
 
             {/* Badges */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-1">
               <span className="text-[9px] font-extrabold text-sky-600 bg-sky-50 px-2.5 py-1 rounded-lg">
                 Home Delivery
               </span>
               <span className="text-[9px] font-extrabold text-[#E85D04] bg-orange-50 px-2.5 py-1 rounded-lg">
                 COD
-              </span>
-              <span className="text-[9px] font-extrabold text-[#00891D] bg-emerald-50 px-2.5 py-1 rounded-lg">
-                11:00 am
               </span>
             </div>
           </div>
@@ -121,14 +118,14 @@ export default function PartnerScheduledOrders() {
               <div className="flex items-center gap-2">
                 <a
                   href={`tel:${selectedViewOrder.phone || '9393479928'}`}
-                  className="w-8 h-8 rounded-xl bg-[#00891D] text-white flex items-center justify-center shadow-sm cursor-pointer"
+                  className="w-8 h-8 rounded-xl bg-[#00891D] text-white flex items-center justify-center shadow-sm cursor-pointer hover:bg-[#007018] transition-all"
                   title="Call Customer"
                 >
                   <span className="text-xs">📞</span>
                 </a>
                 <button
                   onClick={() => toast.success('Opening delivery location map...')}
-                  className="w-8 h-8 rounded-xl bg-[#00891D] text-white flex items-center justify-center shadow-sm cursor-pointer"
+                  className="w-8 h-8 rounded-xl bg-[#00891D] text-white flex items-center justify-center shadow-sm cursor-pointer hover:bg-[#007018] transition-all"
                   title="Open GPS Navigation"
                 >
                   <MapPin size={14} />
@@ -137,30 +134,38 @@ export default function PartnerScheduledOrders() {
             </div>
 
             {/* Customer Details Grid */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <p className="text-[9px] font-semibold text-gray-400">Customer Name</p>
-                <h4 className="text-xs font-black text-gray-900 mt-0.5">
-                  {selectedViewOrder.customer || 'Rahul'}
-                </h4>
+            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-50">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[9px] font-semibold text-gray-400">Customer Name</p>
+                  <h4 className="text-xs font-black text-gray-900 mt-0.5">
+                    {selectedViewOrder.customer || 'Rahul'}
+                  </h4>
+                </div>
 
-                <p className="text-[9px] font-semibold text-gray-400 mt-2.5">Phone</p>
-                <p className="text-xs font-black text-gray-900 mt-0.5 flex items-center gap-1">
-                  <span>📞</span>
-                  <span>{selectedViewOrder.phone || '9393479928'}</span>
-                </p>
+                <div>
+                  <p className="text-[9px] font-semibold text-gray-400">Phone</p>
+                  <p className="text-xs font-black text-gray-900 mt-0.5 flex items-center gap-1">
+                    <span>📞</span>
+                    <span>{selectedViewOrder.phone || '9393479928'}</span>
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <p className="text-[9px] font-semibold text-gray-400">Village</p>
-                <h4 className="text-xs font-black text-gray-900 mt-0.5">
-                  {selectedViewOrder.village || 'Pargi'}
-                </h4>
+              <div className="space-y-3 border-l border-gray-100 pl-3">
+                <div>
+                  <p className="text-[9px] font-semibold text-gray-400">Village</p>
+                  <h4 className="text-xs font-black text-gray-900 mt-0.5">
+                    {selectedViewOrder.village || 'Pargi'}
+                  </h4>
+                </div>
 
-                <p className="text-[9px] font-semibold text-gray-400 mt-2.5">Address</p>
-                <p className="text-[10px] font-medium text-gray-600 mt-0.5 leading-snug">
-                  {selectedViewOrder.address || 'House No 3-15, Main Road, Pargi, Telangana – 509325'}
-                </p>
+                <div>
+                  <p className="text-[9px] font-semibold text-gray-400">Address</p>
+                  <p className="text-[10px] font-medium text-gray-600 mt-0.5 leading-snug">
+                    {selectedViewOrder.address || 'House No 3-15, Main Road, Pargi, Telangana – 509325'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -169,7 +174,7 @@ export default function PartnerScheduledOrders() {
           <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3.5">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00891D] flex items-center justify-center">
-                <Package size={16} />
+                <span className="text-sm">🥞</span>
               </div>
               <h3 className="text-xs font-black text-gray-900">Order Items</h3>
             </div>
@@ -199,7 +204,7 @@ export default function PartnerScheduledOrders() {
                     <img
                       src={item.img}
                       alt={item.name}
-                      className="w-12 h-12 rounded-2xl object-cover bg-gray-50 border border-gray-100"
+                      className="w-12 h-12 rounded-2xl object-cover bg-gray-50 border border-gray-100 shrink-0"
                     />
                     <div>
                       <h4 className="text-xs font-black text-gray-900 leading-none">{item.name}</h4>
@@ -221,9 +226,9 @@ export default function PartnerScheduledOrders() {
             </div>
 
             {/* Total Amount Row */}
-            <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
               <span className="text-xs font-black text-gray-900">Total Amount</span>
-              <span className="text-sm font-black text-[#00891D]">
+              <span className="text-base font-black text-[#00891D]">
                 ₹{selectedViewOrder.amount ? Number(selectedViewOrder.amount).toFixed(2) : '196.00'}
               </span>
             </div>

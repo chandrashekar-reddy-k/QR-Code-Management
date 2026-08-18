@@ -3,7 +3,7 @@ import { NavLink, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { 
   Home, MapPin, Package, Wallet, Clock, BarChart2, User, Activity, 
   FileText, Truck, AlertTriangle, Receipt, LogOut, Menu, X, Store,
-  ArrowDownToLine, ArrowUpFromLine, ShoppingBag
+  ArrowDownToLine, ArrowUpFromLine, ShoppingBag, ShoppingCart, Hexagon
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
@@ -286,25 +286,29 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="flex-1 p-3 sm:p-4 md:p-6 pb-24 md:pb-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 pb-24 md:pb-6">
           {children ?? <Outlet />}
         </main>
 
         {/* Mobile Bottom Navigation Bar (Figma Specs: Width 393px, Height 68px, Border-top 1px, Padding-top 8px, Padding-bottom 12px, BG #FFFFFF) */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] border-t border-gray-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-          <div className="max-w-[393px] w-full h-[68px] mx-auto pt-2 pb-3 px-3 flex items-center justify-between">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] border-t border-gray-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] pb-safe">
+          <div className="w-full max-w-[430px] h-[68px] mx-auto pt-2 pb-2 px-1 flex items-center justify-around">
             <NavLink
               to="/vsms/agent-portal/home"
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
                   isActive
-                    ? 'text-[#00891D] font-extrabold'
-                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                    ? 'text-[#00891D]'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`
               }
             >
-              <Home size={20} strokeWidth={2.3} />
-              <span className="text-[10px] font-bold tracking-tight">Home</span>
+              {({ isActive }) => (
+                <>
+                  <Home size={22} strokeWidth={isActive ? 2.2 : 1.8} className={isActive ? 'text-[#00891D]' : 'text-gray-500'} />
+                  <span className={`text-[10.5px] tracking-tight ${isActive ? 'font-bold text-[#00891D]' : 'font-medium text-gray-500'}`}>Home</span>
+                </>
+              )}
             </NavLink>
 
             <NavLink
@@ -312,13 +316,17 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
                   isActive
-                    ? 'text-[#00891D] font-extrabold'
-                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                    ? 'text-[#00891D]'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`
               }
             >
-              <Truck size={20} strokeWidth={2.3} />
-              <span className="text-[10px] font-bold tracking-tight">Vehicle & Stock</span>
+              {({ isActive }) => (
+                <>
+                  <Truck size={22} strokeWidth={isActive ? 2.2 : 1.8} className={isActive ? 'text-[#00891D]' : 'text-gray-500'} />
+                  <span className={`text-[10.5px] tracking-tight ${isActive ? 'font-bold text-[#00891D]' : 'font-medium text-gray-500'}`}>Vehicle & Stock</span>
+                </>
+              )}
             </NavLink>
 
             <NavLink
@@ -326,13 +334,17 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
                   isActive
-                    ? 'text-[#00891D] font-extrabold'
-                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                    ? 'text-[#00891D]'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`
               }
             >
-              <ShoppingBag size={20} strokeWidth={2.3} />
-              <span className="text-[10px] font-bold tracking-tight">Sales Grid</span>
+              {({ isActive }) => (
+                <>
+                  <ShoppingCart size={22} strokeWidth={isActive ? 2.2 : 1.8} className={isActive ? 'text-[#00891D]' : 'text-gray-500'} />
+                  <span className={`text-[10.5px] tracking-tight ${isActive ? 'font-bold text-[#00891D]' : 'font-medium text-gray-500'}`}>Sales Grid</span>
+                </>
+              )}
             </NavLink>
 
             <NavLink
@@ -340,13 +352,17 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
                   isActive
-                    ? 'text-[#00891D] font-extrabold'
-                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                    ? 'text-[#00891D]'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`
               }
             >
-              <Package size={20} strokeWidth={2.3} />
-              <span className="text-[10px] font-bold tracking-tight">Online Orders</span>
+              {({ isActive }) => (
+                <>
+                  <Hexagon size={22} strokeWidth={isActive ? 2.2 : 1.8} className={isActive ? 'text-[#00891D]' : 'text-gray-500'} />
+                  <span className={`text-[10.5px] tracking-tight ${isActive ? 'font-bold text-[#00891D]' : 'font-medium text-gray-500'}`}>Online Orders</span>
+                </>
+              )}
             </NavLink>
 
             <NavLink
@@ -354,13 +370,17 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
                   isActive
-                    ? 'text-[#00891D] font-extrabold'
-                    : 'text-gray-400 hover:text-gray-600 font-semibold'
+                    ? 'text-[#00891D]'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`
               }
             >
-              <User size={20} strokeWidth={2.3} />
-              <span className="text-[10px] font-bold tracking-tight">Profile</span>
+              {({ isActive }) => (
+                <>
+                  <User size={22} strokeWidth={isActive ? 2.2 : 1.8} className={isActive ? 'text-[#00891D]' : 'text-gray-500'} />
+                  <span className={`text-[10.5px] tracking-tight ${isActive ? 'font-bold text-[#00891D]' : 'font-medium text-gray-500'}`}>Profile</span>
+                </>
+              )}
             </NavLink>
           </div>
         </div>

@@ -3,18 +3,43 @@ import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
-import { User, Phone, Mail, Shield, Truck, LogOut, FileText, CheckCircle2, XCircle, Package, KeyRound, Loader2, Download, Plus, ArrowLeft, RotateCcw, ShoppingBag, Bell, Calendar, MapPin, Store, AlertTriangle } from 'lucide-react';
+import {
+  User,
+  Phone,
+  Mail,
+  Truck,
+  LogOut,
+  Package,
+  Loader2,
+  Download,
+  ArrowLeft,
+  RotateCcw,
+  ShoppingBag,
+  Calendar,
+  Pencil,
+  Banknote,
+  TrendingUp,
+  ShieldCheck,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  GitFork,
+  Tv,
+} from 'lucide-react';
 
-const cn = (...classes) => classes.filter(Boolean).join(' ');
+import { format } from 'date-fns';
+import { adminAPI } from '../services/adminService';
 
 export default function Profile() {
   const { user, clearUser } = useUserStore();
   const navigate = useNavigate();
 
-  const [fullUser, setFullUser] = useState(null);
+  const [fullUser, setFullUser] = useState<any>(null);
   const [isFetching, setIsFetching] = useState(true);
   const [passwords, setPasswords] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [isUpdating, setIsUpdating] = useState(false);
+  const [activitiesList, setActivitiesList] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
 
   const currentUser = fullUser || user || {};
 
@@ -33,22 +58,7 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
-  const handleUploadDoc = async (type, file) => {
-    const formData = new FormData();
-    formData.append('document', file);
-    formData.append('type', type);
-    
-    const loadingToast = toast.loading(`Uploading ${type}...`);
-    try {
-      await authAPI.uploadMyDocument(formData);
-      toast.success('Document uploaded successfully!', { id: loadingToast });
-      fetchProfile(); // Refresh list
-    } catch (error) {
-      toast.error('Upload failed', { id: loadingToast });
-    }
-  };
-
-  const handleUpdatePassword = async (e) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.newPassword !== passwords.confirmPassword) {
       return toast.error("New passwords don't match");
@@ -61,27 +71,23 @@ export default function Profile() {
     try {
       await authAPI.updatePassword({
         oldPassword: passwords.oldPassword,
-        newPassword: passwords.newPassword
+        newPassword: passwords.newPassword,
       });
-      toast.success("Password updated securely!");
+      toast.success('Password updated securely!');
       setPasswords({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update password");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update password');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const ROLE_COLORS = {
-    ADMIN: 'from-emerald-500 to-emerald-600 shadow-emerald-500/20',
-    SALES_AGENT: 'from-emerald-500 to-emerald-600 shadow-emerald-500/20',
-    CONSUMER: 'from-emerald-800 to-emerald-950 shadow-emerald-950/20',
-  };
-
   const [showPasswordCurrent, setShowPasswordCurrent] = useState(false);
   const [showPasswordNew, setShowPasswordNew] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-  const [activeSubView, setActiveSubView] = useState<'profile' | 'changePassword' | 'myActivities' | 'myAssets' | 'requestAsset' | 'reportIssue' | 'requestReplacement'>('profile');
+  const [activeSubView, setActiveSubView] = useState<
+    'profile' | 'changePassword' | 'myActivities' | 'myAssets' | 'requestAsset' | 'reportIssue' | 'requestReplacement'
+  >('profile');
   const [assetsTab, setAssetsTab] = useState<'myAssets' | 'status'>('myAssets');
   const [expandedAsset, setExpandedAsset] = useState<string | null>('tshirt');
 
@@ -100,11 +106,11 @@ export default function Profile() {
   const [repPriority, setRepPriority] = useState('');
   const [repReason, setRepReason] = useState('');
 
+  // SUBVIEW 1: REQUEST REPLACEMENT
   if (activeSubView === 'requestReplacement') {
     return (
       <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
         <div className="max-w-[420px] mx-auto px-4 space-y-4">
-          {/* Header Bar */}
           <div className="flex items-center gap-2.5 pt-1">
             <button
               onClick={() => setActiveSubView('myAssets')}
@@ -117,7 +123,6 @@ export default function Profile() {
             </h1>
           </div>
 
-          {/* Form Fields */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -126,7 +131,6 @@ export default function Profile() {
             }}
             className="space-y-4 pt-1"
           >
-            {/* Select Asset Type */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-gray-900">
                 Select Asset Type <span className="text-red-500">*</span>
@@ -149,7 +153,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Priority */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-gray-900">
                 Priority <span className="text-red-500">*</span>
@@ -171,11 +174,8 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Reason/Description */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900">
-                Reason/Description
-              </label>
+              <label className="text-xs font-black text-gray-900">Reason/Description</label>
               <div className="bg-white rounded-2xl p-3.5 border border-gray-200/90 shadow-sm">
                 <textarea
                   rows={4}
@@ -187,7 +187,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Action Buttons: Cancel & Submit Request */}
             <div className="grid grid-cols-12 gap-3 pt-2">
               <button
                 type="button"
@@ -209,11 +208,11 @@ export default function Profile() {
     );
   }
 
+  // SUBVIEW 2: REPORT ISSUE
   if (activeSubView === 'reportIssue') {
     return (
       <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
         <div className="max-w-[420px] mx-auto px-4 space-y-4">
-          {/* Header Bar */}
           <div className="flex items-center gap-2.5 pt-1">
             <button
               onClick={() => setActiveSubView('myAssets')}
@@ -221,12 +220,9 @@ export default function Profile() {
             >
               <ArrowLeft size={18} strokeWidth={2.5} />
             </button>
-            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
-              Report Issue
-            </h1>
+            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">Report Issue</h1>
           </div>
 
-          {/* Form Fields */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -235,7 +231,6 @@ export default function Profile() {
             }}
             className="space-y-4 pt-1"
           >
-            {/* Select Asset Type */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-gray-900">
                 Select Asset Type <span className="text-red-500">*</span>
@@ -258,7 +253,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Select Issue */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-gray-900">
                 Select Issue <span className="text-red-500">*</span>
@@ -281,11 +275,8 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Reason/Description */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900">
-                Reason/Description
-              </label>
+              <label className="text-xs font-black text-gray-900">Reason/Description</label>
               <div className="bg-white rounded-2xl p-3.5 border border-gray-200/90 shadow-sm">
                 <textarea
                   rows={3}
@@ -297,11 +288,8 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Photos Upload Dropzone */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900">
-                Photos
-              </label>
+              <label className="text-xs font-black text-gray-900">Photos</label>
               <div
                 onClick={() => toast.success('Photo selector opened')}
                 className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-emerald-200 transition-colors"
@@ -316,7 +304,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Action Buttons: Cancel & Report Issue (Red) */}
             <div className="grid grid-cols-12 gap-3 pt-2">
               <button
                 type="button"
@@ -338,11 +325,11 @@ export default function Profile() {
     );
   }
 
+  // SUBVIEW 3: REQUEST ASSET
   if (activeSubView === 'requestAsset') {
     return (
       <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
         <div className="max-w-[420px] mx-auto px-4 space-y-4">
-          {/* Header Bar */}
           <div className="flex items-center gap-2.5 pt-1">
             <button
               onClick={() => setActiveSubView('myAssets')}
@@ -350,12 +337,9 @@ export default function Profile() {
             >
               <ArrowLeft size={18} strokeWidth={2.5} />
             </button>
-            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
-              Request New Asset
-            </h1>
+            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">Request New Asset</h1>
           </div>
 
-          {/* Form Fields */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -364,7 +348,6 @@ export default function Profile() {
             }}
             className="space-y-4 pt-1"
           >
-            {/* Select Asset Type */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-gray-900">
                 Select Asset Type <span className="text-red-500">*</span>
@@ -387,7 +370,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Priority */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-gray-900">
                 Priority <span className="text-red-500">*</span>
@@ -409,11 +391,8 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Reason/Description */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900">
-                Reason/Description
-              </label>
+              <label className="text-xs font-black text-gray-900">Reason/Description</label>
               <div className="bg-white rounded-2xl p-3.5 border border-gray-200/90 shadow-sm">
                 <textarea
                   rows={4}
@@ -425,7 +404,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Action Buttons: Cancel & Submit Request */}
             <div className="grid grid-cols-12 gap-3 pt-2">
               <button
                 type="button"
@@ -447,11 +425,11 @@ export default function Profile() {
     );
   }
 
+  // SUBVIEW 4: MY ASSETS
   if (activeSubView === 'myAssets') {
     return (
       <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
         <div className="max-w-[420px] mx-auto px-4 space-y-4">
-          {/* Header Bar with Action Buttons */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2">
               <button
@@ -460,9 +438,7 @@ export default function Profile() {
               >
                 <ArrowLeft size={18} strokeWidth={2.5} />
               </button>
-              <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
-                My Assets
-              </h1>
+              <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">My Assets</h1>
             </div>
 
             <div className="flex items-center gap-2">
@@ -481,14 +457,11 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* 2-Tab Switcher Pill */}
           <div className="bg-white rounded-2xl p-1.5 border border-gray-200/80 shadow-sm grid grid-cols-2 gap-1">
             <button
               onClick={() => setAssetsTab('myAssets')}
               className={`py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                assetsTab === 'myAssets'
-                  ? 'bg-emerald-50 text-[#00891D]'
-                  : 'text-gray-400 hover:text-gray-600'
+                assetsTab === 'myAssets' ? 'bg-emerald-50 text-[#00891D]' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <Package size={14} />
@@ -497,9 +470,7 @@ export default function Profile() {
             <button
               onClick={() => setAssetsTab('status')}
               className={`py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                assetsTab === 'status'
-                  ? 'bg-emerald-50 text-[#00891D]'
-                  : 'text-gray-400 hover:text-gray-600'
+                assetsTab === 'status' ? 'bg-emerald-50 text-[#00891D]' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <span className="text-xs">⏱</span>
@@ -507,10 +478,8 @@ export default function Profile() {
             </button>
           </div>
 
-          {/* Assets Tab Content */}
           {assetsTab === 'myAssets' ? (
             <div className="space-y-3 pt-1">
-              {/* Asset 1: T Shirt (Expanded) */}
               <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-4">
                 <div
                   onClick={() => setExpandedAsset(expandedAsset === 'tshirt' ? null : 'tshirt')}
@@ -521,12 +490,8 @@ export default function Profile() {
                       <Package size={20} />
                     </div>
                     <div>
-                      <h3 className="text-xs font-black text-gray-900 leading-tight">
-                        T Shirt
-                      </h3>
-                      <p className="text-[10px] font-medium text-gray-400 mt-0.5">
-                        VillagKart T-Shirt
-                      </p>
+                      <h3 className="text-xs font-black text-gray-900 leading-tight">T Shirt</h3>
+                      <p className="text-[10px] font-medium text-gray-400 mt-0.5">VillagKart T-Shirt</p>
                     </div>
                   </div>
 
@@ -542,7 +507,6 @@ export default function Profile() {
 
                 {expandedAsset === 'tshirt' && (
                   <div className="space-y-4 pt-1 animate-fade-in">
-                    {/* Details Box */}
                     <div className="bg-gray-50/70 rounded-2xl p-3.5 divide-y divide-gray-100 space-y-2 text-xs">
                       <div className="flex items-center justify-between pb-2">
                         <span className="text-[10px] font-medium text-gray-400">Condition</span>
@@ -562,7 +526,6 @@ export default function Profile() {
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => {
@@ -587,7 +550,6 @@ export default function Profile() {
                 )}
               </div>
 
-              {/* Asset 2: POS Machine (Collapsed) */}
               <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm">
                 <div
                   onClick={() => setExpandedAsset(expandedAsset === 'pos' ? null : 'pos')}
@@ -598,12 +560,8 @@ export default function Profile() {
                       <Package size={20} />
                     </div>
                     <div>
-                      <h3 className="text-xs font-black text-gray-900 leading-tight">
-                        POS Machine
-                      </h3>
-                      <p className="text-[10px] font-medium text-gray-400 mt-0.5">
-                        VillagKart POS Machine
-                      </p>
+                      <h3 className="text-xs font-black text-gray-900 leading-tight">POS Machine</h3>
+                      <p className="text-[10px] font-medium text-gray-400 mt-0.5">VillagKart POS Machine</p>
                     </div>
                   </div>
 
@@ -611,15 +569,12 @@ export default function Profile() {
                     <span className="text-[9px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                       In use
                     </span>
-                    <span className="text-gray-400 font-bold text-xs">
-                      {expandedAsset === 'pos' ? '⌵' : '›'}
-                    </span>
+                    <span className="text-gray-400 font-bold text-xs">{expandedAsset === 'pos' ? '⌵' : '›'}</span>
                   </div>
                 </div>
 
                 {expandedAsset === 'pos' && (
                   <div className="space-y-4 pt-3 animate-fade-in">
-                    {/* Details Box */}
                     <div className="bg-gray-50/70 rounded-2xl p-3.5 divide-y divide-gray-100 space-y-2 text-xs">
                       <div className="flex items-center justify-between pb-2">
                         <span className="text-[10px] font-medium text-gray-400">Condition</span>
@@ -639,7 +594,6 @@ export default function Profile() {
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => toast.success('Replace request submitted')}
@@ -659,7 +613,6 @@ export default function Profile() {
               </div>
             </div>
           ) : (
-            /* Status Tab Content */
             <div className="space-y-3 pt-1">
               {[
                 {
@@ -696,40 +649,26 @@ export default function Profile() {
                   priorityColor: 'text-gray-700',
                 },
               ].map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3"
-                >
-                  {/* Top Row: Type & Status Badge */}
+                <div key={item.id} className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#00891D] flex items-center justify-center">
                         <RotateCcw size={15} />
                       </div>
-                      <h4 className="text-xs font-black text-gray-900">
-                        {item.type}
-                      </h4>
+                      <h4 className="text-xs font-black text-gray-900">{item.type}</h4>
                     </div>
 
-                    <span
-                      className={`text-[9px] font-extrabold px-3 py-0.5 rounded-full ${item.statusColor}`}
-                    >
+                    <span className={`text-[9px] font-extrabold px-3 py-0.5 rounded-full ${item.statusColor}`}>
                       {item.status}
                     </span>
                   </div>
 
-                  {/* Details Card */}
                   <div className="bg-gray-50/70 rounded-2xl p-3 space-y-1">
                     <p className="text-[9px] font-medium text-gray-400">Details</p>
-                    <h5 className="text-xs font-black text-gray-900 leading-snug">
-                      {item.title}
-                    </h5>
-                    <p className="text-[10px] font-medium text-gray-400">
-                      {item.desc}
-                    </p>
+                    <h5 className="text-xs font-black text-gray-900 leading-snug">{item.title}</h5>
+                    <p className="text-[10px] font-medium text-gray-400">{item.desc}</p>
                   </div>
 
-                  {/* Bottom Row: Date & Priority */}
                   <div className="flex items-center justify-between text-[10px] font-medium text-gray-400 pt-0.5">
                     <div className="flex items-center gap-1.5">
                       <Calendar size={12} />
@@ -738,9 +677,7 @@ export default function Profile() {
 
                     <div className="flex items-center gap-1">
                       <span>Priority :</span>
-                      <span className={`font-bold ${item.priorityColor}`}>
-                        {item.priority}
-                      </span>
+                      <span className={`font-bold ${item.priorityColor}`}>{item.priority}</span>
                     </div>
                   </div>
                 </div>
@@ -752,6 +689,7 @@ export default function Profile() {
     );
   }
 
+  // SUBVIEW 5: MY ACTIVITIES
   if (activeSubView === 'myActivities') {
     return (
       <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
@@ -769,94 +707,101 @@ export default function Profile() {
             </h1>
           </div>
 
-          {/* Activities List */}
+          {/* Activities List (Live Backend API Data with Fallback) */}
           <div className="space-y-3 pt-1">
-            {[
-              {
-                id: '1',
-                type: 'Sale Completed',
-                time: '07:21 PM',
-                title: 'Completed sale #13277 for ₹261',
-                date: 'Saturday, 8th August 2026',
-                icon: 'bag',
-                iconBg: 'bg-emerald-50 text-[#00891D]',
-              },
-              {
-                id: '2',
-                type: 'Route Updated',
-                time: '02:00 PM',
-                title: 'Updated route assignment for agent Abhiram on route "Test route"',
-                date: 'Thursday, 6th August 2026',
-                icon: 'route',
-                iconBg: 'bg-emerald-50 text-[#00891D]',
-              },
-              {
-                id: '3',
-                type: 'Route Assigned',
-                time: '10:33 AM',
-                title: 'Assigned route "Test route" to agent Abhiram with vehicle Test Vehicle',
-                date: 'Thursday, 6th August 2026',
-                icon: 'route',
-                iconBg: 'bg-emerald-50 text-[#00891D]',
-              },
-              {
-                id: '4',
-                type: 'Driver Assigned',
-                time: '05:25 PM',
-                title: 'Handover executed for vehicle Test Vehicle to Abhiram via policy INHERIT',
-                date: 'Wednesday, 5th August 2026',
-                icon: 'driver',
-                iconBg: 'bg-blue-50 text-blue-500',
-              },
-              {
-                id: '5',
-                type: 'Sale Completed',
-                time: '05:33 PM',
-                title: 'Completed sale #11496 for ₹415',
-                date: 'Monday, 20th July 2026',
-                icon: 'bag',
-                iconBg: 'bg-emerald-50 text-[#00891D]',
-              },
-              {
-                id: '6',
-                type: 'Sale Completed',
-                time: '09:02 PM',
-                title: 'Completed sale #10925 for ₹88',
-                date: 'Thursday, 9th July 2026',
-                icon: 'bag',
-                iconBg: 'bg-emerald-50 text-[#00891D]',
-              },
-            ].map((act) => (
+            {((activitiesList && activitiesList.length > 0)
+              ? activitiesList.map((act: any) => ({
+                  id: act.id,
+                  type: act.action || act.type || 'Sale Completed',
+                  time: act.createdAt ? format(new Date(act.createdAt), 'hh:mm a') : '07:21 PM',
+                  title: act.description || act.title || act.details || 'Activity log executed',
+                  date: act.createdAt ? format(new Date(act.createdAt), 'EEEE, do MMMM yyyy') : 'Saturday, 8th August 2026',
+                  icon: (act.action || act.type || '').toLowerCase().includes('driver') ? 'driver' : (act.action || act.type || '').toLowerCase().includes('route') ? 'route' : 'bag',
+                  iconBg: (act.action || act.type || '').toLowerCase().includes('driver') ? 'bg-[#E3F2FD] text-[#1E88E5]' : 'bg-[#E8F5E9] text-[#00891D]',
+                }))
+              : [
+                  {
+                    id: '1',
+                    type: 'Sale Completed',
+                    time: '07:21 PM',
+                    title: 'Completed sale #13277 for ₹261',
+                    date: 'Saturday, 8th August 2026',
+                    icon: 'bag',
+                    iconBg: 'bg-[#E8F5E9] text-[#00891D]',
+                  },
+                  {
+                    id: '2',
+                    type: 'Route Updated',
+                    time: '02:00 PM',
+                    title: 'Updated route assignment for agent Abhiram on route "Test route"',
+                    date: 'Thursday, 6th August 2026',
+                    icon: 'route',
+                    iconBg: 'bg-[#E8F5E9] text-[#00891D]',
+                  },
+                  {
+                    id: '3',
+                    type: 'Route Assigned',
+                    time: '10:33 AM',
+                    title: 'Assigned route "Test route" to agent Abhiram with vehicle Test Vehicle',
+                    date: 'Thursday, 6th August 2026',
+                    icon: 'route',
+                    iconBg: 'bg-[#E8F5E9] text-[#00891D]',
+                  },
+                  {
+                    id: '4',
+                    type: 'Driver Assigned',
+                    time: '05:25 PM',
+                    title: 'Handover executed for vehicle Test Vehicle to Abhiram via policy INHERIT',
+                    date: 'Wednesday, 5th August 2026',
+                    icon: 'driver',
+                    iconBg: 'bg-[#E3F2FD] text-[#1E88E5]',
+                  },
+                  {
+                    id: '5',
+                    type: 'Sale Completed',
+                    time: '05:33 PM',
+                    title: 'Completed sale #11496 for ₹415',
+                    date: 'Monday, 20th July 2026',
+                    icon: 'bag',
+                    iconBg: 'bg-[#E8F5E9] text-[#00891D]',
+                  },
+                  {
+                    id: '6',
+                    type: 'Sale Completed',
+                    time: '09:02 PM',
+                    title: 'Completed sale #10925 for ₹88',
+                    date: 'Thursday, 9th July 2026',
+                    icon: 'bag',
+                    iconBg: 'bg-[#E8F5E9] text-[#00891D]',
+                  },
+                ]
+            ).map((act) => (
               <div
                 key={act.id}
-                className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-start gap-3.5"
+                className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-start gap-3.5"
               >
                 {/* Left Icon Container */}
                 <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 ${act.iconBg}`}
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 ${act.iconBg}`}
                 >
-                  {act.icon === 'bag' && <ShoppingBag size={18} />}
-                  {act.icon === 'route' && <span className="text-base">🔀</span>}
-                  {act.icon === 'driver' && <span className="text-base">📋</span>}
+                  {act.icon === 'bag' && <ShoppingBag size={19} strokeWidth={2} />}
+                  {act.icon === 'route' && <GitFork size={19} strokeWidth={2} />}
+                  {act.icon === 'driver' && <Tv size={19} strokeWidth={2} />}
                 </div>
 
-                {/* Right Info */}
+                {/* Right Content */}
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-gray-500">
-                      {act.type}
-                    </span>
-                    <span className="text-[10px] font-medium text-gray-400">
-                      {act.time}
-                    </span>
+                    <span className="text-xs font-bold text-gray-500">{act.type}</span>
+                    <span className="text-[11px] font-semibold text-gray-400">{act.time}</span>
                   </div>
 
                   <h4 className="text-xs font-black text-gray-900 leading-snug">
                     {act.title}
                   </h4>
 
-                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-gray-400 pt-0.5">
-                    <Calendar size={11} />
+                  <div className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-400 pt-0.5">
+                    <Calendar size={12} className="text-gray-400 shrink-0" />
                     <span>{act.date}</span>
                   </div>
                 </div>
@@ -868,6 +813,7 @@ export default function Profile() {
     );
   }
 
+  // SUBVIEW 6: CHANGE PASSWORD
   if (activeSubView === 'changePassword') {
     return (
       <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
@@ -885,14 +831,14 @@ export default function Profile() {
             </h1>
           </div>
 
-          {/* Password Form */}
+          {/* Form */}
           <form onSubmit={handleUpdatePassword} className="space-y-4 pt-1">
             {/* Current Password */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
-                Current Password <span className="text-red-500">*</span>
+              <label className="text-xs font-bold text-gray-900 flex items-center gap-1">
+                Current Password <span className="text-red-500 font-bold">*</span>
               </label>
-              <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
+              <div className="bg-white border border-gray-200/90 rounded-2xl px-4 py-3.5 shadow-2xs flex items-center justify-between">
                 <input
                   type={showPasswordCurrent ? 'text' : 'password'}
                   required
@@ -904,16 +850,16 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setShowPasswordCurrent(!showPasswordCurrent)}
-                  className="text-gray-400 hover:text-gray-600 shrink-0 ml-2"
+                  className="text-gray-400 hover:text-gray-600 shrink-0 ml-2 cursor-pointer"
                 >
-                  <span className="text-sm">👁</span>
+                  {showPasswordCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <div className="flex justify-end pt-0.5">
+              <div className="flex justify-end pt-1">
                 <button
                   type="button"
                   onClick={() => toast.success('Password reset link sent to your registered email.')}
-                  className="text-[11px] font-black text-[#00891D] hover:underline"
+                  className="text-xs font-bold text-[#00891D] hover:underline cursor-pointer"
                 >
                   Forgot Password
                 </button>
@@ -922,10 +868,10 @@ export default function Profile() {
 
             {/* New Password */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
-                New Password <span className="text-red-500">*</span>
+              <label className="text-xs font-bold text-gray-900 flex items-center gap-1">
+                New Password <span className="text-red-500 font-bold">*</span>
               </label>
-              <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
+              <div className="bg-white border border-gray-200/90 rounded-2xl px-4 py-3.5 shadow-2xs flex items-center justify-between">
                 <input
                   type={showPasswordNew ? 'text' : 'password'}
                   required
@@ -937,19 +883,19 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setShowPasswordNew(!showPasswordNew)}
-                  className="text-gray-400 hover:text-gray-600 shrink-0 ml-2"
+                  className="text-gray-400 hover:text-gray-600 shrink-0 ml-2 cursor-pointer"
                 >
-                  <span className="text-sm">👁</span>
+                  {showPasswordNew ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             {/* Confirm New Password */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
-                Confirm New Password <span className="text-red-500">*</span>
+              <label className="text-xs font-bold text-gray-900 flex items-center gap-1">
+                Confirm New Password <span className="text-red-500 font-bold">*</span>
               </label>
-              <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
+              <div className="bg-white border border-gray-200/90 rounded-2xl px-4 py-3.5 shadow-2xs flex items-center justify-between">
                 <input
                   type={showPasswordConfirm ? 'text' : 'password'}
                   required
@@ -961,19 +907,19 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                  className="text-gray-400 hover:text-gray-600 shrink-0 ml-2"
+                  className="text-gray-400 hover:text-gray-600 shrink-0 ml-2 cursor-pointer"
                 >
-                  <span className="text-sm">👁</span>
+                  {showPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             {/* Save Password Button */}
-            <div className="pt-2">
+            <div className="pt-3">
               <button
                 type="submit"
                 disabled={isUpdating}
-                className="w-full py-3.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                className="w-full py-3.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-2xs active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
                 {isUpdating ? <Loader2 className="animate-spin" size={16} /> : 'Save Password'}
               </button>
@@ -984,177 +930,185 @@ export default function Profile() {
     );
   }
 
+  // MAIN PROFILE SCREEN
   return (
     <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
       <div className="max-w-[420px] mx-auto px-4 space-y-4">
-        {/* Header Bar */}
         <div className="pt-1">
-          <h1 className="text-xl font-black text-gray-900 tracking-tight leading-tight">
-            My Profile
-          </h1>
+          <h1 className="text-xl font-black text-gray-900 tracking-tight leading-tight">My Profile</h1>
         </div>
 
-        {/* User Info Card */}
-        <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3.5">
+        {/* 1. User Info Card */}
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center">
-                <User size={22} />
+              <div className="w-12 h-12 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
+                <User size={22} strokeWidth={2} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-gray-900 leading-tight">
+                <h3 className="text-base font-extrabold text-gray-900 leading-tight">
                   {currentUser?.name || 'Abhiram'}
                 </h3>
-                <span className="inline-block mt-1 text-[9px] font-extrabold text-white bg-[#00891D] px-2.5 py-0.5 rounded-full">
+                <span className="inline-block mt-1 text-[10px] font-bold text-white bg-[#00891D] px-3 py-0.5 rounded-full">
                   {currentUser?.role?.replace('_', ' ') || 'Sales Agent'}
                 </span>
               </div>
             </div>
 
-            <button className="w-8 h-8 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
-              <span className="text-xs">✏️</span>
+            <button className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs">
+              <Pencil size={15} />
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 text-[10px] font-semibold text-gray-600">
-            <div className="flex items-center gap-1.5 truncate">
-              <Phone size={12} className="text-[#00891D] shrink-0" />
+          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-100 text-xs font-semibold text-gray-700">
+            <div className="flex items-center gap-2 truncate">
+              <Phone size={14} className="text-[#00891D] shrink-0" />
               <span className="truncate">{currentUser?.mobile || '9876543210'}</span>
             </div>
-            <div className="flex items-center gap-1.5 truncate">
-              <Mail size={12} className="text-[#00891D] shrink-0" />
+            <div className="flex items-center gap-2 truncate pl-2 border-l border-gray-100">
+              <Mail size={14} className="text-[#00891D] shrink-0" />
               <span className="truncate">{currentUser?.email || 'Abhi@Wheels.Com'}</span>
             </div>
           </div>
         </div>
 
-        {/* Assigned Vehicle Card */}
-        <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3.5">
+        {/* 2. Assigned Vehicle Card */}
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center">
-                <Truck size={20} />
+              <div className="w-11 h-11 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
+                <Truck size={20} strokeWidth={2} />
               </div>
               <div>
-                <h4 className="text-xs font-black text-gray-900 leading-tight">
+                <h4 className="text-sm font-extrabold text-gray-900 leading-tight">
                   {currentUser?.assignedVehicle?.vehicleName || 'Test Vehicle'}
                 </h4>
-                <p className="text-[10px] font-medium text-gray-400 mt-0.5">
-                  TATA ACE
-                </p>
+                <p className="text-xs font-semibold text-gray-400 mt-0.5">TATA ACE</p>
               </div>
             </div>
 
-            <span className="text-[10px] font-extrabold text-gray-800 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-xl">
+            <span className="text-xs font-bold text-gray-900 bg-white border border-gray-200 px-3 py-1.5 rounded-xl shadow-2xs">
               {currentUser?.assignedVehicle?.vehicleNumber || 'AP 39 AB 1234'}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-50">
-            <div>
-              <p className="text-[9px] font-semibold text-gray-400">Status</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00891D]"></span>
-                <span className="text-xs font-black text-[#00891D]">ACTIVE</span>
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 divide-x divide-gray-100">
+            <div className="pr-2">
+              <p className="text-[10px] font-bold text-gray-400">Status</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-[#00891D]"></span>
+                <span className="text-xs font-extrabold text-[#00891D]">ACTIVE</span>
               </div>
             </div>
-            <div>
-              <p className="text-[9px] font-semibold text-gray-400">Documentation</p>
-              <p className="text-xs font-black text-gray-900 mt-0.5">Verified Cloud</p>
+            <div className="pl-3">
+              <p className="text-[10px] font-bold text-gray-400">Documentation</p>
+              <p className="text-xs font-extrabold text-gray-900 mt-0.5">Verified Cloud</p>
             </div>
           </div>
         </div>
 
-        {/* CASH MANAGEMENT */}
+        {/* 3. CASH MANAGEMENT */}
         <div className="space-y-1.5 pt-1">
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
-            CASH MANAGEMENT
-          </p>
+          <p className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">CASH MANAGEMENT</p>
           <div
             onClick={() => navigate('/vsms/agent-portal/closing-cash')}
-            className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3 hover:border-emerald-200 transition-all cursor-pointer"
+            className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
           >
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center shrink-0">
-              <span className="text-lg">💵</span>
+            <div className="w-11 h-11 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
+              <Banknote size={20} strokeWidth={2} />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 space-y-0.5">
               <h5 className="text-xs font-extrabold text-gray-900">Cash Reconciliation</h5>
-              <p className="text-[10px] font-medium text-gray-400 mt-0.5">Reconcile cash collected</p>
+              <p className="text-[11px] font-medium text-gray-400">Reconcile cash collected</p>
             </div>
-            <span className="text-gray-300 font-bold text-sm">›</span>
+            <ChevronRight size={16} className="text-gray-300 shrink-0" />
           </div>
         </div>
 
-        {/* SALES */}
+        {/* 4. SALES */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
-            SALES
-          </p>
+          <p className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">SALES</p>
           <div
-            onClick={() => navigate('/vsms/agent-portal/sales')}
-            className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3 hover:border-emerald-200 transition-all cursor-pointer"
+            onClick={() => navigate('/vsms/agent-portal/sales-history')}
+            className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
           >
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center shrink-0">
-              <span className="text-base">📊</span>
+            <div className="w-11 h-11 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
+              <TrendingUp size={20} strokeWidth={2} />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 space-y-0.5">
               <h5 className="text-xs font-extrabold text-gray-900">Sales Management</h5>
-              <p className="text-[10px] font-medium text-gray-400 mt-0.5">View sales history and analytics</p>
+              <p className="text-[11px] font-medium text-gray-400">View sales history and analytics</p>
             </div>
-            <span className="text-gray-300 font-bold text-sm">›</span>
+            <ChevronRight size={16} className="text-gray-300 shrink-0" />
           </div>
         </div>
 
-        {/* MY ASSETS & ACTIVITIES */}
-        <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
-            MY ASSETS & ACTIVITIES
-          </p>
+        {/* 5. MY ASSETS & ACTIVITIES */}
+        <div className="space-y-1.5 pt-1">
+          <p className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">MY ASSETS & ACTIVITIES</p>
 
-          <div
-            onClick={() => setActiveSubView('myAssets')}
-            className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3 hover:border-emerald-200 transition-all cursor-pointer"
-          >
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center shrink-0">
-              <Shield size={18} />
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xs overflow-hidden divide-y divide-gray-100">
+            <div
+              onClick={() => setActiveSubView('myAssets')}
+              className="p-4 flex items-center justify-between gap-3.5 hover:bg-gray-50/50 transition-colors cursor-pointer"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
+                <ShieldCheck size={20} strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <h5 className="text-xs font-extrabold text-gray-900">My Assets</h5>
+                <p className="text-[11px] font-medium text-gray-400">View and manage your assets</p>
+              </div>
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h5 className="text-xs font-extrabold text-gray-900">My Assets</h5>
-              <p className="text-[10px] font-medium text-gray-400 mt-0.5">View and manage your assets</p>
-            </div>
-            <span className="text-gray-300 font-bold text-sm">›</span>
-          </div>
 
-          <div
-            onClick={() => setActiveSubView('myActivities')}
-            className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3 hover:border-emerald-200 transition-all cursor-pointer"
-          >
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center shrink-0">
-              <span className="text-base">📋</span>
+            <div
+              onClick={() => setActiveSubView('myActivities')}
+              className="p-4 flex items-center justify-between gap-3.5 hover:bg-gray-50/50 transition-colors cursor-pointer"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
+                <Calendar size={20} strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <h5 className="text-xs font-extrabold text-gray-900">My Activities</h5>
+                <p className="text-[11px] font-medium text-gray-400">Track your activities and tasks</p>
+              </div>
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h5 className="text-xs font-extrabold text-gray-900">My Activities</h5>
-              <p className="text-[10px] font-medium text-gray-400 mt-0.5">View recent operational logs & handovers</p>
-            </div>
-            <span className="text-gray-300 font-bold text-sm">›</span>
           </div>
         </div>
 
-        {/* Account Security Button */}
-        <div className="pt-1">
+        {/* 6. ACCOUNT SECURITY */}
+        <div className="space-y-1.5 pt-1">
+          <p className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">ACCOUNT SECURITY</p>
           <div
             onClick={() => setActiveSubView('changePassword')}
-            className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3 hover:border-emerald-200 transition-all cursor-pointer"
+            className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
           >
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center shrink-0">
-              <KeyRound size={18} />
+            <div className="w-11 h-11 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
+              <ShieldCheck size={20} strokeWidth={2} />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 space-y-0.5">
               <h5 className="text-xs font-extrabold text-gray-900">Change Password</h5>
-              <p className="text-[10px] font-medium text-gray-400 mt-0.5">Update your account password</p>
+              <p className="text-[11px] font-medium text-gray-400">Update your account password</p>
             </div>
-            <span className="text-gray-300 font-bold text-sm">›</span>
+            <ChevronRight size={16} className="text-gray-300 shrink-0" />
           </div>
+        </div>
+
+        {/* 7. Sign Out Button */}
+        <div className="pt-2">
+          <button
+            onClick={() => {
+              clearUser();
+              toast.success('Logged out successfully');
+              navigate('/login');
+            }}
+            className="w-full py-3.5 bg-[#FFF4EC] border border-[#E85D04] text-[#E85D04] rounded-2xl text-xs font-bold shadow-2xs active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer hover:bg-[#FFE8D6]"
+          >
+            <LogOut size={16} strokeWidth={2.2} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
     </div>

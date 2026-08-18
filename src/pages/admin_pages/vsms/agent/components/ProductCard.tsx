@@ -88,30 +88,33 @@ export default function ProductCard({ product }) {
       {/* Action Button: + Add or Stepper */}
       <div className="mt-2">
         {isOutOfStock ? (
-          <div className="w-full py-1.5 rounded-lg bg-gray-100 text-gray-400 text-center text-xs font-bold select-none">
-            Out of Stock
-          </div>
+          <button
+            disabled
+            className="w-full py-2 bg-[#EAEAEA] text-gray-400 rounded-xl text-xs font-bold text-center cursor-not-allowed select-none"
+          >
+            + Add
+          </button>
         ) : qty === 0 ? (
           <button
             onClick={handleAdd}
-            className="w-full py-1.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-lg text-xs font-bold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-1 cursor-pointer"
+            className="w-full py-2 bg-[#00891D] hover:bg-[#007018] text-white rounded-xl text-xs font-bold shadow-2xs active:scale-98 transition-all flex items-center justify-center gap-1 cursor-pointer"
           >
             + Add
           </button>
         ) : (
-          <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-0.5">
+          <div className="flex items-center justify-between bg-gray-50/80 border border-gray-200 rounded-xl p-1">
             <button
               onClick={() => updateQuantity(product.id, qty - 1)}
-              className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
+              className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-200/60 rounded-lg active:scale-90 cursor-pointer"
             >
-              <Minus size={12} strokeWidth={2.5} />
+              <Minus size={13} strokeWidth={2.5} />
             </button>
             <span className="text-xs font-black text-gray-900 px-1">{qty}</span>
             <button
               onClick={handleAdd}
-              className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
+              className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-200/60 rounded-lg active:scale-90 cursor-pointer"
             >
-              <Plus size={12} strokeWidth={2.5} />
+              <Plus size={13} strokeWidth={2.5} />
             </button>
           </div>
         )}
