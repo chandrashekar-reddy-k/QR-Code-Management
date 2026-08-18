@@ -36,11 +36,10 @@ import {
   BookOpen,
   Link2,
   Banknote,
-  Layers,
   Smartphone,
+  CheckCircle,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
-
 
 // Menu item types
 export interface MenuItem {
@@ -160,14 +159,10 @@ export const initialStateCheckers = {
     pathname.startsWith("/scheduled-delivery"),
   isVsmsOpen: (pathname: string) =>
     pathname.startsWith("/vsms") && !pathname.startsWith("/vsms/assets"),
-  isAssetsOpen: (pathname: string) =>
-    pathname.startsWith("/vsms/assets"),
-  isProcurementOpen: (pathname: string) =>
-    pathname.startsWith("/procurement"),
-  isPricingOpen: (pathname: string) =>
-    pathname.startsWith("/pricing"),
-  isBarcodeOpen: (pathname: string) =>
-    pathname.startsWith("/vsms/barcodes"),
+  isAssetsOpen: (pathname: string) => pathname.startsWith("/vsms/assets"),
+  isProcurementOpen: (pathname: string) => pathname.startsWith("/procurement"),
+  isPricingOpen: (pathname: string) => pathname.startsWith("/pricing"),
+  isBarcodeOpen: (pathname: string) => pathname.startsWith("/vsms/barcodes"),
   isRouteManagementOpen: (pathname: string) =>
     pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage",
   isVehicleManagementOpen: (pathname: string) =>
@@ -196,8 +191,12 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isRouteManagementOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/vsms/vehicles', label: 'Fleet Vehicles', icon: Truck },
-      { path: '/vsms/routes-coverage', label: 'Routes & Coverage', icon: MapPin },
+      { path: "/vsms/vehicles", label: "Fleet Vehicles", icon: Truck },
+      {
+        path: "/vsms/routes-coverage",
+        label: "Routes & Coverage",
+        icon: MapPin,
+      },
     ],
   },
 
@@ -226,7 +225,6 @@ export const sidebarConfig: MenuSection[] = [
     ],
   },
 
-
   // Vehicle Management
   {
     type: "collapsible",
@@ -236,8 +234,12 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isVehicleManagementOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
-      { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
+      {
+        path: "/vsms/fuel-maintenance",
+        label: "Fuel & Maintenance",
+        icon: RefreshCw,
+      },
+      { path: "/vsms/damages", label: "Vehicle Damages", icon: AlertTriangle },
     ],
   },
 
@@ -270,9 +272,17 @@ export const sidebarConfig: MenuSection[] = [
         label: "Refunds",
         icon: Banknote,
       },
-      { path: '/vsms/scheduled-deliveries', label: 'Scheduled Deliveries', icon: ShoppingBag },
-      { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
-      { path: '/inventory/monitoring/reservations', label: 'Reservations', icon: Clock },
+      {
+        path: "/vsms/scheduled-deliveries",
+        label: "Scheduled Deliveries",
+        icon: ShoppingBag,
+      },
+      { path: "/vsms/sales", label: "Sales History", icon: Receipt },
+      {
+        path: "/inventory/monitoring/reservations",
+        label: "Reservations",
+        icon: Clock,
+      },
     ],
   },
   // User Management
@@ -310,7 +320,12 @@ export const sidebarConfig: MenuSection[] = [
     hasSubPermissions: true,
     activeCheck: activeCheckers.isProductActive,
     subItems: [
-      { path: "/products/manage", label: "Manage Products", icon: Package, activeCheck: activeCheckers.isManageProductsActive },
+      {
+        path: "/products/manage",
+        label: "Manage Products",
+        icon: Package,
+        activeCheck: activeCheckers.isManageProductsActive,
+      },
       { path: "/products/bundles", label: "Bundle Deals", icon: Tag },
       { path: "/marketing/promos", label: "Homepage Promos", icon: Percent },
       { path: "/products/media", label: "Media", icon: Film },
@@ -333,14 +348,38 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isInventoryManagementOpen",
     hasSubPermissions: false,
     subItems: [
-      { path: '/inventory/storeroom', label: 'Store-Room (Inward)', icon: Store },
-      { path: '/inventory/production', label: 'Production & Packing', icon: Package },
-      { path: '/inventory/live', label: 'Live Stock (Channels)', icon: CheckCircle },
-      { path: '/inventory/online', label: 'Online (Customer App)', icon: Smartphone },
-      { path: '/inventory/pos', label: 'Store POS Stock', icon: ScanLine },
-      { path: '/inventory/vehicle', label: 'Vehicle Stock Management', icon: Truck },
-      { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
-      { path: '/stock', label: 'Stock Management', icon: Boxes },
+      {
+        path: "/inventory/storeroom",
+        label: "Store-Room (Inward)",
+        icon: Store,
+      },
+      {
+        path: "/inventory/production",
+        label: "Production & Packing",
+        icon: Package,
+      },
+      {
+        path: "/inventory/live",
+        label: "Live Stock (Channels)",
+        icon: CheckCircle,
+      },
+      {
+        path: "/inventory/online",
+        label: "Online (Customer App)",
+        icon: Smartphone,
+      },
+      { path: "/inventory/pos", label: "Store POS Stock", icon: ScanLine },
+      {
+        path: "/inventory/vehicle",
+        label: "Vehicle Stock Management",
+        icon: Truck,
+      },
+      {
+        path: "/vsms/stock-history",
+        label: "Vehicle Stock & Audits",
+        icon: Boxes,
+      },
+      { path: "/stock", label: "Stock Management", icon: Boxes },
     ],
   },
   // kjsghjkdsfhgk
@@ -386,8 +425,8 @@ export const sidebarConfig: MenuSection[] = [
     permission: "Partner: My Category Management",
     label: "My Category Management",
     icon: Tag, // Or any icon you prefer
-    stateKey: "isMyCategoryManagementOpen",  // Use this stateKey to manage open/close
-    activeCheck: activeCheckers.isMyCategoryManagementActive,  // Use the active state check
+    stateKey: "isMyCategoryManagementOpen", // Use this stateKey to manage open/close
+    activeCheck: activeCheckers.isMyCategoryManagementActive, // Use the active state check
     subItems: [
       { path: "/my-categories", label: "My Categories", icon: Tag },
       { path: "/my-sub-categories", label: "My Sub Categories", icon: Tag },
@@ -401,11 +440,28 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isShopkeeperErpAdminOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/shopkeeper-erp?tab=order-processing', label: 'Order Processing', icon: ClipboardList },
-      { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-      { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-      { path: '/shopkeeper-erp?tab=settings', label: 'Storage Operations', icon: Package, permission: 'PLM Settings' }
-    ]
+      {
+        path: "/shopkeeper-erp?tab=order-processing",
+        label: "Order Processing",
+        icon: ClipboardList,
+      },
+      {
+        path: "/shopkeeper-erp?tab=sla-monitoring",
+        label: "SLA Monitoring",
+        icon: BarChart3,
+      },
+      {
+        path: "/shopkeeper-erp?tab=staff-tracker",
+        label: "Staff Tracker",
+        icon: Users,
+      },
+      {
+        path: "/shopkeeper-erp?tab=settings",
+        label: "Storage Operations",
+        icon: Package,
+        permission: "PLM Settings",
+      },
+    ],
   },
   // Reservations moved into Order Management
   // {
@@ -426,7 +482,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/pricing/price-books", label: "Price Books", icon: BookOpen },
       { path: "/pricing/product-pricing", label: "Product Pricing", icon: Tag },
       // { path: "/pricing/price-comparison", label: "Price Comparison", icon: BarChart3 }
-    ]
+    ],
   },
 
   {
@@ -438,8 +494,16 @@ export const sidebarConfig: MenuSection[] = [
     hasSubPermissions: true,
     activeCheck: (pathname: string) => pathname.startsWith("/vsms/barcodes"),
     subItems: [
-      { path: '/vsms/barcodes?tab=master', label: 'Barcode Master', icon: ScanLine },
-      { path: '/vsms/barcodes?tab=printing', label: 'Barcode Printing', icon: Printer },
+      {
+        path: "/vsms/barcodes?tab=master",
+        label: "Barcode Master",
+        icon: ScanLine,
+      },
+      {
+        path: "/vsms/barcodes?tab=printing",
+        label: "Barcode Printing",
+        icon: Printer,
+      },
     ],
   },
 
@@ -487,15 +551,30 @@ export const sidebarConfig: MenuSection[] = [
     subItems: [
       { path: "/procurement?tab=vendors", label: "Vendors", icon: Users },
       { path: "/procurement?tab=mapping", label: "Item Mapping", icon: Link2 },
-      { path: "/procurement?tab=po", label: "Purchase Orders", icon: ClipboardList },
+      {
+        path: "/procurement?tab=po",
+        label: "Purchase Orders",
+        icon: ClipboardList,
+      },
       { path: "/procurement?tab=grn", label: "Goods Receipt", icon: Truck },
-      { path: "/procurement?tab=purchases", label: "Purchases", icon: ShoppingCart },
-      { path: "/procurement?tab=ledger", label: "Stock Ledger", icon: BookOpen },
-      { path: "/procurement?tab=payments", label: "Payments", icon: CreditCard },
+      {
+        path: "/procurement?tab=purchases",
+        label: "Purchases",
+        icon: ShoppingCart,
+      },
+      {
+        path: "/procurement?tab=ledger",
+        label: "Stock Ledger",
+        icon: BookOpen,
+      },
+      {
+        path: "/procurement?tab=payments",
+        label: "Payments",
+        icon: CreditCard,
+      },
       { path: "/procurement?tab=reports", label: "Reports", icon: BarChart3 },
     ],
   },
-
 
   // {
   //   type: "collapsible",
@@ -514,12 +593,6 @@ export const sidebarConfig: MenuSection[] = [
   //     { path: "/vendors/policies", label: "Vendors Policies", icon: FileText },
   //   ],
   // },
-
-
-
-
-
-
 
   // Point of Sales
   // {
@@ -550,8 +623,6 @@ export const sidebarConfig: MenuSection[] = [
   //   icon: Wallet,
   // },
 
-
-
   // // REPORTS Section
   // {
   //   type: "section",
@@ -577,7 +648,6 @@ export const sidebarConfig: MenuSection[] = [
   //     { path: "/reports/pos-reports", label: "POS Reports", icon: BarChart3 },
   //   ],
   // },
-
 
   // {
   //   type: "collapsible",
