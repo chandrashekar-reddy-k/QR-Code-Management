@@ -6,12 +6,13 @@ import {
   CheckCircle,
   AlertTriangle,
   Users,
-  ChevronDown,
   Loader2,
   Scissors,
+  RefreshCw,
 } from 'lucide-react';
 import { repackingService, RepackingLog, PendingRepackWorkOrder } from '../../../api/packing/repackingService';
 import { workOrderService } from '../../../api/packing/workOrderService';
+import ViewIconButton from '../../../components/ui/Button/ViewIconButton';
 import toast from 'react-hot-toast';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,41 +69,6 @@ const REPACK_TYPES = [
   'Customer Return → Repack',
 ];
 
-const Sel = ({
-  label,
-  value,
-  onChange,
-  children,
-  className = '',
-}: {
-  label?: string;
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div className="flex flex-col gap-1">
-    {label && (
-      <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase">
-        {label}
-      </span>
-    )}
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`appearance-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg pl-3 pr-7 py-2 text-xs font-medium text-gray-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D] ${className}`}
-      >
-        {children}
-      </select>
-      <ChevronDown
-        size={12}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
-      />
-    </div>
-  </div>
-);
-
 export const PackingRepacking: React.FC = () => {
   const [pendingWOs, setPendingWOs] = useState<PendingRepackWorkOrder[]>([]);
   const [completedRPs, setCompletedRPs] = useState<RepackingLog[]>([]);
@@ -119,16 +85,16 @@ export const PackingRepacking: React.FC = () => {
   const [filterWO] = useState('');
   const [filterProduct] = useState('');
 
-  // Assign bar
-  const [assignWO, setAssignWO] = useState('');
-  const [assignTo, setAssignTo] = useState('');
-  const [assignPriority, setAssignPriority] = useState('HIGH');
-  const [assignTime, setAssignTime] = useState('30 mins');
-
   // Modals
   const [selectedRP, setSelectedRP] = useState<RepackingLog | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedWO, setSelectedWO] = useState<PendingRepackWorkOrder | null>(null);
+
+  // Row-level Assign Repacking Modal state
+  const [assignModalWO, setAssignModalWO] = useState<PendingRepackWorkOrder | null>(null);
+  const [assignModalOperatorId, setAssignModalOperatorId] = useState('');
+  const [assignModalPriority, setAssignModalPriority] = useState<string>('HIGH');
+  const [assignModalLoading, setAssignModalLoading] = useState(false);
 
   // Form fields
   const [formSourceBatch, setFormSourceBatch] = useState('');
@@ -175,24 +141,33 @@ export const PackingRepacking: React.FC = () => {
     [completedRPs]
   );
 
-  // Task Assignment
-  const handleAssignTask = async () => {
-    if (!assignWO || !assignTo) return;
+  // Row-level Modal Task Assignment
+  const openAssignModal = (wo: PendingRepackWorkOrder) => {
+    setAssignModalWO(wo);
+    setAssignModalOperatorId((wo as any).operatorId || wo.operator?.id || '');
+    setAssignModalPriority(wo.priority || 'HIGH');
+  };
+
+  const handleConfirmAssignModal = async () => {
+    if (!assignModalWO || !assignModalOperatorId) {
+      toast.error('Please select a Team Member.');
+      return;
+    }
     try {
-      const wo = pendingWOs.find((w) => w.id === assignWO);
-      if (!wo) return;
-      await workOrderService.updateWorkOrderStatus(assignWO, 'REPACKING_IN_PROGRESS', {
-        operatorId: assignTo,
-        priority: assignPriority,
+      setAssignModalLoading(true);
+      await workOrderService.updateWorkOrderStatus(assignModalWO.id, 'REPACKING_IN_PROGRESS', {
+        operatorId: assignModalOperatorId,
+        priority: assignModalPriority,
       });
-      const assignedUser = operators.find((o) => o.id === assignTo);
-      toast.success(`Repacking task assigned to ${assignedUser?.name || 'Team Member'}.`);
-      setAssignWO('');
-      setAssignTo('');
+      const assignedUser = operators.find((o) => o.id === assignModalOperatorId);
+      toast.success(`Repacking task for ${assignModalWO.woNumber} assigned to ${assignedUser?.name || 'Team Member'}.`);
+      setAssignModalWO(null);
       loadAll();
     } catch (err: any) {
       console.error('Failed to assign task', err);
       toast.error(err?.response?.data?.message || err?.message || 'Failed to assign repacking task');
+    } finally {
+      setAssignModalLoading(false);
     }
   };
 
@@ -300,11 +275,22 @@ export const PackingRepacking: React.FC = () => {
   return (
     <div className="w-full px-2 md:px-4 pb-6 text-left">
       {/* Header */}
-      <div className="mb-4 mt-3">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Repacking & Rework</h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Home &gt; <span className="text-orange-600 dark:text-orange-400 font-semibold">Repacking</span>
-        </p>
+      <div className="mb-4 mt-3 flex justify-between items-center sm:items-end flex-col sm:flex-row gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Repacking & Rework</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Home &gt; <span className="text-orange-600 dark:text-orange-400 font-semibold">Repacking</span>
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setSelectedWO(null);
+            setIsFormOpen(true);
+          }}
+          className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer"
+        >
+          <Scissors size={16} /> New Repacking Log
+        </button>
       </div>
 
       {/* 6 KPI Cards */}
@@ -378,66 +364,7 @@ export const PackingRepacking: React.FC = () => {
         </div>
       </div>
 
-      {/* Assign Task Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs mb-5">
-        <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <span className="text-sm font-bold text-gray-800 dark:text-white">Assign Repacking Task</span>
-          <button
-            onClick={() => {
-              setSelectedWO(null);
-              setIsFormOpen(true);
-            }}
-            className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-          >
-            <Scissors size={14} /> New Repacking Log
-          </button>
-        </div>
 
-        <div className="px-4 py-3 flex flex-wrap gap-x-4 gap-y-3 items-end">
-          <Sel label="SELECT PRODUCT / WORK ORDER" value={assignWO} onChange={setAssignWO} className="min-w-[220px]">
-            <option value="">-- Choose failed/rework WO --</option>
-            {pendingWOs.map((wo) => (
-              <option key={wo.id} value={wo.id}>
-                {wo.woNumber} — {wo.product?.name ?? 'Unknown'}
-              </option>
-            ))}
-          </Sel>
-
-          <Sel label="ASSIGN TO (TEAM MEMBER)" value={assignTo} onChange={setAssignTo} className="min-w-[180px]">
-            <option value="">{operators.length === 0 ? 'No team members found' : '-- Select Team Member --'}</option>
-            {operators.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </Sel>
-
-          <Sel label="PRIORITY" value={assignPriority} onChange={setAssignPriority} className="w-32">
-            {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const).map((p) => (
-              <option key={p} value={p}>
-                {PRIORITY_LABEL[p]}
-              </option>
-            ))}
-          </Sel>
-
-          <Sel label="EXPECTED TIME" value={assignTime} onChange={setAssignTime} className="w-28">
-            {['15 mins', '30 mins', '45 mins', '1 hour', '2 hours'].map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </Sel>
-
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-transparent select-none">Action</span>
-            <button
-              disabled={!assignWO || !assignTo}
-              className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-              onClick={handleAssignTask}
-            >
-              <Users size={14} /> Assign Task
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs overflow-hidden mb-4">
@@ -533,19 +460,26 @@ export const PackingRepacking: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {row._type === 'PENDING' ? (
-                          <button
-                            onClick={() => row.rawWO && openForm(row.rawWO)}
-                            className="bg-[#00891D] hover:bg-[#006b17] text-white font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors cursor-pointer whitespace-nowrap shadow-xs"
-                          >
-                            Start Repacking
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => row.rawWO && openForm(row.rawWO)}
+                              className="bg-[#00891D] hover:bg-[#006b17] text-white font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors cursor-pointer whitespace-nowrap shadow-xs"
+                            >
+                              Start Repacking
+                            </button>
+                            <button
+                              onClick={() => row.rawWO && openAssignModal(row.rawWO)}
+                              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold px-2.5 py-1.5 rounded-lg text-[11px] transition-colors cursor-pointer whitespace-nowrap shadow-xs"
+                              title="Assign Team Member to this repacking task"
+                            >
+                              Assign
+                            </button>
+                          </div>
                         ) : (
-                          <button
+                          <ViewIconButton
                             onClick={() => row.rawRP && setSelectedRP(row.rawRP)}
-                            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors cursor-pointer whitespace-nowrap shadow-xs"
-                          >
-                            View Details
-                          </button>
+                            title="View Details"
+                          />
                         )}
                       </td>
                     </tr>
@@ -623,6 +557,102 @@ export const PackingRepacking: React.FC = () => {
                 className="bg-slate-800 dark:bg-gray-700 hover:bg-slate-900 dark:hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-xs cursor-pointer"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Row-level Assign Repacking Task Modal */}
+      {assignModalWO && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex justify-center items-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-md overflow-hidden text-left space-y-4">
+            <div className="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center bg-indigo-950 text-white">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Users size={18} className="text-indigo-400" /> Assign Repacking Task
+              </h3>
+              <button
+                onClick={() => setAssignModalWO(null)}
+                className="p-1 rounded-lg hover:bg-indigo-900 text-indigo-300 hover:text-white cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-2 space-y-4 text-xs">
+              <div className="bg-slate-50 dark:bg-gray-900 p-3.5 rounded-lg border border-slate-100 dark:border-gray-700 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-mono font-black text-indigo-600 dark:text-indigo-400 text-sm">
+                    {assignModalWO.woNumber}
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    {assignModalWO.priority || 'MEDIUM'}
+                  </span>
+                </div>
+                <div className="font-bold text-slate-800 dark:text-gray-100 text-sm truncate">
+                  {assignModalWO.product?.name || 'Product'}
+                </div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Batch: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{assignModalWO.batchNumber || (assignModalWO as any).batchNo || 'N/A'}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                  Assign To (Team Member) *
+                </label>
+                <select
+                  value={assignModalOperatorId}
+                  onChange={(e) => setAssignModalOperatorId(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="">
+                    {operators.length === 0 ? 'No team members found' : '-- Select Team Member --'}
+                  </option>
+                  {operators.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} {u.email ? `(${u.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                  Priority
+                </label>
+                <select
+                  value={assignModalPriority}
+                  onChange={(e) => setAssignModalPriority(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const).map((p) => (
+                    <option key={p} value={p}>
+                      {PRIORITY_LABEL[p]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-gray-900/50 border-t border-slate-100 dark:border-gray-700 flex justify-end gap-2">
+              <button
+                onClick={() => setAssignModalWO(null)}
+                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={assignModalLoading || !assignModalOperatorId}
+                onClick={handleConfirmAssignModal}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                {assignModalLoading ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <Users size={14} />
+                )}
+                <span>Confirm Assignment</span>
               </button>
             </div>
           </div>

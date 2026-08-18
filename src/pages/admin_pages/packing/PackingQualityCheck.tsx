@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Users,
   Search,
-  ChevronDown,
   Loader2,
   Package,
   RotateCcw,
@@ -157,41 +156,6 @@ const CHECKLIST_SECTIONS = [
   },
 ];
 
-const Sel = ({
-  label,
-  value,
-  onChange,
-  children,
-  className = '',
-}: {
-  label?: string;
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div className="flex flex-col gap-1">
-    {label && (
-      <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 uppercase">
-        {label}
-      </span>
-    )}
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`appearance-none bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg pl-3 pr-7 py-2 text-xs font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D] ${className}`}
-      >
-        {children}
-      </select>
-      <ChevronDown
-        size={12}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none"
-      />
-    </div>
-  </div>
-);
-
 export const PackingQualityCheck: React.FC = () => {
   const [pendingWOs, setPendingWOs] = useState<PendingQCWorkOrder[]>([]);
   const [completedQCs, setCompletedQCs] = useState<QCRecord[]>([]);
@@ -207,12 +171,6 @@ export const PackingQualityCheck: React.FC = () => {
   const [filterBatch, setFilterBatch] = useState('');
   const [filterWO, setFilterWO] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
-
-  // Assign bar
-  const [assignWO, setAssignWO] = useState('');
-  const [assignTo, setAssignTo] = useState('');
-  const [assignPriority, setAssignPriority] = useState('HIGH');
-  const [assignTime, setAssignTime] = useState('30 mins');
 
   // Modals
   const [selectedQC, setSelectedQC] = useState<QCRecord | null>(null);
@@ -380,33 +338,6 @@ export const PackingQualityCheck: React.FC = () => {
     filterProduct,
     search,
   ]);
-
-  // Task Assignment (Top Bar)
-  const handleAssignTask = async () => {
-    if (!assignWO || !assignTo) return;
-    try {
-      const wo = pendingWOs.find((w) => w.id === assignWO);
-      if (!wo) return;
-      await workOrderService.updateWorkOrderStatus(assignWO, 'QC_PENDING', {
-        inspectorId: assignTo,
-        priority: assignPriority,
-      });
-      const assignedInspector = inspectors.find((i) => i.id === assignTo);
-      toast.success(
-        `Inspection task assigned to ${
-          assignedInspector?.name || 'QC Inspector'
-        }. It will reflect in their QC portal.`
-      );
-      setAssignWO('');
-      setAssignTo('');
-      loadAll(false);
-    } catch (err: any) {
-      console.error('Failed to assign task', err);
-      toast.error(
-        err.response?.data?.message || err.message || 'Failed to assign inspector task'
-      );
-    }
-  };
 
   // Row-level Modal Task Assignment
   const openAssignModal = (wo: PendingQCWorkOrder) => {
