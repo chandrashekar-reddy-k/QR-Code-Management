@@ -706,13 +706,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   ];
 
   const productSubItems = [
-    { path: '/products/manage', label: 'Partner Manage Products', icon: Package },
+    { path: '/products/manage', label: 'Manage Products', icon: Package },
     { path: '/products/approve', label: 'Partner Approve Requests', icon: CheckCircle },
     { path: '/products/ratings', label: 'Partner Product Ratings', icon: Star },
     { path: '/products/media', label: 'Partner Media', icon: Film },
-    // { path: '/products/import-products', label: 'Import Products', icon: ArrowDownToLine },
-    // { path: '/products/export-products', label: 'Export Products', icon: ArrowUpFromLine },
-    // { path: '/products/order', label: 'Products Order' },
   ];
   const pricingSubItems = [
     { path: '/pricing/price-books', label: 'Price Books', icon: BookOpen },
