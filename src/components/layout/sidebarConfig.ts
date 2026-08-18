@@ -38,6 +38,11 @@ import {
   Banknote,
   Smartphone,
   CheckCircle,
+  Database,
+  FileText,
+  ArrowRightLeft,
+  Shield,
+  RotateCcw,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
