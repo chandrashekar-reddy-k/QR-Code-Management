@@ -13,6 +13,7 @@ import {
   Loader2,
   Package,
   RotateCcw,
+  RefreshCw,
 } from 'lucide-react';
 import {
   qualityCheckService,
@@ -219,6 +220,12 @@ export const PackingQualityCheck: React.FC = () => {
   const [selectedWO, setSelectedWO] = useState<PendingQCWorkOrder | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
+  // Row-level Assign Inspector Modal state
+  const [assignModalWO, setAssignModalWO] = useState<PendingQCWorkOrder | null>(null);
+  const [assignModalInspectorId, setAssignModalInspectorId] = useState('');
+  const [assignModalPriority, setAssignModalPriority] = useState<string>('HIGH');
+  const [assignModalLoading, setAssignModalLoading] = useState(false);
+
   // Form fields
   const [formBatchNo, setFormBatchNo] = useState('');
   const [formCheckedQty, setFormCheckedQty] = useState(10);
@@ -374,7 +381,7 @@ export const PackingQualityCheck: React.FC = () => {
     search,
   ]);
 
-  // Task Assignment
+  // Task Assignment (Top Bar)
   const handleAssignTask = async () => {
     if (!assignWO || !assignTo) return;
     try {
@@ -398,6 +405,42 @@ export const PackingQualityCheck: React.FC = () => {
       toast.error(
         err.response?.data?.message || err.message || 'Failed to assign inspector task'
       );
+    }
+  };
+
+  // Row-level Modal Task Assignment
+  const openAssignModal = (wo: PendingQCWorkOrder) => {
+    setAssignModalWO(wo);
+    setAssignModalInspectorId((wo as any).inspectorId || wo.inspector?.id || '');
+    setAssignModalPriority(wo.priority || 'HIGH');
+  };
+
+  const handleConfirmAssignModal = async () => {
+    if (!assignModalWO || !assignModalInspectorId) {
+      toast.error('Please select a QC Inspector.');
+      return;
+    }
+    try {
+      setAssignModalLoading(true);
+      await workOrderService.updateWorkOrderStatus(assignModalWO.id, 'QC_PENDING', {
+        inspectorId: assignModalInspectorId,
+        priority: assignModalPriority as any,
+      });
+      const assignedInspector = inspectors.find((i) => i.id === assignModalInspectorId);
+      toast.success(
+        `Inspection task for ${assignModalWO.woNumber} assigned to ${
+          assignedInspector?.name || 'QC Inspector'
+        }!`
+      );
+      setAssignModalWO(null);
+      loadAll(false);
+    } catch (err: any) {
+      console.error('Failed to assign task', err);
+      toast.error(
+        err.response?.data?.message || err.message || 'Failed to assign inspector'
+      );
+    } finally {
+      setAssignModalLoading(false);
     }
   };
 
@@ -477,7 +520,7 @@ export const PackingQualityCheck: React.FC = () => {
   return (
     <div className="space-y-6 text-left pb-10">
       {/* Title & Subtitle */}
-      <div className="flex justify-between items-end">
+      <div className="flex justify-between items-center sm:items-end flex-col sm:flex-row gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
             Quality Check
@@ -486,6 +529,15 @@ export const PackingQualityCheck: React.FC = () => {
             Home &gt; Quality Check
           </p>
         </div>
+        <button
+          onClick={() => {
+            setSelectedWO(null);
+            setIsFormOpen(true);
+          }}
+          className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer"
+        >
+          <ShieldCheck size={16} /> New Inspection Log
+        </button>
       </div>
 
       {/* KPI Cards */}
@@ -575,92 +627,7 @@ export const PackingQualityCheck: React.FC = () => {
         </div>
       </div>
 
-      {/* Assign Task Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between">
-          <span className="text-sm font-bold text-slate-800 dark:text-white">
-            Assign Inspection Task
-          </span>
-          <button
-            onClick={() => {
-              setSelectedWO(null);
-              setIsFormOpen(true);
-            }}
-            className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-          >
-            <ShieldCheck size={14} /> New Inspection Log
-          </button>
-        </div>
 
-        <div className="p-4 flex flex-wrap gap-x-4 gap-y-3 items-end">
-          <Sel
-            label="SELECT PRODUCT / WORK ORDER"
-            value={assignWO}
-            onChange={setAssignWO}
-            className="min-w-[220px]"
-          >
-            <option value="">-- Choose pending WO --</option>
-            {pendingWOs.map((wo) => (
-              <option key={wo.id} value={wo.id}>
-                {wo.woNumber} — {wo.product?.name ?? 'Unknown'}
-              </option>
-            ))}
-          </Sel>
-
-          <Sel
-            label="ASSIGN TO (QC INSPECTOR)"
-            value={assignTo}
-            onChange={setAssignTo}
-            className="min-w-[180px]"
-          >
-            <option value="">
-              {inspectors.length === 0
-                ? 'No inspectors found'
-                : '-- Select Inspector --'}
-            </option>
-            {inspectors.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </Sel>
-
-          <Sel
-            label="PRIORITY"
-            value={assignPriority}
-            onChange={setAssignPriority}
-            className="w-32"
-          >
-            {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const).map((p) => (
-              <option key={p} value={p}>
-                {PRIORITY_LABEL[p]}
-              </option>
-            ))}
-          </Sel>
-
-          <Sel
-            label="EXPECTED TIME"
-            value={assignTime}
-            onChange={setAssignTime}
-            className="w-28"
-          >
-            {['15 mins', '30 mins', '45 mins', '1 hour', '2 hours'].map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </Sel>
-
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-transparent select-none">Action</span>
-            <button
-              disabled={!assignWO || !assignTo}
-              className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-              onClick={handleAssignTask}
-            >
-              <Users size={14} /> Assign Inspector
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Filter & Search Bar */}
       <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
@@ -834,10 +801,23 @@ export const PackingQualityCheck: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-left whitespace-nowrap">
                         {row._type === 'PENDING' ? (
-                          <ViewIconButton
-                            onClick={() => row.rawWO && openForm(row.rawWO)}
-                            title="View Status"
-                          />
+                          <div className="flex items-center gap-2">
+                            <ViewIconButton
+                              onClick={() => row.rawWO && openForm(row.rawWO)}
+                              title="Perform / View QC"
+                            />
+                            <button
+                              onClick={() => {
+                                if (row.rawWO) {
+                                  openAssignModal(row.rawWO);
+                                }
+                              }}
+                              className="px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold text-[10px] cursor-pointer transition-colors border border-indigo-200 dark:border-indigo-800"
+                              title="Assign Inspector to this WO"
+                            >
+                              Assign
+                            </button>
+                          </div>
                         ) : (
                           <ViewIconButton
                             onClick={() => row.rawQC && setSelectedQC(row.rawQC)}
@@ -969,6 +949,102 @@ export const PackingQualityCheck: React.FC = () => {
                 className="bg-slate-800 dark:bg-gray-700 hover:bg-slate-900 dark:hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg text-xs cursor-pointer"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Row-level Assign QC Inspector Modal */}
+      {assignModalWO && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex justify-center items-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-md overflow-hidden text-left space-y-4">
+            <div className="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center bg-indigo-950 text-white">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Users size={18} className="text-indigo-400" /> Assign QC Inspector
+              </h3>
+              <button
+                onClick={() => setAssignModalWO(null)}
+                className="p-1 rounded-lg hover:bg-indigo-900 text-indigo-300 hover:text-white cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-2 space-y-4 text-xs">
+              <div className="bg-slate-50 dark:bg-gray-900 p-3.5 rounded-lg border border-slate-100 dark:border-gray-700 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-mono font-black text-indigo-600 dark:text-indigo-400 text-sm">
+                    {assignModalWO.woNumber}
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    {assignModalWO.priority || 'MEDIUM'}
+                  </span>
+                </div>
+                <div className="font-bold text-slate-800 dark:text-gray-100 text-sm truncate">
+                  {assignModalWO.product?.name || 'Product'}
+                </div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Batch: <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{assignModalWO.batchNumber || 'N/A'}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                  Assign To (QC Inspector) *
+                </label>
+                <select
+                  value={assignModalInspectorId}
+                  onChange={(e) => setAssignModalInspectorId(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="">
+                    {inspectors.length === 0 ? 'No inspectors found' : '-- Select QC Inspector --'}
+                  </option>
+                  {inspectors.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} {u.email ? `(${u.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                  Priority
+                </label>
+                <select
+                  value={assignModalPriority}
+                  onChange={(e) => setAssignModalPriority(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const).map((p) => (
+                    <option key={p} value={p}>
+                      {PRIORITY_LABEL[p]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-gray-900/50 border-t border-slate-100 dark:border-gray-700 flex justify-end gap-2">
+              <button
+                onClick={() => setAssignModalWO(null)}
+                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={assignModalLoading || !assignModalInspectorId}
+                onClick={handleConfirmAssignModal}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                {assignModalLoading ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <Users size={14} />
+                )}
+                <span>Confirm Assignment</span>
               </button>
             </div>
           </div>

@@ -252,9 +252,9 @@ export const PackingExecutionDetails: React.FC = () => {
         </h3>
         <div className="grid grid-cols-4 gap-2 relative">
           {STAGES.map((stage, idx) => {
-            const activeIdx = currentStageIndex();
-            const isDone = idx < activeIdx || selectedWO.status === 'PACKING_COMPLETED';
-            const isCurrent = idx === activeIdx && selectedWO.status !== 'PACKING_COMPLETED';
+            const isCompletedState = selectedWO.status === 'PACKING_COMPLETED' || selectedWO.status === 'COMPLETED';
+            const isDone = idx < activeIdx || isCompletedState;
+            const isCurrent = idx === activeIdx && !isCompletedState;
 
             return (
               <div
@@ -457,7 +457,7 @@ export const PackingExecutionDetails: React.FC = () => {
               </button>
             )}
 
-            {selectedWO.status === 'PACKING_COMPLETED' && (
+            {(selectedWO.status === 'PACKING_COMPLETED' || selectedWO.status === 'COMPLETED') && (
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-center text-xs font-bold text-emerald-700 dark:text-emerald-400">
                 ✓ Packing Execution Completed
               </div>

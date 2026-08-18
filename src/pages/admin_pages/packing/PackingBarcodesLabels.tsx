@@ -216,10 +216,11 @@ export const PackingBarcodesLabels: React.FC = () => {
     fetchPrintHistory();
   }, []);
 
-  // Filter to eligible label work orders (PACKING_COMPLETED, repacking relabeling, or label workflow statuses)
+  // Filter to eligible label work orders (PACKING_COMPLETED, COMPLETED, repacking relabeling, or label workflow statuses)
   const selectableWOs = useMemo(() => {
     const eligibleStatuses: WoStatus[] = [
       'PACKING_COMPLETED',   // Standard flow
+      'COMPLETED',           // Fallback for completed work orders
       'REPACKING_COMPLETED', // Repacking with relabeling required — arrives here via workflowService
       'LABEL_APPLICATION_ASSIGNED',
       'LABEL_APPLICATION_IN_PROGRESS',

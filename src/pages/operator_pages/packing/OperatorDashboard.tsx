@@ -43,8 +43,8 @@ export const OperatorDashboard: React.FC = () => {
   ];
 
   const pendingJobs = workOrders.filter((wo) => ['APPROVED', 'PENDING'].includes(wo.status)).length;
-  const readyToStart = workOrders.filter((wo) => wo.status === 'MATERIAL_ISSUED').length;
-  const packingInProgress = workOrders.filter((wo) => wo.status === 'PACKING_STARTED' || wo.status === 'PACKING_IN_PROGRESS').length;
+  const readyToStart = workOrders.filter((wo) => wo.status === 'MATERIAL_ISSUED' || wo.status === 'LABEL_APPLICATION_ASSIGNED').length;
+  const packingInProgress = workOrders.filter((wo) => wo.status === 'PACKING_STARTED' || wo.status === 'PACKING_IN_PROGRESS' || wo.status === 'LABEL_APPLICATION_IN_PROGRESS').length;
   const completedToday = workOrders.filter((wo) =>
     completedStatuses.includes(wo.status) &&
     ((wo.completedAt ? new Date(wo.completedAt).toDateString() === new Date().toDateString() : false) ||

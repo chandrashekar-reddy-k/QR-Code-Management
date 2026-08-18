@@ -48,8 +48,24 @@ export const LabelApplication: React.FC = () => {
       let tasksData: LabelTask[] = [];
       try {
         const res = await barcodeService.getMyTasks();
-        if (res && res.data && Array.isArray(res.data)) {
-          tasksData = res.data;
+        const rawList = Array.isArray(res) ? res : (res?.data && Array.isArray(res.data) ? res.data : []);
+        if (rawList.length > 0) {
+          tasksData = rawList.map((item: any) => {
+            const wo = item.workOrder || item;
+            return {
+              id: wo.id || item.woId || item.id,
+              taskId: item.id,
+              woNumber: wo.woNumber || item.woNumber || 'WO-TASK',
+              product: wo.product,
+              status: wo.status || (item.status === 'COMPLETED' ? 'LABELS_APPLIED' : (item.status === 'IN_PROGRESS' ? 'LABEL_APPLICATION_IN_PROGRESS' : 'LABEL_APPLICATION_ASSIGNED')),
+              priority: wo.priority || 'MEDIUM',
+              requiredQty: item.requiredQuantity || wo.actualProduced || wo.requiredQty || 0,
+              actualProduced: wo.actualProduced || wo.requiredQty || 0,
+              labelsApplied: wo.labelsApplied || item.appliedQuantity || 0,
+              startedAt: item.startedAt || wo.startedAt,
+              createdAt: item.createdAt || wo.createdAt,
+            };
+          });
         }
       } catch (err) {
         console.warn('Fallback to workOrderService for label tasks:', err);

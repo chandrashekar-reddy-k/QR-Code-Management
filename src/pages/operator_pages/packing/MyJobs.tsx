@@ -48,9 +48,9 @@ export const MyJobs: React.FC = () => {
   const getFilteredTasks = () => {
     switch (activeTab) {
       case 'ready':
-        return tasks.filter(t => t.status === 'MATERIAL_ISSUED');
+        return tasks.filter(t => t.status === 'MATERIAL_ISSUED' || t.status === 'LABEL_APPLICATION_ASSIGNED');
       case 'in-progress':
-        return tasks.filter(t => t.status === 'PACKING_STARTED' || t.status === 'PACKING_IN_PROGRESS');
+        return tasks.filter(t => t.status === 'PACKING_STARTED' || t.status === 'PACKING_IN_PROGRESS' || t.status === 'LABEL_APPLICATION_IN_PROGRESS');
       case 'pending':
         return tasks.filter(t => ['APPROVED', 'PENDING', 'DRAFT'].includes(t.status));
       case 'labels':
@@ -152,7 +152,7 @@ export const MyJobs: React.FC = () => {
           <span className={`ml-2 inline-flex items-center justify-center px-2 py-0.5 text-[10px] rounded-full ${
             activeTab === 'ready' ? 'bg-blue-200 text-blue-900' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
           }`}>
-            {tasks.filter(t => t.status === 'MATERIAL_ISSUED').length}
+            {tasks.filter(t => t.status === 'MATERIAL_ISSUED' || t.status === 'LABEL_APPLICATION_ASSIGNED').length}
           </span>
         </button>
 
@@ -168,7 +168,7 @@ export const MyJobs: React.FC = () => {
           <span className={`ml-2 inline-flex items-center justify-center px-2 py-0.5 text-[10px] rounded-full ${
             activeTab === 'in-progress' ? 'bg-orange-200 text-orange-900' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
           }`}>
-            {tasks.filter(t => t.status === 'PACKING_STARTED' || t.status === 'PACKING_IN_PROGRESS').length}
+            {tasks.filter(t => t.status === 'PACKING_STARTED' || t.status === 'PACKING_IN_PROGRESS' || t.status === 'LABEL_APPLICATION_IN_PROGRESS').length}
           </span>
         </button>
 

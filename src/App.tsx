@@ -343,11 +343,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Parse user role from storage
   let role = "";
+  let userEmailOrName = "";
   try {
-    const userStr = isShopkeeperPortal ? sessionStorage.getItem('staffUser') : localStorage.getItem('partnerUser');
+    const userStr = (isShopkeeperPortal || isPackerOperatorPortal) ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user')) : (localStorage.getItem('partnerUser') || localStorage.getItem('user'));
     const user = userStr ? JSON.parse(userStr) : null;
     role = user?.role || "";
+    userEmailOrName = ((user?.email || user?.name || user?.phone || "") as string).toLowerCase();
   } catch (e) { }
+
+  const portalMode = sessionStorage.getItem('portalMode') || localStorage.getItem('portalMode');
 
   const hasAgentPermissions = permissions.some((p: string) => p.startsWith("vsms_agent_"));
   const hasShopkeeperPermissions = permissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
@@ -369,6 +373,47 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Dynamically determine classification based strictly on active permissions (modules) or user role
   const isShopkeeperRole = hasShopkeeperPermissions && !hasPartnerPermissions;
   const isAgentRole = (hasAgentPermissions || ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(role.toUpperCase())) && !hasPartnerPermissions && !isShopkeeperRole;
+
+  const isPackerOperatorRole = portalMode === 'OPERATOR' || (
+    portalMode !== 'PARTNER' && (
+      ["PACKING_OPERATOR", "PACKER_OPERATOR", "OPERATOR", "PACKER", "WAREHOUSE_STAFF"].includes(role.toUpperCase()) ||
+      userEmailOrName.includes('operator') ||
+      userEmailOrName.includes('packer') ||
+      userEmailOrName.includes('packing') ||
+      permissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"))
+    )
+  );
+
+  const isPackerQcRole = portalMode === 'QC' || (
+    portalMode !== 'PARTNER' && (
+      ["PACKING_QC", "PACKER_QC", "QC_INSPECTOR", "QC"].includes(role.toUpperCase()) ||
+      userEmailOrName.includes('qc') ||
+      userEmailOrName.includes('inspector') ||
+      permissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"))
+    )
+  );
+
+  if (isPackerOperatorRole) {
+    if (!location.pathname.startsWith('/packer/operator')) {
+      return <Navigate to="/packer/operator/dashboard" replace />;
+    }
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  if (isPackerQcRole) {
+    if (!location.pathname.startsWith('/packer/qc')) {
+      return <Navigate to="/packer/qc/dashboard" replace />;
+    }
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
+  }
 
   if (isAgentRole) {
     if (!isAgentPortal) {

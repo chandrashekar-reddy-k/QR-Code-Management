@@ -101,13 +101,14 @@ export const PackingExecution: React.FC = () => {
     fetchOrders();
   }, []);
 
-  // Queue Filtering: Display only MATERIAL_ISSUED, PACKING_STARTED, PACKING_IN_PROGRESS, PACKING_COMPLETED
+  // Queue Filtering: Display only MATERIAL_ISSUED, PACKING_STARTED, PACKING_IN_PROGRESS, PACKING_COMPLETED, COMPLETED
   const eligibleWOs = useMemo(() => {
     const validStatuses: WoStatus[] = [
       'MATERIAL_ISSUED',
       'PACKING_STARTED',
       'PACKING_IN_PROGRESS',
       'PACKING_COMPLETED',
+      'COMPLETED',
     ];
     return workOrders.filter((w) => validStatuses.includes(w.status));
   }, [workOrders]);
@@ -136,7 +137,7 @@ export const PackingExecution: React.FC = () => {
     (w) => w.status === 'PACKING_STARTED' || w.status === 'PACKING_IN_PROGRESS'
   ).length;
   const completedTodayCount = eligibleWOs.filter((w) => {
-    if (w.status !== 'PACKING_COMPLETED') return false;
+    if (w.status !== 'PACKING_COMPLETED' && w.status !== 'COMPLETED') return false;
     if (!w.completedAt) return true;
     return new Date(w.completedAt).toDateString() === new Date().toDateString();
   }).length;

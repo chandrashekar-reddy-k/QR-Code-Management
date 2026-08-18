@@ -5,18 +5,18 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Eye, EyeOff } from "lucide-react";
 import {
   LoginFormData,
-  AgentLoginFormData,
   MAX_EMAIL_LENGTH,
   MAX_PASSWORD_LENGTH,
 } from "../../../validationSchema/auth";
-import { loginSchema, agentLoginSchema } from "../../../validationSchema/auth";
-import useLogin, { useAgentLogin, LoginResponse } from "../../../hooks/login";
+import { loginSchema } from "../../../validationSchema/auth";
+import useLogin, { LoginResponse } from "../../../hooks/login";
 import SecurityVerificationOverlay from "../../../components/SecurityVerificationOverlay";
 
 const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [portalMode, setPortalMode] = useState<'PARTNER' | 'OPERATOR' | 'QC'>('PARTNER');
 
   const [pendingLoginData, setPendingLoginData] = useState<LoginResponse | null>(null);
 
@@ -61,12 +61,27 @@ const Login = () => {
       }
     }
 
-    const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
-    const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
-    const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
-
     const roleUpper = (user.role || "").toUpperCase();
+    const identifier = ((user.email || user.phone || user.name || "") as string).toLowerCase();
+
+    const isOperator =
+      portalMode === 'OPERATOR' ||
+      ['WAREHOUSE_STAFF', 'PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER'].includes(roleUpper) ||
+      identifier.includes('operator') ||
+      identifier.includes('packer') ||
+      identifier.includes('packing') ||
+      userPermissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"));
+
+    const isQc =
+      portalMode === 'QC' ||
+      ['PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR', 'QC'].includes(roleUpper) ||
+      identifier.includes('qc') ||
+      identifier.includes('inspector') ||
+      userPermissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"));
+
     const isAgentRole = ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper);
+    const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
+    const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
 
     if (user.isCreatedPassword) {
       navigate("/create-password", {
@@ -76,13 +91,25 @@ const Login = () => {
         },
       });
     } else {
-      if (isAgentRole || hasAgent) {
+      if (isOperator && portalMode !== 'PARTNER') {
+        sessionStorage.setItem('portalMode', 'OPERATOR');
+        localStorage.setItem('portalMode', 'OPERATOR');
+        navigate("/packer/operator/dashboard");
+      } else if (isQc && portalMode !== 'PARTNER') {
+        sessionStorage.setItem('portalMode', 'QC');
+        localStorage.setItem('portalMode', 'QC');
+        navigate("/packer/qc/dashboard");
+      } else if (isAgentRole || hasAgent) {
+        sessionStorage.setItem('portalMode', 'AGENT');
+        localStorage.setItem('portalMode', 'AGENT');
         navigate("/vsms/agent-portal/today-plan");
-      } else if (hasPartner) {
-        navigate("/");
-      } else if (hasShopkeeper) {
+      } else if (hasShopkeeper && portalMode !== 'PARTNER') {
+        sessionStorage.setItem('portalMode', 'SHOPKEEPER');
+        localStorage.setItem('portalMode', 'SHOPKEEPER');
         navigate("/shopkeeper");
       } else {
+        sessionStorage.setItem('portalMode', 'PARTNER');
+        localStorage.setItem('portalMode', 'PARTNER');
         navigate("/");
       }
     }
@@ -202,9 +229,46 @@ const Login = () => {
               />
             </div>
 
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-900 mb-6">
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-900 mb-4">
               Hey Welcome!
             </h1>
+
+            {/* Portal Mode Tabs */}
+            <div className="flex bg-gray-200/80 p-1 rounded-xl mb-6">
+              <button
+                type="button"
+                onClick={() => setPortalMode('PARTNER')}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  portalMode === 'PARTNER'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Partner Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => setPortalMode('OPERATOR')}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  portalMode === 'OPERATOR'
+                    ? 'bg-[#00891D] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Packing Operator
+              </button>
+              <button
+                type="button"
+                onClick={() => setPortalMode('QC')}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  portalMode === 'QC'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Packing QC
+              </button>
+            </div>
 
             {errorMessage && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm font-medium">

@@ -49,7 +49,9 @@ export const getOperatorUser = (): OperatorUser => {
 export const operatorLogout = () => {
   sessionStorage.removeItem('staffToken');
   sessionStorage.removeItem('staffUser');
+  sessionStorage.removeItem('portalMode');
   localStorage.removeItem('partnerToken');
   localStorage.removeItem('partnerUser');
+  localStorage.removeItem('portalMode');
   localStorage.removeItem('token');
 };

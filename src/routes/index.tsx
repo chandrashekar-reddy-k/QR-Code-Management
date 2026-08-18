@@ -662,95 +662,10 @@ export const protectedRoutes: RouteConfig[] = [
     component: OperatorPortalWrapper,
     requiresAuth: true,
   },
-  {
-    path: "/packer/operator/dashboard",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/operator/jobs",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/operator/jobs/:id",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/operator/active-packing",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/operator/label-application",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/operator/history",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/operator/history/:id",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/operator/report-issue",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/operator/profile",
-    component: OperatorPortalWrapper,
-    requiresAuth: true,
-  },
 
   // QC Checker Portal
   {
     path: "/packer/qc/*",
-    component: QCPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/qc/dashboard",
-    component: QCPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/qc/tasks",
-    component: QCPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/qc/tasks/:id",
-    component: QCPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/qc/active-inspection",
-    component: QCPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/qc/history",
-    component: QCPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/qc/history/:id",
-    component: QCPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/qc/report-issue",
-    component: QCPortalWrapper,
-    requiresAuth: true,
-  },
-  {
-    path: "/packer/qc/profile",
     component: QCPortalWrapper,
     requiresAuth: true,
   },
