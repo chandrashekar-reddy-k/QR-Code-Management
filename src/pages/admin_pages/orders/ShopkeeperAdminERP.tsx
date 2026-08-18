@@ -1,21 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; // force TS re-eval
 
-import { Dashboard } from "../../../components/shopkeeper/Dashboard";
-import { NewOrders } from "../../../components/shopkeeper/NewOrders";
 import { OrderDetails } from "../../../components/shopkeeper/OrderDetails";
-import { PickingQueue } from "../../../components/shopkeeper/PickingQueue";
 import { PickingScreen } from "../../../components/shopkeeper/PickingScreen";
 import { BarcodeVerification } from "../../../components/shopkeeper/BarcodeVerification";
 import { PickingComplete } from "../../../components/shopkeeper/PickingComplete";
-import { PackingQueue } from "../../../components/shopkeeper/PackingQueue";
 import { PackingScreen } from "../../../components/shopkeeper/PackingScreen";
-import { ReadyOrders } from "../../../components/shopkeeper/ReadyOrders";
 import { HandoverVerification } from "../../../components/shopkeeper/HandoverVerification";
 import { SelfPickup } from "../../../components/shopkeeper/SelfPickup";
 import { Returns } from "../../../components/shopkeeper/Returns";
 import { SLAMonitoring } from "../../../components/shopkeeper/SLAMonitoring";
-import { Settings } from "../../../components/shopkeeper/Settings";
-import { OrderHistory } from "../../../components/shopkeeper/OrderHistory";
+import { StorageOperations } from "../../../components/shopkeeper/StorageOperations";
+import { OrderProcessing } from "../../../components/shopkeeper/OrderProcessing";
 import { StaffTracker } from "../../../components/shopkeeper/StaffTracker";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
 import { SharedOrdersContext } from "../../../components/shopkeeper/SharedOrdersContext";
@@ -25,11 +20,8 @@ import { useSocket } from "../../../hooks/useSocket";
 import api from "../../../api/axios";
 
 type Screen =
-  | "dashboard"
-  | "new-orders"
-  | "orderhistory"
+  | "order-processing"
   | "order-details"
-  | "picking-queue"
   | "picking-screen"
   | "barcode-verification"
   | "picking-complete"
@@ -44,9 +36,8 @@ type Screen =
   | "settings";
 
 export default function ShopkeeperAdminERP() {
-  const [screen, setScreen] = useState<Screen>("dashboard");
+  const [screen, setScreen] = useState<Screen>("order-processing");
   const [orderData, setOrderData] = useState<unknown>(null);
-  const [allOrdersStatus, setAllOrdersStatus] = useState<string | undefined>(undefined);
   const [history, setHistory] = useState<Screen[]>([]);
   const location = useLocation();
   const reactNavigate = useReactNavigate();
@@ -132,21 +123,14 @@ export default function ShopkeeperAdminERP() {
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const tab = searchParams.get("tab") || "dashboard";
+    const tab = searchParams.get("tab") || "order-processing";
     setScreen(tab as Screen);
   }, [location]);
 
   const navigate = (dest: string, data?: unknown) => {
     setHistory(prev => [...prev, screen]);
 
-    if (dest === "orderhistory") {
-      setAllOrdersStatus(typeof data === 'string' ? data : undefined);
-      setScreen("orderhistory");
-      reactNavigate(`/shopkeeper-erp?tab=orderhistory`);
-      return;
-    }
-
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "ready-orders", "settings", "orderhistory", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(dest);
+    const isTab = ["order-processing", "packing-queue", "ready-orders", "settings", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper-erp?tab=${dest}`);
       setScreen(dest as Screen);
@@ -161,7 +145,7 @@ export default function ShopkeeperAdminERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "ready-orders", "settings", "orderhistory", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(prev);
+      const isTab = ["order-processing", "packing-queue", "ready-orders", "settings", "staff-tracker", "self-pickup", "returns", "sla-monitoring"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper-erp?tab=${prev}`);
         setScreen(prev as Screen);
@@ -169,31 +153,26 @@ export default function ShopkeeperAdminERP() {
         setScreen(prev);
       }
     } else {
-      reactNavigate("/shopkeeper-erp?tab=dashboard");
-      setScreen("dashboard");
+      reactNavigate("/shopkeeper-erp?tab=order-processing");
+      setScreen("order-processing");
     }
   };
 
   const renderScreen = () => {
     return (
       <div className="w-full">
-        {screen === "dashboard" && <Dashboard onNavigate={navigate} isAdmin={true} />}
-        {screen === "new-orders" && <NewOrders onNavigate={navigate} onBack={goBack} isAdmin={true} />}
-        {screen === "orderhistory" && <OrderHistory onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} isAdmin={true} />}
+        {screen === "order-processing" && <OrderProcessing orders={orders} onNavigate={navigate} />}
         {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as any} isAdmin={true} socket={socket} />}
-        {screen === "picking-queue" && <PickingQueue onNavigate={navigate} onBack={goBack} isAdmin={true} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
         {screen === "barcode-verification" && <BarcodeVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
         {screen === "picking-complete" && <PickingComplete onNavigate={navigate} data={orderData as any} />}
-        {screen === "packing-queue" && <PackingQueue onNavigate={navigate} onBack={goBack} />}
         {screen === "packing-screen" && <PackingScreen onNavigate={navigate} onBack={goBack} order={orderData as any} />}
-        {screen === "ready-orders" && <ReadyOrders onNavigate={navigate} onBack={goBack} />}
         {screen === "handover-verification" && <HandoverVerification onBack={goBack} onNavigate={navigate} data={orderData as any} />}
         {screen === "self-pickup" && <SelfPickup onBack={goBack} />}
         {screen === "returns" && <Returns onBack={goBack} />}
-        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} />}
+        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} canConfigureSla={true} />}
         {screen === "staff-tracker" && <StaffTracker />}
-        {screen === "settings" && <Settings />}
+        {screen === "settings" && <StorageOperations />}
       </div>
     );
   };

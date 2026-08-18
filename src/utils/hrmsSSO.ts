@@ -48,7 +48,8 @@ async function tryRefreshToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const res = await fetch(`${PARTNER_API_BASE()}/partner/auth/refresh-token`, {
+    const identityUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000';
+    const res = await fetch(`${identityUrl}/api/v1/auth/refresh-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),

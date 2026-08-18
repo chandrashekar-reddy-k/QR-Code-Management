@@ -15,7 +15,6 @@ import { HandoverVerificationMobile as HandoverVerification } from "../component
 import { SelfPickup } from "../components/shopkeeper/SelfPickupMobile";
 import { Returns } from "../components/shopkeeper/ReturnsMobile";
 import { SLAMonitoring } from "../components/shopkeeper/SLAMonitoringMobile";
-import { Settings } from "../components/shopkeeper/Settings 2";
 import { OrderHistoryMobile as AllOrders } from "../components/shopkeeper/OrderHistoryMobile";
 import axios from "axios";
 import { useLocation, useNavigate as useReactNavigate } from "react-router-dom";
@@ -58,8 +57,7 @@ type Screen =
   | "self-pickup"
   | "returns"
   | "sla-monitoring"
-  | "profile"
-  | "settings";
+  | "profile";
 
 function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) => void; onBack: () => void }) {
   const [stats, setStats] = useState({ orders: 0, completed: 0, sla: 100, selfPickup: 0 });
@@ -98,12 +96,12 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
         const shopkeeperOrders = skId
           ? allOrders.filter((o: Record<string, unknown>) => {
-              let oAssignedId = o.assignedShopkeeperId || o.assigned_shopkeeper_id || o.shopkeeper_id;
-              if (oAssignedId && typeof oAssignedId === 'object' && 'id' in oAssignedId) {
-                oAssignedId = (oAssignedId as { id: string }).id;
-              }
-              return String(oAssignedId) === String(skId);
-            })
+            let oAssignedId = o.assignedShopkeeperId || o.assigned_shopkeeper_id || o.shopkeeper_id;
+            if (oAssignedId && typeof oAssignedId === 'object' && 'id' in oAssignedId) {
+              oAssignedId = (oAssignedId as { id: string }).id;
+            }
+            return String(oAssignedId) === String(skId);
+          })
           : [];
 
         const total = shopkeeperOrders.length;
@@ -122,7 +120,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
       }
     };
     computeStats();
-    
+
     // Add interval to dynamically update SLA
     const interval = setInterval(computeStats, 60000);
     return () => clearInterval(interval);
@@ -373,7 +371,7 @@ export default function ShopkeeperERP() {
     }
 
     // Check if the destination is a primary tab in the sidebar
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "orderhistory"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "orderhistory"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper?tab=${dest}`);
       setScreen(dest as Screen);
@@ -395,7 +393,7 @@ export default function ShopkeeperERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "settings", "orderhistory"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "orderhistory"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper?tab=${prev}`);
         setScreen(prev as Screen);
@@ -439,11 +437,9 @@ export default function ShopkeeperERP() {
         <div style={{ display: screen === "profile" ? "block" : "none" }}>
           <ProfileScreen onNavigate={navigate} onBack={goBack} />
         </div>
-        <div style={{ display: screen === "settings" ? "block" : "none" }}>
-          <Settings />
-        </div>
 
         {/* Dynamic Screens (re-mounted on navigation) */}
+        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} />}
         {screen === "orderhistory" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
         {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as Record<string, unknown>} socket={socket} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as Record<string, unknown>} />}
@@ -462,7 +458,7 @@ export default function ShopkeeperERP() {
     } catch (err) {
       console.warn("Failed to parse permissions", err);
     }
-    
+
     const slugMap: Record<string, string> = {
       "dashboard": "shopkeeper_dashboard_view",
       "new-orders": "shopkeeper_inbox_orders_view",
@@ -470,9 +466,8 @@ export default function ShopkeeperERP() {
       "picking-queue": "shopkeeper_picking_queue_view",
       "packing-queue": "shopkeeper_packing_queue_view",
       "profile": "shopkeeper_profile_view",
-      "settings": "shopkeeper_settings_view",
     };
-    
+
     const slug = slugMap[tabId];
     if (!slug) return true;
     return permissions.includes(slug);
@@ -530,9 +525,9 @@ export default function ShopkeeperERP() {
                     key={item.id}
                     onClick={() => navigate(item.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
-                        ? "bg-[#00891D]/10 text-[#00891D]"
-                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
-                    }`}
+                      ? "bg-[#00891D]/10 text-[#00891D]"
+                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-800 dark:text-gray-200"
+                      }`}
                   >
                     {item.icon}
                     <span>{item.label}</span>

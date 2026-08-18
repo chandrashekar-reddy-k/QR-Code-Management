@@ -227,6 +227,13 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       candidates.push('shopkeeper_erp_ready_dispatch_view');
     }
 
+    if (labelPart === 'order_processing') {
+      candidates.push('partner_shopkeeper_erp_admin_view');
+      candidates.push('partner_shopkeeper_view');
+      candidates.push('partner_order_processing_view');
+      candidates.push('order_processing_view');
+    }
+
     if (labelPart === 'plm_settings') {
       candidates.push(`${portal}_${parentPart}_settings_view`);
       candidates.push(`${parentPart}_settings_view`);
@@ -508,16 +515,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   ];
 
   const shopkeeperErpAdminSubItems = [
-    { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
-    { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
-    { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
-    { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
-    { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
-    { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
+    { path: '/shopkeeper-erp?tab=order-processing', label: 'Order Processing', icon: ClipboardList },
     { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-    { path: '/shopkeeper-erp?tab=all-orders', label: 'Order History', icon: History },
     { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-    { path: '/shopkeeper-erp?tab=settings', label: 'PLM Settings', icon: Settings }
+    { path: '/shopkeeper-erp?tab=settings', label: 'Storage Operations', icon: Package, permission: 'PLM Settings' }
   ];
 
   // const categorySubItems = [
@@ -604,16 +605,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   ];
 
   const shopkeeperSubItems = [
-    { path: '/shopkeeper?tab=dashboard', label: 'Dashboard', icon: Home },
-    { path: '/shopkeeper?tab=picking-queue', label: 'Picking Queue', icon: Package },
-    { path: '/shopkeeper?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
-    { path: '/shopkeeper?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
-    { path: '/shopkeeper?tab=self-pickup', label: 'Self Pickup', icon: Store },
-    { path: '/shopkeeper?tab=returns', label: 'Returns', icon: RotateCcw },
+    { path: '/shopkeeper?tab=order-processing', label: 'Order Processing', icon: ClipboardList },
     { path: '/shopkeeper?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-    { path: '/shopkeeper?tab=all-orders', label: 'Order History', icon: History },
-    { path: '/shopkeeper?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-    { path: '/shopkeeper?tab=settings', label: 'PLM Settings', icon: Settings }
+    { path: '/shopkeeper?tab=staff-tracker', label: 'Staff Tracker', icon: Users }
   ];
 
   const contactSubItems = [
