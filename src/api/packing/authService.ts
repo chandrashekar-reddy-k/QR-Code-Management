@@ -28,7 +28,8 @@ export const authService = {
     return response.data;
   },
   async getOperators(): Promise<User[]> {
-    const response = await apiClient.get<{ data: User[] }>('/auth/operators');
-    return response.data.data;
+    const response = await apiClient.get<any>('/auth/operators');
+    const result = response.data?.data || response.data;
+    return Array.isArray(result) ? result : [];
   }
 };

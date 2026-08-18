@@ -37,89 +37,117 @@ export const PackingApprovals: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      // Attempt to fetch from approvals API first
-      let data: ApprovalRequest[] = [];
+      let approvalReqs: ApprovalRequest[] = [];
       try {
-        data = await approvalService.getApprovals();
+        approvalReqs = await approvalService.getApprovals();
       } catch (e) {
-        console.warn('Approvals API failed, falling back to Work Orders PENDING list:', e);
+        console.warn('Approvals API failed:', e);
       }
 
-      // If approvals API returned empty or failed, fetch PENDING work orders directly
-      if (!data || data.length === 0) {
+      let pendingWOs: any[] = [];
+      try {
         const woRes = await workOrderService.getWorkOrders({ status: 'PENDING' });
-        const pendingWOs = (woRes.data || []).filter((w) => w.status === 'PENDING');
+        pendingWOs = (woRes.data || []).filter((w: any) => w.status === 'PENDING');
+      } catch (e) {
+        console.warn('Failed to fetch PENDING work orders:', e);
+      }
 
-        data = pendingWOs.map((wo) => {
-          const recipe = wo.recipe;
-          const targetYield = recipe?.outputQty || 1;
-          const woQty = wo.requiredQty || 100;
+      const woApprovalMap = new Map<string, ApprovalRequest>();
 
-          const validationItems: InventoryValidationItem[] =
-            recipe?.items?.map((item, idx) => {
-              const reqQty = (item.requiredQty / targetYield) * woQty;
-              const inputProd = item.inputProduct;
-              // Stock calculation / availability
-              const availableStock = (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? 1000;
-              const shortage = Math.max(0, reqQty - availableStock);
-              const status: InventoryValidationItem['status'] =
-                availableStock === 0
-                  ? 'OUT_OF_STOCK'
-                  : shortage > 0
-                  ? 'INSUFFICIENT'
-                  : 'AVAILABLE';
+      for (const wo of pendingWOs) {
+        const recipe = wo.recipe;
+        const targetYield = recipe?.outputQty || 1;
+        const woQty = wo.requiredQty || 100;
 
-              return {
-                id: item.id || `item-${idx}`,
-                materialId: item.inputProductId,
-                SKU: inputProd?.sku,
-                materialName: inputProd?.name || 'Input Material',
-                type: (inputProd?.type as any) || (item.isPackaging ? 'PACKAGING' : 'RAW_MATERIAL'),
-                requiredQty: Math.round(reqQty * 100) / 100,
-                uom: inputProd?.uom?.abbreviation || (item.isPackaging ? 'PCS' : 'KG'),
-                availableStock,
-                shortage: Math.round(shortage * 100) / 100,
-                status,
-              };
-            }) || [];
+        const validationItems: InventoryValidationItem[] =
+          recipe?.items?.map((item: any, idx: number) => {
+            const reqQty = (item.requiredQty / targetYield) * woQty;
+            const inputProd = item.inputProduct;
+            const availableStock = (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? 1000;
+            const shortage = Math.max(0, reqQty - availableStock);
+            const status: InventoryValidationItem['status'] =
+              availableStock === 0
+                ? 'OUT_OF_STOCK'
+                : shortage > 0
+                ? 'INSUFFICIENT'
+                : 'AVAILABLE';
 
-          const hasShortage = validationItems.some((i) => i.status !== 'AVAILABLE');
-          const inventoryStatus = hasShortage ? 'STOCK_SHORTAGE' : 'STOCK_AVAILABLE';
+            return {
+              id: item.id || `item-${idx}`,
+              materialId: item.inputProductId,
+              SKU: inputProd?.sku,
+              materialName: inputProd?.name || 'Input Material',
+              type: (inputProd?.type as any) || (item.isPackaging ? 'PACKAGING' : 'RAW_MATERIAL'),
+              requiredQty: Math.round(reqQty * 100) / 100,
+              uom: inputProd?.uom?.abbreviation || (item.isPackaging ? 'PCS' : 'KG'),
+              availableStock,
+              shortage: Math.round(shortage * 100) / 100,
+              status,
+            };
+          }) || [];
 
-          return {
-            id: wo.id,
-            type: 'WORK_ORDER' as ApprovalType,
-            relatedEntityId: wo.id,
-            relatedEntityName: wo.woNumber || wo.id,
-            productName: wo.product?.name,
+        const hasShortage = validationItems.some((i) => i.status !== 'AVAILABLE');
+        const inventoryStatus = hasShortage ? 'STOCK_SHORTAGE' : 'STOCK_AVAILABLE';
+
+        woApprovalMap.set(wo.id, {
+          id: wo.id,
+          type: 'WORK_ORDER' as ApprovalType,
+          relatedEntityId: wo.id,
+          relatedEntityName: wo.woNumber || wo.id,
+          productName: wo.product?.name,
+          requestedBy: wo.supervisor?.name || wo.operator?.name || 'Store Manager',
+          requestedDate: wo.createdAt || new Date().toISOString(),
+          reason: 'Work Order Approval Request',
+          priority: (wo.priority as Priority) || 'MEDIUM',
+          status: 'PENDING' as ApprovalStatus,
+          inventoryStatus,
+          inventoryValidation: validationItems,
+          woDetails: {
+            woNumber: wo.woNumber || wo.id,
+            outputProduct: wo.product?.name || 'Finished Product',
+            recipeCode: recipe?.code || wo.recipeId,
+            targetQty: woQty,
+            targetYieldQty: targetYield,
+            uomName: wo.product?.uom?.name || 'Units',
             requestedBy: wo.supervisor?.name || wo.operator?.name || 'Store Manager',
             requestedDate: wo.createdAt || new Date().toISOString(),
-            reason: 'Work Order Approval Request',
             priority: (wo.priority as Priority) || 'MEDIUM',
-            status: 'PENDING' as ApprovalStatus,
-            inventoryStatus,
-            inventoryValidation: validationItems,
-            woDetails: {
-              woNumber: wo.woNumber || wo.id,
-              outputProduct: wo.product?.name || 'Finished Product',
-              recipeCode: recipe?.code || wo.recipeId,
-              targetQty: woQty,
-              targetYieldQty: targetYield,
-              uomName: wo.product?.uom?.name || 'Units',
-              requestedBy: wo.supervisor?.name || wo.operator?.name || 'Store Manager',
-              requestedDate: wo.createdAt || new Date().toISOString(),
-              priority: (wo.priority as Priority) || 'MEDIUM',
-              status: wo.status,
-              warehouseName: 'Main Packing Warehouse',
-            },
-            history: [],
-          };
+            status: wo.status,
+            warehouseName: 'Main Packing Warehouse',
+          },
+          history: [],
         });
       }
 
-      setApprovals(data);
+      const mergedList: ApprovalRequest[] = [];
+      const addedWoIds = new Set<string>();
+
+      for (const req of approvalReqs) {
+        let finalReq = { ...req };
+        if (req.type === 'WORK_ORDER' && req.relatedEntityId && woApprovalMap.has(req.relatedEntityId)) {
+          const enriched = woApprovalMap.get(req.relatedEntityId)!;
+          finalReq = {
+            ...enriched,
+            id: req.id,
+            status: req.status || enriched.status,
+            history: req.history || enriched.history,
+          };
+          addedWoIds.add(req.relatedEntityId);
+        }
+        mergedList.push(finalReq);
+      }
+
+      for (const [woId, woApproval] of woApprovalMap.entries()) {
+        if (!addedWoIds.has(woId)) {
+          mergedList.push(woApproval);
+        }
+      }
+
+      setApprovals(mergedList);
       if (selectedRequest) {
-        const fresh = data.find((a: any) => a.id === selectedRequest.id);
+        const fresh = mergedList.find(
+          (a: any) => a.id === selectedRequest.id || a.relatedEntityId === selectedRequest.relatedEntityId
+        );
         if (fresh) {
           setSelectedRequest(fresh);
         }
@@ -172,10 +200,13 @@ export const PackingApprovals: React.FC = () => {
         a.productName ||
         ''
       ).toLowerCase();
+      const reqByObj = a.woDetails?.requestedBy || a.requestedBy;
       const reqBy = (
-        a.woDetails?.requestedBy ||
-        a.requestedBy ||
-        ''
+        typeof reqByObj === 'string'
+          ? reqByObj
+          : typeof reqByObj === 'object' && reqByObj !== null
+          ? ((reqByObj as any).name || (reqByObj as any).email || '')
+          : ''
       ).toLowerCase();
       const recipe = (a.woDetails?.recipeCode || '').toLowerCase();
       const priority = (a.priority || '').toLowerCase();
@@ -439,8 +470,9 @@ export const PackingApprovals: React.FC = () => {
                     Requested By
                   </span>
                   <span className="font-semibold text-slate-900 dark:text-white text-sm truncate block">
-                    {selectedRequest.woDetails?.requestedBy ||
-                      selectedRequest.requestedBy}
+                    {typeof selectedRequest.requestedBy === 'object' && selectedRequest.requestedBy !== null
+                      ? ((selectedRequest.requestedBy as any).name || (selectedRequest.requestedBy as any).email || 'Supervisor')
+                      : selectedRequest.woDetails?.requestedBy || selectedRequest.requestedBy || 'Supervisor'}
                   </span>
                 </div>
                 <div>

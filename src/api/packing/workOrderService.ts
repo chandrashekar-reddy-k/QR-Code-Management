@@ -79,6 +79,11 @@ export const workOrderService = {
     return { data: [], total: 0, page: 1 };
   },
 
+  async getWorkOrderById(id: string): Promise<WorkOrder> {
+    const res = await apiClient.get<{ success: boolean; data: WorkOrder }>(`/work-orders/${id}`);
+    return res.data.data;
+  },
+
   async createWorkOrder(data: { productId: string; recipeId: string; requiredQty: number; priority: WoPriority; expectedDate?: string; operatorId?: string }): Promise<WorkOrder> {
     const res = await apiClient.post<{ success: boolean; data: WorkOrder }>('/work-orders', data);
     return res.data.data;
