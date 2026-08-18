@@ -36,6 +36,8 @@ import {
   BookOpen,
   Link2,
   Banknote,
+  Layers,
+  Smartphone,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -329,8 +331,14 @@ export const sidebarConfig: MenuSection[] = [
     label: "Inventory Management",
     icon: Boxes,
     stateKey: "isInventoryManagementOpen",
-    hasSubPermissions: true,
+    hasSubPermissions: false,
     subItems: [
+      { path: '/inventory/storeroom', label: 'Store-Room (Inward)', icon: Store },
+      { path: '/inventory/production', label: 'Production & Packing', icon: Package },
+      { path: '/inventory/live', label: 'Live Stock (Channels)', icon: CheckCircle },
+      { path: '/inventory/online', label: 'Online (Customer App)', icon: Smartphone },
+      { path: '/inventory/pos', label: 'Store POS Stock', icon: ScanLine },
+      { path: '/inventory/vehicle', label: 'Vehicle Stock Management', icon: Truck },
       { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
       { path: '/stock', label: 'Stock Management', icon: Boxes },
     ],

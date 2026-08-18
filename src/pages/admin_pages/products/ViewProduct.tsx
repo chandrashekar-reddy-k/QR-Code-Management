@@ -1416,6 +1416,12 @@ const ViewProduct = () => {
               <span className="text-xs text-gray-800">{String(product.status || 'N/A').toUpperCase()}</span>
             </div>
             <div>
+              <span className="text-xs font-medium text-gray-500">Lifecycle Stage : </span>
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-block">
+                {String((rawProduct as any)?.lifecycleStage || 'STORE_ROOM').replace(/_/g, ' ')}
+              </span>
+            </div>
+            <div>
               <span className="text-xs font-medium text-gray-500">SKU : </span>
               <span className="text-xs text-gray-800">{rawStr('sku')}</span>
             </div>

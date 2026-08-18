@@ -943,6 +943,27 @@ const ManageProducts = () => {
   }, [apiData, products]);
   const pendingProducts = products.filter((p) => p.status === "PENDING").length;
 
+  const storeroomProductsCount = useMemo(() => {
+    return products.filter((p) => {
+      const stage = (p as any).lifecycleStage || (Array.isArray((p as any).tags) ? (p as any).tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null) || 'STORE_ROOM';
+      return stage === 'STORE_ROOM';
+    }).length;
+  }, [products]);
+
+  const productionProductsCount = useMemo(() => {
+    return products.filter((p) => {
+      const stage = (p as any).lifecycleStage || (Array.isArray((p as any).tags) ? (p as any).tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null);
+      return stage === 'IN_PRODUCTION' || stage === 'READY_FOR_LIVE';
+    }).length;
+  }, [products]);
+
+  const liveProductsCount = useMemo(() => {
+    return products.filter((p) => {
+      const stage = (p as any).lifecycleStage || (Array.isArray((p as any).tags) ? (p as any).tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null);
+      return stage === 'LIVE';
+    }).length;
+  }, [products]);
+
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
@@ -976,27 +997,45 @@ const ManageProducts = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-full mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 max-w-full mb-6">
         <StatCard
-          title="Total Products"
+          title="Total Catalog"
           value={totalProducts}
           icon={Package}
           variant="blue"
         />
         <StatCard
-          title="Active Products"
+          title="Store-Room"
+          value={storeroomProductsCount}
+          icon={Package}
+          variant="yellow"
+        />
+        <StatCard
+          title="In Production"
+          value={productionProductsCount}
+          icon={Package}
+          variant="blue"
+        />
+        <StatCard
+          title="Live Stock"
+          value={liveProductsCount}
+          icon={Package}
+          variant="green"
+        />
+        <StatCard
+          title="Active (Public)"
           value={activeProducts}
           icon={Package}
           variant="green"
         />
         <StatCard
-          title="Inactive Products"
+          title="Inactive"
           value={inactiveProducts}
           icon={Package}
           variant="gray"
         />
         <StatCard
-          title="Pending Products"
+          title="Pending"
           value={pendingProducts}
           icon={Package}
           variant="yellow"
@@ -1110,8 +1149,18 @@ const ManageProducts = () => {
                   <SortableTableHeader field="price" label="PRICE (₹)" currentField={sortField} direction={sortDirection} onSort={handleSort} />
                   <SortableTableHeader field="discountedPrice" label="D.PRICE (₹)" currentField={sortField} direction={sortDirection} onSort={handleSort} />
                   <SortableTableHeader field="variantsCount" label="VARIANTS" currentField={sortField} direction={sortDirection} onSort={handleSort} />
+                  <th className="px-2 sm:px-4 py-3 sm:py-4 text-center">
+                    <span className="text-[10px] sm:text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide">STORE-ROOM</span>
+                  </th>
+                  <th className="px-2 sm:px-4 py-3 sm:py-4 text-center">
+                    <span className="text-[10px] sm:text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide">PRODUCTION</span>
+                  </th>
+                  <th className="px-2 sm:px-4 py-3 sm:py-4 text-center">
+                    <span className="text-[10px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">LIVE</span>
+                  </th>
                   <SortableTableHeader field="sku" label="SKU" currentField={sortField} direction={sortDirection} onSort={handleSort} />
                   <SortableTableHeader field="status" label="STATUS" currentField={sortField} direction={sortDirection} onSort={handleSort} />
+                  <SortableTableHeader field="lifecycleStage" label="STAGE" currentField={sortField} direction={sortDirection} onSort={handleSort} />
                   <th className="px-2 sm:px-6 py-3 sm:py-4 text-center">
                     <span className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">ACTIONS</span>
                   </th>
@@ -1125,6 +1174,16 @@ const ManageProducts = () => {
                   const productForVariants = expandedProductDetailsCache[product.id] || product;
                   const hasVariants = productForVariants.variants && productForVariants.variants.length > 0;
                   const rowSerial = (currentPage - 1) * itemsPerPage + index + 1;
+
+                  const rawStage = (product as any).lifecycleStage || (Array.isArray((product as any).tags) ? (product as any).tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null) || 'STORE_ROOM';
+                  const isStoreRoom = rawStage === 'STORE_ROOM';
+                  const isProduction = rawStage === 'IN_PRODUCTION' || rawStage === 'READY_FOR_LIVE';
+                  const isLive = rawStage === 'LIVE';
+
+                  const storeStock = isStoreRoom ? ((product as any).stock ?? 0) : 0;
+                  const prodStock = isProduction ? ((product as any).stock ?? 0) : 0;
+                  const liveStock = isLive ? ((product as any).stock ?? 0) : 0;
+
                   return (
                     <React.Fragment key={product.id}>
                       <tr className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
@@ -1146,6 +1205,24 @@ const ManageProducts = () => {
                             {product.variantsCount}
                           </button>
                         </td>
+                        {/* Store-Room Stock */}
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
+                          <span className={`text-xs font-bold ${storeStock > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400'}`}>
+                            {storeStock}
+                          </span>
+                        </td>
+                        {/* Production Stock */}
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
+                          <span className={`text-xs font-bold ${prodStock > 0 ? 'text-blue-700 dark:text-blue-400' : 'text-gray-400'}`}>
+                            {prodStock}
+                          </span>
+                        </td>
+                        {/* Live Stock */}
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
+                          <span className={`text-xs font-bold ${liveStock > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-400'}`}>
+                            {liveStock}
+                          </span>
+                        </td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 text-center">{product.sku}</td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
                           <div className="flex items-center justify-center gap-2">
@@ -1161,6 +1238,23 @@ const ManageProducts = () => {
                           </div>
                         </td>
                         <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
+                          {(() => {
+                            const stage = rawStage;
+                            const stageMap: Record<string, { label: string; bg: string; text: string; border: string }> = {
+                              STORE_ROOM: { label: 'Store Room', bg: 'bg-amber-50 dark:bg-amber-950/30', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-200' },
+                              IN_PRODUCTION: { label: 'In Production', bg: 'bg-blue-50 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-200' },
+                              READY_FOR_LIVE: { label: 'Ready for Live', bg: 'bg-purple-50 dark:bg-purple-950/30', text: 'text-purple-700 dark:text-purple-400', border: 'border-purple-200' },
+                              LIVE: { label: 'Live Stock', bg: 'bg-emerald-50 dark:bg-emerald-950/30', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200' }
+                            };
+                            const config = stageMap[stage] || stageMap.STORE_ROOM;
+                            return (
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${config.bg} ${config.text} ${config.border}`}>
+                                {config.label}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             <ViewIconButton onClick={() => handleView(product)} size={12} />
                             <EditIconButton onClick={() => handleEdit(product)} size={12} />
@@ -1170,7 +1264,7 @@ const ManageProducts = () => {
                       </tr>
                       {isExpanded && (
                         <tr key={`${product.id}-variants`}>
-                          <td colSpan={11} className="px-0 py-0 bg-gray-50 dark:bg-gray-900">
+                          <td colSpan={14} className="px-0 py-0 bg-gray-50 dark:bg-gray-900">
                             <div className="px-4 py-4">
                               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                                 <div className="overflow-x-auto">

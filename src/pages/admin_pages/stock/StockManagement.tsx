@@ -31,6 +31,7 @@ import {
 // Define the API response type
 interface ApiStock {
   id: string;
+  productId: string;
   name: string;
   variant: string;
   type: string;
@@ -39,6 +40,9 @@ interface ApiStock {
   totalStock: number;
   image: string | null;
   isActive: boolean;
+  isOnline: boolean;
+  isPos: boolean;
+  lifecycleStage: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,6 +75,7 @@ interface ApiResponse {
 // Table stock type for internal use
 interface TableStock {
   id: string;
+  productId: string;
   name: string;
   variant: string;
   type: string;
@@ -79,6 +84,9 @@ interface TableStock {
   totalStock: number;
   image: string | null;
   status: "active" | "inactive";
+  isOnline: boolean;
+  isPos: boolean;
+  lifecycleStage: string;
 }
 
 // Mock data removed — live productmanagement/product API is used instead.
@@ -116,24 +124,39 @@ const StockManagement = () => {
   const stocks: ApiStock[] = useMemo(() => {
     const resp = apiData as { data?: { products?: ApiStock[] } | ApiStock[] } | undefined;
     const d = resp?.data;
-    const arr: ApiStock[] = Array.isArray(d)
-      ? d as ApiStock[]
-      : ((d as { products?: ApiStock[] })?.products ?? []);
-    return arr.map((p: ApiStock) => ({
-      id: p.id,
-      name: p.name,
-      variant: (p as Record<string, unknown>).variantName as string ?? "—",
-      type: (p as Record<string, unknown>).unitType as string ?? "—",
-      stock: (p as Record<string, unknown>).stock as number ?? 0,
-      vehicleStock: (p as Record<string, unknown>).vehicleStock as number ?? 0,
-      totalStock: (p as Record<string, unknown>).totalStock as number ?? 0,
-      image: Array.isArray((p as Record<string, unknown>).images)
-        ? ((p as Record<string, unknown>).images as string[])[0] ?? null
-        : null,
-      isActive: (p as Record<string, unknown>).isActive as boolean ?? false,
-      createdAt: (p as Record<string, unknown>).createdAt as string ?? "",
-      updatedAt: (p as Record<string, unknown>).updatedAt as string ?? "",
-    }));
+    const arr: any[] = Array.isArray(d)
+      ? d as any[]
+      : ((d as { products?: any[] })?.products ?? []);
+    return arr.map((p: any) => {
+      const tags = Array.isArray(p.tags) ? p.tags : [];
+      const tagStage = tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1];
+      const stage = p.lifecycleStage || tagStage || 'STORE_ROOM';
+      const prodId = p.productId || String(p.id ?? '').slice(0, 8).toUpperCase();
+      const variantName = p.variantName || (Array.isArray(p.variants) && p.variants[0]?.variantName) || p.unit || "—";
+      const unitType = p.unitType || p.productType || "—";
+
+      const hasChTag = tags.some((t: string) => t.startsWith('CH:'));
+      const isOnline = hasChTag ? tags.includes('CH:ONLINE') : (p.isOnline !== false);
+      const isPos = hasChTag ? tags.includes('CH:POS') : (p.isPos !== false);
+
+      return {
+        id: p.id,
+        productId: prodId,
+        name: p.name || "",
+        variant: variantName,
+        type: unitType,
+        stock: Number(p.stock ?? 0),
+        vehicleStock: Number(p.vehicleStock ?? 0),
+        totalStock: Number(p.totalStock ?? (Number(p.stock ?? 0) + Number(p.vehicleStock ?? 0))),
+        image: p.image || (Array.isArray(p.images) ? p.images[0] : null),
+        isActive: Boolean(p.isActive ?? (p.status === 'ACTIVE' || p.status === 'APPROVED')),
+        isOnline,
+        isPos,
+        lifecycleStage: stage,
+        createdAt: p.createdAt ?? "",
+        updatedAt: p.updatedAt ?? "",
+      };
+    });
   }, [apiData]);
 
   const paginationMeta = (apiData as { pagination?: ApiPagination } | undefined)?.pagination;
@@ -158,6 +181,7 @@ const StockManagement = () => {
   const tableStocks: TableStock[] = useMemo(() => {
     return stocks.map((stock) => ({
       id: stock.id,
+      productId: stock.productId,
       name: stock.name,
       variant: stock.variant,
       type: stock.type,
@@ -166,6 +190,9 @@ const StockManagement = () => {
       totalStock: stock.totalStock,
       image: stock.image,
       status: stock.isActive ? "active" : "inactive",
+      isOnline: stock.isOnline,
+      isPos: stock.isPos,
+      lifecycleStage: stock.lifecycleStage,
     }));
   }, [stocks]);
 
@@ -406,7 +433,26 @@ const StockManagement = () => {
   const totalStock = stats.total;
   const activeStock = stats.active;
   const inactiveStock = stats.inactive;
-  const stocksWithImages = stocks.filter((s: ApiStock) => s.image).length;
+
+  const storeroomCount = useMemo(() => {
+    return stocks.filter((s) => s.lifecycleStage === 'STORE_ROOM').length;
+  }, [stocks]);
+
+  const productionCount = useMemo(() => {
+    return stocks.filter((s) => s.lifecycleStage === 'IN_PRODUCTION' || s.lifecycleStage === 'READY_FOR_LIVE').length;
+  }, [stocks]);
+
+  const liveCount = useMemo(() => {
+    return stocks.filter((s) => s.lifecycleStage === 'LIVE').length;
+  }, [stocks]);
+
+  const posCount = useMemo(() => {
+    return stocks.filter((s) => s.isPos).length;
+  }, [stocks]);
+
+  const onlineCount = useMemo(() => {
+    return stocks.filter((s) => s.isOnline).length;
+  }, [stocks]);
 
   if (isLoading) {
     return (
@@ -433,30 +479,48 @@ const StockManagement = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-full mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 max-w-full mb-6">
         <StatCard
-          title="Total Stock"
+          title="Total Catalog"
           value={totalStock}
           icon={Package}
           variant="purple"
         />
         <StatCard
-          title="Active Stock"
-          value={activeStock}
+          title="Store-Room"
+          value={storeroomCount}
           icon={Package}
           variant="yellow"
         />
         <StatCard
-          title="Inactive Stock"
-          value={inactiveStock}
+          title="In Production"
+          value={productionCount}
+          icon={Package}
+          variant="blue"
+        />
+        <StatCard
+          title="Live Stock"
+          value={liveCount}
           icon={Package}
           variant="green"
         />
         <StatCard
-          title="With Images"
-          value={stocksWithImages}
-          icon={Camera}
-          variant="red"
+          title="POS Count"
+          value={posCount}
+          icon={Package}
+          variant="blue"
+        />
+        <StatCard
+          title="Online Count"
+          value={onlineCount}
+          icon={Package}
+          variant="green"
+        />
+        <StatCard
+          title="Active Stock"
+          value={activeStock}
+          icon={Package}
+          variant="green"
         />
       </div>
 
@@ -589,10 +653,8 @@ const StockManagement = () => {
                 label: "ID",
                 sortable: true,
                 render: (stock: TableStock) => (
-                  <div className="text-center">
-                    <span className="text-xs sm:text-sm text-gray-800">
-                      {stock.id.slice(0, 8)}...
-                    </span>
+                  <div className="text-center font-mono font-bold text-xs text-gray-800 dark:text-gray-200">
+                    {stock.productId || stock.id.slice(0, 8)}
                   </div>
                 ),
               },
@@ -606,7 +668,7 @@ const StockManagement = () => {
                       <img
                         src={stock.image}
                         alt={stock.name}
-                        className="w-10 h-10 object-cover rounded mx-auto"
+                        className="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-gray-700 mx-auto"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = "none";
                           (
@@ -628,10 +690,8 @@ const StockManagement = () => {
                 label: "NAME",
                 sortable: true,
                 render: (stock: TableStock) => (
-                  <div className="text-center">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-800">
-                      {stock.name}
-                    </span>
+                  <div className="text-left font-semibold text-xs sm:text-sm text-gray-900 dark:text-gray-100 max-w-[180px] truncate" title={stock.name}>
+                    {stock.name}
                   </div>
                 ),
               },
@@ -640,10 +700,8 @@ const StockManagement = () => {
                 label: "VARIANT",
                 sortable: true,
                 render: (stock: TableStock) => (
-                  <div className="text-center">
-                    <span className="text-xs sm:text-sm text-gray-700">
-                      {stock.variant}
-                    </span>
+                  <div className="text-center text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                    {stock.variant}
                   </div>
                 ),
               },
@@ -653,82 +711,96 @@ const StockManagement = () => {
                 sortable: true,
                 render: (stock: TableStock) => (
                   <div className="text-center">
-                    <span className="text-xs sm:text-sm text-gray-700">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                       {stock.type}
                     </span>
                   </div>
                 ),
               },
               {
-                key: "stock",
-                label: "IN STORE",
+                key: "storeRoomStock",
+                label: "STORE-ROOM",
                 sortable: true,
-                render: (stock: TableStock) => (
-                  <div className="text-center">
-                    {editingStockId === stock.id ? (
-                      <div className="flex items-center justify-center gap-1">
-                        <input
-                          type="number"
-                          value={editingStockValue}
-                          onChange={(e) => setEditingStockValue(e.target.value)}
-                          className="w-16 h-6 text-xs border border-gray-300 dark:border-gray-600 rounded px-1 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleStockSave(stock.id)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 text-xs"
-                          title="Save"
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={handleStockCancel}
-                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-xs"
-                          title="Cancel"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center gap-1">
-                        <span className="text-xs sm:text-sm text-gray-800">
-                          {stock.stock}
-                        </span>
-                        <button
-                          onClick={() => handleStockEditClick(stock)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
-                          title="Edit stock"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ),
+                render: (stock: TableStock) => {
+                  const val = stock.lifecycleStage === 'STORE_ROOM' ? stock.stock : 0;
+                  return (
+                    <div className="text-center">
+                      <span className={`text-xs font-bold ${val > 0 ? 'text-amber-700 dark:text-amber-400 font-bold' : 'text-gray-400'}`}>
+                        {val}
+                      </span>
+                    </div>
+                  );
+                },
+              },
+              {
+                key: "productionStock",
+                label: "PRODUCTION",
+                sortable: true,
+                render: (stock: TableStock) => {
+                  const val = (stock.lifecycleStage === 'IN_PRODUCTION' || stock.lifecycleStage === 'READY_FOR_LIVE') ? stock.stock : 0;
+                  return (
+                    <div className="text-center">
+                      <span className={`text-xs font-bold ${val > 0 ? 'text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-400'}`}>
+                        {val}
+                      </span>
+                    </div>
+                  );
+                },
+              },
+              {
+                key: "liveStock",
+                label: "LIVE",
+                sortable: true,
+                render: (stock: TableStock) => {
+                  const val = stock.lifecycleStage === 'LIVE' ? stock.stock : 0;
+                  return (
+                    <div className="text-center">
+                      <span className={`text-xs font-bold ${val > 0 ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-gray-400'}`}>
+                        {val}
+                      </span>
+                    </div>
+                  );
+                },
               },
               {
                 key: "vehicleStock",
                 label: "IN VEHICLE",
                 sortable: true,
                 render: (stock: TableStock) => (
-                  <div className="text-center">
-                    <span className="text-xs sm:text-sm text-gray-800">
-                      {stock.vehicleStock}
-                    </span>
+                  <div className="text-center font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                    {stock.vehicleStock}
                   </div>
                 ),
               },
               {
-                key: "totalStock",
-                label: "TOTAL STOCK",
-                sortable: true,
-                render: (stock: TableStock) => (
-                  <div className="text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${stock.totalStock > 10 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                      {stock.totalStock}
-                    </span>
-                  </div>
-                ),
+                key: "posChannel",
+                label: "POS",
+                sortable: false,
+                render: (stock: TableStock) => {
+                  const val = stock.isPos ? stock.stock : 0;
+                  return (
+                    <div className="text-center">
+                      <span className={`text-xs font-semibold ${stock.isPos ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-400'}`}>
+                        {val}
+                      </span>
+                    </div>
+                  );
+                },
+              },
+              {
+                key: "onlineChannel",
+                label: "ONLINE",
+                sortable: false,
+                render: (stock: TableStock) => {
+                  const val = stock.isOnline ? stock.stock : 0;
+                  return (
+                    <div className="text-center">
+                      <span className={`text-xs font-semibold ${stock.isOnline ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400'}`}>
+                        {val}
+                      </span>
+                    </div>
+                  );
+                },
               },
               {
                 key: "status",
@@ -747,7 +819,7 @@ const StockManagement = () => {
                           relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2
                           ${
                             isActive
-                              ? "bg-blue-600 dark:bg-blue-500"
+                              ? "bg-emerald-600 dark:bg-emerald-500"
                               : "bg-gray-300 dark:bg-gray-600"
                           }
                           ${

@@ -62,43 +62,64 @@ const StoreStockSection = ({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center justify-between group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20 group-hover:scale-110 transition-transform">
-                  <Grid size={24} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 bg-amber-500 rounded-lg flex items-center justify-center text-white shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                  <Grid size={22} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900 tracking-tight">SOH Intelligence</h3>
-                  <div className="flex items-center gap-3 mt-1">
-                    <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                      <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{warehouseStock.length} Active SKUs</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
-                      <Package size={10} className="text-blue-500" />
-                      <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
-                        {warehouseStock.reduce((acc, s) => acc + s.quantity, 0)} Total Units
-                      </span>
-                    </div>
-                  </div>
+                  <h3 className="text-sm font-bold text-gray-900">Store-Room</h3>
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Raw Inwarded</p>
                 </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-900">{warehouseStock.length}</div>
+                <div className="text-[9px] text-gray-400 font-medium">SKUs</div>
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center justify-between group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-600/20 group-hover:scale-110 transition-transform">
-                  <Package size={24} />
+            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-blue-600/20 group-hover:scale-105 transition-transform">
+                  <Package size={22} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900 tracking-tight">Store Stock Inventory</h3>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live Warehouse Valuation</p>
+                  <h3 className="text-sm font-bold text-gray-900">Production & Packing</h3>
+                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Processing Queue</p>
                 </div>
               </div>
-              <div className="flex flex-col items-end bg-gray-50 px-6 py-3 rounded-[1.5rem] border border-gray-100 shadow-inner">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Valuation</span>
-                <span className="text-xl font-black text-emerald-600 tracking-tighter">₹{totalValuation.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <div className="text-right">
+                <div className="text-lg font-bold text-blue-600">
+                  {warehouseStock.filter(s => s.product?.lifecycleStage === 'IN_PRODUCTION' || (Array.isArray(s.product?.tags) && s.product.tags.includes('LIFECYCLE:IN_PRODUCTION'))).length}
+                </div>
+                <div className="text-[9px] text-gray-400 font-medium">In Packing</div>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
+                  <Package size={22} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Live Sellable Stock</h3>
+                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">All Channels Active</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-emerald-600">
+                  {warehouseStock.reduce((acc, s) => acc + (s.quantity || 0), 0)}
+                </div>
+                <div className="text-[9px] text-gray-400 font-medium">Total Units</div>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group">
+              <div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Live Valuation</span>
+                <div className="text-lg font-bold text-emerald-600 tracking-tight mt-0.5">₹{totalValuation.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                <span className="text-[9px] text-gray-400 font-medium">{warehouseStock.length} Total Registered Products</span>
               </div>
             </div>
           </div>
@@ -196,34 +217,59 @@ const StoreStockSection = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 shrink-0">
-                    <div className="flex flex-col items-end border-l border-gray-100 pl-4">
-                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">In Vehicles</span>
-                      <span className="text-[10px] font-black text-gray-600 tracking-tighter">
-                        {stock.product.vehicleStock || 0}
-                      </span>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      {/* Store-Room Stock */}
+                      <div className="flex flex-col items-end min-w-[3rem] border-l border-gray-100 pl-3">
+                        <span className="text-[7px] font-bold text-amber-600 uppercase tracking-widest leading-none mb-1">
+                          Store-Room
+                        </span>
+                        <span className="text-xs font-bold text-amber-700">
+                          {stock.quantity || 0}
+                        </span>
+                      </div>
+
+                      {/* Production Stock */}
+                      <div className="flex flex-col items-end min-w-[3rem] border-l border-gray-100 pl-3">
+                        <span className="text-[7px] font-bold text-blue-600 uppercase tracking-widest leading-none mb-1">
+                          Production
+                        </span>
+                        <span className="text-xs font-bold text-blue-700">
+                          {stock.product.productionStock || 0}
+                        </span>
+                      </div>
+
+                      {/* Live Stock */}
+                      <div className="flex flex-col items-end min-w-[3rem] border-l border-gray-100 pl-3">
+                        <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-1">
+                          Live Stock
+                        </span>
+                        <span className="text-xs font-bold text-emerald-700">
+                          {stock.product.liveStock || stock.quantity || 0}
+                        </span>
+                      </div>
+
+                      {/* In Vehicles */}
+                      <div className="flex flex-col items-end border-l border-gray-100 pl-3">
+                        <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">In Vehicles</span>
+                        <span className="text-[10px] font-bold text-gray-600 tracking-tighter">
+                          {stock.product.vehicleStock || 0}
+                        </span>
+                      </div>
+
+                      {/* Total */}
+                      <div className="flex flex-col items-end min-w-[3.5rem] bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
+                        <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Total</span>
+                        <span className="text-sm font-bold text-blue-600 tracking-tighter">
+                          {stock.product.totalStock || stock.quantity}
+                        </span>
+                      </div>
+
+                      {/* Valuation */}
+                      <div className="flex flex-col items-end min-w-[4.5rem] border-l border-gray-100 pl-3">
+                        <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Valuation</span>
+                        <span className="text-xs font-bold text-emerald-600 tracking-tight">₹{(stock.quantity * (stock.product.landingPrice || 0)).toLocaleString()}</span>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end min-w-[3.5rem] border-l border-gray-100 pl-4">
-                      <span className={`text-[7px] font-black uppercase tracking-widest leading-none mb-1 ${
-                        isNoStock ? 'text-rose-600' : isLowStock ? 'text-amber-600' : 'text-gray-400'
-                      }`}>Store</span>
-                      <span className={`text-xs font-black tracking-tighter ${
-                        isNoStock ? 'text-rose-600' : isLowStock ? 'text-amber-600' : 'text-gray-900'
-                      }`}>
-                        {stock.quantity}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end min-w-[3.5rem] bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
-                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Total</span>
-                      <span className="text-sm font-black text-blue-600 tracking-tighter">
-                        {stock.product.totalStock || stock.quantity}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end min-w-[4.5rem] border-l border-gray-100 pl-4">
-                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Valuation</span>
-                      <span className="text-xs font-black text-emerald-600 tracking-tight">₹{(stock.quantity * (stock.product.landingPrice || 0)).toLocaleString()}</span>
-                    </div>
-                  </div>
                 </div>
               );
             })}
