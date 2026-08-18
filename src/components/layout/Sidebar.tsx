@@ -133,6 +133,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           permissions.includes('shopkeeper_view')) return true;
     }
 
+    // Packing ERP fallback
+    if (slugCode === 'packing_erp' || slugCode === 'packing') {
+      return true;
+    }
+
     // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
@@ -292,6 +297,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       candidates.push(`shopkeeper_erp_admin_${labelPart}_view`);
     }
 
+    // Packing ERP fallback
+    if (parentPart === 'packing_erp' || parentPart === 'packing') {
+      return true;
+    }
+
     return candidates.some(candidate => permissions.includes(candidate));
   }, [permissions]);
 
@@ -349,6 +359,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   // Additional config states
   const [isShopkeeperErpAdminOpen, setIsShopkeeperErpAdminOpen] = useState(
     location.pathname.startsWith('/shopkeeper-erp')
+  );
+  const [isPackingErpOpen, setIsPackingErpOpen] = useState(
+    location.pathname.startsWith('/packing-erp')
   );
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);
@@ -431,6 +444,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isLocationsOpen: setIsLocationsOpen,
       isDeliverySettingsOpen: setIsDeliverySettingsOpen,
       isShopkeeperErpAdminOpen: setIsShopkeeperErpAdminOpen,
+      isPackingErpOpen: setIsPackingErpOpen,
       isPricingOpen: setIsPricingOpen,
       isBarcodeOpen: setIsBarcodeOpen,
       isProcurementOpen: setIsProcurementOpen,
@@ -461,6 +475,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isLocationsOpen,
       isDeliverySettingsOpen,
       isShopkeeperErpAdminOpen,
+      isPackingErpOpen,
       isPricingOpen,
       isBarcodeOpen,
       isProcurementOpen,
@@ -487,6 +502,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isLocationsOpen,
       isDeliverySettingsOpen,
       isShopkeeperErpAdminOpen,
+      isPackingErpOpen,
       isPricingOpen,
       isBarcodeOpen,
       isProcurementOpen,
@@ -944,6 +960,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     setIsDeliverySettingsOpen(
       initialStateCheckers.isDeliverySettingsOpen(location.pathname)
     );
+    setIsPackingErpOpen(location.pathname.startsWith('/packing-erp'));
   }, [location.pathname]);
 
   // ============================================

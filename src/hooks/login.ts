@@ -150,7 +150,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem('permissions', JSON.stringify(permissions));
 
-        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'SALES_AGENT', 'VSMS_AGENT'].includes(user.role?.toUpperCase());
+        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'SALES_AGENT', 'VSMS_AGENT', 'PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER', 'PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR'].includes(user.role?.toUpperCase());
         if (isStaffRole) {
           sessionStorage.setItem("staffToken", data.data.accessToken);
           sessionStorage.setItem("staffRefreshToken", data.data.refreshToken);
