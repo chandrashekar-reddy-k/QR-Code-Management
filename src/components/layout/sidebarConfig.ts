@@ -283,6 +283,7 @@ export const sidebarConfig: MenuSection[] = [
         label: "Refunds",
         icon: Banknote,
       },
+      { path: '/vsms/pre-orders', label: 'Pre-Orders', icon: Package },
       { path: '/vsms/scheduled-deliveries', label: 'Scheduled Deliveries', icon: ShoppingBag },
       { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
       { path: '/inventory/monitoring/reservations', label: 'Reservations', icon: Clock },
