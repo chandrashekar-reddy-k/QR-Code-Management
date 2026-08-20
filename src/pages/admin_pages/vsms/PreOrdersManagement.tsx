@@ -7,7 +7,7 @@ import {
   Calendar, Hash, ArrowLeft, ChevronRight, CreditCard,
   ShoppingCart, RotateCcw, X, ArrowUpDown, Home, Plus,
   FileText, Printer, Send, AlertTriangle, Eye, Check, ChevronDown,
-  ShoppingBag
+  ShoppingBag, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -47,7 +47,7 @@ export default function PreOrdersManagement() {
   const [filterOptions, setFilterOptions] = useState<any>({ vehicles: [], routes: [] });
 
   // Filters
-  const [activeQuickFilter, setActiveQuickFilter] = useState<'tomorrow' | 'today' | 'upcoming' | 'all'>('tomorrow');
+  const [activeQuickFilter, setActiveQuickFilter] = useState<'all' | 'tomorrow' | 'today' | 'upcoming'>('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [villageFilter, setVillageFilter] = useState('all');
   const [vehicleFilter, setVehicleFilter] = useState('all');
@@ -183,6 +183,39 @@ export default function PreOrdersManagement() {
   const resetCreateForm = () => {
     setNewCustomerPhone(''); setNewCustomerName(''); setNewVillage(''); setNewAddress('');
     setNewCustomNotes(''); setNewEstimatedAmount(''); setNewAdvanceAmount('0'); setNewAdvanceMode('NONE');
+  };
+
+  const handleAutofillPartnerPreOrder = () => {
+    const sampleNames = ['Ramesh Kumar', 'Suresh Reddy', 'Lakshmi Bai', 'Venkatesh Goud', 'Narayana Murthy', 'Anitha Devi'];
+    const sampleVillages = uniqueVillages.length > 0 ? uniqueVillages : ['Shankarpally', 'Chevella', 'Mokila', 'Janwada'];
+    const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+    const randomVillage = sampleVillages[Math.floor(Math.random() * sampleVillages.length)];
+    const randomMobile = '98' + Math.floor(10000000 + Math.random() * 90000000);
+
+    const groceryList = [
+      '1. 25kg Sona Masoori Rice (1 bag)',
+      '2. Freedom Sunflower Oil (2L)',
+      '3. Aashirvaad Atta (5kg)',
+      '4. Toor Dal (2kg)',
+      '5. Tata Salt (2 packets)',
+      '6. Tata Tea Gold (500g)',
+      '7. Surf Excel Detergent (1kg)',
+      '8. Vim Dishwash Bar (3 bars)',
+      '9. Colgate Toothpaste (200g)',
+      '10. Organic Jaggery / Bellam (1kg)',
+      '11. Red Chilli Powder (500g)',
+      '12. Turmeric Powder (250g)'
+    ].join('\n');
+
+    setNewCustomerName(randomName);
+    setNewCustomerPhone(randomMobile);
+    setNewVillage(randomVillage);
+    setNewAddress(`H.No 4-12, Near Temple, ${randomVillage}`);
+    setNewCustomNotes(groceryList);
+    setNewEstimatedAmount('2450');
+    setNewAdvanceAmount('500');
+    setNewAdvanceMode('CASH');
+    toast.success('Autofilled preorder with 12 grocery products!');
   };
 
   const uniqueVillages = useMemo(() => {
@@ -353,14 +386,25 @@ export default function PreOrdersManagement() {
   if (view === 'create') {
     return (
       <div className="min-h-screen bg-slate-50">
-        <div className="bg-emerald-700 text-white px-6 py-4 flex items-center gap-3 shadow-md sticky top-0 z-10">
-          <button onClick={() => { setView('list'); resetCreateForm(); }} className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-200">Partner Booking</p>
-            <h2 className="text-lg font-black flex items-center gap-2"><Plus className="w-5 h-5 stroke-[3]" /> Create Customer Pre-Order</h2>
+        <div className="bg-emerald-700 text-white px-6 py-4 flex items-center justify-between shadow-md sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <button onClick={() => { setView('list'); resetCreateForm(); }} className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-200">Partner Booking</p>
+              <h2 className="text-lg font-black flex items-center gap-2"><Plus className="w-5 h-5 stroke-[3]" /> Create Customer Pre-Order</h2>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={handleAutofillPartnerPreOrder}
+            className="py-1.5 px-3 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-900 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all uppercase tracking-wider"
+            title="Autofill with 10-15 sample products"
+          >
+            <Sparkles className="w-3.5 h-3.5 fill-slate-900" />
+            Autofill (10-15 Items)
+          </button>
         </div>
 
         <form onSubmit={handleCreatePreOrder} className="max-w-xl mx-auto p-6 space-y-5">

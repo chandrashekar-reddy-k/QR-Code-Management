@@ -5,7 +5,7 @@ import {
   Calendar, ArrowRight, User, DollarSign, FileText, AlertCircle,
   Truck, X, ChevronRight, Check, Send, Printer, RefreshCw,
   Camera, ShoppingBag, CreditCard, ChevronDown, MessageSquare,
-  ArrowLeft, ChevronLeft
+  ArrowLeft, ChevronLeft, Wand2, Sparkles
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -122,8 +122,14 @@ export default function AgentPreOrders() {
   const fetchCatalog = async () => {
     setLoadingProducts(true);
     try {
-      const res = await api.get('/agent/products');
-      setCatalogProducts(res.data || []);
+      let res;
+      try {
+        res = await api.get('/agent/products');
+      } catch {
+        res = await api.get('/vsms/products');
+      }
+      const data = Array.isArray(res.data) ? res.data : (res.data?.products || []);
+      setCatalogProducts(data);
     } catch { } finally {
       setLoadingProducts(false);
     }
@@ -167,9 +173,10 @@ export default function AgentPreOrders() {
     }
   };
 
-  const handleUpdateCatalogQty = (productId: string, delta: number) => {
+  const handleUpdateCatalogQty = (identifier: string, delta: number) => {
     setSelectedCatalogItems(prev => prev.map(item => {
-      if (item.productId === productId) {
+      const match = (item.productId && item.productId === identifier) || item.productName === identifier || identifier.includes(item.productName);
+      if (match) {
         const newQty = item.quantity + delta;
         return newQty > 0 ? { ...item, quantity: newQty } : null;
       }
@@ -223,6 +230,99 @@ export default function AgentPreOrders() {
       toast.error(err.response?.data?.message || 'Failed to create pre-order');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAutofillPreOrder = async () => {
+    let prods = catalogProducts;
+    if (prods.length === 0) {
+      setLoadingProducts(true);
+      try {
+        let res;
+        try {
+          res = await api.get('/agent/products');
+        } catch {
+          res = await api.get('/vsms/products');
+        }
+        prods = Array.isArray(res.data) ? res.data : (res.data?.products || []);
+        setCatalogProducts(prods);
+      } catch {
+        // fallback
+      } finally {
+        setLoadingProducts(false);
+      }
+    }
+
+    // Pick 10-15 products
+    const sampleNames = [
+      'Ramesh Kumar', 'Suresh Reddy', 'Lakshmi Bai', 'Venkatesh Goud',
+      'Narayana Murthy', 'Anitha Devi', 'Mallesh Yadav', 'Rajesh Sharma'
+    ];
+    const sampleVillages = [
+      'Shankarpally', 'Chevella', 'Mokila', 'Janwada', 'Kondapur Village', 'Mirzaguda'
+    ];
+
+    const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+    const randomVillage = todayPlan?.villageName || sampleVillages[Math.floor(Math.random() * sampleVillages.length)];
+    const randomMobile = '98' + Math.floor(10000000 + Math.random() * 90000000);
+
+    setCustomerName(randomName);
+    setCustomerPhone(randomMobile);
+    setVillageName(randomVillage);
+    setLandmark('Near Ramalayam Temple');
+    setDeliveryAddress(`H.No 3-45, Main Bazaar, ${randomVillage}`);
+    setDeliveryDateOption('tomorrow');
+    setDeliverySlot('Morning (8 AM - 12 PM)');
+    setItemMode('catalog');
+
+    if (prods && prods.length > 0) {
+      // Pick 10 to 15 random or sequential products from catalog
+      const count = Math.min(prods.length, Math.floor(Math.random() * 6) + 10); // 10 to 15
+      const shuffled = [...prods].sort(() => 0.5 - Math.random()).slice(0, count);
+      const items = shuffled.map((p, idx) => ({
+        productId: p.id,
+        productName: p.name,
+        unitPrice: Number(p.sellingPrice || p.price || 100),
+        quantity: Math.floor(Math.random() * 3) + 1,
+        image: p.images?.[0] || p.image || null,
+        unit: p.unit?.type || p.unit || 'pcs'
+      }));
+      setSelectedCatalogItems(items);
+      const total = items.reduce((s, it) => s + (it.unitPrice * it.quantity), 0);
+      const adv = Math.floor(total * 0.2); // 20% advance
+      setAdvanceMode('CASH');
+      setAdvanceAmount(String(adv));
+      toast.success(`Autofilled with ${items.length} products!`);
+    } else {
+      // Fallback if catalog products API is empty: populate with realistic 12 grocery items
+      const mockGrocery = [
+        { name: 'Sona Masoori Rice (25kg Bag)', price: 1450, qty: 1 },
+        { name: 'Freedom Sunflower Oil (1L Pouch)', price: 135, qty: 2 },
+        { name: 'Aashirvaad Superior MP Sharbati Atta (5kg)', price: 290, qty: 1 },
+        { name: 'Toor Dal Premium (1kg)', price: 165, qty: 2 },
+        { name: 'Tata Salt Crystal (1kg)', price: 25, qty: 2 },
+        { name: 'Tata Tea Gold (500g)', price: 280, qty: 1 },
+        { name: 'Surf Excel Quick Wash Detergent (1kg)', price: 155, qty: 1 },
+        { name: 'Vim Dishwash Bar (300g)', price: 35, qty: 3 },
+        { name: 'Colgate Strong Teeth Toothpaste (200g)', price: 110, qty: 1 },
+        { name: 'Organic Jaggery (Bellam 1kg)', price: 75, qty: 2 },
+        { name: 'Red Chilli Powder (500g)', price: 120, qty: 1 },
+        { name: 'Dettol Original Soap (Pack of 3)', price: 140, qty: 1 }
+      ];
+      const items = mockGrocery.map((p) => ({
+        productId: null,
+        productName: p.name,
+        unitPrice: p.price,
+        quantity: p.qty,
+        image: null,
+        unit: 'pack'
+      }));
+      setSelectedCatalogItems(items);
+      const total = items.reduce((s, it) => s + (it.unitPrice * it.quantity), 0);
+      const adv = Math.floor(total * 0.2);
+      setAdvanceMode('CASH');
+      setAdvanceAmount(String(adv));
+      toast.success(`Autofilled with ${items.length} products!`);
     }
   };
 
@@ -436,14 +536,25 @@ export default function AgentPreOrders() {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-800">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-4 flex items-center gap-3 shadow-md sticky top-0 z-10">
-          <button onClick={() => { setView('list'); resetForm(); }} className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 transition-all">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-200">Village Sales</span>
-            <h2 className="text-base font-black flex items-center gap-2"><Plus className="w-4 h-4 stroke-[3]" /> Take Customer Pre-Order</h2>
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-4 flex items-center justify-between shadow-md sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => { setView('list'); resetForm(); }} className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 transition-all">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-200">Village Sales</span>
+              <h2 className="text-base font-black flex items-center gap-2"><Plus className="w-4 h-4 stroke-[3]" /> Take Customer Pre-Order</h2>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={handleAutofillPreOrder}
+            className="py-1.5 px-3 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-900 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all uppercase tracking-wider"
+            title="Autofill preorder with sample customer and 10-15 products"
+          >
+            <Sparkles className="w-3.5 h-3.5 fill-slate-900" />
+            Autofill (10-15 Items)
+          </button>
         </div>
 
         <form onSubmit={handleCreatePreOrder} className="p-4 space-y-4 max-w-lg mx-auto pb-24">
@@ -528,15 +639,26 @@ export default function AgentPreOrders() {
           <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pre-Order Products</p>
-              <div className="flex bg-slate-100 rounded-lg p-0.5 text-xs font-bold">
-                <button type="button" onClick={() => setItemMode('word_of_mouth')}
-                  className={`px-2.5 py-1 rounded-md transition-all ${itemMode === 'word_of_mouth' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500'}`}>
-                  Verbal List
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleAutofillPreOrder}
+                  className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-black text-[11px] flex items-center gap-1 transition-all"
+                  title="Autofill with 10-15 items"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-700" />
+                  Autofill 10-15 Items
                 </button>
-                <button type="button" onClick={() => setItemMode('catalog')}
-                  className={`px-2.5 py-1 rounded-md transition-all ${itemMode === 'catalog' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500'}`}>
-                  Catalog
-                </button>
+                <div className="flex bg-slate-100 rounded-lg p-0.5 text-xs font-bold">
+                  <button type="button" onClick={() => setItemMode('word_of_mouth')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${itemMode === 'word_of_mouth' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500'}`}>
+                    Verbal List
+                  </button>
+                  <button type="button" onClick={() => setItemMode('catalog')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${itemMode === 'catalog' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500'}`}>
+                    Catalog
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -575,18 +697,21 @@ export default function AgentPreOrders() {
                 </div>
                 {selectedCatalogItems.length > 0 && (
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2">
-                    <p className="text-[10px] font-black uppercase text-emerald-800">Selected Items:</p>
-                    {selectedCatalogItems.map(item => (
-                      <div key={item.productId} className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-800">{item.productName}</span>
-                        <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => handleUpdateCatalogQty(item.productId, -1)} className="w-6 h-6 rounded-full bg-rose-100 text-rose-700 font-black flex items-center justify-center">−</button>
-                          <span className="font-black w-6 text-center">{item.quantity}</span>
-                          <button type="button" onClick={() => handleUpdateCatalogQty(item.productId, +1)} className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-black flex items-center justify-center">+</button>
-                          <span className="font-black text-slate-900 w-16 text-right">₹{item.unitPrice * item.quantity}</span>
+                    <p className="text-[10px] font-black uppercase text-emerald-800">Selected Items ({selectedCatalogItems.length}):</p>
+                    {selectedCatalogItems.map((item, idx) => {
+                      const itemKey = item.productId || `item_${idx}_${item.productName}`;
+                      return (
+                        <div key={itemKey} className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-slate-800">{item.productName}</span>
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => handleUpdateCatalogQty(itemKey, -1)} className="w-6 h-6 rounded-full bg-rose-100 text-rose-700 font-black flex items-center justify-center">−</button>
+                            <span className="font-black w-6 text-center">{item.quantity}</span>
+                            <button type="button" onClick={() => handleUpdateCatalogQty(itemKey, +1)} className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-black flex items-center justify-center">+</button>
+                            <span className="font-black text-slate-900 w-16 text-right">₹{item.unitPrice * item.quantity}</span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div className="pt-1.5 border-t border-emerald-200 flex justify-between font-black text-xs text-emerald-900">
                       <span>Catalog Subtotal:</span><span>₹{catalogSubtotal}</span>
                     </div>
