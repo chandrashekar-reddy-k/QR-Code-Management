@@ -3,7 +3,7 @@ import { NavLink, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { 
   MapPin, Package, Wallet, Clock, BarChart2, User, Activity, 
   FileText, Truck, AlertTriangle, Receipt, LogOut, Menu, X, Store,
-  ArrowDownToLine, ArrowUpFromLine
+  ArrowDownToLine, ArrowUpFromLine, ShoppingBag
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
@@ -15,6 +15,7 @@ const menuSections = [
     title: 'Core Operations',
     items: [
       { path: '/vsms/agent-portal/today-plan', label: "Today's Plan", icon: MapPin },
+      { path: '/vsms/agent-portal/pre-orders', label: "Pre-Orders", icon: ShoppingBag },
       { path: '/vsms/agent-portal/scheduled-deliveries', label: "Scheduled Deliveries", icon: Package },
       { path: '/vsms/agent-portal/sales', label: "Sales POS", icon: BarChart2 },
       { path: '/vsms/agent-portal/inventory', label: "Vehicle & Stock", icon: Truck },
@@ -124,6 +125,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
 
     const slugMap: Record<string, string> = {
       '/vsms/agent-portal/today-plan': 'vsms_agent_todays_plan_view',
+      '/vsms/agent-portal/pre-orders': 'vsms_agent_pre_orders_view',
       '/vsms/agent-portal/scheduled-deliveries': 'vsms_agent_scheduled_deliveries_view',
       '/vsms/agent-portal/sales': 'vsms_agent_sales_pos_view',
       '/vsms/agent-portal/inventory': 'vsms_agent_vehicle_stock_view',
