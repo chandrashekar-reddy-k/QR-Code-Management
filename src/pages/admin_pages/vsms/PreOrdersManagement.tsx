@@ -57,6 +57,7 @@ export default function PreOrdersManagement() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [assignTargetVehicle, setAssignTargetVehicle] = useState('');
   const [showAssignSection, setShowAssignSection] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
   // Packing sheet
   const [packingData, setPackingData] = useState<any | null>(null);
@@ -77,35 +78,33 @@ export default function PreOrdersManagement() {
   const [newAdvanceMode, setNewAdvanceMode] = useState('NONE');
   const [submittingCreate, setSubmittingCreate] = useState(false);
 
-  const fetchPreOrders = useCallback(async (showRefresh = false) => {
-    if (showRefresh) setRefreshing(true);
+  const fetchPreOrders = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const params: Record<string, any> = {
-        filterType: activeQuickFilter,
-        status: statusFilter,
-        village: villageFilter,
-        vehicleId: vehicleFilter,
-        search
-      };
-      const [res, vehiclesRes] = await Promise.all([
-        api.get('/vsms/pre-orders', { params }),
-        api.get('/vsms/vehicles').catch(() => ({ data: { vehicles: [] } }))
-      ]);
+      const params: any = { filterType: activeQuickFilter };
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (villageFilter !== 'all') params.village = villageFilter;
+      if (vehicleFilter !== 'all') params.vehicleId = vehicleFilter;
+      if (search.trim()) params.search = search.trim();
+
+      const res = await api.get('/vsms/pre-orders', { params });
       if (res.data.success) {
         setPreOrders(res.data.preOrders || []);
-        setKpis(res.data.kpis || {});
-        setFilterOptions(prev => ({ ...prev, vehicles: vehiclesRes.data.vehicles || [] }));
+        if (res.data.kpis) setKpis(res.data.kpis);
+        if (res.data.filterOptions) setFilterOptions(res.data.filterOptions);
       }
     } catch (err: any) {
-      toast.error('Failed to load pre-orders');
+      toast.error('Failed to fetch pre-orders');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [activeQuickFilter, statusFilter, villageFilter, vehicleFilter, search]);
 
-  useEffect(() => { fetchPreOrders(); }, [fetchPreOrders]);
+  useEffect(() => {
+    fetchPreOrders();
+  }, [fetchPreOrders]);
 
   const loadPackingSheet = async () => {
     setLoadingPacking(true);
@@ -118,15 +117,18 @@ export default function PreOrdersManagement() {
   };
 
   const handleUpdateStatus = async (orderId: string, status: string) => {
+    setUpdatingStatusId(orderId);
     try {
       const res = await api.put(`/vsms/pre-orders/${orderId}/status`, { status });
       if (res.data.success) {
         toast.success(`Status updated to ${status}`);
-        fetchPreOrders(true);
+        await fetchPreOrders(true);
         if (selectedOrder?.id === orderId) setSelectedOrder(prev => ({ ...prev, status }));
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Status update failed');
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -263,19 +265,27 @@ export default function PreOrdersManagement() {
               </div>
               <div className="flex flex-col items-end gap-2">
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Change Status</p>
-                <select
-                  value={order.status}
-                  onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
-                  className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                >
-                  <option value="RECEIVED">Received</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="PACKED">Packed in Hub</option>
-                  <option value="LOADED">Loaded on Vehicle</option>
-                  <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
-                  <option value="DELIVERED">Delivered</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
+                <div className="relative">
+                  {updatingStatusId === order.id && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/70 rounded-xl z-10">
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                    </div>
+                  )}
+                  <select
+                    value={order.status}
+                    onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
+                    disabled={updatingStatusId === order.id}
+                    className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-60"
+                  >
+                    <option value="RECEIVED">Received</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="PACKED">Packed in Hub</option>
+                    <option value="LOADED">Loaded on Vehicle</option>
+                    <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                    <option value="DELIVERED">Delivered</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -737,85 +747,100 @@ export default function PreOrdersManagement() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-500">
+            <table className="text-left text-xs" style={{ minWidth: '1180px', width: '100%' }}>
+              <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-3.5 py-3.5">Pre-Order #</th>
-                  <th className="px-3.5 py-3.5">Customer & Village</th>
-                  <th className="px-3.5 py-3.5">Delivery Target</th>
-                  <th className="px-3.5 py-3.5">Items / Request</th>
-                  <th className="px-3.5 py-3.5">Financials</th>
-                  <th className="px-3.5 py-3.5">Booked By (Origin)</th>
-                  <th className="px-3.5 py-3.5">Assigned Delivery</th>
-                  <th className="px-3.5 py-3.5">Status</th>
-                  <th className="px-3.5 py-3.5 text-right">Actions</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: '130px' }}>Pre-Order #</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: '160px' }}>Customer & Village</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: '110px' }}>Delivery Target</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: '150px' }}>Items / Request</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: '110px' }}>Financials</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: '130px' }}>Booked By</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: '160px' }}>Assigned Delivery</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: '100px' }}>Status</th>
+                  <th className="px-3 py-2.5 whitespace-nowrap text-right" style={{ minWidth: '130px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {preOrders.map(order => {
                   const status = STATUS_CONFIG[order.status] || STATUS_CONFIG.RECEIVED;
                   return (
-                    <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-3.5 py-3.5">
-                        <p className="font-mono font-bold text-slate-700">{order.preOrderNumber}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{order.source}</p>
+                    <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
+                      {/* Pre-Order # */}
+                      <td className="px-3 py-2">
+                        <p className="font-mono font-bold text-slate-700 text-[11px] whitespace-nowrap">{order.preOrderNumber}</p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">{order.source}</p>
                       </td>
-                      <td className="px-3.5 py-3.5">
-                        <p className="font-bold text-slate-900">{order.customerName}</p>
-                        <p className="text-slate-500 font-medium">{order.customerMobile}</p>
-                        {order.villageName && <p className="text-[10px] text-slate-400 flex items-center gap-0.5 mt-0.5"><MapPin className="w-2.5 h-2.5" />{order.villageName}</p>}
+                      {/* Customer & Village */}
+                      <td className="px-3 py-2">
+                        <p className="font-bold text-slate-900 text-[11px] truncate max-w-[150px]">{order.customerName}</p>
+                        <p className="text-[10px] text-slate-500">{order.customerMobile}</p>
+                        {order.villageName && (
+                          <p className="text-[9px] text-slate-400 flex items-center gap-0.5 mt-0.5">
+                            <MapPin className="w-2.5 h-2.5 flex-shrink-0" />{order.villageName}
+                          </p>
+                        )}
                       </td>
-                      <td className="px-3.5 py-3.5">
-                        <p className="font-bold text-slate-900">{new Date(order.deliveryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
-                        <p className="text-slate-400 text-[10px]">{order.deliverySlot || 'Anytime'}</p>
+                      {/* Delivery Target */}
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <p className="font-bold text-slate-900 text-[11px]">
+                          {new Date(order.deliveryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </p>
+                        <p className="text-[9px] text-slate-400 mt-0.5 max-w-[100px] leading-tight">{order.deliverySlot || 'Anytime'}</p>
                       </td>
-                      <td className="px-3.5 py-3.5 max-w-[140px]">
-                        {order.customNotes && <p className="text-slate-600 italic truncate">"{order.customNotes}"</p>}
-                        {order.items?.length > 0 && <p className="text-[10px] text-slate-400 mt-0.5">{order.items.length} catalog item{order.items.length > 1 ? 's' : ''}</p>}
+                      {/* Items / Request */}
+                      <td className="px-3 py-2" style={{ maxWidth: '150px' }}>
+                        {order.customNotes && (
+                          <p className="text-[10px] text-slate-600 italic truncate" title={order.customNotes}>"{order.customNotes}"</p>
+                        )}
+                        {order.items?.length > 0 && (
+                          <p className="text-[9px] text-slate-400 mt-0.5">{order.items.length} catalog item{order.items.length > 1 ? 's' : ''}</p>
+                        )}
                       </td>
-                      <td className="px-3.5 py-3.5">
-                        <p className="font-black text-slate-900">₹{order.estimatedTotal}</p>
-                        <p className="text-[10px] text-emerald-600 font-bold">Adv: ₹{order.advanceAmount}</p>
-                        <p className="text-[10px] text-rose-600 font-bold">Due: ₹{order.balanceAmount}</p>
+                      {/* Financials */}
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <p className="font-black text-slate-900 text-[11px]">₹{order.estimatedTotal}</p>
+                        <p className="text-[9px] text-emerald-600 font-bold">Adv: ₹{order.advanceAmount}</p>
+                        <p className="text-[9px] text-rose-600 font-bold">Due: ₹{order.balanceAmount}</p>
                       </td>
-                      {/* Column 1: By whom the order was taken (Origin Vehicle / Agent) */}
-                      <td className="px-3.5 py-3.5">
+                      {/* Booked By */}
+                      <td className="px-3 py-2">
                         {order.bookedFromVehicle ? (
                           <div>
-                            <span className="font-bold text-slate-800 flex items-center gap-1">
-                              <Truck className="w-3 h-3 text-slate-400" />
+                            <span className="font-bold text-slate-800 text-[10px] flex items-center gap-1 whitespace-nowrap">
+                              <Truck className="w-3 h-3 text-slate-400 flex-shrink-0" />
                               {order.bookedFromVehicle.vehicleNumber}
                             </span>
-                            <p className="text-[10px] text-slate-500 font-medium">{order.bookedByAgent?.name || 'Agent'}</p>
+                            <p className="text-[9px] text-slate-500">{order.bookedByAgent?.name || 'Agent'}</p>
                           </div>
                         ) : order.bookedByAgent ? (
                           <div>
-                            <span className="font-bold text-slate-800">{order.bookedByAgent.name}</span>
-                            <p className="text-[10px] text-slate-400">Agent Booking</p>
+                            <span className="font-bold text-slate-800 text-[10px]">{order.bookedByAgent.name}</span>
+                            <p className="text-[9px] text-slate-400">Agent Booking</p>
                           </div>
                         ) : (
-                          <span className="text-[11px] text-slate-400 font-medium">Partner Portal</span>
+                          <span className="text-[10px] text-slate-400">Partner Portal</span>
                         )}
                       </td>
-                      {/* Column 2: By whom the order is assigned for delivery */}
-                      <td className="px-3.5 py-3.5">
+                      {/* Assigned Delivery */}
+                      <td className="px-3 py-2">
                         {order.assignedVehicle ? (
                           <div>
-                            <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                              <Truck className="w-3 h-3 text-emerald-600" />
+                            <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md text-[10px] inline-flex items-center gap-1 whitespace-nowrap">
+                              <Truck className="w-3 h-3 text-emerald-600 flex-shrink-0" />
                               {order.assignedVehicle.vehicleNumber}
                             </span>
                             {order.assignedAgent?.name && (
-                              <p className="text-[10px] text-slate-600 font-semibold mt-0.5">Driver: {order.assignedAgent.name}</p>
+                              <p className="text-[9px] text-slate-600 font-semibold mt-0.5">Driver: {order.assignedAgent.name}</p>
                             )}
                             {order.assignedRoute?.routeName && (
-                              <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{order.assignedRoute.routeName}</p>
+                              <p className="text-[9px] text-slate-400 truncate max-w-[140px]">{order.assignedRoute.routeName}</p>
                             )}
                           </div>
                         ) : (
                           <button
                             onClick={() => { setSelectedOrder(order); setAssignTargetVehicle(''); setShowAssignSection(true); setView('detail'); }}
-                            className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold hover:bg-amber-100"
+                            className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold hover:bg-amber-100 whitespace-nowrap"
                           >
                             + Assign Vehicle
                           </button>
@@ -834,13 +859,31 @@ export default function PreOrdersManagement() {
                             <Send className="w-4 h-4" />
                           </button>
                           {order.status === 'RECEIVED' && (
-                            <button onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')} className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[11px]">Confirm</button>
+                            <button
+                              onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')}
+                              disabled={updatingStatusId === order.id}
+                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-lg text-[11px] flex items-center gap-1 min-w-[62px] justify-center"
+                            >
+                              {updatingStatusId === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Confirm'}
+                            </button>
                           )}
                           {order.status === 'CONFIRMED' && (
-                            <button onClick={() => handleUpdateStatus(order.id, 'PACKED')} className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-[11px]">Mark Packed</button>
+                            <button
+                              onClick={() => handleUpdateStatus(order.id, 'PACKED')}
+                              disabled={updatingStatusId === order.id}
+                              className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-lg text-[11px] flex items-center gap-1 min-w-[80px] justify-center"
+                            >
+                              {updatingStatusId === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Mark Packed'}
+                            </button>
                           )}
                           {order.status === 'PACKED' && (
-                            <button onClick={() => handleUpdateStatus(order.id, 'LOADED')} className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg text-[11px]">Mark Loaded</button>
+                            <button
+                              onClick={() => handleUpdateStatus(order.id, 'LOADED')}
+                              disabled={updatingStatusId === order.id}
+                              className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-lg text-[11px] flex items-center gap-1 min-w-[82px] justify-center"
+                            >
+                              {updatingStatusId === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Mark Loaded'}
+                            </button>
                           )}
                         </div>
                       </td>

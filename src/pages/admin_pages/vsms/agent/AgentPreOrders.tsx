@@ -5,7 +5,7 @@ import {
   Calendar, ArrowRight, User, DollarSign, FileText, AlertCircle,
   Truck, X, ChevronRight, Check, Send, Printer, RefreshCw,
   Camera, ShoppingBag, CreditCard, ChevronDown, MessageSquare,
-  ArrowLeft, ChevronLeft, Wand2, Sparkles
+  ArrowLeft, ChevronLeft, Wand2, Sparkles, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -54,6 +54,7 @@ export default function AgentPreOrders() {
   const [deliveryOrder, setDeliveryOrder] = useState<any | null>(null);
   const [deliveryPaymentMode, setDeliveryPaymentMode] = useState('CASH');
   const [deliveryCollectedAmount, setDeliveryCollectedAmount] = useState<number>(0);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
   // Form State for Booking
   const [customerPhone, setCustomerPhone] = useState('');
@@ -333,16 +334,19 @@ export default function AgentPreOrders() {
   };
 
   const handleUpdateStatus = async (orderId: string, status: string, additionalData = {}) => {
+    setUpdatingStatusId(orderId);
     try {
       const res = await api.put(`/agent/pre-orders/${orderId}/status`, { status, ...additionalData });
       if (res.data.success) {
         toast.success(`Marked as ${status.toLowerCase()}`);
-        loadData();
+        await loadData();
         if (view === 'complete') setView('list');
         if (view === 'detail') setView('list');
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Status update failed');
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -903,17 +907,34 @@ export default function AgentPreOrders() {
                       {!isDelivered && !isCancelled && (
                         <div className="mt-3.5 grid grid-cols-2 gap-2">
                           {['RECEIVED', 'CONFIRMED', 'PACKED'].includes(order.status) ? (
-                            <button onClick={() => handleUpdateStatus(order.id, 'LOADED')} className="py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm">
-                              <Truck className="w-3.5 h-3.5" /> Mark Loaded
+                            <button
+                              onClick={() => handleUpdateStatus(order.id, 'LOADED')}
+                              disabled={updatingStatusId === order.id}
+                              className="py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                              {updatingStatusId === order.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <><Truck className="w-3.5 h-3.5" /> Mark Loaded</>
+                              )}
                             </button>
                           ) : (
-                            <button onClick={() => handleUpdateStatus(order.id, 'OUT_FOR_DELIVERY')} className="py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm">
-                              <ArrowRight className="w-3.5 h-3.5" /> Out for Delivery
+                            <button
+                              onClick={() => handleUpdateStatus(order.id, 'OUT_FOR_DELIVERY')}
+                              disabled={updatingStatusId === order.id}
+                              className="py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                              {updatingStatusId === order.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <><ArrowRight className="w-3.5 h-3.5" /> Out for Delivery</>
+                              )}
                             </button>
                           )}
                           <button
                             onClick={() => { setDeliveryOrder(order); setDeliveryCollectedAmount(order.balanceAmount || 0); setView('complete'); }}
-                            className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md"
+                            disabled={updatingStatusId === order.id}
+                            className="py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" /> Complete Delivery
                           </button>
