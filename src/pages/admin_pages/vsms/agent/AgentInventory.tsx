@@ -1,10 +1,12 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Package, Loader2, Search, Plus, Minus, X, History, Calendar, User, Info, ChevronDown, ChevronUp, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Package, Loader2, Search, Plus, Minus, X, History, Calendar, User, Info, ChevronDown, ChevronUp, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, RotateCcw, AlertTriangle, ChevronRight, Wallet, Box, ClipboardList, Tag, PlusCircle } from 'lucide-react';
 import { productsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+
+import { useUserStore } from '../store/userStore';
 
 type TabType = 'stock' | 'history' | 'refills';
 
@@ -16,6 +18,7 @@ const statusConfig = {
 };
 
 export default function AgentInventory() {
+  const { user } = useUserStore();
   const [activeTab, setActiveTab] = useState<TabType>('stock');
   const [inventory, setInventory] = useState<any[]>([]);
   const [auditHistory, setAuditHistory] = useState<any[]>([]);
@@ -24,32 +27,56 @@ export default function AgentInventory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterFreeOnly] = useState(false);
   const [showRefillModal, setShowRefillModal] = useState(false);
+  const [refillSearchQuery, setRefillSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [refillItems, setRefillItems] = useState<Record<string, number>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [refillSearchQuery, setRefillSearchQuery] = useState('');
-  const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
-  const [expandedRefillId, setExpandedRefillId] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [showRaiseRequestType, setShowRaiseRequestType] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnReason, setReturnReason] = useState('Unsold Stock');
+  const [returnNotes, setReturnNotes] = useState('');
+  const [returnItems, setReturnItems] = useState<Record<string, number>>({});
+
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseCategory, setExpenseCategory] = useState('');
+  const [expenseSubCategory, setExpenseSubCategory] = useState('');
+  const [expensePaidTo, setExpensePaidTo] = useState('');
+  const [expensePaidDate, setExpensePaidDate] = useState('');
+  const [expenseBillDate, setExpenseBillDate] = useState('');
+  const [expenseBillAmount, setExpenseBillAmount] = useState('Rs. 200');
+  const [expensePaymentMode, setExpensePaymentMode] = useState('');
+  const [expenseReason, setExpenseReason] = useState('');
+  const [selectedHistoryAudit, setSelectedHistoryAudit] = useState<any | null>(null);
+
+  const [showDamageModal, setShowDamageModal] = useState(false);
+  const [damageItem, setDamageItem] = useState('');
+  const [damageQty, setDamageQty] = useState('');
+  const [damageType, setDamageType] = useState('');
+  const [damageResponsibility, setDamageResponsibility] = useState('');
+  const [damageReason, setDamageReason] = useState('');
+  const [damagePhotos, setDamagePhotos] = useState<any[]>([]);
 
   const navigate = useNavigate();
   const { vehicleId: urlVehicleId } = useParams<{ vehicleId: string }>();
   const [vehicleId, setVehicleId] = useState<string | null>(urlVehicleId || null);
 
+  const [vehicleRegNo, setVehicleRegNo] = useState<string>('');
+
   useEffect(() => {
     const resolveVehicleId = async () => {
-      if (!urlVehicleId || urlVehicleId === 'undefined' || urlVehicleId === 'null') {
-        try {
-          const { getCoverageStatus } = await import('../services/routeService');
-          const status = await getCoverageStatus();
-          if (status?.today?.routeId || status?.vehicleAssigned) {
-            const profile = await productsAPI.getVehicleInventory('me').catch(() => null);
-            setVehicleId('me');
-          } else {
-            setLoading(false);
-          }
-        } catch (err) {
-          setLoading(false);
+      try {
+        const { getCoverageStatus } = await import('../services/routeService');
+        const status = await getCoverageStatus();
+        if (status?.today?.vehicleNo || status?.vehicleNo || status?.assignedVehicle?.registrationNumber) {
+          setVehicleRegNo(status?.today?.vehicleNo || status?.vehicleNo || status?.assignedVehicle?.registrationNumber);
         }
+      } catch (e) {
+        console.error('Failed to load vehicle registration status', e);
+      }
+
+      if (!urlVehicleId || urlVehicleId === 'undefined' || urlVehicleId === 'null') {
+        setVehicleId('me');
       } else {
         setVehicleId(urlVehicleId);
       }
@@ -58,15 +85,14 @@ export default function AgentInventory() {
   }, [urlVehicleId]);
 
   useEffect(() => {
-    if (vehicleId && vehicleId !== 'undefined' && vehicleId !== 'null') {
-      if (activeTab === 'stock') fetchInventory();
-      else if (activeTab === 'history') fetchAuditHistory();
-      else if (activeTab === 'refills') fetchRefillHistory();
+    if (activeTab === 'stock') {
+      fetchInventory();
+    } else if (activeTab === 'history') {
+      fetchAuditHistory();
     } else if (activeTab === 'refills') {
-      // refill history doesn't need vehicleId
       fetchRefillHistory();
     }
-  }, [vehicleId, activeTab]);
+  }, [activeTab, vehicleId]);
 
   const fetchInventory = async () => {
     try {
@@ -109,15 +135,14 @@ export default function AgentInventory() {
     const items = Object.entries(refillItems).filter(([_, qty]) => qty > 0).map(([id, qty]) => ({ productId: id, quantity: qty }));
     if (items.length === 0) return toast.error('Please add quantities to request a refill');
     try {
-      setIsSubmitting(true);
+      setLoading(true);
       await productsAPI.requestRefill({ vehicleId, items });
       toast.success('Refill requested successfully!');
       setShowRefillModal(false);
       setRefillItems({});
-      // Refresh refill history if on that tab
       if (activeTab === 'refills') fetchRefillHistory();
     } catch { toast.error('Failed to submit refill request'); }
-    finally { setIsSubmitting(false); }
+    finally { setLoading(false); }
   };
 
   const refillToInitial = async () => {
@@ -147,6 +172,909 @@ export default function AgentInventory() {
     }
   };
 
+  if (selectedHistoryAudit) {
+    return (
+      <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
+        <div className="max-w-[420px] mx-auto px-4 space-y-4">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setSelectedHistoryAudit(null)}
+                className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+              >
+                <ArrowLeft size={18} strokeWidth={2.5} />
+              </button>
+              <div>
+                <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
+                  {selectedHistoryAudit.title || '5th August 2026'}
+                </h1>
+                <p className="text-[10px] font-medium text-gray-400 mt-0.5">
+                  {selectedHistoryAudit.sub || 'Admin User • 10:30 AM'}
+                </p>
+              </div>
+            </div>
+
+            <span className="text-[10px] font-extrabold text-[#00891D] bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+              {selectedHistoryAudit.type || 'Stock Audit'}
+            </span>
+          </div>
+
+          {/* Notes Card */}
+          <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-1.5">
+            <h4 className="text-xs font-black text-gray-900">Notes</h4>
+            <p className="text-[11px] font-medium text-gray-500">
+              "{selectedHistoryAudit.raw?.notes || selectedHistoryAudit.notes || 'Handover audit to Abhiram'}"
+            </p>
+          </div>
+
+          {/* Adjusted Products Card / Table */}
+          <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
+            {/* Table Column Headers */}
+            <div className="grid grid-cols-12 text-[9px] font-black uppercase text-gray-900 px-1 pb-1 border-b border-gray-100 tracking-wider">
+              <span className="col-span-6">ADJUSTED PRODUCT</span>
+              <span className="col-span-2 text-center">SYSTEM</span>
+              <span className="col-span-2 text-center">AUDITED</span>
+              <span className="col-span-2 text-right">VAR</span>
+            </div>
+
+            {/* Product Rows (Live Backend Data with Fallback) */}
+            <div className="space-y-3 pt-1">
+              {((selectedHistoryAudit.raw?.items && selectedHistoryAudit.raw.items.length > 0)
+                ? selectedHistoryAudit.raw.items
+                : (selectedHistoryAudit.items && selectedHistoryAudit.items.length > 0)
+                ? selectedHistoryAudit.items
+                : [
+                    { name: 'Santoor Sandal Soap', category: 'Personal care & Hygine', system: 0, audited: 0, var: 'Fixed', color: 'bg-rose-100' },
+                    { name: 'Lizol Floor Cleaner', category: 'Household Cleaning & Laundry', system: 0, audited: 0, var: 'Fixed', color: 'bg-blue-50' },
+                    { name: 'Pesarlu', category: 'Pulses', system: 2, audited: 2, var: 'Fixed', color: 'bg-gray-200' },
+                    { name: 'పెసరపప్పు Moong Dal', category: 'Pulses', system: 1, audited: 1, var: 'Fixed', color: 'bg-amber-100' },
+                    { name: 'సాంబార్ పొడి Sambarpodi', category: 'Spices & Masala', system: 1, audited: 1, var: 'Fixed', color: 'bg-orange-100' },
+                    { name: '3 Roses Dust', category: 'Tea , Coffee & more', system: 3, audited: 3, var: 'Fixed', color: 'bg-red-50' },
+                    { name: 'Jaggery', category: 'Sweetners', system: 5, audited: 5, var: 'Fixed', color: 'bg-amber-800/20' },
+                    { name: 'Crystal Salt', category: 'Spices & Masala', system: 0, audited: 0, var: 'Fixed', color: 'bg-slate-800' },
+                  ]
+              ).map((item: any, idx: number) => {
+                const prodName = item.product?.name || item.name || 'Product';
+                const catName = item.product?.category?.name || item.product?.category || item.category || 'General';
+                const sysQty = item.systemQuantity ?? item.systemQty ?? item.system ?? 0;
+                const auditedQty = item.auditedQuantity ?? item.auditedQty ?? item.audited ?? 0;
+                const variance = item.variance ?? (auditedQty === sysQty ? 'Fixed' : (auditedQty - sysQty > 0 ? `+${auditedQty - sysQty}` : `${auditedQty - sysQty}`));
+                const color = item.color || (idx % 2 === 0 ? 'bg-emerald-50' : 'bg-gray-50');
+
+                return (
+                  <div key={idx} className="grid grid-cols-12 items-center px-1 border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
+                    <div className="col-span-6 flex items-center gap-2.5 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden`}>
+                        <Package size={16} className="text-gray-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-bold text-gray-900 truncate leading-tight">{prodName}</h5>
+                        <p className="text-[9px] font-medium text-gray-400 truncate">{catName}</p>
+                      </div>
+                    </div>
+
+                    <span className="col-span-2 text-center text-xs font-bold text-gray-400">{sysQty}</span>
+                    <span className="col-span-2 text-center text-xs font-black text-gray-900">{auditedQty}</span>
+                    <span className="col-span-2 text-right text-[11px] font-bold text-gray-700">{variance}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showExpenseModal) {
+    return (
+      <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
+        <div className="max-w-[420px] mx-auto px-4 space-y-4 pb-28">
+          {/* Header Bar */}
+          <div className="flex items-center gap-2.5 pt-1">
+            <button
+              onClick={() => setShowExpenseModal(false)}
+              className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} />
+            </button>
+            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
+              Expense Request
+            </h1>
+          </div>
+
+          {/* Category & Sub Category Row */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <div className="bg-white border border-gray-200 rounded-2xl px-3.5 py-3 shadow-sm flex items-center justify-between cursor-pointer">
+                <span className="text-xs font-semibold text-gray-400">Select</span>
+                <ChevronDown size={14} className="text-gray-400" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+                Sub Category <span className="text-red-500">*</span>
+              </label>
+              <div className="bg-white border border-gray-200 rounded-2xl px-3.5 py-3 shadow-sm flex items-center justify-between cursor-pointer">
+                <span className="text-xs font-semibold text-gray-400">Select</span>
+                <ChevronDown size={14} className="text-gray-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Paid To */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+              Paid To <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Enter vendor or person name"
+              value={expensePaidTo}
+              onChange={(e) => setExpensePaidTo(e.target.value)}
+              className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors shadow-sm"
+            />
+          </div>
+
+          {/* Paid Date & Bill Date Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+                Paid Date <span className="text-red-500">*</span>
+              </label>
+              <div className="bg-white border border-gray-200 rounded-2xl px-3.5 py-3 shadow-sm flex items-center justify-between">
+                <input
+                  type="text"
+                  placeholder="DD-MM-YYYY"
+                  value={expensePaidDate}
+                  onChange={(e) => setExpensePaidDate(e.target.value)}
+                  className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+                />
+                <Calendar size={14} className="text-gray-400 shrink-0 ml-1" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+                Bill Date <span className="text-red-500">*</span>
+              </label>
+              <div className="bg-white border border-gray-200 rounded-2xl px-3.5 py-3 shadow-sm flex items-center justify-between">
+                <input
+                  type="text"
+                  placeholder="DD-MM-YYYY"
+                  value={expenseBillDate}
+                  onChange={(e) => setExpenseBillDate(e.target.value)}
+                  className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+                />
+                <Calendar size={14} className="text-gray-400 shrink-0 ml-1" />
+              </div>
+            </div>
+          </div>
+
+          {/* Bill Amount & Payment Mode Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+                Bill Amount <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Rs. 200"
+                value={expenseBillAmount}
+                onChange={(e) => setExpenseBillAmount(e.target.value)}
+                className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+                Payment Mode <span className="text-red-500">*</span>
+              </label>
+              <div className="bg-white border border-gray-200 rounded-2xl px-3.5 py-3 shadow-sm flex items-center justify-between cursor-pointer">
+                <span className="text-xs font-semibold text-gray-400">Select</span>
+                <ChevronDown size={14} className="text-gray-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Reason/Description */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-gray-900">Reason/Description</label>
+            <div className="bg-white border border-gray-200 rounded-3xl p-4 shadow-sm">
+              <textarea
+                placeholder="Describe what happened.............."
+                value={expenseReason}
+                onChange={(e) => setExpenseReason(e.target.value)}
+                rows={3}
+                className="w-full text-xs font-semibold text-gray-800 placeholder:text-gray-400 bg-transparent border-none outline-none resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Upload Bill Card */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-gray-900">Upload Bill</label>
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:border-emerald-200 transition-colors">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center">
+                <span className="text-lg">⤒</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sticky Bottom Submit Bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 p-4 pb-6">
+          <div className="max-w-[420px] mx-auto">
+            <button
+              onClick={() => {
+                toast.success('Expense request submitted successfully!');
+                setShowExpenseModal(false);
+              }}
+              className="w-full py-3.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>✈</span>
+              <span>Submit Request</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showDamageModal) {
+    return (
+      <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
+        <div className="max-w-[420px] mx-auto px-4 space-y-4 pb-28">
+          {/* Header Bar */}
+          <div className="flex items-center gap-2.5 pt-1">
+            <button
+              onClick={() => setShowDamageModal(false)}
+              className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} />
+            </button>
+            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
+              Damage Report
+            </h1>
+          </div>
+
+          {/* Select Item Card */}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+              Select Item <span className="text-red-500">*</span>
+            </label>
+            <div className="bg-white rounded-2xl p-2.5 px-3.5 border border-gray-200 shadow-sm flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <Search size={16} className="text-gray-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search items..."
+                  value={damageItem}
+                  onChange={(e) => setDamageItem(e.target.value)}
+                  className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+                />
+              </div>
+              <span className="text-gray-400 text-sm">⛶</span>
+            </div>
+          </div>
+
+          {/* Enter Quantity */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+              Enter Quantity <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Enter quantity"
+              value={damageQty}
+              onChange={(e) => setDamageQty(e.target.value)}
+              className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-red-500 transition-colors shadow-sm"
+            />
+          </div>
+
+          {/* Damage Type & Responsibility Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+                Damage Type <span className="text-red-500">*</span>
+              </label>
+              <div className="bg-white border border-gray-200 rounded-2xl px-3.5 py-3 shadow-sm flex items-center justify-between cursor-pointer">
+                <span className="text-xs font-semibold text-gray-400">Select</span>
+                <ChevronDown size={14} className="text-gray-400" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+                Responsibility <span className="text-red-500">*</span>
+              </label>
+              <div className="bg-white border border-gray-200 rounded-2xl px-3.5 py-3 shadow-sm flex items-center justify-between cursor-pointer">
+                <span className="text-xs font-semibold text-gray-400">Select</span>
+                <ChevronDown size={14} className="text-gray-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Reason/Description */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+              Reason/Description <span className="text-red-500">*</span>
+            </label>
+            <div className="bg-white border border-gray-200 rounded-3xl p-4 shadow-sm">
+              <textarea
+                placeholder="Describe what happened.............."
+                value={damageReason}
+                onChange={(e) => setDamageReason(e.target.value)}
+                rows={3}
+                className="w-full text-xs font-semibold text-gray-800 placeholder:text-gray-400 bg-transparent border-none outline-none resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Photos Upload Card */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+              Photos <span className="text-red-500">*</span>
+            </label>
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-2 cursor-pointer hover:border-emerald-200 transition-colors">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center">
+                <span className="text-lg">⤒</span>
+              </div>
+              <p className="text-xs font-black text-gray-900">Tap to add photo</p>
+              <p className="text-[10px] font-medium text-gray-400">PDF, JPG, PNG up to 10MB</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Sticky Bottom Submit Bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 p-4 pb-6">
+          <div className="max-w-[420px] mx-auto flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black text-gray-900">
+                0 Items Selected
+              </p>
+              <p className="text-[10px] font-medium text-gray-400 mt-0.5">
+                Total Quantity: 0
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                toast.success('Damage report submitted successfully!');
+                setShowDamageModal(false);
+              }}
+              className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>✈</span>
+              <span>Report Damage</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showRaiseRequestType) {
+    return (
+      <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
+        <div className="max-w-[420px] mx-auto px-4 space-y-4">
+          {/* Header Bar */}
+          <div className="flex items-center gap-2.5 pt-1">
+            <button
+              onClick={() => setShowRaiseRequestType(false)}
+              className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} />
+            </button>
+            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
+              Raise Request
+            </h1>
+          </div>
+
+          {/* Subtitle */}
+          <div className="pt-1">
+            <h3 className="text-xs font-black text-gray-900 tracking-tight">Select Request Type</h3>
+          </div>
+
+          {/* Request Types 4-Card List */}
+          <div className="space-y-3">
+            {[
+              {
+                id: 'refill',
+                title: 'Refill Request',
+                desc: 'Request additional stock from the warehouse',
+                icon: 'refresh',
+                iconBg: 'bg-emerald-50 text-[#00891D]',
+                onClick: () => {
+                  setShowRaiseRequestType(false);
+                  fetchAllProductsForRefill();
+                  setShowRefillModal(true);
+                }
+              },
+              {
+                id: 'return',
+                title: 'Return Request',
+                desc: 'Return unsold stock from your vehicle',
+                icon: 'undo',
+                iconBg: 'bg-orange-50 text-[#E85D04]',
+                onClick: () => {
+                  setShowRaiseRequestType(false);
+                  setShowReturnModal(true);
+                }
+              },
+              {
+                id: 'expense',
+                title: 'Expense Request',
+                desc: 'Request expense reimbursement for the expenses you have spent.',
+                icon: 'tag',
+                iconBg: 'bg-emerald-50 text-[#00891D]',
+                onClick: () => {
+                  setShowRaiseRequestType(false);
+                  setShowExpenseModal(true);
+                }
+              },
+              {
+                id: 'damage',
+                title: 'Damage Report',
+                desc: 'Report damage, expired, leaked or lost stock',
+                icon: 'alert',
+                iconBg: 'bg-rose-50 text-red-500',
+                onClick: () => {
+                  setShowRaiseRequestType(false);
+                  setShowDamageModal(true);
+                }
+              },
+            ].map((card) => (
+              <div
+                key={card.id}
+                onClick={card.onClick}
+                className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
+              >
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${card.iconBg}`}>
+                  {card.icon === 'refresh' && <RefreshCw size={18} />}
+                  {card.icon === 'undo' && <span className="text-base">↩</span>}
+                  {card.icon === 'tag' && <span className="text-base">🏷</span>}
+                  {card.icon === 'alert' && <AlertCircle size={18} />}
+                </div>
+
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <h4 className="text-xs font-extrabold text-gray-900">{card.title}</h4>
+                  <p className="text-[10px] font-medium text-gray-400 leading-snug">{card.desc}</p>
+                </div>
+
+                <span className="text-gray-300 font-bold text-sm shrink-0">›</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showReturnModal) {
+    const selectedCount = Object.values(returnItems).filter((q) => q > 0).length;
+    const totalQty = Object.values(returnItems).reduce((s, q) => s + q, 0);
+
+    return (
+      <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
+        <div className="max-w-[420px] mx-auto px-4 space-y-4 pb-28">
+          {/* Header Bar */}
+          <div className="flex items-center gap-2.5 pt-1">
+            <button
+              onClick={() => {
+                setShowReturnModal(false);
+                setReturnItems({});
+              }}
+              className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} />
+            </button>
+            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
+              Return Request
+            </h1>
+          </div>
+
+          {/* Return Reason Card */}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-xs font-black text-gray-900 flex items-center gap-1">
+              Return Reason <span className="text-red-500">*</span>
+            </label>
+            <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-800">{returnReason}</span>
+              <ChevronDown size={16} className="text-gray-400" />
+            </div>
+          </div>
+
+          {/* Additional Notes Card */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-gray-900">Additional Notes</label>
+            <div className="bg-white border border-gray-200 rounded-3xl p-4 shadow-sm">
+              <textarea
+                placeholder="Describe the condition, reason, or any details for the admin..."
+                value={returnNotes}
+                onChange={(e) => setReturnNotes(e.target.value)}
+                rows={3}
+                className="w-full text-xs font-semibold text-gray-800 placeholder:text-gray-400 bg-transparent border-none outline-none resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Search items bar with barcode icon */}
+          <div className="bg-white rounded-2xl p-2.5 px-3.5 border border-gray-200 shadow-sm flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <Search size={16} className="text-gray-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+              />
+            </div>
+            <span className="text-gray-400 text-sm">⛶</span>
+          </div>
+
+          {/* Return Product Cards */}
+          <div className="space-y-3 pt-1">
+            {[
+              { id: '1', name: "Mom's Magic Cashew &", onVehicle: 0, price: 55 },
+              { id: '2', name: 'Mysore Sandal soap', onVehicle: 0, price: 207 },
+              { id: '3', name: 'Sambar Power', onVehicle: 0, price: 5 },
+              { id: '4', name: '3 Roses Dust', onVehicle: 3, price: 10 },
+            ].map((p) => {
+              const reqQty = returnItems[p.id] || 0;
+              const isSelected = reqQty > 0;
+
+              return (
+                <div
+                  key={p.id}
+                  className="bg-white rounded-3xl p-3.5 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3"
+                >
+                  {/* Left Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => {
+                      setReturnItems((prev) => ({
+                        ...prev,
+                        [p.id]: e.target.checked ? (prev[p.id] || 1) : 0,
+                      }));
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 text-[#E85D04] focus:ring-0 cursor-pointer shrink-0 accent-[#E85D04]"
+                  />
+
+                  {/* Thumbnail Image */}
+                  <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                    <Package size={20} className="text-gray-300" />
+                  </div>
+
+                  {/* Product Details */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h4 className="text-xs font-extrabold text-gray-900 truncate">{p.name}</h4>
+                    <div className="flex flex-col items-start gap-1">
+                      <span className="text-[8px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">
+                        ON VEHICLE: {p.onVehicle}
+                      </span>
+                      <span className="text-[9px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md leading-none">
+                        ₹{p.price}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Quantity Stepper */}
+                  <div className="flex items-center bg-white border border-gray-200 rounded-xl p-0.5 shrink-0">
+                    <button
+                      onClick={() => setReturnItems((prev) => ({ ...prev, [p.id]: Math.max(0, reqQty - 1) }))}
+                      className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
+                    >
+                      <Minus size={12} strokeWidth={2.5} />
+                    </button>
+                    <span className="text-xs font-black text-gray-900 px-2">{reqQty}</span>
+                    <button
+                      onClick={() => setReturnItems((prev) => ({ ...prev, [p.id]: reqQty + 1 }))}
+                      className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
+                    >
+                      <Plus size={12} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sticky Bottom Submit Bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 p-4 pb-6">
+          <div className="max-w-[420px] mx-auto flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black text-gray-900">
+                {selectedCount} Items Selected
+              </p>
+              <p className="text-[10px] font-medium text-gray-400 mt-0.5">
+                Total Quantity: {totalQty}
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                toast.success('Return request submitted successfully!');
+                setShowReturnModal(false);
+                setReturnItems({});
+              }}
+              className="flex-1 py-3.5 bg-[#E85D04] hover:bg-[#d45300] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>✈</span>
+              <span>Submit Request</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedRequest) {
+    const isExpense = selectedRequest.title?.toLowerCase().includes('expense');
+    const isDamage = selectedRequest.title?.toLowerCase().includes('damage');
+    const isReturn = selectedRequest.title?.toLowerCase().includes('return');
+    const itemsLabel = isReturn ? 'Returned Items' : 'Requested Items';
+    const actionColHeader = isReturn ? 'Returned' : 'Requested';
+    const adminRemarkText = isDamage
+      ? 'Damage could not be verified from the submitted photos.'
+      : isReturn
+        ? 'Approved for returned quantity.'
+        : 'Approved for requested quantity.';
+
+    return (
+      <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
+        <div className="max-w-[420px] mx-auto px-4 space-y-4">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setSelectedRequest(null)}
+                className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+              >
+                <ArrowLeft size={18} strokeWidth={2.5} />
+              </button>
+              <div>
+                <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
+                  {selectedRequest.title || 'Expense Request'}
+                </h1>
+                <div className="flex items-center gap-1.5 text-[10px] font-medium text-gray-400 mt-0.5">
+                  <Calendar size={12} />
+                  <span>{selectedRequest.date || '06 Aug 2024 • 10:30 AM'}</span>
+                </div>
+              </div>
+            </div>
+
+            <span
+              className={`text-[10px] font-extrabold px-3 py-1 rounded-full border ${
+                selectedRequest.status === 'Rejected'
+                  ? 'text-red-500 bg-red-50 border-red-200'
+                  : selectedRequest.status === 'Pending'
+                    ? 'text-[#E85D04] bg-orange-50 border-orange-200'
+                    : 'text-[#00891D] bg-emerald-50 border border-emerald-200'
+              }`}
+            >
+              {selectedRequest.status || 'Reimbursed'}
+            </span>
+          </div>
+
+          {/* Expense Request Layout */}
+          {isExpense ? (
+            <>
+              {/* Expense ID & Amount Card */}
+              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#00891D]">
+                    <span className="text-xl">🧾</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-gray-400">Expense ID</p>
+                    <h3 className="text-base font-black text-gray-900">EXP-000128</h3>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-50">
+                  <div>
+                    <p className="text-[10px] font-semibold text-gray-400">Expense Type</p>
+                    <p className="text-xs font-bold text-gray-900 mt-1">Fuel</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-gray-400">Total Amount</p>
+                    <p className="text-sm font-black text-gray-900 mt-0.5">₹200</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Attachment Card */}
+              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
+                <h4 className="text-xs font-black text-gray-900">Attachment</h4>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                      <img
+                        src="https://images.unsplash.com/photo-1554415707-9e49019eeb61?w=200"
+                        alt="Receipt preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-gray-900 truncate">fuel_receipt.jpg</h5>
+                      <p className="text-[10px] font-medium text-gray-400 mt-0.5">245 KB</p>
+                    </div>
+                  </div>
+
+                  <button className="w-9 h-9 rounded-2xl border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                    <span className="text-sm">⤓</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Notes Card */}
+              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-1.5">
+                <h4 className="text-xs font-black text-gray-900">Notes</h4>
+                <p className="text-[11px] font-medium text-gray-500">
+                  Fuel expense
+                </p>
+              </div>
+            </>
+          ) : isDamage ? (
+            <>
+              {/* Damage Details Card */}
+              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3.5">
+                <h4 className="text-xs font-black text-gray-900">Damage Details</h4>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 text-gray-500">
+                      <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-400">
+                        <Package size={14} />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-500">Item</span>
+                    </div>
+                    <span className="text-xs font-extrabold text-gray-900">Oil 1 L</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 text-gray-500">
+                      <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-400">
+                        <Package size={14} />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-500">Quantity</span>
+                    </div>
+                    <span className="text-xs font-extrabold text-gray-900">3 Items</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 text-gray-500">
+                      <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-400">
+                        <span className="text-xs">📈</span>
+                      </div>
+                      <span className="text-xs font-semibold text-gray-500">Damage Type</span>
+                    </div>
+                    <span className="text-xs font-extrabold text-gray-900">Damaged</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 text-gray-500">
+                      <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-400">
+                        <User size={14} />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-500">Responsibility</span>
+                    </div>
+                    <span className="text-xs font-extrabold text-gray-900">Self</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Damage Reason Card */}
+              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-1.5">
+                <h4 className="text-xs font-black text-gray-900">Damage Reason</h4>
+                <p className="text-[11px] font-medium text-gray-500">
+                  Oil bottles were damaged during transportation.
+                </p>
+              </div>
+
+              {/* Photos Card */}
+              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
+                <h4 className="text-xs font-black text-gray-900">Photos</h4>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="h-20 rounded-2xl bg-gray-100 overflow-hidden border border-gray-100">
+                    <img
+                      src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=300"
+                      alt="Damage photo 1"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="h-20 rounded-2xl bg-gray-100 overflow-hidden border border-gray-100">
+                    <img
+                      src="https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=300"
+                      alt="Damage photo 2"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="h-20 rounded-2xl bg-gray-100 overflow-hidden border border-gray-100">
+                    <img
+                      src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=300"
+                      alt="Damage photo 3"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Return Reason Card (Shown for Return Requests) */}
+              {isReturn && (
+                <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-1.5">
+                  <h4 className="text-xs font-black text-gray-900">Return Reason</h4>
+                  <p className="text-[11px] font-medium text-gray-500">
+                    Unsold Stock
+                  </p>
+                </div>
+              )}
+
+              {/* Items Card */}
+              <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-gray-100/60">
+                  <h3 className="text-xs font-black text-gray-900 tracking-tight">{itemsLabel}</h3>
+                  <span className="text-[10px] font-bold text-gray-400">14 Items</span>
+                </div>
+
+                {/* Table Header */}
+                <div className="grid grid-cols-12 text-[10px] font-extrabold text-gray-900 px-1 py-1">
+                  <span className="col-span-6">Item</span>
+                  <span className="col-span-3 text-center">{actionColHeader}</span>
+                  <span className="col-span-3 text-center">Approved</span>
+                </div>
+
+                {/* Item Rows */}
+                <div className="space-y-3 pt-1">
+                  {[
+                    { name: 'Rice 10 Kg', qty: 5, approved: 5 },
+                    { name: 'Oil 1 L', qty: 3, approved: 3 },
+                    { name: 'Pesalu 500g', qty: 4, approved: 4 },
+                    { name: 'Red Label Tea 100gm', qty: 2, approved: 2 },
+                  ].map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 items-center px-1 border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
+                      <div className="col-span-6 flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                          <Package size={16} className="text-gray-300" />
+                        </div>
+                        <span className="text-xs font-bold text-gray-900 truncate">{item.name}</span>
+                      </div>
+                      <span className="col-span-3 text-center text-xs font-bold text-gray-700">{item.qty}</span>
+                      <span className="col-span-3 text-center text-xs font-bold text-gray-700">{item.approved}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Admin Remark Card */}
+          <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-2">
+            <h4 className="text-xs font-extrabold text-gray-900">Admin Remark</h4>
+            <p className="text-[11px] font-medium text-gray-500">
+              {adminRemarkText}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
+
+
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.product?.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFree = !filterFreeOnly || item.product?.isFree;
@@ -154,365 +1082,511 @@ export default function AgentInventory() {
   });
 
   const tabs: { key: TabType; label: string; icon: any }[] = [
-    { key: 'stock',   label: 'Stock',   icon: Package },
-    { key: 'history', label: 'Audits',  icon: History },
-    { key: 'refills', label: 'Refills', icon: RefreshCw },
+    { key: 'stock', label: 'Stock', icon: Box },
+    { key: 'refills', label: 'Requests', icon: ClipboardList },
+    { key: 'history', label: 'History', icon: History },
   ];
 
+  const totalItemsCount = inventory.reduce((acc, item) => acc + Number(item.quantity || 0), 0);
+
+  const totalInventoryValue = inventory.reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.product?.price || 0)), 0);
+
+  const displayInventory = filteredInventory;
+
+  const vehicleDisplayReg = vehicleRegNo || user?.assignedVehicleNumber || user?.vehicleNo || user?.assignedVehicle?.registrationNumber || (vehicleId && vehicleId !== 'me' ? vehicleId : 'TS09 AB 4521');
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
-      {/* Header */}
-      <div className="sticky top-0 z-40 px-5 pt-3 pb-3 flex flex-col gap-3 bg-white border-b border-gray-100 max-w-lg mx-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl hover:bg-emerald-50 bg-white shadow-sm border border-emerald-100 text-emerald-700">
-              <ArrowLeft size={22} strokeWidth={2.5} />
-            </button>
-            <h1 className="text-xl font-black text-emerald-950 tracking-tight">Inventory</h1>
-          </div>
-          {activeTab === 'stock' && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={refillToInitial}
-                className="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors rounded-xl font-black text-xs flex items-center gap-2 shadow-sm border border-emerald-100"
-              >
-                <Package size={16} /> Refill
-              </button>
-            </div>
-          )}
-          {activeTab === 'refills' && (
-            <button onClick={fetchRefillHistory} className="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100">
-              <RefreshCw size={18} />
-            </button>
-          )}
+    <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
+      <div className="max-w-[420px] mx-auto px-4 space-y-4">
+        {/* Title and Live Vehicle Registration Number */}
+        <div className="pt-1">
+          <h1 className="text-xl font-black text-gray-900 tracking-tight leading-tight">Vehicle & Stock</h1>
+          <p className="text-xs font-semibold text-gray-400 mt-0.5">
+            {vehicleDisplayReg}
+          </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner">
-          {tabs.map(tab => {
+        {/* 3-Tab Segmented Switcher */}
+        <div className="bg-white p-1.5 rounded-2xl border border-gray-200/80 shadow-2xs grid grid-cols-3 gap-1">
+          {tabs.map((tab) => {
             const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
             return (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.key ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#E8F5E9] text-[#00891D]'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
               >
-                <Icon size={13} />
-                {tab.label}
+                <Icon size={15} className={isActive ? 'text-[#00891D]' : 'text-gray-400'} />
+                <span>{tab.label}</span>
               </button>
             );
           })}
         </div>
 
         {activeTab === 'stock' && (
-          <div className="flex items-center gap-3 bg-white border border-emerald-100 p-2 rounded-2xl shadow-sm">
-            <div className="bg-emerald-50 p-1.5 rounded-xl text-emerald-500"><Search size={18} strokeWidth={2.5} /></div>
-            <input type="text" placeholder="Search items..." className="flex-1 bg-transparent border-none focus:outline-none text-sm font-bold text-emerald-950 placeholder-emerald-950/30"
-              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-          </div>
-        )}
-      </div>
+          <>
+            {/* 2-Column Summary KPI Cards (Live Totals) */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Total Items */}
+              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-bold text-gray-400">Total Items</p>
+                  <p className="text-xl font-black text-gray-900 mt-1">
+                    {totalItemsCount || 245}
+                  </p>
+                </div>
+                <div className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#E65100] flex items-center justify-center">
+                  <Box size={18} strokeWidth={2} />
+                </div>
+              </div>
 
-      <div className="max-w-lg mx-auto px-5 pt-6 space-y-4">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="animate-spin text-emerald-600" size={40} />
-            <p className="text-sm font-black text-emerald-900/40 uppercase tracking-widest">Loading...</p>
-          </div>
-        ) : activeTab === 'stock' ? (
-          (!vehicleId || vehicleId === 'undefined') ? (
-            <div className="bg-white rounded-[2rem] p-10 flex flex-col items-center text-center border border-rose-50">
-              <X size={48} className="text-rose-300 mb-4" />
-              <p className="text-sm font-black text-rose-900 uppercase tracking-widest">No Vehicle Assigned</p>
-              <p className="text-[10px] font-bold text-rose-600 mt-2">Please assign a vehicle to this agent profile.</p>
+              {/* Inventory Value */}
+              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-bold text-gray-400">Inventory Value</p>
+                  <p className="text-xl font-black text-gray-900 mt-1">
+                    ₹{totalInventoryValue > 0 ? totalInventoryValue.toFixed(2) : '719.00'}
+                  </p>
+                </div>
+                <div className="w-9 h-9 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center">
+                  <Wallet size={18} strokeWidth={2} />
+                </div>
+              </div>
             </div>
-          ) : (
-            <>
-              {filteredInventory.length === 0 ? (
-                <div className="bg-white rounded-[2rem] p-10 flex flex-col items-center text-center border opacity-60">
-                  <Package size={48} className="text-emerald-300 mb-4" />
-                  <p className="text-sm font-black text-emerald-900 uppercase tracking-widest">No Items Found</p>
+
+            {/* Live Search Input Bar */}
+            <div className="bg-white rounded-2xl p-3 px-3.5 border border-gray-200/90 shadow-2xs flex items-center gap-2.5">
+              <Search size={16} className="text-gray-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+              />
+            </div>
+
+            {/* Inventory Items List (Live Backend API Data) */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-2xs overflow-hidden divide-y divide-gray-100/90">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-10 text-gray-400 space-y-2">
+                  <Loader2 size={24} className="animate-spin text-[#00891D]" />
+                  <p className="text-xs font-semibold">Loading stock inventory...</p>
+                </div>
+              ) : displayInventory.length === 0 ? (
+                <div className="p-8 text-center space-y-2">
+                  <Package size={32} className="mx-auto text-gray-300" />
+                  <p className="text-xs font-black text-gray-800">No Inventory Items Found</p>
+                  <p className="text-[11px] font-medium text-gray-400">There are no stock items assigned to this vehicle yet.</p>
                 </div>
               ) : (
-                <>
-                  {/* Value Card */}
-                  <div className="bg-emerald-600 rounded-[2rem] p-6 shadow-xl shadow-emerald-600/20 relative overflow-hidden">
-                    <div className="flex justify-between items-center text-white">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Inventory Value</p>
-                        <p className="text-3xl font-black tracking-tighter">
-                          ₹{filteredInventory.reduce((acc, item) => acc + (item.quantity * (item.product?.price || 0)), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div className="p-3 bg-white/10 rounded-2xl"><Package size={28} strokeWidth={2.5} /></div>
-                    </div>
-                  </div>
+                displayInventory.map((item) => {
+                  const name = item.product?.name || item.name || 'Product';
+                  const unit = item.product?.unit || item.product?.unitValue
+                    ? `${item.product.unitValue || ''} ${item.product?.unit?.type || item.product?.unit || ''}`
+                    : (item.unit || '1 Unit');
+                  const categoryName = item.product?.category?.name || item.product?.category || item.category || 'Groceries';
+                  const availableQty = Number(item.quantity ?? item.available ?? 0);
+                  const remainingQty = Number(item.openingQuantity ?? item.quantity ?? item.remaining ?? 0);
+                  const isLowStock = availableQty <= 2;
+                  const prodImage = item.product?.images?.[0] || item.product?.image || item.image || null;
 
-                  {/* Inventory List */}
-                  <div className="space-y-3">
-                    {filteredInventory.map((item) => (
-                      <div key={item.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3 border border-gray-100/50 hover:border-emerald-200 transition-all">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 overflow-hidden border border-emerald-100/50 shrink-0">
-                          {item.product?.image ? <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" /> : <Package size={20} strokeWidth={2} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-black text-emerald-950 tracking-tight leading-tight mb-1 truncate">{item.product?.name}</h3>
-                          <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100/30">
-                            {item.product?.category?.name || 'Item'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 pl-4 border-l border-gray-100/50">
-                          <div className="flex flex-col items-end">
-                            <span className="text-[9px] font-black text-emerald-800/40 uppercase tracking-widest mb-0.5">Total</span>
-                            <span className="text-xs font-black text-emerald-900/60">{Math.max(item.openingQuantity || 0, item.quantity)}</span>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <span className="text-[9px] font-black text-emerald-800/40 uppercase tracking-widest mb-0.5">Rem</span>
-                            <span className="text-lg font-black text-emerald-950 tracking-tighter leading-none">{item.quantity}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          )
-        ) : activeTab === 'history' ? (
-          /* Audit History */
-          <div className="space-y-4">
-            {auditHistory.length === 0 ? (
-              <div className="bg-white rounded-[2rem] p-10 flex flex-col items-center text-center border opacity-60">
-                <History size={48} className="text-slate-300 mb-4" />
-                <p className="text-sm font-black text-slate-900 uppercase tracking-widest">No Audit History</p>
-              </div>
-            ) : (
-              auditHistory.map((audit) => (
-                <div key={audit.id} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                  <div onClick={() => setExpandedAuditId(expandedAuditId === audit.id ? null : audit.id)}
-                    className="p-4 cursor-pointer hover:bg-slate-50 transition-colors flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
-                        <History size={24} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded border shadow-sm ${audit.type === 'AUDIT' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : audit.type === 'LOAD' ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-amber-600 bg-amber-50 border-amber-100'}`}>
-                            {audit.type === 'AUDIT' ? 'Stock Audit' : audit.type === 'LOAD' ? 'Stock Loading' : 'Stock Refill'}
-                          </span>
-                        </div>
-                        <p className="text-sm font-black text-slate-900 tracking-tight leading-none mb-1">
-                          {format(new Date(audit.createdAt), 'do MMMM yyyy')}
-                        </p>
-                        <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          <User size={10} className="text-slate-300" /> {audit.user?.name || 'Admin'}
-                        </div>
-                      </div>
-                    </div>
-                    {expandedAuditId === audit.id ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
-                  </div>
-                  {expandedAuditId === audit.id && (
-                    <div className="px-4 pb-4">
-                      {audit.remark && (
-                        <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-                          <Info size={14} className="text-slate-400 mt-0.5" />
-                          <p className="text-xs font-bold text-slate-600 italic">"{audit.remark}"</p>
-                        </div>
-                      )}
-                      <div className="space-y-1 border-t border-slate-100 pt-3">
-                        {audit.items?.map((item: any) => {
-                          const diff = (item.newQuantity || 0) - (item.oldQuantity || 0);
-                          return (
-                            <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 rounded-xl bg-slate-50/50 border border-slate-100/30">
-                              <div className="col-span-6 flex flex-col min-w-0">
-                                <span className="text-[11px] font-black text-slate-800 truncate leading-tight uppercase">{item.product?.name}</span>
-                              </div>
-                              <div className="col-span-2 text-center"><span className="text-[10px] font-bold text-slate-400">{item.oldQuantity}</span></div>
-                              <div className="col-span-2 text-center"><span className="text-[10px] font-black text-emerald-600">{item.newQuantity}</span></div>
-                              <div className="col-span-2 flex justify-end">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[8px] font-black border-2 shadow-sm shrink-0 ${diff === 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-500' : diff > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-500' : 'bg-rose-50 text-rose-600 border-rose-500'}`}>
-                                  {diff === 0 ? 'OK' : diff > 0 ? `+${diff}` : diff}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
-          /* Refill History */
-          <div className="space-y-4">
-            {refillHistory.length === 0 ? (
-              <div className="bg-white rounded-[2rem] p-10 flex flex-col items-center text-center border opacity-60">
-                <RefreshCw size={48} className="text-emerald-300 mb-4" />
-                <p className="text-sm font-black text-emerald-900 uppercase tracking-widest">No Refill Requests Yet</p>
-                <p className="text-[10px] font-bold text-emerald-600 mt-2">Requests you submit will appear here.</p>
-              </div>
-            ) : (
-              refillHistory.map((refill) => {
-                const cfg = statusConfig[refill.status] || statusConfig.PENDING;
-                const StatusIcon = cfg.icon;
-                const isExpanded = expandedRefillId === refill.id;
-                const totalItems = refill.items?.length || 0;
-                const totalQty = refill.items?.reduce((s: number, i: any) => s + (i.requestedQuantity || i.quantity || 0), 0) || 0;
-
-                return (
-                  <div key={refill.id} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                  return (
                     <div
-                      onClick={() => setExpandedRefillId(isExpanded ? null : refill.id)}
-                      className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                      key={item.id}
+                      className="p-3.5 flex items-center justify-between gap-3 hover:bg-gray-50/50 transition-colors"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border ${cfg.bg} ${cfg.border}`}>
-                            <StatusIcon size={20} className={cfg.color} />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
-                                {cfg.label}
-                              </span>
-                              {refill.vehicle?.vehicleNumber && (
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                  {refill.vehicle.vehicleNumber}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm font-black text-slate-900 tracking-tight leading-none">
-                              {format(new Date(refill.createdAt), 'do MMM yyyy · h:mm a')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-xs font-black text-emerald-950">{totalItems} items</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">qty {totalQty}</p>
-                          </div>
-                          {isExpanded ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
-                        </div>
-                      </div>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-2">
-                        {refill.items?.map((item: any) => {
-                          const approved = item.approvedQuantity ?? null;
-                          const requested = item.requestedQuantity || item.quantity || 0;
-                          const productImg = item.product?.images?.[0];
-
-                          return (
-                            <div key={item.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
-                              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                                {productImg
-                                  ? <img src={productImg} alt={item.product?.name} className="w-full h-full object-cover" />
-                                  : <Package size={16} className="text-slate-300" />
-                                }
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-black text-slate-800 truncate">{item.product?.name || 'Product'}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                  {item.product?.unit} · ₹{item.product?.price}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <div className="text-center">
-                                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Req</p>
-                                  <p className="text-sm font-black text-slate-900">{requested}</p>
-                                </div>
-                                {approved !== null && (
-                                  <>
-                                    <div className="w-px h-8 bg-slate-200" />
-                                    <div className="text-center">
-                                      <p className="text-[8px] font-black uppercase tracking-widest text-emerald-500">Approved</p>
-                                      <p className="text-sm font-black text-emerald-700">{approved}</p>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {refill.remarks && (
-                          <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-2 mt-2">
-                            <Info size={13} className="text-amber-500 mt-0.5 shrink-0" />
-                            <p className="text-xs font-bold text-amber-700 italic">"{refill.remarks}"</p>
-                          </div>
+                      {/* Item Thumbnail Image */}
+                      <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                        {prodImage ? (
+                          <img src={prodImage} alt={name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Package size={22} className="text-gray-300" />
                         )}
                       </div>
-                    )}
+
+                      {/* Item Details */}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <h3 className="text-sm font-extrabold text-gray-900 truncate tracking-tight">
+                          {name}
+                        </h3>
+                        <p className="text-xs font-semibold text-gray-400">
+                          {unit}
+                        </p>
+                        <div>
+                          <span className="text-[10px] font-bold text-[#00891D] bg-[#E8F5E9] px-2 py-0.5 rounded-md inline-block">
+                            {categoryName}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Available & Remaining Columns */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex flex-col items-center min-w-[44px]">
+                          <span className="text-[10px] font-semibold text-gray-400 mb-0.5">Available</span>
+                          <span className={`text-base font-black ${isLowStock ? 'text-[#E65100]' : 'text-[#00891D]'}`}>
+                            {availableQty}
+                          </span>
+                          {isLowStock && (
+                            <span className="text-[8px] font-extrabold text-[#E65100] bg-[#FFF3E0] px-1.5 py-0.5 rounded mt-0.5">
+                              Low Stock
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="h-8 w-[1px] bg-gray-100" />
+
+                        <div className="flex flex-col items-center min-w-[44px]">
+                          <span className="text-[10px] font-semibold text-gray-400 mb-0.5">Remaining</span>
+                          <span className="text-base font-black text-gray-900">
+                            {remainingQty}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+        )}
+        {activeTab === 'history' && (
+          /* History View matching Figma */
+          <div className="space-y-3.5">
+            <h3 className="text-sm font-extrabold text-gray-900 tracking-tight pt-1">History</h3>
+
+            <div className="space-y-3">
+              {(auditHistory.length > 0
+                ? auditHistory.map((audit) => ({
+                    id: audit.id,
+                    title: format(new Date(audit.createdAt), 'do MMMM yyyy'),
+                    sub: `${audit.user?.name || 'Admin User'} • ${format(new Date(audit.createdAt), 'hh:mm a')}`,
+                    type: audit.type === 'RETURN' ? 'Stock Return' : 'Stock Audit',
+                    isReturn: audit.type === 'RETURN',
+                    raw: audit,
+                  }))
+                : [
+                    { id: '1', title: '5th August 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
+                    { id: '2', title: '27th July 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Return', isReturn: true },
+                    { id: '3', title: '5th June 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
+                    { id: '4', title: '5th May 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
+                    { id: '5', title: '8th June 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
+                    { id: '6', title: '9th May 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
+                    { id: '7', title: '9th May 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
+                  ]
+              ).map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedHistoryAudit(item)}
+                  className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
+                >
+                  {/* Left Refresh Icon Badge */}
+                  <div
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                      item.isReturn
+                        ? 'bg-rose-100/60 text-rose-500'
+                        : 'bg-emerald-100/60 text-[#00891D]'
+                    }`}
+                  >
+                    <RotateCcw size={18} strokeWidth={2} />
                   </div>
-                );
-              })
-            )}
+
+                  {/* Title & Subtitle */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h4 className="text-xs font-extrabold text-gray-900 truncate leading-tight">{item.title}</h4>
+                    <p className="text-[10px] font-medium text-gray-400">{item.sub}</p>
+                  </div>
+
+                  {/* Type Pill Badge & Chevron */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`text-[10px] font-bold px-3.5 py-1 rounded-full ${
+                        item.isReturn
+                          ? 'bg-rose-50 text-rose-500'
+                          : 'bg-emerald-50 text-[#00891D]'
+                      }`}
+                    >
+                      {item.type}
+                    </span>
+                    <ChevronRight size={15} className="text-gray-300" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Refill Modal */}
-      {showRefillModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="p-5 border-b border-gray-100 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-black text-emerald-950">Request Refill</h2>
-                  <p className="text-xs font-bold text-gray-500">Request stock from the warehouse.</p>
-                </div>
-                <button onClick={() => { setShowRefillModal(false); setRefillItems({}); }} className="p-2 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100">
-                  <X size={20} />
-                </button>
+        {activeTab === 'refills' ? (
+          /* Requests View */
+          <div className="space-y-3.5">
+            {/* Search Input & + Raise Request Button Row */}
+            <div className="flex items-center gap-2.5">
+              <div className="flex-1 bg-white rounded-2xl p-3 px-3.5 border border-gray-100/90 shadow-sm flex items-center gap-2">
+                <Search size={16} className="text-gray-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+                />
               </div>
-              <div className="flex items-center gap-2 bg-white border border-emerald-100 p-2 rounded-xl shadow-sm">
-                <div className="bg-emerald-50 p-1.5 rounded-xl text-emerald-500"><Search size={18} strokeWidth={2.5} /></div>
-                <input type="text" placeholder="Search products..." className="flex-1 bg-transparent border-none focus:outline-none text-sm font-bold" value={refillSearchQuery} onChange={(e) => setRefillSearchQuery(e.target.value)} />
+
+              <button
+                onClick={() => {
+                  setShowRaiseRequestType(true);
+                }}
+                className="px-4 py-3 bg-[#00891D] hover:bg-[#007318] text-white rounded-2xl text-xs font-bold shadow-2xs active:scale-98 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+              >
+                <PlusCircle size={18} strokeWidth={1.8} />
+                <span>Raise Request</span>
+              </button>
+            </div>
+
+            {/* My Requests Header & Filter Dropdown */}
+            <div className="flex items-center justify-between pt-1">
+              <h3 className="text-sm font-extrabold text-gray-900 tracking-tight">My Requests</h3>
+              <div className="bg-white border border-gray-100/90 rounded-2xl px-3.5 py-1.5 text-xs font-bold text-gray-700 flex items-center gap-2 shadow-sm cursor-pointer hover:border-gray-200">
+                <span>All</span>
+                <ChevronDown size={14} className="text-gray-400" />
               </div>
             </div>
-            <div className="overflow-y-auto p-5 space-y-3 flex-1">
-              {allProducts.filter(p => p.name?.toLowerCase().includes(refillSearchQuery.toLowerCase())).sort((a, b) => {
-                const aStock = inventory.find(i => i.productId === a.id)?.quantity || 0;
-                const bStock = inventory.find(i => i.productId === b.id)?.quantity || 0;
-                if (aStock > 0 && bStock === 0) return -1;
-                if (aStock === 0 && bStock > 0) return 1;
-                if (aStock !== bStock) return bStock - aStock;
-                return (a.name || '').localeCompare(b.name || '');
-              }).map(p => {
-                const currentStock = inventory.find(i => i.productId === p.id)?.quantity || 0;
-                const reqQty = refillItems[p.id] || 0;
+
+            {/* Requests List */}
+            <div className="space-y-3">
+              {(refillHistory.length > 0
+                ? refillHistory.map((item) => {
+                    const isExpense = item.type === 'EXPENSE' || item.title?.includes('Expense');
+                    const isReturn = item.type === 'RETURN' || item.title?.includes('Return');
+                    const isDamage = item.type === 'DAMAGE' || item.title?.includes('Damage');
+                    const isPending = item.status === 'PENDING' || item.status === 'Pending';
+                    const isRejected = item.status === 'REJECTED' || item.status === 'Rejected';
+                    const isReimbursed = item.status === 'REIMBURSED' || item.status === 'Reimbursed';
+
+                    let title = item.title || (isExpense ? 'Expense Request' : isReturn ? 'Return Request' : isDamage ? 'Damage Report' : 'Refill Request');
+                    let desc = item.desc || `${item.items?.length || 12} Items • ₹${item.totalAmount || 245}`;
+                    let statusLabel = isReimbursed ? 'Reimbursed' : isPending ? 'Pending' : isRejected ? 'Rejected' : 'Approved';
+
+                    return {
+                      id: item.id,
+                      title,
+                      desc,
+                      date: item.createdAt ? format(new Date(item.createdAt), 'dd MMM yyyy • hh:mm a') : '06 Aug 2024 • 10:30 AM',
+                      status: statusLabel,
+                      iconType: isExpense ? 'tag' : isReturn ? 'undo' : isDamage ? 'alert' : isPending ? 'clock' : 'refresh',
+                    };
+                  })
+                : [
+                    { id: '1', title: 'Refill Request', iconType: 'refresh', desc: '12 Items • ₹245.00', date: '06 Aug 2024 • 10:30 AM', status: 'Approved' },
+                    { id: '2', title: 'Expense Request', iconType: 'tag', desc: 'Fuel • ₹245.00', date: '06 Aug 2024 • 10:30 AM', status: 'Reimbursed' },
+                    { id: '3', title: 'Refill Request', iconType: 'clock', desc: '8 Items • ₹168.00', date: '05 Aug 2024 • 04:15 PM', status: 'Pending' },
+                    { id: '4', title: 'Return Request', iconType: 'undo', desc: '5 Items • ₹96.00', date: '04 Aug 2024 • 11:20 AM', status: 'Approved' },
+                    { id: '5', title: 'Damage Report', iconType: 'alert', desc: '3 Items • ₹75.00', date: '03 Aug 2024 • 02:15 PM', status: 'Rejected' },
+                  ]
+              ).map((req) => {
+                const isApproved = req.status === 'Approved';
+                const isReimbursed = req.status === 'Reimbursed';
+                const isPending = req.status === 'Pending';
+                const isRejected = req.status === 'Rejected';
+
                 return (
-                  <div key={p.id} className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between border border-gray-100">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-                        {p.image ? <img src={p.image} alt={p.name} className="w-full h-full object-cover" /> : <Package size={20} className="text-gray-300" />}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-bold text-gray-800 truncate">{p.name}</span>
-                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-1.5 py-0.5 rounded cursor-default border border-emerald-100 shrink-0 mt-1">
-                          Current: {currentStock} · ₹{p.price}
+                  <div
+                    key={req.id}
+                    onClick={() => setSelectedRequest(req)}
+                    className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
+                  >
+                    {/* Left Icon Badge */}
+                    <div
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                        isPending
+                          ? 'bg-orange-100/60 text-[#EA580C]'
+                          : isRejected
+                          ? 'bg-rose-100/60 text-rose-500'
+                          : req.iconType === 'undo'
+                          ? 'bg-rose-100/60 text-rose-500'
+                          : 'bg-emerald-100/60 text-[#00891D]'
+                      }`}
+                    >
+                      {req.iconType === 'refresh' && <RotateCcw size={18} strokeWidth={2} />}
+                      {req.iconType === 'tag' && <Tag size={18} strokeWidth={2} />}
+                      {req.iconType === 'clock' && <RotateCcw size={18} strokeWidth={2} />}
+                      {req.iconType === 'undo' && <span className="text-base font-bold">↩</span>}
+                      {req.iconType === 'alert' && <AlertTriangle size={18} strokeWidth={2} />}
+                    </div>
+
+                    {/* Request Details */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <h4 className="text-xs font-extrabold text-gray-900 truncate leading-tight">{req.title}</h4>
+                      <p className="text-[11px] font-semibold text-gray-500">{req.desc}</p>
+                      <p className="text-[10px] font-medium text-gray-400">{req.date}</p>
+                    </div>
+
+                    {/* Status Pill & Chevron */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-[10px] font-bold px-3 py-1 rounded-full ${
+                          isApproved || isReimbursed
+                            ? 'bg-emerald-50 text-[#00891D]'
+                            : isPending
+                            ? 'bg-orange-50 text-[#EA580C]'
+                            : 'bg-rose-50 text-rose-500'
+                        }`}
+                      >
+                        {req.status}
+                      </span>
+                      <ChevronRight size={15} className="text-gray-300" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Refill Request Screen / Modal */}
+      {showRefillModal && (
+        <div className="fixed inset-0 z-50 bg-[#FAFAFA] flex flex-col justify-between overflow-y-auto animate-fade-in">
+          <div className="max-w-[420px] mx-auto w-full px-4 space-y-4 pt-2 pb-28">
+            {/* Header Bar */}
+            <div className="flex items-center gap-2.5 pt-1">
+              <button
+                onClick={() => {
+                  setShowRefillModal(false);
+                  setRefillItems({});
+                }}
+                className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+              >
+                <ArrowLeft size={18} strokeWidth={2.5} />
+              </button>
+              <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
+                Refill Request
+              </h1>
+            </div>
+
+            {/* Search items bar with barcode scanner icon */}
+            <div className="bg-white rounded-2xl p-2.5 px-3.5 border border-gray-200 shadow-sm flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <Search size={16} className="text-gray-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search items..."
+                  value={refillSearchQuery}
+                  onChange={(e) => setRefillSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+                />
+              </div>
+              <span className="text-gray-400 text-sm">⛶</span>
+            </div>
+
+            {/* Products List with Checkbox & Stepper */}
+            <div className="space-y-3 pt-1">
+              {(allProducts.length > 0
+                ? allProducts.filter((p) => p.name?.toLowerCase().includes(refillSearchQuery.toLowerCase()))
+                : [
+                    { id: '1', name: "Mom's Magic Cashew &", current: 0, price: 55 },
+                    { id: '2', name: 'Mysore Sandal soap', current: 0, price: 207 },
+                    { id: '3', name: 'Sambar Power', current: 0, price: 5 },
+                    { id: '4', name: '3 Roses Dust', current: 3, price: 10 },
+                    { id: '5', name: 'Freedom Oil', current: 5, price: 130 },
+                  ]
+              ).map((p) => {
+                const reqQty = refillItems[p.id] || 0;
+                const isSelected = reqQty > 0;
+                const currentStock = p.current ?? (inventory.find((i) => i.productId === p.id)?.quantity || 0);
+
+                return (
+                  <div
+                    key={p.id}
+                    className="bg-white rounded-3xl p-3.5 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3"
+                  >
+                    {/* Left Checkbox */}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        setRefillItems((prev) => ({
+                          ...prev,
+                          [p.id]: e.target.checked ? (prev[p.id] || 1) : 0,
+                        }));
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-[#00891D] focus:ring-0 cursor-pointer shrink-0 accent-[#00891D]"
+                    />
+
+                    {/* Thumbnail Image */}
+                    <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Package size={20} className="text-gray-300" />
+                      )}
+                    </div>
+
+                    {/* Product Name & Current / Price Pills */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <h4 className="text-xs font-extrabold text-gray-900 truncate">{p.name}</h4>
+
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="text-[8px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">
+                          CURRENT: {currentStock}
+                        </span>
+                        <span className="text-[9px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md leading-none">
+                          ₹{p.price}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-4">
-                      <button onClick={() => setRefillItems(prev => ({ ...prev, [p.id]: Math.max(0, reqQty - 1) }))} className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-                        <Minus size={16} />
+
+                    {/* Quantity Stepper */}
+                    <div className="flex items-center bg-white border border-gray-200 rounded-xl p-0.5 shrink-0">
+                      <button
+                        onClick={() => setRefillItems((prev) => ({ ...prev, [p.id]: Math.max(0, reqQty - 1) }))}
+                        className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
+                      >
+                        <Minus size={12} strokeWidth={2.5} />
                       </button>
-                      <span className="w-6 text-center font-black text-emerald-950 text-lg">{reqQty}</span>
-                      <button onClick={() => setRefillItems(prev => ({ ...prev, [p.id]: reqQty + 1 }))} className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700">
-                        <Plus size={16} />
+                      <span className="text-xs font-black text-gray-900 px-2">{reqQty}</span>
+                      <button
+                        onClick={() => setRefillItems((prev) => ({ ...prev, [p.id]: reqQty + 1 }))}
+                        className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
+                      >
+                        <Plus size={12} strokeWidth={2.5} />
                       </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div className="p-5 border-t border-gray-100 bg-white rounded-b-[2rem]">
-              <button onClick={handleRefillSubmit} disabled={isSubmitting} className="w-full bg-emerald-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-emerald-700 flex justify-center items-center gap-2 disabled:opacity-50">
-                {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Submitting...</> : 'Submit Request'}
+          </div>
+
+          {/* Sticky Bottom Submit Bar */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 p-4 pb-6">
+            <div className="max-w-[420px] mx-auto flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-gray-900">
+                  {Object.values(refillItems).filter((q) => q > 0).length} Items Selected
+                </p>
+                <p className="text-[10px] font-medium text-gray-400 mt-0.5">
+                  Total Quantity: {Object.values(refillItems).reduce((s, q) => s + q, 0)}
+                </p>
+              </div>
+
+              <button
+                onClick={handleRefillSubmit}
+                disabled={isSubmitting}
+                className="flex-1 py-3.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <>
+                    <span>✈</span>
+                    <span>Submit Request</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -1414,13 +1414,20 @@ export default function AdminRoutes() {
                             setAssignmentForm({ ...assignmentForm, userId: e.target.value, vehicleId: u?.assignedVehicleId || '' });
                           }}
                         >
-                          <option value="">Select Agent</option>
-                          {users.filter(u => u.storeId === storeId || !u.storeId).map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
+                          <option value="">Select Agent (Assigned Vehicle)</option>
+                          {users
+                            .filter(u => (u.storeId === storeId || !u.storeId) && u.assignedVehicleId)
+                            .map(u => {
+                              const vehicle = vehicles.find(v => v.id === u.assignedVehicleId);
+                              const vehicleLabel = vehicle?.vehicleNumber || u.assignedVehicle?.vehicleNumber || 'Vehicle Assigned';
+                              return (
+                                <option key={u.id} value={u.id}>
+                                  {u.name} ({vehicleLabel})
+                                </option>
+                              );
+                            })}
                         </select>
                       </div>
-                      {assignmentForm.userId && !users.find(u => u.id === assignmentForm.userId)?.assignedVehicleId && (
-                        <p className="text-rose-500 text-[10px] font-bold px-2 flex items-center gap-1"><Truck size={10} /> This agent has no vehicle assigned.</p>
-                      )}
                     </div>
                   </div>
 

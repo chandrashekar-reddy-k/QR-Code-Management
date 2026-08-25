@@ -1,6 +1,7 @@
 // @ts-nocheck
-import { Plus, Minus, Package, Gift, Lock, Unlock, Zap } from 'lucide-react';
-import { useCartStore, checkIsFree } from '../../store/cartStore';
+import React from 'react';
+import { Plus, Minus, Package } from 'lucide-react';
+import { useCartStore } from '../../store/cartStore';
 import toast from 'react-hot-toast';
 
 export default function ProductCard({ product }) {
@@ -9,7 +10,7 @@ export default function ProductCard({ product }) {
   const qty = cartItem?.quantity || 0;
 
   const handleAdd = () => {
-    if (qty + 1 > (product.stock || 0)) {
+    if (qty + 1 > (product.stock || 99)) {
        toast.error(`Only ${product.stock || 0} units available in vehicle`, {
           id: `stock-limit-${product.id}`,
           icon: '🚛',
@@ -21,147 +22,99 @@ export default function ProductCard({ product }) {
     else updateQuantity(product.id, qty + 1);
   };
 
-  // Calculate if it's currently free in the store
-  const subtotal = items.reduce((sum, i) => {
-    if (!checkIsFree(i.isFree)) return sum + Number(i.price || 0) * i.quantity;
-    return sum;
-  }, 0);
+  const isOutOfStock = product.stock === 0;
 
-  const isFreeProduct = checkIsFree(product.isFree);
-  const minAmount = Number(product.minShopAmount || 0);
-  const qualifies = subtotal >= minAmount;
-  const isCurrentlyFree = isFreeProduct && qualifies;
+  // Format unit safely
+  const unitLabel = typeof product.unit === 'object' && product.unit !== null
+    ? (product.unit.name || product.unit.type || (product.unitValue ? `${product.unitValue} g` : '500g'))
+    : (product.unitValue ? `${product.unitValue} ${product.unit || 'g'}` : (product.unit || '500g'));
 
   return (
-    <div className={`glass rounded-[1.5rem] p-2 flex flex-col gap-2 hover:shadow-2xl transition-all duration-500 animate-slide-up group border-white/80 ${isCurrentlyFree ? 'bg-emerald-50/40 border-emerald-200/50' : 'bg-white/60'}`}>
-
-      {/* Visual Header / Image Area */}
-      <div className="rounded-2xl overflow-hidden bg-slate-100 h-28 flex items-center justify-center relative shadow-inner group-hover:scale-[1.02] transition-transform duration-500">
-
-        {/* Promotion Overlays */}
-        {isFreeProduct && (
-          <div className={`absolute top-2 left-2 right-2 z-10 flex items-center justify-between pointer-events-none`}>
-            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg backdrop-blur-md border shadow-lg ${isCurrentlyFree ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-orange-500 text-white border-orange-400'}`}>
-              <Gift size={12} strokeWidth={3} />
-              <span className="text-[10px] font-black uppercase tracking-tight">
-                {isCurrentlyFree ? 'CLAIM' : 'FREE'}
-              </span>
-            </div>
-
-            {!qualifies && (
-              <div className="bg-white/90 backdrop-blur-md text-orange-600 p-1 rounded-lg shadow-md border border-orange-100 flex items-center justify-center">
-                <Lock size={12} strokeWidth={3} />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Stock Info - More subtle */}
-        {product.stock !== undefined && product.stock !== null && (
-          <div className={`absolute top-2 right-2 z-10 backdrop-blur-sm text-white text-[0.55rem] font-black px-1.5 py-0.5 rounded-md border shadow-sm select-none ${product.stock === 0 ? 'bg-red-500/90 border-red-400' : 'bg-emerald-600/90 border-white/20'}`}>
-            {product.stock === 0 ? 'OUT OF STOCK' : `${product.stock} IN STOCK`}
-          </div>
-        )}
-
-        {/* Weight / Unit Tag */}
-        {product.unit && (
-          <div className="absolute bottom-2 left-2 z-10 bg-white/90 backdrop-blur-md text-emerald-950 text-[0.65rem] font-black px-2 py-1 rounded-lg border border-emerald-100 shadow-sm select-none flex items-center gap-1">
-            <Zap size={10} className="text-orange-500 fill-orange-500" />
-            {product.unitValue || ''} {product.unit.type}
-          </div>
-        )}
-
+    <div className="bg-white rounded-2xl p-2.5 flex flex-col border border-gray-100 shadow-sm hover:shadow-md transition-all">
+      {/* Product Image Area */}
+      <div className="rounded-xl overflow-hidden bg-gray-50 h-28 w-full flex items-center justify-center relative">
         {product.image ? (
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700" />
-        ) : (
-          <div className="flex flex-col items-center gap-1 text-slate-300">
-            <Package size={32} strokeWidth={1.5} />
-            <span className="text-[8px] font-black uppercase">VillagKart</span>
-          </div>
-        )}
-      </div>
+          <img 
+            src={product.image} 
+            alt={product.name} 
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              (e.currentTarget as HTMLElement).style.display = 'none';
+              if (e.currentTarget.nextElementSibling) {
+                (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <div className={`flex flex-col items-center justify-center gap-1 text-gray-300 ${product.image ? 'hidden' : 'flex'}`}>
+          <Package size={28} strokeWidth={1.5} />
+        </div>
 
-      {/* Product Content */}
-      <div className="px-1.5 py-0.5 flex flex-col gap-1">
-        <h3 className="text-[0.75rem] font-extrabold text-emerald-950 leading-[1.1] min-h-[2rem] tracking-tight">
-          {product.name}
-        </h3>
-
-        {/* Dynamic Price/Offer Area */}
-        <div className="flex items-center justify-between min-h-[2rem]">
-          <div className="flex flex-col">
-            {isFreeProduct ? (
-              <>
-                <div className="flex items-center gap-1">
-                  <span className={`text-[1rem] font-black tracking-tighter ${isCurrentlyFree ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    {isCurrentlyFree ? '₹0.00' : `₹${Number(product.price).toFixed(0)}`}
-                  </span>
-                  {!isCurrentlyFree && (
-                    <span className="text-[0.6rem] font-bold text-slate-300 line-through">₹{Number(product.price).toFixed(0)}</span>
-                  )}
-                </div>
-                {!isCurrentlyFree && (
-                  <div className="flex items-center gap-0.5 mt-[-2px]">
-                    <Zap size={8} className="text-orange-500 fill-orange-500" />
-                    <span className="text-[0.6rem] font-black text-orange-600 uppercase tracking-tighter">
-                      ABOVE ₹{minAmount}
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="text-[1rem] font-black text-emerald-700 tracking-tighter leading-none">
-                  ₹{Number(product.price).toFixed(2)}
-                </p>
-                {product.mrp > product.price && (
-                  <span className="text-[0.6rem] font-bold text-emerald-900/30 line-through">₹{Number(product.mrp).toFixed(2)}</span>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Savings Badge - Only if relevant */}
-          {!isFreeProduct && product.discount > 0 && (
-            <div className="bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-lg border border-orange-100 flex flex-col items-center shrink-0 ml-1">
-              <span className="text-[0.5rem] font-black leading-none">OFF</span>
-              <span className="text-[0.7rem] font-black tracking-tighter leading-none">₹{product.discount.toFixed(0)}</span>
-            </div>
-          )}
+        {/* Stock Badge Overlay (Bottom Left on Image) */}
+        <div className="absolute bottom-1.5 left-1.5 z-10">
+          <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-sm ${
+            isOutOfStock ? 'bg-red-600 text-white' : 'bg-white/95 text-gray-700 border border-gray-100'
+          }`}>
+            {isOutOfStock ? 'Out Of Stock' : `${product.stock ?? 5} In Stock`}
+          </span>
         </div>
       </div>
 
-      {/* Action Area */}
-      <div className="mt-1">
-        {product.stock === 0 ? (
-          <div className="w-full font-black py-4 rounded-2xl bg-slate-100/80 text-slate-400 flex items-center justify-center gap-2 text-[0.7rem] uppercase tracking-widest border border-slate-200/50 select-none">
-            Unavailable
-          </div>
+      {/* Price & Unit Line */}
+      <div className="flex items-center justify-between mt-2 px-0.5">
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-extrabold text-white bg-[#00891D] px-1.5 py-0.5 rounded leading-none">
+            ₹{Number(product.price || 270).toFixed(0)}
+          </span>
+          <span className="text-[9px] font-semibold text-gray-400 line-through">
+            ₹{Number(product.mrp || 300).toFixed(0)}
+          </span>
+        </div>
+        <span className="text-[9px] font-bold text-gray-400">
+          {unitLabel}
+        </span>
+      </div>
+
+      {/* Product Title & Discount Tag */}
+      <div className="flex items-center justify-between mt-1.5 px-0.5 min-h-[1.5rem]">
+        <h3 className="text-xs font-extrabold text-gray-900 truncate">
+          {typeof product.name === 'object' && product.name !== null ? product.name.name || 'Item' : (product.name || 'Jaggery')}
+        </h3>
+        <span className="text-[8px] font-black text-[#E85D04] bg-orange-50 border border-orange-200 px-1 py-0.5 rounded uppercase shrink-0">
+          28% OFF
+        </span>
+      </div>
+
+      {/* Action Button: + Add or Stepper */}
+      <div className="mt-2">
+        {isOutOfStock ? (
+          <button
+            disabled
+            className="w-full py-2 bg-[#EAEAEA] text-gray-400 rounded-xl text-xs font-bold text-center cursor-not-allowed select-none"
+          >
+            + Add
+          </button>
         ) : qty === 0 ? (
           <button
             onClick={handleAdd}
-            className={`w-full font-black py-3 rounded-2xl active:scale-[0.97] transition-all flex items-center justify-center gap-2 text-[0.7rem] uppercase tracking-widest shadow-lg ${isCurrentlyFree
-              ? 'bg-emerald-600 text-white shadow-emerald-500/20 hover:bg-emerald-700'
-              : 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700'
-              }`}
+            className="w-full py-2 bg-[#00891D] hover:bg-[#007018] text-white rounded-xl text-xs font-bold shadow-2xs active:scale-98 transition-all flex items-center justify-center gap-1 cursor-pointer"
           >
-            <Plus size={16} strokeWidth={3} />
-            {isCurrentlyFree ? 'Claim' : 'Add'}
+            + Add
           </button>
         ) : (
-          <div className="flex items-center justify-between bg-emerald-100/50 backdrop-blur-sm rounded-2xl p-1.5 border border-emerald-200/30">
+          <div className="flex items-center justify-between bg-gray-50/80 border border-gray-200 rounded-xl p-1">
             <button
               onClick={() => updateQuantity(product.id, qty - 1)}
-              className="w-9 h-9 rounded-xl bg-white text-emerald-600 flex items-center justify-center active:scale-90 transition-all border border-emerald-100 shadow-sm"
+              className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-200/60 rounded-lg active:scale-90 cursor-pointer"
             >
-              <Minus size={16} strokeWidth={3} />
+              <Minus size={13} strokeWidth={2.5} />
             </button>
-            <span className="font-black text-emerald-950 text-sm">{qty}</span>
+            <span className="text-xs font-black text-gray-900 px-1">{qty}</span>
             <button
               onClick={handleAdd}
-              className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
+              className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-200/60 rounded-lg active:scale-90 cursor-pointer"
             >
-              <Plus size={16} strokeWidth={3} />
+              <Plus size={13} strokeWidth={2.5} />
             </button>
           </div>
         )}

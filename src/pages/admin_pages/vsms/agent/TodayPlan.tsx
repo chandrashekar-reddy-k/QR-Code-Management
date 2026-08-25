@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   MapPin, Sun, Moon, CheckCircle2, Clock, ChevronRight,
   Loader2, ArrowLeft, Calendar, RefreshCw, AlertTriangle,
-  X, Play, Square, Activity, ShieldCheck
+  X, Play, Square, Activity, ShieldCheck, Store, Truck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -271,104 +271,360 @@ export default function TodayPlan() {
   const sessionName = currentShift ? currentShift.name : (new Date().getHours() < 14 ? 'Morning' : 'Evening');
 
   return (
-    <div className="min-h-screen pb-28 pt-6">
-      <div className="max-w-lg mx-auto px-5 space-y-5">
-
-        {/* Shift Tracking Card */}
-        {!activeShift ? (
-          <div className="bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-xl shadow-gray-200/50 space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600">
-                <ShieldCheck size={28} strokeWidth={2.5} />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-gray-900">Start Your Day</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Select your shift to begin</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              {availableShifts.filter((s: any) => s.isActive !== false).map((shift: any, idx: number) => (
-                <button
-                  key={shift.id || idx}
-                  onClick={() => handleStartShift(idx + 1)}
-                  disabled={actionLoading}
-                  className={`w-full ${idx % 2 === 0 ? 'bg-emerald-600' : 'bg-indigo-600'} text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50`}
-                >
-                  {actionLoading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                  Start {shift.name} ({formatTime12h(shift.startTime)})
-                </button>
-              ))}
+    <div className="min-h-screen pb-24 pt-2 bg-[#FAFAFA]">
+      <div className="max-w-[420px] mx-auto px-4 space-y-4">
+        {/* Mobile Header Bar */}
+        <div className="flex items-center justify-between pt-1 pb-1">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => navigate('/vsms/agent-portal/home')}
+              className="p-1 -ml-1 rounded-xl text-gray-900 transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} />
+            </button>
+            <div>
+              <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">Today's Plan</h1>
+              <p className="text-[11px] font-medium text-gray-400">
+                Thursday, 6 Aug 2025
+              </p>
             </div>
           </div>
-        ) : (
-          <div className="bg-white rounded-[2rem] p-5 border border-emerald-100 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <Activity size={20} className="animate-pulse" />
+        </div>
+
+        {/* Today's Assignment Card (Figma Specs: 364x170, r:12px, p:12px, gap:8px) */}
+        <div className="w-full max-w-[364px] min-h-[170px] mx-auto bg-white rounded-[12px] p-3 border border-gray-100/90 shadow-sm flex flex-col justify-between gap-2 transition-all">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Calendar size={16} strokeWidth={2.5} />
+            </div>
+            <h3 className="text-xs font-black text-gray-900">Today's Assignment</h3>
+          </div>
+
+          <div className="grid grid-cols-4 divide-x divide-gray-100 pt-1 text-center items-center">
+            <div className="px-1 flex flex-col items-center">
+              <div className="text-emerald-600 mb-1">
+                <Truck size={15} />
+              </div>
+              <p className="text-[9px] font-semibold text-gray-400">Vehicle</p>
+              <p className="text-[10px] font-extrabold text-gray-900 mt-0.5 truncate max-w-full">
+                TS09 AB 4521
+              </p>
+            </div>
+
+            <div className="px-1 flex flex-col items-center">
+              <div className="text-emerald-600 mb-1">
+                <MapPin size={15} />
+              </div>
+              <p className="text-[9px] font-semibold text-gray-400">Morning Shift</p>
+              <p className="text-[10px] font-extrabold text-gray-900 mt-0.5 truncate max-w-full">
+                Pargi
+              </p>
+            </div>
+
+            <div className="px-1 flex flex-col items-center">
+              <div className="text-emerald-600 mb-1">
+                <MapPin size={15} />
+              </div>
+              <p className="text-[9px] font-semibold text-gray-400">Evening Shift</p>
+              <p className="text-[10px] font-extrabold text-gray-900 mt-0.5 truncate max-w-full">
+                Shankarpally
+              </p>
+            </div>
+
+            <div className="px-1 flex flex-col items-center">
+              <div className="text-emerald-600 mb-1">
+                <Store size={15} />
+              </div>
+              <p className="text-[9px] font-semibold text-gray-400">Routes</p>
+              <p className="text-[10px] font-extrabold text-gray-900 mt-0.5 truncate max-w-full">
+                2 Assigned
+              </p>
+            </div>
+          </div>
+
+          {/* Quick status footer indicator inside assignment box */}
+          <div className="bg-gray-50/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between mt-auto">
+            <span className="text-[9px] font-bold text-gray-500">Route Status</span>
+            <span className="text-[9px] font-black text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded">Active Plan</span>
+          </div>
+        </div>
+
+        {/* Morning Shift Card */}
+        <div className="bg-white rounded-3xl p-5 border border-gray-100/80 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <Sun size={18} strokeWidth={2.5} />
               </div>
               <div>
-                <h4 className="text-xs font-black text-gray-900 uppercase tracking-tight">
-                  On Duty: {availableShifts[activeShift.shift - 1]?.name || (activeShift.shift === 1 ? 'Morning' : 'Evening')}
+                <h4 className="font-['Segoe_UI'] font-bold text-[16px] leading-[24px] tracking-[0px] text-gray-900">
+                  Morning Shift
                 </h4>
-                <div className="flex items-center gap-2">
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                    Started at {activeShift.startTime ? new Date(activeShift.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'}
-                  </p>
-                  {attendance?.isLate && (
-                    <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[8px] font-black uppercase">Late</span>
-                  )}
-                  {!attendance?.isLate && attendance?.punchInTime && (
-                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 rounded text-[8px] font-black uppercase">On Time</span>
-                  )}
-                </div>
+                <p className="text-[10px] font-medium text-gray-400">08:00 AM – 02:00 PM</p>
               </div>
             </div>
+
+            {coverage?.morningDone ? (
+              <span className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                Completed
+              </span>
+            ) : activeShift?.shift === 1 ? (
+              <span className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                Started
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[10px] font-extrabold text-[#E85D04] bg-orange-50 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E85D04]" />
+                Not Started
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-[#F9FAFB] rounded-2xl border border-gray-100/60">
+              <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
+                <MapPin size={14} />
+                <span className="text-[10px] font-bold text-gray-400">Assigned Village</span>
+              </div>
+              <p className="text-xs font-extrabold text-gray-900 pl-5">{today?.morning || 'Pargi'}</p>
+            </div>
+
+            <div className="p-3 bg-[#F9FAFB] rounded-2xl border border-gray-100/60">
+              <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
+                <Store size={14} />
+                <span className="text-[10px] font-bold text-gray-400">Assigned Route</span>
+              </div>
+              <p className="text-xs font-extrabold text-gray-900 pl-5">{today?.routeName || 'Route-03'}</p>
+            </div>
+          </div>
+
+          {/* Route Progress Widget when Shift is Active */}
+          {activeShift?.shift === 1 && (
+            <div className="p-4 bg-white rounded-2xl border border-gray-100/90 shadow-sm space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Activity size={16} />
+                  </div>
+                  <span className="text-xs font-extrabold text-gray-900">Route Progress</span>
+                </div>
+                <span className="text-sm font-black text-[#E85D04]">0%</span>
+              </div>
+              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full w-0 transition-all duration-500" />
+              </div>
+            </div>
+          )}
+
+          {activeShift?.shift === 1 ? (
             <button
               onClick={handleEndShift}
               disabled={actionLoading}
-              className="bg-gray-100 text-gray-400 p-2.5 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all active:scale-90"
-              title="End Shift"
+              className="w-full bg-[#E85D04] hover:bg-[#D05304] text-white py-3.5 rounded-2xl font-bold text-xs shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              {actionLoading ? <Loader2 size={14} className="animate-spin" /> : <Square size={16} />}
+              {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="fill-white" />}
+              End Morning Shift
             </button>
-          </div>
-        )}
+          ) : !coverage?.morningDone ? (
+            <button
+              onClick={() => handleStartShift(1)}
+              disabled={actionLoading || !!activeShift}
+              className="w-full bg-[#00891D] hover:bg-[#007018] text-white py-3.5 rounded-2xl font-bold text-xs shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="fill-white" />}
+              Start Morning Shift
+            </button>
+          ) : (
+            <div className="w-full bg-[#E5E7EB]/80 text-[#9CA3AF] py-3.5 rounded-2xl font-bold text-xs shadow-none flex items-center justify-center gap-2 select-none">
+              <Play size={15} className="fill-[#9CA3AF] text-[#9CA3AF]" />
+              Shift Completed
+            </div>
+          )}
+        </div>
 
-        {/* Route Progress */}
-        {hasPlan && today.villageChecklist?.length > 0 && (
-          <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">Route Progress</h4>
-              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                {Math.round(((today.villageChecklist?.filter((v: any) => v.visited).length || 0) / (today.villageChecklist?.length || 1)) * 100)}% Complete
+        {/* Evening Shift Card */}
+        <div className="bg-white rounded-3xl p-5 border border-gray-100/80 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <Moon size={18} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h4 className="font-['Segoe_UI'] font-bold text-[16px] leading-[24px] tracking-[0px] text-gray-900">
+                  Evening Shift
+                </h4>
+                <p className="text-[10px] font-medium text-gray-400">02:00 AM – 08:00 PM</p>
+              </div>
+            </div>
+
+            {coverage?.eveningDone ? (
+              <span className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                Completed
               </span>
+            ) : activeShift?.shift === 2 ? (
+              <span className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                Started
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[10px] font-extrabold text-[#E85D04] bg-orange-50 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E85D04]" />
+                Not Started
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-[#F9FAFB] rounded-2xl border border-gray-100/60">
+              <div className="flex items-center gap-1.5 text-purple-600 mb-1">
+                <MapPin size={14} />
+                <span className="text-[10px] font-bold text-gray-400">Assigned Village</span>
+              </div>
+              <p className="text-xs font-extrabold text-gray-900 pl-5">{today?.evening || 'Shankarpally'}</p>
             </div>
-            <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 transition-all duration-1000 ease-out"
-                style={{ width: `${((today.villageChecklist?.filter((v: any) => v.visited).length || 0) / (today.villageChecklist?.length || 1)) * 100}%` }}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-2 mt-4">
-              {today.villageChecklist?.map((v: any, i: number) => (
-                <div key={i} className={`flex items-center justify-between p-3 rounded-2xl border ${v.visited ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${v.visited ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200 text-gray-400'}`}>
-                      {v.visited ? <CheckCircle2 size={16} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-current" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">{v.name}</p>
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{v.session}</p>
-                    </div>
-                  </div>
-                  <span className={`text-[8px] font-black uppercase tracking-widest ${v.visited ? 'text-emerald-600' : 'text-gray-400'}`}>
-                    {v.visited ? 'Visited' : 'Pending'}
-                  </span>
-                </div>
-              ))}
+
+            <div className="p-3 bg-[#F9FAFB] rounded-2xl border border-gray-100/60">
+              <div className="flex items-center gap-1.5 text-purple-600 mb-1">
+                <Store size={14} />
+                <span className="text-[10px] font-bold text-gray-400">Assigned Route</span>
+              </div>
+              <p className="text-xs font-extrabold text-gray-900 pl-5">{today?.routeName || 'Route-05'}</p>
             </div>
           </div>
-        )}
+
+          {/* Route Progress Widget when Shift is Active */}
+          {activeShift?.shift === 2 && (
+            <div className="p-4 bg-white rounded-2xl border border-gray-100/90 shadow-sm space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Activity size={16} />
+                  </div>
+                  <span className="text-xs font-extrabold text-gray-900">Route Progress</span>
+                </div>
+                <span className="text-sm font-black text-[#E85D04]">0%</span>
+              </div>
+              <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full w-0 transition-all duration-500" />
+              </div>
+            </div>
+          )}
+
+          {activeShift?.shift === 2 ? (
+            <button
+              onClick={handleEndShift}
+              disabled={actionLoading}
+              className="w-full bg-[#E85D04] hover:bg-[#D05304] text-white py-3.5 rounded-2xl font-bold text-xs shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="fill-white" />}
+              End Evening Shift
+            </button>
+          ) : !coverage?.eveningDone ? (
+            <button
+              onClick={() => handleStartShift(2)}
+              disabled={actionLoading || !!activeShift}
+              className={`w-full py-3.5 rounded-2xl font-bold text-xs shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                coverage?.morningDone || !activeShift
+                  ? 'bg-[#00891D] hover:bg-[#007018] text-white'
+                  : 'bg-[#E5E7EB] text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <Play size={16} className={coverage?.morningDone || !activeShift ? 'fill-white' : 'fill-gray-400'} />
+              Start Evening Shift
+            </button>
+          ) : (
+            <div className="w-full bg-[#E5E7EB]/80 text-[#9CA3AF] py-3.5 rounded-2xl font-bold text-xs shadow-none flex items-center justify-center gap-2 select-none">
+              <Play size={15} className="fill-[#9CA3AF] text-[#9CA3AF]" />
+              Shift Completed
+            </div>
+          )}
+        </div>
+
+        {/* This Week's Plan Card (Figma Specs: 354x225, r:12px, p:16px, gap:12px) */}
+        <div className="w-full max-w-[354px] min-h-[225px] mx-auto bg-white rounded-[12px] p-4 border border-gray-100/90 shadow-sm flex flex-col justify-between gap-3 transition-all">
+          <h4 className="text-xs font-black text-gray-900 tracking-tight">This Week's Plan</h4>
+          <div className="flex items-stretch gap-2 overflow-x-auto pb-1 no-scrollbar text-center flex-1">
+            {[
+              { day: 'Mon', date: '4 Aug', village: 'Pargi', status: 'Completed' },
+              { day: 'Tue', date: '5 Aug', village: 'Chevella', status: 'Completed' },
+              { day: 'Wed', date: '6 Aug', village: 'Vikarabad', status: 'Completed' },
+              { day: 'Thu', date: '7 Aug', morning: 'Pargi', evening: 'Shankar...', isToday: true },
+              { day: 'Fri', date: '8 Aug', village: 'Moinabad', status: 'Upcoming' },
+              { day: 'Sat', date: '9 Aug', village: 'Shankarpally', status: 'Upcoming' },
+            ].map((d) => {
+              if (d.isToday) {
+                return (
+                  <div
+                    key={d.day}
+                    className="w-[84px] shrink-0 p-2.5 rounded-[10px] border-2 border-[#00891D] bg-emerald-50/30 flex flex-col items-center justify-between gap-1 shadow-sm"
+                  >
+                    <div>
+                      <span className="text-[11px] font-black text-[#00891D] block leading-none">{d.day}</span>
+                      <span className="text-[9px] font-medium text-gray-400 block mt-0.5">{d.date}</span>
+                    </div>
+
+                    <div className="w-full space-y-1 my-1">
+                      <div>
+                        <span className="text-[8px] font-medium text-gray-400 block">Morning</span>
+                        <span className="text-[9px] font-bold text-gray-800 bg-white/90 border border-gray-100 px-1 py-0.5 rounded block truncate">
+                          {d.morning}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-medium text-gray-400 block">Evening</span>
+                        <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-100 px-1 py-0.5 rounded block truncate">
+                          {d.evening}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="text-[9px] font-black text-white bg-[#00891D] px-2.5 py-0.5 rounded-full uppercase">
+                      Today
+                    </span>
+                  </div>
+                );
+              }
+
+              const isCompleted = d.status === 'Completed';
+              return (
+                <div
+                  key={d.day}
+                  className="w-[74px] shrink-0 p-2.5 rounded-[10px] border border-gray-100 bg-white flex flex-col items-center justify-between gap-1.5 shadow-none"
+                >
+                  <div>
+                    <span className="text-[11px] font-black text-gray-900 block leading-none">{d.day}</span>
+                    <span className="text-[9px] font-medium text-gray-400 block mt-0.5">{d.date}</span>
+                  </div>
+
+                  <p className="text-[9px] font-bold text-gray-700 truncate w-full px-0.5">
+                    {d.village}
+                  </p>
+
+                  <div className="mt-auto">
+                    {isCompleted ? (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="w-4 h-4 rounded-full border border-[#00891D] flex items-center justify-center text-[#00891D]">
+                          <CheckCircle2 size={12} className="text-[#00891D]" strokeWidth={2.5} />
+                        </div>
+                        <span className="text-[8px] font-bold text-[#00891D]">Completed</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="w-4 h-4 rounded-full border border-blue-500 flex items-center justify-center text-blue-500">
+                          <Clock size={11} strokeWidth={2.5} />
+                        </div>
+                        <span className="text-[8px] font-bold text-blue-500">Upcoming</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Today's Village Title */}
         <div className="flex items-center justify-between mb-2">

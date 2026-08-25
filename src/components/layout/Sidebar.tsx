@@ -31,7 +31,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     try {
       const token = localStorage.getItem('partnerToken') || sessionStorage.getItem('staffToken') || localStorage.getItem('token');
       if (!token) return;
-      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
+      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "https://identity.villagkart.com").replace(/\/+$/, '');
       const res = await fetch(`${baseUrl}/api/v1/auth/me?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const data = await res.json();

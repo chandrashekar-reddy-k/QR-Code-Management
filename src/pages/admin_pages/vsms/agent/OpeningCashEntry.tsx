@@ -16,7 +16,7 @@ export default function OpeningCashEntry() {
   const [status, setStatus] = useState<any>(null);
 
   useEffect(() => {
-    const isAgent = ['SALES_AGENT', 'VEHICLE_AGENT', 'DELIVERY_AGENT'].includes(user?.role);
+    const isAgent = ['SALES_AGENT', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'VSMS_AGENT', 'AGENT', 'FIELD_AGENT'].includes(user?.role?.toUpperCase());
     const hasVehicle = user?.assignedVehicle || user?.assignedVehicleId;
     if (!hasVehicle && !isAgent) {
       toast.error('No vehicle assigned. Access denied.', { id: 'no-vehicle' });

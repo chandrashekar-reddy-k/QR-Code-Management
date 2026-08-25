@@ -66,7 +66,7 @@ const formatLoginSuccess = (data: any): LoginResponse => ({
 const useLogin = (onSuccess: (data: LoginResponse) => void) => {
   return useMutation<LoginResponse, ErrorResponse, LoginPayload>({
     mutationFn: (payload: LoginPayload) => {
-      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
+      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "https://identity.villagkart.com").replace(/\/+$/, '');
       const identityServiceUrl = `${baseUrl}/api/v1/auth/login`;
       
       const attemptLogin = async (portal?: string) => {
