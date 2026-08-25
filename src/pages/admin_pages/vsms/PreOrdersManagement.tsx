@@ -740,14 +740,15 @@ export default function PreOrdersManagement() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-4 py-3.5">Pre-Order #</th>
-                  <th className="px-4 py-3.5">Customer & Village</th>
-                  <th className="px-4 py-3.5">Delivery Target</th>
-                  <th className="px-4 py-3.5">Items / Request</th>
-                  <th className="px-4 py-3.5">Financials</th>
-                  <th className="px-4 py-3.5">Assigned Vehicle</th>
-                  <th className="px-4 py-3.5">Status</th>
-                  <th className="px-4 py-3.5 text-right">Actions</th>
+                  <th className="px-3.5 py-3.5">Pre-Order #</th>
+                  <th className="px-3.5 py-3.5">Customer & Village</th>
+                  <th className="px-3.5 py-3.5">Delivery Target</th>
+                  <th className="px-3.5 py-3.5">Items / Request</th>
+                  <th className="px-3.5 py-3.5">Financials</th>
+                  <th className="px-3.5 py-3.5">Booked By (Origin)</th>
+                  <th className="px-3.5 py-3.5">Assigned Delivery</th>
+                  <th className="px-3.5 py-3.5">Status</th>
+                  <th className="px-3.5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -755,42 +756,73 @@ export default function PreOrdersManagement() {
                   const status = STATUS_CONFIG[order.status] || STATUS_CONFIG.RECEIVED;
                   return (
                     <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3.5">
+                      <td className="px-3.5 py-3.5">
                         <p className="font-mono font-bold text-slate-700">{order.preOrderNumber}</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">{order.source}</p>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3.5 py-3.5">
                         <p className="font-bold text-slate-900">{order.customerName}</p>
                         <p className="text-slate-500 font-medium">{order.customerMobile}</p>
                         {order.villageName && <p className="text-[10px] text-slate-400 flex items-center gap-0.5 mt-0.5"><MapPin className="w-2.5 h-2.5" />{order.villageName}</p>}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3.5 py-3.5">
                         <p className="font-bold text-slate-900">{new Date(order.deliveryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
                         <p className="text-slate-400 text-[10px]">{order.deliverySlot || 'Anytime'}</p>
                       </td>
-                      <td className="px-4 py-3.5 max-w-[160px]">
+                      <td className="px-3.5 py-3.5 max-w-[140px]">
                         {order.customNotes && <p className="text-slate-600 italic truncate">"{order.customNotes}"</p>}
                         {order.items?.length > 0 && <p className="text-[10px] text-slate-400 mt-0.5">{order.items.length} catalog item{order.items.length > 1 ? 's' : ''}</p>}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3.5 py-3.5">
                         <p className="font-black text-slate-900">₹{order.estimatedTotal}</p>
                         <p className="text-[10px] text-emerald-600 font-bold">Adv: ₹{order.advanceAmount}</p>
                         <p className="text-[10px] text-rose-600 font-bold">Due: ₹{order.balanceAmount}</p>
                       </td>
-                      <td className="px-4 py-3.5">
+                      {/* Column 1: By whom the order was taken (Origin Vehicle / Agent) */}
+                      <td className="px-3.5 py-3.5">
+                        {order.bookedFromVehicle ? (
+                          <div>
+                            <span className="font-bold text-slate-800 flex items-center gap-1">
+                              <Truck className="w-3 h-3 text-slate-400" />
+                              {order.bookedFromVehicle.vehicleNumber}
+                            </span>
+                            <p className="text-[10px] text-slate-500 font-medium">{order.bookedByAgent?.name || 'Agent'}</p>
+                          </div>
+                        ) : order.bookedByAgent ? (
+                          <div>
+                            <span className="font-bold text-slate-800">{order.bookedByAgent.name}</span>
+                            <p className="text-[10px] text-slate-400">Agent Booking</p>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 font-medium">Partner Portal</span>
+                        )}
+                      </td>
+                      {/* Column 2: By whom the order is assigned for delivery */}
+                      <td className="px-3.5 py-3.5">
                         {order.assignedVehicle ? (
-                          <span className="font-bold text-slate-800">{order.assignedVehicle.vehicleNumber}</span>
+                          <div>
+                            <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                              <Truck className="w-3 h-3 text-emerald-600" />
+                              {order.assignedVehicle.vehicleNumber}
+                            </span>
+                            {order.assignedAgent?.name && (
+                              <p className="text-[10px] text-slate-600 font-semibold mt-0.5">Driver: {order.assignedAgent.name}</p>
+                            )}
+                            {order.assignedRoute?.routeName && (
+                              <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{order.assignedRoute.routeName}</p>
+                            )}
+                          </div>
                         ) : (
                           <button
                             onClick={() => { setSelectedOrder(order); setAssignTargetVehicle(''); setShowAssignSection(true); setView('detail'); }}
-                            className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold hover:bg-amber-100"
+                            className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold hover:bg-amber-100"
                           >
                             + Assign Vehicle
                           </button>
                         )}
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${status.bg} ${status.text} ${status.border}`}>{status.label}</span>
+                      <td className="px-3.5 py-3.5">
+                        <span className={`inline-flex px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${status.bg} ${status.text} ${status.border}`}>{status.label}</span>
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
