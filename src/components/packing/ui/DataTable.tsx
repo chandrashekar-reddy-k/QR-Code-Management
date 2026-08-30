@@ -48,8 +48,8 @@ export function DataTable<T>({
   const paginatedData = data.slice(startIndex, endIndex);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
+    <div className="overflow-hidden">
+      <table className="w-full table-fixed border-collapse">
         <thead>
           <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-300">
             {columns.map((column) => (

@@ -13,11 +13,16 @@ import { workOrderService, WorkOrder, WoStatus } from '../../../api/packing/work
 import DataTable from '../../../components/packing/ui/DataTable';
 import ViewIconButton from '../../../components/ui/Button/ViewIconButton';
 
-const formatStatus = (s: string) => {
+const formatStatus = (s: string, row?: WorkOrder) => {
   if (!s) return 'Draft';
   if (s === 'QC_PENDING') return 'QC Pending';
   if (s === 'QC_PASSED') return 'QC Passed';
   if (s === 'COMPLETED') return 'Packing Completed';
+  if (s === 'LABEL_APPLICATION_ASSIGNED') return 'Labels Assigned';
+  if (s === 'LABEL_APPLICATION_IN_PROGRESS') return 'Labeling In Progress';
+  if (s === 'PACKING_STARTED' && row && (row.actualProduced || 0) > 0) {
+    return 'Packing In Progress';
+  }
   return s.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
@@ -38,11 +43,18 @@ const getStatusColor = (statusLabel: string) => {
     case 'PACKING IN PROGRESS':
     case 'PACKING_IN_PROGRESS':
     case 'IN PROGRESS':
+    case 'LABELING IN PROGRESS':
+    case 'LABEL_APPLICATION_IN_PROGRESS':
       return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
     case 'PACKING COMPLETED':
     case 'PACKING_COMPLETED':
     case 'COMPLETED':
+    case 'LABELS APPLIED':
+    case 'LABELS_APPLIED':
       return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+    case 'LABELS ASSIGNED':
+    case 'LABEL_APPLICATION_ASSIGNED':
+      return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300';
     case 'CANCELLED':
       return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
     default:
@@ -101,13 +113,16 @@ export const PackingExecution: React.FC = () => {
     fetchOrders();
   }, []);
 
-  // Queue Filtering: Display only MATERIAL_ISSUED, PACKING_STARTED, PACKING_IN_PROGRESS, PACKING_COMPLETED, COMPLETED
+  // Queue Filtering: Display only MATERIAL_ISSUED, PACKING_STARTED, PACKING_IN_PROGRESS, PACKING_COMPLETED, LABEL_APPLICATION_ASSIGNED, LABEL_APPLICATION_IN_PROGRESS, LABELS_APPLIED, COMPLETED
   const eligibleWOs = useMemo(() => {
     const validStatuses: WoStatus[] = [
       'MATERIAL_ISSUED',
       'PACKING_STARTED',
       'PACKING_IN_PROGRESS',
       'PACKING_COMPLETED',
+      'LABEL_APPLICATION_ASSIGNED',
+      'LABEL_APPLICATION_IN_PROGRESS',
+      'LABELS_APPLIED',
       'COMPLETED',
     ];
     return workOrders.filter((w) => validStatuses.includes(w.status));
@@ -116,7 +131,7 @@ export const PackingExecution: React.FC = () => {
   // Apply filters and search
   const filteredData = useMemo(() => {
     return eligibleWOs.filter((item) => {
-      const label = formatStatus(item.status);
+      const label = formatStatus(item.status, item);
       const matchesSearch =
         item.woNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -155,7 +170,7 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'woNumber',
       label: 'WORK ORDER NO.',
-      className: 'w-[12%] text-center whitespace-nowrap',
+      className: 'w-[10%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
         <span className="font-mono font-bold text-xs text-slate-800 dark:text-white">
           {row.woNumber}
@@ -165,7 +180,7 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'product',
       label: 'PRODUCT',
-      className: 'w-[18%] text-center whitespace-nowrap',
+      className: 'w-[16%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
         <span className="font-semibold text-xs text-slate-800 dark:text-gray-200 truncate block max-w-[180px]">
           {row.product?.name || '-'}
@@ -175,7 +190,7 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'operator',
       label: 'OPERATOR',
-      className: 'w-[16%] text-center whitespace-nowrap',
+      className: 'w-[12%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
         <span className="text-xs font-medium text-slate-700 dark:text-gray-300">
           {row.operator?.name || row.supervisor?.name || row.operatorId || 'Unassigned'}
@@ -205,7 +220,7 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'progress',
       label: 'PROGRESS',
-      className: 'w-[12%] text-center whitespace-nowrap',
+      className: 'w-[10%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => {
         const req = row.requiredQty || 1;
         const packed = row.actualProduced || 0;
@@ -229,7 +244,7 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'priority',
       label: 'PRIORITY',
-      className: 'w-[10%] text-center whitespace-nowrap',
+      className: 'w-[8%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
         <div className="flex justify-center">
           <span
@@ -245,13 +260,13 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'status',
       label: 'STATUS',
-      className: 'w-[12%] text-center whitespace-nowrap',
+      className: 'w-[10%] text-center whitespace-normal',
       render: (row: WorkOrder) => {
-        const label = formatStatus(row.status);
+        const label = formatStatus(row.status, row);
         return (
           <div className="flex justify-center">
             <span
-              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full whitespace-nowrap ${getStatusColor(
+              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full ${getStatusColor(
                 label
               )}`}
             >
@@ -264,7 +279,7 @@ export const PackingExecution: React.FC = () => {
     {
       key: 'startedAt',
       label: 'START DATE & TIME',
-      className: 'w-[14%] text-center whitespace-nowrap',
+      className: 'w-[12%] text-center whitespace-nowrap',
       render: (row: WorkOrder) => (
         <span className="font-mono text-xs text-slate-600 dark:text-gray-400">
           {fmtDateTime(row.startedAt || row.updatedAt || row.createdAt)}
@@ -376,6 +391,10 @@ export const PackingExecution: React.FC = () => {
             <option value="PACKING_STARTED" className="dark:bg-gray-800">Packing Started</option>
             <option value="PACKING_IN_PROGRESS" className="dark:bg-gray-800">Packing In Progress</option>
             <option value="PACKING_COMPLETED" className="dark:bg-gray-800">Packing Completed</option>
+            <option value="LABEL_APPLICATION_ASSIGNED" className="dark:bg-gray-800">Labels Assigned</option>
+            <option value="LABEL_APPLICATION_IN_PROGRESS" className="dark:bg-gray-800">Labeling In Progress</option>
+            <option value="LABELS_APPLIED" className="dark:bg-gray-800">Labels Applied</option>
+            <option value="COMPLETED" className="dark:bg-gray-800">Completed</option>
           </select>
 
           <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />

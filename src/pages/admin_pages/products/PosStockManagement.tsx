@@ -1,19 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  ScanLine, 
-  RefreshCw, 
-  Search, 
-  Barcode, 
-  CheckCircle2, 
-  AlertTriangle, 
-  DollarSign, 
-  Package, 
-  SlidersHorizontal, 
-  Store, 
-  Layers, 
-  Tag, 
-  Check, 
-  X,
+import { useState, useEffect, useMemo } from 'react';
+import {
+  ScanLine,
+  RefreshCw,
+  Search,
+  Barcode,
+  AlertTriangle,
+  Package,
+  Store,
   CreditCard
 } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
@@ -73,11 +66,12 @@ export default function PosStockManagement() {
 
       const mapped: PosStockProduct[] = raw
         .filter((p: any) => {
-          if (p.stageStocks?.LIVE !== undefined) return Number(p.stageStocks.LIVE) > 0;
-          if (p.liveStock !== undefined) return Number(p.liveStock) > 0;
+          if (Number(p.stock) > 0) return true;
+          if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
+          if (p.liveStock !== undefined && Number(p.liveStock) > 0) return true;
           const tagStage = Array.isArray(p.tags) ? p.tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null;
           const stage = p.lifecycleStage || tagStage;
-          return stage === 'LIVE' || Number(p.stock || 0) > 0;
+          return stage === 'LIVE';
         })
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
@@ -93,9 +87,9 @@ export default function PosStockManagement() {
 
           const productId = (p.productId as string) || String(p.id ?? '').slice(0, 8).toUpperCase();
           const img = p.image || (Array.isArray(p.images) ? p.images[0] : null);
-          const stageStock = (p.stageStocks?.LIVE !== undefined)
-            ? Number(p.stageStocks.LIVE)
-            : (p.liveStock !== undefined ? Number(p.liveStock) : Number(p.stock || 0));
+          const stageStock = p.posStoreStock?.posStock !== undefined && p.posStoreStock?.posStock !== null
+            ? Number(p.posStoreStock.posStock)
+            : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : Number(p.liveStock || p.stock || 0));
 
           // Sanitize clean unit label (strip UUIDs)
           let cleanUnit = p.unit || 'Unit';
@@ -217,10 +211,10 @@ export default function PosStockManagement() {
   const barcodeReadyCount = useMemo(() => products.filter(p => p.barcode && p.barcode.length > 5).length, [products]);
 
   const filtered = products.filter(p => {
-    const matchesSearch = !search.trim() || 
-      p.name.toLowerCase().includes(search.toLowerCase()) || 
-      p.productId.toLowerCase().includes(search.toLowerCase()) || 
-      (p.barcode && p.barcode.includes(search)) || 
+    const matchesSearch = !search.trim() ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.productId.toLowerCase().includes(search.toLowerCase()) ||
+      (p.barcode && p.barcode.includes(search)) ||
       p.sku.toLowerCase().includes(search.toLowerCase());
 
     if (!matchesSearch) return false;
@@ -442,12 +436,22 @@ export default function PosStockManagement() {
           </div>
         )}
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <div className="text-sm text-gray-500">
+            Show
+            <select
+              className="mx-2 border rounded p-1"
+              value={itemsPerPage}
+              onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+            >
+              {[10, 20, 50, 100].map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+            entries
+          </div>
           <Pagination
+            currentPage={currentPage}
             pagination={paginationObj}
             onPageChange={(page) => setCurrentPage(page)}
-            onLimitChange={(limit) => { setItemsPerPage(limit); setCurrentPage(1); }}
-            limits={[10, 20, 50, 100]}
           />
         </div>
       </div>

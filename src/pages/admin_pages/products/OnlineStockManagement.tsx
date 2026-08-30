@@ -1,18 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Smartphone, 
   RefreshCw, 
-  Search, 
-  Store, 
-  Package, 
-  SlidersHorizontal, 
-  TrendingUp, 
-  ShieldCheck, 
+  Search,  
+  Package,  
   Eye, 
   EyeOff, 
-  DollarSign, 
-  Tag, 
-  Sliders
+  Sliders,
+  TrendingUp
 } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import { toast } from 'react-toastify';
@@ -51,9 +46,8 @@ export default function OnlineStockManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterVisibility, setFilterVisibility] = useState<'ALL' | 'VISIBLE' | 'HIDDEN'>('ALL');
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(10);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Quick edit modal for Online App Settings
@@ -62,7 +56,6 @@ export default function OnlineStockManagement() {
   const [editPrice, setEditPrice] = useState<number>(0);
   const [editMinQty, setEditMinQty] = useState<number>(1);
   const [editMaxQty, setEditMaxQty] = useState<number>(100);
-  const [editBadge, setEditBadge] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadOnlineStock = async () => {
@@ -74,12 +67,12 @@ export default function OnlineStockManagement() {
 
       const mapped: OnlineStockProduct[] = raw
         .filter((p: any) => {
-          // Include products that are in LIVE stage or have active stock
-          if (p.stageStocks?.LIVE !== undefined) return Number(p.stageStocks.LIVE) > 0;
-          if (p.liveStock !== undefined) return Number(p.liveStock) > 0;
+          if (Number(p.stock) > 0) return true;
+          if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
+          if (p.liveStock !== undefined && Number(p.liveStock) > 0) return true;
           const tagStage = Array.isArray(p.tags) ? p.tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null;
           const stage = p.lifecycleStage || tagStage;
-          return stage === 'LIVE' || Number(p.stock || 0) > 0;
+          return stage === 'LIVE';
         })
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
@@ -95,9 +88,9 @@ export default function OnlineStockManagement() {
 
           const productId = (p.productId as string) || String(p.id ?? '').slice(0, 8).toUpperCase();
           const img = p.image || (Array.isArray(p.images) ? p.images[0] : null);
-          const stageStock = (p.stageStocks?.LIVE !== undefined)
-            ? Number(p.stageStocks.LIVE)
-            : (p.liveStock !== undefined ? Number(p.liveStock) : Number(p.stock || 0));
+          const stageStock = p.onlineAppStock?.onlineStock !== undefined && p.onlineAppStock?.onlineStock !== null
+            ? Number(p.onlineAppStock.onlineStock)
+            : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : Number(p.liveStock || p.stock || 0));
 
           // Sanitize clean unit label (strip UUIDs)
           let cleanUnit = p.unit || 'Unit';
@@ -182,7 +175,7 @@ export default function OnlineStockManagement() {
     setEditPrice(product.price);
     setEditMinQty(product.minOrderQty);
     setEditMaxQty(product.maxOrderQty);
-    setEditBadge(product.badge || '');
+    // setEditBadge(product.badge || '');
     setIsEditModalOpen(true);
   };
 
@@ -445,14 +438,15 @@ export default function OnlineStockManagement() {
           </div>
         )}
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <Pagination
-            pagination={paginationObj}
-            onPageChange={(page) => setCurrentPage(page)}
-            onLimitChange={(limit) => { setItemsPerPage(limit); setCurrentPage(1); }}
-            limits={[10, 20, 50, 100]}
-          />
-        </div>
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <Pagination
+              currentPage={currentPage}
+              pagination={paginationObj}
+              onPageChange={(page) => setCurrentPage(page)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Edit App Config Modal */}

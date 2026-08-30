@@ -29,7 +29,14 @@ export const MyQCTasks: React.FC = () => {
       const response = await qualityCheckService.getPendingQCWorkOrders();
       // Filter for logged in inspector or unassigned
       const filtered = (response || []).filter(
-        (wo) => (!wo.inspector || wo.inspector.id === user.id) && ELIGIBLE_QC_STATUSES.includes(wo.status)
+        (wo) => {
+          const inspector: any = wo.inspector;
+          const isAssigned = !inspector || 
+            inspector.id === user.id || 
+            (user.email && inspector.email === user.email) || 
+            (user.phone && inspector.phone === user.phone);
+          return isAssigned && ELIGIBLE_QC_STATUSES.includes(wo.status);
+        }
       );
       setTasks(filtered);
 

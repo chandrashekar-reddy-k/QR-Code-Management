@@ -358,8 +358,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     userEmailOrName = ((user?.email || user?.name || user?.phone || "") as string).toLowerCase();
   } catch (e) { }
 
-  const portalMode = sessionStorage.getItem('portalMode') || localStorage.getItem('portalMode');
-
   const hasAgentPermissions = permissions.some((p: string) => p.startsWith("vsms_agent_"));
   const hasShopkeeperPermissions = permissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
   const hasPartnerPermissions = permissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
@@ -381,24 +379,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isShopkeeperRole = hasShopkeeperPermissions && !hasPartnerPermissions;
   const isAgentRole = (hasAgentPermissions || ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(role.toUpperCase())) && !hasPartnerPermissions && !isShopkeeperRole;
 
-  const isPackerOperatorRole = portalMode === 'OPERATOR' || (
-    portalMode !== 'PARTNER' && (
-      ["PACKING_OPERATOR", "PACKER_OPERATOR", "OPERATOR", "PACKER", "WAREHOUSE_STAFF"].includes(role.toUpperCase()) ||
-      userEmailOrName.includes('operator') ||
-      userEmailOrName.includes('packer') ||
-      userEmailOrName.includes('packing') ||
-      permissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"))
-    )
-  );
+  const isPackerOperatorRole = 
+    ["PACKING_OPERATOR", "PACKER_OPERATOR", "OPERATOR", "PACKER"].includes(role.toUpperCase()) ||
+    userEmailOrName.includes('operator') ||
+    userEmailOrName.includes('packer') ||
+    userEmailOrName.includes('packing') ||
+    permissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"));
 
-  const isPackerQcRole = portalMode === 'QC' || (
-    portalMode !== 'PARTNER' && (
-      ["PACKING_QC", "PACKER_QC", "QC_INSPECTOR", "QC"].includes(role.toUpperCase()) ||
-      userEmailOrName.includes('qc') ||
-      userEmailOrName.includes('inspector') ||
-      permissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"))
-    )
-  );
+  const isPackerQcRole = 
+    ["PACKING_QC", "PACKER_QC", "QC_INSPECTOR", "QC"].includes(role.toUpperCase()) ||
+    userEmailOrName.includes('qc') ||
+    userEmailOrName.includes('inspector') ||
+    userEmailOrName.includes('checker') ||
+    permissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"));
 
   if (isPackerOperatorRole) {
     if (!location.pathname.startsWith('/packer/operator')) {
