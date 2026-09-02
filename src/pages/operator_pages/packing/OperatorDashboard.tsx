@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, CheckCircle, AlertCircle, Clock, ListTodo, AlertTriangle, ArrowRight, Play, Tag } from 'lucide-react';
 import { workOrderService, WorkOrder } from '../../../api/packing/workOrderService';
+import { barcodeService } from '../../../api/packing/barcodeService';
 import { getOperatorUser } from './operatorAuth';
 
 export const OperatorDashboard: React.FC = () => {
@@ -22,7 +23,33 @@ export const OperatorDashboard: React.FC = () => {
       const userOrders = (res.data || []).filter((wo: WorkOrder) =>
         !wo.operatorId || wo.operatorId === user.id
       );
-      setWorkOrders(userOrders);
+      
+      let allOrders = [...userOrders];
+      
+      try {
+        const labelRes = await barcodeService.getMyTasks();
+        const rawLabels = Array.isArray(labelRes) ? labelRes : (labelRes?.data && Array.isArray(labelRes.data) ? labelRes.data : []);
+        const labelWorkOrders = rawLabels.map((item: any) => {
+          const wo = item.workOrder || item;
+          return {
+            ...wo,
+            status: wo.status || (item.status === 'COMPLETED' ? 'LABELS_APPLIED' : (item.status === 'IN_PROGRESS' ? 'LABEL_APPLICATION_IN_PROGRESS' : 'LABEL_APPLICATION_ASSIGNED'))
+          };
+        });
+        
+        labelWorkOrders.forEach((lwo: any) => {
+          const exists = allOrders.findIndex(t => t.id === lwo.id);
+          if (exists >= 0) {
+            allOrders[exists] = { ...allOrders[exists], ...lwo };
+          } else {
+            allOrders.push(lwo);
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to fetch label tasks', err);
+      }
+
+      setWorkOrders(allOrders);
     } catch (err) {
       console.error('Failed to fetch work orders for dashboard', err);
     } finally {

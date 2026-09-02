@@ -121,8 +121,9 @@ export default function VehicleStockManagement() {
 
       const mapped: VehicleInventoryItem[] = raw
         .filter((p: any) => {
-          if (p.stageStocks?.LIVE !== undefined) return Number(p.stageStocks.LIVE) > 0 || Number(p.vehicleStock || 0) > 0;
-          return Number(p.stock || 0) > 0 || Number(p.vehicleStock || 0) > 0;
+          if (Number(p.stock) > 0 || Number(p.vehicleStock || 0) > 0) return true;
+          if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
+          return false;
         })
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
@@ -496,8 +497,6 @@ export default function VehicleStockManagement() {
           <Pagination
             pagination={paginationObj}
             onPageChange={(page) => setCurrentPage(page)}
-            onLimitChange={(limit) => { setItemsPerPage(limit); setCurrentPage(1); }}
-            limits={[10, 20, 50, 100]}
           />
         </div>
       </div>

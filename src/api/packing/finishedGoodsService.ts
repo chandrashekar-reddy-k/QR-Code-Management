@@ -54,8 +54,9 @@ export const finishedGoodsService = {
   async postFinishedGoods(data: {
     woId: string;
     batchNumber: string;
-    postedQty: number;
-    destination: string;
+    postedQty?: number;
+    destination?: string;
+    allocations?: { destination: string; qty: number }[];
     costPayload?: any;
   }): Promise<any> {
     const res = await apiClient.post<any>('/workflows/finished-goods', data);

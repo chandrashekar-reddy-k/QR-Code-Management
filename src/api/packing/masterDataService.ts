@@ -23,7 +23,7 @@ export interface Product {
   name: string;
   categoryId: string;
   uomId: string;
-  type?: 'RAW_MATERIAL' | 'PACKAGING' | 'FINISHED_GOOD';
+  type?: 'RAW_MATERIAL' | 'PACKAGING' | 'FINISHED_GOOD' | 'BRANDED';
   isActive?: boolean;
   category?: Category;
   uom?: UnitOfMeasure;

@@ -464,7 +464,7 @@ export const sidebarConfig: MenuSection[] = [
   {
     type: "collapsible",
     permission: "Partner: Packing ERP",
-    label: "Packing ERP",
+    label: "Packing",
     icon: Boxes,
     stateKey: "isPackingErpOpen",
     activeCheck: (pathname: string) => pathname.startsWith("/packing-erp"),

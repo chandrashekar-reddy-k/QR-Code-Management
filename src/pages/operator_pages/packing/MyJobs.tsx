@@ -31,7 +31,33 @@ export const MyJobs: React.FC = () => {
       const filtered = (response.data || []).filter(wo =>
         !wo.operatorId || wo.operatorId === user.id
       );
-      setTasks(filtered);
+      
+      let allTasks = [...filtered];
+      
+      try {
+        const labelRes = await barcodeService.getMyTasks();
+        const rawLabels = Array.isArray(labelRes) ? labelRes : (labelRes?.data && Array.isArray(labelRes.data) ? labelRes.data : []);
+        const labelWorkOrders = rawLabels.map((item: any) => {
+          const wo = item.workOrder || item;
+          return {
+            ...wo,
+            status: wo.status || (item.status === 'COMPLETED' ? 'LABELS_APPLIED' : (item.status === 'IN_PROGRESS' ? 'LABEL_APPLICATION_IN_PROGRESS' : 'LABEL_APPLICATION_ASSIGNED'))
+          };
+        });
+        
+        labelWorkOrders.forEach((lwo: any) => {
+          const exists = allTasks.findIndex(t => t.id === lwo.id);
+          if (exists >= 0) {
+            allTasks[exists] = { ...allTasks[exists], ...lwo };
+          } else {
+            allTasks.push(lwo);
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to fetch label tasks', err);
+      }
+
+      setTasks(allTasks);
 
       if (routeJobId) {
         const found = filtered.find(t => t.id === routeJobId);

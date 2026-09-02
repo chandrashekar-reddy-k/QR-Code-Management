@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { workOrderService, WorkOrder, WoStatus } from '../../../api/packing/workOrderService';
+import { barcodeService } from '../../../api/packing/barcodeService';
 import {
   Package,
   CheckCircle,
@@ -20,6 +21,9 @@ const STAGES: { key: WoStatus; label: string }[] = [
   { key: 'PACKING_STARTED', label: 'Packing Started' },
   { key: 'PACKING_IN_PROGRESS', label: 'In Progress' },
   { key: 'PACKING_COMPLETED', label: 'Packing Completed' },
+  { key: 'LABEL_APPLICATION_ASSIGNED', label: 'Labels Assigned' },
+  { key: 'LABEL_APPLICATION_IN_PROGRESS', label: 'Labeling In Progress' },
+  { key: 'LABELS_APPLIED', label: 'Labeling Completed' },
 ];
 
 export const PackingExecutionDetails: React.FC = () => {
@@ -32,9 +36,10 @@ export const PackingExecutionDetails: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Form states for quantity update
   const [actualProduced, setActualProduced] = useState<number>(0);
   const [actualRejected, setActualRejected] = useState<number>(0);
+  const [labelsApplied, setLabelsApplied] = useState<number>(0);
+  const [labelsRejected, setLabelsRejected] = useState<number>(0);
   const [pauseReason, setPauseReason] = useState<string>('');
   const [showPauseModal, setShowPauseModal] = useState(false);
 
@@ -57,6 +62,7 @@ export const PackingExecutionDetails: React.FC = () => {
         setSelectedWO(found);
         setActualProduced(found.actualProduced || 0);
         setActualRejected(found.actualRejected || 0);
+        setLabelsApplied(found.labelsApplied ?? found.actualProduced ?? 0);
       }
     } catch (e) {
       console.error('Failed to fetch Work Order for details:', e);
@@ -93,24 +99,20 @@ export const PackingExecutionDetails: React.FC = () => {
     );
   }
 
-  const reqQty = selectedWO.requiredQty || 1;
-  const remainingQty = Math.max(0, reqQty - actualProduced);
-  const completionPct = Math.min(100, Math.round((actualProduced / reqQty) * 100));
+  const isLabelingStage = selectedWO.status === 'LABEL_APPLICATION_IN_PROGRESS' || selectedWO.status === 'LABELS_APPLIED';
 
-  // Determine active stage index
-  const currentStageIndex = () => {
-    switch (selectedWO.status) {
-      case 'MATERIAL_ISSUED':
-        return 0;
-      case 'PACKING_STARTED':
-        return 1;
-      case 'PACKING_IN_PROGRESS':
-        return 2;
-      case 'PACKING_COMPLETED':
-      default:
-        return 3;
-    }
-  };
+  // Packing logic
+  const reqQty = selectedWO.requiredQty || 1;
+  const packedQty = actualProduced;
+  const packingRemaining = Math.max(0, reqQty - packedQty);
+  const packingPct = Math.min(100, Math.round((packedQty / reqQty) * 100));
+
+  // Labeling logic
+  const reqLabels = packedQty > 0 ? packedQty : reqQty;
+  const labelsRemaining = Math.max(0, reqLabels - labelsApplied - labelsRejected);
+  const labelingPct = Math.min(100, Math.round((labelsApplied / reqLabels) * 100) || 0);
+
+
 
   const handleStartPacking = async () => {
     try {
@@ -207,6 +209,84 @@ export const PackingExecutionDetails: React.FC = () => {
     }
   };
 
+  const handleAssignLabels = async () => {
+    try {
+      setActionLoading(true);
+      await barcodeService.printLabels({
+        workOrderId: selectedWO.id,
+        batchNumber: selectedWO.batchNumber || `BATCH-${selectedWO.woNumber}`,
+        barcodeType: 'CODE128',
+        printedQty: actualProduced > 0 ? actualProduced : reqQty,
+      });
+      showToast(`Labels assigned for Work Order ${selectedWO.woNumber}`);
+      fetchWO();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.response?.data?.message || err.message || 'Failed to assign labels', true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStartLabeling = async () => {
+    try {
+      setActionLoading(true);
+      await workOrderService.updateWorkOrderStatus(selectedWO.id, 'LABEL_APPLICATION_IN_PROGRESS');
+      showToast('Labeling started!');
+      fetchWO();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.response?.data?.message || err.message || 'Failed to start labeling', true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveLabelQuantities = async () => {
+    const maxQty = actualProduced > 0 ? actualProduced : reqQty;
+    if (labelsApplied + labelsRejected > maxQty) {
+      showToast('Total labels cannot exceed packed quantity.', true);
+      return;
+    }
+    try {
+      setActionLoading(true);
+      const updated = await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
+        labelsApplied,
+      });
+      setSelectedWO(updated);
+      showToast('Label quantities updated successfully!');
+      fetchWO();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.response?.data?.message || err.message || 'Failed to update label quantities', true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCompleteLabeling = async () => {
+    const maxQty = actualProduced > 0 ? actualProduced : reqQty;
+    if (labelsApplied + labelsRejected > maxQty) {
+      showToast('Total labels cannot exceed packed quantity.', true);
+      return;
+    }
+    try {
+      setActionLoading(true);
+      await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, { labelsApplied });
+      await barcodeService.completeTask({
+        workOrderId: selectedWO.id,
+        appliedQuantity: labelsApplied,
+      });
+      showToast('Labeling completed successfully!');
+      fetchWO();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.response?.data?.message || err.message || 'Failed to complete labeling', true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 text-left pb-10">
       {/* Toast notifications */}
@@ -252,7 +332,12 @@ export const PackingExecutionDetails: React.FC = () => {
         </h3>
         <div className="grid grid-cols-4 gap-2 relative">
           {STAGES.map((stage, idx) => {
-            const isCompletedState = selectedWO.status === 'PACKING_COMPLETED' || selectedWO.status === 'COMPLETED';
+            const uiStatus = selectedWO.status === 'PACKING_STARTED' && (selectedWO.actualProduced || 0) > 0 
+                ? 'PACKING_IN_PROGRESS' 
+                : selectedWO.status;
+            
+            const activeIdx = STAGES.findIndex((s) => s.key === uiStatus);
+            const isCompletedState = selectedWO.status === 'LABELS_APPLIED' || selectedWO.status === 'COMPLETED' || selectedWO.status === 'QC_PENDING';
             const isDone = idx < activeIdx || isCompletedState;
             const isCurrent = idx === activeIdx && !isCompletedState;
 
@@ -345,51 +430,51 @@ export const PackingExecutionDetails: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs">
           <h3 className="text-sm font-bold text-slate-800 dark:text-gray-200 mb-4 flex items-center gap-2">
             <Layers size={16} className="text-blue-500" />
-            Quantity & Progress
+            {isLabelingStage ? 'Labeling Quantity & Progress' : 'Quantity & Progress'}
           </h3>
           <div className="grid grid-cols-2 gap-4 text-xs mb-4">
             <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-lg border border-slate-100 dark:border-gray-700">
               <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
-                Required Qty
+                {isLabelingStage ? 'Required Labels' : 'Required Qty'}
               </span>
               <span className="text-lg font-bold text-slate-800 dark:text-white font-mono">
-                {reqQty}
+                {isLabelingStage ? reqLabels : reqQty}
               </span>
             </div>
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-100 dark:border-emerald-900">
               <span className="text-emerald-600 dark:text-emerald-400 block text-[9px] uppercase font-bold">
-                Packed Qty
+                {isLabelingStage ? 'Labels Applied' : 'Packed Qty'}
               </span>
               <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300 font-mono">
-                {actualProduced}
+                {isLabelingStage ? labelsApplied : packedQty}
               </span>
             </div>
             <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-100 dark:border-amber-900">
               <span className="text-amber-600 dark:text-amber-400 block text-[9px] uppercase font-bold">
-                Remaining Qty
+                {isLabelingStage ? 'Remaining Labels' : 'Remaining Qty'}
               </span>
               <span className="text-lg font-bold text-amber-700 dark:text-amber-300 font-mono">
-                {remainingQty}
+                {isLabelingStage ? labelsRemaining : packingRemaining}
               </span>
             </div>
             <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-lg border border-rose-100 dark:border-rose-900">
               <span className="text-rose-600 dark:text-rose-400 block text-[9px] uppercase font-bold">
-                Rejected Qty
+                {isLabelingStage ? 'Rejected Labels' : 'Rejected Qty'}
               </span>
               <span className="text-lg font-bold text-rose-700 dark:text-rose-300 font-mono">
-                {actualRejected}
+                {isLabelingStage ? labelsRejected : actualRejected}
               </span>
             </div>
           </div>
           <div>
             <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
-              <span>Packing Progress</span>
-              <span>{completionPct}%</span>
+              <span>{isLabelingStage ? 'Labeling Progress' : 'Packing Progress'}</span>
+              <span>{isLabelingStage ? labelingPct : packingPct}%</span>
             </div>
             <div className="w-full h-2.5 bg-slate-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#00891D] transition-all duration-300"
-                style={{ width: `${completionPct}%` }}
+                className={`h-full transition-all duration-300 ${isLabelingStage ? 'bg-blue-600' : 'bg-[#00891D]'}`}
+                style={{ width: `${isLabelingStage ? labelingPct : packingPct}%` }}
               />
             </div>
           </div>
@@ -405,7 +490,9 @@ export const PackingExecutionDetails: React.FC = () => {
             <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
               Current Status:{' '}
               <span className="font-bold text-slate-800 dark:text-white uppercase">
-                {selectedWO.status.replace(/_/g, ' ')}
+                {(selectedWO.status === 'PACKING_STARTED' && (selectedWO.actualProduced || 0) > 0 
+                  ? 'PACKING_IN_PROGRESS' 
+                  : selectedWO.status).replace(/_/g, ' ')}
               </span>
             </p>
           </div>
@@ -457,9 +544,42 @@ export const PackingExecutionDetails: React.FC = () => {
               </button>
             )}
 
-            {(selectedWO.status === 'PACKING_COMPLETED' || selectedWO.status === 'COMPLETED') && (
+            {(selectedWO.status === 'PACKING_COMPLETED') && (
+              <button
+                onClick={handleAssignLabels}
+                disabled={actionLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer"
+              >
+                {actionLoading ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                <span>Assign Labels</span>
+              </button>
+            )}
+
+            {selectedWO.status === 'LABEL_APPLICATION_ASSIGNED' && (
+              <button
+                onClick={handleStartLabeling}
+                disabled={actionLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#00891D] hover:bg-[#007017] text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer"
+              >
+                {actionLoading ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                <span>Start Labeling</span>
+              </button>
+            )}
+
+            {selectedWO.status === 'LABEL_APPLICATION_IN_PROGRESS' && (
+              <button
+                onClick={handleCompleteLabeling}
+                disabled={actionLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer"
+              >
+                {actionLoading ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                <span>Complete Labeling</span>
+              </button>
+            )}
+
+            {(selectedWO.status === 'LABELS_APPLIED' || selectedWO.status === 'QC_PENDING' || selectedWO.status === 'COMPLETED') && (
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-center text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                ✓ Packing Execution Completed
+                ✓ Labeling Completed
               </div>
             )}
           </div>
@@ -506,6 +626,52 @@ export const PackingExecutionDetails: React.FC = () => {
                 min="0"
                 value={actualRejected}
                 onChange={(e) => setActualRejected(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Labeling Output Entry Card */}
+      {selectedWO.status === 'LABEL_APPLICATION_IN_PROGRESS' && (
+        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-xs space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-gray-700 pb-3">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+              Update Labeling Quantities
+            </h3>
+            <button
+              onClick={handleSaveLabelQuantities}
+              disabled={actionLoading}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
+            >
+              <Save size={14} />
+              <span>Save Quantities</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
+                Labels Applied Quantity *
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={labelsApplied}
+                onChange={(e) => setLabelsApplied(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
+                Rejected / Defective Labels Quantity
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={labelsRejected}
+                onChange={(e) => setLabelsRejected(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
               />
             </div>

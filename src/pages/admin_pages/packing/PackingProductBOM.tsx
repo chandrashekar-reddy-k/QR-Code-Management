@@ -473,7 +473,7 @@ export const PackingProductBOM: React.FC = () => {
                           Select Target Product
                         </option>
                         {products
-                          .filter((p) => p.type === 'FINISHED_GOOD')
+                          .filter((p) => p.type === 'FINISHED_GOOD' || p.type === 'BRANDED')
                           .map((p) => (
                             <option key={p.id} value={p.id} className="dark:bg-gray-800">
                               {p.name} ({p.sku})

@@ -74,8 +74,8 @@ export const PackingFinishedGoods: React.FC = () => {
   // Post Modal state
   const [isPostOpen, setIsPostOpen] = useState(false);
   const [formWoNo, setFormWoNo] = useState('');
-  const [formPostedQty, setFormPostedQty] = useState(100);
-  const [formDestination, setFormDestination] = useState('Warehouse');
+  const [allocations, setAllocations] = useState({ pos: 0, online: 0 });
+  const [maxPostedQty, setMaxPostedQty] = useState<number>(0);
   const [isPosting, setIsPosting] = useState(false);
 
   // Cost Detail Modal state
@@ -133,9 +133,15 @@ export const PackingFinishedGoods: React.FC = () => {
       // Check if already posted
       const alreadyPosted = postedFGs.some((fg) => fg.woId === wo.id || fg.workOrder?.woNumber === wo.woNumber);
       if (!alreadyPosted) {
-        const qc = qualityChecks.find((q) => q.woId === wo.id && ['PASS', 'PARTIAL_PASS', 'Pass', 'Partial Pass'].includes(q.result));
-        const batchNo = wo.batchNumber || qc?.workOrder?.batchNumber || `BATCH-2026-${wo.woNumber.split('-').pop()}`;
-        const approvedQty = wo.actualProduced || qc?.checkedQty || wo.requiredQty || 0;
+        const qcRecords = qualityChecks.filter((q) => q.woId === wo.id && ['PASS', 'PARTIAL_PASS', 'Pass', 'Partial Pass'].includes(q.result));
+        let totalApproved = qcRecords.reduce((sum, q) => sum + (q.checkedQty || 0), 0);
+        if (qcRecords.length === 0) {
+          totalApproved = wo.requiredQty || 0;
+        }
+        const alreadyPostedFGs = postedFGs.filter(fg => fg.woId === wo.id);
+        const woAlreadyPosted = alreadyPostedFGs.reduce((sum, fg) => sum + (fg.postedQty || 0), 0);
+        const approvedQty = Math.max(0, totalApproved - woAlreadyPosted);
+        const batchNo = wo.batchNumber || (qcRecords[0]?.workOrder?.batchNumber) || `BATCH-2026-${wo.woNumber.split('-').pop()}`;
 
         rows.push({
           _type: 'PENDING',
@@ -239,7 +245,19 @@ export const PackingFinishedGoods: React.FC = () => {
     setFormWoNo(woNo);
     const wo = workOrders.find((w) => w.woNumber === woNo);
     if (wo) {
-      setFormPostedQty(wo.actualProduced || wo.requiredQty || 100);
+      // Find the QC records for this WO to get the total approved quantity
+      const qcRecords = qualityChecks.filter((q) => q.woId === wo.id && ['PASS', 'PARTIAL_PASS', 'Pass', 'Partial Pass'].includes(q.result));
+      let totalApproved = qcRecords.reduce((sum, q) => sum + (q.checkedQty || 0), 0);
+      if (qcRecords.length === 0) {
+        totalApproved = wo.requiredQty || 0;
+      }
+      
+      const alreadyPostedFGs = postedFGs.filter(fg => fg.woId === wo.id);
+      const alreadyPosted = alreadyPostedFGs.reduce((sum, fg) => sum + (fg.postedQty || 0), 0);
+      const maxQty = Math.max(0, totalApproved - alreadyPosted);
+      
+      setMaxPostedQty(maxQty);
+      setAllocations({ pos: 0, online: 0 });
       setRawCost(3000);
       setPackagingCost(400);
       setEmployeeCost(250);
@@ -252,7 +270,21 @@ export const PackingFinishedGoods: React.FC = () => {
 
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formWoNo) return;
+    if (!formWoNo) {
+      toast.error('Please select an approved batch.');
+      return;
+    }
+    
+    const totalAllocated = allocations.pos + allocations.online;
+    if (totalAllocated <= 0) {
+      toast.error('Please allocate quantity to at least one destination.');
+      return;
+    }
+    
+    if (totalAllocated > maxPostedQty) {
+      toast.error('Total allocated quantity cannot exceed approved quantity.');
+      return;
+    }
 
     const wo = workOrders.find((w) => w.woNumber === formWoNo);
     if (!wo) {
@@ -262,17 +294,21 @@ export const PackingFinishedGoods: React.FC = () => {
 
     const batchNumber = wo.batchNumber || `BATCH-2026-${wo.woNumber.split('-').pop()}`;
     const totalCost = rawCost + packagingCost + employeeCost + electricity + machineCost + transportation + miscellaneous;
-    const costPerUnit = formPostedQty > 0 ? Number((totalCost / formPostedQty).toFixed(2)) : 0;
+    const costPerUnit = totalAllocated > 0 ? Number((totalCost / totalAllocated).toFixed(2)) : 0;
     const simulatedSellingPrice = 48;
     const profitMargin = costPerUnit > 0 ? Number((((simulatedSellingPrice - costPerUnit) / simulatedSellingPrice) * 100).toFixed(1)) : 0;
 
     try {
       setIsPosting(true);
+      
+      const payloadAllocations: { destination: string, qty: number }[] = [];
+      if (allocations.pos > 0) payloadAllocations.push({ destination: 'POS Stock', qty: allocations.pos });
+      if (allocations.online > 0) payloadAllocations.push({ destination: 'Online Stock', qty: allocations.online });
+
       await finishedGoodsService.postFinishedGoods({
         woId: wo.id,
         batchNumber: batchNumber,
-        postedQty: formPostedQty,
-        destination: formDestination,
+        allocations: payloadAllocations,
         costPayload: {
           costs: {
             rawMaterial: rawCost,
@@ -744,36 +780,47 @@ export const PackingFinishedGoods: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                    Posted Quantity
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    readOnly
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-slate-100 dark:bg-gray-900 text-slate-800 dark:text-white font-bold font-mono"
-                    value={formPostedQty}
-                  />
+              <div className="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-4">
+                <div className="flex justify-between items-center mb-4 border-b border-slate-200 dark:border-gray-700 pb-3">
+                  <span className="text-xs font-bold text-slate-600 dark:text-gray-300">
+                    Approved Quantity: <span className="text-gray-900 dark:text-white bg-slate-200 dark:bg-gray-800 px-2 py-0.5 rounded ml-1">{maxPostedQty}</span>
+                  </span>
+                  <div className="flex gap-4">
+                    <span className="text-xs font-bold text-slate-600 dark:text-gray-300">
+                      Allocated: <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded ml-1">{allocations.pos + allocations.online}</span>
+                    </span>
+                    <span className="text-xs font-bold text-slate-600 dark:text-gray-300">
+                      Remaining: <span className={`px-2 py-0.5 rounded ml-1 ${maxPostedQty - (allocations.pos + allocations.online) < 0 ? 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400' : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                        {maxPostedQty - (allocations.pos + allocations.online)}
+                      </span>
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                    Destination Location *
-                  </label>
-                  <div className="relative">
-                    <select
-                      className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D] appearance-none"
-                      value={formDestination}
-                      onChange={(e) => setFormDestination(e.target.value)}
-                    >
-                      <option value="Warehouse" className="dark:bg-gray-800">Warehouse (Main Stock)</option>
-                      <option value="Store" className="dark:bg-gray-800">Retail Store Racks</option>
-                      <option value="Vehicle" className="dark:bg-gray-800">Delivery Van / Vehicle Route</option>
-                      <option value="Online Inventory" className="dark:bg-gray-800">Online Warehouse Stock</option>
-                      <option value="POS" className="dark:bg-gray-800">Point of Sale (POS) Rack</option>
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                      POS Stock Allocation
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-bold font-mono focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                      value={allocations.pos || ''}
+                      onChange={(e) => setAllocations(prev => ({ ...prev, pos: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                      Online Stock Allocation
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-bold font-mono focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                      value={allocations.online || ''}
+                      onChange={(e) => setAllocations(prev => ({ ...prev, online: Number(e.target.value) }))}
+                    />
                   </div>
                 </div>
               </div>
@@ -786,18 +833,20 @@ export const PackingFinishedGoods: React.FC = () => {
                 <div className="grid grid-cols-2 gap-y-3 gap-x-4">
                   <div>
                     <span className="block text-[9px] font-bold text-slate-400 dark:text-gray-500 uppercase">
-                      Approved Quantity
+                      Total Allocated
                     </span>
                     <span className="font-semibold text-slate-800 dark:text-white">
-                      {formPostedQty} units
+                      {allocations.pos + allocations.online} units
                     </span>
                   </div>
                   <div>
                     <span className="block text-[9px] font-bold text-slate-400 dark:text-gray-500 uppercase">
-                      Destination Warehouse
+                      Destinations
                     </span>
-                    <span className="font-semibold text-slate-800 dark:text-white">
-                      {formDestination}
+                    <span className="font-semibold text-slate-800 dark:text-white text-xs flex gap-2">
+                      {allocations.pos > 0 && <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">POS ({allocations.pos})</span>}
+                      {allocations.online > 0 && <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">Online ({allocations.online})</span>}
+                      {allocations.pos === 0 && allocations.online === 0 && <span className="text-gray-400">-</span>}
                     </span>
                   </div>
                   <div>

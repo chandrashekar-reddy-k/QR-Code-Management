@@ -712,8 +712,8 @@ export const PackingWorkOrders: React.FC = () => {
       ) : viewMode === 'table' ? (
         // TABLE VIEW
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-xs">
-          <div className="overflow-x-auto max-h-[60vh]">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="overflow-hidden max-h-[60vh]">
+            <table className="w-full table-fixed text-left text-xs border-collapse">
               <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-gray-500 dark:text-gray-300 font-bold uppercase">
                   <th className="p-3">Work Order No</th>

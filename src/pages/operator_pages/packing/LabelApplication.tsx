@@ -94,6 +94,10 @@ export const LabelApplication: React.FC = () => {
         }));
       }
 
+      tasksData = tasksData.filter(
+        (t) => t.status === 'LABEL_APPLICATION_ASSIGNED' || t.status === 'LABEL_APPLICATION_IN_PROGRESS'
+      );
+
       setLabelTasks(tasksData);
 
       if (tasksData.length > 0 && !activeTask) {
