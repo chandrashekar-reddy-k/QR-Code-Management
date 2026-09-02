@@ -446,31 +446,6 @@ export default function PartnerScheduledOrders() {
     );
   }
 
-  // Form states for Pre Order
-  const [custName, setCustName] = useState('');
-  const [custMobile, setCustMobile] = useState('');
-  const [delDate, setDelDate] = useState('');
-  const [delTime, setDelTime] = useState('');
-  const [delAddress, setDelAddress] = useState('');
-
-  const [preOrderItems, setPreOrderItems] = useState([
-    {
-      id: '1',
-      name: "Mom's Magic Cashew &",
-      price: 55,
-      qty: 1,
-      selected: false,
-      img: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=100',
-    },
-    {
-      id: '2',
-      name: 'Mysore Sandal soap',
-      price: 55,
-      qty: 1,
-      selected: false,
-      img: 'https://images.unsplash.com/photo-1608248597359-bb436efab783?w=100',
-    },
-  ]);
 
   if (showCreatePreOrder) {
     return (
