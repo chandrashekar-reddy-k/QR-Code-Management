@@ -26,6 +26,8 @@ jobs:
           script: |
             set -e
 
+            export PATH=$PATH:/home/ubuntu/n/bin
+            
             cd /opt/apps/villagkart/erp-dev/partner_web
 
             echo "Updating repository..."
