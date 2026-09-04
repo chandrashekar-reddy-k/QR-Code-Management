@@ -3,7 +3,7 @@ name: Frontend Partner Deploy
 on:
   push:
     branches:
-      - master
+      - erp/dev
 
 concurrency:
   group: frontend-partner-deploy
