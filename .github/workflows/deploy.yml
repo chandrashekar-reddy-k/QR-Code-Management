@@ -18,20 +18,20 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
 
         with:
-          host: ${{ secrets.PROD_EC2_HOST }}
+          host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
           command_timeout: 10m
 
           script: |
             set -e
 
-            cd /var/www/villagkart/villagkart-partner-web
+            cd /opt/apps/villagkart/erp-dev/partner_web
 
             echo "Updating repository..."
 
-            git checkout master
-            git pull origin master
+            git checkout erp/dev
+            git pull origin erp/dev
 
             echo "Installing dependencies..."
 
