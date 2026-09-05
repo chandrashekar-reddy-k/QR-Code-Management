@@ -12,7 +12,10 @@ export interface User {
   avatar: string | null;
   store: unknown | null;
   supplier: unknown | null;
-  isCreatedPassword: boolean;
+  requiresPasswordChange?: boolean;
+  isCreatedPassword?: boolean;
+  isFirstLogin?: boolean;
+  mustChangePassword?: boolean;
 }
 
 export interface LoginResponse {
@@ -42,6 +45,33 @@ type ApiError =
   | ErrorResponse
   | { message?: string; response?: string; data?: { response?: string } };
 
+<<<<<<< Updated upstream
+=======
+const formatLoginSuccess = (data: any): LoginResponse => ({
+  status: true,
+  response: data.message || "Success",
+  data: {
+    accessToken: data.data.accessToken,
+    refreshToken: data.data.refreshToken,
+    expiresIn: "24h",
+    user: {
+      id: data.data.user?.id,
+      phone: data.data.user?.phone || "",
+      name: data.data.user?.name || "",
+      email: data.data.user?.email || "",
+      role: data.data.user?.roles?.[0] || data.data.user?.role || "PARTNER",
+      avatar: data.data.user?.avatar || null,
+      store: null,
+      supplier: null,
+      requiresPasswordChange: Boolean(data.data.user?.isFirstLogin || data.data.user?.mustChangePassword || data.data.user?.isCreatedPassword),
+      isCreatedPassword: Boolean(data.data.user?.isFirstLogin || data.data.user?.mustChangePassword || data.data.user?.isCreatedPassword),
+      isFirstLogin: Boolean(data.data.user?.isFirstLogin),
+      mustChangePassword: Boolean(data.data.user?.mustChangePassword)
+    }
+  }
+});
+
+>>>>>>> Stashed changes
 const useLogin = (onSuccess: (data: LoginResponse) => void) => {
   return useMutation<LoginResponse, ErrorResponse, LoginPayload>({
     mutationFn: (payload: LoginPayload) => {
