@@ -62,14 +62,6 @@ const Login = () => {
       }
     }
 
-<<<<<<< Updated upstream
-    const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
-    const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
-    const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
-
-    const roleUpper = (user.role || "").toUpperCase();
-    const isAgentRole = ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper);
-=======
     const roleUpper = (user.role || "").toUpperCase();
     const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("PARTNER");
     const isShopkeeperRole = !hasPartner && (userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("SHOPKEEPER"));
@@ -99,7 +91,6 @@ const Login = () => {
       isOperator,
       isQc
     });
->>>>>>> Stashed changes
 
     const shouldChangePassword =
       user.requiresPasswordChange === true ||
@@ -119,13 +110,6 @@ const Login = () => {
         },
       });
     } else {
-<<<<<<< Updated upstream
-      if (isAgentRole || hasAgent) {
-        navigate("/vsms/agent-portal/today-plan");
-      } else if (hasPartner) {
-        navigate("/");
-      } else if (hasShopkeeper) {
-=======
       if (isQc) {
         sessionStorage.setItem('portalMode', 'QC');
         localStorage.setItem('portalMode', 'QC');
@@ -141,9 +125,10 @@ const Login = () => {
       } else if (isShopkeeperRole) {
         sessionStorage.setItem('portalMode', 'SHOPKEEPER');
         localStorage.setItem('portalMode', 'SHOPKEEPER');
->>>>>>> Stashed changes
         navigate("/shopkeeper");
       } else {
+        sessionStorage.setItem('portalMode', 'PARTNER');
+        localStorage.setItem('portalMode', 'PARTNER');
         navigate("/");
       }
     }

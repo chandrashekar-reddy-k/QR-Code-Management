@@ -45,8 +45,6 @@ type ApiError =
   | ErrorResponse
   | { message?: string; response?: string; data?: { response?: string } };
 
-<<<<<<< Updated upstream
-=======
 const formatLoginSuccess = (data: any): LoginResponse => ({
   status: true,
   response: data.message || "Success",
@@ -71,11 +69,10 @@ const formatLoginSuccess = (data: any): LoginResponse => ({
   }
 });
 
->>>>>>> Stashed changes
 const useLogin = (onSuccess: (data: LoginResponse) => void) => {
   return useMutation<LoginResponse, ErrorResponse, LoginPayload>({
     mutationFn: (payload: LoginPayload) => {
-      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
+      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "https://identity.villagkart.com").replace(/\/+$/, '');
       const identityServiceUrl = `${baseUrl}/api/v1/auth/login`;
       return fetch(identityServiceUrl, {
         method: "POST",
@@ -92,26 +89,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         if (!res.ok) {
           throw new Error(data.message || "Login failed");
         }
-        return {
-          status: true,
-          response: data.message || "Success",
-          data: {
-            accessToken: data.data.accessToken,
-            refreshToken: data.data.refreshToken,
-            expiresIn: "24h",
-            user: {
-              id: data.data.user?.id,
-              phone: data.data.user?.phone || "",
-              name: data.data.user?.name || "",
-              email: data.data.user?.email || "",
-              role: data.data.user?.roles?.[0] || data.data.user?.role || "PARTNER",
-              avatar: data.data.user?.avatar || null,
-              store: null,
-              supplier: null,
-              isCreatedPassword: false
-            }
-          }
-        } as LoginResponse;
+        return formatLoginSuccess(data);
       });
     },
 
