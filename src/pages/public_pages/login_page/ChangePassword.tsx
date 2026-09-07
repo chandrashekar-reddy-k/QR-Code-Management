@@ -26,12 +26,32 @@ const ChangePassword = () => {
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem("partnerUser") || localStorage.getItem("user");
+      const storedUser = localStorage.getItem("partnerUser") || localStorage.getItem("user") || localStorage.getItem("adminUser");
+      let foundEmail = "";
       if (storedUser) {
         const u = JSON.parse(storedUser);
         if (u.email) {
-          setUserEmail(u.email);
+          foundEmail = u.email;
         }
+      }
+      if (!foundEmail) {
+        const token = localStorage.getItem("partnerToken") || localStorage.getItem("token");
+        if (token) {
+          const base64Url = token.split(".")[1];
+          if (base64Url) {
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+            const jsonPayload = decodeURIComponent(
+              window.atob(base64).split("").map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")
+            );
+            const decoded = JSON.parse(jsonPayload);
+            if (decoded.email) {
+              foundEmail = decoded.email;
+            }
+          }
+        }
+      }
+      if (foundEmail) {
+        setUserEmail(foundEmail);
       }
     } catch (e) {
       console.error("Failed to parse user email", e);
