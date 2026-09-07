@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Eye, EyeOff } from "lucide-react";
@@ -14,6 +14,7 @@ import SecurityVerificationOverlay from "../../../components/SecurityVerificatio
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -61,29 +62,51 @@ const Login = () => {
       }
     }
 
-    const roleUpper = (user.role || "").toUpperCase();
     const identifier = ((user.email || user.phone || user.name || "") as string).toLowerCase();
 
-    const isOperator =
-      ['PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER'].includes(roleUpper) ||
-      identifier.includes('operator') ||
-      identifier.includes('packer') ||
-      identifier.includes('packing') ||
-      userPermissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"));
-
-    const isQc =
-      ['PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR', 'QC'].includes(roleUpper) ||
-      identifier.includes('qc') ||
-      identifier.includes('inspector') ||
-      identifier.includes('checker') ||
-      userPermissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"));
-
-    const isAgentRole = ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper);
+    const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("PARTNER");
+    const isShopkeeperRole = !hasPartner && (userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("SHOPKEEPER"));
+    const isAgentRole = ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) || userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
     const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
     const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
 
-    if (user.isCreatedPassword) {
+    const isOperator =
+      !hasPartner && (
+        ['PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER'].includes(roleUpper) ||
+        userPermissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"))
+      );
+
+    const isQc =
+      !hasPartner && (
+        ['PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR', 'QC'].includes(roleUpper) ||
+        userPermissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"))
+      );
+
+    console.log("[LOGIN DEBUG] user flags:", {
+      isCreatedPassword: user.isCreatedPassword,
+      isFirstLogin: user.isFirstLogin,
+      mustChangePassword: user.mustChangePassword,
+      rawUser: user,
+      roleUpper,
+      hasPartner,
+      isShopkeeperRole,
+      isAgentRole,
+      isOperator,
+      isQc
+    });
+
+    const shouldChangePassword =
+      user.requiresPasswordChange === true ||
+      user.isCreatedPassword === true ||
+      user.isFirstLogin === true ||
+      user.mustChangePassword === true;
+
+    if (shouldChangePassword) {
+      localStorage.setItem("token", data.data.accessToken);
+      localStorage.setItem("refreshToken", data.data.refreshToken);
+      localStorage.setItem("user", JSON.stringify(user));
       navigate("/create-password", {
+        replace: true,
         state: {
           emailOrPhone: user.email || user.phone,
           resetToken: data.data.accessToken,
@@ -102,7 +125,7 @@ const Login = () => {
         sessionStorage.setItem('portalMode', 'AGENT');
         localStorage.setItem('portalMode', 'AGENT');
         navigate("/vsms/agent-portal/today-plan");
-      } else if (hasShopkeeper) {
+      } else if (isShopkeeperRole || hasShopkeeper) {
         sessionStorage.setItem('portalMode', 'SHOPKEEPER');
         localStorage.setItem('portalMode', 'SHOPKEEPER');
         navigate("/shopkeeper");
@@ -116,18 +139,27 @@ const Login = () => {
 
   const { mutate: loginMutation, isPending } = useLogin(onSuccess);
 
+  const emailFromQuery = searchParams.get("email") || "";
+
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: yupResolver(loginSchema),
     mode: "onSubmit",
     defaultValues: {
-      identifier: "",
+      identifier: emailFromQuery,
       password: "",
     },
   });
+
+  useEffect(() => {
+    if (emailFromQuery) {
+      setValue("identifier", emailFromQuery);
+    }
+  }, [emailFromQuery, setValue]);
 
   const onSubmit = async (data: LoginFormData) => {
     setErrorMessage("");

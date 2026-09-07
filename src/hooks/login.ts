@@ -12,7 +12,10 @@ export interface User {
   avatar: string | null;
   store: unknown | null;
   supplier: unknown | null;
-  isCreatedPassword: boolean;
+  requiresPasswordChange?: boolean;
+  isCreatedPassword?: boolean;
+  isFirstLogin?: boolean;
+  mustChangePassword?: boolean;
 }
 
 export interface LoginResponse {
@@ -58,7 +61,10 @@ const formatLoginSuccess = (data: any): LoginResponse => ({
       avatar: data.data.user?.avatar || null,
       store: null,
       supplier: null,
-      isCreatedPassword: false
+      requiresPasswordChange: Boolean(data.data.user?.isFirstLogin || data.data.user?.mustChangePassword || data.data.user?.isCreatedPassword),
+      isCreatedPassword: Boolean(data.data.user?.isFirstLogin || data.data.user?.mustChangePassword || data.data.user?.isCreatedPassword),
+      isFirstLogin: Boolean(data.data.user?.isFirstLogin),
+      mustChangePassword: Boolean(data.data.user?.mustChangePassword)
     }
   }
 });

@@ -330,9 +330,22 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Parse user details
   let user = null;
   try {
-    const userStr = isStaffPortal ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser')) : localStorage.getItem('partnerUser');
+    const userStr = isStaffPortal
+      ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user'))
+      : (localStorage.getItem('partnerUser') || localStorage.getItem('user'));
     user = userStr ? JSON.parse(userStr) : null;
   } catch (e) { }
+
+  // Enforce password change: until the user sets/changes their password, keep showing the create-password screen
+  const shouldChangePassword =
+    user?.requiresPasswordChange === true ||
+    user?.isCreatedPassword === true ||
+    user?.isFirstLogin === true ||
+    user?.mustChangePassword === true;
+
+  if (shouldChangePassword && location.pathname !== "/create-password") {
+    return <Navigate to="/create-password" replace />;
+  }
 
   if (!securityVerified) {
     return (

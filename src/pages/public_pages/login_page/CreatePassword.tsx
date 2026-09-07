@@ -26,9 +26,20 @@ const CreatePassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    if (state?.emailOrPhone && state?.resetToken) {
-      setEmailOrPhone(state.emailOrPhone);
-      setResetToken(state.resetToken);
+    const targetEmail = state?.emailOrPhone || (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem("user") || "{}");
+        return u.email || u.phone || "";
+      } catch {
+        return "";
+      }
+    })();
+
+    const targetToken = state?.resetToken || localStorage.getItem("token") || "";
+
+    if (targetEmail && targetToken) {
+      setEmailOrPhone(targetEmail);
+      setResetToken(targetToken);
     } else {
       navigate("/login", { replace: true });
     }
@@ -48,6 +59,9 @@ const CreatePassword = () => {
   });
 
   const createPasswordMutation = useCreatePassword(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
     navigate("/login");
   });
 
