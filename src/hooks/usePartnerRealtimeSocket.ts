@@ -21,13 +21,21 @@ export function usePartnerRealtimeSocket() {
     if (!base || !token) return
     started.current = true
 
-    let user: { warehouseId?: string } = {}
+    let user: any = {}
     try {
       user = JSON.parse(localStorage.getItem('user') || '{}')
     } catch {
       user = {}
     }
-    const warehouseId = user.warehouseId
+    const warehouseId =
+      user.warehouseId ||
+      user.warehouse_id ||
+      user.store?.id ||
+      localStorage.getItem('partnerWarehouseId') ||
+      localStorage.getItem('staffWarehouseId') ||
+      sessionStorage.getItem('staffWarehouseId') ||
+      undefined
+
     if (!warehouseId) {
       console.warn(
         '[PartnerRealtime] warehouseId missing on user — subscribe skipped; partner warehouse socket updates disabled until re-login.'

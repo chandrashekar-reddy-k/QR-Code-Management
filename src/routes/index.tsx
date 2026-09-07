@@ -14,6 +14,9 @@ const ForgotPassword = lazy(
 const CreatePassword = lazy(
   () => import("../pages/public_pages/login_page/CreatePassword")
 );
+const ChangePassword = lazy(
+  () => import("../pages/public_pages/login_page/ChangePassword")
+);
 const Dashboard = lazy(
   () => import("../pages/admin_pages/dashboard/Dashboard")
 );
@@ -591,6 +594,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/",
     component: Dashboard,
+    requiresAuth: true,
+  },
+  {
+    path: "/change-password",
+    component: ChangePassword,
     requiresAuth: true,
   },
 
