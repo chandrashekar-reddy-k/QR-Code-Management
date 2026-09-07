@@ -396,15 +396,27 @@ export default function AdminInventory() {
   }, [items, vehicleInventoryMap]);
 
   const loadingFilteredItems = React.useMemo(() => {
-    const q = opsSearch.toLowerCase();
+    const q = opsSearch.toLowerCase().trim();
     return items.filter(i => {
-      const matchesSearch = i.name.toLowerCase().includes(q) ||
+      const itemTags = Array.isArray(i.tags) ? i.tags : [];
+      const hasChTag = itemTags.some((t: string) => t.startsWith('CH:'));
+      const isVehicleEnabled = i.isVehicle !== undefined 
+        ? Boolean(i.isVehicle)
+        : (hasChTag ? itemTags.includes('CH:VEHICLE') : (i.isVehicle !== false));
+
+      const storeStock = Number(i.stock !== undefined && i.stock !== null ? i.stock : (i.warehouseStock || 0));
+      const hasAvailableStock = storeStock > 0;
+
+      const matchesSearch = !q ||
+        (i.name && i.name.toLowerCase().includes(q)) ||
         (i.barcode && i.barcode.toLowerCase().includes(q)) ||
-        (i.displayId && i.displayId.toLowerCase().includes(q));
+        (i.displayId && i.displayId.toLowerCase().includes(q)) ||
+        (i.sku && i.sku.toLowerCase().includes(q)) ||
+        (i.productId && i.productId.toLowerCase().includes(q));
       const matchesCategory = opsCategory === 'ALL' || i.category?.name === opsCategory;
       const matchesSubCategory = opsSubCategory === 'ALL' || i.subCategory?.name === opsSubCategory;
-      const hasStock = (i.stock || 0) > 0 || (i.vehicleStock || 0) > 0;
-      return matchesSearch && matchesCategory && matchesSubCategory && hasStock;
+
+      return isVehicleEnabled && hasAvailableStock && matchesSearch && matchesCategory && matchesSubCategory;
     });
   }, [items, opsSearch, opsCategory, opsSubCategory]);
 

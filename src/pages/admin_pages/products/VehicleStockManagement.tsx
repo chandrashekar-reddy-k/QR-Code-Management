@@ -1,23 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Truck, 
   RefreshCw, 
   Search, 
   Package, 
   User, 
-  CheckCircle2, 
-  RotateCcw, 
-  MapPin, 
-  SlidersHorizontal, 
   Navigation, 
   Plus, 
-  ArrowRight, 
-  ShieldAlert, 
-  Check, 
   Layers,
   Eye,
   X,
-  Info,
   Calendar,
   Tag,
   DollarSign
@@ -65,7 +57,7 @@ export default function VehicleStockManagement() {
   const [search, setSearch] = useState('');
   const [filterActive, setFilterActive] = useState<'ALL' | 'LOADED' | 'UNASSIGNED'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(10);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // View Vehicle Stock Details Modal
@@ -162,6 +154,12 @@ export default function VehicleStockManagement() {
               };
             });
 
+          const liveAvailableStock = p.liveStock !== undefined && p.liveStock !== null
+            ? Number(p.liveStock)
+            : (p.liveStockChannel?.liveAvailable !== undefined
+              ? Number(p.liveStockChannel.liveAvailable)
+              : Number(p.stock || 0));
+
           return {
             id: p.id,
             productId,
@@ -171,7 +169,7 @@ export default function VehicleStockManagement() {
             unit: cleanUnit,
             sku: p.sku || firstVar.sku || 'N/A',
             price: Number(p.price || p.mrp || 0),
-            totalCatalogStock: Number(p.stock || 0),
+            totalCatalogStock: liveAvailableStock,
             vehicleStock: vStock,
             vehicleAssignedCount: assignedVehicles.length || (vStock > 0 ? 1 : 0),
             isVehicle,
@@ -495,6 +493,7 @@ export default function VehicleStockManagement() {
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <Pagination
+            currentPage={currentPage}
             pagination={paginationObj}
             onPageChange={(page) => setCurrentPage(page)}
           />
