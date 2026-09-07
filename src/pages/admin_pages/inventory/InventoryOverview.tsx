@@ -419,6 +419,8 @@ const InventoryOverview = () => {
 
     // Fill in placeholders for products/variants that do not have balance records
     productsList.forEach((p: any) => {
+      const warehouseName = p.warehouse?.name || (defaultLocationName !== 'PTP WAREHOUSE Location' ? defaultLocationName : 'Phirangipuram Warehouse');
+      const warehouseCode = p.warehouse?.id || defaultLocationCode;
       const variants = p.variants || [];
       if (variants.length > 0) {
         variants.forEach((v: any) => {
@@ -429,9 +431,9 @@ const InventoryOverview = () => {
               productName: p.name,
               variantLabel: v.variantName || 'Standard',
               sku: v.sku || 'N/A',
-              locationName: defaultLocationName,
-              locationCode: defaultLocationCode,
-              onHand: 0,
+              locationName: warehouseName,
+              locationCode: warehouseCode,
+              onHand: v.stock ?? p.stock ?? 0,
               reserved: 0,
               damaged: 0,
               inbound: 0,
@@ -450,9 +452,9 @@ const InventoryOverview = () => {
             productName: p.name,
             variantLabel: p.variantName || 'Standard',
             sku: p.sku || 'N/A',
-            locationName: defaultLocationName,
-            locationCode: defaultLocationCode,
-            onHand: 0,
+            locationName: warehouseName,
+            locationCode: warehouseCode,
+            onHand: p.stock ?? 0,
             reserved: 0,
             damaged: 0,
             inbound: 0,
