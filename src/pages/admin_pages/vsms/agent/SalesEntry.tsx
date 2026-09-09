@@ -34,21 +34,15 @@ export default function SalesEntry() {
   const searchRef = useRef(null);
   const navigate = useNavigate();
 
-  // Load products on mount (don't wait for user — it loads async)
+  // Load products when component mounts or user details are updated
   useEffect(() => {
-    loadProducts();
     fetchSettings();
-  }, []);
-
-  // Re-load products when user profile is fetched (to apply vehicleId filter)
-  useEffect(() => {
     if (user) {
       checkCashStatus();
       loadPlan();
-      // Only reload if user has a vehicle (to get vehicle-specific stock)
-      if (user.assignedVehicleId || user.assignedVehicle?.id) {
-        loadProducts();
-      }
+      loadProducts(user);
+    } else {
+      loadProducts(null);
     }
   }, [user?.id, user?.assignedVehicleId]);
 
@@ -101,10 +95,11 @@ export default function SalesEntry() {
     }
   };
 
-  const loadProducts = async () => {
+  const loadProducts = async (currentUser) => {
     try {
+      const targetUser = currentUser || user;
       const params = {};
-      const vehicleId = user?.assignedVehicleId || user?.assignedVehicle?.id;
+      const vehicleId = targetUser?.assignedVehicleId || targetUser?.assignedVehicle?.id;
       if (vehicleId) {
         params.vehicleId = vehicleId;
       }

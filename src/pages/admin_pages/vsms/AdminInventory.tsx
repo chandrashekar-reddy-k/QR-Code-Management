@@ -384,7 +384,8 @@ export default function AdminInventory() {
   const totalLoadingValue = React.useMemo(() => {
     return items.reduce((acc, item) => {
       const qty = parseFloat(stockQuantities[item.id]) || 0;
-      return acc + (qty * (parseFloat(item.price) || 0));
+      const price = parseFloat(item.sellingPrice ?? item.price ?? item.selling_price ?? 0) || 0;
+      return acc + (qty * price);
     }, 0);
   }, [items, stockQuantities]);
 

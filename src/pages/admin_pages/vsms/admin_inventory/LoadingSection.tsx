@@ -126,7 +126,7 @@ const LoadingSection = ({
         <tbody className="divide-y divide-gray-50">
           {itemsToRender.map((item) => {
             const qty = parseFloat(stockQuantities[item.id]) || 0;
-            const price = parseFloat(item.price) || 0;
+            const price = parseFloat(item.sellingPrice ?? item.price ?? item.selling_price ?? 0) || 0;
             const displayAmount = qty * price;
             return (
               <tr key={`load-table-${item.id}`} className={`hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group ${isFreeGroup ? 'bg-emerald-50/10' : ''}`}>
@@ -150,7 +150,7 @@ const LoadingSection = ({
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-center">
-                  <span className="text-[10px] font-bold text-gray-500">₹{price}</span>
+                  <span className="text-[10px] font-bold text-gray-500">₹{Math.round(price)}</span>
                 </td>
                 <td className="px-3 py-2.5 bg-emerald-50/5">
                   <div className="flex items-center justify-center gap-3">
@@ -193,7 +193,7 @@ const LoadingSection = ({
                 </td>
                 <td className="pr-4 py-2.5 text-right">
                   <span className={`text-[10px] font-bold ${qty > 0 ? 'text-emerald-700' : 'text-gray-300'}`}>
-                    ₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    ₹{Math.round(displayAmount).toLocaleString('en-IN')}
                   </span>
                 </td>
               </tr>
@@ -272,14 +272,20 @@ const LoadingSection = ({
                 onChange={(e) => setSelectedVehicleId(e.target.value)}
               >
                 <option value="">Select a Vehicle</option>
-                {vehicles.map(v => {
-                  const agentName = v.assignedUsers?.[0]?.name;
-                  const agentDisplay = agentName ? ` — ${agentName}` : ' — Unassigned';
-                  return (
-                    <option key={v.id} value={v.id}>
-                      {v.vehicleNumber} ({v.vehicleName || 'No Name'}){agentDisplay}
-                    </option>
-                  );
+                {[...vehicles]
+                  .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())
+                  .map(v => {
+                    const sortedAssigned = [...(v.assignedUsers || [])].sort(
+                      (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
+                    );
+                    const activeAgent = sortedAssigned.find(u => !u.assignedVehicleId || u.assignedVehicleId === v.id) || sortedAssigned[0];
+                    const agentName = activeAgent?.name || v.assignedDriver?.name || v.driver?.name;
+                    const agentDisplay = agentName ? ` — ${agentName}` : ' — Unassigned';
+                    return (
+                      <option key={v.id} value={v.id}>
+                        {v.vehicleNumber} ({v.vehicleName || 'No Name'}){agentDisplay}
+                      </option>
+                    );
                 })}
               </select>
             </div>
@@ -287,7 +293,7 @@ const LoadingSection = ({
             <div className="flex items-center gap-6 self-end md:self-auto">
               <div className="flex flex-col items-end">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Load Value</span>
-                <span className="text-xl font-black text-emerald-600">₹{totalLoadingValue.toFixed(2)}</span>
+                <span className="text-xl font-black text-emerald-600">₹{Math.round(totalLoadingValue).toLocaleString('en-IN')}</span>
               </div>
               <button 
                 onClick={async () => {

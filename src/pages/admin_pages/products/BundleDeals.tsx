@@ -122,7 +122,7 @@ export default function BundleDeals() {
   };
 
   const getItemPrice = (product) => {
-    return product?.mrp ?? product?.price ?? 0;
+    return product?.sellingPrice ?? product?.price ?? product?.mrp ?? 0;
   };
 
   const handleOpenEdit = (bundle) => {

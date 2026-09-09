@@ -84,11 +84,14 @@ export default function AssignFloatView({
                 }}
               >
                 <option value="">Select agent...</option>
-                {agents.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}{a.assignedVehicle ? ` (${a.assignedVehicle.vehicleNumber})` : ''}
-                  </option>
-                ))}
+                {agents.filter(a => a.assignedVehicle || a.assignedVehicleId).map((a) => {
+                  const vehNum = a.assignedVehicle?.vehicleNumber || a.assignedVehicle?.vehicleName || '';
+                  return (
+                    <option key={a.id} value={a.id}>
+                      {a.name}{vehNum ? ` (${vehNum})` : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
