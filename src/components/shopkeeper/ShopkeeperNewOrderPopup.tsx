@@ -103,13 +103,14 @@ export function ShopkeeperNewOrderPopup() {
       handleClose(false);
       // Let the socket event trigger fetchOrders in the background
     } catch (error: unknown) {
-      const err = error as { response?: { status?: number } };
+      const err = error as { response?: { status?: number; data?: { error?: string } } };
       if (err.response?.status === 409) {
         toast.error("Order accepted by another shopkeeper");
-        handleClose(false);
       } else {
-        toast.error("Failed to accept order");
+        const msg = err.response?.data?.error || "Failed to accept order";
+        toast.error(msg);
       }
+      handleClose(false);
     } finally {
       setIsAccepting(false);
     }

@@ -25,9 +25,10 @@ export interface NewOrderAlertData {
 
 interface ShopkeeperNewOrderAlertContextType {
   activeOrder: NewOrderAlertData | null;
+  countdown: number;
   isBuzzing: boolean;
   queueLength: number;
-  dismissAlert: (orderId: string, rejected: boolean) => void;
+  dismissAlert: (orderId: string, rejected?: boolean) => void;
   audioEnabled: boolean;
   enableAudio: () => void;
   disableAudio: () => void;
@@ -47,6 +48,7 @@ const ShopkeeperNewOrderAlertContext = createContext<ShopkeeperNewOrderAlertCont
 export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.ReactNode }) {
   const [alertQueue, setAlertQueue] = useState<NewOrderAlertData[]>([]);
   const [activeOrder, setActiveOrder] = useState<NewOrderAlertData | null>(null);
+  const [countdown, setCountdown] = useState<number>(30);
   const [isBuzzing, setIsBuzzing] = useState<boolean>(false);
   const [audioEnabled, setAudioEnabled] = useState<boolean>(() => {
     try {
@@ -175,134 +177,123 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
     };
   }, [unlockAudioSilent]);
 
-  // -----------------------------------------------------------------------
-  // 3. playAlarm / stopAlarm
-  // -----------------------------------------------------------------------
+  const playSynthAlarm = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      setTimeout(() => {
+        osc.stop();
+        ctx.close();
+      }, 600);
+    } catch (e) {}
+  };
+
   const playAlarm = useCallback(() => {
-    if (!audioEnabled) {
-      console.log("[SK ALARM] Sound muted — skipping playback");
-      return;
-    }
+    if (!audioEnabled) return;
     const alarm = alarmRef.current;
-    if (!alarm) return;
-    alarm.currentTime = 0;
-    alarm.volume = 1.0;
-    alarm.muted  = false;
-    alarm
-      .play()
-      .then(() => {
+    if (alarm) {
+      alarm.currentTime = 0;
+      alarm.volume = 1.0;
+      alarm.muted  = false;
+      alarm.play().then(() => {
         setIsBuzzing(true);
-      })
-      .catch((err) => {
-        console.error("[SK ALARM] Playback blocked:", err.message);
+      }).catch(() => {
+        playSynthAlarm();
+        setIsBuzzing(true);
       });
+    } else {
+      playSynthAlarm();
+      setIsBuzzing(true);
+    }
   }, [audioEnabled]);
 
   const stopAlarm = useCallback(() => {
     const alarm = alarmRef.current;
-    if (!alarm) return;
-    alarm.pause();
-    alarm.currentTime = 0;
+    if (alarm) {
+      alarm.pause();
+      alarm.currentTime = 0;
+    }
     setIsBuzzing(false);
   }, []);
 
-  // -----------------------------------------------------------------------
-  // 4. handleIncomingOrder — normalise + deduplicate + enqueue
-  // -----------------------------------------------------------------------
   const handleIncomingOrder = useCallback((rawOrder: any) => {
-    const orderId = String(
-      rawOrder.id       ||
-      rawOrder.orderId  ||
-      rawOrder.order_id ||
-      rawOrder.orderNumber ||
-      rawOrder.order_number ||
-      ""
-    );
-
+    const orderId = String(rawOrder.id || rawOrder.orderId || rawOrder.order_id || rawOrder.orderNumber || "");
     if (!orderId) return;
     const status = rawOrder.status?.toUpperCase() || "";
     
-    // Shopkeepers only care about CONFIRMED unassigned orders
-    if (status !== "CONFIRMED") return;
+    if (!["CONFIRMED", "PLACED", "PENDING", "NEW"].includes(status)) return;
     if (rawOrder.assignedShopkeeperId || rawOrder.assigned_shopkeeper_id) return;
     if (rejectedOrderIdsRef.current.has(orderId)) return;
     if (seenOrderIdsRef.current.has(orderId)) return;
 
     seenOrderIdsRef.current.add(orderId);
 
-    const placedAt      = rawOrder.placedAt    || rawOrder.created_at || rawOrder.createdAt || new Date().toISOString();
-    const autoConfirmAt = rawOrder.autoConfirmAt || new Date(Date.now() + 30_000).toISOString();
-
     const formatted: NewOrderAlertData = {
       eventId:         orderId,
       orderId,
       orderNumber:     rawOrder.order_number || rawOrder.orderNumber || orderId,
       status:          "CONFIRMED",
-      customerName:    rawOrder.customer_name  || rawOrder.customerName  || rawOrder.userName || rawOrder.consumer?.name || "Customer",
-      customerPhone:   rawOrder.customer_phone || rawOrder.customerPhone || rawOrder.phone    || rawOrder.consumer?.phone || "",
-      paymentMethod:   rawOrder.payment_method || rawOrder.paymentMethod || rawOrder.paymentMode || "ONLINE",
-      deliveryAddress: (() => { const raw = rawOrder.address || rawOrder.deliveryAddress || rawOrder.delivery_address || ""; if (!raw) return ""; if (typeof raw === 'string') return raw; if (typeof raw === 'object') return [raw.line1, raw.line2, raw.city, raw.state, raw.pincode].filter(Boolean).join(', '); return String(raw); })(),
-      totalAmount:     Number(rawOrder.total_amount || rawOrder.totalAmount || rawOrder.total || 0),
-      itemCount:       rawOrder.item_count || rawOrder.itemCount || rawOrder.items?.length || 1,
-      fulfillmentType: rawOrder.fulfillmentType || rawOrder.deliveryType || rawOrder.order_type || "HOME_DELIVERY",
-      placedAt,
-      autoConfirmAt,
+      items:           (rawOrder.items || []).map((i: any) => ({
+        id:          String(i.id || i.productId || ""),
+        name:        i.name || i.product_name || i.product?.name || "Item",
+        quantity:    i.quantity || 1,
+        unitPrice:   i.price || i.unitPrice || 0,
+        image:       i.image_url || i.image || "",
+        aisleLocation: i.aisle_location || i.aisleLocation || undefined,
+      })),
+      totalAmount:     rawOrder.total_value || rawOrder.totalAmount || 0,
+      customerName:    rawOrder.customer_name || rawOrder.consumer?.name || "Customer",
+      customerAddress: rawOrder.customer_address || (rawOrder.address ? `${rawOrder.address.line1 || ""}, ${rawOrder.address.city || ""}` : ""),
+      fulfillmentType: rawOrder.order_type || rawOrder.fulfillmentType || "HOME_DELIVERY",
+      placedAt:        rawOrder.placedAt || rawOrder.created_at || new Date().toISOString(),
+      autoConfirmAt:   rawOrder.autoConfirmAt || new Date(Date.now() + 30_000).toISOString(),
     };
 
-    setAlertQueue((prev) => [...prev, formatted]);
+    setAlertQueue((prev) => {
+      if (prev.some((a) => a.orderId === orderId)) return prev;
+      return [...prev, formatted];
+    });
 
-    // Trigger Web Browser Desktop Notification
-    if (typeof window !== "undefined" && "Notification" in window) {
-      if (Notification.permission === "granted") {
-        try {
-          const notif = new Notification("🚨 NEW ORDER RECEIVED!", {
-            body: `Order #${formatted.orderNumber} • ₹${formatted.totalAmount} • ${formatted.itemCount} items\nCustomer: ${formatted.customerName}`,
-            icon: "/favicon.ico",
-            badge: "/favicon.ico",
-            tag: formatted.orderId,
-            requireInteraction: true,
-          });
-          notif.onclick = () => {
-            window.focus();
-            notif.close();
-          };
-        } catch (err) {
-          if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.ready.then((reg) => {
-              reg.showNotification("🚨 NEW ORDER RECEIVED!", {
-                body: `Order #${formatted.orderNumber} • ₹${formatted.totalAmount} • ${formatted.itemCount} items`,
-                icon: "/favicon.ico",
-                tag: formatted.orderId,
-              });
-            }).catch(() => {});
-          }
-        }
-      } else if (Notification.permission === "default") {
-        Notification.requestPermission().catch(() => {});
-      }
-    }
-  }, []);
+    playAlarm();
+  }, [playAlarm]);
 
-  // -----------------------------------------------------------------------
-  // 5. Queue processor
-  // -----------------------------------------------------------------------
   useEffect(() => {
     if (!activeOrder && alertQueue.length > 0) {
       const next = alertQueue[0];
       setActiveOrder(next);
       setAlertQueue((prev) => prev.slice(1));
-      playAlarm();
     }
-  }, [activeOrder, alertQueue, playAlarm]);
+  }, [activeOrder, alertQueue]);
 
-  // -----------------------------------------------------------------------
-  // 6. Dismiss Alert (Accept or Reject)
-  // -----------------------------------------------------------------------
-  const dismissAlert = useCallback((orderId: string, rejected: boolean) => {
+  useEffect(() => {
+    if (!activeOrder) {
+      setCountdown(30);
+      return;
+    }
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [activeOrder]);
+
+  const dismissAlert = useCallback((orderId: string, rejected: boolean = false) => {
     if (rejected) {
       rejectedOrderIdsRef.current.add(orderId);
-      
-      // Save locally to update Shopkeeper-specific Rejected KPI on Dashboard
       try {
         const saved = JSON.parse(localStorage.getItem('shopkeeperRejectedIds') || '[]');
         if (!saved.includes(orderId)) {
@@ -312,22 +303,29 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
         }
       } catch (e) {}
     }
-    
-    // We DO NOT delete from seenOrderIdsRef here. 
-    // This ensures that if the popup times out and closes silently, it won't keep popping up 
-    // every 5 seconds when the polling loop finds the order is still CONFIRMED and unassigned.
-
     stopAlarm();
     setActiveOrder(null);
   }, [stopAlarm]);
 
-  // -----------------------------------------------------------------------
-  // 7. Polling fallback — every 5 seconds
-  // -----------------------------------------------------------------------
+  const acceptAlertOrder = useCallback(async (orderId: string) => {
+    dismissAlert(orderId, false);
+    try { await api.post(`/orders/${orderId}/accept-shopkeeper`); } catch (err) {}
+    setCountdown(30);
+  }, [dismissAlert]);
+
+  const rejectAlertOrder = useCallback(async (orderId: string) => {
+    dismissAlert(orderId, true);
+    try { await api.post(`/orders/${orderId}/reject-shopkeeper`); } catch (err) {}
+    setCountdown(30);
+  }, [dismissAlert]);
+
+  const silenceAlarm = useCallback(() => {
+    stopAlarm();
+  }, [stopAlarm]);
+
   useEffect(() => {
     let isPolling = false;
     let firstPoll = true;
-
     const poll = async () => {
       if (isPolling) return;
       isPolling = true;
@@ -337,23 +335,19 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
         if (storedU) {
           try {
             const u = JSON.parse(storedU);
-            userWarehouseId = u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
-          } catch (e) { }
+            userWarehouseId = u.warehouseId || u.warehouse_id || "";
+          } catch (e) {}
         }
-
-        const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}&view=shopkeeper&status=confirmed` : '/orders?view=shopkeeper&status=confirmed';
+        const endpoint = userWarehouseId ? `/orders?store_id=${userWarehouseId}&view=shopkeeper&status=new` : '/orders?view=shopkeeper&status=new';
         const res = await api.get(endpoint);
-        let polled: any[] = [];
-        if (Array.isArray(res.data)) polled = res.data;
-
+        let polled: any[] = Array.isArray(res.data) ? res.data : [];
         if (firstPoll) {
-          // Silently absorb all pre-existing CONFIRMED unassigned orders on first load so they don't ring the alarm immediately
           polled.forEach((o) => {
             const id = String(o.id || o.orderId || o.orderNumber || "");
             const status = (o.status || "").toUpperCase();
-            if (id && status === "CONFIRMED" && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
+            if (id && ["NEW", "CONFIRMED", "PLACED", "PENDING"].includes(status) && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
               seenOrderIdsRef.current.add(id);
-              rejectedOrderIdsRef.current.add(id); // Assume they were seen previously
+              rejectedOrderIdsRef.current.add(id);
             }
           });
           firstPoll = false;
@@ -361,18 +355,13 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
           polled.forEach((o) => {
             const id = String(o.id || o.orderId || o.orderNumber || "");
             const status = (o.status || "").toUpperCase();
-            if (id && status === "CONFIRMED" && !seenOrderIdsRef.current.has(id) && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
+            if (id && ["NEW", "CONFIRMED", "PLACED", "PENDING"].includes(status) && !seenOrderIdsRef.current.has(id) && !o.assignedShopkeeperId && !o.assigned_shopkeeper_id) {
               handleIncomingOrder(o);
             }
           });
         }
-      } catch (err) {
-        // ignore
-      } finally {
-        isPolling = false;
-      }
+      } catch (err) {} finally { isPolling = false; }
     };
-
     poll();
     const id = setInterval(poll, 5000);
     return () => clearInterval(id);
@@ -461,6 +450,7 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
     <ShopkeeperNewOrderAlertContext.Provider
       value={{
         activeOrder,
+        countdown,
         isBuzzing,
         queueLength: alertQueue.length,
         dismissAlert,
@@ -483,6 +473,7 @@ export function useShopkeeperNewOrderAlert() {
   if (!context) {
     return {
       activeOrder: null,
+      countdown: 30,
       isBuzzing: false,
       queueLength: 0,
       audioEnabled: true,
