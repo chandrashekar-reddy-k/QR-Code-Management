@@ -273,20 +273,21 @@ const LoadingSection = ({
               >
                 <option value="">Select a Vehicle</option>
                 {[...vehicles]
-                  .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())
                   .map(v => {
                     const sortedAssigned = [...(v.assignedUsers || [])].sort(
                       (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
                     );
-                    const activeAgent = sortedAssigned.find(u => !u.assignedVehicleId || u.assignedVehicleId === v.id) || sortedAssigned[0];
-                    const agentName = activeAgent?.name || v.assignedDriver?.name || v.driver?.name;
-                    const agentDisplay = agentName ? ` — ${agentName}` : ' — Unassigned';
-                    return (
-                      <option key={v.id} value={v.id}>
-                        {v.vehicleNumber} ({v.vehicleName || 'No Name'}){agentDisplay}
-                      </option>
-                    );
-                })}
+                    const activeAgent = sortedAssigned.find(u => u.assignedVehicleId === v.id) || sortedAssigned.find(u => !u.assignedVehicleId) || sortedAssigned[0];
+                    const agentName = activeAgent?.name || v.assignedDriver?.name || v.driver?.name || v.driverName || v.assignedUser?.name;
+                    return { v, agentName };
+                  })
+                  .filter(({ agentName }) => Boolean(agentName))
+                  .sort((a, b) => new Date(b.v.updatedAt || b.v.createdAt || 0).getTime() - new Date(a.v.updatedAt || a.v.createdAt || 0).getTime())
+                  .map(({ v, agentName }) => (
+                    <option key={v.id} value={v.id}>
+                      {v.vehicleNumber ? `${v.vehicleNumber}${v.vehicleName ? ` (${v.vehicleName})` : ''}` : (v.vehicleName || 'Vehicle')} — {agentName}
+                    </option>
+                  ))}
               </select>
             </div>
 
@@ -400,9 +401,9 @@ const LoadingSection = ({
                             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{item.product?.category?.name || 'General'}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 text-[10px] font-bold text-gray-400 text-center">₹{(item.priceAtTime || item.product?.price || 0).toFixed(2)}</td>
+                        <td className="px-4 py-2.5 text-[10px] font-bold text-gray-400 text-center">₹{Math.round(item.priceAtTime || item.product?.price || 0)}</td>
                         <td className="px-4 py-2.5 text-right"><span className="text-[11px] font-bold text-emerald-600">+{item.quantity}</span><span className="text-[8px] font-bold text-gray-400 uppercase ml-1">{item.product?.unit?.name || 'pcs'}</span></td>
-                        <td className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-900 dark:text-white">₹{(item.quantity * (item.priceAtTime || item.product?.price || 0)).toFixed(2)}</td>
+                        <td className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-900 dark:text-white">₹{Math.round(item.quantity * (item.priceAtTime || item.product?.price || 0))}</td>
                       </tr>
                     ))}
                   </tbody>

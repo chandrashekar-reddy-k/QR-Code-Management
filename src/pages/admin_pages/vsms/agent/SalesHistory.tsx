@@ -159,7 +159,7 @@ export default function SalesHistory() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-emerald-950 truncate max-w-[65%] leading-tight capitalize">{order.customerName || 'Walk-in'}</h4>
-                    <span className="text-sm font-black text-emerald-700 tracking-tighter">₹{order.totalAmount.toFixed(2)}</span>
+                    <span className="text-sm font-black text-emerald-700 tracking-tighter">₹{Math.round(order.totalAmount)}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">#{order.displayId || 'SO-00'}</span>

@@ -142,10 +142,10 @@ export default function OrderDetail() {
               <div className="space-y-1">
                 <div className="flex items-baseline gap-1">
                   <span className="text-xl font-bold text-emerald-100 opacity-80 italic">₹</span>
-                  <p className="text-5xl font-black tracking-tighter leading-none">{order.totalAmount.toFixed(2)}</p>
+                  <p className="text-5xl font-black tracking-tighter leading-none">{Math.round(order.totalAmount)}</p>
                 </div>
                 {totalReturned > 0 && (
-                  <p className="text-xs font-bold text-red-200 mt-1">Returns: -₹{totalReturned.toFixed(2)}</p>
+                  <p className="text-xs font-bold text-red-200 mt-1">Returns: -₹{Math.round(totalReturned)}</p>
                 )}
                 <div className="flex items-center gap-2 pt-2">
                   <div className="px-2.5 py-1 bg-white/10 rounded-lg backdrop-blur-md border border-white/10">
@@ -209,14 +209,14 @@ export default function OrderDetail() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-black text-emerald-950 leading-tight truncate">{item.product?.name || 'Product'}</p>
-                    <p className="text-[10px] font-bold text-emerald-600/60 mt-1">₹{item.price.toFixed(2)} / unit</p>
+                    <p className="text-[10px] font-bold text-emerald-600/60 mt-1">₹{Math.round(item.price)} / unit</p>
                     {item.returnedQty > 0 && (
                       <p className="text-[9px] font-black text-red-500 mt-0.5 flex items-center gap-1"><RotateCcw size={8} /> {item.returnedQty} returned</p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-black text-emerald-950">₹{(item.price * item.quantity).toFixed(2)}</p>
-                    {item.mrp > item.price && <p className="text-[9px] font-bold text-orange-400 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</p>}
+                    <p className="text-sm font-black text-emerald-950">₹{Math.round(item.price * item.quantity)}</p>
+                    {item.mrp > item.price && <p className="text-[9px] font-bold text-orange-400 line-through">₹{Math.round(item.mrp * item.quantity)}</p>}
                   </div>
                 </div>
 
@@ -244,10 +244,10 @@ export default function OrderDetail() {
 
           {/* Bill */}
           <div className="p-6 bg-slate-50/50 space-y-3">
-            <div className="flex justify-between text-xs font-bold text-slate-500"><span>Subtotal (MRP)</span><span className="line-through">₹{totalMRP.toFixed(2)}</span></div>
+            <div className="flex justify-between text-xs font-bold text-slate-500"><span>Subtotal (MRP)</span><span className="line-through">₹{Math.round(totalMRP)}</span></div>
             <div className="flex justify-between text-xs font-black text-emerald-800/40 uppercase tracking-widest px-1">
               <span>Items Total</span>
-              <span className="text-emerald-900/60">₹{(order.totalAmount - (order.deliveryCharge || 0)).toFixed(2)}</span>
+              <span className="text-emerald-900/60">₹{Math.round(order.totalAmount - (order.deliveryCharge || 0))}</span>
             </div>
             
             {order.appliedPromotion && (
@@ -256,21 +256,21 @@ export default function OrderDetail() {
                    <span>Promotion ({order.appliedPromotion.code})</span>
                    <span className="text-[8px] bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 uppercase">{order.appliedPromotion.name}</span>
                 </div>
-                <span>- ₹{order.discountAmount.toFixed(2)}</span>
+                <span>- ₹{Math.round(order.discountAmount)}</span>
               </div>
             )}
 
             <div className="flex justify-between text-xs font-black uppercase tracking-widest px-1">
               <span className={(order.deliveryCharge || 0) === 0 ? 'text-emerald-600' : 'text-blue-600'}>Delivery Charge</span>
               <span className={(order.deliveryCharge || 0) === 0 ? 'text-emerald-600' : 'text-blue-600'}>
-                {(order.deliveryCharge || 0) === 0 ? 'FREE' : `₹${order.deliveryCharge.toFixed(2)}`}
+                {(order.deliveryCharge || 0) === 0 ? 'FREE' : `₹${Math.round(order.deliveryCharge)}`}
               </span>
             </div>
-            {totalSavings > 0 && <div className="flex justify-between text-xs font-black text-orange-600 uppercase tracking-widest px-1"><span>Savings</span><span>- ₹{totalSavings.toFixed(2)}</span></div>}
-            {totalReturned > 0 && <div className="flex justify-between text-xs font-black text-red-500 uppercase tracking-widest px-1"><span>Returns</span><span>- ₹{totalReturned.toFixed(2)}</span></div>}
+            {totalSavings > 0 && <div className="flex justify-between text-xs font-black text-orange-600 uppercase tracking-widest px-1"><span>Savings</span><span>- ₹{Math.round(totalSavings)}</span></div>}
+            {totalReturned > 0 && <div className="flex justify-between text-xs font-black text-red-500 uppercase tracking-widest px-1"><span>Returns</span><span>- ₹{Math.round(totalReturned)}</span></div>}
             <div className="flex justify-between items-center pt-3 border-t border-emerald-100">
               <span className="text-sm font-black text-emerald-950 uppercase tracking-widest">Total Bill</span>
-              <span className="text-xl font-black text-emerald-600 tracking-tighter">₹{order.totalAmount.toFixed(2)}</span>
+              <span className="text-xl font-black text-emerald-600 tracking-tighter">₹{Math.round(order.totalAmount)}</span>
             </div>
           </div>
         </div>
@@ -282,7 +282,7 @@ export default function OrderDetail() {
             {order.returns.map((r, i) => (
               <div key={i} className="flex justify-between items-center py-2 border-b border-red-100/30 last:border-0">
                 <div>
-                  <p className="text-xs font-black text-red-800">Qty: {r.returnQty} • ₹{r.returnAmount.toFixed(2)}</p>
+                  <p className="text-xs font-black text-red-800">Qty: {r.returnQty} • ₹{Math.round(r.returnAmount)}</p>
                   {r.reason && <p className="text-[9px] font-bold text-red-500/70 mt-0.5">{r.reason}</p>}
                 </div>
                 <span className="text-[9px] font-bold text-red-400">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</span>
@@ -348,7 +348,7 @@ export default function OrderDetail() {
               <input type="number" value={returnQty} onChange={e => setReturnQty(Math.min(returningItem.returnableQty, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center text-2xl font-black text-amber-800 bg-amber-50 rounded-2xl py-3 border border-amber-100 outline-none" />
               <button onClick={() => setReturnQty(Math.min(returningItem.returnableQty, returnQty + 1))} className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center active:scale-90 transition-all"><Plus size={20} /></button>
             </div>
-            <p className="text-center text-xs font-black text-red-500">Refund: ₹{(returnQty * returningItem.price).toFixed(2)}</p>
+            <p className="text-center text-xs font-black text-red-500">Refund: ₹{Math.round(returnQty * returningItem.price)}</p>
             <input type="text" placeholder="Reason (optional)" value={returnReason} onChange={e => setReturnReason(e.target.value)} className="w-full px-4 py-3 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 outline-none placeholder:text-slate-300" />
             <button onClick={handleReturn} disabled={actionLoading} className="w-full py-4 bg-amber-500 text-white font-black text-sm rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
               {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />} Process Return

@@ -307,16 +307,28 @@ const LoadingSection = ({
                 <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Selected Vehicle</h4>
                 <select className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all text-center" value={selectedVehicleId} onChange={(e) => setSelectedVehicleId(e.target.value)}>
                   <option value="">Select a Vehicle</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName})</option>
-                  ))}
+                  {[...vehicles]
+                    .map(v => {
+                      const sortedAssigned = [...(v.assignedUsers || [])].sort(
+                        (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
+                      );
+                      const activeAgent = sortedAssigned.find(u => u.assignedVehicleId === v.id) || sortedAssigned.find(u => !u.assignedVehicleId) || sortedAssigned[0];
+                      const agentName = activeAgent?.name || v.assignedDriver?.name || v.driver?.name || v.driverName || v.assignedUser?.name;
+                      return { v, agentName };
+                    })
+                    .sort((a, b) => new Date(b.v.updatedAt || b.v.createdAt || 0).getTime() - new Date(a.v.updatedAt || a.v.createdAt || 0).getTime())
+                    .map(({ v, agentName }) => (
+                      <option key={v.id} value={v.id}>
+                        {v.vehicleNumber} ({v.vehicleName || 'No Name'}){agentName ? ` — ${agentName}` : ''}
+                      </option>
+                    ))}
                 </select>
               </div>
 
               <div className="bg-emerald-600 p-8 rounded-[2.5rem] shadow-xl shadow-emerald-600/20 text-white relative overflow-hidden group">
                 <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
                 <h4 className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.2em] mb-4">Total Load Value</h4>
-                <div className="text-4xl font-black mb-8 leading-none tracking-tighter">₹{totalLoadingValue.toFixed(2)}</div>
+                <div className="text-4xl font-black mb-8 leading-none tracking-tighter">₹{Math.round(totalLoadingValue).toLocaleString('en-IN')}</div>
                 <button onClick={handleInitiateLoad} disabled={isSubmitting || !selectedVehicleId || totalLoadingValue === 0 || hasInvalidQuantities} className="w-full bg-white text-emerald-600 py-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-emerald-50 active:scale-95 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-3">
                   {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <ArrowUpCircle size={18} strokeWidth={3} />}
                   Complete Load
@@ -392,9 +404,9 @@ const LoadingSection = ({
                               <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{item.product?.category?.name || 'General'}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-2.5 text-[10px] font-bold text-gray-400 text-center">₹{(item.priceAtTime || item.product?.price || 0).toFixed(2)}</td>
+                          <td className="px-4 py-2.5 text-[10px] font-bold text-gray-400 text-center">₹{Math.round(item.priceAtTime || item.product?.price || 0)}</td>
                           <td className="px-4 py-2.5 text-right"><span className="text-[11px] font-black text-emerald-600">+{item.quantity}</span><span className="text-[8px] font-bold text-gray-400 uppercase ml-1">{item.product?.unit?.name || 'pcs'}</span></td>
-                          <td className="px-4 py-2.5 text-right text-[11px] font-black text-gray-900">₹{(item.quantity * (item.priceAtTime || item.product?.price || 0)).toFixed(2)}</td>
+                          <td className="px-4 py-2.5 text-right text-[11px] font-black text-gray-900">₹{Math.round(item.quantity * (item.priceAtTime || item.product?.price || 0))}</td>
                         </tr>
                       ))}
                     </tbody>

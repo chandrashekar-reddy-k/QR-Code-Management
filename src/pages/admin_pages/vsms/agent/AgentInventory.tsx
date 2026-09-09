@@ -241,7 +241,7 @@ export default function AgentInventory() {
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Inventory Value</p>
                         <p className="text-3xl font-black tracking-tighter">
-                          ₹{filteredInventory.reduce((acc, item) => acc + (item.quantity * (item.product?.price || 0)), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹{Math.round(filteredInventory.reduce((acc, item) => acc + (item.quantity * (item.product?.price || 0)), 0)).toLocaleString('en-IN')}
                         </p>
                       </div>
                       <div className="p-3 bg-white/10 rounded-2xl"><Package size={28} strokeWidth={2.5} /></div>
@@ -416,7 +416,7 @@ export default function AgentInventory() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-black text-slate-800 truncate">{item.product?.name || 'Product'}</p>
                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                  {item.product?.unit} · ₹{item.product?.price}
+                                  {item.product?.unit} · ₹{Math.round(item.product?.price || 0)}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
@@ -493,7 +493,7 @@ export default function AgentInventory() {
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-bold text-gray-800 truncate">{p.name}</span>
                         <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-1.5 py-0.5 rounded cursor-default border border-emerald-100 shrink-0 mt-1">
-                          Current: {currentStock} · ₹{p.price}
+                          Current: {currentStock} · ₹{Math.round(p.price || 0)}
                         </span>
                       </div>
                     </div>

@@ -135,7 +135,7 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
                   <div className="flex items-center gap-2">
                     {isItemFree && subtotal >= Number(item.minShopAmount || 0) ? (
                       <>
-                        <span className="text-[0.7rem] text-emerald-900/30 font-bold line-through">₹{item.price.toFixed(2)}</span>
+                        <span className="text-[0.7rem] text-emerald-900/30 font-bold line-through">₹{Math.round(item.price)}</span>
                         <span className="text-sm font-black text-orange-600 tracking-tight flex items-center gap-1">
                           FREE
                           <span className="text-[10px] bg-orange-100 px-1 rounded animate-pulse">OFFER</span>
@@ -143,9 +143,9 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
                       </>
                     ) : (
                       <>
-                        <p className="text-sm font-black text-emerald-600 tracking-tight">₹{item.price.toFixed(2)}</p>
+                        <p className="text-sm font-black text-emerald-600 tracking-tight">₹{Math.round(item.price)}</p>
                         {item.mrp > item.price && (
-                          <p className="text-[0.7rem] text-emerald-900/30 font-bold line-through">₹{item.mrp.toFixed(2)}</p>
+                          <p className="text-[0.7rem] text-emerald-900/30 font-bold line-through">₹{Math.round(item.mrp)}</p>
                         )}
                       </>
                     )}
@@ -169,7 +169,7 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
                 </div>
 
                 <p className="text-base font-black w-20 text-right tracking-tighter text-emerald-950">
-                  ₹{((isItemFree && subtotal >= Number(item.minShopAmount || 0)) ? 0 : Number(item.price || 0) * item.quantity).toFixed(2)}
+                  ₹{Math.round((isItemFree && subtotal >= Number(item.minShopAmount || 0)) ? 0 : Number(item.price || 0) * item.quantity)}
                 </p>
               </div>
               );
@@ -232,8 +232,8 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
                             <span className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">CLAIM FOR ₹0</span>
                           ) : (
                             <div className="flex items-center gap-1.5">
-                                <span className="text-[8px] font-black text-slate-400">ABOVE ₹{p.minShopAmount}</span>
-                                <span className="text-[8px] font-bold text-orange-500 uppercase">Need ₹{(Number(p.minShopAmount || 0) - subtotal).toFixed(0)} more</span>
+                                <span className="text-[8px] font-black text-slate-400">ABOVE ₹{Math.round(p.minShopAmount || 0)}</span>
+                                <span className="text-[8px] font-bold text-orange-500 uppercase">Need ₹{Math.round(Number(p.minShopAmount || 0) - subtotal)} more</span>
                             </div>
                           )}
                         </div>
@@ -300,7 +300,7 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
             <div className="space-y-2 mb-6">
                <div className="flex justify-between items-center px-2">
                  <span className="text-[11px] font-black text-emerald-800/40 uppercase tracking-[0.2em]">Subtotal</span>
-                 <span className="text-sm font-black text-emerald-950 tracking-tight">₹{(subtotal ?? 0).toFixed(2)}</span>
+                 <span className="text-sm font-black text-emerald-950 tracking-tight">₹{Math.round(subtotal ?? 0)}</span>
                </div>
                
                {promotionDiscount > 0 && (
@@ -309,7 +309,7 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">Discount</span>
                      <span className="text-[8px] font-black bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">PROMO</span>
                    </div>
-                   <span className="text-sm font-black tracking-tight">- ₹{(promotionDiscount ?? 0).toFixed(2)}</span>
+                   <span className="text-sm font-black tracking-tight">- ₹{Math.round(promotionDiscount ?? 0)}</span>
                  </div>
                )}
 
@@ -320,7 +320,7 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
                    {(deliveryCharge ?? 0) > 0 && <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-0.5 rounded-lg uppercase tracking-widest border border-blue-200">SLAB MATCH</span>}
                  </div>
                  <span className={`text-sm font-black tracking-tight ${(deliveryCharge ?? 0) === 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
-                   {(deliveryCharge ?? 0) === 0 ? '₹0.00' : `₹${(deliveryCharge ?? 0).toFixed(2)}`}
+                   {(deliveryCharge ?? 0) === 0 ? '₹0' : `₹${Math.round(deliveryCharge ?? 0)}`}
                  </span>
                </div>
                <div className="flex justify-between items-end px-2 pt-2 border-t border-emerald-100/50">
@@ -328,7 +328,7 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
                    <span className="text-[11px] font-black text-emerald-800/40 uppercase tracking-[0.3em]">Grand Total</span>
                    <p className="text-[10px] text-emerald-600 font-bold tracking-tight italic">All taxes included</p>
                  </div>
-                 <span className="text-4xl font-black text-emerald-950 tracking-tighter">₹{totalAmount.toLocaleString()}</span>
+                 <span className="text-4xl font-black text-emerald-950 tracking-tighter">₹{Math.round(totalAmount).toLocaleString()}</span>
                </div>
             </div>
 

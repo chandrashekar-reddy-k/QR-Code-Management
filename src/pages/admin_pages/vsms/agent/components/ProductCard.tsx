@@ -94,17 +94,17 @@ export default function ProductCard({ product }) {
               <>
                 <div className="flex items-center gap-1">
                   <span className={`text-[1rem] font-black tracking-tighter ${isCurrentlyFree ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    {isCurrentlyFree ? '₹0.00' : `₹${Number(product.price).toFixed(0)}`}
+                    {isCurrentlyFree ? '₹0' : `₹${Math.round(Number(product.price || 0))}`}
                   </span>
                   {!isCurrentlyFree && (
-                    <span className="text-[0.6rem] font-bold text-slate-300 line-through">₹{Number(product.price).toFixed(0)}</span>
+                    <span className="text-[0.6rem] font-bold text-slate-300 line-through">₹{Math.round(Number(product.price || 0))}</span>
                   )}
                 </div>
                 {!isCurrentlyFree && (
                   <div className="flex items-center gap-0.5 mt-[-2px]">
                     <Zap size={8} className="text-orange-500 fill-orange-500" />
                     <span className="text-[0.6rem] font-black text-orange-600 uppercase tracking-tighter">
-                      ABOVE ₹{minAmount}
+                      ABOVE ₹{Math.round(minAmount)}
                     </span>
                   </div>
                 )}
@@ -112,10 +112,10 @@ export default function ProductCard({ product }) {
             ) : (
               <>
                 <p className="text-[1rem] font-black text-emerald-700 tracking-tighter leading-none">
-                  ₹{Number(product.price).toFixed(2)}
+                  ₹{Math.round(Number(product.price || 0))}
                 </p>
                 {product.mrp > product.price && (
-                  <span className="text-[0.6rem] font-bold text-emerald-900/30 line-through">₹{Number(product.mrp).toFixed(2)}</span>
+                  <span className="text-[0.6rem] font-bold text-emerald-900/30 line-through">₹{Math.round(Number(product.mrp || 0))}</span>
                 )}
               </>
             )}
@@ -125,7 +125,7 @@ export default function ProductCard({ product }) {
           {!isFreeProduct && product.discount > 0 && (
             <div className="bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-lg border border-orange-100 flex flex-col items-center shrink-0 ml-1">
               <span className="text-[0.5rem] font-black leading-none">OFF</span>
-              <span className="text-[0.7rem] font-black tracking-tighter leading-none">₹{product.discount.toFixed(0)}</span>
+              <span className="text-[0.7rem] font-black tracking-tighter leading-none">₹{Math.round(product.discount)}</span>
             </div>
           )}
         </div>

@@ -89,7 +89,7 @@ export default function Reports() {
                 <div>
                   <p className="text-[10px] font-black text-emerald-800/40 uppercase tracking-[0.2em] mb-1">Daily Sales Goal</p>
                   <p className="font-black text-emerald-950 text-xl tracking-tighter">
-                    ₹{report.totalSales?.toFixed(2)} <span className="text-emerald-800/30 font-bold text-sm">/ ₹{report.dailyTarget?.toLocaleString()}</span>
+                    ₹{Math.round(report.totalSales || 0)} <span className="text-emerald-800/30 font-bold text-sm">/ ₹{report.dailyTarget?.toLocaleString()}</span>
                   </p>
                 </div>
                 <div className="text-right">
@@ -124,13 +124,13 @@ export default function Reports() {
             <StatCard
               icon={TrendingUp}
               label="Revenue Generated"
-              value={`₹${report.totalSales?.toFixed(2) || '0.00'}`}
+              value={`₹${Math.round(report.totalSales || 0)}`}
               color="from-orange-500 to-orange-600 shadow-orange-500/20"
             />
             <StatCard
               icon={Banknote}
               label="Net Profit Generated"
-              value={`₹${report.totalProfit?.toFixed(2) || '0.00'}`}
+              value={`₹${Math.round(report.totalProfit || 0)}`}
               color="from-amber-400 to-yellow-500 shadow-amber-400/20"
             />
 
@@ -149,7 +149,7 @@ export default function Reports() {
                       </div>
                       <span className="text-[0.95rem] font-black text-emerald-950/60 uppercase tracking-tight">{label}</span>
                     </div>
-                    <span className="font-black text-emerald-950 text-lg tracking-tighter">₹{value?.toFixed(2) || '0.00'}</span>
+                    <span className="font-black text-emerald-950 text-lg tracking-tighter">₹{Math.round(value || 0)}</span>
                   </div>
                 ))}
               </div>

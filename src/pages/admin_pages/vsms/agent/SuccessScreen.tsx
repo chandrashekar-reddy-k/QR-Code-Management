@@ -412,22 +412,22 @@ export default function SuccessScreen() {
       drawUnicodeText(pdf, displayName, colX.item, y + 1, { fontSize: 9, isBold: true, color: darkText });
 
       pdf.text(`${qty}`, colX.qty, y + 1);
-      pdf.text(`${itemGstAmt.toFixed(2)}`, colX.gst, y + 1);
+      pdf.text(`${Math.round(itemGstAmt)}`, colX.gst, y + 1);
 
       pdf.setTextColor(...grayText);
       pdf.setFontSize(7);
-      pdf.text(`Rs.${mrpValue.toFixed(2)}`, colX.mrp, y + 1, { align: 'left' });
+      pdf.text(`Rs.${Math.round(mrpValue)}`, colX.mrp, y + 1, { align: 'left' });
 
       const isItemFree = price === 0;
 
       pdf.setTextColor(...(isItemFree ? orangeAccent : emerald));
       pdf.setFontSize(isItemFree ? 7 : 8);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(isItemFree ? 'GIFT/FREE' : `Rs.${price.toFixed(2)}`, colX.price, y + 1);
+      pdf.text(isItemFree ? 'GIFT/FREE' : `Rs.${Math.round(price)}`, colX.price, y + 1);
 
       pdf.setTextColor(...darkText);
       pdf.setFontSize(9);
-      pdf.text(isItemFree ? 'Rs.0.00' : `Rs.${amount.toFixed(2)}`, colX.amount, y + 1, { align: 'right' });
+      pdf.text(isItemFree ? 'Rs.0' : `Rs.${Math.round(amount)}`, colX.amount, y + 1, { align: 'right' });
 
       y += 9;
     });
@@ -476,7 +476,7 @@ export default function SuccessScreen() {
     pdf.setFont('helvetica', 'bold');
     pdf.text('Subtotal (MRP)', totalsX, rightY);
     pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${subTotalMRP.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    pdf.text(`Rs.${Math.round(subTotalMRP)}`, colX.amount, rightY, { align: 'right' });
     rightY += 7;
 
     if (savings > 0) {
@@ -489,7 +489,7 @@ export default function SuccessScreen() {
       pdf.setFont('helvetica', 'bold');
       pdf.text('TOTAL SAVINGS', totalsX, rightY + 1.5);
       pdf.setFontSize(11);
-      pdf.text(`- Rs.${savings.toFixed(2)}`, colX.amount, rightY + 1.5, { align: 'right' });
+      pdf.text(`- Rs.${Math.round(savings)}`, colX.amount, rightY + 1.5, { align: 'right' });
       rightY += 9;
       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'normal');
@@ -507,14 +507,14 @@ export default function SuccessScreen() {
     pdf.setFont('helvetica', 'bold');
     pdf.text('Taxable Value', totalsX, rightY);
     pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${(order.totalAmount - totalTax).toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    pdf.text(`Rs.${Math.round(order.totalAmount - totalTax)}`, colX.amount, rightY, { align: 'right' });
     rightY += 7;
 
     pdf.setTextColor(...grayText);
     pdf.setFont('helvetica', 'bold');
     pdf.text(`Total GST (Incl.)`, totalsX, rightY);
     pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${totalTax.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    pdf.text(`Rs.${Math.round(totalTax)}`, colX.amount, rightY, { align: 'right' });
     rightY += 4;
 
     pdf.setDrawColor(...lightLine);
@@ -529,7 +529,7 @@ export default function SuccessScreen() {
     pdf.setFont('helvetica', 'bold');
     pdf.text('TOTAL', totalsX, rightY + 3);
     pdf.setFontSize(14);
-    pdf.text(`Rs.${order.totalAmount?.toFixed(2)}`, colX.amount, rightY + 4, { align: 'right' });
+    pdf.text(`Rs.${Math.round(order.totalAmount || 0)}`, colX.amount, rightY + 4, { align: 'right' });
     rightY += 15;
 
     const badgeWidth = (totalsX - margin) - 15;
@@ -578,7 +578,7 @@ export default function SuccessScreen() {
     if (!order) return;
 
     const invoiceNo = getInvoiceNumber(order);
-    const text = `🚐 *VillagKart Invoice #VK-${invoiceNo}*\nAmount: ₹${order.totalAmount.toFixed(2)}\n\nThank you for shopping with us!`;
+    const text = `🚐 *VillagKart Invoice #VK-${invoiceNo}*\nAmount: ₹${Math.round(order.totalAmount || 0)}\n\nThank you for shopping with us!`;
 
     try {
       setIsDownloading(true);
@@ -677,7 +677,7 @@ export default function SuccessScreen() {
             <div className="space-y-3">
               <div className="flex justify-between items-center px-1">
                 <span className="text-[10px] font-black text-emerald-800/40 uppercase tracking-widest">Order Amount</span>
-                <span className="font-black text-2xl text-emerald-950 tracking-tighter">₹{order.totalAmount?.toFixed(2)}</span>
+                <span className="font-black text-2xl text-emerald-950 tracking-tighter">₹{Math.round(order.totalAmount || 0)}</span>
               </div>
               <div className="flex items-center justify-between p-2 bg-emerald-50/50 rounded-xl border border-emerald-50/50">
                 <span className="text-[10px] font-black text-emerald-800/50 uppercase tracking-widest ml-1">Payment</span>
@@ -699,7 +699,7 @@ export default function SuccessScreen() {
                     <div className="flex items-baseline gap-0.5">
                       <span className="text-white text-xs font-bold">₹</span>
                       <span className="text-2xl font-black text-white tracking-tighter">
-                        {(order.items.reduce((sum: number, i: any) => sum + (i.mrp || i.price) * i.quantity, 0) - order.totalAmount).toFixed(2)}
+                        {Math.round(order.items.reduce((sum: number, i: any) => sum + (i.mrp || i.price) * i.quantity, 0) - order.totalAmount)}
                       </span>
                     </div>
                   </div>

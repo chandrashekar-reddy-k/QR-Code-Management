@@ -33,10 +33,10 @@ export default function PaymentScreen() {
     const numValue = parseFloat(value) || 0;
     if (field === 'cash') {
       const remaining = Math.max(0, totalAmount - numValue);
-      setSplitAmounts({ cash: value, upi: remaining.toFixed(2) });
+      setSplitAmounts({ cash: value, upi: Math.round(remaining).toString() });
     } else {
       const remaining = Math.max(0, totalAmount - numValue);
-      setSplitAmounts({ upi: value, cash: remaining.toFixed(2) });
+      setSplitAmounts({ upi: value, cash: Math.round(remaining).toString() });
     }
   };
 
@@ -59,7 +59,7 @@ export default function PaymentScreen() {
       const cash = parseFloat(splitAmounts.cash) || 0;
       const upi = parseFloat(splitAmounts.upi) || 0;
       if (Math.abs((cash + upi) - totalAmount) > 0.01) {
-        return toast.error(`Total must equal ₹${totalAmount.toFixed(2)}`);
+        return toast.error(`Total must equal ₹${Math.round(totalAmount)}`);
       }
     }
 
@@ -113,7 +113,7 @@ export default function PaymentScreen() {
           <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-br from-emerald-500/10 to-transparent blur-[40px] pointer-events-none" />
 
           <p className="text-emerald-800/40 font-black uppercase tracking-[0.2em] text-[9px] mb-2 relative z-10">Payable Amount</p>
-          <p className="text-[2.5rem] font-black text-emerald-950 tracking-tighter leading-none relative z-10">₹{totalAmount.toFixed(2)}</p>
+          <p className="text-[2.5rem] font-black text-emerald-950 tracking-tighter leading-none relative z-10">₹{Math.round(totalAmount)}</p>
           <div className="flex flex-wrap justify-center gap-2 mt-6 relative z-10">
             {customerName && (
               <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-1.5 rounded-xl border border-emerald-100">
@@ -144,7 +144,7 @@ export default function PaymentScreen() {
                     setSelected(mode.id);
                     if (mode.id !== 'CASH') setCashReceived('');
                     if (mode.id === 'CASH_UPI' && !splitAmounts.cash) {
-                      setSplitAmounts({ cash: totalAmount.toFixed(2), upi: '0.00' });
+                      setSplitAmounts({ cash: Math.round(totalAmount).toString(), upi: '0' });
                     }
                   }}
                   className={`flex flex-col items-center gap-2.5 py-4 px-1 rounded-2xl transition-all duration-300 active:scale-95 border ${isSelected
@@ -186,7 +186,7 @@ export default function PaymentScreen() {
               <div className={`rounded-[1.5rem] p-3.5 border transition-all duration-300 shadow-sm ${changeDue >= 0 ? 'bg-orange-50 border-orange-100/50' : 'bg-slate-50 border-slate-200 opacity-50'}`}>
                 <p className={`text-[9px] font-black uppercase tracking-[0.2em] mb-1 ${changeDue >= 0 ? 'text-orange-800/40' : 'text-slate-400'}`}>Return Amount</p>
                 <div className={`text-xl font-black ${changeDue >= 0 ? 'text-orange-600' : 'text-slate-400'}`}>
-                  ₹{changeDue > 0 ? changeDue.toFixed(2) : '0.00'}
+                  ₹{changeDue > 0 ? Math.round(changeDue) : '0'}
                 </div>
               </div>
             </div>
@@ -243,7 +243,7 @@ export default function PaymentScreen() {
               <div className="flex flex-col">
                 <span className="text-[8px] font-black text-emerald-400/50 uppercase tracking-[0.2em]">Total Combined</span>
                 <span className="text-lg font-black text-white">
-                  ₹{((parseFloat(splitAmounts.cash) || 0) + (parseFloat(splitAmounts.upi) || 0)).toFixed(2)}
+                  ₹{Math.round((parseFloat(splitAmounts.cash) || 0) + (parseFloat(splitAmounts.upi) || 0))}
                 </span>
               </div>
               <div className="flex items-center gap-2">
