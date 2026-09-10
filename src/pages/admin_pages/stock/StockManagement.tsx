@@ -4,8 +4,6 @@ import {
   RefreshCw,
   Download,
   FileUp,
-  Camera,
-  Pencil,
   Filter,
   ChevronDown,
   RotateCcw,
@@ -17,7 +15,6 @@ import {
   DataTable,
   Pagination,
   Button,
-  Badge,
   SelectInput,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
@@ -25,7 +22,6 @@ import {
   useGetAllProductList,
   useUpdateProductActive,
   useDeleteProduct,
-  useUpdateProductStock,
 } from "../../../hooks/product";
 
 // Define the API response type
@@ -62,15 +58,6 @@ interface ApiPagination {
   hasPrev: boolean;
 }
 
-interface ApiResponse {
-  status: boolean;
-  response: string;
-  data: {
-    stats: ApiStats;
-    stocks: ApiStock[];
-  };
-  pagination: ApiPagination;
-}
 
 // Table stock type for internal use
 interface TableStock {
@@ -105,8 +92,7 @@ const StockManagement = () => {
   }>({ isOpen: false, id: null });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [editingStockId, setEditingStockId] = useState<string | null>(null);
-  const [editingStockValue, setEditingStockValue] = useState<string>("");
+
 
   // ─── Real API ───────────────────────────────────────────────────────────────
   const { data: apiData, isLoading, refetch } = useGetAllProductList(
@@ -118,7 +104,7 @@ const StockManagement = () => {
   );
   const { mutate: updateStatusMutation, isPending: isUpdatingStatus } = useUpdateProductActive();
   const { mutate: deleteMutation } = useDeleteProduct();
-  const { mutate: updateStockMutation } = useUpdateProductStock();
+
 
   // Normalise API products → ApiStock shape
   const stocks: ApiStock[] = useMemo(() => {
@@ -310,7 +296,6 @@ const StockManagement = () => {
   ]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredAndSortedStocks.length / itemsPerPage);
   const paginatedStocks = filteredAndSortedStocks.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -360,8 +345,7 @@ const StockManagement = () => {
         const reader = new FileReader();
         reader.onload = (event) => {
           try {
-            const text = event.target?.result as string;
-            const lines = text.split("\n").filter((line) => line.trim());
+
             alert("Import functionality needs to be connected to API");
           } catch (error) {
             console.error("Error importing stocks:", error);
@@ -374,9 +358,7 @@ const StockManagement = () => {
     input.click();
   };
 
-  const handleDeleteClick = (id: string) => {
-    setDeleteConfirm({ isOpen: true, id });
-  };
+
 
   const handleDeleteConfirm = async () => {
     if (deleteConfirm.id === null) return;
@@ -397,26 +379,7 @@ const StockManagement = () => {
     updateStatusMutation({ productId: stockId, isActive: newIsActive });
   };
 
-  const handleStockEditClick = (stock: TableStock) => {
-    setEditingStockId(stock.id);
-    setEditingStockValue(stock.stock.toString());
-  };
 
-  const handleStockSave = (stockId: string) => {
-    const newStock = parseInt(editingStockValue);
-    if (isNaN(newStock) || newStock < 0) {
-      alert("Please enter a valid stock number");
-      return;
-    }
-    updateStockMutation({ productId: stockId, stock: newStock });
-    setEditingStockId(null);
-    setEditingStockValue("");
-  };
-
-  const handleStockCancel = () => {
-    setEditingStockId(null);
-    setEditingStockValue("");
-  };
 
   const handleRefresh = () => {
     refetch();
@@ -432,19 +395,8 @@ const StockManagement = () => {
   // Calculate KPI stats
   const totalStock = stats.total;
   const activeStock = stats.active;
-  const inactiveStock = stats.inactive;
 
-  const storeroomCount = useMemo(() => {
-    return stocks.filter((s) => s.lifecycleStage === 'STORE_ROOM').length;
-  }, [stocks]);
 
-  const productionCount = useMemo(() => {
-    return stocks.filter((s) => s.lifecycleStage === 'IN_PRODUCTION' || s.lifecycleStage === 'READY_FOR_LIVE').length;
-  }, [stocks]);
-
-  const liveCount = useMemo(() => {
-    return stocks.filter((s) => s.lifecycleStage === 'LIVE').length;
-  }, [stocks]);
 
   const posCount = useMemo(() => {
     return stocks.filter((s) => s.isPos).length;
@@ -486,24 +438,7 @@ const StockManagement = () => {
           icon={Package}
           variant="purple"
         />
-        <StatCard
-          title="Store-Room"
-          value={storeroomCount}
-          icon={Package}
-          variant="yellow"
-        />
-        <StatCard
-          title="In Production"
-          value={productionCount}
-          icon={Package}
-          variant="blue"
-        />
-        <StatCard
-          title="Live Stock"
-          value={liveCount}
-          icon={Package}
-          variant="green"
-        />
+
         <StatCard
           title="POS Count"
           value={posCount}
@@ -717,51 +652,7 @@ const StockManagement = () => {
                   </div>
                 ),
               },
-              {
-                key: "storeRoomStock",
-                label: "STORE-ROOM",
-                sortable: true,
-                render: (stock: TableStock) => {
-                  const val = stock.lifecycleStage === 'STORE_ROOM' ? stock.stock : 0;
-                  return (
-                    <div className="text-center">
-                      <span className={`text-xs font-bold ${val > 0 ? 'text-amber-700 dark:text-amber-400 font-bold' : 'text-gray-400'}`}>
-                        {val}
-                      </span>
-                    </div>
-                  );
-                },
-              },
-              {
-                key: "productionStock",
-                label: "PRODUCTION",
-                sortable: true,
-                render: (stock: TableStock) => {
-                  const val = (stock.lifecycleStage === 'IN_PRODUCTION' || stock.lifecycleStage === 'READY_FOR_LIVE') ? stock.stock : 0;
-                  return (
-                    <div className="text-center">
-                      <span className={`text-xs font-bold ${val > 0 ? 'text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-400'}`}>
-                        {val}
-                      </span>
-                    </div>
-                  );
-                },
-              },
-              {
-                key: "liveStock",
-                label: "LIVE",
-                sortable: true,
-                render: (stock: TableStock) => {
-                  const val = stock.lifecycleStage === 'LIVE' ? stock.stock : 0;
-                  return (
-                    <div className="text-center">
-                      <span className={`text-xs font-bold ${val > 0 ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-gray-400'}`}>
-                        {val}
-                      </span>
-                    </div>
-                  );
-                },
-              },
+
               {
                 key: "vehicleStock",
                 label: "IN VEHICLE",

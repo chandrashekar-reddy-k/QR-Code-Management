@@ -173,7 +173,7 @@ const Login = () => {
         sessionStorage.setItem('portalMode', 'OPERATOR');
         localStorage.setItem('portalMode', 'OPERATOR');
         navigate("/packer/operator/dashboard");
-      } else if (isAgentRole || hasAgent) {
+      } else if (isAgentRole) {
         sessionStorage.setItem('portalMode', 'AGENT');
         localStorage.setItem('portalMode', 'AGENT');
         sessionStorage.setItem('staffToken', data.data.accessToken);
@@ -183,7 +183,7 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('partnerUser', JSON.stringify(user));
         navigate("/vsms/agent-portal/today-plan");
-      } else if (isShopkeeperRole || hasShopkeeper) {
+      } else if (isShopkeeperRole) {
         sessionStorage.setItem('portalMode', 'SHOPKEEPER');
         localStorage.setItem('portalMode', 'SHOPKEEPER');
         sessionStorage.setItem('staffToken', data.data.accessToken);

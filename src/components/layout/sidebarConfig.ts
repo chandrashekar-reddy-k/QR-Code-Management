@@ -347,21 +347,6 @@ export const sidebarConfig: MenuSection[] = [
     hasSubPermissions: false,
     subItems: [
       {
-        path: "/inventory/storeroom",
-        label: "Store-Room (Inward)",
-        icon: Store,
-      },
-      {
-        path: "/inventory/production",
-        label: "Production & Packing",
-        icon: Package,
-      },
-      {
-        path: "/inventory/live",
-        label: "Live Stock (Channels)",
-        icon: CheckCircle,
-      },
-      {
         path: "/inventory/online",
         label: "Online (Customer App)",
         icon: Smartphone,
