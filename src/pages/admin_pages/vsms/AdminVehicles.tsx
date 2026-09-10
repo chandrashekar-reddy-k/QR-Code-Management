@@ -18,6 +18,7 @@ import RouteMappingSection from './admin_vehicles/RouteMappingSection';
 import VehicleSalesSection from './admin_vehicles/VehicleSalesSection';
 import RouteCollectionSection from './admin_vehicles/RouteCollectionSection';
 import VehicleDamagesSection from './admin_vehicles/VehicleDamagesSection';
+import { useVehiclesQuery, useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 
 export default function AdminVehicles() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,7 +40,7 @@ export default function AdminVehicles() {
   const [vehicles, setVehicles] = useState([]);
   const [users, setUsers] = useState([]);
   const [stores, setStores] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [allVehiclesStock, setAllVehiclesStock] = useState({});
   const [loadingTracking, setLoadingTracking] = useState(false);
   const [auditHistory, setAuditHistory] = useState([]);
@@ -115,56 +116,33 @@ export default function AdminVehicles() {
   });
   const [documents, setDocuments] = useState({ rcDocument: null, insuranceDocument: null, permitDocument: null });
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [vRes, uRes, sRes, stockRes, auditRes] = await Promise.all([
-        adminAPI.getVehicles({ storeId: storeFilterId }),
-        adminAPI.getVehicleAgents({ storeId: storeFilterId }),
-        adminAPI.getStores(),
-        adminAPI.getInventoryInit({ storeId: storeFilterId }),
-        adminAPI.getAuditHistory({ storeId: storeFilterId })
-      ]);
+  const { invalidateVehicles } = useVsmsCacheInvalidator();
+  const { data: cachedData, isLoading, isFetching, refetch } = useVehiclesQuery(storeFilterId);
 
-      console.log('vRes:', vRes);  // ← add this
-      console.log('vRes.data:', vRes.data);  // ← and this
+  useEffect(() => {
+    if (cachedData) {
+      setVehicles(cachedData.vehicles || []);
+      setStores(cachedData.stores || []);
+      setUsers(cachedData.users || []);
+      if (cachedData.items) setItems(cachedData.items);
+      if (cachedData.vehicleStock) setAllVehiclesStock(cachedData.vehicleStock);
+      if (cachedData.auditHistory) setAuditHistory(cachedData.auditHistory);
 
-      // Your API might wrap in { data: { data: [...] } } or { data: { vehicles: [...] } }
-      const vehicleList = Array.isArray(vRes.data)
-        ? vRes.data
-        : vRes.data?.data || vRes.data?.vehicles || [];
-
-      setVehicles(vehicleList);
-      const fetchedStores = sRes.data?.success ? sRes.data.data : (sRes.data || []);
-      setStores(fetchedStores);
-
-      const userList = Array.isArray(uRes.data)
-        ? uRes.data
-        : uRes.data?.data || uRes.data?.users || [];
-
-      // Filter out Consumers AND Admins - only show agents/staff for vehicles
-      setUsers(userList.filter(u => u.role !== 'CONSUMER' && u.role !== 'ADMIN'));
-
-      if (stockRes.data?.items) {
-        setItems(stockRes.data.items);
+      if (cachedData.stores?.length === 1 && !storeFilterId) {
+        setSearchParams({ storeId: cachedData.stores[0].id });
       }
-      if (stockRes.data?.vehicleStock) {
-        setAllVehiclesStock(stockRes.data.vehicleStock);
-      }
-      setAuditHistory(auditRes.data || []);
-
-      // Auto-select if only one store exists
-      if (fetchedStores.length === 1 && !storeFilterId) {
-        setSearchParams({ storeId: fetchedStores[0].id });
-      }
-    } catch {
-      toast.error('Failed to fetch vehicle data');
-    } finally {
       setLoading(false);
     }
-  };
+  }, [cachedData, storeFilterId]);
 
-  useEffect(() => { fetchData(); }, [storeFilterId]);
+  const fetchData = async () => {
+    try {
+      await invalidateVehicles();
+      await refetch();
+    } catch {
+      toast.error('Failed to fetch vehicle data');
+    }
+  };
 
   // --- Inventory Memos & Logic ---
   const loadingFilteredItems = useMemo(() => {
@@ -908,11 +886,23 @@ export default function AdminVehicles() {
     }
   };
 
-  if (loading) {
+  if (isLoading && !cachedData && vehicles.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 font-medium tracking-wide">Loading Vehicles...</p>
+      <div className="p-8 space-y-6 max-w-7xl mx-auto animate-pulse">
+        <div className="flex justify-between items-center">
+          <div className="h-8 bg-gray-200 rounded-lg w-48" />
+          <div className="h-10 bg-gray-200 rounded-xl w-36" />
+        </div>
+        <div className="h-12 bg-gray-100 rounded-xl w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="h-44 bg-white border border-gray-100 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+              <div className="h-4 bg-gray-200 rounded w-1/2" />
+              <div className="h-8 bg-gray-100 rounded w-3/4" />
+              <div className="h-4 bg-gray-100 rounded w-1/3" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -1265,7 +1255,13 @@ export default function AdminVehicles() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20" style={{ fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 relative" style={{ fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
+      {/* Background sync progress bar */}
+      {isFetching && (
+        <div className="fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-emerald-100/50">
+          <div className="h-full bg-emerald-600 animate-pulse w-full" />
+        </div>
+      )}
       {/* ── Full Page Add Vehicle View ───────────────── */}
       {showAddModal ? (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 min-h-screen">

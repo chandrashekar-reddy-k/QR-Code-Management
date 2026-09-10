@@ -16,6 +16,7 @@ import adminAPI from './services/adminService';
 import { procurementAPI } from './services/procurementService';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 
 // Modular Components
 import MasterSection from './admin_inventory/MasterSection';
@@ -98,6 +99,7 @@ export default function AdminInventory() {
   const currentUser = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
   const refreshUserProfile = useUserStore(s => s.refreshUserProfile);
+  const { invalidateInventory, invalidateVehicles } = useVsmsCacheInvalidator();
 
   const location = useLocation();
 
@@ -990,6 +992,8 @@ export default function AdminInventory() {
 
       setStockQuantities({});
       setShowLoadConfirmModal(false);
+      invalidateInventory();
+      invalidateVehicles();
       fetchData(true); // Refresh UI state silently immediately
     } catch (error) {
       console.error('❌ Load Error:', error);
@@ -1617,11 +1621,17 @@ export default function AdminInventory() {
     />
   );
 
-  if (loading) {
+  if (loading && items.length === 0 && vehicles.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 font-medium tracking-wide">Loading Inventory...</p>
+      <div className="space-y-6 animate-pulse p-6">
+        <div className="h-10 bg-gray-200/70 rounded-2xl w-1/3" />
+        <div className="h-12 bg-gray-100 rounded-2xl w-full" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-28 bg-gray-100/80 rounded-2xl" />
+          ))}
+        </div>
+        <div className="h-96 bg-gray-100/60 rounded-3xl" />
       </div>
     );
   }

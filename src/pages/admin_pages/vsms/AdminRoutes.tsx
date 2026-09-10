@@ -42,6 +42,7 @@ import { generateReportPDF } from './adminreports/ReportUtils';
 import VehicleSalesSection from './admin_vehicles/VehicleSalesSection';
 import RouteCollectionSection from './admin_vehicles/RouteCollectionSection';
 import RoutePerformanceDashboard from './components/RoutePerformanceDashboard';
+import { useRoutesQuery, useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 
 export default function AdminRoutes() {
   const [villages, setVillages] = useState([]);
@@ -50,7 +51,7 @@ export default function AdminRoutes() {
   const [vehicles, setVehicles] = useState([]);
   const [users, setUsers] = useState([]);
   const [stores, setStores] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const currentUser = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
 
@@ -136,45 +137,38 @@ export default function AdminRoutes() {
   const [assignmentForm, setAssignmentForm] = useState({ id: '', vehicleId: '', userId: '', routeId: '', morningSession: '', afternoonSession: '' });
 
 
-  const fetchData = async () => {
-    setIsVillagesLoading(true);
-    setIsRoutesLoading(true);
-    setIsAssignmentsLoading(true);
-    try {
-      const [vRes, rRes, aRes, vehRes, uRes, sRes] = await Promise.all([
-        routeService.getVillages({ storeId }),
-        routeService.getAdminRoutes({ storeId }),
-        routeService.getRouteAssignments({ storeId }),
-        adminAPI.getVehicles({ storeId }),
-        adminAPI.getUsers({ storeId }),
-        adminAPI.getStores()
-      ]);
-      setVillages(vRes);
-      setRoutes(rRes);
-      setAssignments(aRes);
-      setVehicles(vehRes.data);
-      const fetchedStores = sRes.data?.success ? sRes.data.data : (sRes.data || []);
-      setStores(fetchedStores);
-      setUsers(uRes.data.filter(u => ['SALES_AGENT', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'SUPERVISOR', 'HELPER'].includes(u.role)));
+  const { invalidateRoutes } = useVsmsCacheInvalidator();
+  const { data: cachedRoutesData, isFetching, refetch } = useRoutesQuery(storeId);
 
-      // Auto-select if only one store exists
+  useEffect(() => {
+    if (cachedRoutesData) {
+      setVillages(cachedRoutesData.villages || []);
+      setRoutes(cachedRoutesData.routes || []);
+      setAssignments(cachedRoutesData.assignments || []);
+      setVehicles(cachedRoutesData.vehicles || []);
+      setUsers(cachedRoutesData.users || []);
+      const fetchedStores = cachedRoutesData.stores || [];
+      setStores(fetchedStores);
+
       if (fetchedStores.length === 1 && !storeId) {
         setSearchParams({ storeId: fetchedStores[0].id });
       }
-    } catch (error) {
-      toast.error('Failed to fetch data');
-      console.error(error);
-    } finally {
       setLoading(false);
       setIsVillagesLoading(false);
       setIsRoutesLoading(false);
       setIsAssignmentsLoading(false);
     }
-  };
+  }, [cachedRoutesData, storeId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [storeId]);
+  const fetchData = async () => {
+    try {
+      await invalidateRoutes();
+      await refetch();
+    } catch (error) {
+      toast.error('Failed to fetch data');
+      console.error(error);
+    }
+  };
 
   useEffect(() => { setVillagePage(1); }, [villageSearchQuery, storeId]);
   useEffect(() => { setRoutePage(1); }, [routeSearchQuery, storeId]);
@@ -501,7 +495,13 @@ export default function AdminRoutes() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Background sync progress bar */}
+      {isFetching && (
+        <div className="fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-emerald-100/50">
+          <div className="h-full bg-emerald-600 animate-pulse w-full" />
+        </div>
+      )}
       {/* Header & Tabs Container */}
       <div className="flex flex-col gap-5 bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
         {/* Top Row: Title, Description & Actions */}
@@ -940,7 +940,7 @@ export default function AdminRoutes() {
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[40vh] flex flex-col">
-                {isVillagesLoading ? (
+                {isVillagesLoading && !villages.length ? (
                   <div className="flex-1 flex flex-col items-center justify-center py-20 gap-4">
                     <Loader2 className="animate-spin text-emerald-600" size={32} />
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Hydrating Village Data...</p>
@@ -1214,7 +1214,7 @@ export default function AdminRoutes() {
                 )}
               </div>
 
-              {isRoutesLoading ? (
+              {isRoutesLoading && !routes.length ? (
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm py-20 flex flex-col items-center justify-center gap-4">
                   <Loader2 className="animate-spin text-emerald-600" size={32} />
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Scanning Clusters...</p>
@@ -1557,7 +1557,7 @@ export default function AdminRoutes() {
             )}
           </div>
 
-          {isAssignmentsLoading ? (
+          {isAssignmentsLoading && !assignments.length ? (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm py-20 flex flex-col items-center justify-center gap-4">
               <Loader2 className="animate-spin text-emerald-600" size={32} />
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Compiling Assignments...</p>

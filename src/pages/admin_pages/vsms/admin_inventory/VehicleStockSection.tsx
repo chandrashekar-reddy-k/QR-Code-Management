@@ -464,6 +464,7 @@ const VehicleStockSection = ({
               const isStockLoading = !inventory && loadingTracking;
               const safeInventory = inventory || [];
               const activeStock = safeInventory.filter(i => i.quantity > 0);
+              const totalValue = activeStock.reduce((acc, item) => acc + (item.quantity * parseFloat(item.product?.price || 0)), 0);
               const sortedAssigned = [...(v.assignedUsers || [])].sort(
                 (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
               );

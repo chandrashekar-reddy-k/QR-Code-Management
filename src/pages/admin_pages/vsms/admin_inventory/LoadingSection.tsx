@@ -4,6 +4,7 @@ import { Truck, Search, Barcode, ArrowUpCircle, Gift, Package, ArrowLeft, Loader
 import { StockItemRow } from './SharedComponents';
 import adminAPI from '.././services/adminService';
 import * as XLSX from 'xlsx';
+import { useLoadHistoryQuery } from '../hooks/useVsmsCache';
 
 const LoadingSection = ({
   groupedLoadingItems,
@@ -26,42 +27,10 @@ const LoadingSection = ({
   can
 }) => {
   const [showLoadModal, setShowLoadModal] = useState(false);
-  const [historyData, setHistoryData] = useState([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const res = await adminAPI.getLoadHistory();
-
-      const grouped = {};
-      res.data.forEach(item => {
-        const d = new Date(item.date);
-        const timeKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}-${Math.floor(d.getMinutes() / 5)}`;
-        const key = `${item.vehicleId}_${timeKey}`;
-        if (!grouped[key]) {
-          grouped[key] = {
-            date: item.date,
-            vehicle: item.vehicle,
-            user: item.user,
-            items: []
-          };
-        }
-        grouped[key].items.push(item);
-      });
-
-      setHistoryData(Object.values(grouped).sort((a, b) => new Date(b.date) - new Date(a.date)));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
+  const { data: cachedHistory, isLoading: isLoadingHistory, isFetching: isFetchingHistory, refetch: fetchHistory } = useLoadHistoryQuery();
+  const historyData = cachedHistory || [];
 
   const handlePrint = () => {
     window.print();
@@ -455,8 +424,18 @@ const LoadingSection = ({
               </div>
             </div>
 
-            {isLoadingHistory ? (
-              <div className="flex items-center justify-center py-12"><Loader2 size={32} className="animate-spin text-emerald-500" /></div>
+            {isFetchingHistory && (
+              <div className="h-0.5 w-full bg-emerald-100 overflow-hidden mb-2 rounded-full">
+                <div className="h-full bg-emerald-600 animate-pulse w-full" />
+              </div>
+            )}
+
+            {isLoadingHistory && historyData.length === 0 ? (
+              <div className="space-y-3 p-4 animate-pulse">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-10 bg-gray-100 rounded-lg" />
+                ))}
+              </div>
             ) : historyData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200"><Clock size={32} className="mx-auto text-gray-300 mb-3" /><p className="text-sm font-bold text-gray-400">No loading history found.</p></div>
             ) : (

@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import { generateReportPDF } from './adminreports/ReportUtils';
+import { useSalesQuery, useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 // ManualSaleDrawer stubbed
 const ManualSaleDrawer = () => null;
 // CustomerManagement stubbed
@@ -261,58 +262,32 @@ export default function AdminSales() {
   const currentUser = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
 
-  const fetchSales = async () => {
-    try {
-      setLoading(true);
-      const params: Record<string, any> = {};
-      if (storeFilterId) params.storeId = storeFilterId;
-      if (filterDate === 'Today') {
-        params.fromDate = new Date().toISOString().split('T')[0];
-      } else if (filterDate === 'This Week') {
-        const d = new Date(); d.setDate(d.getDate() - 7);
-        params.fromDate = d.toISOString().split('T')[0];
-      } else if (filterDate === 'This Month') {
-        const d = new Date(); d.setDate(1);
-        params.fromDate = d.toISOString().split('T')[0];
-      }
+  const { invalidateSales } = useVsmsCacheInvalidator();
+  const { data: cachedSalesData, isLoading: isSalesQueryLoading, isFetching: isSalesQueryFetching, refetch: refetchSalesQuery } = useSalesQuery(storeFilterId, filterDate);
 
-      // Run sales fetch + supporting data fetches, don't fail everything if one fails
-      const salesRes = await adminAPI.getSales(params);
-      // New endpoint returns { data: [], total: N }; legacy may return plain array
-      const rawData = salesRes.data;
-      const salesArray = Array.isArray(rawData) ? rawData : (rawData?.data ?? []);
-      setSales(salesArray);
-
-      // Load stores & users in parallel, swallow individual errors
-      const [storesRes, usersRes] = await Promise.allSettled([
-        adminAPI.getStores(),
-        adminAPI.getUsers()
-      ]);
-
-      if (storesRes.status === 'fulfilled') {
-        const fetchedStores = storesRes.value.data?.success
-          ? storesRes.value.data.data
-          : (storesRes.value.data || []);
-        setStores(Array.isArray(fetchedStores) ? fetchedStores : []);
-        if (fetchedStores.length === 1 && !storeFilterId) {
-          setSearchParams({ storeId: fetchedStores[0].id });
+  // Sync React Query cache instantly to component state
+  useEffect(() => {
+    if (cachedSalesData) {
+      if (cachedSalesData.sales) setSales(cachedSalesData.sales);
+      if (cachedSalesData.stores) {
+        setStores(cachedSalesData.stores);
+        if (cachedSalesData.stores.length === 1 && !storeFilterId) {
+          setSearchParams({ storeId: cachedSalesData.stores[0].id });
         }
       }
+      if (cachedSalesData.users) setUsers(cachedSalesData.users);
+      setLoading(false);
+    }
+  }, [cachedSalesData, storeFilterId]);
 
-      if (usersRes.status === 'fulfilled') {
-        setUsers(usersRes.value.data || []);
-      }
+  const fetchSales = async () => {
+    try {
+      refetchSalesQuery();
     } catch (error) {
       console.error('[AdminSales] fetchSales error:', error);
       toast.error('Failed to fetch sales history');
-    } finally {
-      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchSales();
-  }, [filterDate, storeFilterId]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -417,6 +392,7 @@ export default function AdminSales() {
       // Also update the list entry
       setSales(prev => prev.map(s => s.id === data.id ? { ...s, totalAmount: data.totalAmount } : s));
       setEditingItem(null);
+      invalidateSales();
       toast.success('Quantity updated');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update quantity');
@@ -431,6 +407,7 @@ export default function AdminSales() {
       const { data } = await ordersAPI.removeItem(detailOrder.id, itemId);
       setFullOrder(data);
       setSales(prev => prev.map(s => s.id === data.id ? { ...s, totalAmount: data.totalAmount } : s));
+      invalidateSales();
       toast.success('Item removed');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to remove item');
@@ -450,6 +427,7 @@ export default function AdminSales() {
       setSales(prev => prev.map(s => s.id === data.id ? { ...s, totalAmount: data.totalAmount, status: data.status } : s));
       setReturningItem(null);
       setReturnReason('');
+      invalidateSales();
       toast.success('Return processed');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to process return');
@@ -466,6 +444,7 @@ export default function AdminSales() {
       setSales(prev => prev.map(s => s.id === data.id ? { ...s, totalAmount: data.totalAmount, status: data.status } : s));
       setShowCancelConfirm(false);
       setCancelReason('');
+      invalidateSales();
       toast.success('Order cancelled');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to cancel order');
@@ -489,6 +468,7 @@ export default function AdminSales() {
     if (!confirm('Are you sure you want to freeze today\'s session? This will prevent further edits/returns.')) return;
     try {
       await ordersAPI.freezeSession({ date: format(new Date(), 'yyyy-MM-dd') });
+      invalidateSales();
       toast.success('Session frozen successfully');
       fetchSessionData();
     } catch (err) {
@@ -1088,11 +1068,17 @@ export default function AdminSales() {
     reader.readAsBinaryString(file);
   };
 
-  if (loading) {
+  if (loading && sales.length === 0 && !cachedSalesData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 font-medium tracking-wide">Loading Sales History...</p>
+      <div className="space-y-6 animate-pulse p-6">
+        <div className="h-10 bg-gray-200/70 rounded-2xl w-1/4" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="h-24 bg-gray-100/80 rounded-2xl" />
+          ))}
+        </div>
+        <div className="h-14 bg-gray-100 rounded-2xl" />
+        <div className="h-96 bg-gray-100/60 rounded-3xl" />
       </div>
     );
   }
@@ -1226,7 +1212,13 @@ export default function AdminSales() {
   );
 
   return (
-    <div className="main-content-to-print space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="main-content-to-print space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+      {/* Background sync progress bar */}
+      {isSalesQueryFetching && (
+        <div className="fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-emerald-100/50">
+          <div className="h-full bg-emerald-600 animate-pulse w-full" />
+        </div>
+      )}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3 flex-wrap">

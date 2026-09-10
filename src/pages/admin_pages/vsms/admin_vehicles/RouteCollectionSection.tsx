@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { IndianRupee, Wallet, TrendingUp, Search, Loader2, ArrowRight, CheckCircle2, AlertCircle, Calendar } from 'lucide-react';
 import adminAPI from '.././services/adminService';
+import { useCollectionsQuery } from '../hooks/useVsmsCache';
 import toast from 'react-hot-toast';
 
 export default function RouteCollectionSection({ storeId }) {
@@ -9,29 +10,20 @@ export default function RouteCollectionSection({ storeId }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const { data: cachedCollections, isLoading, refetch } = useCollectionsQuery(storeId);
+
   useEffect(() => {
-    fetchCollections();
-  }, [storeId]);
+    if (cachedCollections) {
+      setCollections(cachedCollections);
+      setLoading(false);
+    }
+  }, [cachedCollections]);
 
   const fetchCollections = async () => {
     try {
-      setLoading(true);
-      const res = await adminAPI.getFinancialReport({ storeId, type: 'collections' });
-      // Map dailySheet to collections format
-      const data = (res.dailySheet || []).map(item => ({
-        agentName: item.user?.name || 'Unknown Agent',
-        vehicleNumber: item.vehicle?.vehicleNumber || 'N/A',
-        route: item.villageName || 'Active Route',
-        expectedCash: item.expectedCash,
-        collectedCash: item.actualCash,
-        variance: item.difference,
-        status: item.status
-      }));
-      setCollections(data);
+      await refetch();
     } catch (error) {
       toast.error('Failed to load collection data');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -42,11 +34,15 @@ export default function RouteCollectionSection({ storeId }) {
     c.route?.toLowerCase().includes(q)
   );
 
-  if (loading) {
+  if (isLoading && !cachedCollections && collections.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="animate-spin text-emerald-600" size={40} />
-        <p className="text-gray-500 font-bold text-sm uppercase tracking-widest">Loading Route Collections...</p>
+      <div className="space-y-4 animate-pulse">
+        <div className="h-8 bg-gray-200 rounded-lg w-1/3" />
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-24 bg-white border border-gray-100 rounded-xl shadow-xs" />
+          ))}
+        </div>
       </div>
     );
   }
