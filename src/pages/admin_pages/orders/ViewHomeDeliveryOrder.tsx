@@ -137,7 +137,7 @@ interface HomeDeliveryOrderView {
 }
 
 // Helper to get user-friendly label from enum
-const getStatusLabel = (status: OrderStatus): string => {
+const getStatusLabel = (status: OrderStatus | string): string => {
   switch (status) {
     case OrderStatus.PENDING:
       return "Pending (Awaiting Approval)";
@@ -145,6 +145,12 @@ const getStatusLabel = (status: OrderStatus): string => {
       return "Placed";
     case OrderStatus.CONFIRMED:
       return "Confirmed";
+    case "ACCEPTED":
+      return "Accepted";
+    case "PICKING":
+      return "Picking";
+    case "PACKING":
+      return "Packing";
     case OrderStatus.PROCESSING:
       return "Processing";
     case OrderStatus.READY_FOR_PICKUP:
@@ -161,33 +167,58 @@ const getStatusLabel = (status: OrderStatus): string => {
       return "Delivered";
     case OrderStatus.CANCELLED:
       return "Cancelled";
-    // Removed Failed and Returned from label mapping
+    case OrderStatus.RETURNED:
+      return "Returned";
+    case OrderStatus.FAILED:
+      return "Failed";
     default:
       return status;
   }
 };
 
-const getNextStatus = (status: OrderStatus): OrderStatus | null => {
-  switch (status) {
-    case OrderStatus.PENDING:
-      return OrderStatus.CONFIRMED;
-    case OrderStatus.PLACED:
-      return OrderStatus.CONFIRMED;
-    case OrderStatus.CONFIRMED:
-      return OrderStatus.PROCESSING;
-    case OrderStatus.PROCESSING:
-      return OrderStatus.READY_FOR_PICKUP;
-    case OrderStatus.READY_FOR_PICKUP:
-      return OrderStatus.PICKED_UP;
-    case OrderStatus.PICKED_UP:
-      return OrderStatus.OUT_FOR_DELIVERY;
-    case OrderStatus.OUT_FOR_DELIVERY:
-      return OrderStatus.DELIVERED;
-    case OrderStatus.IN_TRANSIT:
-      return OrderStatus.DELIVERED;
-    default:
-      return null;
+/**
+ * Dynamic allowed transitions map — mirrors backend PARTNER_ALLOWED_TRANSITIONS.
+ * Only forward / valid transitions are listed; backward transitions are impossible.
+ */
+const ALLOWED_TRANSITIONS: Record<string, OrderStatus[]> = {
+  [OrderStatus.PENDING]:          [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+  [OrderStatus.PLACED]:           [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+  [OrderStatus.CONFIRMED]:        [OrderStatus.PROCESSING, OrderStatus.READY_FOR_PICKUP, OrderStatus.CANCELLED],
+  [OrderStatus.PROCESSING]:       [OrderStatus.READY_FOR_PICKUP, OrderStatus.CANCELLED],
+  [OrderStatus.READY_FOR_PICKUP]: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+  [OrderStatus.OUT_FOR_DELIVERY]: [OrderStatus.DELIVERED, OrderStatus.RETURN_INITIATED, OrderStatus.CANCELLED],
+  [OrderStatus.IN_TRANSIT]:       [OrderStatus.DELIVERED, OrderStatus.RETURN_INITIATED, OrderStatus.CANCELLED],
+  [OrderStatus.DELIVERED]:        [OrderStatus.RETURN_INITIATED],
+  [OrderStatus.RETURN_INITIATED]: [OrderStatus.RETURNED],
+  [OrderStatus.CANCELLED]:        [],
+  [OrderStatus.RETURNED]:         [],
+  [OrderStatus.FAILED]:           [OrderStatus.RETURN_INITIATED],
+};
+
+/**
+ * UI-derived statuses (ACCEPTED, PICKING, PACKING) are display-only.
+ * Map them back to the real API status for transition lookup.
+ */
+const resolveApiStatus = (uiStatus: OrderStatus | string): string => {
+  switch (uiStatus) {
+    case "ACCEPTED":  return OrderStatus.CONFIRMED;
+    case "PICKING":   return OrderStatus.PROCESSING;
+    case "PACKING":   return OrderStatus.PROCESSING;
+    default:          return uiStatus;
   }
+};
+
+/** Get allowed next statuses for a given (potentially UI-derived) status */
+const getAllowedNextStatuses = (currentStatus: OrderStatus | string): OrderStatus[] => {
+  const apiStatus = resolveApiStatus(currentStatus);
+  return ALLOWED_TRANSITIONS[apiStatus] || [];
+};
+
+/** Get the primary (happy-path) next status */
+const getNextStatus = (status: OrderStatus): OrderStatus | null => {
+  const allowed = getAllowedNextStatuses(status);
+  // Return the first non-cancel option, or null if terminal
+  return allowed.find(s => s !== OrderStatus.CANCELLED && s !== OrderStatus.FAILED) || null;
 };
 
 const ViewHomeDeliveryOrder = () => {
@@ -784,66 +815,32 @@ const ViewHomeDeliveryOrder = () => {
                   </span>
                 </div>
                 <div className="relative" ref={dropdownRef}>
-                  {/* Status Flow Logic */}
+                  {/* Dynamic Status Flow — only allowed forward transitions shown */}
                   {(() => {
-                    const statusOptions = [
-                      { value: OrderStatus.PENDING, label: "Pending" },
-                      { value: OrderStatus.PLACED, label: "Placed" },
-                      { value: OrderStatus.CONFIRMED, label: "Approve (Confirm)" },
-                      { value: OrderStatus.PROCESSING, label: "Processing" },
-                      { value: OrderStatus.READY_FOR_PICKUP, label: "Ready for Pickup" },
-                      {
-                        value: OrderStatus.OUT_FOR_DELIVERY,
-                        label: "Out for Delivery",
-                      },
-                      { value: OrderStatus.PICKED_UP, label: "Picked Up" },
-                      { value: OrderStatus.IN_TRANSIT, label: "In Transit" },
-                      { value: OrderStatus.DELIVERED, label: "Delivered" },
-                      { value: OrderStatus.CANCELLED, label: "Reject (Cancel)" },
-                    ].map((opt) => {
-                      const isCurrent = order.status === opt.value;
-                      const isNext = getNextStatus(order.status) === opt.value;
-                      // Disable current status (already reached) and terminal states
-                      let disabled = isCurrent || order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED;
-                      if (!disabled) {
-                        disabled = !isNext;
-                      }
-                      if (order.status === OrderStatus.PROCESSING && opt.value === OrderStatus.READY_FOR_PICKUP) {
-                        disabled = false;
-                      }
-                      if (order.status === OrderStatus.READY_FOR_PICKUP) {
-                        disabled = true;
-                      }
-                      if (opt.value === OrderStatus.OUT_FOR_DELIVERY) {
-                        disabled = true;
-                      }
-                      if (opt.value === OrderStatus.CANCELLED && order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED) {
-                        disabled = false;
-                      }
-                      return { ...opt, disabled };
-                    });
+                    const allowedNext = getAllowedNextStatuses(order.status);
+                    const isTerminal = allowedNext.length === 0;
 
-                    // Update Status button enable/disable logic
-                    let updateButtonDisabled = false;
-                    if (
-                      order.status === OrderStatus.READY_FOR_PICKUP ||
-                      order.status === OrderStatus.OUT_FOR_DELIVERY ||
-                      order.status === OrderStatus.DELIVERED ||
-                      order.status === OrderStatus.RETURN_INITIATED
-                    ) {
-                      updateButtonDisabled = true;
-                    }
+                    // Build dropdown options from allowed transitions only
+                    const statusOptions = allowedNext.map((s) => ({
+                      value: s,
+                      label: s === OrderStatus.CONFIRMED
+                        ? "Approve (Confirm)"
+                        : s === OrderStatus.CANCELLED
+                        ? "Reject (Cancel)"
+                        : getStatusLabel(s),
+                      disabled: false,
+                    }));
 
                     return (
                       <>
                         <button
                           onClick={() => {
-                            if (!updateButtonDisabled) {
+                            if (!isTerminal) {
                               setStatusUpdateOpen(!statusUpdateOpen);
                             }
                           }}
-                          disabled={updateButtonDisabled}
-                          className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors text-xs sm:text-sm font-medium ${updateButtonDisabled
+                          disabled={isTerminal}
+                          className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors text-xs sm:text-sm font-medium ${isTerminal
                             ? "bg-gray-100 border-gray-300 dark:border-gray-600 text-gray-400 cursor-not-allowed"
                             : "bg-green-50 dark:bg-green-900/20 border-green-600 dark:border-green-500 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
                             }`}
@@ -856,20 +853,16 @@ const ViewHomeDeliveryOrder = () => {
                           />
                         </button>
                         {statusUpdateOpen && (
-                          <div className="absolute right-0 mt-2 w-[150px] bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                          <div className="absolute right-0 mt-2 w-[200px] bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                             <div className="p-3">
                               <label className="block text-xs font-medium text-gray-700 mb-2">
-                                Select Status
+                                Select Next Status
                               </label>
                               <SelectInput
                                 value={selectedStatus}
                                 onChange={(e) => {
-                                  // Only allow selecting enabled options
                                   const val = e.target.value as OrderStatus | "";
-                                  const found = statusOptions.find((opt) => opt.value === val);
-                                  if (found && !found.disabled) {
-                                    setSelectedStatus(val);
-                                  }
+                                  if (val) setSelectedStatus(val);
                                 }}
                                 options={statusOptions}
                                 className="w-full text-xs mb-3"
@@ -880,7 +873,7 @@ const ViewHomeDeliveryOrder = () => {
                                   variant="primary"
                                   size="sm"
                                   className="flex-1"
-                                  disabled={updateStatusMutation.isPending || updateButtonDisabled}
+                                  disabled={updateStatusMutation.isPending || !selectedStatus}
                                 >
                                   {updateStatusMutation.isPending ? "Updating..." : "Update"}
                                 </Button>

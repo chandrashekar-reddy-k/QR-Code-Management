@@ -8,6 +8,7 @@ import {
 import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
 import * as routeService from '../services/routeService';
 import * as locationService from '../services/locationService';
+import { usePerformanceQuery } from '../hooks/useVsmsCache';
 import toast from 'react-hot-toast';
 
 // ── Circular Progress Ring ──────────────────────────────────────────────────
@@ -46,24 +47,25 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   const [breadcrumbPath, setBreadcrumbPath] = useState([]);
   const [mapCenter, setMapCenter] = useState({ lat: 20.5937, lng: 78.9629 });
 
+  const { data: cachedPerf, isLoading, isFetching, refetch } = usePerformanceQuery(storeId);
+
+  useEffect(() => {
+    if (cachedPerf) {
+      setData(cachedPerf.performanceData);
+      setLiveLocations(cachedPerf.liveLocations);
+      setLoading(false);
+    }
+  }, [cachedPerf]);
+
   const fetchData = async () => {
-    setLoading(true);
     try {
-      const [perfRes, liveRes] = await Promise.all([
-        routeService.getRoutePerformance({ storeId }),
-        locationService.getLiveLocations(storeId)
-      ]);
-      setData(perfRes);
-      setLiveLocations(liveRes);
+      await refetch();
     } catch (err) {
       toast.error('Failed to load performance data');
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
     const iv = setInterval(async () => {
       try { setLiveLocations(await locationService.getLiveLocations(storeId)); } catch (_) {}
     }, 30000);
@@ -150,10 +152,14 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
     },
   ];
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center py-24 gap-3">
-      <RefreshCw className="w-7 h-7 text-emerald-500 animate-spin" />
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Performance...</p>
+  if (isLoading && !cachedPerf && (!data.performance || data.performance.length === 0)) return (
+    <div className="space-y-4 p-4 animate-pulse">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-28 bg-white border border-gray-100 rounded-2xl p-4 shadow-xs" />
+        ))}
+      </div>
+      <div className="h-64 bg-white border border-gray-100 rounded-2xl shadow-xs" />
     </div>
   );
 
