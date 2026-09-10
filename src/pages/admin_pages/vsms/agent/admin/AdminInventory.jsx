@@ -594,6 +594,7 @@ export default function AdminInventory() {
         "Discount Value": "10.00",
         "Discount Type": "RUPEE",
         "GST Slab": "0",
+        "Status": "ACTIVE",
         "Image Filename": "rice_packet.jpg",
         "Description": "Premium aged long grain basmati rice"
       }

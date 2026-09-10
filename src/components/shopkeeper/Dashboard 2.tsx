@@ -1,5 +1,5 @@
 import { DashboardMobile } from "./DashboardMobile";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSharedOrders } from "./SharedOrdersContext";
 import { formatIndianCurrencyKPI } from "../../../src/utils/currencyFormat";
 import { getSLAInfo } from "../../utils/slaHelper";
@@ -133,7 +133,9 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [shopkeepers, setShopkeepers] = useState<any[]>([]);
 
-  const fetchShopkeepers = useCallback(async () => {
+
+
+  const fetchShopkeepers = async () => {
     if (!isAdmin) return;
     try {
       const res = await api.get('/shopkeepers');
@@ -141,8 +143,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
     } catch (err) {
       console.error("Failed to load active shopkeepers", err);
     }
-  }, [isAdmin]);
-
+  };
   const [stats, setStats] = useState<any>({
     activeOrders: 0,
     picking: 0,
@@ -162,7 +163,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const { orders: sharedOrders } = useSharedOrders();
 
-  const calculateStats = useCallback(() => {
+  const calculateStats = () => {
     const seenIds = new Set();
     const distinctOrders = [];
     for (const o of sharedOrders) {
@@ -187,7 +188,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const newOrders = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'confirmed';
+      return s === 'new' || s === 'assigned' || s === 'placed' || s === 'pending' || s === 'confirmed';
     }).length;
 
     const activeOrdersCount = allOrders.filter((o: any) => {
@@ -262,11 +263,11 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
 
     const sortedOrders = [...allOrders].sort((a, b) => getOrderTime(b) - getOrderTime(a));
     setRecentOrders(sortedOrders.slice(0, 5));
-  }, [sharedOrders, isAdmin]);
+  };
 
   useEffect(() => {
     calculateStats();
-  }, [sharedOrders, calculateStats]);
+  }, [sharedOrders]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -274,7 +275,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
       const interval = setInterval(fetchShopkeepers, 30000);
       return () => clearInterval(interval);
     }
-  }, [isAdmin, fetchShopkeepers]);
+  }, [isAdmin]);
 
   useEffect(() => {
     const localSlaTimer = setInterval(() => {
@@ -332,7 +333,7 @@ export function Dashboard({ onNavigate, isAdmin = false }: DashboardProps) {
         total_amount: o.total_amount
       })));
     }
-  }, [allDispatchedOrders]);
+  }, [orders]);
 
   const todayRevenue = allDispatchedOrders.reduce((sum: number, o: any) => sum + (Number(o.total_value) || Number(o.totalAmount) || Number(o.total_amount) || 0), 0);
   const formattedRevenue = `₹${formatIndianCurrencyKPI(todayRevenue)}`;

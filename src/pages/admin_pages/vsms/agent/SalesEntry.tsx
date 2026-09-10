@@ -177,173 +177,144 @@ export default function SalesEntry() {
     }
     setFiltered(result);
   }, [search, products, filterFreeOnly, filterCategory, filterSubCategory]);
-
   return (
-    <div className="min-h-screen pb-28 pt-2">
+    <div className="min-h-screen pb-32 bg-[#FAFAFA]">
+      {/* Sticky Header Section (Title + Customer Name & Mobile Card + Search + Categories fixed together) */}
+      <div className="sticky top-0 z-40 bg-[#FAFAFA] pt-2 pb-2.5 border-b border-gray-100 shadow-2xs">
+        <div className="max-w-[420px] mx-auto px-4 space-y-3">
+          {/* Title */}
+          <div>
+            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Sales Grid</h1>
+          </div>
 
-      {/* Sticky Combined Input Section */}
-      <div className="sticky top-[-16px] md:top-[-24px] z-20 bg-slate-50/95 backdrop-blur-xl border-b border-emerald-100/30 pb-2 pt-2 shadow-sm">
-        <div className="max-w-lg mx-auto px-5 space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Customer Name */}
-            <div className="glass rounded-[1.25rem] p-1 flex items-center gap-2 border border-emerald-100 bg-white/70 shadow-sm focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:bg-white focus:border-emerald-500 transition-all overflow-hidden">
-              <div className="bg-emerald-50 p-1 rounded-xl text-emerald-500 ml-1">
-                <Smartphone size={14} strokeWidth={2.5} />
+          {/* Customer Input Card (Customer Name & Mobile Number) */}
+          <div className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-2xs space-y-2.5">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Customer Name */}
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold text-gray-900 flex items-center gap-0.5">
+                  Customer Name <span className="text-red-500 font-extrabold">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Customer Name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
+                />
               </div>
-              <input
-                id="customer-name"
-                type="text"
-                placeholder="Name (Optional)"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="flex-1 bg-transparent py-2 outline-none text-emerald-950 text-[0.8rem] placeholder-slate-950/40 font-bold min-w-0"
-              />
-            </div>
 
-            {/* Customer Mobile */}
-            <div className="glass rounded-[1.25rem] p-1 flex items-center gap-2 border border-emerald-100 bg-white/70 shadow-sm focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:bg-white focus:border-emerald-500 transition-all overflow-hidden">
-              <div className="bg-emerald-50 p-1 rounded-xl text-emerald-500 ml-1">
-                <Smartphone size={14} strokeWidth={2.5} />
+              {/* Mobile Number */}
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold text-gray-900 flex items-center gap-0.5">
+                  Mobile Number <span className="text-red-500 font-extrabold">*</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="Enter Mobile Number"
+                  value={customerMobile}
+                  onChange={(e) => setCustomerMobile(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
+                />
               </div>
-              <input
-                id="customer-mobile"
-                type="tel"
-                placeholder="Mobile (Opt)"
-                value={customerMobile}
-                onChange={(e) => setCustomerMobile(e.target.value)}
-                className="flex-1 bg-transparent py-2 outline-none text-emerald-950 text-[0.8rem] placeholder-slate-950/40 font-bold min-w-0"
-              />
             </div>
           </div>
 
-          {/* Search */}
-          <div className="glass rounded-[1.25rem] p-1 flex flex-wrap items-center gap-2 sm:gap-3 border border-emerald-100 bg-white/70 shadow-sm focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:bg-white focus:border-emerald-500 transition-all">
-            <div className="bg-emerald-50 p-1.5 rounded-xl text-emerald-500 ml-1">
-              <Search size={18} strokeWidth={2.5} />
+          {/* Search Bar with Barcode Scanner Icon */}
+          <div className="bg-white rounded-2xl p-2.5 px-3.5 border border-gray-200 shadow-2xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <Search size={16} className="text-gray-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+              />
             </div>
-            <input
-              id="product-search"
-              ref={searchRef}
-              type="text"
-              placeholder="Search items..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-transparent py-2 pr-2 outline-none text-emerald-950 text-[0.95rem] placeholder-slate-950/40 font-bold"
-            />
             <button
-              onClick={() => setFilterFreeOnly(!filterFreeOnly)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all border shrink-0 flex items-center gap-1.5 ${filterFreeOnly ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}
-            >
-              <Gift size={14} strokeWidth={3} />
-              Gifts
-            </button>
-            <button
+              type="button"
               onClick={() => setShowScanner(true)}
-              className="px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl hover:bg-emerald-100 transition-colors shrink-0 flex items-center justify-center"
+              className="text-gray-400 hover:text-gray-600 cursor-pointer shrink-0"
               title="Scan Barcode"
             >
-              <ScanBarcode size={16} strokeWidth={3} />
+              <ScanBarcode size={18} />
             </button>
-            {search && (
-              <button onClick={() => setSearch('')} className="p-1.5 mr-1 text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors font-black text-[9px] uppercase tracking-tighter">
-                Clear
-              </button>
-            )}
           </div>
 
-          {/* Hierarchical Categories */}
-          <div className="space-y-4 pt-1">
-            <div className="relative group">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+          {/* Category Pills (Horizontal Scroll from Live Backend Data) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+            <button
+              type="button"
+              onClick={() => setFilterCategory('ALL')}
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                filterCategory === 'ALL'
+                  ? 'bg-[#00891D] text-white shadow-2xs'
+                  : 'bg-[#EAEAEA] text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Items
+            </button>
+            {categories.map((cat) => {
+              const isSelected = filterCategory === cat.name;
+              return (
                 <button
-                  onClick={() => { setFilterCategory('ALL'); setFilterSubCategory('ALL'); }}
-                  className={`whitespace-nowrap px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border shrink-0 ${filterCategory === 'ALL'
-                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-500/10'
-                    : 'bg-white border-emerald-100 text-slate-400 hover:text-emerald-600'
-                    }`}
+                  key={cat.id || cat.name}
+                  type="button"
+                  onClick={() => setFilterCategory(cat.name)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#00891D] text-white shadow-2xs'
+                      : 'bg-[#EAEAEA] text-gray-700 hover:bg-gray-200'
+                  }`}
                 >
-                  All Items
+                  {cat.name}
                 </button>
-                {categories.map((cat) => (
-                  <button
-                    key={`cat-${cat.id}`}
-                    onClick={() => { setFilterCategory(cat.name); setFilterSubCategory('ALL'); }}
-                    className={`whitespace-nowrap px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border shrink-0 ${filterCategory === cat.name
-                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-500/10'
-                      : 'bg-white border-emerald-100 text-slate-400 hover:text-emerald-600'
-                      }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Sub-Categories Bar */}
-            {filterCategory !== 'ALL' && (
-              <div className="animate-in slide-in-from-top-1 duration-200">
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded-xl border border-emerald-100 shrink-0">
-                    <Grid size={10} className="text-emerald-500" />
-                    <span className="text-[8px] font-black text-emerald-700 uppercase tracking-tighter">Refine</span>
-                  </div>
-                  <button
-                    onClick={() => setFilterSubCategory('ALL')}
-                    className={`whitespace-nowrap px-3.5 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border shrink-0 ${filterSubCategory === 'ALL'
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'bg-white border-emerald-50 text-slate-400 hover:text-emerald-500'
-                      }`}
-                  >
-                    All {filterCategory}
-                  </button>
-                  {subCategories
-                    .filter(sub => sub.categoryName === filterCategory)
-                    .map((sub) => (
-                      <button
-                        key={`sub-${sub.id}`}
-                        onClick={() => setFilterSubCategory(sub.name)}
-                        className={`whitespace-nowrap px-3.5 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border shrink-0 ${filterSubCategory === sub.name
-                          ? 'bg-emerald-500 border-emerald-500 text-white'
-                          : 'bg-white border-emerald-50 text-slate-400 hover:text-emerald-500'
-                          }`}
-                      >
-                        {sub.name}
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-5 pt-2 space-y-5">
-        {/* Product Grid */}
-        <div className="pb-4">
-          <ProductGrid products={filtered} loading={loading} />
+      <div className="max-w-[420px] mx-auto px-4 pt-3 space-y-3.5">
+        {/* 3-Column Product Grid (100% Live Backend Data) */}
+        <div className="pt-0.5">
+          <ProductGrid
+            products={filtered}
+            loading={loading}
+          />
         </div>
       </div>
 
-      {/* Floating Cart Bar - Using safe-area padding directly */}
+      {/* Floating Bottom Cart Bar (Exact to Mockup) */}
       {totalItems > 0 && (
-        <div className="fixed bottom-[calc(var(--safe-bottom)+1rem)] left-0 right-0 max-w-lg mx-auto z-30 px-5 animate-slide-up">
-          <button
-            id="cart-fab"
-            onClick={() => setCartOpen(true)}
-            className="w-full bg-emerald-600 text-white font-black text-lg py-4 rounded-2xl active:scale-[0.98] transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-between px-6 hover:bg-emerald-700 relative overflow-hidden group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="flex items-center gap-3 relative z-10">
-              <div className="relative">
-                <ShoppingCart size={22} strokeWidth={3} />
-                <span className="absolute -top-2 -right-2 bg-white text-emerald-600 text-[0.7rem] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-emerald-600 shadow-sm">
+        <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pointer-events-none">
+          <div className="max-w-[420px] mx-auto bg-white rounded-3xl p-3 border border-gray-100 shadow-xl pointer-events-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center relative text-gray-700 border border-gray-100">
+                <ShoppingCart size={18} className="text-gray-600" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#00891D] text-white text-[9px] font-black flex items-center justify-center border-2 border-white">
                   {totalItems}
                 </span>
               </div>
-              <span className="tracking-tight">Review Cart</span>
+              <div>
+                <p className="text-[11px] font-extrabold text-gray-900 leading-tight">
+                  {totalItems} Items in Cart
+                </p>
+                <p className="text-xs font-black text-[#00891D] mt-0.5">
+                  Total ₹{totalAmount.toFixed(2)}
+                </p>
+              </div>
             </div>
-            <span className="font-black text-xl tracking-tighter relative z-10">₹{Math.round(totalAmount)}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
+              className="px-5 py-3 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-black shadow-sm active:scale-98 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <span>Review Cart</span>
+              <span className="font-black text-sm tracking-tighter">₹{Math.round(totalAmount)} →</span>
+            </button>
+          </div>
         </div>
       )}
 

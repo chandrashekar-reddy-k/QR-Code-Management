@@ -5,12 +5,11 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Eye, EyeOff } from "lucide-react";
 import {
   LoginFormData,
-  AgentLoginFormData,
   MAX_EMAIL_LENGTH,
   MAX_PASSWORD_LENGTH,
 } from "../../../validationSchema/auth";
-import { loginSchema, agentLoginSchema } from "../../../validationSchema/auth";
-import useLogin, { useAgentLogin, LoginResponse } from "../../../hooks/login";
+import { loginSchema } from "../../../validationSchema/auth";
+import useLogin, { LoginResponse } from "../../../hooks/login";
 import SecurityVerificationOverlay from "../../../components/SecurityVerificationOverlay";
 
 const Login = () => {
@@ -18,6 +17,7 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+
 
   const [pendingLoginData, setPendingLoginData] = useState<LoginResponse | null>(null);
 
@@ -62,17 +62,26 @@ const Login = () => {
       }
     }
 
+    const identifier = ((user.email || user.phone || user.name || "") as string).toLowerCase();
     const roleUpper = (user.role || "").toUpperCase();
     const customRolePortalType = (user.customRole?.portalType || user.customRole?.type || "").toUpperCase();
     const customRoleNameUpper = (user.customRole?.name || user.customRole?.code || "").toUpperCase();
 
+    const isExplicitPartnerRole =
+      roleUpper.includes("PARTNER") ||
+      roleUpper.includes("ADMIN") ||
+      customRolePortalType.includes("PARTNER") ||
+      customRoleNameUpper.includes("PARTNER");
+
     const isExplicitShopkeeperRole =
-      roleUpper.includes("SHOPKEEPER") ||
-      customRolePortalType.includes("SHOPKEEPER") ||
-      customRoleNameUpper.includes("SHOPKEEPER");
+      !isExplicitPartnerRole && (
+        roleUpper.includes("SHOPKEEPER") ||
+        customRolePortalType.includes("SHOPKEEPER") ||
+        customRoleNameUpper.includes("SHOPKEEPER")
+      );
 
     const isExplicitAgentRole =
-      !isExplicitShopkeeperRole && (
+      !isExplicitPartnerRole && !isExplicitShopkeeperRole && (
         ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
         ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(customRolePortalType) ||
         customRoleNameUpper.includes("VEHICLE AGENT") ||
@@ -83,15 +92,19 @@ const Login = () => {
         userPermissions.some((p: string) => p.startsWith("vsms_agent_") || p.includes("vehicle_agent"))
       );
 
+    const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("PARTNER");
+    const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
+    const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
+
     const isOperator =
-      !isExplicitShopkeeperRole && !isExplicitAgentRole && (
+      !isExplicitPartnerRole && !isExplicitShopkeeperRole && !isExplicitAgentRole && (
         ['PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER'].includes(roleUpper) ||
         ['PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER'].includes(customRolePortalType) ||
         userPermissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"))
       );
 
     const isQc =
-      !isExplicitShopkeeperRole && !isExplicitAgentRole && (
+      !isExplicitPartnerRole && !isExplicitShopkeeperRole && !isExplicitAgentRole && (
         ['PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR', 'QC'].includes(roleUpper) ||
         ['PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR', 'QC'].includes(customRolePortalType) ||
         userPermissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"))
@@ -100,13 +113,15 @@ const Login = () => {
     const hasPartnerPermissions = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_") && !p.startsWith("partner_vsms_agent_") && !p.startsWith("partner_agent_"));
 
     const isShopkeeperRole =
-      isExplicitShopkeeperRole || (
-        !isExplicitAgentRole && !isOperator && !isQc &&
-        userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_")) &&
-        !hasPartnerPermissions
+      !isExplicitPartnerRole && (
+        isExplicitShopkeeperRole || (
+          !isExplicitAgentRole && !isOperator && !isQc &&
+          userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_")) &&
+          !hasPartnerPermissions
+        )
       );
 
-    const isAgentRole = isExplicitAgentRole && !isShopkeeperRole;
+    const isAgentRole = isExplicitAgentRole && !isShopkeeperRole && !isExplicitPartnerRole;
 
     console.log("[LOGIN DEBUG] user flags:", {
       isCreatedPassword: user.isCreatedPassword,
@@ -116,6 +131,7 @@ const Login = () => {
       roleUpper,
       customRolePortalType,
       customRoleNameUpper,
+      isExplicitPartnerRole,
       isShopkeeperRole,
       isAgentRole,
       isOperator,
@@ -140,7 +156,17 @@ const Login = () => {
         },
       });
     } else {
-      if (isQc) {
+      if (isExplicitPartnerRole) {
+        sessionStorage.setItem('portalMode', 'PARTNER');
+        localStorage.setItem('portalMode', 'PARTNER');
+        sessionStorage.removeItem('staffToken');
+        sessionStorage.removeItem('staffUser');
+        localStorage.setItem('partnerToken', data.data.accessToken);
+        localStorage.setItem('token', data.data.accessToken);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('partnerUser', JSON.stringify(user));
+        navigate("/");
+      } else if (isQc) {
         sessionStorage.setItem('portalMode', 'QC');
         localStorage.setItem('portalMode', 'QC');
         navigate("/packer/qc/dashboard");
@@ -305,9 +331,11 @@ const Login = () => {
               />
             </div>
 
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-900 mb-6">
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-900 mb-4">
               Hey Welcome!
             </h1>
+
+
 
             {errorMessage && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm font-medium">

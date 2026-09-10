@@ -1,7 +1,82 @@
 import React, { lazy } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 const ShopkeeperERP = lazy(() => import("../pages/ShopkeeperERP"));
 const ShopkeeperAdminERP = lazy(() => import("../pages/admin_pages/orders/ShopkeeperAdminERP"));
+
+// Packing ERP (Admin)
+const PackingDashboard = lazy(() => import("../pages/admin_pages/packing/PackingDashboard"));
+const PackingMasterData = lazy(() => import("../pages/admin_pages/packing/PackingMasterData"));
+const PackingProductBOM = lazy(() => import("../pages/admin_pages/packing/PackingProductBOM"));
+const PackingWorkOrders = lazy(() => import("../pages/admin_pages/packing/PackingWorkOrders"));
+const PackingApprovals = lazy(() => import("../pages/admin_pages/packing/PackingApprovals"));
+const PackingMaterialIssue = lazy(() => import("../pages/admin_pages/packing/PackingMaterialIssue"));
+const PackingMaterialIssueDetails = lazy(() => import("../pages/admin_pages/packing/PackingMaterialIssueDetails"));
+const PackingExecution = lazy(() => import("../pages/admin_pages/packing/PackingExecution"));
+const PackingExecutionDetails = lazy(() => import("../pages/admin_pages/packing/PackingExecutionDetails"));
+const PackingBarcodesLabels = lazy(() => import("../pages/admin_pages/packing/PackingBarcodesLabels"));
+const PackingQualityCheck = lazy(() => import("../pages/admin_pages/packing/PackingQualityCheck"));
+const PackingFinishedGoods = lazy(() => import("../pages/admin_pages/packing/PackingFinishedGoods"));
+const PackingRepacking = lazy(() => import("../pages/admin_pages/packing/PackingRepacking"));
+const PackingReports = lazy(() => import("../pages/admin_pages/packing/PackingReports"));
+
+// Packing Operator Portal
+const OperatorLayout = lazy(() => import("../pages/operator_pages/packing/OperatorLayout"));
+const OperatorDashboard = lazy(() => import("../pages/operator_pages/packing/OperatorDashboard"));
+const OperatorMyJobs = lazy(() => import("../pages/operator_pages/packing/MyJobs"));
+const OperatorActivePacking = lazy(() => import("../pages/operator_pages/packing/ActivePacking"));
+const OperatorLabelApplication = lazy(() => import("../pages/operator_pages/packing/LabelApplication"));
+const OperatorPackingHistory = lazy(() => import("../pages/operator_pages/packing/PackingHistory"));
+const OperatorReportIssue = lazy(() => import("../pages/operator_pages/packing/ReportIssue"));
+const OperatorProfile = lazy(() => import("../pages/operator_pages/packing/Profile"));
+
+// QC Checker Portal
+const QCLayout = lazy(() => import("../pages/qc_pages/packing/QCLayout"));
+const QCDashboard = lazy(() => import("../pages/qc_pages/packing/QCDashboard"));
+const MyQCTasks = lazy(() => import("../pages/qc_pages/packing/MyQCTasks"));
+const ActiveQCInspection = lazy(() => import("../pages/qc_pages/packing/ActiveQCInspection"));
+const QCHistory = lazy(() => import("../pages/qc_pages/packing/QCHistory"));
+const QCReportIssue = lazy(() => import("../pages/qc_pages/packing/ReportIssue"));
+const QCProfile = lazy(() => import("../pages/qc_pages/packing/Profile"));
+
+export const OperatorPortalWrapper: React.FC = () => {
+  return (
+    <Routes>
+      <Route element={<OperatorLayout />}>
+        <Route path="dashboard" element={<OperatorDashboard />} />
+        <Route path="jobs" element={<OperatorMyJobs />} />
+        <Route path="jobs/:id" element={<OperatorMyJobs />} />
+        <Route path="active-packing" element={<OperatorActivePacking />} />
+        <Route path="label-application" element={<OperatorLabelApplication />} />
+        <Route path="history" element={<OperatorPackingHistory />} />
+        <Route path="history/:id" element={<OperatorPackingHistory />} />
+        <Route path="report-issue" element={<OperatorReportIssue />} />
+        <Route path="profile" element={<OperatorProfile />} />
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
+      </Route>
+    </Routes>
+  );
+};
+
+export const QCPortalWrapper: React.FC = () => {
+  return (
+    <Routes>
+      <Route element={<QCLayout />}>
+        <Route path="dashboard" element={<QCDashboard />} />
+        <Route path="tasks" element={<MyQCTasks />} />
+        <Route path="tasks/:id" element={<MyQCTasks />} />
+        <Route path="active-inspection" element={<ActiveQCInspection />} />
+        <Route path="history" element={<QCHistory />} />
+        <Route path="history/:id" element={<QCHistory />} />
+        <Route path="report-issue" element={<QCReportIssue />} />
+        <Route path="profile" element={<QCProfile />} />
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
+      </Route>
+    </Routes>
+  );
+};
+
+
 
 // Lazy load all components for better performance
 const Login = lazy(() => import("../pages/public_pages/login_page/Login"));
@@ -55,6 +130,27 @@ const ViewSubCategory = lazy(
 // Products
 const ManageProducts = lazy(
   () => import("../pages/admin_pages/products/ManageProducts")
+);
+const ProductLifecycleHub = lazy(
+  () => import("../pages/admin_pages/products/ProductLifecycleHub")
+);
+const StoreroomManagement = lazy(
+  () => import("../pages/admin_pages/products/StoreroomManagement")
+);
+const ProductionManagement = lazy(
+  () => import("../pages/admin_pages/products/ProductionManagement")
+);
+const LiveStockManagement = lazy(
+  () => import("../pages/admin_pages/products/LiveStockManagement")
+);
+const OnlineStockManagement = lazy(
+  () => import("../pages/admin_pages/products/OnlineStockManagement")
+);
+const PosStockManagement = lazy(
+  () => import("../pages/admin_pages/products/PosStockManagement")
+);
+const VehicleStockManagement = lazy(
+  () => import("../pages/admin_pages/products/VehicleStockManagement")
 );
 const AddProduct = lazy(
   () => import("../pages/admin_pages/products/AddProducts")
@@ -532,9 +628,12 @@ const BarcodeManagement = lazy(() => import("../pages/admin_pages/vsms/BarcodeMa
 const AdminSalesPage = lazy(() => import("../pages/admin_pages/vsms/AdminSales"));
 const AdminAssets = lazy(() => import("../pages/admin_pages/vsms/AdminAssets"));
 const PartnerScheduledOrders = lazy(() => import("../pages/admin_pages/vsms/PartnerScheduledOrders"));
+const PreOrdersManagement = lazy(() => import("../pages/admin_pages/vsms/PreOrdersManagement"));
 
 // VSMS Agent Portal Pages
 const AgentPortalLayout = lazy(() => import("../pages/admin_pages/vsms/agent/AgentPortalLayout"));
+const AgentPreOrders = lazy(() => import("../pages/admin_pages/vsms/agent/AgentPreOrders"));
+const AgentHome = lazy(() => import("../pages/admin_pages/vsms/agent/AgentHome"));
 const TodayPlan = lazy(() => import("../pages/admin_pages/vsms/agent/TodayPlan"));
 const ScheduledDeliveries = lazy(() => import("../pages/admin_pages/vsms/agent/ScheduledDeliveries"));
 const SalesEntry = lazy(() => import("../pages/admin_pages/vsms/agent/SalesEntry"));
@@ -584,6 +683,90 @@ export const publicRoutes: RouteConfig[] = [
 
 // Protected routes (authentication required)
 export const protectedRoutes: RouteConfig[] = [
+  // Packing Operator Portal
+  {
+    path: "/packer/operator/*",
+    component: OperatorPortalWrapper,
+    requiresAuth: true,
+  },
+
+  // QC Checker Portal
+  {
+    path: "/packer/qc/*",
+    component: QCPortalWrapper,
+    requiresAuth: true,
+  },
+  // Packing ERP (Admin)
+  {
+    path: "/packing-erp/dashboard",
+    component: PackingDashboard,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/master-data",
+    component: PackingMasterData,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/product-bom",
+    component: PackingProductBOM,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/work-orders",
+    component: PackingWorkOrders,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/approvals",
+    component: PackingApprovals,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/material-issue",
+    component: PackingMaterialIssue,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/material-issue/:id",
+    component: PackingMaterialIssueDetails,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/packing-execution",
+    component: PackingExecution,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/packing-execution/:id",
+    component: PackingExecutionDetails,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/barcodes-labels",
+    component: PackingBarcodesLabels,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/quality-check",
+    component: PackingQualityCheck,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/finished-goods",
+    component: PackingFinishedGoods,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/repacking",
+    component: PackingRepacking,
+    requiresAuth: true,
+  },
+  {
+    path: "/packing-erp/reports",
+    component: PackingReports,
+    requiresAuth: true,
+  },
   // Shopkeeper ERP
   {
     path: "/shopkeeper",
@@ -681,6 +864,46 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/products/manage",
     component: ManageProducts,
+    requiresAuth: true,
+  },
+  {
+    path: "/products/lifecycle",
+    component: ProductLifecycleHub,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/storeroom",
+    component: StoreroomManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/production",
+    component: ProductionManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/live",
+    component: LiveStockManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/online",
+    component: OnlineStockManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/pos",
+    component: PosStockManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/vehicle",
+    component: VehicleStockManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/vehicles",
+    component: VehicleStockManagement,
     requiresAuth: true,
   },
   {
@@ -1765,10 +1988,25 @@ export const protectedRoutes: RouteConfig[] = [
     component: PartnerScheduledOrders,
     requiresAuth: true,
   },
+  {
+    path: "/vsms/pre-orders",
+    component: PreOrdersManagement,
+    requiresAuth: true,
+  },
   // VSMS Agent Portal Routes
   {
     path: "/vsms/agent-portal",
-    component: AgentPortalLayout,
+    component: () => <AgentPortalLayout><AgentHome /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/home",
+    component: () => <AgentPortalLayout><AgentHome /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/pre-orders",
+    component: () => <AgentPortalLayout><AgentPreOrders /></AgentPortalLayout>,
     requiresAuth: true,
   },
   {

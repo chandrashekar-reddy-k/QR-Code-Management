@@ -1,31 +1,25 @@
-// @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { Camera, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Barcode, Zap } from 'lucide-react';
 import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
 import toast from 'react-hot-toast';
 
 const BarcodeScannerOverlay = ({ onScan, onClose }) => {
-  const [status, setStatus] = useState('Initializing ZXing Scanner...');
-  const [errorMsg, setErrorMsg] = useState('');
   const [manualCode, setManualCode] = useState('');
-  const videoRef = React.useRef(null);
-  const controlsRef = React.useRef(null);
+  const [errorMsg, setErrorMsg] = useState('');
+  const videoRef = useRef(null);
+  const controlsRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
 
     const startScanner = async () => {
       try {
-        setStatus('Requesting camera permission...');
-        // First get permission to ensure we can list devices
-        const testStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        testStream.getTracks().forEach(t => t.stop());
+        const testStream = await navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment' } });
+        testStream?.getTracks().forEach(t => t.stop());
 
         if (!mounted) return;
-        setStatus('Starting high-speed scanner...');
 
-        // Configure ZXing to try harder for blurred images and support all standard formats
         const hints = new Map();
         hints.set(DecodeHintType.TRY_HARDER, true);
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -37,35 +31,26 @@ const BarcodeScannerOverlay = ({ onScan, onClose }) => {
           BarcodeFormat.EAN_8,
           BarcodeFormat.UPC_A,
           BarcodeFormat.UPC_E,
-          BarcodeFormat.ITF,
-          BarcodeFormat.RSS_14,
-          BarcodeFormat.RSS_EXPANDED,
-          BarcodeFormat.DATA_MATRIX,
           BarcodeFormat.QR_CODE
         ]);
 
         const codeReader = new BrowserMultiFormatReader(hints);
-        
-        // Get available video devices
         const videoInputDevices = await BrowserMultiFormatReader.listVideoInputDevices();
         
         let selectedDeviceId = null;
         if (videoInputDevices.length > 0) {
-          // Try to find the back camera
-          const backCamera = videoInputDevices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment'));
+          const backCamera = videoInputDevices.find(device => 
+            device.label.toLowerCase().includes('back') || 
+            device.label.toLowerCase().includes('environment')
+          );
           selectedDeviceId = backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId;
-        }
-
-        if (!selectedDeviceId) {
-          setErrorMsg('No camera devices found.');
-          return;
         }
 
         if (videoRef.current) {
           controlsRef.current = await codeReader.decodeFromVideoDevice(
             selectedDeviceId,
             videoRef.current,
-            (result, error) => {
+            (result) => {
               if (result && mounted) {
                 toast.success('Barcode scanned!');
                 onScan(result.getText());
@@ -76,16 +61,9 @@ const BarcodeScannerOverlay = ({ onScan, onClose }) => {
               }
             }
           );
-          if (mounted) setStatus('Scanning... Point at a barcode');
         }
-
       } catch (err) {
-        console.error('ZXing Scanner Error:', err);
-        if (mounted) {
-          setStatus('Scanner error');
-          setErrorMsg('Failed to start scanner. ' + (err.message || 'Please ensure camera permissions are granted.'));
-          toast.error('Failed to start high-speed scanner.');
-        }
+        console.error('Scanner init info:', err);
       }
     };
 
@@ -97,7 +75,7 @@ const BarcodeScannerOverlay = ({ onScan, onClose }) => {
         controlsRef.current.stop();
       }
     };
-  }, []);
+  }, [onScan, onClose]);
 
   const handleManualSubmit = () => {
     if (manualCode.trim()) {
@@ -107,79 +85,79 @@ const BarcodeScannerOverlay = ({ onScan, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-4">
-      <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-        {/* Header */}
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-              <Camera size={20} />
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight leading-none">Barcode Scanner</h3>
-              <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${errorMsg ? 'text-rose-500' : 'text-indigo-600'}`}>
-                {status}
-              </p>
-            </div>
-          </div>
-          <button 
+    <div className="fixed inset-0 z-[100] bg-white flex flex-col justify-between p-4 overflow-y-auto animate-fade-in">
+      <div className="max-w-[420px] mx-auto w-full space-y-6 pt-2">
+        {/* Header Bar */}
+        <div className="flex items-center gap-3 pt-1">
+          <button
             onClick={onClose}
-            className="p-3 hover:bg-rose-50 rounded-2xl text-gray-400 hover:text-rose-500 transition-all"
+            className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
           >
-            <X size={24} />
+            <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
+          <h1 className="text-lg font-black text-gray-900 tracking-tight">Barcode Scanner</h1>
         </div>
-        
-        {/* Camera viewfinder */}
-        <div className="p-6">
-          <div className="relative bg-gray-900 rounded-[2rem] overflow-hidden border-4 border-gray-50 flex items-center justify-center shadow-inner" style={{ minHeight: '280px' }}>
-            <video ref={videoRef} className="w-full h-full object-cover rounded-[1.5rem]" style={{ maxHeight: '60vh' }} />
-            {/* Scan overlay corners */}
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div className="w-[70%] h-[50%] border-2 border-indigo-500/50 rounded-xl relative">
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-indigo-500 -mt-0.5 -ml-0.5 rounded-tl-lg"></div>
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-indigo-500 -mt-0.5 -mr-0.5 rounded-tr-lg"></div>
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-indigo-500 -mb-0.5 -ml-0.5 rounded-bl-lg"></div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-indigo-500 -mb-0.5 -mr-0.5 rounded-br-lg"></div>
-                <div className="absolute top-1/2 left-0 w-full h-0.5 bg-rose-500/60 animate-bounce"></div>
-              </div>
+
+        {/* Viewfinder Card */}
+        <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-4">
+          <div className="relative bg-[#F9FAFB] rounded-2xl h-56 w-full overflow-hidden flex flex-col items-center justify-center border border-gray-100">
+            <video
+              ref={videoRef}
+              className="absolute inset-0 w-full h-full object-cover opacity-80"
+              playsInline
+              muted
+            />
+
+            {/* Green Viewfinder Frame */}
+            <div className="relative z-10 w-48 h-32 flex flex-col items-center justify-center">
+              {/* Corner brackets */}
+              <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-[#00891D] rounded-tl-md" />
+              <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-[#00891D] rounded-tr-md" />
+              <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-[#00891D] rounded-bl-md" />
+              <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-[#00891D] rounded-br-md" />
+
+              {/* Center scanline */}
+              <div className="w-36 h-0.5 bg-[#00891D]/70 rounded-full shadow-sm animate-pulse" />
             </div>
+
+            <p className="relative z-10 text-[10px] font-medium text-gray-400 mt-2">
+              Align barcode within the frame
+            </p>
           </div>
+        </div>
 
-          {/* Error message display */}
-          {errorMsg && (
-            <div className="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl">
-              <p className="text-xs text-rose-700 font-bold">{errorMsg}</p>
-            </div>
-          )}
-
-          {/* Manual barcode entry fallback */}
-          <div className="mt-4 flex gap-2">
+        {/* Enter Barcode Number Section */}
+        <div className="space-y-2 pt-2">
+          <label className="text-xs font-black text-gray-900 tracking-tight">
+            Enter Barcode Number
+          </label>
+          <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 flex items-center gap-2 focus-within:border-[#00891D] transition-colors">
+            <Barcode size={16} className="text-gray-400 shrink-0" />
             <input
               type="text"
-              placeholder="Or type barcode manually..."
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:bg-white focus:border-indigo-500 outline-none transition-all"
+              placeholder="Enter Barcode Number"
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleManualSubmit(); }}
+              className="w-full text-xs font-semibold text-gray-900 placeholder:text-gray-400 bg-transparent border-none outline-none"
             />
-            <button
-              onClick={handleManualSubmit}
-              disabled={!manualCode.trim()}
-              className="px-5 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-40"
-            >
-              Use
-            </button>
           </div>
         </div>
-        
-        {/* Footer */}
-        <div className="px-6 pb-6 text-center">
-          <button 
+
+        {/* Buttons: Cancel & Scan */}
+        <div className="flex items-center gap-3 pt-2">
+          <button
             onClick={onClose}
-            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-gray-800 transition-all active:scale-[0.98]"
+            className="w-1/3 py-3.5 bg-white border border-gray-200 rounded-2xl text-xs font-extrabold text-gray-700 hover:bg-gray-50 active:scale-98 transition-all cursor-pointer"
           >
-            Close Scanner
+            Cancel
+          </button>
+          <button
+            onClick={handleManualSubmit}
+            className="w-2/3 py-3.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Zap size={14} className="fill-white" />
+            <span>Scan</span>
           </button>
         </div>
       </div>

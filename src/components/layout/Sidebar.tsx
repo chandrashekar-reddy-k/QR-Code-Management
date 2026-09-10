@@ -31,7 +31,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     try {
       const token = localStorage.getItem('partnerToken') || sessionStorage.getItem('staffToken') || localStorage.getItem('token');
       if (!token) return;
-      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "http://localhost:4000").replace(/\/+$/, '');
+      const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "https://identity.villagkart.com").replace(/\/+$/, '');
       const res = await fetch(`${baseUrl}/api/v1/auth/me?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const data = await res.json();
@@ -133,6 +133,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           permissions.includes('shopkeeper_view')) return true;
     }
 
+    // Packing ERP fallback
+    if (slugCode === 'packing_erp' || slugCode === 'packing') {
+      return true;
+    }
+
     // Handle dynamically-coded modules (like barcode_management mapping to barcode_master)
     if (slugCode.includes("barcode")) {
       return permissions.some(p => p.toLowerCase().includes("barcode") && p.toLowerCase().includes("view"));
@@ -229,6 +234,13 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       candidates.push('shopkeeper_erp_ready_dispatch_view');
     }
 
+    if (labelPart === 'order_processing') {
+      candidates.push('partner_shopkeeper_erp_admin_view');
+      candidates.push('partner_shopkeeper_view');
+      candidates.push('partner_order_processing_view');
+      candidates.push('order_processing_view');
+    }
+
     if (labelPart === 'plm_settings') {
       candidates.push(`${portal}_${parentPart}_settings_view`);
       candidates.push(`${parentPart}_settings_view`);
@@ -283,6 +295,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       candidates.push(`partner_shopkeeper_erp_admin_${labelPart}_view`);
       candidates.push(`partner_shopkeeper_erp_${labelPart}_view`);
       candidates.push(`shopkeeper_erp_admin_${labelPart}_view`);
+    }
+
+    // Packing ERP fallback
+    if (parentPart === 'packing_erp' || parentPart === 'packing') {
+      return true;
     }
 
     return candidates.some(candidate => permissions.includes(candidate));
@@ -342,6 +359,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   // Additional config states
   const [isShopkeeperErpAdminOpen, setIsShopkeeperErpAdminOpen] = useState(
     location.pathname.startsWith('/shopkeeper-erp')
+  );
+  const [isPackingErpOpen, setIsPackingErpOpen] = useState(
+    location.pathname.startsWith('/packing-erp')
   );
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);
@@ -424,6 +444,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isLocationsOpen: setIsLocationsOpen,
       isDeliverySettingsOpen: setIsDeliverySettingsOpen,
       isShopkeeperErpAdminOpen: setIsShopkeeperErpAdminOpen,
+      isPackingErpOpen: setIsPackingErpOpen,
       isPricingOpen: setIsPricingOpen,
       isBarcodeOpen: setIsBarcodeOpen,
       isProcurementOpen: setIsProcurementOpen,
@@ -454,6 +475,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isLocationsOpen,
       isDeliverySettingsOpen,
       isShopkeeperErpAdminOpen,
+      isPackingErpOpen,
       isPricingOpen,
       isBarcodeOpen,
       isProcurementOpen,
@@ -480,6 +502,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isLocationsOpen,
       isDeliverySettingsOpen,
       isShopkeeperErpAdminOpen,
+      isPackingErpOpen,
       isPricingOpen,
       isBarcodeOpen,
       isProcurementOpen,
@@ -510,16 +533,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   ];
 
   const shopkeeperErpAdminSubItems = [
-    { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
-    { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
-    { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
-    { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
-    { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
-    { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
+    { path: '/shopkeeper-erp?tab=order-processing', label: 'Order Processing', icon: ClipboardList },
     { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-    { path: '/shopkeeper-erp?tab=all-orders', label: 'Order History', icon: History },
     { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-    { path: '/shopkeeper-erp?tab=settings', label: 'PLM Settings', icon: Settings }
+    { path: '/shopkeeper-erp?tab=settings', label: 'Storage Operations', icon: Package, permission: 'PLM Settings' }
   ];
 
   // const categorySubItems = [
@@ -606,16 +623,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   ];
 
   const shopkeeperSubItems = [
-    { path: '/shopkeeper?tab=dashboard', label: 'Dashboard', icon: Home },
-    { path: '/shopkeeper?tab=picking-queue', label: 'Picking Queue', icon: Package },
-    { path: '/shopkeeper?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
-    { path: '/shopkeeper?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle },
-    { path: '/shopkeeper?tab=self-pickup', label: 'Self Pickup', icon: Store },
-    { path: '/shopkeeper?tab=returns', label: 'Returns', icon: RotateCcw },
+    { path: '/shopkeeper?tab=order-processing', label: 'Order Processing', icon: ClipboardList },
     { path: '/shopkeeper?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-    { path: '/shopkeeper?tab=all-orders', label: 'Order History', icon: History },
-    { path: '/shopkeeper?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-    { path: '/shopkeeper?tab=settings', label: 'PLM Settings', icon: Settings }
+    { path: '/shopkeeper?tab=staff-tracker', label: 'Staff Tracker', icon: Users }
   ];
 
   const contactSubItems = [
@@ -706,13 +716,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   ];
 
   const productSubItems = [
-    { path: '/products/manage', label: 'Partner Manage Products', icon: Package },
+    { path: '/products/manage', label: 'Manage Products', icon: Package },
     { path: '/products/approve', label: 'Partner Approve Requests', icon: CheckCircle },
     { path: '/products/ratings', label: 'Partner Product Ratings', icon: Star },
     { path: '/products/media', label: 'Partner Media', icon: Film },
-    // { path: '/products/import-products', label: 'Import Products', icon: ArrowDownToLine },
-    // { path: '/products/export-products', label: 'Export Products', icon: ArrowUpFromLine },
-    // { path: '/products/order', label: 'Products Order' },
   ];
   const pricingSubItems = [
     { path: '/pricing/price-books', label: 'Price Books', icon: BookOpen },
@@ -953,6 +960,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
     setIsDeliverySettingsOpen(
       initialStateCheckers.isDeliverySettingsOpen(location.pathname)
     );
+    setIsPackingErpOpen(location.pathname.startsWith('/packing-erp'));
   }, [location.pathname]);
 
   // ============================================

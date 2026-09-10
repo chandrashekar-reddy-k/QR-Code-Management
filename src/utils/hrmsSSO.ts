@@ -7,7 +7,7 @@
  */
 
 const IDENTITY_BASE = () =>
-  (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+  (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
 
 const PARTNER_API_BASE = () =>
   (import.meta.env.VITE_URL || 'http://localhost:3004/api/v1').replace(/\/+$/, '');
@@ -48,7 +48,8 @@ async function tryRefreshToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const res = await fetch(`${PARTNER_API_BASE()}/partner/auth/refresh-token`, {
+    const identityUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000';
+    const res = await fetch(`${identityUrl}/api/v1/auth/refresh-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),

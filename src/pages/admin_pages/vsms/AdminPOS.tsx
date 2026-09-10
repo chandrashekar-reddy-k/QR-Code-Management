@@ -579,8 +579,18 @@ export default function AdminPOS() {
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase()));
+      // Must be present in PosStoreStock and enabled for POS
+      const isPos = p.isPosEnabled !== undefined
+        ? p.isPosEnabled
+        : (p.isPos !== undefined
+          ? p.isPos
+          : (p.posStoreStock?.isPosEnabled !== undefined ? p.posStoreStock.isPosEnabled : false));
+
+      if (!isPos) return false;
+
+      const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesCategory = selectedCategory === 'ALL' || p.category?.name === selectedCategory;
       return matchesSearch && matchesCategory;
     });

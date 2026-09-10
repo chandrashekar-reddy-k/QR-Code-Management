@@ -136,6 +136,11 @@ export const useUserStore = create(
           normalizedRole === 'TENANT_OWNER' ||
           normalizedRole === 'PARTNER' ||
           normalizedRole === 'SHOPKEEPER' ||
+          normalizedRole === 'VSMS_AGENT' ||
+          normalizedRole === 'SALES_AGENT' ||
+          normalizedRole === 'VEHICLE_AGENT' ||
+          normalizedRole === 'DELIVERY_AGENT' ||
+          normalizedRole.endsWith('_AGENT') ||
           hasPartner ||
           hasShopkeeper ||
           (normalizedRole === 'ADMIN' && !user.customRoleId) ||

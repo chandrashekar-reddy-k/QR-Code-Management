@@ -21,23 +21,24 @@ input[type="number"] {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
-/* Prevent body overflow */
+/* Typography & Universal Font */
+*,
+*::before,
+*::after,
+html,
+body,
+#root,
+input,
+button,
+select,
+textarea {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", sans-serif !important;
+}
+
 html,
 body {
   overflow-x: hidden;
   height: 100%;
-  font-family:
-    "Segoe UI",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Roboto",
-    "Oxygen",
-    "Ubuntu",
-    "Cantarell",
-    "Fira Sans",
-    "Droid Sans",
-    "Helvetica Neue",
-    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -45,18 +46,18 @@ body {
 #root {
   height: 100%;
   overflow-x: hidden;
-  font-family:
-    "Segoe UI",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Roboto",
-    "Oxygen",
-    "Ubuntu",
-    "Cantarell",
-    "Fira Sans",
-    "Droid Sans",
-    "Helvetica Neue",
-    sans-serif;
+}
+
+/* Headings Specification */
+h1,
+.page-heading,
+.screen-heading {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 20px !important;
+  line-height: 39px !important;
+  letter-spacing: 0px !important;
+  vertical-align: middle !important;
 }
 
 /* Modern Scrollbar Styles */

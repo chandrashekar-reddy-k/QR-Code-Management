@@ -10,20 +10,14 @@ import {
   Settings,
   Percent,
   MapPin,
-  Navigation,
-  Building2,
   Phone,
   Info,
-  FileText,
-  Shield,
   Upload,
   RefreshCw,
   Film,
   Users,
   Boxes,
   ClipboardList,
-  Bell,
-  UserCheck,
   Wallet,
   DollarSign,
   Sliders,
@@ -35,25 +29,22 @@ import {
   ShoppingBag,
   Map,
   Calendar,
-  Car,
-  Star as StarIcon,
   AlertTriangle,
   ScanLine,
   Printer,
   Receipt,
-  Database,
-  ArrowRightLeft,
-  Wrench,
-  HelpCircle,      // ← ADD
-  BookOpen,   // ← ADD
-  History,
-  RotateCcw,
-  CheckCircle,
+  BookOpen,
   Link2,
   Banknote,
+  Smartphone,
+  CheckCircle,
+  Database,
+  FileText,
+  ArrowRightLeft,
+  Shield,
+  RotateCcw,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
-
 
 // Menu item types
 export interface MenuItem {
@@ -173,14 +164,10 @@ export const initialStateCheckers = {
     pathname.startsWith("/scheduled-delivery"),
   isVsmsOpen: (pathname: string) =>
     pathname.startsWith("/vsms") && !pathname.startsWith("/vsms/assets"),
-  isAssetsOpen: (pathname: string) =>
-    pathname.startsWith("/vsms/assets"),
-  isProcurementOpen: (pathname: string) =>
-    pathname.startsWith("/procurement"),
-  isPricingOpen: (pathname: string) =>
-    pathname.startsWith("/pricing"),
-  isBarcodeOpen: (pathname: string) =>
-    pathname.startsWith("/vsms/barcodes"),
+  isAssetsOpen: (pathname: string) => pathname.startsWith("/vsms/assets"),
+  isProcurementOpen: (pathname: string) => pathname.startsWith("/procurement"),
+  isPricingOpen: (pathname: string) => pathname.startsWith("/pricing"),
+  isBarcodeOpen: (pathname: string) => pathname.startsWith("/vsms/barcodes"),
   isRouteManagementOpen: (pathname: string) =>
     pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage",
   isVehicleManagementOpen: (pathname: string) =>
@@ -209,8 +196,12 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isRouteManagementOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/vsms/vehicles', label: 'Fleet Vehicles', icon: Truck },
-      { path: '/vsms/routes-coverage', label: 'Routes & Coverage', icon: MapPin },
+      { path: "/vsms/vehicles", label: "Fleet Vehicles", icon: Truck },
+      {
+        path: "/vsms/routes-coverage",
+        label: "Routes & Coverage",
+        icon: MapPin,
+      },
     ],
   },
 
@@ -239,7 +230,6 @@ export const sidebarConfig: MenuSection[] = [
     ],
   },
 
-
   // Vehicle Management
   {
     type: "collapsible",
@@ -249,8 +239,12 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isVehicleManagementOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
-      { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
+      {
+        path: "/vsms/fuel-maintenance",
+        label: "Fuel & Maintenance",
+        icon: RefreshCw,
+      },
+      { path: "/vsms/damages", label: "Vehicle Damages", icon: AlertTriangle },
     ],
   },
 
@@ -283,6 +277,7 @@ export const sidebarConfig: MenuSection[] = [
         label: "Refunds",
         icon: Banknote,
       },
+      { path: '/vsms/pre-orders', label: 'Pre-Orders', icon: Package },
       { path: '/vsms/scheduled-deliveries', label: 'Scheduled Deliveries', icon: ShoppingBag },
       { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
       { path: '/inventory/monitoring/reservations', label: 'Reservations', icon: Clock },
@@ -323,7 +318,12 @@ export const sidebarConfig: MenuSection[] = [
     hasSubPermissions: true,
     activeCheck: activeCheckers.isProductActive,
     subItems: [
-      { path: "/products/manage", label: "Manage Products", icon: Package, activeCheck: activeCheckers.isManageProductsActive },
+      {
+        path: "/products/manage",
+        label: "Manage Products",
+        icon: Package,
+        activeCheck: activeCheckers.isManageProductsActive,
+      },
       { path: "/products/bundles", label: "Bundle Deals", icon: Tag },
       { path: "/marketing/promos", label: "Homepage Promos", icon: Percent },
       { path: "/products/media", label: "Media", icon: Film },
@@ -344,10 +344,40 @@ export const sidebarConfig: MenuSection[] = [
     label: "Inventory Management",
     icon: Boxes,
     stateKey: "isInventoryManagementOpen",
-    hasSubPermissions: true,
+    hasSubPermissions: false,
     subItems: [
-      { path: '/vsms/stock-history', label: 'Vehicle Stock & Audits', icon: Boxes },
-      { path: '/stock', label: 'Stock Management', icon: Boxes },
+      {
+        path: "/inventory/storeroom",
+        label: "Store-Room (Inward)",
+        icon: Store,
+      },
+      {
+        path: "/inventory/production",
+        label: "Production & Packing",
+        icon: Package,
+      },
+      {
+        path: "/inventory/live",
+        label: "Live Stock (Channels)",
+        icon: CheckCircle,
+      },
+      {
+        path: "/inventory/online",
+        label: "Online (Customer App)",
+        icon: Smartphone,
+      },
+      { path: "/inventory/pos", label: "Store POS Stock", icon: ScanLine },
+      {
+        path: "/inventory/vehicle",
+        label: "Vehicle Stock Management",
+        icon: Truck,
+      },
+      {
+        path: "/vsms/stock-history",
+        label: "Vehicle Stock & Audits",
+        icon: Boxes,
+      },
+      { path: "/stock", label: "Stock Management", icon: Boxes },
     ],
   },
   // kjsghjkdsfhgk
@@ -393,8 +423,8 @@ export const sidebarConfig: MenuSection[] = [
     permission: "Partner: My Category Management",
     label: "My Category Management",
     icon: Tag, // Or any icon you prefer
-    stateKey: "isMyCategoryManagementOpen",  // Use this stateKey to manage open/close
-    activeCheck: activeCheckers.isMyCategoryManagementActive,  // Use the active state check
+    stateKey: "isMyCategoryManagementOpen", // Use this stateKey to manage open/close
+    activeCheck: activeCheckers.isMyCategoryManagementActive, // Use the active state check
     subItems: [
       { path: "/my-categories", label: "My Categories", icon: Tag },
       { path: "/my-sub-categories", label: "My Sub Categories", icon: Tag },
@@ -408,17 +438,50 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isShopkeeperErpAdminOpen",
     hasSubPermissions: true,
     subItems: [
-      { path: '/shopkeeper-erp?tab=dashboard', label: 'Dashboard', icon: Home },
-      { path: '/shopkeeper-erp?tab=picking-queue', label: 'Picking Queue', icon: Package },
-      { path: '/shopkeeper-erp?tab=packing-queue', label: 'Packing Queue', icon: Boxes },
-      { path: '/shopkeeper-erp?tab=ready-orders', label: 'Ready for Dispatch', icon: CheckCircle, permission: 'Packing Queue' },
-      { path: '/shopkeeper-erp?tab=self-pickup', label: 'Self Pickup', icon: Store },
-      { path: '/shopkeeper-erp?tab=returns', label: 'Returns', icon: RotateCcw },
-      { path: '/shopkeeper-erp?tab=sla-monitoring', label: 'SLA Monitoring', icon: BarChart3 },
-      { path: '/shopkeeper-erp?tab=orderhistory', label: 'Order History', icon: History },
-      { path: '/shopkeeper-erp?tab=staff-tracker', label: 'Staff Tracker', icon: Users },
-      { path: '/shopkeeper-erp?tab=settings', label: 'PLM Settings', icon: Settings }
-    ]
+      {
+        path: "/shopkeeper-erp?tab=order-processing",
+        label: "Order Processing",
+        icon: ClipboardList,
+      },
+      {
+        path: "/shopkeeper-erp?tab=sla-monitoring",
+        label: "SLA Monitoring",
+        icon: BarChart3,
+      },
+      {
+        path: "/shopkeeper-erp?tab=staff-tracker",
+        label: "Staff Tracker",
+        icon: Users,
+      },
+      {
+        path: "/shopkeeper-erp?tab=settings",
+        label: "Storage Operations",
+        icon: Package,
+        permission: "PLM Settings",
+      },
+    ],
+  },
+  {
+    type: "collapsible",
+    permission: "Partner: Packing ERP",
+    label: "Packing",
+    icon: Boxes,
+    stateKey: "isPackingErpOpen",
+    activeCheck: (pathname: string) => pathname.startsWith("/packing-erp"),
+    subItems: [
+      { path: "/packing-erp/dashboard", label: "Dashboard", icon: Home },
+      { path: "/packing-erp/master-data", label: "Master Data", icon: Database },
+      { path: "/packing-erp/product-bom", label: "Product BOM", icon: ClipboardList },
+      { path: "/packing-erp/work-orders", label: "Work Orders", icon: FileText },
+      { path: "/packing-erp/approvals", label: "Approvals", icon: CheckCircle },
+      { path: "/packing-erp/material-issue", label: "Material Issue", icon: ArrowRightLeft },
+      { path: "/packing-erp/packing-execution", label: "Packing Execution", icon: Package },
+      { path: "/packing-erp/barcodes-labels", label: "Barcodes & Labels", icon: ScanLine },
+      { path: "/packing-erp/quality-check", label: "Quality Check", icon: Shield },
+      { path: "/packing-erp/finished-goods", label: "Finished Goods", icon: Boxes },
+      { path: "/packing-erp/repacking", label: "Repacking", icon: RotateCcw },
+      { path: "/packing-erp/reports", label: "Reports", icon: BarChart3 },
+    ],
   },
   // Reservations moved into Order Management
   // {
@@ -439,7 +502,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/pricing/price-books", label: "Price Books", icon: BookOpen },
       { path: "/pricing/product-pricing", label: "Product Pricing", icon: Tag },
       // { path: "/pricing/price-comparison", label: "Price Comparison", icon: BarChart3 }
-    ]
+    ],
   },
 
   {
@@ -451,8 +514,16 @@ export const sidebarConfig: MenuSection[] = [
     hasSubPermissions: true,
     activeCheck: (pathname: string) => pathname.startsWith("/vsms/barcodes"),
     subItems: [
-      { path: '/vsms/barcodes?tab=master', label: 'Barcode Master', icon: ScanLine },
-      { path: '/vsms/barcodes?tab=printing', label: 'Barcode Printing', icon: Printer },
+      {
+        path: "/vsms/barcodes?tab=master",
+        label: "Barcode Master",
+        icon: ScanLine,
+      },
+      {
+        path: "/vsms/barcodes?tab=printing",
+        label: "Barcode Printing",
+        icon: Printer,
+      },
     ],
   },
 
@@ -500,15 +571,30 @@ export const sidebarConfig: MenuSection[] = [
     subItems: [
       { path: "/procurement?tab=vendors", label: "Vendors", icon: Users },
       { path: "/procurement?tab=mapping", label: "Item Mapping", icon: Link2 },
-      { path: "/procurement?tab=po", label: "Purchase Orders", icon: ClipboardList },
+      {
+        path: "/procurement?tab=po",
+        label: "Purchase Orders",
+        icon: ClipboardList,
+      },
       { path: "/procurement?tab=grn", label: "Goods Receipt", icon: Truck },
-      { path: "/procurement?tab=purchases", label: "Purchases", icon: ShoppingCart },
-      { path: "/procurement?tab=ledger", label: "Stock Ledger", icon: BookOpen },
-      { path: "/procurement?tab=payments", label: "Payments", icon: CreditCard },
+      {
+        path: "/procurement?tab=purchases",
+        label: "Purchases",
+        icon: ShoppingCart,
+      },
+      {
+        path: "/procurement?tab=ledger",
+        label: "Stock Ledger",
+        icon: BookOpen,
+      },
+      {
+        path: "/procurement?tab=payments",
+        label: "Payments",
+        icon: CreditCard,
+      },
       { path: "/procurement?tab=reports", label: "Reports", icon: BarChart3 },
     ],
   },
-
 
   // {
   //   type: "collapsible",
@@ -527,12 +613,6 @@ export const sidebarConfig: MenuSection[] = [
   //     { path: "/vendors/policies", label: "Vendors Policies", icon: FileText },
   //   ],
   // },
-
-
-
-
-
-
 
   // Point of Sales
   // {
@@ -563,8 +643,6 @@ export const sidebarConfig: MenuSection[] = [
   //   icon: Wallet,
   // },
 
-
-
   // // REPORTS Section
   // {
   //   type: "section",
@@ -590,7 +668,6 @@ export const sidebarConfig: MenuSection[] = [
   //     { path: "/reports/pos-reports", label: "POS Reports", icon: BarChart3 },
   //   ],
   // },
-
 
   // {
   //   type: "collapsible",

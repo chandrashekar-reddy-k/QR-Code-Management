@@ -36,7 +36,6 @@ export function usePartnerRealtimeSocket() {
       localStorage.getItem('staffWarehouseId') ||
       sessionStorage.getItem('staffWarehouseId') ||
       undefined
-
     if (!warehouseId) {
       console.warn(
         '[PartnerRealtime] warehouseId missing on user — subscribe skipped; partner warehouse socket updates disabled until re-login.'

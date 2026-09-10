@@ -1656,14 +1656,20 @@ export default function AdminRoutes() {
                     vehicleId: u?.assignedVehicleId || ''
                   });
                 }}>
-                  <option value="">Select Agent</option>
-                  {users.filter(u => u.storeId === storeId || !u.storeId).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  <option value="">Select Agent (Assigned Vehicle)</option>
+                  {users
+                    .filter(u => (u.storeId === storeId || !u.storeId) && u.assignedVehicleId)
+                    .map(u => {
+                      const vehicle = vehicles.find(v => v.id === u.assignedVehicleId);
+                      const vehicleLabel = vehicle?.vehicleNumber || u.assignedVehicle?.vehicleNumber || 'Vehicle Assigned';
+                      return (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({vehicleLabel})
+                        </option>
+                      );
+                    })}
                 </select>
               </div>
-
-              {assignmentForm.userId && !users.find(u => u.id === assignmentForm.userId)?.assignedVehicleId && (
-                <p className="text-rose-500 text-xs font-bold px-2">This agent is not assigned to any vehicle.</p>
-              )}
 
               {assignmentForm.routeId && (() => {
                 const selectedRoute = routes.find(r => r.id === assignmentForm.routeId);

@@ -33,8 +33,8 @@ api.interceptors.response.use(
       
       if (refreshToken) {
         try {
-          const cleanBaseURL = api.defaults.baseURL.replace(/\/$/, '');
-          const res = await axios.post(`${cleanBaseURL}/partner/auth/refresh-token`, {
+          const identityBaseUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000';
+          const res = await axios.post(`${identityBaseUrl}/api/v1/auth/refresh-token`, {
             refreshToken
           });
           if (res.data?.data?.accessToken) {

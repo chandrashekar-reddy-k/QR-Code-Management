@@ -37,6 +37,9 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
   // Delivery Settings routes are accessible if user has any delivery management access
   if (pathname.startsWith('/delivery-settings/')) return true;
 
+  // Packing ERP routes are allowed during integration phase
+  if (pathname.startsWith('/packing-erp/') || pathname === '/packing-erp' || pathname.startsWith('/packer/')) return true;
+
   let targetItem: any = null;
   let parentCollapsible: any = null;
 
@@ -203,6 +206,13 @@ const isRouteAllowed = (pathname: string, permissions: string[]) => {
       candidates.push('shopkeeper_erp_ready_dispatch_view');
     }
 
+    if (labelPart === 'order_processing') {
+      candidates.push('partner_shopkeeper_erp_admin_view');
+      candidates.push('partner_shopkeeper_view');
+      candidates.push('partner_order_processing_view');
+      candidates.push('order_processing_view');
+    }
+
     if (labelPart === 'plm_settings') {
       candidates.push(`${portal}_${parentPart}_settings_view`);
       candidates.push(`${parentPart}_settings_view`);
@@ -304,8 +314,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   const isShopkeeperPortal = location.pathname.startsWith('/shopkeeper') && !location.pathname.startsWith('/shopkeeper-erp');
   const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
-  const isStaffPortal = isShopkeeperPortal || isAgentPortal;
-  const token = sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token');
+  const isPackerOperatorPortal = location.pathname.startsWith('/packer/operator') || location.pathname.startsWith('/packer');
+  const isStaffPortal = isShopkeeperPortal || isAgentPortal || isPackerOperatorPortal;
+  const token = isStaffPortal ? (sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token')) : localStorage.getItem('partnerToken');
 
   const [securityVerified, setSecurityVerified] = useState(true);
 
@@ -319,7 +330,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Parse user details
   let user: any = null;
   try {
-    const userStr = sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user');
+    const userStr = isStaffPortal
+      ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user'))
+      : (localStorage.getItem('partnerUser') || localStorage.getItem('user'));
     user = userStr ? JSON.parse(userStr) : null;
   } catch (e) { }
 
@@ -348,8 +361,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Parse user role from storage
   let role = "";
+  let userEmailOrName = "";
   try {
-    role = user?.role || user?.customRole?.portalType || user?.customRole?.name || user?.customRole?.code || "";
+    const userStr = (isShopkeeperPortal || isPackerOperatorPortal) ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user')) : (localStorage.getItem('partnerUser') || localStorage.getItem('user'));
+    const userObj = userStr ? JSON.parse(userStr) : null;
+    role = userObj?.role || userObj?.customRole?.portalType || userObj?.customRole?.name || userObj?.customRole?.code || "";
+    userEmailOrName = ((userObj?.email || userObj?.name || userObj?.phone || "") as string).toLowerCase();
   } catch (e) { }
 
   const hasAgentPermissions = permissions.some((p: string) => p.startsWith("vsms_agent_") || p.includes("vehicle_agent"));
@@ -375,17 +392,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const customRolePortalType = (user?.customRole?.portalType || user?.customRole?.type || "").toString().toUpperCase();
   const customRoleNameUpper = (user?.customRole?.name || user?.customRole?.code || "").toString().toUpperCase();
 
-  const isExplicitShopkeeperRole =
-    roleUpper.includes("SHOPKEEPER") ||
-    customRolePortalType.includes("SHOPKEEPER") ||
-    customRoleNameUpper.includes("SHOPKEEPER") ||
-    sessionStorage.getItem('portalMode') === 'SHOPKEEPER';
-
   const isExplicitPartnerRole =
     roleUpper.includes("PARTNER") ||
     roleUpper.includes("ADMIN") ||
+    customRolePortalType.includes("PARTNER") ||
+    customRoleNameUpper.includes("PARTNER") ||
     sessionStorage.getItem('portalMode') === 'PARTNER' ||
     hasPartnerPermissions;
+
+  const isExplicitShopkeeperRole =
+    !isExplicitPartnerRole && (
+      roleUpper.includes("SHOPKEEPER") ||
+      customRolePortalType.includes("SHOPKEEPER") ||
+      customRoleNameUpper.includes("SHOPKEEPER") ||
+      sessionStorage.getItem('portalMode') === 'SHOPKEEPER'
+    );
 
   const isShopkeeperRole = !isExplicitPartnerRole && (isExplicitShopkeeperRole || (hasShopkeeperPermissions && !hasPartnerPermissions));
 
@@ -405,6 +426,42 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
 
   const isAgentRole = (hasAgentPermissions || isExplicitAgent) && !isShopkeeperRole && !isExplicitPartnerRole;
+
+  const isPackerOperatorRole = 
+    ["PACKING_OPERATOR", "PACKER_OPERATOR", "OPERATOR", "PACKER"].includes(role.toUpperCase()) ||
+    userEmailOrName.includes('operator') ||
+    userEmailOrName.includes('packer') ||
+    userEmailOrName.includes('packing') ||
+    permissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"));
+
+  const isPackerQcRole = 
+    ["PACKING_QC", "PACKER_QC", "QC_INSPECTOR", "QC"].includes(role.toUpperCase()) ||
+    userEmailOrName.includes('qc') ||
+    userEmailOrName.includes('inspector') ||
+    userEmailOrName.includes('checker') ||
+    permissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"));
+
+  if (isPackerOperatorRole) {
+    if (!location.pathname.startsWith('/packer/operator')) {
+      return <Navigate to="/packer/operator/dashboard" replace />;
+    }
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  if (isPackerQcRole) {
+    if (!location.pathname.startsWith('/packer/qc')) {
+      return <Navigate to="/packer/qc/dashboard" replace />;
+    }
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
+  }
 
   if (isAgentRole) {
     if (!isAgentPortal) {
@@ -428,6 +485,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!isShopkeeperPortal) {
       return <Navigate to="/shopkeeper" replace />;
     }
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  if (isPackerOperatorPortal) {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>{children}</Suspense>

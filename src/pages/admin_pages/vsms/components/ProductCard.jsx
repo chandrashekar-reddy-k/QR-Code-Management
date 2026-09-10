@@ -73,13 +73,22 @@ export default function ProductCard({ product }) {
 
 
         {product.image ? (
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700" />
-        ) : (
-          <div className="flex flex-col items-center gap-1 text-slate-300">
-            <Package size={32} strokeWidth={1.5} />
-            <span className="text-[8px] font-black uppercase">VillagKart</span>
-          </div>
-        )}
+          <img 
+            src={product.image} 
+            alt={product.name} 
+            className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              if (e.currentTarget.nextElementSibling) {
+                e.currentTarget.nextElementSibling.style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <div className={`flex flex-col items-center gap-1 text-slate-300 ${product.image ? 'hidden' : 'flex'}`}>
+          <Package size={32} strokeWidth={1.5} />
+          <span className="text-[8px] font-black uppercase">VillagKart</span>
+        </div>
       </div>
 
       {/* Product Content */}

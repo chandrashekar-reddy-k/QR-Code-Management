@@ -13,8 +13,9 @@ export default function AgentLayout() {
   const [hasPunchedIn, setHasPunchedIn] = useState(false);
   const [checkingAttendance, setCheckingAttendance] = useState(true);
 
-  // Only gate SALES_AGENT or VEHICLE_AGENT role
-  const isAgent = user?.role === 'SALES_AGENT' || user?.role === 'VEHICLE_AGENT';
+  // Only gate SALES_AGENT, VEHICLE_AGENT, VSMS_AGENT, DELIVERY_AGENT roles
+  const roleUpper = (user?.role || '').toUpperCase();
+  const isAgent = roleUpper === 'SALES_AGENT' || roleUpper === 'VEHICLE_AGENT' || roleUpper === 'VSMS_AGENT' || roleUpper === 'DELIVERY_AGENT' || roleUpper.endsWith('_AGENT');
 
   useEffect(() => {
     if (!isAgent) {

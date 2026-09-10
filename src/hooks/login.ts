@@ -74,19 +74,32 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
     mutationFn: (payload: LoginPayload) => {
       const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "https://identity.villagkart.com").replace(/\/+$/, '');
       const identityServiceUrl = `${baseUrl}/api/v1/auth/login`;
-      return fetch(identityServiceUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          identifier: payload.identifier,
-          password: payload.password,
-          portal: "partner"
-        })
-      }).then(async (res) => {
+      
+      const attemptLogin = async (portal?: string) => {
+        const res = await fetch(identityServiceUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            identifier: payload.identifier,
+            password: payload.password,
+            ...(portal ? { portal } : {})
+          })
+        });
         const data = await res.json();
+        return { res, data };
+      };
+
+      return attemptLogin("partner").then(async ({ res, data }) => {
         if (!res.ok) {
+          // If access was denied due to agent role, retry without portal restriction
+          if (res.status === 401 && data?.message?.includes("Delivery Agent")) {
+            const retry = await attemptLogin("vsms");
+            if (retry.res.ok) {
+              return formatLoginSuccess(retry.data);
+            }
+          }
           throw new Error(data.message || "Login failed");
         }
         return formatLoginSuccess(data);
@@ -158,7 +171,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem('permissions', JSON.stringify(permissions));
 
-        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'SALES_AGENT', 'VSMS_AGENT'].includes(user.role?.toUpperCase());
+        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'SALES_AGENT', 'VSMS_AGENT', 'PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER', 'PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR'].includes(user.role?.toUpperCase());
         if (isStaffRole) {
           sessionStorage.setItem("staffToken", data.data.accessToken);
           sessionStorage.setItem("staffRefreshToken", data.data.refreshToken);

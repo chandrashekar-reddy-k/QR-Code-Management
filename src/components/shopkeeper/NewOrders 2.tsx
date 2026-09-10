@@ -51,6 +51,10 @@ const getRecentOrderTime = (order: any): number => {
 };
 
 export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProps) {
+  if (!isAdmin) {
+    return <MobileNewOrders onNavigate={onNavigate} onBack={onBack} />;
+  }
+
   const { orders: sharedOrders, loading: sharedLoading } = useSharedOrders();
 
   // State for filters
@@ -61,10 +65,6 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
   const [searchTerm, setSearchTerm] = useState("");
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isAdmin) {
-    return <MobileNewOrders onNavigate={onNavigate} onBack={onBack} />;
-  }
-
   const handleResetFilters = () => {
     setStatusFilter("");
     setDateRangeType("today");
@@ -73,10 +73,10 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
     setSearchTerm("");
   };
 
-  // Filter orders (new, placed, assigned, confirmed statuses)
+  // Filter orders (new, pending, placed, assigned statuses)
   const orders = sharedOrders.filter((o: any) => {
     const s = o.status?.toLowerCase();
-    return s === 'new' || s === 'placed' || s === 'assigned' || s === 'confirmed';
+    return s === 'new' || s === 'pending' || s === 'placed' || s === 'assigned' || s === 'confirmed';
   });
 
   const filteredOrders = orders.filter((order) => {
@@ -235,7 +235,6 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
                       try {
                         dateInputRef.current?.showPicker();
                       } catch (err) {
-                        console.warn("showPicker failed, falling back to focus/click:", err);
                         dateInputRef.current?.focus();
                         dateInputRef.current?.click();
                       }

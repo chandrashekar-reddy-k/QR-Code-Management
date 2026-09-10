@@ -89,12 +89,8 @@ const refreshAccessToken = async (): Promise<string> => {
     throw new Error('No refresh token available');
   }
 
-  const baseUrl = URL;
-  if (!baseUrl) {
-    throw new Error('Base URL not configured');
-  }
-
-  const fullUrl = `${baseUrl.replace(/\/$/, '')}/partner/auth/refresh-token`;
+  const identityBaseUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000';
+  const fullUrl = `${identityBaseUrl.replace(/\/$/, '')}/api/v1/auth/refresh-token`;
   console.log('[AUTH] Calling refresh-token API:', fullUrl);
 
   const response = await fetch(fullUrl, {
