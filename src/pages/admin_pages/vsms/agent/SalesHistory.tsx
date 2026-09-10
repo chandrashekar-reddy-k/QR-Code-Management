@@ -266,25 +266,25 @@ export default function SalesHistory() {
                 {/* Order Info */}
                 <div className="flex-1 min-w-0 space-y-0.5">
                   <h4 className="text-sm font-black text-gray-900 truncate">
-                    {custName}
+                    {order.customerName || custName || 'Walk-in'}
                   </h4>
                   <p className="text-[10px] font-bold text-gray-400 truncate">
-                    #{displayId}
+                    #{order.displayId || displayId || 'SO-00'}
                   </p>
                   <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-400">
                     <Calendar size={11} />
-                    <span>{dateStr}</span>
+                    <span>{dateStr || (order.createdAt ? format(new Date(order.createdAt), 'dd MMM yyyy • hh:mm a') : '')}</span>
                   </div>
                 </div>
 
-                {/* Right Side: Completed Badge & Price */}
+                {/* Right Side: Status Badge & Price */}
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-[10px] font-black text-[#00891D] bg-[#E8F5E9] px-2.5 py-0.5 rounded-full uppercase">
                       {order.status || 'COMPLETED'}
                     </span>
                     <span className="text-base font-black text-gray-900">
-                      ₹{Number(order.totalAmount || order.amount || 261).toFixed(2)}
+                      ₹{Math.round(order.totalAmount || order.amount || 0)}
                     </span>
                   </div>
                   <ChevronRight size={16} className="text-gray-300 shrink-0 ml-0.5" />

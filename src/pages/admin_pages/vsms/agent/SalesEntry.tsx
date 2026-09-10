@@ -34,21 +34,15 @@ export default function SalesEntry() {
   const searchRef = useRef(null);
   const navigate = useNavigate();
 
-  // Load products on mount (don't wait for user — it loads async)
+  // Load products when component mounts or user details are updated
   useEffect(() => {
-    loadProducts();
     fetchSettings();
-  }, []);
-
-  // Re-load products when user profile is fetched (to apply vehicleId filter)
-  useEffect(() => {
     if (user) {
       checkCashStatus();
       loadPlan();
-      // Only reload if user has a vehicle (to get vehicle-specific stock)
-      if (user.assignedVehicleId || user.assignedVehicle?.id) {
-        loadProducts();
-      }
+      loadProducts(user);
+    } else {
+      loadProducts(null);
     }
   }, [user?.id, user?.assignedVehicleId]);
 
@@ -101,17 +95,34 @@ export default function SalesEntry() {
     }
   };
 
-  const loadProducts = async () => {
+  const loadProducts = async (currentUser) => {
     try {
+      setLoading(true);
+      const targetUser = currentUser || user;
+      let vehicleId = targetUser?.assignedVehicleId || targetUser?.assignedVehicle?.id;
+
+      if (!vehicleId) {
+        try {
+          const meRes = await authAPI.me();
+          const meData = meRes.data?.data || meRes.data;
+          vehicleId = meData?.assignedVehicleId || meData?.assignedVehicle?.id;
+        } catch (e) {
+          console.warn('Could not fetch user me for vehicleId', e);
+        }
+      }
+
       const params = {};
-      const vehicleId = user?.assignedVehicleId || user?.assignedVehicle?.id;
       if (vehicleId) {
         params.vehicleId = vehicleId;
       }
 
       const { data } = await productsAPI.getAll(params);
-      setProducts(data);
-      setFiltered(data);
+      const rawProducts = Array.isArray(data)
+        ? data
+        : (data?.data?.products || data?.products || data?.data || []);
+
+      setProducts(rawProducts);
+      setFiltered(rawProducts);
     } catch (err) {
       console.error('Failed to load products', err);
       toast.error('Failed to load vehicle stock');
@@ -295,14 +306,13 @@ export default function SalesEntry() {
                 </p>
               </div>
             </div>
-
             <button
               type="button"
               onClick={() => setCartOpen(true)}
-              className="px-4 py-2.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-black shadow-sm active:scale-98 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-3 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-black shadow-sm active:scale-98 transition-all flex items-center gap-2 cursor-pointer"
             >
               <span>Review Cart</span>
-              <span>→</span>
+              <span className="font-black text-sm tracking-tighter">₹{Math.round(totalAmount)} →</span>
             </button>
           </div>
         </div>
@@ -353,7 +363,7 @@ export default function SalesEntry() {
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white rounded-[2rem] p-6 w-full max-w-sm text-center shadow-2xl animate-in zoom-in-95">
             <h3 className="text-xl font-black text-gray-900 mb-1">{scannedProduct.name}</h3>
-            <p className="text-xs text-emerald-600 font-bold mb-6">Price: ₹{scannedProduct.price} • Stock: {scannedProduct.stock}</p>
+            <p className="text-xs text-emerald-600 font-bold mb-6">Price: ₹{Math.round(scannedProduct.price)} • Stock: {scannedProduct.stock}</p>
 
             <div className="flex items-center justify-center gap-6 mb-8">
               <button

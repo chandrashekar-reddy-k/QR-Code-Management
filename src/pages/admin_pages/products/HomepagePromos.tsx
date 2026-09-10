@@ -256,7 +256,7 @@ export default function HomepagePromos() {
       payload = { price: priceFloat, flashDealEnd: flashDealEndVal };
       if (hasMrp) payload.mrp = mrpFloat;
     } else if (activeTab === 'offers') {
-      payload = { mrp: mrpFloat, price: priceFloat, isFeatured: promoForm.isFeatured };
+      payload = { mrp: mrpFloat, price: priceFloat, isFeatured: promoForm.isFeatured, discountType: 'OFFER' };
     } else {
       payload = { price: priceFloat, isFeatured: promoForm.isFeatured };
     }
@@ -336,21 +336,16 @@ export default function HomepagePromos() {
     } else if (activeTab === 'flash') {
       return p.flashDealEnd && new Date(p.flashDealEnd) > new Date();
     } else {
-      return p.mrp && p.mrp > p.price && (!p.flashDealEnd || new Date(p.flashDealEnd) <= new Date());
+      return Boolean(
+        (p.mrp && Number(p.mrp) > Number(p.price) && (!p.flashDealEnd || new Date(p.flashDealEnd) <= new Date())) ||
+        p.discountType === 'OFFER' ||
+        (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => ['offer', 'offers', 'deal', 'deals'].includes(String(t).toLowerCase())))
+      );
     }
   });
 
-  const nonPromotedProducts = products.filter(p => {
-    if (activeTab === 'popular') {
-      return !p.isFeatured;
-    } else if (activeTab === 'weekly') {
-      return !p.tags?.includes('weekly');
-    } else if (activeTab === 'flash') {
-      return !p.flashDealEnd || new Date(p.flashDealEnd) <= new Date();
-    } else {
-      return !p.mrp || p.mrp <= p.price;
-    }
-  });
+  const promotedIds = new Set(filteredProducts.map(p => p.id));
+  const nonPromotedProducts = products.filter(p => !promotedIds.has(p.id));
 
   return (
     <div className="p-8 min-h-screen bg-gray-50/50 dark:bg-gray-955/20 text-gray-900 dark:text-gray-100 animate-fadeIn">

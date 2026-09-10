@@ -126,7 +126,7 @@ const LoadingSection = ({
         <tbody className="divide-y divide-gray-50">
           {itemsToRender.map((item) => {
             const qty = parseFloat(stockQuantities[item.id]) || 0;
-            const price = parseFloat(item.price) || 0;
+            const price = parseFloat(item.sellingPrice ?? item.price ?? item.selling_price ?? 0) || 0;
             const displayAmount = qty * price;
             return (
               <tr key={`load-table-${item.id}`} className={`hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group ${isFreeGroup ? 'bg-emerald-50/10' : ''}`}>
@@ -150,7 +150,7 @@ const LoadingSection = ({
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-center">
-                  <span className="text-[10px] font-bold text-gray-500">₹{price}</span>
+                  <span className="text-[10px] font-bold text-gray-500">₹{Math.round(price)}</span>
                 </td>
                 <td className="px-3 py-2.5 bg-emerald-50/5">
                   <div className="flex items-center justify-center gap-3">
@@ -193,7 +193,7 @@ const LoadingSection = ({
                 </td>
                 <td className="pr-4 py-2.5 text-right">
                   <span className={`text-[10px] font-bold ${qty > 0 ? 'text-emerald-700' : 'text-gray-300'}`}>
-                    ₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    ₹{Math.round(displayAmount).toLocaleString('en-IN')}
                   </span>
                 </td>
               </tr>
@@ -272,22 +272,29 @@ const LoadingSection = ({
                 onChange={(e) => setSelectedVehicleId(e.target.value)}
               >
                 <option value="">Select a Vehicle</option>
-                {vehicles.map(v => {
-                  const agentName = v.assignedUsers?.[0]?.name;
-                  const agentDisplay = agentName ? ` — ${agentName}` : ' — Unassigned';
-                  return (
+                {[...vehicles]
+                  .map(v => {
+                    const sortedAssigned = [...(v.assignedUsers || [])].sort(
+                      (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
+                    );
+                    const activeAgent = sortedAssigned.find(u => u.assignedVehicleId === v.id) || sortedAssigned.find(u => !u.assignedVehicleId) || sortedAssigned[0];
+                    const agentName = activeAgent?.name || v.assignedDriver?.name || v.driver?.name || v.driverName || v.assignedUser?.name;
+                    return { v, agentName };
+                  })
+                  .filter(({ agentName }) => Boolean(agentName))
+                  .sort((a, b) => new Date(b.v.updatedAt || b.v.createdAt || 0).getTime() - new Date(a.v.updatedAt || a.v.createdAt || 0).getTime())
+                  .map(({ v, agentName }) => (
                     <option key={v.id} value={v.id}>
-                      {v.vehicleNumber} ({v.vehicleName || 'No Name'}){agentDisplay}
+                      {v.vehicleNumber ? `${v.vehicleNumber}${v.vehicleName ? ` (${v.vehicleName})` : ''}` : (v.vehicleName || 'Vehicle')} — {agentName}
                     </option>
-                  );
-                })}
+                  ))}
               </select>
             </div>
 
             <div className="flex items-center gap-6 self-end md:self-auto">
               <div className="flex flex-col items-end">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Load Value</span>
-                <span className="text-xl font-black text-emerald-600">₹{totalLoadingValue.toFixed(2)}</span>
+                <span className="text-xl font-black text-emerald-600">₹{Math.round(totalLoadingValue).toLocaleString('en-IN')}</span>
               </div>
               <button 
                 onClick={async () => {
@@ -394,9 +401,9 @@ const LoadingSection = ({
                             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{item.product?.category?.name || 'General'}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 text-[10px] font-bold text-gray-400 text-center">₹{(item.priceAtTime || item.product?.price || 0).toFixed(2)}</td>
+                        <td className="px-4 py-2.5 text-[10px] font-bold text-gray-400 text-center">₹{Math.round(item.priceAtTime || item.product?.price || 0)}</td>
                         <td className="px-4 py-2.5 text-right"><span className="text-[11px] font-bold text-emerald-600">+{item.quantity}</span><span className="text-[8px] font-bold text-gray-400 uppercase ml-1">{item.product?.unit?.name || 'pcs'}</span></td>
-                        <td className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-900 dark:text-white">₹{(item.quantity * (item.priceAtTime || item.product?.price || 0)).toFixed(2)}</td>
+                        <td className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-900 dark:text-white">₹{Math.round(item.quantity * (item.priceAtTime || item.product?.price || 0))}</td>
                       </tr>
                     ))}
                   </tbody>

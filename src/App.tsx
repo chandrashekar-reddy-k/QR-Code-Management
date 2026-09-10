@@ -328,7 +328,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Parse user details
-  let user = null;
+  let user: any = null;
   try {
     const userStr = isStaffPortal
       ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user'))
@@ -363,32 +363,68 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   let role = "";
   let userEmailOrName = "";
   try {
-    const userStr = (isShopkeeperPortal || isPackerOperatorPortal) ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user')) : (localStorage.getItem('partnerUser') || localStorage.getItem('user'));
     const user = userStr ? JSON.parse(userStr) : null;
-    role = user?.role || "";
+    role = user?.role || user?.customRole?.portalType || user?.customRole?.name || user?.customRole?.code || "";
     userEmailOrName = ((user?.email || user?.name || user?.phone || "") as string).toLowerCase();
   } catch (e) { }
 
-  const hasAgentPermissions = permissions.some((p: string) => p.startsWith("vsms_agent_"));
+  const hasAgentPermissions = permissions.some((p: string) => p.startsWith("vsms_agent_") || p.includes("vehicle_agent"));
   const hasShopkeeperPermissions = permissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
-  const hasPartnerPermissions = permissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_"));
+  const hasPartnerPermissions = permissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_") && !p.startsWith("partner_vsms_agent_") && !p.startsWith("partner_agent_"));
   const hasAdminPerms = permissions.some((p: string) => p.startsWith("admin_"));
 
   // Block admin/super-admin accounts by ROLE — always redirect regardless of permissions,
   // since SUPER_ADMIN can carry all permission slugs.
-  const isAdminRole = ["SUPER_ADMIN", "SUPERADMIN", "ADMIN"].includes(role.toUpperCase());
+  const isAdminRole = ["SUPER_ADMIN", "SUPERADMIN", "ADMIN"].includes(role.toString().toUpperCase());
   const isAdminOnlyPerms = hasAdminPerms && !hasPartnerPermissions && !hasAgentPermissions && !hasShopkeeperPermissions;
   if (isAdminRole || isAdminOnlyPerms) {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('permissions');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('staffToken');
+    sessionStorage.removeItem('staffUser');
     return <Navigate to="/login" replace />;
   }
 
-  // Dynamically determine classification based strictly on active permissions (modules) or user role
-  const isShopkeeperRole = hasShopkeeperPermissions && !hasPartnerPermissions;
-  const isAgentRole = (hasAgentPermissions || ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(role.toUpperCase())) && !hasPartnerPermissions && !isShopkeeperRole;
+  const roleUpper = role.toString().toUpperCase();
+  const customRolePortalType = (user?.customRole?.portalType || user?.customRole?.type || "").toString().toUpperCase();
+  const customRoleNameUpper = (user?.customRole?.name || user?.customRole?.code || "").toString().toUpperCase();
+
+  const isExplicitPartnerRole =
+    roleUpper.includes("PARTNER") ||
+    roleUpper.includes("ADMIN") ||
+    customRolePortalType.includes("PARTNER") ||
+    customRoleNameUpper.includes("PARTNER") ||
+    sessionStorage.getItem('portalMode') === 'PARTNER' ||
+    hasPartnerPermissions;
+
+  const isExplicitShopkeeperRole =
+    !isExplicitPartnerRole && (
+      roleUpper.includes("SHOPKEEPER") ||
+      customRolePortalType.includes("SHOPKEEPER") ||
+      customRoleNameUpper.includes("SHOPKEEPER") ||
+      sessionStorage.getItem('portalMode') === 'SHOPKEEPER'
+    );
+
+  const isShopkeeperRole = !isExplicitPartnerRole && (isExplicitShopkeeperRole || (hasShopkeeperPermissions && !hasPartnerPermissions));
+
+  const isCustomAgentRole = Boolean(
+    customRolePortalType === 'AGENT' ||
+    customRoleNameUpper.includes('VEHICLE_AGENT') ||
+    customRoleNameUpper.includes('VSMS_AGENT') ||
+    customRoleNameUpper.includes('VEHICLE AGENT') ||
+    customRoleNameUpper.includes('VSMS AGENT')
+  );
+
+  const isExplicitAgent =
+    !isExplicitShopkeeperRole && !isExplicitPartnerRole && (
+      ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
+      isCustomAgentRole ||
+      (sessionStorage.getItem('portalMode') === 'AGENT' && !isExplicitShopkeeperRole && !isExplicitPartnerRole)
+    );
+
+  const isAgentRole = (hasAgentPermissions || isExplicitAgent) && !isShopkeeperRole && !isExplicitPartnerRole;
 
   const isPackerOperatorRole = 
     ["PACKING_OPERATOR", "PACKER_OPERATOR", "OPERATOR", "PACKER"].includes(role.toUpperCase()) ||
@@ -425,6 +461,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </ErrorBoundary>
     );
   }
+
+
 
   if (isAgentRole) {
     if (!isAgentPortal) {

@@ -152,10 +152,10 @@ export default function InvoicePreview() {
                             FREE <span className="text-[8px] bg-orange-100 px-1 rounded animate-pulse">OFFER</span>
                           </span>
                         ) : (
-                          <span className="text-xs font-black text-emerald-600 tracking-tight">₹{Number(item.price || 0).toFixed(2)}</span>
+                          <span className="text-xs font-black text-emerald-600 tracking-tight">₹{Math.round(Number(item.price || 0))}</span>
                         )}
                         {item.mrp > item.price && (
-                          <span className="text-[10px] font-bold text-emerald-900/30 line-through">₹{Number(item.mrp || 0).toFixed(2)}</span>
+                          <span className="text-[10px] font-bold text-emerald-900/30 line-through">₹{Math.round(Number(item.mrp || 0))}</span>
                         )}
                       </div>
                     </div>
@@ -163,7 +163,7 @@ export default function InvoicePreview() {
                       <span className="bg-emerald-50 text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-black border border-emerald-100 shadow-inner">{item.quantity}</span>
                     </div>
                     <span className="w-20 text-right text-[1rem] font-black text-emerald-950 tracking-tighter">
-                      ₹{((isFree && qualifies ? 0 : Number(item.price || 0)) * item.quantity).toFixed(2)}
+                      ₹{Math.round((isFree && qualifies ? 0 : Number(item.price || 0)) * item.quantity)}
                     </span>
                   </div>
                 );
@@ -176,7 +176,7 @@ export default function InvoicePreview() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/20 blur-3xl rounded-full translate-x-12 -translate-y-12" />
           <div className="flex justify-between items-center text-xs font-black text-emerald-800/40 uppercase tracking-widest px-1">
             <span>Bill Subtotal</span>
-            <span className="text-emerald-950/60">₹{subtotal.toFixed(2)}</span>
+            <span className="text-emerald-950/60">₹{Math.round(subtotal)}</span>
           </div>
           
           {useCartStore.getState().promotionDiscount > 0 && (
@@ -187,25 +187,25 @@ export default function InvoicePreview() {
                   {useCartStore.getState().appliedPromotion?.code}
                 </span>
               </div>
-              <span>- ₹{useCartStore.getState().promotionDiscount.toFixed(2)}</span>
+              <span>- ₹{Math.round(useCartStore.getState().promotionDiscount)}</span>
             </div>
           )}
 
           <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest px-1">
             <span className={deliveryCharge === 0 ? 'text-emerald-600' : 'text-blue-600'}>Delivery Charge</span>
             <span className={deliveryCharge === 0 ? 'text-emerald-600' : 'text-blue-600'}>
-              {deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge.toFixed(2)}`}
+              {deliveryCharge === 0 ? 'FREE' : `₹${Math.round(deliveryCharge)}`}
             </span>
           </div>
           {totalSavings > 0 && (
             <div className="flex justify-between items-center text-xs font-black text-orange-600 uppercase tracking-widest px-1">
               <span>Total Savings</span>
-              <span>- ₹{totalSavings.toFixed(2)}</span>
+              <span>- ₹{Math.round(totalSavings)}</span>
             </div>
           )}
           <div className="flex justify-between items-center font-black pt-5 border-t border-emerald-100/50">
             <span className="text-xl text-emerald-950 uppercase tracking-tighter">Total Amount</span>
-            <span className="text-3xl text-emerald-600 tracking-tighter">₹{totalAmount.toFixed(2)}</span>
+            <span className="text-3xl text-emerald-600 tracking-tighter">₹{Math.round(totalAmount)}</span>
           </div>
         </div>
       </div>

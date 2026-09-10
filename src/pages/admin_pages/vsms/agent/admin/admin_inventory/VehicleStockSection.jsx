@@ -140,9 +140,12 @@ const VehicleStockSection = ({
         (i.product?.name?.toLowerCase() || "").includes(q) ||
         (i.product?.barcode?.toLowerCase() || "").includes(q) ||
         (i.product?.displayId?.toLowerCase() || "").includes(q);
-    });
     const totalValue = filteredActiveStock.reduce((acc, item) => acc + (item.quantity * parseFloat(item.product?.price || 0)), 0);
-    const agentStr = v.assignedUsers?.[0] ? v.assignedUsers[0].name : 'Unassigned';
+    const sortedAssigned = [...(v.assignedUsers || [])].sort(
+      (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
+    );
+    const activeAgent = sortedAssigned.find(u => u.assignedVehicleId === v.id) || sortedAssigned.find(u => !u.assignedVehicleId) || sortedAssigned[0];
+    const agentStr = activeAgent?.name || v.assignedDriver?.name || v.driver?.name || v.driverName || v.assignedUser?.name || 'Unassigned';
 
     return (
       <div className="space-y-6 animate-in slide-in-from-right-4 duration-300 print:p-0">
@@ -458,7 +461,11 @@ const VehicleStockSection = ({
               const safeInventory = inventory || [];
               const activeStock = safeInventory.filter(i => i.quantity > 0);
               const totalValue = activeStock.reduce((acc, item) => acc + (item.quantity * parseFloat(item.product?.price || 0)), 0);
-              const agentStr = v.assignedUsers?.[0] ? v.assignedUsers[0].name : 'Unassigned';
+              const sortedAssigned = [...(v.assignedUsers || [])].sort(
+                (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
+              );
+              const activeAgent = sortedAssigned.find(u => u.assignedVehicleId === v.id) || sortedAssigned.find(u => !u.assignedVehicleId) || sortedAssigned[0];
+              const agentStr = activeAgent?.name || v.assignedDriver?.name || v.driver?.name || v.driverName || v.assignedUser?.name || 'Unassigned';
               const lastAudit = auditHistory.find(a => a.vehicleId === v.id);
 
               return (

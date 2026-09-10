@@ -1810,7 +1810,7 @@ const AddProduct = () => {
             }
           }
 
-          updated.salePrice = (price - discountAmount).toFixed(2);
+          updated.salePrice = Math.round(price - discountAmount).toString();
         } else {
           updated.salePrice = "";
         }
@@ -2042,7 +2042,7 @@ const AddProduct = () => {
               }
             }
 
-            updatedVariant.salePrice = (price - discountAmount).toFixed(2);
+            updatedVariant.salePrice = Math.round(price - discountAmount).toString();
           } else {
             updatedVariant.salePrice = "";
           }
@@ -2735,6 +2735,7 @@ const AddProduct = () => {
       if (finalPrice > mrp) {
         finalPrice = mrp; // Don't allow finalPrice to be greater than MRP
       }
+      finalPrice = Math.round(finalPrice);
 
       // If discount is invalid (100% or greater than MRP), set discount to 0
       let validDiscount = discount;
@@ -2801,8 +2802,8 @@ const AddProduct = () => {
         payload.inventoryType = formData.inventoryType;
 
       if (price > 0 || mrp > 0) {
-        payload.price = Number(price);
-        payload.mrp = Number(mrp);
+        payload.price = Math.round(price);
+        payload.mrp = Math.round(mrp);
         payload.discountType = discountType;
         payload.discountValue = Number(validDiscount);
         payload.finalPrice = Number(finalPrice);
@@ -4028,6 +4029,12 @@ const AddProduct = () => {
                                     e.target.value,
                                   )
                                 }
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  if (!isNaN(val)) {
+                                    handleVariantChange(variant.id, "price", Math.round(val).toString());
+                                  }
+                                }}
                                 placeholder="Enter original price"
                                 step="0.01"
                                 min="0"

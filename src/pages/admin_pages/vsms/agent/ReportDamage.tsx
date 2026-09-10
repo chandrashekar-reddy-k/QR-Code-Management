@@ -521,12 +521,12 @@ export default function ReportDamage() {
               <div>
                 <p className="text-[9px] font-black text-red-400 uppercase tracking-wider">Estimated Loss</p>
                 <p className="text-xl font-black text-red-600 mt-0.5">
-                  ₹{((selectedProductData.purchasePrice || selectedProductData.price || 0) * parseInt(quantity)).toFixed(2)}
+                  ₹{Math.round((selectedProductData.purchasePrice || selectedProductData.price || 0) * parseInt(quantity))}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] text-red-400">
-                  {quantity} × ₹{(selectedProductData.purchasePrice || selectedProductData.price || 0).toFixed(2)}
+                  {quantity} × ₹{Math.round(selectedProductData.purchasePrice || selectedProductData.price || 0)}
                 </p>
               </div>
             </div>

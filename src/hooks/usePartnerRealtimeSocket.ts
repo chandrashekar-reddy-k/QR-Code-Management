@@ -30,6 +30,7 @@ export function usePartnerRealtimeSocket() {
     const warehouseId =
       user.warehouseId ||
       user.warehouse_id ||
+      user.storeId ||
       user.store?.id ||
       localStorage.getItem('partnerWarehouseId') ||
       localStorage.getItem('staffWarehouseId') ||

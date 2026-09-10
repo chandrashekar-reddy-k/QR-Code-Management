@@ -6,7 +6,6 @@ import api from "../api/axios";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
-
 export interface NewOrderAlertData {
   eventId: string;
   orderId: string;

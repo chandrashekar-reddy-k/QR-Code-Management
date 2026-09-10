@@ -15,14 +15,18 @@ const firebaseConfig = {
  */
 export async function requestFcmToken(): Promise<string | null> {
   if (typeof window === "undefined" || !("Notification" in window)) {
-    console.warn("[FCM] Notifications not supported in this browser");
+    return null;
+  }
+
+  if (Notification.permission === "denied") {
+    console.info("[FCM] Notification permission is currently blocked by browser settings.");
     return null;
   }
 
   try {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
-      console.warn("[FCM] Notification permission denied by user");
+      console.info("[FCM] Notification permission not granted.");
       return null;
     }
 

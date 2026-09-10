@@ -1411,23 +1411,41 @@ export default function AdminRoutes() {
                           value={assignmentForm.userId}
                           onChange={e => {
                             const u = users.find(x => x.id === e.target.value);
-                            setAssignmentForm({ ...assignmentForm, userId: e.target.value, vehicleId: u?.assignedVehicleId || '' });
+                            const veh = vehicles.find(v => v.id === u?.assignedVehicleId || v.assignedUsers?.some(au => au.id === u?.id));
+                            setAssignmentForm({ ...assignmentForm, userId: e.target.value, vehicleId: u?.assignedVehicleId || veh?.id || '' });
                           }}
                         >
-                          <option value="">Select Agent (Assigned Vehicle)</option>
+                          <option value="">Select Agent (Vehicle Assigned & Idle)</option>
                           {users
-                            .filter(u => (u.storeId === storeId || !u.storeId) && u.assignedVehicleId)
+                            .filter(u => {
+                              if (storeId && u.storeId && u.storeId !== storeId) return false;
+
+                              const assignedVeh = vehicles.find(v => v.id === u.assignedVehicleId || v.assignedUsers?.some(au => au.id === u.id));
+                              const hasVehicle = Boolean(u.assignedVehicleId || u.assignedVehicle || assignedVeh);
+                              if (!hasVehicle) return false;
+
+                              const isCurrentlyEditing = assignmentForm.userId === u.id;
+                              const isAssignedElsewhere = assignments.some(a =>
+                                (a.userId === u.id || (assignedVeh && a.vehicleId === assignedVeh.id)) &&
+                                a.id !== assignmentForm.id
+                              );
+
+                              return isCurrentlyEditing || !isAssignedElsewhere;
+                            })
                             .map(u => {
-                              const vehicle = vehicles.find(v => v.id === u.assignedVehicleId);
-                              const vehicleLabel = vehicle?.vehicleNumber || u.assignedVehicle?.vehicleNumber || 'Vehicle Assigned';
+                              const veh = vehicles.find(v => v.id === u.assignedVehicleId || v.assignedUsers?.some(au => au.id === u.id));
+                              const vehLabel = veh ? `${veh.vehicleNumber}${veh.vehicleName ? ` (${veh.vehicleName})` : ''}` : 'Vehicle Assigned';
                               return (
                                 <option key={u.id} value={u.id}>
-                                  {u.name} ({vehicleLabel})
+                                  {u.name} ({u.role}) — 🚚 {vehLabel}
                                 </option>
                               );
                             })}
                         </select>
                       </div>
+                      {assignmentForm.userId && !(users.find(u => u.id === assignmentForm.userId)?.assignedVehicleId || vehicles.some(v => v.id === users.find(u => u.id === assignmentForm.userId)?.assignedVehicleId || v.assignedUsers?.some(au => au.id === assignmentForm.userId))) && (
+                        <p className="text-rose-500 text-[10px] font-bold px-2 flex items-center gap-1"><Truck size={10} /> This agent has no vehicle assigned.</p>
+                      )}
                     </div>
                   </div>
 

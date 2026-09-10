@@ -194,13 +194,27 @@ export default function ProductPricing() {
       return;
     }
 
+    const numMrp = Number(mrp);
+    const numSellingPrice = Number(sellingPrice);
+
+    if (numSellingPrice > numMrp) {
+      toast.warn(`Selling price (₹${numSellingPrice}) cannot exceed ceiling price / MRP (₹${numMrp}).`);
+      return;
+    }
+
+    const currentProd = products.find(p => p.id === productId);
+    if (currentProd && currentProd.costPrice != null && numSellingPrice < Number(currentProd.costPrice)) {
+      toast.warn(`Selling price (₹${numSellingPrice}) cannot be lower than floor price / Cost Price (₹${currentProd.costPrice}).`);
+      return;
+    }
+
     try {
       const payload = {
         productId,
         productVariantId: selectedVariantId || null,
         priceBookId,
-        mrp: Number(mrp),
-        sellingPrice: Number(sellingPrice),
+        mrp: numMrp,
+        sellingPrice: numSellingPrice,
         effectiveFrom: effectiveFrom ? new Date(effectiveFrom).toISOString() : new Date().toISOString(),
         effectiveTo: effectiveTo ? new Date(effectiveTo).toISOString() : null
       };

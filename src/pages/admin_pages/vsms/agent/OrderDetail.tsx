@@ -161,7 +161,7 @@ export default function OrderDetail() {
               </div>
               <div className="flex items-center gap-2">
                 <Calendar size={13} className="text-[#00891D] shrink-0" />
-                <span>Delivered on: 08 Aug 2026, 07:21 PM</span>
+                <span>Delivered on: {order.createdAt ? format(new Date(order.createdAt), 'dd MMM yyyy, hh:mm a') : 'Recently'}</span>
               </div>
             </div>
           </div>
@@ -176,11 +176,11 @@ export default function OrderDetail() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[#00891D]">💳</span>
-                <span>Payment Method: Cash</span>
+                <span>Payment Method: {order.paymentMode || 'Cash'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock size={13} className="text-[#00891D] shrink-0" />
-                <span>Total Items: 3</span>
+                <span>Total Items: {order.items?.length || 0}</span>
               </div>
             </div>
           </div>
@@ -198,51 +198,24 @@ export default function OrderDetail() {
             </div>
           </div>
 
-          <div className="divide-y divide-gray-50">
-            {[
-              {
-                id: '1',
-                name: 'Rice 5kg',
-                qty: 1,
-                price: '120.00',
-                icon: '🌾',
-                iconBg: 'bg-emerald-50 text-[#00891D]',
-              },
-              {
-                id: '2',
-                name: 'Toor Dal 1kg',
-                qty: 1,
-                price: '140.00',
-                icon: '🥜',
-                iconBg: 'bg-orange-50 text-[#E85D04]',
-              },
-              {
-                id: '3',
-                name: 'Sunflower Oil 1L',
-                qty: 1,
-                price: '110.00',
-                icon: '🛢️',
-                iconBg: 'bg-orange-50 text-[#E85D04]',
-              },
-            ].map((item) => (
-              <div
-                key={item.id}
-                className="py-3 flex items-center justify-between gap-3 first:pt-1 last:pb-1"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${item.iconBg}`}
-                  >
-                    <span className="text-base">{item.icon}</span>
+          <div className="divide-y divide-emerald-50">
+            {order.items?.map((item: any, idx: number) => (
+              <div key={idx} className="py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 relative overflow-hidden shrink-0">
+                    {item.product?.image ? <img src={item.product.image} alt="" className="w-full h-full object-cover" /> : <Package size={20} className="text-slate-300" />}
                   </div>
-                  <h4 className="text-xs font-extrabold text-gray-900">
-                    {item.name}
-                  </h4>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black text-gray-900 leading-tight truncate">{item.product?.name || item.name || 'Product'}</p>
+                    <p className="text-[10px] font-bold text-gray-400 mt-0.5">₹{Math.round(item.price)} / unit</p>
+                    {item.returnedQty > 0 && (
+                      <p className="text-[9px] font-black text-red-500 mt-0.5 flex items-center gap-1"><RotateCcw size={8} /> {item.returnedQty} returned</p>
+                    )}
+                  </div>
                 </div>
-
-                <div className="flex items-center gap-10 text-xs font-black text-gray-900 pr-1">
-                  <span>{item.qty}</span>
-                  <span>₹{item.price}</span>
+                <div className="flex items-center gap-10 text-xs font-black text-gray-900 pr-1 shrink-0">
+                  <span>{item.quantity}</span>
+                  <span>₹{Math.round(item.price * item.quantity)}</span>
                 </div>
               </div>
             ))}
@@ -252,8 +225,18 @@ export default function OrderDetail() {
           <div className="pt-3 border-t border-gray-100 space-y-1.5">
             <h4 className="text-xs font-black text-gray-900">Bill Summary</h4>
             <div className="flex items-center justify-between text-xs font-medium text-gray-500 pt-0.5">
-              <span>Items Total</span>
-              <span className="font-black text-gray-900">₹370.00</span>
+              <span>Subtotal</span>
+              <span className="font-black text-gray-900">₹{Math.round(order.totalAmount || 0)}</span>
+            </div>
+            {totalReturned > 0 && (
+              <div className="flex items-center justify-between text-xs font-bold text-red-500">
+                <span>Returns</span>
+                <span>-₹{Math.round(totalReturned)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-sm font-black text-emerald-900 pt-2 border-t border-gray-100">
+              <span>Total Bill</span>
+              <span className="text-base text-[#00891D]">₹{Math.round(order.totalAmount - totalReturned)}</span>
             </div>
           </div>
         </div>
@@ -348,14 +331,14 @@ export default function OrderDetail() {
                 </button>
               </div>
             </div>
-
-            {/* Confirm Button (Orange for Returns) */}
+            <p className="text-center text-xs font-black text-red-500">Refund: ₹{Math.round(returnQty * (returningItem?.price || 0))}</p>
+            <input type="text" placeholder="Reason (optional)" value={returnReason} onChange={e => setReturnReason(e.target.value)} className="w-full px-4 py-3 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 outline-none placeholder:text-slate-300" />
             <button
               onClick={handleReturn}
               disabled={actionLoading}
               className="w-full py-3.5 bg-[#E85D04] hover:bg-[#d45300] text-white font-extrabold text-xs rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
             >
-              {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Confirm'}
+              {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Confirm Return'}
             </button>
           </div>
         </div>

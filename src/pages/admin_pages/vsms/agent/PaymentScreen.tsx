@@ -33,10 +33,10 @@ export default function PaymentScreen() {
     const numValue = parseFloat(value) || 0;
     if (field === 'cash') {
       const remaining = Math.max(0, totalAmount - numValue);
-      setSplitAmounts({ cash: value, upi: remaining.toFixed(2) });
+      setSplitAmounts({ cash: value, upi: Math.round(remaining).toString() });
     } else {
       const remaining = Math.max(0, totalAmount - numValue);
-      setSplitAmounts({ upi: value, cash: remaining.toFixed(2) });
+      setSplitAmounts({ upi: value, cash: Math.round(remaining).toString() });
     }
   };
 
@@ -47,7 +47,7 @@ export default function PaymentScreen() {
       const cash = parseFloat(splitAmounts.cash) || 0;
       const upi = parseFloat(splitAmounts.upi) || 0;
       if (Math.abs((cash + upi) - totalAmount) > 0.01) {
-        return toast.error(`Total must equal ₹${totalAmount.toFixed(2)}`);
+        return toast.error(`Total must equal ₹${Math.round(totalAmount)}`);
       }
     }
 
@@ -133,7 +133,6 @@ export default function PaymentScreen() {
               </p>
             </div>
           </div>
-
           <div className="text-right">
             <p className="text-[10px] font-medium text-gray-400">To Collect</p>
             <p className="text-sm font-black text-[#00891D]">
@@ -145,9 +144,7 @@ export default function PaymentScreen() {
         {/* Choose Payment Method Section */}
         <div className="w-full bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-4">
           <h3 className="text-xs font-black text-gray-900 tracking-tight">Choose Payment Method</h3>
-
           <div className="space-y-3">
-            {/* Row 1: 3 Column Cards (Cash, UPI, Card) */}
             <div className="grid grid-cols-3 gap-3">
               {PAYMENT_MODES.slice(0, 3).map((mode) => {
                 const Icon = mode.icon;
@@ -155,11 +152,14 @@ export default function PaymentScreen() {
                 return (
                   <button
                     key={mode.id}
-                    onClick={() => setSelected(mode.id)}
+                    onClick={() => {
+                      setSelected(mode.id);
+                      if (mode.id === 'CASH_UPI' && !splitAmounts.cash) {
+                        setSplitAmounts({ cash: Math.round(totalAmount).toString(), upi: '0' });
+                      }
+                    }}
                     className={`py-4 px-2 rounded-2xl flex flex-col items-center justify-center gap-2 relative transition-all border ${
-                      isSelected
-                        ? 'bg-[#F2FDF4] border-[#00891D] shadow-sm'
-                        : 'bg-white border-gray-200 shadow-none hover:border-gray-300'
+                      isSelected ? 'bg-[#F2FDF4] border-[#00891D] shadow-sm' : 'bg-white border-gray-200 shadow-none hover:border-gray-300'
                     }`}
                   >
                     {isSelected && (
@@ -167,23 +167,14 @@ export default function PaymentScreen() {
                         <Check size={10} strokeWidth={3} />
                       </div>
                     )}
-                    <Icon
-                      size={22}
-                      className={isSelected ? 'text-[#00891D]' : 'text-gray-600'}
-                    />
-                    <span
-                      className={`text-xs font-extrabold ${
-                        isSelected ? 'text-[#00891D]' : 'text-gray-700'
-                      }`}
-                    >
+                    <Icon size={22} className={isSelected ? 'text-[#00891D]' : 'text-gray-600'} />
+                    <span className={`text-xs font-extrabold ${isSelected ? 'text-[#00891D]' : 'text-gray-700'}`}>
                       {mode.label}
                     </span>
                   </button>
                 );
               })}
             </div>
-
-            {/* Row 2: 2 Column Cards (Credit Udhar, Cash + UPI) */}
             <div className="grid grid-cols-2 gap-3">
               {PAYMENT_MODES.slice(3, 5).map((mode) => {
                 const Icon = mode.icon;
@@ -191,11 +182,14 @@ export default function PaymentScreen() {
                 return (
                   <button
                     key={mode.id}
-                    onClick={() => setSelected(mode.id)}
+                    onClick={() => {
+                      setSelected(mode.id);
+                      if (mode.id === 'CASH_UPI' && !splitAmounts.cash) {
+                        setSplitAmounts({ cash: Math.round(totalAmount).toString(), upi: '0' });
+                      }
+                    }}
                     className={`py-4 px-2 rounded-2xl flex flex-col items-center justify-center gap-2 relative transition-all border ${
-                      isSelected
-                        ? 'bg-[#F2FDF4] border-[#00891D] shadow-sm'
-                        : 'bg-white border-gray-200 shadow-none hover:border-gray-300'
+                      isSelected ? 'bg-[#F2FDF4] border-[#00891D] shadow-sm' : 'bg-white border-gray-200 shadow-none hover:border-gray-300'
                     }`}
                   >
                     {isSelected && (
@@ -210,16 +204,9 @@ export default function PaymentScreen() {
                         <Smartphone size={18} className={isSelected ? 'text-[#00891D]' : 'text-gray-600'} />
                       </div>
                     ) : (
-                      <Icon
-                        size={22}
-                        className={isSelected ? 'text-[#00891D]' : 'text-gray-600'}
-                      />
+                      <Icon size={22} className={isSelected ? 'text-[#00891D]' : 'text-gray-600'} />
                     )}
-                    <span
-                      className={`text-xs font-extrabold ${
-                        isSelected ? 'text-[#00891D]' : 'text-gray-700'
-                      }`}
-                    >
+                    <span className={`text-xs font-extrabold ${isSelected ? 'text-[#00891D]' : 'text-gray-700'}`}>
                       {mode.label}
                     </span>
                   </button>
@@ -229,37 +216,50 @@ export default function PaymentScreen() {
           </div>
         </div>
 
-        {/* Payment Details Card */}
-        <div className="bg-white rounded-3xl p-5 border border-gray-100/90 shadow-sm space-y-4">
-          <h3 className="text-sm font-extrabold text-gray-900">Payment Details</h3>
-
-          {/* Cash Received Input */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-extrabold text-gray-900">Cash Received</label>
-            <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 flex items-center gap-2 focus-within:border-[#00891D] transition-colors">
-              <span className="text-sm font-extrabold text-gray-600">₹</span>
-              <input
-                type="number"
-                value={cashReceived}
-                onChange={(e) => setCashReceived(e.target.value)}
-                placeholder="3000"
-                className="w-full text-sm font-black text-gray-900 bg-transparent border-none outline-none"
-              />
+        {/* Cash Calculator Wrapper */}
+        {selected === 'CASH' && (
+          <div className="bg-white rounded-3xl p-5 border border-gray-100/90 shadow-sm space-y-4">
+            <h3 className="text-sm font-extrabold text-gray-900">Cash Details</h3>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-extrabold text-gray-900">Cash Received</label>
+              <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 flex items-center gap-2 focus-within:border-[#00891D] transition-colors">
+                <span className="text-sm font-extrabold text-gray-600">₹</span>
+                <input
+                  type="number"
+                  value={cashReceived}
+                  onChange={(e) => setCashReceived(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full text-sm font-black text-gray-900 bg-transparent border-none outline-none"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-extrabold text-gray-900">Change Due</label>
+              <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3">
+                <p className="text-sm font-extrabold text-gray-700">₹ {changeDue.toFixed(2)}</p>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Change Display */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-extrabold text-gray-900">Change</label>
-            <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3">
-              <p className="text-sm font-extrabold text-gray-700">
-                ₹ {changeDue.toFixed(2)}
-              </p>
+        {/* Split Payment Calculator */}
+        {selected === 'CASH_UPI' && (
+          <div className="bg-white rounded-3xl p-5 border border-gray-100/90 shadow-sm space-y-4">
+            <h3 className="text-sm font-extrabold text-gray-900">Split Payment</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-extrabold text-gray-900">Cash</label>
+                <input type="number" value={splitAmounts.cash} onChange={(e) => handleSplitInput('cash', e.target.value)} className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm font-black" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-extrabold text-gray-900">UPI</label>
+                <input type="number" value={splitAmounts.upi} onChange={(e) => handleSplitInput('upi', e.target.value)} className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm font-black" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Action Buttons: Cancel and Confirm Payment */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-3 pt-2">
           <button
             onClick={() => navigate(-1)}
