@@ -63,57 +63,7 @@ const StoreStockSection = ({
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 bg-amber-500 rounded-lg flex items-center justify-center text-white shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
-                  <Grid size={22} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">Store-Room</h3>
-                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Raw Inwarded</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-gray-900">{warehouseStock.length}</div>
-                <div className="text-[9px] text-gray-400 font-medium">SKUs</div>
-              </div>
-            </div>
 
-            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-blue-600/20 group-hover:scale-105 transition-transform">
-                  <Package size={22} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">Production & Packing</h3>
-                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Processing Queue</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-blue-600">
-                  {warehouseStock.filter(s => s.product?.lifecycleStage === 'IN_PRODUCTION' || (Array.isArray(s.product?.tags) && s.product.tags.includes('LIFECYCLE:IN_PRODUCTION'))).length}
-                </div>
-                <div className="text-[9px] text-gray-400 font-medium">In Packing</div>
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
-                  <Package size={22} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">Live Sellable Stock</h3>
-                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">All Channels Active</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-emerald-600">
-                  {warehouseStock.reduce((acc, s) => acc + (s.quantity || 0), 0)}
-                </div>
-                <div className="text-[9px] text-gray-400 font-medium">Total Units</div>
-              </div>
-            </div>
 
             <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group">
               <div>
@@ -218,35 +168,7 @@ const StoreStockSection = ({
                   </div>
 
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                      {/* Store-Room Stock */}
-                      <div className="flex flex-col items-end min-w-[3rem] border-l border-gray-100 pl-3">
-                        <span className="text-[7px] font-bold text-amber-600 uppercase tracking-widest leading-none mb-1">
-                          Store-Room
-                        </span>
-                        <span className="text-xs font-bold text-amber-700">
-                          {stock.quantity || 0}
-                        </span>
-                      </div>
 
-                      {/* Production Stock */}
-                      <div className="flex flex-col items-end min-w-[3rem] border-l border-gray-100 pl-3">
-                        <span className="text-[7px] font-bold text-blue-600 uppercase tracking-widest leading-none mb-1">
-                          Production
-                        </span>
-                        <span className="text-xs font-bold text-blue-700">
-                          {stock.product.productionStock || 0}
-                        </span>
-                      </div>
-
-                      {/* Live Stock */}
-                      <div className="flex flex-col items-end min-w-[3rem] border-l border-gray-100 pl-3">
-                        <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-1">
-                          Live Stock
-                        </span>
-                        <span className="text-xs font-bold text-emerald-700">
-                          {stock.product.liveStock || stock.quantity || 0}
-                        </span>
-                      </div>
 
                       {/* In Vehicles */}
                       <div className="flex flex-col items-end border-l border-gray-100 pl-3">

@@ -131,18 +131,6 @@ const ViewSubCategory = lazy(
 const ManageProducts = lazy(
   () => import("../pages/admin_pages/products/ManageProducts")
 );
-const ProductLifecycleHub = lazy(
-  () => import("../pages/admin_pages/products/ProductLifecycleHub")
-);
-const StoreroomManagement = lazy(
-  () => import("../pages/admin_pages/products/StoreroomManagement")
-);
-const ProductionManagement = lazy(
-  () => import("../pages/admin_pages/products/ProductionManagement")
-);
-const LiveStockManagement = lazy(
-  () => import("../pages/admin_pages/products/LiveStockManagement")
-);
 const OnlineStockManagement = lazy(
   () => import("../pages/admin_pages/products/OnlineStockManagement")
 );
@@ -864,26 +852,6 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/products/manage",
     component: ManageProducts,
-    requiresAuth: true,
-  },
-  {
-    path: "/products/lifecycle",
-    component: ProductLifecycleHub,
-    requiresAuth: true,
-  },
-  {
-    path: "/inventory/storeroom",
-    component: StoreroomManagement,
-    requiresAuth: true,
-  },
-  {
-    path: "/inventory/production",
-    component: ProductionManagement,
-    requiresAuth: true,
-  },
-  {
-    path: "/inventory/live",
-    component: LiveStockManagement,
     requiresAuth: true,
   },
   {

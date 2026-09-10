@@ -62,13 +62,11 @@ const Login = () => {
       }
     }
 
-    const identifier = ((user.email || user.phone || user.name || "") as string).toLowerCase();
+    const roleUpper = (user.role || "").toUpperCase();
 
     const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("PARTNER");
     const isShopkeeperRole = !hasPartner && (userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("SHOPKEEPER"));
     const isAgentRole = ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) || userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
-    const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
-    const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
 
     const isOperator =
       !hasPartner && (
@@ -121,11 +119,11 @@ const Login = () => {
         sessionStorage.setItem('portalMode', 'OPERATOR');
         localStorage.setItem('portalMode', 'OPERATOR');
         navigate("/packer/operator/dashboard");
-      } else if (isAgentRole || hasAgent) {
+      } else if (isAgentRole) {
         sessionStorage.setItem('portalMode', 'AGENT');
         localStorage.setItem('portalMode', 'AGENT');
         navigate("/vsms/agent-portal/today-plan");
-      } else if (isShopkeeperRole || hasShopkeeper) {
+      } else if (isShopkeeperRole) {
         sessionStorage.setItem('portalMode', 'SHOPKEEPER');
         localStorage.setItem('portalMode', 'SHOPKEEPER');
         navigate("/shopkeeper");
