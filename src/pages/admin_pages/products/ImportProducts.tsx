@@ -96,6 +96,7 @@ const ImportProducts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [subCategoryFilter, setSubCategoryFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<"" | "admin" | "partner">("");
   const [statusFilter] = useState<string | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -120,6 +121,7 @@ const ImportProducts = () => {
       status: statusFilter,
       categoryId: categoryFilter || undefined,
       subCategoryId: subCategoryFilter || undefined,
+      source: sourceFilter || undefined,
     });
   const importMasterProducts = useImportMasterProducts();
 
@@ -453,6 +455,7 @@ const ImportProducts = () => {
     setSearchTerm("");
     setCategoryFilter("");
     setSubCategoryFilter("");
+    setSourceFilter("");
     setCurrentPage(1);
   };
 
@@ -884,7 +887,7 @@ const ImportProducts = () => {
 
       {/* Filters + Search */}
       <div className="mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full lg:flex-1 lg:max-w-3xl overflow-hidden">
           {/* Filter icon */}
           <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
             <Filter size={18} className="text-gray-700 dark:text-gray-300" />
@@ -923,6 +926,29 @@ const ImportProducts = () => {
                   setCurrentPage(1);
                 }}
                 options={subCategoryOptions}
+                className="bg-transparent dark:bg-transparent"
+              />
+            </div>
+            <ChevronDown
+              size={16}
+              className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400"
+            />
+          </div>
+
+          {/* Source Filter: Admin vs Partner */}
+          <div className="px-3 sm:px-4 py-3 sm:py-4 flex-1 min-w-[160px] max-w-xs relative">
+            <div className="[&_select]:border-0 [&_select]:bg-transparent [&_select]:dark:bg-transparent [&_select]:shadow-none [&_select]:focus:ring-0 [&_select]:focus:border-0 [&_select]:focus:outline-none [&_select]:appearance-none [&_select]:text-xs sm:text-sm [&_select]:font-medium [&_select]:text-gray-900 dark:[&_select]:text-gray-100 [&_select]:pr-8 [&_select]:px-3 [&_select]:py-1.5 [&_select]:w-full">
+              <SelectInput
+                value={sourceFilter}
+                onChange={(e) => {
+                  setSourceFilter(e.target.value as "" | "admin" | "partner");
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { value: "", label: "All Products" },
+                  { value: "admin", label: "Admin Products" },
+                  { value: "partner", label: "Partner Products" },
+                ]}
                 className="bg-transparent dark:bg-transparent"
               />
             </div>

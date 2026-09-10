@@ -49,7 +49,7 @@ const useGetAllProductList = (
 };
 
 /** Get master product list for Import Products page: GET productmanagement/product/masterproducts
- * Supports: page, limit, search, status, categoryId, subCategoryId
+ * Supports: page, limit, search, status, categoryId, subCategoryId, source
  */
 interface MasterProductsParams {
   page: number;
@@ -58,6 +58,8 @@ interface MasterProductsParams {
   status?: string;
   categoryId?: string;
   subCategoryId?: string;
+  /** 'admin' = not yet imported, 'partner' = already imported into warehouse */
+  source?: string;
 }
 
 const useGetMasterProducts = (params: MasterProductsParams) => {
@@ -80,6 +82,9 @@ const useGetMasterProducts = (params: MasterProductsParams) => {
       }
       if (params.subCategoryId && params.subCategoryId.trim()) {
         searchParams.set("subCategoryId", params.subCategoryId.trim());
+      }
+      if (params.source && params.source.trim()) {
+        searchParams.set("source", params.source.trim());
       }
 
       return fetchData(
