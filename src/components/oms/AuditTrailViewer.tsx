@@ -84,7 +84,12 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
                   <User className="w-3.5 h-3.5" />
                   {(() => {
                     const actorRaw = String(log.actor || log.changedBy || "System");
-                    return actorRaw === "SYSTEM_AUTO_CONFIRM" ? "System" : actorRaw;
+                    if (actorRaw === "SYSTEM_AUTO_CONFIRM") return "System";
+                    if (actorRaw === "Shopkeeper Shopkeeper") return "Shopkeeper";
+                    if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(actorRaw)) {
+                      return "Shopkeeper";
+                    }
+                    return actorRaw;
                   })()}
                 </span>
               </div>
@@ -117,7 +122,10 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
                         <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 mt-0.5 flex-shrink-0" />
                         <span>
                           <strong className="text-slate-600 dark:text-slate-400 font-medium">Reason:</strong>{" "}
-                          {String(log.reason).replace(/auto-confirmed after 30 seconds/gi, "Confirmed").replace(/auto-confirmation/gi, "Confirmation")}
+                          {String(log.reason)
+                            .replace(/Shopkeeper Shopkeeper/g, "Shopkeeper")
+                            .replace(/auto-confirmed after 30 seconds/gi, "Confirmed")
+                            .replace(/auto-confirmation/gi, "Confirmation")}
                         </span>
                       </p>
                     )}
@@ -126,7 +134,10 @@ export const AuditTrailViewer: React.FC<AuditTrailViewerProps> = ({ orderId }) =
                         <FileText className="w-3.5 h-3.5 text-indigo-400 mt-0.5 flex-shrink-0" />
                         <span>
                           <strong className="text-slate-600 dark:text-slate-400 font-medium">Notes:</strong>{" "}
-                          {String(log.notes).replace(/auto-confirmed after 30 seconds/gi, "Confirmed").replace(/auto-confirmation/gi, "Confirmation")}
+                          {String(log.notes)
+                            .replace(/Shopkeeper Shopkeeper/g, "Shopkeeper")
+                            .replace(/auto-confirmed after 30 seconds/gi, "Confirmed")
+                            .replace(/auto-confirmation/gi, "Confirmation")}
                         </span>
                       </p>
                     )}

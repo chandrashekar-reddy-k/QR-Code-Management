@@ -39,8 +39,6 @@ import { useUserStore } from './store/userStore';
 import StoreSelector from './StoreSelector';
 import * as XLSX from 'xlsx';
 import { generateReportPDF } from './adminreports/ReportUtils';
-import VehicleSalesSection from './admin_vehicles/VehicleSalesSection';
-import RouteCollectionSection from './admin_vehicles/RouteCollectionSection';
 import RoutePerformanceDashboard from './components/RoutePerformanceDashboard';
 import { useRoutesQuery, useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 
@@ -578,9 +576,7 @@ export default function AdminRoutes() {
                 { id: 'performance', label: 'Performance', icon: Target, visible: true },
                 { id: 'villages', label: 'Village', icon: MapPin, visible: canSection('VILLAGES') },
                 { id: 'routes', label: 'Routes', icon: Navigation, visible: canSection('ROUTES') },
-                { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: canSection('ASSIGNMENTS') },
-                { id: 'sales', label: 'Sales', icon: ShoppingBag, visible: true },
-                { id: 'collections', label: 'Collections', icon: Coins, visible: true }
+                { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: canSection('ASSIGNMENTS') }
               ].filter(t => t.visible).map(tab => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -1780,19 +1776,7 @@ export default function AdminRoutes() {
         </div>
       )}
 
-      {/* --- SALES TAB --- */}
-      {activeTab === 'sales' && (
-        <div className="animate-fade-in">
-          <VehicleSalesSection storeId={storeId} />
-        </div>
-      )}
 
-      {/* --- COLLECTIONS TAB --- */}
-      {activeTab === 'collections' && (
-        <div className="animate-fade-in">
-          <RouteCollectionSection storeId={storeId} />
-        </div>
-      )}
 
       {/* Modal section removed — assignment form is now inline */}
 

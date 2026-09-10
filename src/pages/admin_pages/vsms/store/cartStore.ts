@@ -168,7 +168,7 @@ export const useCartStore = create<CartState>()(
               productId: product.id,
               productVariantId: productVariantId,
               name: product.name,
-              price: Number(product.price || 0),
+              price: Number(product.sellingPrice ?? product.finalPrice ?? product.posPrice ?? product.price ?? 0),
               mrp: Number(product.mrp || 0),
               discount: Number(product.discount || 0),
               landingPrice: Number(product.landingPrice || 0),

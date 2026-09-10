@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Phone, MapPin, ChevronDown, Search } from "lucide-react";
+import { Phone, MapPin, ChevronDown, Search, FileText } from "lucide-react";
 import fetchData from "../../../helper";
 import api from "../../../api/axios";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
+import { generateInvoicePDF, getInvoiceNumber } from "../../../utils/generateInvoicePDF";
 import {
   Button,
   SelectInput,
@@ -282,14 +283,34 @@ const ViewHomeDeliveryOrder = () => {
     if (!orderData) return null;
 
     // Transform items to products format
-    const transformedProducts = (orderData.items || []).map((item) => ({
-      id: item.id || item.productId || "",
-      name: item.product?.name || "Unknown Product",
-      variant: item.unit || "N/A",
-      quantity: item.quantity || 0,
-      price: item.unitPrice || 0,
-      image: item.product?.images?.[0] || "",
-    }));
+    const transformedProducts = (orderData.items || []).map((item) => {
+      const prod = item.product || {};
+      const unitP = Number(item.unitPrice || 0);
+      const prodP = Number(prod.sellingPrice || prod.finalPrice || prod.price || 0);
+      const sellingP = unitP > 0 ? unitP : (prodP > 0 ? prodP : Number(item.totalPrice || 0) / (item.quantity || 1));
+      const mrpP = Number(item.mrp || prod.mrp || sellingP);
+      const gstVal = Number(item.gst || item.taxRate || prod.gst || prod.taxRate || 0);
+      return {
+        ...item,
+        id: item.id || item.productId || "",
+        productId: item.productId,
+        name: prod.name || item.name || (item as any).productName || "Product",
+        variant: item.unit || prod.unit || "N/A",
+        quantity: item.quantity || 1,
+        qty: item.quantity || 1,
+        unitPrice: sellingP,
+        price: sellingP,
+        sellingPrice: sellingP,
+        mrp: mrpP,
+        gst: gstVal,
+        taxRate: gstVal,
+        taxAmount: item.taxAmount,
+        cgst: item.cgst,
+        sgst: item.sgst,
+        image: prod.images?.[0] || "",
+        product: prod,
+      };
+    });
 
     // Format address
     const addressParts = [
@@ -358,6 +379,8 @@ const ViewHomeDeliveryOrder = () => {
       deliveryAgent: agentName,
       specialInstructions: orderData.specialInstructions || null,
       products: transformedProducts,
+      items: transformedProducts,
+      totalAmount: orderData.totalAmount || 0,
       subtotal: subtotal,
       deliveryCharges: orderData.deliveryCharge || 0,
       additionalCharges: 0, // Not in API response
@@ -397,6 +420,23 @@ const ViewHomeDeliveryOrder = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [statusUpdateOpen]);
+
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+
+  const handleDownloadInvoice = async () => {
+    if (!order) return;
+    try {
+      setDownloadingInvoice(true);
+      const pdf = await generateInvoicePDF(order as any);
+      if (pdf) {
+        pdf.save(`Invoice_VK-${getInvoiceNumber(order as any)}.pdf`);
+      }
+    } catch (err) {
+      console.error("Error generating invoice PDF:", err);
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
 
   const handleStatusUpdate = async () => {
     if (!selectedStatus || !id) return;
@@ -507,7 +547,17 @@ const ViewHomeDeliveryOrder = () => {
             </h1>
             <Breadcrumbs />
           </div>
-          <BackButton to={backToOrders} />
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleDownloadInvoice}
+              disabled={downloadingInvoice}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <FileText size={16} />
+              {downloadingInvoice ? "Generating..." : "Download Invoice PDF"}
+            </Button>
+            <BackButton to={backToOrders} />
+          </div>
         </div>
       </div>
 

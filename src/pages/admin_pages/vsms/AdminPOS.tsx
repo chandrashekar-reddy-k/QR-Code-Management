@@ -983,7 +983,7 @@ export default function AdminPOS() {
       pdf.text('S.NO', colX.sno, currentY + 2);
       pdf.text('ITEM DESCRIPTION', colX.item, currentY + 2);
       pdf.text('QTY', colX.qty, currentY + 2);
-      pdf.text('GST', colX.gst, currentY + 2);
+      pdf.text('GST %', colX.gst, currentY + 2);
       pdf.text('MRP', colX.mrp, currentY + 2);
       pdf.text('VK PRICE', colX.price, currentY + 2);
       pdf.text('AMOUNT', colX.amount, currentY + 2, { align: 'right' });
@@ -994,14 +994,13 @@ export default function AdminPOS() {
 
     const items = order.items || [];
     items.forEach((item, index) => {
-      const itemName = item.product?.name || `Product ${item.productId?.slice(-6) || ''}`;
-      const qty = item.quantity || 0;
-      const price = item.price || 0;
-      const mrpValue = item.mrp || price;
+      const itemName = item.product?.name || item.name || item.productName || `Product ${item.productId?.slice(-6) || ''}`;
+      const qty = item.quantity || item.qty || 0;
+      const price = Number(item.sellingPrice ?? item.finalPrice ?? item.posPrice ?? item.unitPrice ?? item.price ?? item.product?.sellingPrice ?? item.product?.finalPrice ?? item.product?.posPrice ?? item.product?.price ?? 0);
+      const rawMrp = Number(item.mrp ?? item.product?.mrp ?? 0);
+      const mrpValue = rawMrp > 0 ? rawMrp : (item.discount ? price + Number(item.discount) : price);
       const amount = qty * price;
-      const gstRate = item.gst || 0;
-      const itemTaxable = amount / (1 + gstRate / 100);
-      const itemGstAmt = amount - itemTaxable;
+      const gstRate = Number(item.gst ?? item.product?.gst ?? item.taxRate ?? item.product?.taxRate ?? 0);
 
       if (y > maxPageHeight - 10) {
         pdf.addPage();
@@ -1029,21 +1028,21 @@ export default function AdminPOS() {
       }
       drawUnicodeText(pdf, displayName, colX.item, y + 1, { fontSize: 9, isBold: true, color: darkText });
       pdf.text(`${qty}`, colX.qty, y + 1);
-      pdf.text(`${itemGstAmt.toFixed(0)}`, colX.gst, y + 1);
+      pdf.text(`${gstRate > 0 ? `${gstRate}%` : '0%'}`, colX.gst, y + 1);
 
       pdf.setTextColor(...grayText);
       pdf.setFontSize(7);
-      pdf.text(`Rs.${mrpValue.toFixed(0)}`, colX.mrp, y + 1, { align: 'left' });
+      pdf.text(`Rs.${mrpValue.toFixed(2)}`, colX.mrp, y + 1, { align: 'left' });
 
       const isItemFree = price === 0;
       pdf.setTextColor(...(isItemFree ? orangeAccent : emerald));
       pdf.setFontSize(isItemFree ? 7 : 8);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(isItemFree ? 'GIFT/FREE' : `Rs.${price.toFixed(0)}`, colX.price, y + 1);
+      pdf.text(isItemFree ? 'GIFT/FREE' : `Rs.${price.toFixed(2)}`, colX.price, y + 1);
 
       pdf.setTextColor(...darkText);
       pdf.setFontSize(9);
-      pdf.text(isItemFree ? 'Rs.0.00' : `Rs.${amount.toFixed(0)}`, colX.amount, y + 1, { align: 'right' });
+      pdf.text(isItemFree ? 'Rs.0.00' : `Rs.${amount.toFixed(2)}`, colX.amount, y + 1, { align: 'right' });
 
       y += 9;
     });
@@ -1064,15 +1063,22 @@ export default function AdminPOS() {
     const startY = y;
     let rightY = startY;
 
-    const subTotalMRP = order.items?.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0) || order.totalAmount;
-    const savings = subTotalMRP - order.totalAmount;
+    const subTotalMRP = (order.items || []).reduce((sum, i) => {
+      const q = i.quantity || i.qty || 1;
+      const p = Number(i.sellingPrice ?? i.finalPrice ?? i.posPrice ?? i.unitPrice ?? i.price ?? i.product?.sellingPrice ?? i.product?.finalPrice ?? i.product?.posPrice ?? i.product?.price ?? 0);
+      const m = Number(i.mrp ?? i.product?.mrp ?? p);
+      return sum + m * q;
+    }, 0) || (order.totalAmount || 0);
+
+    const totalOrderAmount = Number(order.totalAmount || 0);
+    const savings = Math.max(0, subTotalMRP - totalOrderAmount);
 
     pdf.setTextColor(...grayText);
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.text('Subtotal (MRP)', totalsX, rightY);
     pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${subTotalMRP.toFixed(0)}`, colX.amount, rightY, { align: 'right' });
+    pdf.text(`Rs.${subTotalMRP.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
     rightY += 7;
 
     if (savings > 0) {
@@ -1083,29 +1089,45 @@ export default function AdminPOS() {
       pdf.setFont('helvetica', 'bold');
       pdf.text('TOTAL SAVINGS', totalsX, rightY + 1.5);
       pdf.setFontSize(11);
-      pdf.text(`- Rs.${savings.toFixed(0)}`, colX.amount, rightY + 1.5, { align: 'right' });
+      pdf.text(`- Rs.${savings.toFixed(2)}`, colX.amount, rightY + 1.5, { align: 'right' });
       rightY += 9;
     }
 
-    const totalTax = order.items?.reduce((sum, item) => {
-      const rate = item.gst || 0;
+    const totalTax = (order.items || []).reduce((sum, item) => {
+      if (item.taxAmount && Number(item.taxAmount) > 0) {
+        return sum + Number(item.taxAmount);
+      }
+      if (item.cgst || item.sgst) {
+        return sum + Number(item.cgst || 0) + Number(item.sgst || 0);
+      }
+      const q = item.quantity || item.qty || 1;
+      const p = Number(item.sellingPrice ?? item.finalPrice ?? item.posPrice ?? item.unitPrice ?? item.price ?? item.product?.sellingPrice ?? item.product?.finalPrice ?? item.product?.posPrice ?? item.product?.price ?? 0);
+      const rate = Number(item.gst ?? item.product?.gst ?? item.taxRate ?? item.product?.taxRate ?? 0);
       if (rate === 0) return sum;
-      const taxable = (item.price * item.quantity) / (1 + rate / 100);
-      return sum + ((item.price * item.quantity) - taxable);
-    }, 0) || 0;
+      const tot = p * q;
+      const taxable = tot / (1 + rate / 100);
+      return sum + (tot - taxable);
+    }, 0);
 
     pdf.setTextColor(...grayText);
     pdf.setFont('helvetica', 'bold');
     pdf.text('Taxable Value', totalsX, rightY);
     pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${(order.totalAmount - totalTax).toFixed(0)}`, colX.amount, rightY, { align: 'right' });
+    pdf.text(`Rs.${(totalOrderAmount - totalTax).toFixed(2)}`, colX.amount, rightY, { align: 'right' });
     rightY += 7;
 
     pdf.setTextColor(...grayText);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(`Total GST (Incl.)`, totalsX, rightY);
+    pdf.text(`CGST (Incl.)`, totalsX, rightY);
     pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${totalTax.toFixed(0)}`, colX.amount, rightY, { align: 'right' });
+    pdf.text(`Rs.${(totalTax / 2).toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    rightY += 7;
+
+    pdf.setTextColor(...grayText);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`SGST (Incl.)`, totalsX, rightY);
+    pdf.setTextColor(...darkText);
+    pdf.text(`Rs.${(totalTax / 2).toFixed(2)}`, colX.amount, rightY, { align: 'right' });
     rightY += 7;
 
     if (order.deliveryCharge > 0) {
@@ -1128,7 +1150,7 @@ export default function AdminPOS() {
     pdf.setFont('helvetica', 'bold');
     pdf.text('GRAND TOTAL', totalsX, rightY + 3);
     pdf.setFontSize(14);
-    pdf.text(`Rs.${order.totalAmount?.toFixed(0)}`, colX.amount, rightY + 4, { align: 'right' });
+    pdf.text(`Rs.${totalOrderAmount.toFixed(2)}`, colX.amount, rightY + 4, { align: 'right' });
     rightY += 15;
 
     // Fulfillment Scheduling (New Section)
@@ -1207,28 +1229,44 @@ export default function AdminPOS() {
       timeStyle: 'short'
     });
 
-    const subTotalMRP = lastOrder.items?.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0) || lastOrder.totalAmount;
-    const savings = subTotalMRP - lastOrder.totalAmount;
-    const totalTax = lastOrder.items?.reduce((sum, item) => {
-      const rate = item.gst || 0;
-      if (rate === 0) return sum;
-      const taxable = (item.price * item.quantity) / (1 + rate / 100);
-      return sum + ((item.price * item.quantity) - taxable);
-    }, 0) || 0;
-    const deliveryFee = lastOrder.deliveryCharge || 0;
-    const taxableValue = lastOrder.totalAmount - totalTax - deliveryFee;
+    const itemsList = (lastOrder.items || []).map(item => {
+      const name = item.product?.name || item.name || item.productName || 'Product';
+      const qty = item.quantity || item.qty || 1;
+      const price = Number(item.sellingPrice ?? item.finalPrice ?? item.posPrice ?? item.unitPrice ?? item.price ?? item.product?.sellingPrice ?? item.product?.finalPrice ?? item.product?.posPrice ?? item.product?.price ?? 0);
+      const mrp = Number(item.mrp ?? item.product?.mrp ?? price);
+      const gst = Number(item.gst ?? item.product?.gst ?? 0);
+      return { name, qty, price, mrp, gst };
+    });
 
-    const printWindow = window.open('', '_blank', 'width=320,height=650');
+    const totalAmount = Number(lastOrder.totalAmount || 0);
+    const subTotalMRP = itemsList.reduce((sum, i) => sum + (i.mrp || i.price) * i.qty, 0) || totalAmount;
+    const savings = Math.max(0, subTotalMRP - totalAmount);
+    const totalTax = itemsList.reduce((sum, item) => {
+      if (!item.gst) return sum;
+      const itemTot = item.price * item.qty;
+      const taxable = itemTot / (1 + item.gst / 100);
+      return sum + (itemTot - taxable);
+    }, 0);
+    const deliveryFee = Number(lastOrder.deliveryCharge || 0);
+    const taxableValue = Math.max(0, totalAmount - totalTax - deliveryFee);
+
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    if (!printWindow) {
+      toast.error('Pop-up blocked. Please allow pop-ups to print receipts.');
+      return;
+    }
 
     const receiptHTML = `
+      <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8" />
           <title>Receipt #VK-${invoiceNo}</title>
           <style>
             @page { size: 80mm auto; margin: 0; }
             body { 
               width: 72mm; 
-              font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; 
+              font-family: 'Segoe UI', Arial, sans-serif; 
               font-size: 11px; 
               padding: 4mm; 
               margin: 0 auto;
@@ -1259,7 +1297,7 @@ export default function AdminPOS() {
           </style>
         </head>
         <body>
-          <div class="center bold header">${bizSettings.businessName.toUpperCase()}</div>
+          <div class="center bold header">${(bizSettings.businessName || 'VillagKart').toUpperCase()}</div>
           ${bizSettings.address ? `<div class="center subheader">${bizSettings.address}</div>` : ''}
           ${bizSettings.gstNo ? `<div class="center subheader">GSTIN: ${bizSettings.gstNo}</div>` : ''}
           ${bizSettings.contactNo ? `<div class="center subheader">Ph: ${bizSettings.contactNo}</div>` : ''}
@@ -1272,9 +1310,9 @@ export default function AdminPOS() {
           <div class="item-row">
             <span>Date: ${dateStr}</span>
           </div>
-          ${lastOrder.customerName || lastOrder.mobile ? `
+          ${lastOrder.customerName || lastOrder.mobile || lastOrder.customerPhone ? `
             <div class="item-row">
-              <span>Customer: ${lastOrder.customerName?.toUpperCase() || ''} ${lastOrder.mobile ? `(${lastOrder.mobile})` : ''}</span>
+              <span>Customer: ${(lastOrder.customerName || '').toUpperCase()} ${lastOrder.mobile || lastOrder.customerPhone ? `(${lastOrder.mobile || lastOrder.customerPhone})` : ''}</span>
             </div>
           ` : ''}
           <div class="divider"></div>
@@ -1285,11 +1323,11 @@ export default function AdminPOS() {
           </div>
           <div class="divider"></div>
           
-          ${lastOrder.items.map(item => `
-            <div class="item-name">${item.product?.name || 'Product'}</div>
+          ${itemsList.map(item => `
+            <div class="item-name">${item.name}</div>
             <div class="item-details">
-              <span>${item.quantity} Qty x Rs.${item.price.toFixed(2)}</span>
-              <span>Rs.${(item.price * item.quantity).toFixed(2)}</span>
+              <span>${item.qty} Qty x Rs.${item.price.toFixed(2)}</span>
+              <span>Rs.${(item.price * item.qty).toFixed(2)}</span>
             </div>
           `).join('')}
           
@@ -1331,11 +1369,11 @@ export default function AdminPOS() {
 
           <div class="total-row grand-total">
             <span>GRAND TOTAL</span>
-            <span>Rs.${lastOrder.totalAmount.toFixed(2)}</span>
+            <span>Rs.${totalAmount.toFixed(2)}</span>
           </div>
 
           <div class="item-row" style="font-size: 9.5px; margin-top: 6px; font-weight: bold;">
-            <span>Payment Mode: ${lastOrder.paymentMode === 'CASH_UPI' ? 'Split (Cash+UPI)' : lastOrder.paymentMode === 'CREDIT' ? 'Credit (Udhar)' : lastOrder.paymentMode}</span>
+            <span>Payment Mode: ${lastOrder.paymentMode === 'CASH_UPI' ? 'Split (Cash+UPI)' : lastOrder.paymentMode === 'CREDIT' ? 'Credit (Udhar)' : (lastOrder.paymentMode || 'CASH')}</span>
             <span>Status: ${lastOrder.paymentMode === 'CREDIT' ? 'DUE' : 'PAID'}</span>
           </div>
 
@@ -1358,34 +1396,22 @@ export default function AdminPOS() {
             <div>Please Visit Again</div>
             <div style="margin-top: 5px; font-size: 7.5px; color: #555;">Computer Generated Receipt</div>
           </div>
-          <script>
-            window.onload = function() {
-              window.focus();
-              window.print();
-              setTimeout(function() {
-                window.close();
-              }, 500);
-            };
-          </script>
         </body>
       </html>
     `;
 
+    printWindow.document.open();
     printWindow.document.write(receiptHTML);
     printWindow.document.close();
 
-    // Auto print trigger from parent as fallback/reinforcement
-    printWindow.focus();
     setTimeout(() => {
       try {
+        printWindow.focus();
         printWindow.print();
-        setTimeout(() => {
-          printWindow.close();
-        }, 500);
       } catch (e) {
-        console.warn('Auto print failed or was handled by inline script:', e);
+        console.error('Print error:', e);
       }
-    }, 100);
+    }, 250);
   };
 
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -2170,9 +2196,29 @@ export default function AdminPOS() {
                             </div>
                             <div className="h-px bg-slate-200/50" />
                             <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Method</span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Paid Amount</span>
+                              <span className="text-2xl font-black text-emerald-600 tracking-tighter">
+                                ₹{parseFloat(lastOrder.totalAmount || 0).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Items</span>
+                              <span className="text-xs font-black text-slate-900">
+                                {lastOrder.items?.length || 0} ({lastOrder.items?.reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 0} qty)
+                              </span>
+                            </div>
+                            {lastOrder.customerName && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</span>
+                                <span className="text-xs font-black text-slate-900 truncate max-w-[150px]">
+                                  {lastOrder.customerName} {lastOrder.customerPhone ? `(${lastOrder.customerPhone})` : ''}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Method</span>
                               <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-900 uppercase">
-                                {selectedPaymentMode}
+                                {selectedPaymentMode || lastOrder.paymentMode || 'CASH'}
                               </span>
                             </div>
                           </div>

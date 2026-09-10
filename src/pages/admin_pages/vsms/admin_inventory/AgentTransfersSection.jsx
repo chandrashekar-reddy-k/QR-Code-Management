@@ -92,7 +92,7 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
     if (!fromVehicleId || !toVehicleId) return;
 
     const itemsToTransfer = Object.entries(transferQuantities)
-      .map(([productId, quantity]) => ({ productId, quantity }))
+      .map(([productId, quantity]) => ({ productId, quantity: parseInt(quantity, 10) }))
       .filter(item => item.quantity > 0);
 
     if (itemsToTransfer.length === 0) {
@@ -364,12 +364,16 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
                       <tr key={item.id} className="hover:bg-gray-50/30 transition-all">
                         <td className="px-6 py-3.5">
                           <div className="flex flex-col">
-                            <span className="text-xs font-black text-gray-800 uppercase tracking-tight">{item.product?.name}</span>
-                            <span className="text-[9px] font-bold text-gray-400 uppercase mt-0.5">{item.product?.skuCode}</span>
+                            <span className="text-xs font-black text-gray-800 uppercase tracking-tight">
+                              {item.product?.name || item.productName || item.name || `Product (${item.productId?.slice(-6) || 'N/A'})`}
+                            </span>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase mt-0.5">
+                              {item.product?.skuCode || item.product?.sku || item.sku || 'N/A'}
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 py-3.5 text-center font-bold text-gray-700">
-                          {item.quantity} {item.product?.unit?.name || 'pcs'}
+                          {item.quantity} {item.product?.unit?.name || item.product?.unit || 'pcs'}
                         </td>
                         <td className="px-4 py-3.5 bg-indigo-50/10 text-center">
                           <input

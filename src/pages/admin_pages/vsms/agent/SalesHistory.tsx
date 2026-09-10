@@ -44,9 +44,34 @@ export default function SalesHistory() {
     }
   };
 
+  // Helper functions for profit & margin money calculation
+  const calculateItemMargin = (item) => {
+    const sp = Number(item.sellingPrice ?? item.unitPrice ?? item.price ?? 0);
+    const lp = Number(item.landingPrice ?? item.landing_price ?? item.product?.landingPrice ?? item.productVariant?.landingPrice ?? item.costPrice ?? 0);
+    const qty = Number(item.quantity || 1);
+    if (lp > 0) {
+      return (sp - lp) * qty;
+    }
+    return (sp * 0.20) * qty; // Default fallback to 20% margin if landing price unpopulated
+  };
+
+  const calculateOrderMargin = (order) => {
+    if (order.margin !== undefined && order.margin !== null) return Number(order.margin);
+    if (order.profit !== undefined && order.profit !== null) return Number(order.profit);
+    if (Array.isArray(order.items) && order.items.length > 0) {
+      return order.items.reduce((sum, item) => sum + calculateItemMargin(item), 0);
+    }
+    return Number(order.totalAmount || order.amount || 0) * 0.20;
+  };
+
   // Calculated live metrics from DB orders
   const ordersCount = orders.length > 0 ? orders.length : 245;
   const totalRevenue = orders.reduce((sum, o) => sum + Number(o.totalAmount || o.amount || 0), 0);
+  const totalMarginMoney = orders.length > 0 
+    ? orders.reduce((sum, o) => sum + calculateOrderMargin(o), 0)
+    : totalRevenue * 0.20;
+  const marginPercent = totalRevenue > 0 ? Math.round((totalMarginMoney / totalRevenue) * 100) : 20;
+
   const cashSales = orders.length > 0 
     ? orders
         .filter(o => (o.paymentMode || o.paymentMethod || 'CASH').toUpperCase() === 'CASH')
@@ -58,7 +83,6 @@ export default function SalesHistory() {
   const cardSales = orders
     .filter(o => (o.paymentMode || o.paymentMethod || '').toUpperCase() === 'CARD')
     .reduce((sum, o) => sum + Number(o.totalAmount || o.amount || 0), 0);
-  const netProfit = totalRevenue * 0.15;
   const dailyTarget = 10000;
   const goalPercent = Math.min(100, Math.round((totalRevenue / dailyTarget) * 100));
 
@@ -76,9 +100,9 @@ export default function SalesHistory() {
   });
 
   const displayOrders = filteredOrders.length > 0 ? filteredOrders : [
-    { id: '1', customerName: 'Walk-In', displayId: 'VK-AP-HUB-ORD-12626', createdAt: '08 AUG, 07:21', totalAmount: 261.00, status: 'COMPLETED' },
-    { id: '2', customerName: 'Walk-In', displayId: 'VK-AP-HUB-ORD-10845', createdAt: '06 AUG, 14:15', totalAmount: 261.00, status: 'COMPLETED' },
-    { id: '3', customerName: 'Walk-In', displayId: 'VK-AP-HUB-ORD-09823', createdAt: '05 AUG, 11:30', totalAmount: 145.00, status: 'COMPLETED' },
+    { id: '1', customerName: 'Walk-In', displayId: 'VK-AP-HUB-ORD-12626', createdAt: '08 AUG, 07:21', totalAmount: 261.00, status: 'COMPLETED', items: [{ price: 261, landingPrice: 208, quantity: 1 }] },
+    { id: '2', customerName: 'Walk-In', displayId: 'VK-AP-HUB-ORD-10845', createdAt: '06 AUG, 14:15', totalAmount: 261.00, status: 'COMPLETED', items: [{ price: 261, landingPrice: 208, quantity: 1 }] },
+    { id: '3', customerName: 'Walk-In', displayId: 'VK-AP-HUB-ORD-09823', createdAt: '05 AUG, 11:30', totalAmount: 145.00, status: 'COMPLETED', items: [{ price: 145, landingPrice: 116, quantity: 1 }] },
   ];
 
   return (
@@ -144,13 +168,18 @@ export default function SalesHistory() {
             </div>
           </div>
 
-          {/* Net Profit */}
-          <div className="bg-white rounded-3xl p-4 border border-gray-100 shadow-2xs flex items-start justify-between">
+          {/* Margin Money / Net Profit */}
+          <div className="bg-white rounded-3xl p-4 border border-emerald-100 shadow-2xs flex items-start justify-between bg-emerald-50/20">
             <div className="space-y-1">
-              <p className="text-xs font-bold text-gray-400">Net Profit</p>
-              <h4 className="text-xl font-black text-gray-900">₹{netProfit.toFixed(2)}</h4>
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-bold text-gray-500">Margin Money</p>
+                <span className="text-[9px] font-black text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded">
+                  {marginPercent}% Margin
+                </span>
+              </div>
+              <h4 className="text-xl font-black text-[#00891D]">₹{totalMarginMoney.toFixed(2)}</h4>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-[#FFFDE7] text-[#F57F17] flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
               <Banknote size={18} strokeWidth={2} />
             </div>
           </div>
@@ -251,6 +280,7 @@ export default function SalesHistory() {
             const dateStr = order.createdAt 
               ? (order.createdAt.length < 20 ? order.createdAt : format(new Date(order.createdAt), 'dd MMM, HH:mm').toUpperCase())
               : '08 AUG, 07:21';
+            const orderMargin = calculateOrderMargin(order);
 
             return (
               <div
@@ -277,7 +307,7 @@ export default function SalesHistory() {
                   </div>
                 </div>
 
-                {/* Right Side: Status Badge & Price */}
+                {/* Right Side: Status Badge, Price & Margin Money */}
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-[10px] font-black text-[#00891D] bg-[#E8F5E9] px-2.5 py-0.5 rounded-full uppercase">
@@ -285,6 +315,9 @@ export default function SalesHistory() {
                     </span>
                     <span className="text-base font-black text-gray-900">
                       ₹{Math.round(order.totalAmount || order.amount || 0)}
+                    </span>
+                    <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                      Margin: +₹{orderMargin.toFixed(2)}
                     </span>
                   </div>
                   <ChevronRight size={16} className="text-gray-300 shrink-0 ml-0.5" />

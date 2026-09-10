@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { Filter, ChevronDown, RotateCcw } from "lucide-react";
+import { Filter, ChevronDown, RotateCcw, FileText } from "lucide-react";
 import {
   SearchInput,
   SelectInput,
@@ -10,6 +10,8 @@ import {
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import { formatDate } from "../../../utils/formatters";
+import { generateInvoicePDF, getInvoiceNumber } from "../../../utils/generateInvoicePDF";
+import api from "../../../api/axios";
 import { useGetDeliveryOrders, useBulkTransitionOrders, useGeneratePickingList } from "../../../hooks/order";
 import { useGetRouteMaps, type RouteMapItem } from "../../../hooks/deliverySettings";
 import { useSocket } from "../../../hooks/useSocket";
@@ -591,6 +593,20 @@ const HomeDeliveryOrders = () => {
     return statusMap[statusUpper] || status;
   };
 
+  const handleDownloadInvoice = async (order: TableOrder) => {
+    try {
+      const fullOrderRes = await api.get(`/orders/${order.id}`);
+      const fullOrder = fullOrderRes?.data?.data || fullOrderRes?.data || order;
+      const pdf = await generateInvoicePDF(fullOrder as any);
+      if (pdf) {
+        pdf.save(`Invoice_VK-${getInvoiceNumber(fullOrder as any)}.pdf`);
+      }
+    } catch (err) {
+      console.error("Error generating invoice PDF:", err);
+      toast.error("Failed to generate invoice PDF");
+    }
+  };
+
   // Table columns
   const columns = [
     {
@@ -746,22 +762,29 @@ const HomeDeliveryOrders = () => {
     {
       key: "actions",
       label: "ACTION",
-      sortable: false,
-      render: (order: TableOrder) => (
-        <div className="flex items-center justify-center">
-          <ViewIconButton
-            onClick={() =>
-              navigate(
-                `/home-delivery-orders/view/${order.id}?page=${currentPage}&limit=${itemsPerPage}`
-              )
-            }
-            size={14}
-            tooltip="View"
-            className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-          />
-        </div>
-      ),
-    },
+    sortable: false,
+    render: (order: TableOrder) => (
+      <div className="flex items-center justify-center gap-1">
+        <button
+          onClick={() => handleDownloadInvoice(order)}
+          title="Download Invoice PDF"
+          className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors cursor-pointer"
+        >
+          <FileText size={15} />
+        </button>
+        <ViewIconButton
+          onClick={() =>
+            navigate(
+              `/home-delivery-orders/view/${order.id}?page=${currentPage}&limit=${itemsPerPage}`
+            )
+          }
+          size={14}
+          tooltip="View"
+          className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+        />
+      </div>
+    ),
+  },
   ];
 
   return (
