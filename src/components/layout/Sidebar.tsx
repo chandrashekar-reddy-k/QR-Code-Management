@@ -225,6 +225,13 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       }
     }
 
+    if (parentPart === 'product_management') {
+      candidates.push('partner_product_management_view');
+      candidates.push('partner_product_view');
+      candidates.push('partner_products_view');
+      candidates.push('product_management_view');
+    }
+
     if (labelPart === 'ready_for_dispatch') {
       candidates.push(`${portal}_${parentPart}_ready_dispatch_view`);
       candidates.push(`${parentPart}_ready_dispatch_view`);

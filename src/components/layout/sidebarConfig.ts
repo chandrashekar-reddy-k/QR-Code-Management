@@ -15,6 +15,7 @@ import {
   Upload,
   RefreshCw,
   Film,
+  FolderArchive,
   Users,
   Boxes,
   ClipboardList,
@@ -329,6 +330,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/products/media", label: "Media", icon: Film },
       { path: "/products/bulk-upload", label: "Bulk Upload", icon: Upload },
       { path: "/products/bulk-update", label: "Bulk Update", icon: RefreshCw },
+      // { path: "/products/zip-import", label: "ZIP Import", icon: FolderArchive },
       { path: "/products/import", label: "Import Products", icon: Download },
       { path: "/products/export", label: "Export Products", icon: Upload },
       // Hidden as per sidebar screenshots
