@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import {
   TrendingUp, Users, MapPin, AlertCircle, CheckCircle2,
   ChevronRight, Search, RefreshCw, X, Bell, Activity,
-  Filter, Clock, ShoppingBag
+  Filter, Clock, ShoppingBag, Maximize2, Minimize2
 } from 'lucide-react';
-import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, PolylineF, OverlayViewF } from '@react-google-maps/api';
 import * as routeService from '../services/routeService';
 import * as locationService from '../services/locationService';
 import { usePerformanceQuery } from '../hooks/useVsmsCache';
@@ -47,6 +47,8 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   const [showOnlyActive, setShowOnlyActive] = useState(false);
   const [breadcrumbPath, setBreadcrumbPath] = useState([]);
   const [mapCenter, setMapCenter] = useState({ lat: 20.5937, lng: 78.9629 });
+
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   const { data: cachedPerf, isLoading, isFetching, refetch } = usePerformanceQuery(storeId);
 
@@ -377,39 +379,114 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
               )}
             </div>
 
-            {/* Map */}
-            <div className="h-[220px] w-full bg-gray-100">
+            {/* Map Container with Expandable In-Page Height */}
+            <div 
+              id="vsms-map-container"
+              className={`relative transition-all duration-500 overflow-hidden ${
+                isMapFullscreen 
+                  ? 'h-[650px] w-full bg-gray-100 ring-2 ring-emerald-500 shadow-2xl rounded-xl' 
+                  : 'h-[300px] w-full bg-gray-100'
+              }`}
+            >
+              {/* Action Buttons: Expand and Minimize Map Controls */}
+              <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+                {!isMapFullscreen ? (
+                  <button
+                    onClick={() => {
+                      const elem = document.getElementById('vsms-map-container');
+                      if (elem && elem.requestFullscreen) {
+                        elem.requestFullscreen().catch(() => setIsMapFullscreen(true));
+                      }
+                      setIsMapFullscreen(true);
+                    }}
+                    className="p-2.5 bg-gray-900/90 hover:bg-black text-white rounded-xl shadow-xl border border-white/20 backdrop-blur-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2 text-xs font-bold"
+                    title="Expand Map View"
+                  >
+                    <Maximize2 size={16} className="text-emerald-400" />
+                    <span>Expand Map</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (document.fullscreenElement) {
+                        document.exitFullscreen().catch(() => setIsMapFullscreen(false));
+                      }
+                      setIsMapFullscreen(false);
+                    }}
+                    className="p-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xl border border-rose-400 backdrop-blur-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2 text-xs font-bold"
+                    title="Minimize Map View"
+                  >
+                    <Minimize2 size={16} className="text-white" />
+                    <span>Minimize Map</span>
+                  </button>
+                )}
+              </div>
+
               {isLoaded ? (
                 <GoogleMap
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={mapCenter}
-                  zoom={selectedAssignment ? 13 : 10}
-                  options={{ disableDefaultUI: true, styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }] }}
+                  zoom={selectedAssignment ? 13 : (isMapFullscreen ? 12 : 10)}
+                  options={{ 
+                    disableDefaultUI: false, 
+                    zoomControl: true,
+                    styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }] 
+                  }}
                 >
+                  {/* Always render all live agent location markers with dynamic full name SVG badges */}
+                  {liveLocations.filter(l => (l.lat || l.latitude) && (l.long || l.longitude)).map(loc => {
+                    const latNum = parseFloat(loc.lat || loc.latitude);
+                    const lngNum = parseFloat(loc.long || loc.longitude);
+                    if (isNaN(latNum) || isNaN(lngNum)) return null;
+                    const isLiveNow = isAgentLive(loc.userId);
+                    
+                    // Match with performance array to ensure complete full name
+                    const perfMatch = data.performance.find(p => p.userId === loc.userId);
+                    const fullName = (perfMatch?.agentName || loc.user?.name || loc.userName || 'Agent').trim();
+                    const displayName = fullName.toUpperCase();
+                    const pinColor = isLiveNow ? '#10b981' : '#f59e0b';
+                    
+                    // Dynamically calculate badge width based on text length
+                    const textWidth = Math.max(displayName.length * 8 + 36, 90);
+                    const svgWidth = textWidth + 10;
+                    const centerX = svgWidth / 2;
+                    
+                    const svgPin = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="64" viewBox="0 0 ${svgWidth} 64">
+                        <rect x="5" y="4" width="${textWidth}" height="24" rx="12" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
+                        <circle cx="18" cy="16" r="4.5" fill="${pinColor}"/>
+                        <text x="28" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName}</text>
+                        <path d="M ${centerX} 28 L ${centerX + 6} 40 L ${centerX - 6} 40 Z" fill="#0f172a"/>
+                        <circle cx="${centerX}" cy="50" r="7" fill="${pinColor}" stroke="#ffffff" stroke-width="2.5"/>
+                      </svg>
+                    `)}`;
+
+                    return (
+                      <MarkerF
+                        key={`agent-marker-${loc.userId}`}
+                        position={{ lat: latNum, lng: lngNum }}
+                        onClick={() => { const p = data.performance.find(x => x.userId === loc.userId); if (p) fetchDetail(p.assignmentId); }}
+                        icon={{
+                          url: svgPin,
+                          scaledSize: new window.google.maps.Size(svgWidth * 0.85, 54),
+                          anchor: new window.google.maps.Point((svgWidth * 0.85) / 2, 50)
+                        }}
+                      />
+                    );
+                  })}
                   {selectedAssignment && breadcrumbPath.length > 0 && (
                     <MarkerF
                       position={breadcrumbPath[breadcrumbPath.length - 1]}
-                      icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#10b981', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 8 }}
+                      icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#10b981', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 3, scale: 12 }}
                     />
                   )}
                   {selectedAssignment && assignmentDetail?.breakdown.filter(v => v.latitude && v.longitude).map((v, i) => (
                     <MarkerF
-                      key={i}
+                      key={`village-breakdown-${i}`}
                       position={{ lat: parseFloat(v.latitude), lng: parseFloat(v.longitude) }}
                       icon={{ path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z', fillColor: v.visited ? '#10b981' : '#ef4444', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5, scale: 1.2, anchor: { x: 12, y: 24 } }}
                     />
                   ))}
-                  {!selectedAssignment && liveLocations.filter(l => l.lat && l.long).map(loc => {
-                    const isLiveNow = isAgentLive(loc.userId);
-                    return (
-                      <MarkerF
-                        key={loc.userId}
-                        position={{ lat: parseFloat(loc.lat), lng: parseFloat(loc.long) }}
-                        onClick={() => { const p = data.performance.find(x => x.userId === loc.userId); if (p) fetchDetail(p.assignmentId); }}
-                        icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: isLiveNow ? '#10b981' : '#9ca3af', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 8 }}
-                      />
-                    );
-                  })}
                 </GoogleMap>
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
