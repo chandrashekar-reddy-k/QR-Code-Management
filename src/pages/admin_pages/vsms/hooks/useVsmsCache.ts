@@ -119,9 +119,9 @@ export function usePerformanceQuery(storeId: string | null) {
         liveLocations: liveRes || [],
       };
     },
-    staleTime: 60 * 1000,      // 1 minute fresh
-    gcTime: 15 * 60 * 1000,    // 15 minutes in memory
-    refetchOnWindowFocus: false,
+    staleTime: 0,              // Instant fresh data
+    gcTime: 5 * 60 * 1000,     // 5 minutes in memory
+    refetchOnWindowFocus: true,
   });
 }
 

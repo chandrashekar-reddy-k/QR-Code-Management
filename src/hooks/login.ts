@@ -61,8 +61,8 @@ const formatLoginSuccess = (data: any): LoginResponse => ({
       avatar: data.data.user?.avatar || null,
       store: null,
       supplier: null,
-      requiresPasswordChange: Boolean(data.data.user?.isFirstLogin || data.data.user?.mustChangePassword || data.data.user?.isCreatedPassword),
-      isCreatedPassword: Boolean(data.data.user?.isFirstLogin || data.data.user?.mustChangePassword || data.data.user?.isCreatedPassword),
+      requiresPasswordChange: Boolean(data.data.user?.mustChangePassword || (data.data.user?.isCreatedPassword && !data.data.user?.isFirstLogin)),
+      isCreatedPassword: Boolean(data.data.user?.isCreatedPassword ?? false),
       isFirstLogin: Boolean(data.data.user?.isFirstLogin),
       mustChangePassword: Boolean(data.data.user?.mustChangePassword)
     }

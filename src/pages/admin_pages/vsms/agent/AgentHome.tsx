@@ -12,6 +12,7 @@ import * as routeService from '../services/routeService';
 import * as shiftService from '../services/shiftService';
 import { ordersAPI, productsAPI } from '../services/api';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
+import * as locationService from '../services/locationService';
 
 export default function AgentHome() {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ export default function AgentHome() {
 
   const loadHomeData = async () => {
     setLoading(true);
+    locationService.startLiveTracking();
     try {
       // 1. Fetch Today's Plan status
       try {

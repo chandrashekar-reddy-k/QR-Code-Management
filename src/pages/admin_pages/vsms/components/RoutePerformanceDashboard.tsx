@@ -9,6 +9,7 @@ import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
 import * as routeService from '../services/routeService';
 import * as locationService from '../services/locationService';
 import { usePerformanceQuery } from '../hooks/useVsmsCache';
+import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 
 // ── Circular Progress Ring ──────────────────────────────────────────────────
@@ -53,6 +54,12 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
     if (cachedPerf) {
       setData(cachedPerf.performanceData);
       setLiveLocations(cachedPerf.liveLocations);
+      if (cachedPerf.liveLocations && cachedPerf.liveLocations.length > 0 && !selectedAssignment) {
+        const firstWithCoords = cachedPerf.liveLocations.find(l => l.lat && l.long);
+        if (firstWithCoords) {
+          setMapCenter({ lat: parseFloat(firstWithCoords.lat), lng: parseFloat(firstWithCoords.long) });
+        }
+      }
       setLoading(false);
     }
   }, [cachedPerf]);
@@ -66,10 +73,41 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   };
 
   useEffect(() => {
-    const iv = setInterval(async () => {
+    const fetchLive = async () => {
       try { setLiveLocations(await locationService.getLiveLocations(storeId)); } catch (_) {}
-    }, 30000);
-    return () => clearInterval(iv);
+    };
+    fetchLive();
+
+    // Connect to live WebSocket for real-time location stream
+    let socket;
+    try {
+      const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:3004' : window.location.origin;
+      const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+      socket = io(socketUrl, {
+        auth: { token },
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('location:update', (data) => {
+        if (!data || !data.userId) return;
+        setLiveLocations((prev) => {
+          const isDuty = data.isOnDuty !== undefined ? Boolean(data.isOnDuty) : true;
+          const existingIndex = prev.findIndex((l) => l.userId === data.userId || l.id === data.userId);
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], ...data, isOnDuty: isDuty, updatedAt: new Date().toISOString() };
+            return updated;
+          }
+          return [...prev, { ...data, isOnDuty: isDuty, updatedAt: new Date().toISOString() }];
+        });
+      });
+    } catch (_) {}
+
+    const iv = setInterval(fetchLive, 5000);
+    return () => {
+      clearInterval(iv);
+      if (socket) socket.disconnect();
+    };
   }, [storeId]);
 
   const fetchDetail = async (id) => {
@@ -106,8 +144,14 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   };
 
   const isAgentLive = (userId) => {
-    const loc = liveLocations.find(l => l.userId === userId);
-    return loc && (new Date() - new Date(loc.updatedAt)) < 10 * 60 * 1000;
+    const loc = liveLocations.find(l => l.userId === userId || l.id === userId);
+    if (!loc) return false;
+    if (loc.isOnDuty !== undefined) return Boolean(loc.isOnDuty);
+    if (loc.isOnline !== undefined) return Boolean(loc.isOnline);
+    const timeVal = loc.timestamp || loc.updatedAt || loc.createdAt;
+    if (!timeVal) return false;
+    const age = new Date().getTime() - new Date(timeVal).getTime();
+    return age >= 0 && age < 300 * 1000;
   };
 
   const filteredPerf = data.performance.filter(p => {
@@ -138,7 +182,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
     },
     {
       label: 'Active Agents',
-      value: data.summary.activeRoutes ?? 0,
+      value: data.performance.filter(p => isAgentLive(p.userId)).length,
       icon: <Users size={22} />,
       iconBg: 'bg-blue-100',
       iconColor: 'text-blue-600',
@@ -269,14 +313,18 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <ProgressRing percentage={p.completionRate || 0} size={48} stroke={4} />
-                    {live && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
-                    )}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-white rounded-full ${
+                      live ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'
+                    }`} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-gray-900 dark:text-white">{p.agentName}</p>
-                      {live && <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-bold rounded uppercase">Live</span>}
+                      <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded uppercase ${
+                        live ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        {live ? 'Online' : 'Offline'}
+                      </span>
                     </div>
                     <p className="text-[10px] font-bold text-gray-400 mt-0.5">
                       {p.routeName} • {p.assignedCount ?? 0} Assigned Villages
@@ -294,8 +342,12 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Coverage</p>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">{p.visitedCount ?? 0}/{p.assignedCount ?? 1}</p>
                   </div>
-                  <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg border border-emerald-100">
-                    Active
+                  <span className={`px-3 py-1 text-[10px] font-bold rounded-lg border ${
+                    live
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-gray-100 text-gray-500 border-gray-200'
+                  }`}>
+                    {live ? 'Online' : 'Offline'}
                   </span>
                   <ChevronRight size={16} className={`transition-colors ${isSelected ? 'text-emerald-500' : 'text-gray-300'}`} />
                 </div>
@@ -347,14 +399,17 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                       icon={{ path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z', fillColor: v.visited ? '#10b981' : '#ef4444', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5, scale: 1.2, anchor: { x: 12, y: 24 } }}
                     />
                   ))}
-                  {!selectedAssignment && liveLocations.filter(l => l.lat && l.long && (new Date() - new Date(l.updatedAt)) < 15 * 60 * 1000).map(loc => (
-                    <MarkerF
-                      key={loc.userId}
-                      position={{ lat: loc.lat, lng: loc.long }}
-                      onClick={() => { const p = data.performance.find(x => x.userId === loc.userId); if (p) fetchDetail(p.assignmentId); }}
-                      icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#10b981', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 7 }}
-                    />
-                  ))}
+                  {!selectedAssignment && liveLocations.filter(l => l.lat && l.long).map(loc => {
+                    const isLiveNow = isAgentLive(loc.userId);
+                    return (
+                      <MarkerF
+                        key={loc.userId}
+                        position={{ lat: parseFloat(loc.lat), lng: parseFloat(loc.long) }}
+                        onClick={() => { const p = data.performance.find(x => x.userId === loc.userId); if (p) fetchDetail(p.assignmentId); }}
+                        icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: isLiveNow ? '#10b981' : '#9ca3af', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 8 }}
+                      />
+                    );
+                  })}
                 </GoogleMap>
               ) : (
                 <div className="w-full h-full flex items-center justify-center">

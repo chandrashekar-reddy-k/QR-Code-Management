@@ -60,24 +60,54 @@ export const syncPendingLogs = async () => {
 /**
  * Start periodic location tracking
  */
+const TRACKING_DISABLED_KEY = 'vk_live_tracking_disabled';
 let trackingInterval = null;
-export const startLiveTracking = (intervalMs = 15000) => {
-  if (trackingInterval) return;
+let watchId = null;
+
+export const startLiveTracking = (intervalMs = 10000) => {
+  if (localStorage.getItem(TRACKING_DISABLED_KEY) === 'true') {
+    return;
+  }
+  if (trackingInterval || watchId) return;
 
   const captureLocation = () => {
     if (!navigator.geolocation) return;
+
+    // Fast attempt without waiting for hardware GPS lock
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
-        logLocation({ lat: latitude, lon: longitude, accuracy });
+        logLocation({ lat: latitude, lon: longitude, accuracy: accuracy || 20 });
       },
-      (error) => console.error('GPS Error:', error),
-      { enableHighAccuracy: true, timeout: 10000 }
+      (error) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude, accuracy } = pos.coords;
+            logLocation({ lat: latitude, lon: longitude, accuracy: accuracy || 50 });
+          },
+          () => {},
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+        );
+      },
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 }
     );
   };
 
   // Immediate capture on start
   captureLocation();
+
+  if (navigator.geolocation) {
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude, accuracy } = pos.coords;
+          logLocation({ lat: latitude, lon: longitude, accuracy: accuracy || 20 });
+        },
+        () => {},
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+      );
+    } catch (_) {}
+  }
   
   trackingInterval = setInterval(() => {
     captureLocation();
@@ -86,14 +116,30 @@ export const startLiveTracking = (intervalMs = 15000) => {
 };
 
 export const stopLiveTracking = () => {
+  localStorage.setItem(TRACKING_DISABLED_KEY, 'true');
   if (trackingInterval) {
     clearInterval(trackingInterval);
     trackingInterval = null;
   }
+  if (watchId !== null && navigator.geolocation) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  // Sync offline status to database immediately via both paths
+  api.put('/location/status', { isOnline: false }).catch(() => {});
+  api.put('/agent/auth/status', { isOnline: false }).catch(() => {});
+};
+
+export const enableLiveTracking = () => {
+  localStorage.removeItem(TRACKING_DISABLED_KEY);
+  // Sync online status to database immediately via both paths
+  api.put('/location/status', { isOnline: true }).catch(() => {});
+  api.put('/agent/auth/status', { isOnline: true }).catch(() => {});
+  startLiveTracking();
 };
 
 export const isTrackingActive = () => {
-  return trackingInterval !== null;
+  return trackingInterval !== null && localStorage.getItem(TRACKING_DISABLED_KEY) !== 'true';
 };
 
 /**

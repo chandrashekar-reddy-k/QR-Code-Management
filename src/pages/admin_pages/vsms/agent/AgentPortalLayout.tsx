@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
+import * as locationService from '../services/locationService';
 
 let hrmsWindowRef: Window | null = null;
 
@@ -59,6 +60,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [trackingOn, setTrackingOn] = useState(() => locationService.isTrackingActive());
   const { user, refreshUserProfile } = useUserStore() as any;
   const agentName = user?.name || localStorage.getItem('userName') || 'Agent';
 
@@ -68,6 +70,10 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     if (token) {
       refreshUserProfile();
     }
+
+    // Auto-start live tracking when agent portal is open
+    locationService.startLiveTracking();
+
     // Force light theme for agent portal
     const root = window.document.documentElement;
     root.classList.remove('dark');
@@ -222,6 +228,39 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
 
       {/* User Footer */}
       <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex-shrink-0">
+        {/* Location Tracking Toggle Widget */}
+        <div className="mx-2 mb-3 p-3 rounded-2xl bg-slate-100 dark:bg-slate-850 border border-gray-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${trackingOn ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+            <div>
+              <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider leading-none">
+                Live Location
+              </p>
+              <p className="text-[9px] font-bold text-slate-400 mt-0.5">
+                {trackingOn ? 'Active (GPS ON)' : 'Disabled'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (locationService.isTrackingActive()) {
+                locationService.stopLiveTracking();
+                setTrackingOn(false);
+              } else {
+                locationService.enableLiveTracking();
+                setTrackingOn(true);
+              }
+            }}
+            className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+              trackingOn
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                : 'bg-white text-slate-600 border-gray-300 hover:bg-slate-50'
+            }`}
+          >
+            {trackingOn ? 'ON' : 'OFF'}
+          </button>
+        </div>
+
         <div className="mx-2 p-3 rounded-2xl bg-white dark:bg-slate-950 border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 font-black text-sm border border-emerald-100 dark:border-emerald-900/30 shrink-0">
             {agentName.charAt(0).toUpperCase()}
@@ -268,7 +307,28 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       <div className="flex-1 min-w-0 flex flex-col md:ml-72 min-h-screen">
         {/* Header Bar (Visible on Desktop/Tablet, Clean on Mobile) */}
         <header className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-30 flex-shrink-0">
-          <div className="px-6 py-3 flex items-center justify-end">
+          <div className="px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  if (locationService.isTrackingActive()) {
+                    locationService.stopLiveTracking();
+                    setTrackingOn(false);
+                  } else {
+                    locationService.enableLiveTracking();
+                    setTrackingOn(true);
+                  }
+                }}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all border cursor-pointer ${
+                  trackingOn
+                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-md shadow-emerald-200'
+                    : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${trackingOn ? 'bg-white animate-pulse' : 'bg-rose-500'}`} />
+                <span>Live Location Tracking: {trackingOn ? 'ON' : 'OFF'}</span>
+              </button>
+            </div>
             <div className="flex items-center gap-3">
               <button
                 className="flex items-center gap-1.5 px-3.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-bold text-xs transition-all border border-green-200 cursor-pointer"

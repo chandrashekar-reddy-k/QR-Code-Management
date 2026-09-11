@@ -1930,6 +1930,11 @@ export const protectedRoutes: RouteConfig[] = [
     requiresAuth: true,
   },
   {
+    path: "/vsms/live-tracking",
+    component: AdminRoutes,
+    requiresAuth: true,
+  },
+  {
     path: "/vsms/routes-coverage",
     component: AdminRoutes,
     requiresAuth: true,
