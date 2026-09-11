@@ -38,8 +38,13 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
 
   useEffect(() => {
     fetchAgents();
+    const handleAssigned = () => { fetchAgents(); refreshOrders(); };
     window.addEventListener('agentStatusUpdated', fetchAgents);
-    return () => window.removeEventListener('agentStatusUpdated', fetchAgents);
+    window.addEventListener('deliveryAgentAssigned', handleAssigned);
+    return () => {
+      window.removeEventListener('agentStatusUpdated', fetchAgents);
+      window.removeEventListener('deliveryAgentAssigned', handleAssigned);
+    };
   }, []);
 
   const handleAssignRider = async (orderId: string, agentId: string) => {
@@ -56,11 +61,13 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
   };
 
   const orders = useMemo(() => {
+    const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
     return sharedOrders.filter((o: any) => {
       const isReady = o.status?.toLowerCase() === 'ready';
       const isNotSelfPickup = o.order_type !== 'Self Pickup';
-      const isHandedOver = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
-      return isReady && isNotSelfPickup && isHandedOver;
+      const isHandedOverDb = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+      const isNotLocallyHandedOver = !handedOverIds.includes(String(o.id || o.order_number));
+      return isReady && isNotSelfPickup && !isHandedOverDb && isNotLocallyHandedOver;
     });
   }, [sharedOrders]);
 

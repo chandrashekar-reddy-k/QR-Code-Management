@@ -75,8 +75,7 @@ export function OrderProcessing({ orders = [], onNavigate }: OrderProcessingProp
   const isReadyForDispatch = (o: any) => {
     const isReady = (o.status || '').toLowerCase() === 'ready';
     const isNotSelfPickup = o.order_type !== 'Self Pickup';
-    const isHandedOver = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
-    return isReady && isNotSelfPickup && isHandedOver;
+    return isReady && isNotSelfPickup;
   };
 
   // KPI Calculations

@@ -439,7 +439,7 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
   ];
 
   const secondRowKpis = [
-    { label: "Handed Over", value: totalHandedOver, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "orderhistory", statusFilter: "DISPATCHED", variant: "green" as const },
+    { label: "Dispatched", value: totalHandedOver, icon: Truck, color: "#2E7D32", bg: "#E8F5E9", screen: "orderhistory", statusFilter: "DISPATCHED", variant: "green" as const },
     { label: isAdmin ? "Rejected" : "Ignored Orders", value: stats.todaySummary?.rejected || 0, icon: XCircle, color: "#EF4444", bg: "#FFEBEE", screen: "orderhistory", statusFilter: isAdmin ? "REJECTED" : "IGNORED", variant: "red" as const },
     { label: "SLA Alerts", value: stats.slaAlerts, icon: AlertTriangle, color: "#D32F2F", bg: "#FFEBEE", screen: "sla-monitoring", variant: "red" as const },
     { label: "Returns", value: returnsToday, icon: RotateCcw, color: "#607D8B", bg: "#ECEFF1", screen: "returns", variant: "gray" as const },
