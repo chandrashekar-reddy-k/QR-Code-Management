@@ -1,50 +1,48 @@
 name: Frontend Partner Deploy
 
 on:
-  push:
-    branches:
-      - erp/dev
+  push:
+    branches:
+      - master
 
 concurrency:
-  group: frontend-partner-deploy
-  cancel-in-progress: false
+  group: frontend-partner-deploy
+  cancel-in-progress: false
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
 
-    steps:
-      - name: Deploy Partner-Frontend Application
-        uses: appleboy/ssh-action@v1.2.0
+    steps:
+      - name: Deploy Partner-Frontend Application
+        uses: appleboy/ssh-action@v1.2.0
 
-        with:
-          host: ${{ secrets.DEV_EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.DEV_EC2_SSH_KEY }}
-          command_timeout: 10m
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          command_timeout: 10m
 
-          script: |
-            set -e
+          script: |
+            set -e
 
-            export PATH=$PATH:/home/ubuntu/n/bin
-            
-            cd /opt/apps/villagkart/erp-dev/partner_web
+            cd /var/www/villagkart/villagkart-partner-web
 
-            echo "Updating repository..."
+            echo "Updating repository..."
 
-            git checkout erp/dev
-            git pull origin erp/dev
+            git checkout master
+            git pull origin master
 
-            echo "Installing dependencies..."
+            echo "Installing dependencies..."
 
-            npm i
+            npm i
 
-            echo "Building frontend..."
+            echo "Building frontend..."
 
-            NODE_OPTIONS="--max-old-space-size=4096" npm run build
+            npm run build
 
-            echo "Restarting Nginx..."
-            
-            sudo systemctl reload nginx
-            
-            echo "Frontend deployment completed successfully."
+            echo "Restarting Nginx..."
+
+            sudo systemctl reload nginx
+
+            echo "Frontend deployment completed successfully."
