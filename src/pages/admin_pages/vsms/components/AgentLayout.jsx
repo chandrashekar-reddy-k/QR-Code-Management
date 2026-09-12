@@ -58,10 +58,10 @@ export default function AgentLayout() {
     );
   }
 
-  // Show punch-in screen only if agent has attendance enabled and hasn't punched in yet
-  if (isAgent && user?.attendanceEnabled !== false && attendanceChecked && !hasPunchedIn) {
-    return <PunchInScreen onPunchIn={handlePunchIn} />;
-  }
+  // Punch-in gate disabled — agents go straight to the portal after login
+  // if (isAgent && user?.attendanceEnabled !== false && attendanceChecked && !hasPunchedIn) {
+  //   return <PunchInScreen onPunchIn={handlePunchIn} />;
+  // }
 
   return (
     <div className="bg-slate-50 min-h-screen md:pl-64 flex flex-col">
