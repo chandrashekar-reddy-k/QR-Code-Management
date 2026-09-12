@@ -94,7 +94,12 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     };
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await locationService.stopLiveTracking();
+    } catch (err) {
+      console.error('Failed to stop live tracking on logout:', err);
+    }
     if (hrmsWindowRef && !hrmsWindowRef.closed) {
       try {
         hrmsWindowRef.close();
@@ -103,6 +108,8 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       }
     }
     localStorage.removeItem('token');
+    localStorage.removeItem('partnerToken');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userName');
     localStorage.removeItem('isAuthenticated');
@@ -242,9 +249,9 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
             </div>
           </div>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (locationService.isTrackingActive()) {
-                locationService.stopLiveTracking();
+                await locationService.stopLiveTracking();
                 setTrackingOn(false);
               } else {
                 locationService.enableLiveTracking();
@@ -305,42 +312,67 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
 
       {/* Main Content Area (Header + Main Page Content) */}
       <div className="flex-1 min-w-0 flex flex-col md:ml-72 min-h-screen">
-        {/* Header Bar (Visible on Desktop/Tablet, Clean on Mobile) */}
-        <header className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-30 flex-shrink-0">
-          <div className="px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        {/* Header Bar (Desktop & Mobile Header with Live Location Toggle) */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-30 flex-shrink-0">
+          <div className="px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Mobile Sidebar Hamburger Trigger */}
               <button
-                onClick={() => {
-                  if (locationService.isTrackingActive()) {
-                    locationService.stopLiveTracking();
-                    setTrackingOn(false);
-                  } else {
-                    locationService.enableLiveTracking();
-                    setTrackingOn(true);
-                  }
-                }}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all border cursor-pointer ${
-                  trackingOn
-                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-md shadow-emerald-200'
-                    : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
-                }`}
+                onClick={() => setIsOpen(true)}
+                className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors border border-gray-200"
+                aria-label="Open Navigation Menu"
               >
-                <span className={`w-2 h-2 rounded-full ${trackingOn ? 'bg-white animate-pulse' : 'bg-rose-500'}`} />
-                <span>Live Location Tracking: {trackingOn ? 'ON' : 'OFF'}</span>
+                <Menu size={18} />
               </button>
+
+              {/* Modern iOS-Style Toggle Switch Component */}
+              <div className="flex items-center gap-2 bg-slate-50 border border-gray-200 p-1 pl-2.5 rounded-full shadow-xs">
+                <span className="text-[11px] sm:text-xs font-black tracking-tight text-slate-700 uppercase flex items-center gap-1.5 whitespace-nowrap">
+                  <span className={`w-2 h-2 rounded-full ${trackingOn ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                  <span className="hidden sm:inline">Live Location:</span>
+                  <span className={trackingOn ? 'text-emerald-700' : 'text-rose-600'}>
+                    {trackingOn ? 'ON' : 'OFF'}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={trackingOn}
+                  onClick={async () => {
+                    if (locationService.isTrackingActive()) {
+                      await locationService.stopLiveTracking();
+                      setTrackingOn(false);
+                    } else {
+                      locationService.enableLiveTracking();
+                      setTrackingOn(true);
+                    }
+                  }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    trackingOn ? 'bg-emerald-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      trackingOn ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
+
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-bold text-xs transition-all border border-green-200 cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 sm:px-3.5 sm:py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-bold text-xs transition-all border border-green-200 cursor-pointer"
                 title="Open HRMS Portal"
                 onClick={() => openHRMSPortal()}
               >
                 <span>HRMS</span>
               </button>
-              <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
+              <span className="hidden lg:inline text-xs font-black text-slate-700 uppercase tracking-wider">
                 Welcome back, {agentName}
               </span>
-              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-black">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-black">
                 {agentName.charAt(0).toUpperCase()}
               </div>
             </div>

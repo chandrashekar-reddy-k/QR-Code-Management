@@ -115,7 +115,7 @@ export const startLiveTracking = (intervalMs = 10000) => {
   }, intervalMs);
 };
 
-export const stopLiveTracking = () => {
+export const stopLiveTracking = async () => {
   localStorage.setItem(TRACKING_DISABLED_KEY, 'true');
   if (trackingInterval) {
     clearInterval(trackingInterval);
@@ -126,8 +126,10 @@ export const stopLiveTracking = () => {
     watchId = null;
   }
   // Sync offline status to database immediately via both paths
-  api.put('/location/status', { isOnline: false }).catch(() => {});
-  api.put('/agent/auth/status', { isOnline: false }).catch(() => {});
+  await Promise.all([
+    api.put('/location/status', { isOnline: false }).catch(() => {}),
+    api.put('/agent/auth/status', { isOnline: false }).catch(() => {})
+  ]);
 };
 
 export const enableLiveTracking = () => {

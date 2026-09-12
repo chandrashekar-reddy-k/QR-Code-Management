@@ -33,6 +33,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { openHRMSPortal } from "../../utils/hrmsSSO";
 import { NotificationSettingsModal } from "../common/NotificationSettingsModal";
 import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
+import { stopLiveTracking } from "../../pages/admin_pages/vsms/services/locationService";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -362,7 +363,12 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   // Determine which image to use
   const profileImageSrc = (user?.avatar && !imageError) ? user.avatar : dummyProfileImage;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await stopLiveTracking();
+    } catch (err) {
+      console.warn("Failed to stop live tracking on logout:", err);
+    }
     if (hrmsWindowRef && !hrmsWindowRef.closed) {
       try {
         hrmsWindowRef.close();
