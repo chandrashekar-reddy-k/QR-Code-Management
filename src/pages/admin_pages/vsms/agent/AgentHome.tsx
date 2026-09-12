@@ -5,8 +5,9 @@ import {
   Bell, MapPin, Clock, Truck, Package, ArrowUpRight,
   ChevronRight, ArrowRight, ShieldCheck, CheckCircle2,
   AlertTriangle, Store, BarChart2, TrendingUp, Layers,
-  RefreshCw, RotateCcw, Gift, FileCheck
+  RefreshCw, RotateCcw, Gift, FileCheck, LogOut
 } from 'lucide-react';
+import PunchOutModal from '../components/PunchOutModal';
 import { useUserStore } from '../store/userStore';
 import * as routeService from '../services/routeService';
 import * as shiftService from '../services/shiftService';
@@ -17,6 +18,7 @@ import * as locationService from '../services/locationService';
 export default function AgentHome() {
   const navigate = useNavigate();
   const { user } = useUserStore();
+  const [showPunchOutModal, setShowPunchOutModal] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -118,7 +120,7 @@ export default function AgentHome() {
           <p className="text-xs font-medium text-gray-400 mt-0.5">{roleName}</p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/vsms/agent-portal/activity-logs')}
             className="w-9 h-9 rounded-xl bg-white border border-gray-200/80 flex items-center justify-center text-gray-600 hover:text-emerald-600 transition-all shadow-sm"
@@ -126,8 +128,15 @@ export default function AgentHome() {
             <Bell size={18} />
           </button>
           <button
+            onClick={() => setShowPunchOutModal(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+          >
+            <LogOut size={14} />
+            <span>Punch Out</span>
+          </button>
+          <button
             onClick={() => openHRMSPortal()}
-            className="bg-[#00891D] hover:bg-[#007318] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 tracking-wide"
+            className="bg-[#00891D] hover:bg-[#007318] text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 tracking-wide"
           >
             HRMS
           </button>
@@ -495,6 +504,16 @@ export default function AgentHome() {
           </div>
         </div>
       </div>
+
+      {showPunchOutModal && (
+        <PunchOutModal
+          onClose={() => setShowPunchOutModal(false)}
+          onPunchOut={() => {
+            setShowPunchOutModal(false);
+            window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 }
