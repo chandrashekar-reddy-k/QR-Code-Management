@@ -1,17 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { History, Play, StopCircle, Clock, MapPin, Wallet, TrendingUp, AlertCircle, Loader2, Plus, Calendar, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { History, Play, Loader2, Calendar, Edit, Trash2 } from 'lucide-react';
 import adminAPI from '.././services/adminService';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
-export default function TripManagementSection({ storeId, vehicles }) {
-  const [trips, setTrips] = useState([]);
+export interface Vehicle {
+  id: string;
+  vehicleNumber: string;
+  vehicleName?: string;
+  [key: string]: any;
+}
+
+export interface VehicleTrip {
+  id: string;
+  vehicleId: string;
+  vehicle?: { vehicleNumber: string };
+  user?: { name: string };
+  startOdometer: number;
+  endOdometer?: number | null;
+  openingCash?: number;
+  closingCash?: number;
+  totalSales?: number;
+  totalExpenses?: number;
+  shift: number;
+  date: string;
+  status: 'OPEN' | 'CLOSED' | string;
+  [key: string]: any;
+}
+
+interface TripManagementSectionProps {
+  storeId?: string;
+  vehicles: Vehicle[];
+}
+
+export default function TripManagementSection({ storeId, vehicles }: TripManagementSectionProps) {
+  const [trips, setTrips] = useState<VehicleTrip[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showStartModal, setShowStartModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [selectedTrip, setSelectedTrip] = useState<VehicleTrip | null>(null);
 
   const [formData, setFormData] = useState({
     vehicleId: '',
@@ -41,23 +70,23 @@ export default function TripManagementSection({ storeId, vehicles }) {
     status: 'OPEN'
   });
 
-  useEffect(() => {
-    loadTrips();
-  }, [storeId]);
-
-  const loadTrips = async () => {
+  const loadTrips = useCallback(async () => {
     try {
       setLoading(true);
       const res = await adminAPI.getVehicleOpsTrips({ storeId });
-      setTrips(res.data);
-    } catch (error) {
+      setTrips(res.data || []);
+    } catch {
       toast.error('Failed to load trips');
     } finally {
       setLoading(false);
     }
-  };
+  }, [storeId]);
 
-  const handleStartTrip = async (e) => {
+  useEffect(() => {
+    loadTrips();
+  }, [loadTrips]);
+
+  const handleStartTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
@@ -65,29 +94,30 @@ export default function TripManagementSection({ storeId, vehicles }) {
       toast.success('Trip started successfully');
       setShowStartModal(false);
       loadTrips();
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to start trip');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleEndTrip = async (e) => {
+  const handleEndTrip = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedTrip) return;
     try {
       setIsSubmitting(true);
       await adminAPI.endVehicleTrip(selectedTrip.id, endData);
       toast.success('Trip ended and reconciled');
       setShowEndModal(false);
       loadTrips();
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to end trip');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleOpenEdit = (trip) => {
+  const handleOpenEdit = (trip: VehicleTrip) => {
     setSelectedTrip(trip);
     setEditData({
       vehicleId: trip.vehicleId || '',
@@ -104,7 +134,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
     setShowEditModal(true);
   };
 
-  const handleUpdateTrip = async (e) => {
+  const handleUpdateTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTrip) return;
     try {
@@ -113,20 +143,20 @@ export default function TripManagementSection({ storeId, vehicles }) {
       toast.success('Trip updated successfully');
       setShowEditModal(false);
       loadTrips();
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to update trip');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteTrip = async (tripId) => {
+  const handleDeleteTrip = async (tripId: string) => {
     if (!window.confirm('Are you sure you want to delete this trip?')) return;
     try {
       await adminAPI.deleteVehicleTrip(tripId);
       toast.success('Trip deleted successfully');
       loadTrips();
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete trip');
     }
   };
@@ -182,8 +212,8 @@ export default function TripManagementSection({ storeId, vehicles }) {
                   <History size={24} />
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{trip.vehicle.vehicleNumber}</h4>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{trip.user.name}</p>
+                  <h4 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{trip.vehicle?.vehicleNumber || trip.vehicleId}</h4>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{trip.user?.name || 'Assigned Driver'}</p>
                 </div>
               </div>
 
@@ -202,7 +232,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                 <div className="space-y-3 mb-6 bg-emerald-50/30 p-4 rounded-lg border border-emerald-100/30">
                    <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                     <span>Distance</span>
-                    <span className="text-emerald-600 font-bold">{(trip.endOdometer - trip.startOdometer).toFixed(1)} km</span>
+                    <span className="text-emerald-600 font-bold">{((trip.endOdometer || 0) - (trip.startOdometer || 0)).toFixed(1)} km</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                     <span>Total Sales</span>
@@ -268,7 +298,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                 >
                   <option value="">Choose Vehicle...</option>
                   {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName})</option>
+                    <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName || 'Vehicle'})</option>
                   ))}
                 </select>
               </div>
@@ -359,7 +389,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
                   >
                     <option value="">Choose Vehicle...</option>
                     {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName})</option>
+                      <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName || 'Vehicle'})</option>
                     ))}
                   </select>
                 </div>

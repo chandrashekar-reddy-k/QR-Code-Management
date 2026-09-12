@@ -304,7 +304,7 @@ const HomeDeliveryOrders = () => {
       s.off("partner:order_created", handleOrderEvent);
       s.off("partner:order_updated", handleOrderEvent);
     };
-  }, [socketObj?.current, refetch]);
+  }, [socketObj, refetch]);
 
   useEffect(() => {
     if (refetch) {
@@ -595,7 +595,7 @@ const HomeDeliveryOrders = () => {
 
   const handleDownloadInvoice = async (order: TableOrder) => {
     try {
-      const fullOrderRes = await api.get(`/orders/${order.id}`);
+      const fullOrderRes = await api.get(`/partner/orders/${order.id}`);
       const fullOrder = fullOrderRes?.data?.data || fullOrderRes?.data || order;
       const pdf = await generateInvoicePDF(fullOrder as any);
       if (pdf) {
