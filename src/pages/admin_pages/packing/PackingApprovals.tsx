@@ -63,7 +63,7 @@ export const PackingApprovals: React.FC = () => {
           recipe?.items?.map((item: any, idx: number) => {
             const reqQty = (item.requiredQty / targetYield) * woQty;
             const inputProd = item.inputProduct;
-            const availableStock = (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? 1000;
+            const availableStock = inputProd?.productionStock?.inProductionQty ?? (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? 0;
             const shortage = Math.max(0, reqQty - availableStock);
             const status: InventoryValidationItem['status'] =
               availableStock === 0

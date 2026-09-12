@@ -36,20 +36,20 @@ const SortableTableHeader = ({
 
   return (
     <th
-      className={`px-2 sm:px-6 py-3 sm:py-4 text-center ${
-        isSortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors p-0' : ''
+      className={`text-left border-b border-gray-200 dark:border-gray-700 ${
+        isSortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors p-0' : 'px-2 sm:px-4 py-3 sm:py-4'
       } ${className}`}
     >
       {isSortable ? (
         <button
           type="button"
           onClick={handleClick}
-          className="w-full h-full min-h-[2.5rem] flex items-center justify-center gap-1 sm:gap-1.5 border-0 bg-transparent py-3 px-2 sm:px-4 text-inherit font-inherit cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-inset rounded"
+          className="w-full h-full min-h-[2.5rem] flex items-center justify-start gap-1 sm:gap-1.5 border-0 bg-transparent py-3 px-2 sm:px-4 text-inherit font-inherit cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-inset rounded"
         >
           {content}
         </button>
       ) : (
-        <div className="flex items-center justify-center gap-1 sm:gap-1.5">
+        <div className="flex items-center justify-start gap-1 sm:gap-1.5">
           {content}
         </div>
       )}

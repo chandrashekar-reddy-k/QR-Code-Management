@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { workOrderService, WorkOrder } from '../../../api/packing/workOrderService';
 import { masterDataService, Warehouse } from '../../../api/packing/masterDataService';
@@ -85,7 +85,7 @@ export const PackingMaterialIssueDetails: React.FC = () => {
       const type = inputProd?.type || (item.isPackaging ? 'PACKAGING' : 'RAW_MATERIAL');
 
       // Check stock
-      const stockQty = (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? 1000;
+      const stockQty = inputProd?.productionStock?.inProductionQty ?? (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? 0;
       const shortage = Math.max(0, reqQty - stockQty);
 
       let status: MaterialItem['status'] = 'AVAILABLE';
