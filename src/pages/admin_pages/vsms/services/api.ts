@@ -19,6 +19,8 @@ api.interceptors.request.use((config) => {
   } else if (
     !url.startsWith('/vsms') && 
     !url.startsWith('vsms') && 
+    !url.startsWith('/agent') &&
+    !url.startsWith('agent') &&
     !url.startsWith('/procurement') && 
     !url.startsWith('/staff') &&
     !url.startsWith('/inventorymanagement') &&
@@ -32,7 +34,7 @@ api.interceptors.request.use((config) => {
   }
   config.url = url;
 
-  const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+  const token = sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

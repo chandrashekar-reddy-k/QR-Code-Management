@@ -188,37 +188,63 @@ export default function OrderDetail() {
 
         {/* Order Items Table Card */}
         <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
-          <h3 className="text-xs font-black text-gray-900">Order Items</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black text-gray-900">Order Items &amp; Margins</h3>
+            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+              Profit: +₹{(() => {
+                const totalM = order.items?.reduce((sum: number, item: any) => {
+                  const sp = Number(item.price || item.sellingPrice || 0);
+                  const lp = Number(item.landingPrice ?? item.landing_price ?? item.product?.landingPrice ?? item.costPrice ?? 0);
+                  const qty = Number(item.quantity || 1);
+                  return sum + (lp > 0 ? (sp - lp) * qty : sp * 0.20 * qty);
+                }, 0) || 0;
+                return totalM.toFixed(2);
+              })()}
+            </span>
+          </div>
 
           <div className="flex items-center justify-between text-[10px] font-bold text-[#00891D] pb-1 border-b border-gray-50">
-            <span>Item</span>
-            <div className="flex items-center gap-10 pr-2">
+            <span>Item / Margin</span>
+            <div className="flex items-center gap-8 pr-2">
               <span>Qty</span>
               <span>Amount</span>
             </div>
           </div>
 
           <div className="divide-y divide-emerald-50">
-            {order.items?.map((item: any, idx: number) => (
-              <div key={idx} className="py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 relative overflow-hidden shrink-0">
-                    {item.product?.image ? <img src={item.product.image} alt="" className="w-full h-full object-cover" /> : <Package size={20} className="text-slate-300" />}
+            {order.items?.map((item: any, idx: number) => {
+              const sp = Number(item.price || item.sellingPrice || 0);
+              const lp = Number(item.landingPrice ?? item.landing_price ?? item.product?.landingPrice ?? item.costPrice ?? 0);
+              const qty = Number(item.quantity || 1);
+              const itemMargin = lp > 0 ? (sp - lp) * qty : (sp * 0.20) * qty;
+
+              return (
+                <div key={idx} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 relative overflow-hidden shrink-0">
+                      {item.product?.image ? <img src={item.product.image} alt="" className="w-full h-full object-cover" /> : <Package size={20} className="text-slate-300" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-gray-900 leading-tight truncate">{item.product?.name || item.name || 'Product'}</p>
+                      <div className="flex items-center gap-2 mt-0.5 text-[10px] font-bold text-gray-500">
+                        <span>VK Price: ₹{Math.round(sp)}</span>
+                        {lp > 0 && <span className="text-gray-400">Cost: ₹{Math.round(lp)}</span>}
+                      </div>
+                      <p className="text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded w-fit mt-1 border border-emerald-100">
+                        Margin: +₹{itemMargin.toFixed(2)}
+                      </p>
+                      {item.returnedQty > 0 && (
+                        <p className="text-[9px] font-black text-red-500 mt-0.5 flex items-center gap-1"><RotateCcw size={8} /> {item.returnedQty} returned</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-black text-gray-900 leading-tight truncate">{item.product?.name || item.name || 'Product'}</p>
-                    <p className="text-[10px] font-bold text-gray-400 mt-0.5">₹{Math.round(item.price)} / unit</p>
-                    {item.returnedQty > 0 && (
-                      <p className="text-[9px] font-black text-red-500 mt-0.5 flex items-center gap-1"><RotateCcw size={8} /> {item.returnedQty} returned</p>
-                    )}
+                  <div className="flex items-center gap-8 text-xs font-black text-gray-900 pr-1 shrink-0">
+                    <span>x{qty}</span>
+                    <span>₹{Math.round(sp * qty)}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-10 text-xs font-black text-gray-900 pr-1 shrink-0">
-                  <span>{item.quantity}</span>
-                  <span>₹{Math.round(item.price * item.quantity)}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Bill Summary */}
@@ -234,9 +260,20 @@ export default function OrderDetail() {
                 <span>-₹{Math.round(totalReturned)}</span>
               </div>
             )}
+            <div className="flex items-center justify-between text-xs font-bold text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-xl border border-emerald-100">
+              <span>Margin Money / Profit Earned</span>
+              <span className="font-black text-[#00891D]">
+                +₹{(order.items?.reduce((sum: number, item: any) => {
+                  const sp = Number(item.price || item.sellingPrice || 0);
+                  const lp = Number(item.landingPrice ?? item.landing_price ?? item.product?.landingPrice ?? item.costPrice ?? 0);
+                  const qty = Number(item.quantity || 1);
+                  return sum + (lp > 0 ? (sp - lp) * qty : sp * 0.20 * qty);
+                }, 0) || 0).toFixed(2)}
+              </span>
+            </div>
             <div className="flex items-center justify-between text-sm font-black text-emerald-900 pt-2 border-t border-gray-100">
               <span>Total Bill</span>
-              <span className="text-base text-[#00891D]">₹{Math.round(order.totalAmount - totalReturned)}</span>
+              <span className="text-base text-[#00891D]">₹{Math.round((Number(order?.totalAmount) || 0) - (Number(totalReturned) || 0))}</span>
             </div>
           </div>
         </div>

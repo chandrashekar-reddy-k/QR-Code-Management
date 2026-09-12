@@ -2197,6 +2197,18 @@ export default function AdminSales() {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4">
+                                  <span className="font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 text-xs w-fit">
+                                    +₹{((item.items && item.items.length > 0)
+                                      ? item.items.reduce((mSum, i) => {
+                                          const sp = Number(i.price || i.sellingPrice || 0);
+                                          const lp = Number(i.landingPrice ?? i.landing_price ?? i.product?.landingPrice ?? i.costPrice ?? 0);
+                                          const qty = Number(i.quantity || 1);
+                                          return mSum + (lp > 0 ? (sp - lp) * qty : sp * 0.20 * qty);
+                                        }, 0)
+                                      : (item.totalAmount || 0) * 0.20).toFixed(2)}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
                                   <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-black uppercase tracking-widest border border-emerald-100">
                                     {item.paymentMode || 'Cash'}
                                   </span>

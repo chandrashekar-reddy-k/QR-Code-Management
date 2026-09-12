@@ -15,7 +15,9 @@ import {
   Upload,
   RefreshCw,
   Film,
+  FolderArchive,
   Users,
+  Radio,
   Boxes,
   ClipboardList,
   Wallet,
@@ -169,7 +171,7 @@ export const initialStateCheckers = {
   isPricingOpen: (pathname: string) => pathname.startsWith("/pricing"),
   isBarcodeOpen: (pathname: string) => pathname.startsWith("/vsms/barcodes"),
   isRouteManagementOpen: (pathname: string) =>
-    pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage",
+    pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage" || pathname === "/vsms/live-tracking",
   isVehicleManagementOpen: (pathname: string) =>
     pathname === "/vsms/fuel-maintenance" || pathname === "/vsms/damages",
   isInventoryManagementOpen: (pathname: string) =>
@@ -196,6 +198,7 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isRouteManagementOpen",
     hasSubPermissions: true,
     subItems: [
+      { path: "/vsms/live-tracking", label: "Live Agent Tracking", icon: Radio },
       { path: "/vsms/vehicles", label: "Fleet Vehicles", icon: Truck },
       {
         path: "/vsms/routes-coverage",
@@ -329,6 +332,7 @@ export const sidebarConfig: MenuSection[] = [
       { path: "/products/media", label: "Media", icon: Film },
       { path: "/products/bulk-upload", label: "Bulk Upload", icon: Upload },
       { path: "/products/bulk-update", label: "Bulk Update", icon: RefreshCw },
+      // { path: "/products/zip-import", label: "ZIP Import", icon: FolderArchive },
       { path: "/products/import", label: "Import Products", icon: Download },
       { path: "/products/export", label: "Export Products", icon: Upload },
       // Hidden as per sidebar screenshots

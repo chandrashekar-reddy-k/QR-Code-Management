@@ -1645,13 +1645,13 @@ export default function AdminSales() {
                               </span>
                             </td>
                             <td className="px-6 py-5 text-right font-black text-gray-600 text-xs tabular-nums">
-                              ₹{(item.price || 0).toFixed(0)}
+                              ₹{Number(item.price || item.sellingPrice || 0).toFixed(0)}
                             </td>
                             <td className="px-6 py-5 text-right font-black text-gray-400 text-[10px] tabular-nums">
                               {item.product?.gst || 0}%
                             </td>
                             <td className="px-6 py-5 text-right font-black text-gray-900 text-xs tabular-nums">
-                              ₹{(item.price * item.quantity).toFixed(0)}
+                              ₹{(Number(item.price || item.sellingPrice || 0) * Number(item.quantity || 1)).toFixed(0)}
                             </td>
                             {canEditOrder && (
                               <td className="px-6 py-5">
@@ -1903,6 +1903,90 @@ export default function AdminSales() {
                   </div>
                 </div>
               )}
+
+              {/* KPI Summary Cards Banner (Always visible in List View) */}
+              {viewMode === 'list' && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                      <ShoppingCart size={22} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Orders</p>
+                      <p className="text-xl font-black text-gray-900">{listToRender.length}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                      <Coins size={22} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Sales</p>
+                      <p className="text-xl font-black text-emerald-700">₹{listToRender.reduce((acc, curr) => acc + (Number(curr.totalAmount) || 0), 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/50 to-teal-50/30 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
+                      <Coins size={22} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Margin Money</p>
+                      <p className="text-xl font-black text-emerald-700">
+                        +₹{listToRender.reduce((acc, item) => {
+                          const totAmt = Number(item.totalAmount) || 0;
+                          if (item.items && item.items.length > 0) {
+                            const calculatedMargin = item.items.reduce((mSum, i) => {
+                              const sp = Number(i.price || i.sellingPrice || i.unitPrice || 0);
+                              const lp = Number(i.landingPrice ?? i.landing_price ?? i.product?.landingPrice ?? i.costPrice ?? 0);
+                              const qty = Number(i.quantity || 1);
+                              if (lp > 0 && sp > lp) {
+                                return mSum + (sp - lp) * qty;
+                              }
+                              return mSum + (sp > 0 ? sp * 0.20 * qty : 0);
+                            }, 0);
+                            return acc + (calculatedMargin > 0 ? calculatedMargin : totAmt * 0.20);
+                          }
+                          return acc + (totAmt * 0.20);
+                        }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
+                      <BarChart3 size={22} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Avg Margin %</p>
+                      <p className="text-xl font-black text-purple-700">
+                        {(() => {
+                          const totSales = listToRender.reduce((acc, curr) => acc + (Number(curr.totalAmount) || 0), 0);
+                          const totMargin = listToRender.reduce((acc, item) => {
+                            const totAmt = Number(item.totalAmount) || 0;
+                            if (item.items && item.items.length > 0) {
+                              const calculatedMargin = item.items.reduce((mSum, i) => {
+                                const sp = Number(i.price || i.sellingPrice || i.unitPrice || 0);
+                                const lp = Number(i.landingPrice ?? i.landing_price ?? i.product?.landingPrice ?? i.costPrice ?? 0);
+                                const qty = Number(i.quantity || 1);
+                                if (lp > 0 && sp > lp) {
+                                  return mSum + (sp - lp) * qty;
+                                }
+                                return mSum + (sp > 0 ? sp * 0.20 * qty : 0);
+                              }, 0);
+                              return acc + (calculatedMargin > 0 ? calculatedMargin : totAmt * 0.20);
+                            }
+                            return acc + (totAmt * 0.20);
+                          }, 0);
+                          return totSales > 0 ? ((totMargin / totSales) * 100).toFixed(1) + '%' : '20.0%';
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {viewMode === 'list' && (
                 <div className="flex flex-col lg:flex-row items-center gap-3">
                   <div className="flex-1 w-full flex items-center gap-3 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm transition-all focus-within:border-emerald-200 focus-within:ring-4 focus-within:ring-emerald-500/5">
@@ -2071,6 +2155,7 @@ export default function AdminSales() {
                                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Customer</th>
                                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Sold By</th>
                                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Amount</th>
+                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-emerald-600">Margin Money</th>
                                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Payment</th>
                                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 no-print text-right">Actions</th>
                                 </>
@@ -2156,11 +2241,31 @@ export default function AdminSales() {
                                     </td>
                                     <td className="px-6 py-4">
                                       <div className="flex flex-col">
-                                        <span className="font-black text-emerald-700">₹{item.totalAmount.toFixed(0)}</span>
+                                        <span className="font-black text-emerald-700">₹{(Number(item.totalAmount) || 0).toFixed(0)}</span>
                                         {item.discountAmount > 0 && (
                                           <span className="text-[7px] font-black text-emerald-500 bg-emerald-50 px-1 rounded border border-emerald-100 uppercase mt-0.5 tracking-tighter w-fit">PROMO</span>
                                         )}
                                       </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                       <span className="font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 text-xs w-fit">
+                                         +₹{(() => {
+                                           const totAmt = Number(item.totalAmount) || 0;
+                                           if (item.items && item.items.length > 0) {
+                                             const calculatedMargin = item.items.reduce((mSum, i) => {
+                                               const sp = Number(i.price || i.sellingPrice || i.unitPrice || 0);
+                                               const lp = Number(i.landingPrice ?? i.landing_price ?? i.product?.landingPrice ?? i.costPrice ?? 0);
+                                               const qty = Number(i.quantity || 1);
+                                               if (lp > 0 && sp > lp) {
+                                                 return mSum + (sp - lp) * qty;
+                                               }
+                                               return mSum + (sp > 0 ? sp * 0.20 * qty : 0);
+                                             }, 0);
+                                             return (calculatedMargin > 0 ? calculatedMargin : totAmt * 0.20).toFixed(2);
+                                           }
+                                           return (totAmt * 0.20).toFixed(2);
+                                         })()}
+                                       </span>
                                     </td>
                                     <td className="px-6 py-4">
                                       <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-black uppercase tracking-widest border border-emerald-100">
@@ -2507,16 +2612,20 @@ export default function AdminSales() {
                   </tr>
                 </thead>
                 <tbody className="text-xs">
-                  {viewingOrder.items?.map((item, idx) => (
-                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                      <td className="p-3 border-b border-slate-50">
-                        <p className="font-black uppercase text-slate-900">{item.product?.name || item.productName}</p>
-                      </td>
-                      <td className="p-3 border-b border-slate-50 text-center font-bold">{item.quantity}</td>
-                      <td className="p-3 border-b border-slate-50 text-right">₹{item.price.toFixed(0)}</td>
-                      <td className="p-3 border-b border-slate-50 text-right font-black">₹{(item.price * item.quantity).toFixed(0)}</td>
-                    </tr>
-                  ))}
+                  {viewingOrder.items?.map((item, idx) => {
+                    const price = Number(item.price || item.sellingPrice || 0);
+                    const qty = Number(item.quantity || 1);
+                    return (
+                      <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                        <td className="p-3 border-b border-slate-50">
+                          <p className="font-black uppercase text-slate-900">{item.product?.name || item.productName || item.name || 'Product'}</p>
+                        </td>
+                        <td className="p-3 border-b border-slate-50 text-center font-bold">{qty}</td>
+                        <td className="p-3 border-b border-slate-50 text-right">₹{price.toFixed(0)}</td>
+                        <td className="p-3 border-b border-slate-50 text-right font-black">₹{(price * qty).toFixed(0)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

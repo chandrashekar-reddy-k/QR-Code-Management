@@ -9,6 +9,7 @@ import {
   Filter,
   RotateCcw,
   Upload,
+  FolderArchive,
   ChevronDown,
 } from "lucide-react";
 import {
@@ -960,6 +961,14 @@ const ManageProducts = () => {
           >
             <Upload size={14} className="sm:w-4 sm:h-4" />
             <span>Bulk Upload</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/products/zip-import")}
+            className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-4 py-2 bg-emerald-600 dark:bg-emerald-700 text-white rounded-lg hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors text-xs sm:text-sm font-medium"
+          >
+            <FolderArchive size={14} className="sm:w-4 sm:h-4" />
+            <span>ZIP Import</span>
           </button>
           <PrimaryButton
             onClick={() => navigate("/products/create")}

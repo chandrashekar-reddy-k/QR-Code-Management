@@ -103,27 +103,34 @@ export default function LocationTrackingReport() {
             fetchLiveLocations();
         }, 15000);
 
-        const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || window.location.origin.replace('5173', '5000');
+        const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:3004' : (import.meta.env.VITE_API_URL?.replace('/api', '') || window.location.origin);
         const socket = io(socketUrl, {
             auth: { token: localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken') },
             transports: ['websocket', 'polling']
         });
 
-        socket.on('locationUpdate', (newLog) => {
+        const handleSocketData = (newLog) => {
             console.log('[Live Tracking] Socket update received:', newLog);
             setLiveLocations(prev => {
                 const index = prev.findIndex(a => a.userId === newLog.userId);
-                const formattedLog = { ...newLog, long: newLog.long || newLog.lon };
+                const formattedLog = { 
+                    ...newLog, 
+                    long: newLog.long || newLog.lon,
+                    isOnDuty: newLog.isOnDuty !== undefined ? Boolean(newLog.isOnDuty) : true 
+                };
                 if (index !== -1) {
                     const updated = [...prev];
-                    updated[index] = formattedLog;
+                    updated[index] = { ...updated[index], ...formattedLog };
                     return updated;
                 }
                 return [formattedLog, ...prev];
             });
             setLastSync(new Date());
             setBreadcrumbHistory(prev => [...prev, { ...newLog, long: newLog.long || newLog.lon }]);
-        });
+        };
+
+        socket.on('locationUpdate', handleSocketData);
+        socket.on('location:update', handleSocketData);
 
         return () => {
             clearInterval(interval);
@@ -145,13 +152,14 @@ export default function LocationTrackingReport() {
     };
 
     // Status Calculations
-    const onDutyCount = liveLocations.length;
+    const onDutyCount = liveLocations.filter(a => a.isOnDuty === true || a.isOnline === true).length;
     const activeCount = liveLocations.filter(a => {
-        const diff = new Date() - new Date(a.timestamp);
-        return diff < 5 * 60 * 1000 && !a.isPendingFirstPing;
+        const isDuty = a.isOnDuty === true || a.isOnline === true;
+        const diff = a.timestamp ? (new Date() - new Date(a.timestamp)) : 0;
+        return isDuty && (diff < 15 * 60 * 1000 || !a.timestamp);
     }).length;
-    const offlineCount = 0; // Would need total agent count to calculate accurately
-    const totalAgents = onDutyCount + offlineCount;
+    const offlineCount = liveLocations.length - onDutyCount;
+    const totalAgents = liveLocations.length;
 
     return (
         <ReportLayout title="Location Tracking" icon={Navigation} activeTab="location-tracking" reportData={reportData} isLoading={isLoading}>
@@ -392,28 +400,30 @@ export default function LocationTrackingReport() {
                                      </div>
                                  ) : (
                                      liveLocations.map(agent => {
-                                         const isActive = (new Date() - new Date(agent.timestamp)) < 5 * 60 * 1000;
+                                         const isActive = agent.isOnDuty === true || (agent.timestamp && (new Date() - new Date(agent.timestamp)) < 5 * 60 * 1000);
                                          return (
                                              <div
-                                                 key={agent.userId}
+                                                 key={agent.userId || agent.id}
                                                  onClick={() => {
                                                      setActiveAgent(agent);
-                                                     map?.panTo({ lat: agent.lat, lng: agent.long });
-                                                     map?.setZoom(17);
+                                                     if (agent.lat && agent.long) {
+                                                       map?.panTo({ lat: agent.lat, lng: agent.long });
+                                                       map?.setZoom(17);
+                                                     }
                                                  }}
                                                  className={`bg-white p-4 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] active:scale-95 ${activeAgent?.userId === agent.userId ? 'border-rose-200 bg-rose-50/20 shadow-xl' : 'border-gray-200 hover:shadow-lg'}`}
                                              >
                                                  <div className="flex items-center justify-between mb-3">
                                                      <div className="flex items-center gap-2.5">
-                                                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs border shadow-sm group-hover:scale-105 transition-transform ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
-                                                             {agent.user?.name?.[0]}
+                                                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs border shadow-sm group-hover:scale-105 transition-transform ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                                             {agent.user?.name?.[0] || 'A'}
                                                          </div>
                                                          <div>
-                                                             <p className="text-[11px] font-bold text-gray-900 dark:text-white">{agent.user?.name}</p>
+                                                             <p className="text-[11px] font-bold text-gray-900 dark:text-white">{agent.user?.name || 'Agent'}</p>
                                                              <div className="flex items-center gap-1">
-                                                                 <div className={`w-1 h-1 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                                                                 <span className={`text-[8px] font-bold uppercase tracking-widest ${isActive ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                                                     {isActive ? 'Active' : 'Idle'}
+                                                                 <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+                                                                 <span className={`text-[8px] font-bold uppercase tracking-widest ${isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                                     {isActive ? 'Online' : 'Offline'}
                                                                  </span>
                                                              </div>
                                                          </div>
@@ -422,12 +432,8 @@ export default function LocationTrackingReport() {
                                                  
                                                  <div className="space-y-2 pt-2.5 border-t border-gray-200">
                                                      <div className="flex items-center justify-between text-[9px] font-bold text-gray-400 uppercase">
-                                                         <span>Last Ping</span>
-                                                         <span className="text-gray-900 dark:text-white">{formatDistanceToNow(new Date(agent.timestamp), { addSuffix: true }).replace('about ', '')}</span>
-                                                     </div>
-                                                     <div className="flex items-center justify-between text-[9px] font-bold text-gray-400 uppercase">
-                                                         <span>Speed</span>
-                                                         <span className="text-emerald-600 font-bold text-[10px]">2.4 km/h</span>
+                                                         <span>Status</span>
+                                                         <span className={isActive ? 'text-emerald-600 font-bold' : 'text-gray-400'}>{isActive ? 'ONLINE' : 'OFFLINE'}</span>
                                                      </div>
                                                  </div>
                                              </div>

@@ -38,8 +38,6 @@ import { useUserStore } from '../../store/userStore';
 import StoreSelector from './StoreSelector';
 import * as XLSX from 'xlsx';
 import { generateReportPDF } from './adminreports/ReportUtils';
-import VehicleSalesSection from './admin_vehicles/VehicleSalesSection';
-import RouteCollectionSection from './admin_vehicles/RouteCollectionSection';
 import RoutePerformanceDashboard from './components/RoutePerformanceDashboard';
 
 export default function AdminRoutes() {
@@ -607,20 +605,7 @@ export default function AdminRoutes() {
                   <span>Assignments</span>
                 </button>
               )}
-              <button
-                onClick={() => handleTabChange('sales')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${activeTab === 'sales' ? 'bg-white text-emerald-700 shadow-xs ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-900 hover:bg-white/50'}`}
-              >
-                <ShoppingBag size={15} strokeWidth={2.5} />
-                <span>Sales</span>
-              </button>
-              <button
-                onClick={() => handleTabChange('collections')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 ${activeTab === 'collections' ? 'bg-white text-emerald-700 shadow-xs ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-900 hover:bg-white/50'}`}
-              >
-                <Coins size={15} strokeWidth={2.5} />
-                <span>Collections</span>
-              </button>
+
             </div>
           </div>
         </div>
@@ -1613,19 +1598,7 @@ export default function AdminRoutes() {
         </div>
       )}
 
-      {/* --- SALES TAB --- */}
-      {activeTab === 'sales' && (
-        <div className="animate-fade-in">
-          <VehicleSalesSection storeId={storeId} />
-        </div>
-      )}
 
-      {/* --- COLLECTIONS TAB --- */}
-      {activeTab === 'collections' && (
-        <div className="animate-fade-in">
-          <RouteCollectionSection storeId={storeId} />
-        </div>
-      )}
 
       {/* --- MODALS --- */}
 

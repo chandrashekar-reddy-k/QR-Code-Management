@@ -66,29 +66,29 @@ const Login = () => {
     const customRolePortalType = (user.customRole?.portalType || user.customRole?.type || "").toUpperCase();
     const customRoleNameUpper = (user.customRole?.name || user.customRole?.code || "").toUpperCase();
 
+    const isExplicitAgentRole =
+      ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
+      ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(customRolePortalType) ||
+      customRoleNameUpper.includes("VEHICLE AGENT") ||
+      customRoleNameUpper.includes("VSMS AGENT") ||
+      customRoleNameUpper.includes("DELIVERY AGENT") ||
+      customRoleNameUpper.includes("SALES AGENT") ||
+      roleUpper.includes("VEHICLE") ||
+      userPermissions.some((p: string) => p.startsWith("vsms_agent_") || p.includes("vehicle_agent"));
+
     const isExplicitPartnerRole =
-      roleUpper.includes("PARTNER") ||
-      roleUpper.includes("ADMIN") ||
-      customRolePortalType.includes("PARTNER") ||
-      customRoleNameUpper.includes("PARTNER");
+      !isExplicitAgentRole && (
+        roleUpper.includes("PARTNER") ||
+        roleUpper.includes("ADMIN") ||
+        customRolePortalType.includes("PARTNER") ||
+        customRoleNameUpper.includes("PARTNER")
+      );
 
     const isExplicitShopkeeperRole =
-      !isExplicitPartnerRole && (
+      !isExplicitPartnerRole && !isExplicitAgentRole && (
         roleUpper.includes("SHOPKEEPER") ||
         customRolePortalType.includes("SHOPKEEPER") ||
         customRoleNameUpper.includes("SHOPKEEPER")
-      );
-
-    const isExplicitAgentRole =
-      !isExplicitPartnerRole && !isExplicitShopkeeperRole && (
-        ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
-        ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(customRolePortalType) ||
-        customRoleNameUpper.includes("VEHICLE AGENT") ||
-        customRoleNameUpper.includes("VSMS AGENT") ||
-        customRoleNameUpper.includes("DELIVERY AGENT") ||
-        customRoleNameUpper.includes("SALES AGENT") ||
-        roleUpper.includes("VEHICLE") ||
-        userPermissions.some((p: string) => p.startsWith("vsms_agent_") || p.includes("vehicle_agent"))
       );
 
     const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("PARTNER");
@@ -120,7 +120,7 @@ const Login = () => {
         )
       );
 
-    const isAgentRole = isExplicitAgentRole && !isShopkeeperRole && !isExplicitPartnerRole;
+    const isAgentRole = isExplicitAgentRole;
 
     console.log("[LOGIN DEBUG] user flags:", {
       isCreatedPassword: user.isCreatedPassword,
@@ -155,7 +155,17 @@ const Login = () => {
         },
       });
     } else {
-      if (isExplicitPartnerRole) {
+      if (isAgentRole) {
+        sessionStorage.setItem('portalMode', 'AGENT');
+        localStorage.setItem('portalMode', 'AGENT');
+        sessionStorage.setItem('staffToken', data.data.accessToken);
+        sessionStorage.setItem('staffUser', JSON.stringify(user));
+        localStorage.setItem('partnerToken', data.data.accessToken);
+        localStorage.setItem('token', data.data.accessToken);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('partnerUser', JSON.stringify(user));
+        navigate("/vsms/agent-portal/today-plan");
+      } else if (isExplicitPartnerRole) {
         sessionStorage.setItem('portalMode', 'PARTNER');
         localStorage.setItem('portalMode', 'PARTNER');
         sessionStorage.removeItem('staffToken');
@@ -173,16 +183,6 @@ const Login = () => {
         sessionStorage.setItem('portalMode', 'OPERATOR');
         localStorage.setItem('portalMode', 'OPERATOR');
         navigate("/packer/operator/dashboard");
-      } else if (isAgentRole) {
-        sessionStorage.setItem('portalMode', 'AGENT');
-        localStorage.setItem('portalMode', 'AGENT');
-        sessionStorage.setItem('staffToken', data.data.accessToken);
-        sessionStorage.setItem('staffUser', JSON.stringify(user));
-        localStorage.setItem('partnerToken', data.data.accessToken);
-        localStorage.setItem('token', data.data.accessToken);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('partnerUser', JSON.stringify(user));
-        navigate("/vsms/agent-portal/today-plan");
       } else if (isShopkeeperRole) {
         sessionStorage.setItem('portalMode', 'SHOPKEEPER');
         localStorage.setItem('portalMode', 'SHOPKEEPER');

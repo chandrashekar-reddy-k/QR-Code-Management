@@ -39,8 +39,6 @@ import { useUserStore } from './store/userStore';
 import StoreSelector from './StoreSelector';
 import * as XLSX from 'xlsx';
 import { generateReportPDF } from './adminreports/ReportUtils';
-import VehicleSalesSection from './admin_vehicles/VehicleSalesSection';
-import RouteCollectionSection from './admin_vehicles/RouteCollectionSection';
 import RoutePerformanceDashboard from './components/RoutePerformanceDashboard';
 import { useRoutesQuery, useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 
@@ -83,10 +81,12 @@ export default function AdminRoutes() {
   const [activeTab, setActiveTab] = useState('performance');
 
   useEffect(() => {
-    if (urlTab && ['performance', 'villages', 'routes', 'assignments', 'sales', 'collections'].includes(urlTab) && urlTab !== activeTab) {
+    if (location.pathname === '/vsms/live-tracking' && activeTab !== 'performance') {
+      setActiveTab('performance');
+    } else if (urlTab && ['performance', 'villages', 'routes', 'assignments', 'sales', 'collections'].includes(urlTab) && urlTab !== activeTab) {
       setActiveTab(urlTab);
     }
-  }, [urlTab]);
+  }, [urlTab, location.pathname]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -519,7 +519,9 @@ export default function AdminRoutes() {
             )}
             <div className="flex flex-col gap-1 text-left">
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">Route & Coverage</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">
+                  {location.pathname === '/vsms/live-tracking' ? 'Live Agent Tracking' : 'Route & Coverage'}
+                </h2>
                 {false && stores.length > 1 && (
                   <select
                     value={storeId || ''}
@@ -545,7 +547,11 @@ export default function AdminRoutes() {
                   </select>
                 )}
               </div>
-              <p className="text-xs font-bold text-gray-400 tracking-wide">Manage villages, active routes, sales distribution, and collection cycles</p>
+              <p className="text-xs font-bold text-gray-400 tracking-wide">
+                {location.pathname === '/vsms/live-tracking' 
+                  ? 'Real-time agent locations, active routes, and field team status' 
+                  : 'Manage villages, active routes, sales distribution, and collection cycles'}
+              </p>
             </div>
           </div>
 
@@ -570,37 +576,37 @@ export default function AdminRoutes() {
           </div>
         </div>
 
-        {/* Bottom Row: Fully Horizontally Scrollable Enterprise ERP Tabs */}
-        <div className="border-b border-gray-200 mb-6">
-          <div className="w-full overflow-x-auto custom-scrollbar">
-            <div className="flex items-center gap-8 w-fit min-w-max">
-              {[
-                { id: 'performance', label: 'Performance', icon: Target, visible: true },
-                { id: 'villages', label: 'Village', icon: MapPin, visible: canSection('VILLAGES') },
-                { id: 'routes', label: 'Routes', icon: Navigation, visible: canSection('ROUTES') },
-                { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: canSection('ASSIGNMENTS') },
-                { id: 'sales', label: 'Sales', icon: ShoppingBag, visible: true },
-                { id: 'collections', label: 'Collections', icon: Coins, visible: true }
-              ].filter(t => t.visible).map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabChange(tab.id)}
-                    className={`flex items-center gap-2 py-3.5 border-b-2 text-xs font-bold uppercase tracking-wider transition-all shrink-0 outline-none ${isActive
-                      ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
-                      : 'border-transparent text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
-                      }`}
-                  >
-                    <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+        {/* Bottom Row: Fully Horizontally Scrollable Enterprise ERP Tabs (Hidden for Live Agent Tracking) */}
+        {location.pathname !== '/vsms/live-tracking' && (
+          <div className="border-b border-gray-200 mb-6">
+            <div className="w-full overflow-x-auto custom-scrollbar">
+              <div className="flex items-center gap-8 w-fit min-w-max">
+                {[
+                  { id: 'performance', label: 'Performance', icon: Target, visible: true },
+                  { id: 'villages', label: 'Village', icon: MapPin, visible: canSection('VILLAGES') },
+                  { id: 'routes', label: 'Routes', icon: Navigation, visible: canSection('ROUTES') },
+                  { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: canSection('ASSIGNMENTS') }
+                ].filter(t => t.visible).map(tab => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`flex items-center gap-2 py-3.5 border-b-2 text-xs font-bold uppercase tracking-wider transition-all shrink-0 outline-none ${isActive
+                        ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400'
+                        : 'border-transparent text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-gray-300'
+                        }`}
+                    >
+                      <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'} />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* --- PERFORMANCE TAB --- */}
@@ -1780,19 +1786,7 @@ export default function AdminRoutes() {
         </div>
       )}
 
-      {/* --- SALES TAB --- */}
-      {activeTab === 'sales' && (
-        <div className="animate-fade-in">
-          <VehicleSalesSection storeId={storeId} />
-        </div>
-      )}
 
-      {/* --- COLLECTIONS TAB --- */}
-      {activeTab === 'collections' && (
-        <div className="animate-fade-in">
-          <RouteCollectionSection storeId={storeId} />
-        </div>
-      )}
 
       {/* Modal section removed — assignment form is now inline */}
 

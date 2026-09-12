@@ -59,10 +59,100 @@ const CreatePassword = () => {
   });
 
   const createPasswordMutation = useCreatePassword(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    navigate("/login");
+    try {
+      const userStr = localStorage.getItem("user") || sessionStorage.getItem("staffUser") || "{}";
+      const user = JSON.parse(userStr);
+      user.requiresPasswordChange = false;
+      user.isCreatedPassword = false;
+      user.isFirstLogin = false;
+      user.mustChangePassword = false;
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("partnerUser", JSON.stringify(user));
+
+      const roleUpper = (user.role || "").toUpperCase().trim();
+      const customRolePortalType = (user.customRolePortalType || "").toUpperCase().trim();
+      const customRoleNameUpper = (user.customRoleName || "").toUpperCase().trim();
+      const userPermissions = user.permissions || [];
+
+      const isExplicitPartnerRole =
+        ["PARTNER", "WAREHOUSE", "MANAGER", "DIRECTOR", "OWNER"].includes(roleUpper) ||
+        ["PARTNER", "WAREHOUSE", "MANAGER", "DIRECTOR", "OWNER"].includes(customRolePortalType) ||
+        customRoleNameUpper.includes("PARTNER") ||
+        customRoleNameUpper.includes("STORE") ||
+        customRoleNameUpper.includes("MANAGER");
+
+      const isExplicitShopkeeperRole =
+        !isExplicitPartnerRole && (
+          ['SHOPKEEPER', 'STORE_KEEPER'].includes(roleUpper) ||
+          ['SHOPKEEPER', 'STORE_KEEPER'].includes(customRolePortalType) ||
+          customRoleNameUpper.includes("SHOPKEEPER") ||
+          customRoleNameUpper.includes("STORE KEEPER")
+        );
+
+      const isExplicitAgentRole =
+        !isExplicitPartnerRole && !isExplicitShopkeeperRole && (
+          ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
+          ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(customRolePortalType) ||
+          customRoleNameUpper.includes("VEHICLE AGENT") ||
+          customRoleNameUpper.includes("VSMS AGENT") ||
+          customRoleNameUpper.includes("DELIVERY AGENT") ||
+          customRoleNameUpper.includes("SALES AGENT") ||
+          roleUpper.includes("VEHICLE") ||
+          userPermissions.some((p: string) => p.startsWith("vsms_agent_") || p.includes("vehicle_agent"))
+        );
+
+      const isOperator =
+        !isExplicitPartnerRole && !isExplicitShopkeeperRole && !isExplicitAgentRole && (
+          ['PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER'].includes(roleUpper) ||
+          ['PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER'].includes(customRolePortalType) ||
+          userPermissions.some((p: string) => p.startsWith("packer_operator") || p.startsWith("packing_operator"))
+        );
+
+      const isQc =
+        !isExplicitPartnerRole && !isExplicitShopkeeperRole && !isExplicitAgentRole && (
+          ['PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR', 'QC'].includes(roleUpper) ||
+          ['PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR', 'QC'].includes(customRolePortalType) ||
+          userPermissions.some((p: string) => p.startsWith("packer_qc") || p.startsWith("packing_qc"))
+        );
+
+      const isShopkeeperRole =
+        !isExplicitPartnerRole && (
+          isExplicitShopkeeperRole || (
+            !isExplicitAgentRole && !isOperator && !isQc &&
+            userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"))
+          )
+        );
+
+      const isAgentRole = isExplicitAgentRole && !isShopkeeperRole && !isExplicitPartnerRole;
+
+      if (isQc) {
+        sessionStorage.setItem('portalMode', 'QC');
+        localStorage.setItem('portalMode', 'QC');
+        navigate("/packer/qc/dashboard", { replace: true });
+      } else if (isOperator) {
+        sessionStorage.setItem('portalMode', 'OPERATOR');
+        localStorage.setItem('portalMode', 'OPERATOR');
+        navigate("/packer/operator/dashboard", { replace: true });
+      } else if (isAgentRole) {
+        sessionStorage.setItem('portalMode', 'AGENT');
+        localStorage.setItem('portalMode', 'AGENT');
+        sessionStorage.setItem('staffToken', localStorage.getItem('token') || '');
+        sessionStorage.setItem('staffUser', JSON.stringify(user));
+        navigate("/vsms/agent-portal/today-plan", { replace: true });
+      } else if (isShopkeeperRole) {
+        sessionStorage.setItem('portalMode', 'SHOPKEEPER');
+        localStorage.setItem('portalMode', 'SHOPKEEPER');
+        sessionStorage.setItem('staffToken', localStorage.getItem('token') || '');
+        sessionStorage.setItem('staffUser', JSON.stringify(user));
+        navigate("/shopkeeper", { replace: true });
+      } else {
+        sessionStorage.setItem('portalMode', 'PARTNER');
+        localStorage.setItem('portalMode', 'PARTNER');
+        navigate("/", { replace: true });
+      }
+    } catch {
+      navigate("/", { replace: true });
+    }
   });
 
   const onSubmit = async (data: CreatePasswordFormData) => {

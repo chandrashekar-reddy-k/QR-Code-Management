@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Phone, ChevronDown } from "lucide-react";
+import { Phone, ChevronDown, FileText } from "lucide-react";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
+import { generateInvoicePDF, getInvoiceNumber } from "../../../utils/generateInvoicePDF";
 import { Button, SelectInput, } from "../../../components/ui";
 import {
   useGetOrderById,
@@ -289,6 +290,23 @@ const getSelfPickupNextStatus = (status: OrderStatus): OrderStatus | null => {
     );
   }
 
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+
+  const handleDownloadInvoice = async () => {
+    if (!order) return;
+    try {
+      setDownloadingInvoice(true);
+      const pdf = await generateInvoicePDF(order as any);
+      if (pdf) {
+        pdf.save(`Invoice_VK-${getInvoiceNumber(order as any)}.pdf`);
+      }
+    } catch (err) {
+      console.error("Error generating invoice PDF:", err);
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
+
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
@@ -300,7 +318,17 @@ const getSelfPickupNextStatus = (status: OrderStatus): OrderStatus | null => {
             </h1>
             <Breadcrumbs />
           </div>
-          <BackButton to="/self-pickup-orders" />
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleDownloadInvoice}
+              disabled={downloadingInvoice}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <FileText size={16} />
+              {downloadingInvoice ? "Generating..." : "Download Invoice PDF"}
+            </Button>
+            <BackButton to="/self-pickup-orders" />
+          </div>
         </div>
       </div>
 

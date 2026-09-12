@@ -3,12 +3,13 @@ import React, { useState, useEffect } from 'react';
 import {
   TrendingUp, Users, MapPin, AlertCircle, CheckCircle2,
   ChevronRight, Search, RefreshCw, X, Bell, Activity,
-  Filter, Clock, ShoppingBag
+  Filter, Clock, ShoppingBag, Maximize2, Minimize2
 } from 'lucide-react';
-import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, PolylineF, OverlayViewF } from '@react-google-maps/api';
 import * as routeService from '../services/routeService';
 import * as locationService from '../services/locationService';
 import { usePerformanceQuery } from '../hooks/useVsmsCache';
+import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 
 // ── Circular Progress Ring ──────────────────────────────────────────────────
@@ -47,12 +48,20 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   const [breadcrumbPath, setBreadcrumbPath] = useState([]);
   const [mapCenter, setMapCenter] = useState({ lat: 20.5937, lng: 78.9629 });
 
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+
   const { data: cachedPerf, isLoading, isFetching, refetch } = usePerformanceQuery(storeId);
 
   useEffect(() => {
     if (cachedPerf) {
       setData(cachedPerf.performanceData);
       setLiveLocations(cachedPerf.liveLocations);
+      if (cachedPerf.liveLocations && cachedPerf.liveLocations.length > 0 && !selectedAssignment) {
+        const firstWithCoords = cachedPerf.liveLocations.find(l => l.lat && l.long);
+        if (firstWithCoords) {
+          setMapCenter({ lat: parseFloat(firstWithCoords.lat), lng: parseFloat(firstWithCoords.long) });
+        }
+      }
       setLoading(false);
     }
   }, [cachedPerf]);
@@ -66,10 +75,41 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   };
 
   useEffect(() => {
-    const iv = setInterval(async () => {
+    const fetchLive = async () => {
       try { setLiveLocations(await locationService.getLiveLocations(storeId)); } catch (_) {}
-    }, 30000);
-    return () => clearInterval(iv);
+    };
+    fetchLive();
+
+    // Connect to live WebSocket for real-time location stream
+    let socket;
+    try {
+      const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:3004' : window.location.origin;
+      const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+      socket = io(socketUrl, {
+        auth: { token },
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('location:update', (data) => {
+        if (!data || !data.userId) return;
+        setLiveLocations((prev) => {
+          const isDuty = data.isOnDuty !== undefined ? Boolean(data.isOnDuty) : true;
+          const existingIndex = prev.findIndex((l) => l.userId === data.userId || l.id === data.userId);
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = { ...updated[existingIndex], ...data, isOnDuty: isDuty, updatedAt: new Date().toISOString() };
+            return updated;
+          }
+          return [...prev, { ...data, isOnDuty: isDuty, updatedAt: new Date().toISOString() }];
+        });
+      });
+    } catch (_) {}
+
+    const iv = setInterval(fetchLive, 5000);
+    return () => {
+      clearInterval(iv);
+      if (socket) socket.disconnect();
+    };
   }, [storeId]);
 
   const fetchDetail = async (id) => {
@@ -106,8 +146,14 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
   };
 
   const isAgentLive = (userId) => {
-    const loc = liveLocations.find(l => l.userId === userId);
-    return loc && (new Date() - new Date(loc.updatedAt)) < 10 * 60 * 1000;
+    const loc = liveLocations.find(l => l.userId === userId || l.id === userId);
+    if (!loc) return false;
+    if (loc.isOnDuty !== undefined) return Boolean(loc.isOnDuty);
+    if (loc.isOnline !== undefined) return Boolean(loc.isOnline);
+    const timeVal = loc.timestamp || loc.updatedAt || loc.createdAt;
+    if (!timeVal) return false;
+    const age = new Date().getTime() - new Date(timeVal).getTime();
+    return age >= 0 && age < 300 * 1000;
   };
 
   const filteredPerf = data.performance.filter(p => {
@@ -138,7 +184,7 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
     },
     {
       label: 'Active Agents',
-      value: data.summary.activeRoutes ?? 0,
+      value: data.performance.filter(p => isAgentLive(p.userId)).length,
       icon: <Users size={22} />,
       iconBg: 'bg-blue-100',
       iconColor: 'text-blue-600',
@@ -269,14 +315,18 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <ProgressRing percentage={p.completionRate || 0} size={48} stroke={4} />
-                    {live && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
-                    )}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 border-2 border-white rounded-full ${
+                      live ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'
+                    }`} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-gray-900 dark:text-white">{p.agentName}</p>
-                      {live && <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-bold rounded uppercase">Live</span>}
+                      <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded uppercase ${
+                        live ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        {live ? 'Online' : 'Offline'}
+                      </span>
                     </div>
                     <p className="text-[10px] font-bold text-gray-400 mt-0.5">
                       {p.routeName} • {p.assignedCount ?? 0} Assigned Villages
@@ -294,8 +344,12 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Coverage</p>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">{p.visitedCount ?? 0}/{p.assignedCount ?? 1}</p>
                   </div>
-                  <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg border border-emerald-100">
-                    Active
+                  <span className={`px-3 py-1 text-[10px] font-bold rounded-lg border ${
+                    live
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-gray-100 text-gray-500 border-gray-200'
+                  }`}>
+                    {live ? 'Online' : 'Offline'}
                   </span>
                   <ChevronRight size={16} className={`transition-colors ${isSelected ? 'text-emerald-500' : 'text-gray-300'}`} />
                 </div>
@@ -325,34 +379,112 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
               )}
             </div>
 
-            {/* Map */}
-            <div className="h-[220px] w-full bg-gray-100">
+            {/* Map Container with Expandable In-Page Height */}
+            <div 
+              id="vsms-map-container"
+              className={`relative transition-all duration-500 overflow-hidden ${
+                isMapFullscreen 
+                  ? 'h-[650px] w-full bg-gray-100 ring-2 ring-emerald-500 shadow-2xl rounded-xl' 
+                  : 'h-[300px] w-full bg-gray-100'
+              }`}
+            >
+              {/* Action Buttons: Expand and Minimize Map Controls */}
+              <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+                {!isMapFullscreen ? (
+                  <button
+                    onClick={() => {
+                      const elem = document.getElementById('vsms-map-container');
+                      if (elem && elem.requestFullscreen) {
+                        elem.requestFullscreen().catch(() => setIsMapFullscreen(true));
+                      }
+                      setIsMapFullscreen(true);
+                    }}
+                    className="p-2.5 bg-gray-900/90 hover:bg-black text-white rounded-xl shadow-xl border border-white/20 backdrop-blur-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2 text-xs font-bold"
+                    title="Expand Map View"
+                  >
+                    <Maximize2 size={16} className="text-emerald-400" />
+                    <span>Expand Map</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (document.fullscreenElement) {
+                        document.exitFullscreen().catch(() => setIsMapFullscreen(false));
+                      }
+                      setIsMapFullscreen(false);
+                    }}
+                    className="p-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xl border border-rose-400 backdrop-blur-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2 text-xs font-bold"
+                    title="Minimize Map View"
+                  >
+                    <Minimize2 size={16} className="text-white" />
+                    <span>Minimize Map</span>
+                  </button>
+                )}
+              </div>
+
               {isLoaded ? (
                 <GoogleMap
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={mapCenter}
-                  zoom={selectedAssignment ? 13 : 10}
-                  options={{ disableDefaultUI: true, styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }] }}
+                  zoom={selectedAssignment ? 13 : (isMapFullscreen ? 12 : 10)}
+                  options={{ 
+                    disableDefaultUI: false, 
+                    zoomControl: true,
+                    styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }] 
+                  }}
                 >
+                  {/* Always render all live agent location markers with dynamic full name SVG badges */}
+                  {liveLocations.filter(l => (l.lat || l.latitude) && (l.long || l.longitude)).map(loc => {
+                    const latNum = parseFloat(loc.lat || loc.latitude);
+                    const lngNum = parseFloat(loc.long || loc.longitude);
+                    if (isNaN(latNum) || isNaN(lngNum)) return null;
+                    const isLiveNow = isAgentLive(loc.userId);
+                    
+                    // Match with performance array to ensure complete full name
+                    const perfMatch = data.performance.find(p => p.userId === loc.userId);
+                    const fullName = (perfMatch?.agentName || loc.user?.name || loc.userName || 'Agent').trim();
+                    const displayName = fullName.toUpperCase();
+                    const pinColor = isLiveNow ? '#10b981' : '#f59e0b';
+                    
+                    // Dynamically calculate badge width based on text length
+                    const textWidth = Math.max(displayName.length * 8 + 36, 90);
+                    const svgWidth = textWidth + 10;
+                    const centerX = svgWidth / 2;
+                    
+                    const svgPin = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="64" viewBox="0 0 ${svgWidth} 64">
+                        <rect x="5" y="4" width="${textWidth}" height="24" rx="12" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
+                        <circle cx="18" cy="16" r="4.5" fill="${pinColor}"/>
+                        <text x="28" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName}</text>
+                        <path d="M ${centerX} 28 L ${centerX + 6} 40 L ${centerX - 6} 40 Z" fill="#0f172a"/>
+                        <circle cx="${centerX}" cy="50" r="7" fill="${pinColor}" stroke="#ffffff" stroke-width="2.5"/>
+                      </svg>
+                    `)}`;
+
+                    return (
+                      <MarkerF
+                        key={`agent-marker-${loc.userId}`}
+                        position={{ lat: latNum, lng: lngNum }}
+                        onClick={() => { const p = data.performance.find(x => x.userId === loc.userId); if (p) fetchDetail(p.assignmentId); }}
+                        icon={{
+                          url: svgPin,
+                          scaledSize: new window.google.maps.Size(svgWidth * 0.85, 54),
+                          anchor: new window.google.maps.Point((svgWidth * 0.85) / 2, 50)
+                        }}
+                      />
+                    );
+                  })}
                   {selectedAssignment && breadcrumbPath.length > 0 && (
                     <MarkerF
                       position={breadcrumbPath[breadcrumbPath.length - 1]}
-                      icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#10b981', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 8 }}
+                      icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#10b981', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 3, scale: 12 }}
                     />
                   )}
                   {selectedAssignment && assignmentDetail?.breakdown.filter(v => v.latitude && v.longitude).map((v, i) => (
                     <MarkerF
-                      key={i}
+                      key={`village-breakdown-${i}`}
                       position={{ lat: parseFloat(v.latitude), lng: parseFloat(v.longitude) }}
                       icon={{ path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z', fillColor: v.visited ? '#10b981' : '#ef4444', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5, scale: 1.2, anchor: { x: 12, y: 24 } }}
-                    />
-                  ))}
-                  {!selectedAssignment && liveLocations.filter(l => l.lat && l.long && (new Date() - new Date(l.updatedAt)) < 15 * 60 * 1000).map(loc => (
-                    <MarkerF
-                      key={loc.userId}
-                      position={{ lat: loc.lat, lng: loc.long }}
-                      onClick={() => { const p = data.performance.find(x => x.userId === loc.userId); if (p) fetchDetail(p.assignmentId); }}
-                      icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#10b981', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 7 }}
                     />
                   ))}
                 </GoogleMap>

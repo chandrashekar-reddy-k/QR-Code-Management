@@ -9,7 +9,7 @@ import {
 } from "./sidebarConfig";
 // import { useState, useEffect, useCallback } from 'react';
 // import { Link, useLocation } from 'react-router-dom';
-import { Home, CalendarClock, Bike, Megaphone, Hash, Database, Image, Smile, Map, Users2, Smartphone, HelpCircle, Package, ShoppingCart, Store, Image as ImageIcon, Tag, RotateCcw, Star, Truck, ChevronDown, ChevronRight, Settings, FolderTree, Layers, Award, Ruler, Percent, MapPin, Navigation, Building2, Phone, Info, FileText, Shield, Upload, RefreshCw, CheckCircle, Film, Users, UserCog, Handshake, Boxes, Eye, AlertTriangle, ClipboardList, ArrowRightLeft, Receipt, ScanLine, Printer, Bell, UserCheck, Wallet, DollarSign, ShieldCheck, Maximize2, Monitor, Clock, CreditCard, Globe, Share2, X, Languages, BarChart3, Link2, BookOpen, Wrench, Activity, History, ShieldAlert, Landmark, MessageSquare, BarChart2 } from 'lucide-react';
+import { Home, CalendarClock, Bike, Megaphone, Hash, Database, Image, Smile, Map, Users2, Smartphone, HelpCircle, Package, ShoppingCart, Store, Image as ImageIcon, Tag, RotateCcw, Star, Truck, ChevronDown, ChevronRight, Settings, FolderTree, Layers, Award, Ruler, Percent, MapPin, Navigation, Building2, Phone, Info, FileText, Shield, Upload, RefreshCw, CheckCircle, Film, Users, UserCog, Handshake, Boxes, Eye, AlertTriangle, ClipboardList, ArrowRightLeft, Receipt, ScanLine, Printer, Bell, UserCheck, Wallet, DollarSign, ShieldCheck, Maximize2, Monitor, Clock, CreditCard, Globe, Share2, X, Languages, BarChart3, Link2, BookOpen, Wrench, Activity, History, ShieldAlert, Landmark, MessageSquare, BarChart2, Radio } from 'lucide-react';
 
 // Sidebar component props interface
 interface SidebarProps {
@@ -225,6 +225,13 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       }
     }
 
+    if (parentPart === 'product_management') {
+      candidates.push('partner_product_management_view');
+      candidates.push('partner_product_view');
+      candidates.push('partner_products_view');
+      candidates.push('product_management_view');
+    }
+
     if (labelPart === 'ready_for_dispatch') {
       candidates.push(`${portal}_${parentPart}_ready_dispatch_view`);
       candidates.push(`${parentPart}_ready_dispatch_view`);
@@ -413,7 +420,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isVsmsOpen, setIsVsmsOpen] = useState(false);
   const [isAssetsOpen, setIsAssetsOpen] = useState(false);
   const [isRouteManagementOpen, setIsRouteManagementOpen] = useState(
-    location.pathname === '/vsms/vehicles' || location.pathname === '/vsms/routes-coverage'
+    location.pathname === '/vsms/vehicles' || location.pathname === '/vsms/routes-coverage' || location.pathname === '/vsms/live-tracking'
   );
   const [isVehicleManagementOpen, setIsVehicleManagementOpen] = useState(
     location.pathname === '/vsms/fuel-maintenance' || location.pathname === '/vsms/damages'
@@ -783,6 +790,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
 
 
   const vsmsSubItems = [
+    { path: '/vsms/live-tracking', label: 'Live Agent Tracking', icon: Radio },
     { path: '/vsms/vehicles', label: 'Fleet Vehicles', icon: Truck },
     { path: '/vsms/fuel-maintenance', label: 'Fuel & Maintenance', icon: RefreshCw },
     { path: '/vsms/damages', label: 'Vehicle Damages', icon: AlertTriangle },
