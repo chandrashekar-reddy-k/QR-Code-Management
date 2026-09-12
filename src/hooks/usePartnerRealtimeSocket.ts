@@ -6,7 +6,8 @@ import { toast } from 'react-toastify'
 let socket: Socket | null = null
 
 function origin(): string {
-  const o = (import.meta.env.VITE_CONSUMER_SOCKET_ORIGIN as string | undefined)?.trim()
+  const envVal = (import.meta.env.VITE_CONSUMER_SOCKET_ORIGIN as string | undefined)?.trim()
+  const o = envVal || (window.location.hostname === 'localhost' ? 'http://localhost:3004' : window.location.origin)
   return (o || '').replace(/\/+$/, '')
 }
 

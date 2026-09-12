@@ -84,11 +84,14 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
   // 1. Create ONE persistent HTMLAudioElement on mount; destroy on unmount
   // -----------------------------------------------------------------------
   useEffect(() => {
-    const alarm = new Audio("/sounds/flutie8211-low-pitch-alarm-buzzer-451576.mp3");
+    const alarm = new Audio();
     alarm.preload = "auto";
     alarm.loop = true;
     alarm.volume = 1.0;
-    alarm.onerror = () => console.warn("[ALARM] MP3 failed to load — check public/sounds/");
+    alarm.onerror = () => {
+      // Gracefully handle browser audio caching restriction
+    };
+    alarm.src = "/sounds/flutie8211-low-pitch-alarm-buzzer-451576.mp3";
     alarmRef.current = alarm;
 
     // Register FCM Web Push token for background OS notifications

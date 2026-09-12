@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
 import { useUserStore } from '../store/userStore';
@@ -20,7 +20,7 @@ export default function PaymentScreen() {
   const [cashReceived, setCashReceived] = useState('3000');
   const [splitAmounts, setSplitAmounts] = useState({ cash: '', upi: '' });
   const { items, customerMobile, customerName, clearCart, totalAmount: cartTotal } = useCartStore();
-  const { user } = useUserStore();
+  const { user } = useUserStore() as any;
   const navigate = useNavigate();
   const location = useLocation();
   const { deliverySlot, deliveryDate, orderId, orderNumber, amountToCollect } = location.state || {};

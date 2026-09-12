@@ -16,6 +16,7 @@ export interface User {
   isCreatedPassword?: boolean;
   isFirstLogin?: boolean;
   mustChangePassword?: boolean;
+  customRole?: any;
 }
 
 export interface LoginResponse {

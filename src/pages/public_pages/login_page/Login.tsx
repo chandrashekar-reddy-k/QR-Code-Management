@@ -63,8 +63,8 @@ const Login = () => {
     }
 
     const roleUpper = (user.role || "").toUpperCase();
-    const customRolePortalType = (user.customRole?.portalType || user.customRole?.type || "").toUpperCase();
-    const customRoleNameUpper = (user.customRole?.name || user.customRole?.code || "").toUpperCase();
+    const customRolePortalType = ((user as any).customRole?.portalType || (user as any).customRole?.type || "").toUpperCase();
+    const customRoleNameUpper = ((user as any).customRole?.name || (user as any).customRole?.code || "").toUpperCase();
 
     const isExplicitAgentRole =
       ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
@@ -91,9 +91,10 @@ const Login = () => {
         customRoleNameUpper.includes("SHOPKEEPER")
       );
 
-    const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("PARTNER");
-    const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
-    const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
+    // Permission checks reserved for future routing rules
+    // const hasPartner = userPermissions.some((p: string) => p.startsWith("partner_") && !p.startsWith("partner_shopkeeper_erp_")) || roleUpper.includes("PARTNER");
+    // const hasAgent = userPermissions.some((p: string) => p.startsWith("vsms_agent_"));
+    // const hasShopkeeper = userPermissions.some((p: string) => p.startsWith("shopkeeper_") || p.startsWith("partner_shopkeeper_erp_"));
 
     const isOperator =
       !isExplicitPartnerRole && !isExplicitShopkeeperRole && !isExplicitAgentRole && (
