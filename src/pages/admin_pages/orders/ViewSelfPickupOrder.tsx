@@ -87,6 +87,9 @@ interface SelfPickupOrderView {
   additionalCharges: number;
   taxAmount: number;
   walletUsed: number;
+  couponDiscount?: number;
+  couponCode?: string | null;
+  discount?: number;
   finalTotal: number;
   deliveryDate: string;
   payment?: {
@@ -177,6 +180,9 @@ const ViewSelfPickupOrder = () => {
       additionalCharges: 0, // Not in API response
       taxAmount: (orderData.taxAmount as number) || 0,
       walletUsed: 0, // Not in API response
+      couponDiscount: Number(orderData.couponDiscount || (orderData.couponCode ? orderData.discount : 0) || 0),
+      couponCode: orderData.couponCode || null,
+      discount: orderData.discount || 0,
       finalTotal: orderData.totalAmount || 0,
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus,
@@ -745,6 +751,16 @@ const getSelfPickupNextStatus = (status: OrderStatus): OrderStatus | null => {
                   {formatCurrency(order.taxAmount)}
                 </span>
               </div>
+              {((order.couponDiscount && order.couponDiscount > 0) || (order.discount && order.discount > 0)) && (
+                <div className="flex justify-between text-sm sm:text-base text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span>
+                    Coupon Discount {order.couponCode ? `(${order.couponCode.toUpperCase()})` : ''}
+                  </span>
+                  <span>
+                    - {formatCurrency(order.couponDiscount || order.discount || 0)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between text-sm sm:text-base">
                 <span className="text-gray-700">Wallet Used</span>
                 <span className="text-gray-900 font-semibold">
