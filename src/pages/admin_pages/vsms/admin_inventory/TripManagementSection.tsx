@@ -1,6 +1,5 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { History, Play, StopCircle, Clock, MapPin, Wallet, TrendingUp, AlertCircle, Loader2, Plus, Calendar } from 'lucide-react';
+import { History, Play, StopCircle, Clock, MapPin, Wallet, TrendingUp, AlertCircle, Loader2, Plus, Calendar, Edit, Trash2 } from 'lucide-react';
 import adminAPI from '.././services/adminService';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -11,6 +10,7 @@ export default function TripManagementSection({ storeId, vehicles }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showStartModal, setShowStartModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -26,6 +26,19 @@ export default function TripManagementSection({ storeId, vehicles }) {
     closingCash: '0',
     totalSales: '0',
     totalExpenses: '0'
+  });
+
+  const [editData, setEditData] = useState({
+    vehicleId: '',
+    startOdometer: '',
+    endOdometer: '',
+    openingCash: '0',
+    closingCash: '0',
+    totalSales: '0',
+    totalExpenses: '0',
+    shift: 1,
+    date: '',
+    status: 'OPEN'
   });
 
   useEffect(() => {
@@ -71,6 +84,50 @@ export default function TripManagementSection({ storeId, vehicles }) {
       toast.error(error.response?.data?.message || 'Failed to end trip');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenEdit = (trip) => {
+    setSelectedTrip(trip);
+    setEditData({
+      vehicleId: trip.vehicleId || '',
+      startOdometer: trip.startOdometer !== undefined && trip.startOdometer !== null ? String(trip.startOdometer) : '',
+      endOdometer: trip.endOdometer !== undefined && trip.endOdometer !== null ? String(trip.endOdometer) : '',
+      openingCash: trip.openingCash !== undefined && trip.openingCash !== null ? String(trip.openingCash) : '0',
+      closingCash: trip.closingCash !== undefined && trip.closingCash !== null ? String(trip.closingCash) : '0',
+      totalSales: trip.totalSales !== undefined && trip.totalSales !== null ? String(trip.totalSales) : '0',
+      totalExpenses: trip.totalExpenses !== undefined && trip.totalExpenses !== null ? String(trip.totalExpenses) : '0',
+      shift: trip.shift || 1,
+      date: trip.date || format(new Date(), 'yyyy-MM-dd'),
+      status: trip.status || 'OPEN'
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTrip = async (e) => {
+    e.preventDefault();
+    if (!selectedTrip) return;
+    try {
+      setIsSubmitting(true);
+      await adminAPI.updateVehicleTrip(selectedTrip.id, editData);
+      toast.success('Trip updated successfully');
+      setShowEditModal(false);
+      loadTrips();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update trip');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteTrip = async (tripId) => {
+    if (!window.confirm('Are you sure you want to delete this trip?')) return;
+    try {
+      await adminAPI.deleteVehicleTrip(tripId);
+      toast.success('Trip deleted successfully');
+      loadTrips();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete trip');
     }
   };
 
@@ -154,21 +211,37 @@ export default function TripManagementSection({ storeId, vehicles }) {
                 </div>
               )}
 
-              <div className="flex items-center justify-between mt-auto">
+              <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                   <Calendar size={12} />
                   {trip.date}
                 </div>
-                {trip.status === 'OPEN' ? (
-                  <button 
-                    onClick={() => { setSelectedTrip(trip); setShowEndModal(true); }}
-                    className="px-4 py-2 bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-colors shadow-lg shadow-rose-500/20"
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenEdit(trip)}
+                    className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                    title="Edit Trip Details"
                   >
-                    Close Trip
+                    <Edit size={14} />
                   </button>
-                ) : (
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 px-3 py-1 bg-gray-100 rounded-lg">Completed</span>
-                )}
+                  <button
+                    onClick={() => handleDeleteTrip(trip.id)}
+                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    title="Delete Trip"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                  {trip.status === 'OPEN' ? (
+                    <button 
+                      onClick={() => { setSelectedTrip(trip); setShowEndModal(true); }}
+                      className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-colors shadow-sm shadow-rose-500/20"
+                    >
+                      Close Trip
+                    </button>
+                  ) : (
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 px-2.5 py-1 bg-gray-100 rounded-lg">Completed</span>
+                  )}
+                </div>
               </div>
             </div>
           ))
@@ -261,13 +334,168 @@ export default function TripManagementSection({ storeId, vehicles }) {
         </div>
       )}
 
+      {/* Edit Trip Modal */}
+      {showEditModal && selectedTrip && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 bg-indigo-600 text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold tracking-tight">Edit Trip Details</h3>
+                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-0.5">
+                  Update parameters for {selectedTrip.vehicle?.vehicleNumber || selectedTrip.vehicleId}
+                </p>
+              </div>
+            </div>
+            
+            <form onSubmit={handleUpdateTrip} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Vehicle</label>
+                  <select 
+                    required
+                    value={editData.vehicleId}
+                    onChange={e => setEditData({...editData, vehicleId: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="">Choose Vehicle...</option>
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleName})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Trip Status</label>
+                  <select 
+                    value={editData.status}
+                    onChange={e => setEditData({...editData, status: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="OPEN">OPEN</option>
+                    <option value="CLOSED">CLOSED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Date</label>
+                  <input 
+                    type="date"
+                    required
+                    value={editData.date}
+                    onChange={e => setEditData({...editData, date: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Shift</label>
+                  <select 
+                    value={editData.shift}
+                    onChange={e => setEditData({...editData, shift: parseInt(e.target.value)})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value={1}>Morning (1)</option>
+                    <option value={2}>Evening (2)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Start Odometer (KM)</label>
+                  <input 
+                    type="number"
+                    step="0.1"
+                    required
+                    value={editData.startOdometer}
+                    onChange={e => setEditData({...editData, startOdometer: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">End Odometer (KM)</label>
+                  <input 
+                    type="number"
+                    step="0.1"
+                    placeholder="Leave empty if open"
+                    value={editData.endOdometer}
+                    onChange={e => setEditData({...editData, endOdometer: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Opening Cash (₹)</label>
+                  <input 
+                    type="number"
+                    required
+                    value={editData.openingCash}
+                    onChange={e => setEditData({...editData, openingCash: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Closing Cash (₹)</label>
+                  <input 
+                    type="number"
+                    value={editData.closingCash}
+                    onChange={e => setEditData({...editData, closingCash: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Total Sales (₹)</label>
+                  <input 
+                    type="number"
+                    value={editData.totalSales}
+                    onChange={e => setEditData({...editData, totalSales: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Total Expenses (₹)</label>
+                  <input 
+                    type="number"
+                    value={editData.totalExpenses}
+                    onChange={e => setEditData({...editData, totalExpenses: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button 
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 py-3 text-gray-500 font-bold uppercase tracking-wider text-[10px] border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-[2] py-3 bg-indigo-600 text-white font-bold uppercase tracking-wider text-[10px] rounded-xl shadow-md shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* End Trip Modal */}
       {showEndModal && selectedTrip && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-md rounded-xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
             <div className="p-8 border-b border-gray-200 bg-rose-600 text-white">
               <h3 className="text-2xl font-bold tracking-tight">Shift Reconciliation</h3>
-              <p className="text-rose-100 text-xs font-bold uppercase tracking-widest mt-1">Close active trip for {selectedTrip.vehicle.vehicleNumber}</p>
+              <p className="text-rose-100 text-xs font-bold uppercase tracking-widest mt-1">Close active trip for {selectedTrip.vehicle?.vehicleNumber || selectedTrip.vehicleId}</p>
             </div>
             
             <form onSubmit={handleEndTrip} className="p-8 space-y-6">

@@ -40,6 +40,8 @@ export const adminAPI = {
   getVehicleOpsTrips: (params?: any) => api.get('/admin/vehicles/ops/trips', { params }),
   startVehicleTrip: (data?: any) => api.post('/admin/vehicles/ops/trips/start', data),
   endVehicleTrip: (id?: any, data?: any) => api.put(`/admin/vehicles/ops/trips/${id}/end`, data),
+  updateVehicleTrip: (id?: any, data?: any) => api.put(`/admin/vehicles/ops/trips/${id}`, data),
+  deleteVehicleTrip: (id?: any) => api.delete(`/admin/vehicles/ops/trips/${id}`),
   getFuelLogs: (params?: any) => api.get('/admin/vehicles/ops/fuel', { params }),
   addFuelLog: (data?: any) => api.post('/admin/vehicles/ops/fuel', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
