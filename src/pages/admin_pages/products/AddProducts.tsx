@@ -1061,52 +1061,59 @@ const AddProduct = () => {
     }));
   }, [isEditVariantMode, variantIdFromUrl, variantApiData, productIdFromUrl]);
 
-  // When units for the variant's type load, resolve unit name → id so Unit dropdown shows selection (edit product + edit variant)
+  // When unitTypes / units data finishes loading, resolve string names to option UUIDs (e.g. "Pack" -> UUID, "Piece" -> UUID)
   useEffect(() => {
-    const inEditVariant = isEditVariantMode && !!variantIdFromUrl;
-    const inEditProduct = isEditMode && !!id && !shouldShowVariants;
-    if ((!inEditVariant && !inEditProduct) || !formData.variants?.length)
-      return;
+    if (!formData.variants?.length) return;
     const variant = formData.variants[0];
-    const typeId = variant?.type;
-    const currentUnit = variant?.unit ?? "";
+    if (!variant) return;
+
+    let updatedType = variant.type;
+    let updatedUnit = variant.unit;
+    let changed = false;
+
     const isUuid = (s: string) => !!s && /^[0-9a-f-]{36}$/i.test(s);
-    if (!typeId || !currentUnit || isUuid(currentUnit)) return;
-    const unitOpts = unitsByTypeId[typeId] ?? [];
-    if (unitOpts.length === 0) return;
-    const norm = currentUnit.toLowerCase();
-    const found = unitOpts.find(
-      (o) => o.label && String(o.label).toLowerCase() === norm,
-    );
-    if (!found) return;
-    setFormData((prev) => {
-      const cur = prev.variants?.[0];
-      if (!cur || cur.unit === found.value) return prev;
-      const next: Variant = { ...cur, unit: found.value };
-      if (!isEditMode && SHOW_VARIANT_BASIC_AND_STATUS_SECTIONS) {
-        const pn =
-          prev.productName.trim() ||
-          parentProductData?.productName?.trim() ||
-          "";
-        next.variantName = computeAutoVariantName(
-          unitsByTypeId,
-          pn,
-          next.measurement,
-          next.type,
-          next.unit,
-        );
+
+    // 1. Resolve unitType name string to UUID if needed
+    if (updatedType && !isUuid(updatedType) && Array.isArray(unitTypesOptions) && unitTypesOptions.length > 0) {
+      const norm = updatedType.toLowerCase();
+      const foundType = unitTypesOptions.find(
+        (o) => o.label && String(o.label).toLowerCase() === norm
+      );
+      if (foundType) {
+        updatedType = foundType.value;
+        changed = true;
       }
-      return { ...prev, variants: [next] };
-    });
+    }
+
+    // 2. Resolve unit name string to UUID if needed
+    if (updatedType && isUuid(updatedType) && updatedUnit && !isUuid(updatedUnit)) {
+      const unitOpts = unitsByTypeId[updatedType] ?? [];
+      if (unitOpts.length > 0) {
+        const normUnit = updatedUnit.toLowerCase();
+        const foundUnit = unitOpts.find(
+          (o) => o.label && String(o.label).toLowerCase() === normUnit
+        );
+        if (foundUnit) {
+          updatedUnit = foundUnit.value;
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      setFormData((prev) => {
+        const cur = prev.variants?.[0];
+        if (!cur) return prev;
+        return {
+          ...prev,
+          variants: [{ ...cur, type: updatedType, unit: updatedUnit }]
+        };
+      });
+    }
   }, [
-    isEditVariantMode,
-    isEditMode,
-    id,
-    shouldShowVariants,
-    variantIdFromUrl,
     formData.variants,
-    unitsByTypeId,
-    parentProductData?.productName,
+    unitTypesOptions,
+    unitsByTypeId
   ]);
 
   const unitOptionsContentKey = useMemo(() => {
@@ -1434,7 +1441,7 @@ const AddProduct = () => {
     apiValue: string | undefined,
     unitTypeIdFromApi?: string,
   ): string => {
-    if (unitTypeIdFromApi && String(unitTypeIdFromApi).trim())
+    if (unitTypeIdFromApi && String(unitTypeIdFromApi).trim() && /^[0-9a-f-]{36}$/i.test(String(unitTypeIdFromApi).trim()))
       return String(unitTypeIdFromApi).trim();
     if (!apiValue || !String(apiValue).trim()) return "";
     const raw = String(apiValue).trim();
@@ -1442,7 +1449,7 @@ const AddProduct = () => {
     const byId = unitTypesOptions.find((o) => o.value === raw);
     if (byId) return raw;
     const byName = unitTypesOptions.find(
-      (o) => o.label === raw || o.label.toLowerCase() === raw.toLowerCase(),
+      (o) => o.label && (o.label === raw || o.label.toLowerCase() === raw.toLowerCase()),
     );
     if (byName) return byName.value;
     const rawLower = raw.toLowerCase();
@@ -1457,19 +1464,7 @@ const AddProduct = () => {
       "pouch",
     ];
     if (formTypes.includes(rawLower)) return rawLower;
-    const apiToForm: Record<string, string> = {
-      weight: "packet",
-      volume: "bottle",
-      count: "packet",
-      pack: "packet",
-      gram: "packet",
-      kg: "packet",
-      liter: "bottle",
-      ltr: "bottle",
-      ml: "bottle",
-      piece: "packet",
-    };
-    return apiToForm[rawLower] ?? "";
+    return "";
   };
 
   // Edit product: dynamic API only — GET productmanagement/product/:id (populate form only from this response)
@@ -1523,12 +1518,12 @@ const AddProduct = () => {
             variantName: first.variantName || first.name || product.name || "",
             sku: first.sku || "",
             barcode: first.barcode || product.barcode || "",
-            type: normalizeUnitTypeForForm(rawType, unitTypeId) || "",
+            type: normalizeUnitTypeForForm(rawType, unitTypeId) || rawType || "",
             unit:
-              product.unit ??
               product.unitId ??
-              first.unit ??
               first.unitId ??
+              product.unit ??
+              first.unit ??
               "",
             measurement: sanitizeNonNegativeDecimalInput(
               String(product.measurement ?? ""),
@@ -1618,7 +1613,7 @@ const AddProduct = () => {
           type:
             normalizeUnitTypeForForm(product.unitType, product.unitTypeId) ||
             "",
-          unit: product.unit ?? product.unitId ?? "",
+          unit: product.unitId ?? product.unit ?? "",
           measurement: sanitizeNonNegativeDecimalInput(
             String(product.measurement || ""),
           ),
