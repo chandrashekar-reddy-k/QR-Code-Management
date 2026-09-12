@@ -129,7 +129,10 @@ interface HomeDeliveryOrderView {
   subtotal: number;
   deliveryCharges: number;
   additionalCharges: number;
-  taxAmount:number;
+  taxAmount: number;
+  couponDiscount?: number;
+  couponCode?: string | null;
+  discount?: number;
   finalTotal: number;
   assignedShopkeeperId?: string | null;
   shopkeeper_name?: string | null;
@@ -384,8 +387,11 @@ const ViewHomeDeliveryOrder = () => {
       subtotal: subtotal,
       deliveryCharges: orderData.deliveryCharge || 0,
       additionalCharges: 0, // Not in API response
-      finalTotal: orderData.totalAmount || 0,
       taxAmount: orderData.taxAmount || 0,
+      couponDiscount: Number(orderData.couponDiscount || (orderData.couponCode ? orderData.discount : 0) || 0),
+      couponCode: orderData.couponCode || null,
+      discount: orderData.discount || 0,
+      finalTotal: orderData.totalAmount || 0,
       assignedShopkeeperId: orderData.assignedShopkeeperId || null,
       shopkeeper_name: orderData.assignedShopkeeper?.name || null,
       orderReturnHistory: orderData.orderReturnHistory || [],
@@ -1130,6 +1136,16 @@ const ViewHomeDeliveryOrder = () => {
                   {formatCurrency(order.taxAmount)}
                 </span>
               </div>
+              {((order.couponDiscount && order.couponDiscount > 0) || (order.discount && order.discount > 0)) && (
+                <div className="flex justify-between text-sm sm:text-base text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span>
+                    Coupon Discount {order.couponCode ? `(${order.couponCode.toUpperCase()})` : ''}
+                  </span>
+                  <span>
+                    - {formatCurrency(order.couponDiscount || order.discount || 0)}
+                  </span>
+                </div>
+              )}
               <div className="pt-3 border-t border-gray-200">
                 <div className="flex justify-between text-sm sm:text-base">
                   <span className="text-gray-900 font-bold">

@@ -6,6 +6,8 @@ import {
   ArrowDownToLine, ArrowUpFromLine, ShoppingBag, ShoppingCart, Hexagon
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
+import { attendanceAPI } from '../services/api';
+import PunchInScreen from './PunchInScreen';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
 import * as locationService from '../services/locationService';
 
@@ -62,7 +64,38 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   const [isOpen, setIsOpen] = useState(false);
   const [trackingOn, setTrackingOn] = useState(() => locationService.isTrackingActive());
   const { user, refreshUserProfile } = useUserStore() as any;
+  const [attendanceChecked, setAttendanceChecked] = useState(false);
+  const [hasPunchedIn, setHasPunchedIn] = useState(false);
+  const [checkingAttendance, setCheckingAttendance] = useState(true);
+
   const agentName = user?.name || localStorage.getItem('userName') || 'Agent';
+
+  // Only gate agent roles
+  const roleUpper = (user?.role || localStorage.getItem('role') || localStorage.getItem('partnerRole') || '').toUpperCase();
+  const isAgent = roleUpper === 'SALES_AGENT' || roleUpper === 'VEHICLE_AGENT' || roleUpper === 'VSMS_AGENT' || roleUpper === 'DELIVERY_AGENT' || roleUpper.endsWith('_AGENT') || roleUpper === 'AGENT';
+
+  useEffect(() => {
+    // Check attendance for agent portal users
+    const checkAttendance = async () => {
+      if (!isAgent) {
+        setAttendanceChecked(true);
+        setHasPunchedIn(true);
+        setCheckingAttendance(false);
+        return;
+      }
+      try {
+        const { data } = await attendanceAPI.getToday();
+        setHasPunchedIn(data?.punchedIn === true);
+      } catch (err) {
+        console.error('Failed to check attendance in AgentPortalLayout:', err);
+        setHasPunchedIn(false);
+      } finally {
+        setAttendanceChecked(true);
+        setCheckingAttendance(false);
+      }
+    };
+    checkAttendance();
+  }, [isAgent]);
 
   useEffect(() => {
     // Fetch real user profile (assignedVehicleId, role, etc.) on mount
@@ -291,6 +324,27 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
       </div>
     </div>
   );
+
+  const handlePunchIn = () => {
+    setHasPunchedIn(true);
+  };
+
+  // Loading state while checking attendance
+  if (checkingAttendance) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-3 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Checking Attendance...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Gate agent portal with PunchInScreen until punched in
+  if (isAgent && user?.attendanceEnabled !== false && attendanceChecked && !hasPunchedIn) {
+    return <PunchInScreen onPunchIn={handlePunchIn} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 flex flex-col md:flex-row relative overflow-x-hidden">

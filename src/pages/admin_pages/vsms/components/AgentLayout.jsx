@@ -31,8 +31,8 @@ export default function AgentLayout() {
         setHasPunchedIn(data.punchedIn === true);
       } catch (err) {
         console.error('Failed to check attendance:', err);
-        // On error, let them through to avoid blocking
-        setHasPunchedIn(true);
+        // On error or unpunched state, enforce punch-in screen
+        setHasPunchedIn(false);
       } finally {
         setAttendanceChecked(true);
         setCheckingAttendance(false);

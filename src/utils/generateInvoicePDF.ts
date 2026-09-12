@@ -12,6 +12,8 @@ interface InvoiceOrder {
   totalAmount?: number;
   deliveryCharge?: number;
   discount?: number;
+  couponDiscount?: number;
+  couponCode?: string | null;
   customerName?: string;
   mobile?: string;
   customerPhone?: string;
@@ -504,6 +506,17 @@ export const generateInvoicePDF = async (order: InvoiceOrder, bizSettings?: BizS
     pdf.text('Delivery Fee', totalsX, rightY);
     pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
     pdf.text(`Rs.${deliveryFee.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    rightY += 7;
+  }
+
+  const couponDiscount = Number(order.couponDiscount || (order.couponCode ? order.discount : 0) || 0);
+  const couponCode = order.couponCode ? String(order.couponCode).toUpperCase() : null;
+  if (couponDiscount > 0) {
+    pdf.setTextColor(emerald[0], emerald[1], emerald[2]);
+    pdf.setFont('helvetica', 'bold');
+    const couponLabel = couponCode ? `Coupon (${couponCode})` : 'Coupon Discount';
+    pdf.text(couponLabel, totalsX, rightY);
+    pdf.text(`- Rs.${couponDiscount.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
     rightY += 7;
   }
 

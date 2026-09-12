@@ -21,6 +21,8 @@ api.interceptors.request.use((config) => {
     !url.startsWith('vsms') && 
     !url.startsWith('/agent') &&
     !url.startsWith('agent') &&
+    !url.startsWith('/agent-routes') &&
+    !url.startsWith('agent-routes') &&
     !url.startsWith('/procurement') && 
     !url.startsWith('/staff') &&
     !url.startsWith('/inventorymanagement') &&

@@ -1676,9 +1676,27 @@ const AddProduct = () => {
         manufacturer: product.manufacturer || "",
         madeIn: product.madeIn || "",
         fssaiLicNo: product.fssaiLicNo || "",
-        isReturnable: product.isReturnable ? "yes" : "no",
-        isCodAllowed: product.isCodAllowed ? "yes" : "no",
-        isCancelable: product.isCancelable ? "yes" : "no",
+        isReturnable:
+          product.isReturnable === true ||
+          String(product.isReturnable).toLowerCase() === "true" ||
+          String(product.isReturnable).toLowerCase() === "yes" ||
+          String(product.isReturnable) === "1"
+            ? "yes"
+            : "no",
+        isCodAllowed:
+          product.isCodAllowed === true ||
+          String(product.isCodAllowed).toLowerCase() === "true" ||
+          String(product.isCodAllowed).toLowerCase() === "yes" ||
+          String(product.isCodAllowed) === "1"
+            ? "yes"
+            : "no",
+        isCancelable:
+          product.isCancelable === true ||
+          String(product.isCancelable).toLowerCase() === "true" ||
+          String(product.isCancelable).toLowerCase() === "yes" ||
+          String(product.isCancelable) === "1"
+            ? "yes"
+            : "no",
         maxReturnDays: String(
           (product as { returnableDays?: number }).returnableDays ??
           (product as { maxReturnDays?: number }).maxReturnDays ??

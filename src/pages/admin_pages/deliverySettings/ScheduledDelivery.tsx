@@ -16,6 +16,7 @@ import {
   Button,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
+import ShiftManagementSection from "./ShiftManagementSection";
 import {
   useGetRouteMaps,
   useDeleteRouteMap,
@@ -87,9 +88,13 @@ const formatDateTime = (dateString: string): string => {
 const ScheduledDelivery = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = (location.state as { activeTab?: "route-map" | "delivery-slots" } | null) || null;
-  const [activeTab, setActiveTab] = useState<"route-map" | "delivery-slots">(
-    locationState?.activeTab === "delivery-slots" ? "delivery-slots" : "route-map"
+  const locationState = (location.state as { activeTab?: "route-map" | "delivery-slots" | "shift-management" } | null) || null;
+  const [activeTab, setActiveTab] = useState<"route-map" | "delivery-slots" | "shift-management">(
+    locationState?.activeTab === "shift-management"
+      ? "shift-management"
+      : locationState?.activeTab === "delivery-slots"
+      ? "delivery-slots"
+      : "route-map"
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -144,7 +149,7 @@ const ScheduledDelivery = () => {
         id: s.id,
         slotDate: formatSlotDate(s.slotDate),
         slotTime: formatSlotTime(s.startTime, s.endTime),
-        routeArea: (s as any).routeArea ?? s.routeMap?.area ?? s.routeMapId ?? "",
+        routeArea: (s as SlotItem & { routeArea?: string }).routeArea ?? s.routeMap?.area ?? s.routeMapId ?? "",
         orderPerSlot: s.ordersPerSlot ?? 0,
         repeat: formatRepeat(s),
         createdAt: s.createdAt,
@@ -470,22 +475,24 @@ const ScheduledDelivery = () => {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Scheduled Delivery
         </h1>
-        <PrimaryButton
-          onClick={() => {
-            if (activeTab === "delivery-slots") {
-              navigate("/delivery-settings/scheduled-delivery/create-slot");
-            } else {
-              navigate("/delivery-settings/scheduled-delivery/create-route-map");
-            }
-          }}
-          size="sm"
-          className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-        >
-          <Plus size={14} className="sm:w-4 sm:h-4" />
-          <span className="text-xs sm:text-sm">
-            {activeTab === "delivery-slots" ? "Create Slot" : "Create Route Map"}
-          </span>
-        </PrimaryButton>
+        {activeTab !== "shift-management" && (
+          <PrimaryButton
+            onClick={() => {
+              if (activeTab === "delivery-slots") {
+                navigate("/delivery-settings/scheduled-delivery/create-slot");
+              } else {
+                navigate("/delivery-settings/scheduled-delivery/create-route-map");
+              }
+            }}
+            size="sm"
+            className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+          >
+            <Plus size={14} className="sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">
+              {activeTab === "delivery-slots" ? "Create Slot" : "Create Route Map"}
+            </span>
+          </PrimaryButton>
+        )}
       </div>
 
       {/* Breadcrumbs */}
@@ -500,148 +507,160 @@ const ScheduledDelivery = () => {
             onClick={() => setActiveTab("route-map")}
             className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === "route-map"
-          ? 'text-gray-900 border-b-2 border-orange-500 dark:border-orange-400'
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                ? "text-gray-900 border-b-2 border-orange-500 dark:border-orange-400 font-bold"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             Route Map
-            {activeTab === "route-map" && (
-              <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-orange-600 dark:bg-orange-400"></div>
-            )}
           </button>
           <button
             onClick={() => setActiveTab("delivery-slots")}
-              className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
-                activeTab === "delivery-slots"
-                ? "text-gray-900 border-b-2 border-orange-500 dark:border-orange-400"
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === "delivery-slots"
+                ? "text-gray-900 border-b-2 border-orange-500 dark:border-orange-400 font-bold"
                 : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             Delivery Slots
-            {activeTab === "delivery-slots" && (
-              <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-orange-600 dark:bg-orange-400"></div>
-            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("shift-management")}
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === "shift-management"
+                ? "text-gray-900 border-b-2 border-orange-500 dark:border-orange-400 font-bold"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            Shift Management
           </button>
         </div>
       </div>
 
-      {/* Refresh and Search */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-        {/* Refresh Button */}
-        <div className="w-full sm:w-auto">
-           <Button
-            onClick={handleRefresh}
-           disabled={isRefreshing}
-            variant="ghost"
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
-            title="Refresh"
-          >
-            <RefreshCw
-              size={14}
-              className={`sm:w-4 sm:h-4 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
+      {activeTab === "shift-management" ? (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+          <ShiftManagementSection />
         </div>
-
-        {/* Search */}
-        <div className="w-full sm:w-auto sm:min-w-[200px] sm:flex-shrink-0">
-          <SearchInput
-            placeholder="Search area"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-10 w-full"
-          />
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          {activeTab === "route-map" ? (
-            routeMapsLoading ? (
-              <div className="flex items-center justify-center min-h-[200px] text-gray-500">
-                Loading...
-              </div>
-            ) : (
-              <DataTable
-                data={paginatedData as RouteMap[]}
-                columns={routeMapColumns}
-                sortField={sortField}
-                sortDirection={sortDirection}
-                onSort={handleSort}
-                loading={routeMapsFetching}
-                keyExtractor={(item) => item.id.toString()}
-                emptyMessage="No route maps found"
-              />
-            )
-          ) : slotsLoading ? (
-            <div className="flex items-center justify-center min-h-[200px] text-gray-500">
-              Loading...
-            </div>
-          ) : (
-            <DataTable
-              data={paginatedData as DeliverySlot[]}
-              columns={deliverySlotColumns}
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={handleSort}
-              loading={isFetching}
-              keyExtractor={(item) => item.id.toString()}
-              emptyMessage="No delivery slots found"
-            />
-          )}
-        </div>
-
-        {/* Pagination */}
-        {(totalCount > 0 || currentData.length > 0) && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 whitespace-nowrap">
-                  Show
-                </span>
-                <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-400 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
-                  <SelectInput
-                    value={itemsPerPage.toString()}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    options={[
-                      { value: "10", label: "10" },
-                      { value: "25", label: "25" },
-                      { value: "50", label: "50" },
-                      { value: "100", label: "100" },
-                    ]}
-                    className="w-16 sm:w-20 h-7 text-xs"
-                  />
-                </div>
-                <span className="text-gray-600 whitespace-nowrap">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                  {Math.min(currentPage * itemsPerPage, totalCount)}{" "}
-                  of {totalCount}
-                </span>
-              </div>
-
-              <div className="w-full sm:w-auto flex justify-center sm:justify-end">
-                <Pagination
-                  currentPage={currentPage}
-                  pagination={{
-                    page: currentPage,
-                    limit: itemsPerPage,
-                    total: totalCount,
-                    totalPages: totalPages,
-                    hasNext: currentPage < totalPages,
-                    hasPrev: currentPage > 1,
-                  }}
-                  onPageChange={setCurrentPage}
+      ) : (
+        <>
+          {/* Refresh and Search */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+            {/* Refresh Button */}
+            <div className="w-full sm:w-auto">
+              <Button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                variant="ghost"
+                className="flex items-center gap-1.5 h-10 px-3 sm:px-4 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium bg-white disabled:opacity-50"
+                title="Refresh"
+              >
+                <RefreshCw
+                  size={14}
+                  className={`sm:w-4 sm:h-4 ${isRefreshing ? "animate-spin" : ""}`}
                 />
-              </div>
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+            </div>
+
+            {/* Search */}
+            <div className="w-full sm:w-auto sm:min-w-[200px] sm:flex-shrink-0">
+              <SearchInput
+                placeholder="Search area"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-10 w-full"
+              />
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              {activeTab === "route-map" ? (
+                routeMapsLoading ? (
+                  <div className="flex items-center justify-center min-h-[200px] text-gray-500">
+                    Loading...
+                  </div>
+                ) : (
+                  <DataTable
+                    data={paginatedData as RouteMap[]}
+                    columns={routeMapColumns}
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                    loading={routeMapsFetching}
+                    keyExtractor={(item) => item.id.toString()}
+                    emptyMessage="No route maps found"
+                  />
+                )
+              ) : slotsLoading ? (
+                <div className="flex items-center justify-center min-h-[200px] text-gray-500">
+                  Loading...
+                </div>
+              ) : (
+                <DataTable
+                  data={paginatedData as DeliverySlot[]}
+                  columns={deliverySlotColumns}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  loading={isFetching}
+                  keyExtractor={(item) => item.id.toString()}
+                  emptyMessage="No delivery slots found"
+                />
+              )}
+            </div>
+
+            {/* Pagination */}
+            {(totalCount > 0 || currentData.length > 0) && (
+              <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                    <span className="text-gray-600 whitespace-nowrap">
+                      Show
+                    </span>
+                    <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-400 [&_select]:font-medium [&_select]:px-2 [&_select]:py-1 [&_select]:pr-6 [&_select]:border [&_select]:border-gray-300 dark:[&_select]:border-gray-600 [&_select]:rounded-lg [&_select]:bg-white dark:[&_select]:bg-gray-700 [&_select]:w-16 [&_select]:sm:w-20 [&_select]:h-7 [&_select]:text-xs [&_select]:appearance-none">
+                      <SelectInput
+                        value={itemsPerPage.toString()}
+                        onChange={(e) => {
+                          setItemsPerPage(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        options={[
+                          { value: "10", label: "10" },
+                          { value: "25", label: "25" },
+                          { value: "50", label: "50" },
+                          { value: "100", label: "100" },
+                        ]}
+                        className="w-16 sm:w-20 h-7 text-xs"
+                      />
+                    </div>
+                    <span className="text-gray-600 whitespace-nowrap">
+                      Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                      {Math.min(currentPage * itemsPerPage, totalCount)}{" "}
+                      of {totalCount}
+                    </span>
+                  </div>
+
+                  <div className="w-full sm:w-auto flex justify-center sm:justify-end">
+                    <Pagination
+                      currentPage={currentPage}
+                      pagination={{
+                        page: currentPage,
+                        limit: itemsPerPage,
+                        total: totalCount,
+                        totalPages: totalPages,
+                        hasNext: currentPage < totalPages,
+                        hasPrev: currentPage > 1,
+                      }}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

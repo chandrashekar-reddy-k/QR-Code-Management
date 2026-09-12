@@ -33,7 +33,9 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
     setIsLoadingTransfers(true);
     try {
       const res = await adminAPI.getAgentTransfers();
-      setTransfers(res.data || []);
+      const rawData = res.data;
+      const list = Array.isArray(rawData) ? rawData : (rawData?.data && Array.isArray(rawData.data) ? rawData.data : []);
+      setTransfers(list);
     } catch (err) {
       console.error('Error fetching transfers:', err);
     } finally {
@@ -52,8 +54,28 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
       setTransferQuantities({});
       adminAPI.getVehicleStock(fromVehicleId)
         .then(res => {
-          // Format stock results
-          const stockItems = res.data || [];
+          // Format stock results - ONLY show products that are present in the vehicle (quantity > 0)
+          const rawItems = res.data || [];
+          const stockItems = rawItems
+            .filter(item => (parseInt(item.quantity, 10) || 0) > 0)
+            .map(item => {
+              let prod = item.product;
+              if (!prod && Array.isArray(items) && items.length > 0) {
+                const matched = items.find(p => p.id === item.productId);
+                if (matched) {
+                  prod = {
+                    id: matched.id,
+                    name: matched.name,
+                    skuCode: matched.sku || matched.skuCode || 'N/A',
+                    unit: matched.unit?.name || matched.unit || 'pcs'
+                  };
+                }
+              }
+              return {
+                ...item,
+                product: prod
+              };
+            });
           setSourceInventory(stockItems);
         })
         .catch(err => console.error('Error loading source inventory:', err))
@@ -61,7 +83,7 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
     } else {
       setSourceInventory([]);
     }
-  }, [fromVehicleId]);
+  }, [fromVehicleId, items]);
 
   // Active assigned vehicles only
   const activeVehicles = vehicles.filter(v => v.assignedUsers && v.assignedUsers.length > 0);
@@ -69,11 +91,12 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
   // Destination vehicles list (excludes source vehicle)
   const destinationVehicles = activeVehicles.filter(v => v.id !== fromVehicleId);
 
-  // Filter products by search
+  // Filter products by search - ONLY products with positive quantity
   const filteredProducts = sourceInventory.filter(item => {
+    if ((parseInt(item.quantity, 10) || 0) <= 0) return false;
     const search = searchQuery.toLowerCase();
-    const prodName = item.product?.name || '';
-    const sku = item.product?.skuCode || '';
+    const prodName = item.product?.name || item.productName || item.name || '';
+    const sku = item.product?.skuCode || item.product?.sku || item.skuCode || item.sku || '';
     return prodName.toLowerCase().includes(search) || sku.toLowerCase().includes(search);
   });
 
@@ -191,6 +214,10 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
     const flattenedData = [];
     filteredTransfersList.forEach(t => {
       t.items.forEach(item => {
+        const matchedItem = Array.isArray(items) ? items.find(p => p.id === item.productId) : null;
+        const displayName = item.product?.name || item.productName || item.name || matchedItem?.name || `Product (${item.productId?.slice(-6) || 'N/A'})`;
+        const displaySku = item.product?.skuCode || item.product?.sku || item.skuCode || item.sku || matchedItem?.sku || '---';
+
         flattenedData.push({
           'Transfer ID': t.id,
           'Date': formatSafeDate(t.createdAt, 'yyyy-MM-dd HH:mm'),
@@ -198,8 +225,8 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
           'Source Vehicle': t.fromVehicle?.vehicleNumber || '---',
           'Dest Agent': t.toUser?.name || 'N/A',
           'Dest Vehicle': t.toVehicle?.vehicleNumber || '---',
-          'Product Name': item.product?.name || '---',
-          'SKU': item.product?.skuCode || '---',
+          'Product Name': displayName,
+          'SKU': displaySku,
           'Quantity': item.quantity,
           'Status': t.status,
           'Remarks': t.remarks || ''
@@ -360,33 +387,41 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {filteredProducts.map(item => (
-                      <tr key={item.id} className="hover:bg-gray-50/30 transition-all">
-                        <td className="px-6 py-3.5">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black text-gray-800 uppercase tracking-tight">
-                              {item.product?.name || item.productName || item.name || `Product (${item.productId?.slice(-6) || 'N/A'})`}
-                            </span>
-                            <span className="text-[9px] font-bold text-gray-400 uppercase mt-0.5">
-                              {item.product?.skuCode || item.product?.sku || item.sku || 'N/A'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-center font-bold text-gray-700">
-                          {item.quantity} {item.product?.unit?.name || item.product?.unit || 'pcs'}
-                        </td>
-                        <td className="px-4 py-3.5 bg-indigo-50/10 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            className="w-16 bg-white border border-gray-250 rounded-lg py-1 px-1.5 text-center text-xs font-black text-gray-900 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
-                            value={transferQuantities[item.productId] || ''}
-                            onChange={(e) => handleQuantityChange(item.productId, e.target.value, item.quantity)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredProducts.map(item => {
+                      const matchedItem = Array.isArray(items) ? items.find(p => p.id === item.productId) : null;
+                      const displayName = item.product?.name || item.productName || item.name || matchedItem?.name || `Product (${item.productId?.slice(-6) || 'N/A'})`;
+                      const displaySku = item.product?.skuCode || item.product?.sku || item.skuCode || item.sku || matchedItem?.sku || 'N/A';
+                      const displayUnit = item.product?.unit?.name || item.product?.unit || matchedItem?.unit?.name || matchedItem?.unit || 'pcs';
+
+                      return (
+                        <tr key={item.id || item.productId} className="hover:bg-gray-50/30 transition-all">
+                          <td className="px-6 py-3.5">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black text-gray-800 uppercase tracking-tight">
+                                {displayName}
+                              </span>
+                              <span className="text-[9px] font-bold text-gray-400 uppercase mt-0.5">
+                                {displaySku}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 text-center font-bold text-gray-700">
+                            {item.quantity} {displayUnit}
+                          </td>
+                          <td className="px-4 py-3.5 bg-indigo-50/10 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max={item.quantity}
+                              placeholder="0"
+                              className="w-16 bg-white border border-gray-250 rounded-lg py-1 px-1.5 text-center text-xs font-black text-gray-900 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                              value={transferQuantities[item.productId] || ''}
+                              onChange={(e) => handleQuantityChange(item.productId, e.target.value, item.quantity)}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -444,12 +479,17 @@ const AgentTransfersSection = ({ vehicles, items, can }) => {
 
                       <div className="space-y-1.5 mt-3">
                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Transfer Manifest</span>
-                        {t.items.map(item => (
-                          <div key={item.id} className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-100 shadow-sm">
-                            <span className="text-[11px] font-black text-slate-800 uppercase tracking-tight truncate max-w-[200px]">{item.product?.name}</span>
-                            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{item.quantity} {item.product?.unit?.name || 'pcs'}</span>
-                          </div>
-                        ))}
+                        {t.items.map(item => {
+                          const matchedItem = Array.isArray(items) ? items.find(p => p.id === item.productId) : null;
+                          const displayName = item.product?.name || item.productName || item.name || matchedItem?.name || `Product (${item.productId?.slice(-6) || 'N/A'})`;
+                          const displayUnit = item.product?.unit?.name || item.product?.unit || matchedItem?.unit?.name || matchedItem?.unit || 'pcs';
+                          return (
+                            <div key={item.id} className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-100 shadow-sm">
+                              <span className="text-[11px] font-black text-slate-800 uppercase tracking-tight truncate max-w-[200px]">{displayName}</span>
+                              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{item.quantity} {displayUnit}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
