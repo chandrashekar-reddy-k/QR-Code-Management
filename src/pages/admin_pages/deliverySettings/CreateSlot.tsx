@@ -17,6 +17,8 @@ import {
 } from "../../../hooks/deliverySettings";
 import { slotSchema } from "../../../validationSchema/deliverySettings/slotSchema";
 
+import adminAPI from "../vsms/services/adminService";
+
 const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 const REPEAT_FORM_TO_API: Record<string, SlotRepeatType> = {
   "mon-fri": "MON_FRI",
@@ -67,11 +69,13 @@ function formatDateForInput(dateStr: string): string {
 function slotToForm(slot: SlotItem) {
   const customDays = (slot.customDays ?? []).reduce(
     (acc, d) => {
-      const key = d.toLowerCase() as keyof typeof acc;
-      if (DAY_KEYS.includes(key)) acc[key] = true;
+      const key = d.toLowerCase();
+      if (DAY_KEYS.includes(key as typeof DAY_KEYS[number])) {
+        acc[key as typeof DAY_KEYS[number]] = true;
+      }
       return acc;
     },
-    { monday: false, tuesday: false, wednesday: false, thursday: false, friday: false, saturday: false, sunday: false } as Record<string, boolean>
+    { monday: false, tuesday: false, wednesday: false, thursday: false, friday: false, saturday: false, sunday: false }
   );
   return {
     selectDate: formatDateForInput(slot.slotDate ?? ""),
@@ -80,7 +84,7 @@ function slotToForm(slot: SlotItem) {
     routeArea: String(slot.routeMapId ?? ""),
     orderPerSlot: String(slot.ordersPerSlot ?? ""),
     repeat: slot.isRepeat ?? true,
-    repeatOption: slot.repeatType === "MON_FRI" ? "mon-fri" : slot.repeatType === "SUN" ? "sun" : "customise",
+    repeatOption: (slot.repeatType === "MON_FRI" ? "mon-fri" : slot.repeatType === "SUN" ? "sun" : "customise") as "mon-fri" | "sun" | "customise",
     customDays,
   };
 }
@@ -97,6 +101,7 @@ const CreateSlot = () => {
     startTime: "",
     endTime: "",
     routeArea: "",
+    shiftConfigId: "",
     orderPerSlot: "",
     repeat: true,
     repeatOption: "mon-fri" as "mon-fri" | "sun" | "customise",
@@ -112,6 +117,7 @@ const CreateSlot = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [shiftList, setShiftList] = useState<{ id: string; shiftName: string; name?: string }[]>([]);
 
   const { data: routeMapsRes } = useGetRouteMaps({ page: 1, limit: 200, enabled: true });
   const routeMapList = useMemo(() => {
@@ -119,6 +125,14 @@ const CreateSlot = () => {
     const list = Array.isArray(raw) ? raw : (raw as { routeMaps?: { id: number; area: string }[] })?.routeMaps ?? [];
     return list;
   }, [routeMapsRes?.data]);
+
+  useEffect(() => {
+    adminAPI.getShiftConfigs().then((res) => {
+      if (res?.data?.success && Array.isArray(res.data.data)) {
+        setShiftList(res.data.data);
+      }
+    }).catch(() => {});
+  }, []);
 
   const createMutation = useCreateSlot();
   const updateMutation = useUpdateSlot(id);
@@ -179,27 +193,28 @@ const CreateSlot = () => {
   };
 
   const handleRepeatOptionChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, repeatOption: value }));
+    setFormData((prev) => ({ ...prev, repeatOption: value as "mon-fri" | "sun" | "customise" }));
   };
 
-const validate = async () => {
-  try {
-    await slotSchema.validate(formData, { abortEarly: false });
-    setErrors({});
-    return true;
-  } catch (err: any) {
-    const newErrors: Record<string, string> = {};
+  const validate = async () => {
+    try {
+      await slotSchema.validate(formData, { abortEarly: false });
+      setErrors({});
+      return true;
+    } catch (err: unknown) {
+      const newErrors: Record<string, string> = {};
+      const innerErrors = (err as { inner?: { path?: string; message: string }[] }).inner || [];
 
-    err.inner.forEach((e: any) => {
-      if (e.path) {
-        newErrors[e.path] = e.message;
-      }
-    });
+      innerErrors.forEach((e) => {
+        if (e.path) {
+          newErrors[e.path] = e.message;
+        }
+      });
 
-    setErrors(newErrors);
-    return false;
-  }
-};
+      setErrors(newErrors);
+      return false;
+    }
+  };
 
 
   const buildPayload = () => {
@@ -336,18 +351,37 @@ const handleSubmit = async (e: React.FormEvent) => {
               </SelectInput>
             </div>
 
-            {/* Order Per Slot */}
-            <div>
-              <TextInput
-                label="Order Per Slot"
-                required
-                type="text"
-                name="orderPerSlot"
-                value={formData.orderPerSlot}
+            {/* Order Per Slot & Associated Shift - Side by Side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Order Per Slot */}
+              <div>
+                <TextInput
+                  label="Order Per Slot"
+                  required
+                  type="text"
+                  name="orderPerSlot"
+                  value={formData.orderPerSlot}
+                  onChange={handleChange}
+                  placeholder="Enter max order count"
+                  error={errors.orderPerSlot}
+                />
+              </div>
+
+              {/* Associated Operational Shift */}
+              <SelectInput
+                label="Associated Shift (Optional)"
+                name="shiftConfigId"
+                value={formData.shiftConfigId}
                 onChange={handleChange}
-                placeholder="Enter"
-                error={errors.orderPerSlot}
-              />
+                error={errors.shiftConfigId}
+              >
+                <option value="">Select Operational Shift</option>
+                {shiftList.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.shiftName || s.name}
+                  </option>
+                ))}
+              </SelectInput>
             </div>
           </FormSectionWithDots>
 

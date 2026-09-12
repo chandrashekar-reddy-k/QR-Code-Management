@@ -442,50 +442,73 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
       const { data: v } = await procurementAPI.getVendors({ status: 'ACTIVE' });
       setVendors(v?.data || v || []);
       const { data: m } = await procurementAPI.getVendorMappings(po.vendorId);
-      const mapped = m.map(item => ({
-        productId: item.product.id,
-        name: item.product.name,
-        skuCode: item.product.skuCode || 'NO-SKU',
-        category: item.product.category?.name || 'UNCATEGORIZED',
-        weight: item.product.unitValue ? `${item.product.unitValue}${item.product.unit?.name || ''}` : '',
-        purchasePrice: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product.purchasePrice || item.product.price || 0)),
+      const mappedArray = Array.isArray(m?.data) ? m.data : (Array.isArray(m) ? m : []);
+      const mapped = mappedArray.map(item => ({
+        productId: item.product?.id || item.productId,
+        name: item.product?.name || 'Product',
+        skuCode: item.product?.skuCode || 'NO-SKU',
+        category: item.product?.category?.name || 'UNCATEGORIZED',
+        weight: item.product?.unitValue ? `${item.product.unitValue} ${item.product.unit?.name || ''}`.trim() : '',
+        purchasePrice: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product?.purchasePrice || item.product?.price || 0)),
         quantity: 0,
-        rate: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product.purchasePrice || item.product.price || 0))
+        rate: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product?.purchasePrice || item.product?.price || 0))
       }));
 
       // Append items in po.items that are not in mapped
-      po.items.forEach(poItem => {
-        if (!mapped.some(x => x.productId === poItem.productId)) {
-          mapped.push({
-            productId: poItem.productId,
-            name: poItem.product?.name || 'Product',
-            skuCode: poItem.product?.skuCode || 'NO-SKU',
-            category: poItem.product?.category?.name || 'UNCATEGORIZED',
-            weight: poItem.product?.unitValue ? `${poItem.product.unitValue}${poItem.product.unit?.name || ''}` : '',
-            purchasePrice: poItem.rate || poItem.product?.purchasePrice || 0,
-            quantity: poItem.quantity,
-            rate: poItem.rate
-          });
-        }
-      });
+      if (Array.isArray(po.items)) {
+        po.items.forEach(poItem => {
+          if (!mapped.some(x => x.productId === poItem.productId)) {
+            mapped.push({
+              productId: poItem.productId,
+              name: poItem.product?.name || 'Product',
+              skuCode: poItem.product?.skuCode || 'NO-SKU',
+              category: poItem.product?.category?.name || 'UNCATEGORIZED',
+              weight: poItem.product?.unitValue ? `${poItem.product.unitValue} ${poItem.product.unit?.name || ''}`.trim() : '',
+              purchasePrice: poItem.rate || poItem.product?.purchasePrice || 0,
+              quantity: poItem.quantity,
+              rate: poItem.rate
+            });
+          }
+        });
+      }
 
       setMappedItems(mapped);
-      setPoType(po.items.some(poItem => !m.some(x => x.productId === poItem.productId)) ? 'DIRECT' : 'REQUISITION');
+      const computedPoType = po.poType || (po.items?.some(poItem => !mappedArray.some(x => (x.product?.id || x.productId) === poItem.productId)) ? 'DIRECT' : 'REQUISITION');
+      setPoType(computedPoType);
       setAttachments({
         vendorQuotations: po.attachments?.vendorQuotations || null,
         bills: po.attachments?.bills || null,
         supportingDocs: po.attachments?.supportingDocs || null
       });
+
+      const cleanRemarks = po.remarks && po.remarks.includes('\n[PO_METADATA]:')
+        ? po.remarks.slice(0, po.remarks.indexOf('\n[PO_METADATA]:'))
+        : (po.remarks || '');
+
       setForm({
         id: po.id,
         vendorId: po.vendorId,
-        poDate: format(new Date(po.poDate), 'yyyy-MM-dd'),
+        poDate: po.poDate ? format(new Date(po.poDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
         expectedDelivery: po.expectedDelivery ? format(new Date(po.expectedDelivery), 'yyyy-MM-dd') : '',
-        remarks: po.remarks || '',
-        items: po.items.map(i => ({ productId: i.productId, quantity: i.quantity, rate: i.rate, tax: i.tax || 0, discount: i.discount || 0 }))
+        remarks: cleanRemarks,
+        taxDiscount: po.taxDiscount || '',
+        items: (po.items || []).map(i => ({
+          productId: i.productId,
+          name: i.product?.name || (mapped.find(m => m.productId === i.productId)?.name || ''),
+          quantity: i.quantity,
+          rate: i.rate,
+          tax: i.tax || 0,
+          discount: i.discount || 0,
+          unit: i.product?.unitValue ? (i.product?.unit?.name || 'KG') : 'KG'
+        }))
       });
+      setSelectedPO(null);
+      setViewingPO(null);
       setShowForm(true);
-    } catch { toast.error('Failed to load data for editing'); }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load data for editing');
+    }
   };
 
   const handleDeletePO = async (id) => {
@@ -1324,6 +1347,17 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
               </div>
               
               <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    const poToEdit = viewingPO;
+                    setSelectedPO(null);
+                    setViewingPO(null);
+                    handleEdit(poToEdit);
+                  }}
+                  className="h-10 px-5 bg-amber-500 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  <Edit3 size={14} strokeWidth={2.5} /> Edit PO
+                </button>
                 {viewingPO.status === 'CREATED' ? (
                   <>
                     <button 
@@ -1371,55 +1405,59 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
             >
               <ArrowLeft size={18} strokeWidth={2.5} />
             </button>
-            <div>
-              <h1 className="text-2xl font-black text-emerald-950">Create Purchase Order</h1>
-              <p className="text-sm font-semibold text-slate-400 mt-1">Choose the type of Purchase Order to create.</p>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Choose Order Type</h1>
+              <p className="text-sm text-slate-500">Select how you want to create your purchase order.</p>
             </div>
           </div>
 
-          {/* Cards Grid */}
-          <div className="flex-1 flex items-center justify-center min-h-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full px-4 py-8">
-              {/* Card 1: PO Against Requisition */}
-              <div 
-                onClick={() => {
-                  setPoType('REQUISITION');
-                  openForm('REQUISITION');
-                }}
-                className="group cursor-pointer bg-white border-2 border-slate-100 hover:border-emerald-600 rounded-3xl p-8 shadow-sm hover:shadow-xl hover:shadow-emerald-600/5 transition-all duration-300 transform hover:-translate-y-1 active:scale-[0.98] flex flex-col items-center text-center space-y-6"
-              >
-                <div className="w-20 h-20 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-all group-hover:bg-emerald-600 group-hover:text-white shadow-inner">
-                  <ClipboardList size={36} strokeWidth={2.5} />
+          {/* Type Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+            {/* Direct PO Card */}
+            <div 
+              onClick={() => handleSelectPoType('DIRECT')}
+              className="group bg-white p-8 rounded-3xl border border-slate-200/80 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300 cursor-pointer flex flex-col justify-between h-[280px] relative overflow-hidden"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                  <Plus size={24} strokeWidth={2.5} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black text-slate-900 group-hover:text-emerald-950 transition-colors">
-                    PO Against Requisition
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                    Direct Purchase Order
                   </h3>
-                  <p className="text-sm font-medium text-slate-400 leading-relaxed max-w-xs">
-                    Create PO using existing vendor item mappings.
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Create purchase orders directly with standard line items, perfect for local market purchases and spot procurement.
                   </p>
                 </div>
               </div>
+              <div className="flex items-center text-xs font-bold text-emerald-600 tracking-wider uppercase gap-2 group-hover:translate-x-1 transition-transform">
+                <span>Create Direct PO</span>
+                <span>→</span>
+              </div>
+            </div>
 
-              {/* Card 2: Direct PO */}
-              <div 
-                onClick={() => {
-                  setPoType('DIRECT');
-                  openForm('DIRECT');
-                }}
-                className="group cursor-pointer bg-white border-2 border-slate-100 hover:border-emerald-600 rounded-3xl p-8 shadow-sm hover:shadow-xl hover:shadow-emerald-600/5 transition-all duration-300 transform hover:-translate-y-1 active:scale-[0.98] flex flex-col items-center text-center space-y-6"
-              >
-                <div className="w-20 h-20 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-all group-hover:bg-emerald-600 group-hover:text-white shadow-inner">
-                  <Plus size={36} strokeWidth={2.5} />
+            {/* PO Against Requisition Card */}
+            <div 
+              onClick={() => handleSelectPoType('REQUISITION')}
+              className="group bg-white p-8 rounded-3xl border border-slate-200/80 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300 cursor-pointer flex flex-col justify-between h-[280px] relative overflow-hidden"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                  <ClipboardList size={24} strokeWidth={2.5} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black text-slate-900 group-hover:text-emerald-950 transition-colors">
-                    Direct PO
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                    PO Against Requisition
                   </h3>
-                  <p className="text-sm font-medium text-slate-400 leading-relaxed max-w-xs">
-                    Create PO for direct market procurement.
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Select products from registered vendors with predefined item mappings and negotiated rates for regular replenishment.
                   </p>
                 </div>
+              </div>
+              <div className="flex items-center text-xs font-bold text-emerald-600 tracking-wider uppercase gap-2 group-hover:translate-x-1 transition-transform">
+                <span>Select Mapped Items</span>
+                <span>→</span>
               </div>
             </div>
           </div>
@@ -1508,6 +1546,14 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                       </td>
                       <td className="py-4 px-6 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50/50 transition-all z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.03)]">
                         <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={() => handleEdit(po)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 text-amber-600 hover:text-white hover:bg-amber-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-50/50 transition-all shadow-sm active:scale-95"
+                            title="Edit Purchase Order"
+                          >
+                            <Edit3 size={12} strokeWidth={2.5} /> Edit
+                          </button>
+
                           {po.status === 'CREATED' ? (
                             <>
                               <button 

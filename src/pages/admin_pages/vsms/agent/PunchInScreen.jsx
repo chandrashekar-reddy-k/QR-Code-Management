@@ -192,37 +192,37 @@ export default function PunchInScreen({ onPunchIn }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 relative overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-emerald-50/60 via-slate-50 to-orange-50/30 relative overflow-y-auto">
       {/* Background Effects */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[-15%] left-[-15%] w-[60vw] h-[60vw] rounded-full bg-emerald-100/50 blur-[140px] animate-pulse" />
-        <div className="absolute bottom-[-15%] right-[-15%] w-[50vw] h-[50vw] rounded-full bg-orange-100/30 blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[70vw] sm:w-[50vw] h-[70vw] sm:h-[50vw] rounded-full bg-emerald-100/40 blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] sm:w-[40vw] h-[60vw] sm:h-[40vw] rounded-full bg-orange-100/30 blur-[100px]" />
       </div>
 
       {/* Back Button */}
-      <div className="absolute top-6 left-6 z-50">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50">
         <button
           onClick={handleBackToLogin}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white/80 backdrop-blur-md border border-gray-100 rounded-2xl text-slate-600 text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-white hover:text-emerald-600 transition-all active:scale-95"
+          className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-2xl text-slate-700 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest shadow-sm hover:bg-white hover:text-emerald-600 transition-all active:scale-95 cursor-pointer"
         >
           <ArrowLeft size={16} strokeWidth={3} />
           Back to Login
         </button>
       </div>
 
-      <div className="z-10 w-full max-w-sm flex flex-col items-center">
+      <div className="z-10 w-full max-w-sm sm:max-w-md my-auto flex flex-col items-center py-8">
         {/* Time Display */}
-        <div className="mb-5 text-center">
-          <div className="text-4xl font-black text-emerald-900 tracking-tight tabular-nums">
+        <div className="mb-6 text-center">
+          <div className="text-3xl sm:text-4xl font-black text-emerald-900 tracking-tight tabular-nums">
             {formatTime(currentTime)}
           </div>
-          <p className="text-emerald-600/70 text-xs font-bold mt-1 tracking-wide">
+          <p className="text-emerald-700/80 text-xs sm:text-sm font-semibold mt-1 tracking-wide">
             {formatDate(currentTime)}
           </p>
         </div>
 
         {/* Card */}
-        <div className="w-full glass rounded-[2rem] p-6 shadow-2xl shadow-emerald-900/5 border border-white relative overflow-hidden bg-white/80 backdrop-blur-2xl">
+        <div className="w-full rounded-[2rem] p-5 sm:p-7 shadow-xl shadow-emerald-950/5 border border-white/90 bg-white/90 backdrop-blur-xl relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-500/0 via-emerald-500/20 to-emerald-500/0" />
 
           {/* Title */}

@@ -1,264 +1,282 @@
-// @ts-nocheck
 import api from './api';
 
 export const adminAPI = {
   // Dashboard
-  getDashboardStats: (params) => api.get('/admin/dashboard', { params }),
+  getDashboardStats: (params?: any) => api.get('/admin/dashboard', { params }),
   getLocationCheckIns: () => api.get('/routes/all-location-check-ins'),
 
   // Tracking
-  getLiveLocations: (params) => api.get('/location/live', { params }),
-  getBreadcrumbHistory: (params) => api.get('/location/history', { params }),
+  getLiveLocations: (params?: any) => api.get('/location/live', { params }),
+  getBreadcrumbHistory: (params?: any) => api.get('/location/history', { params }),
 
   // Users
-  getUsers: (params) => api.get('/admin/users', { params }),
-  createUser: (data) => api.post('/admin/users', data),
-  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
-  deactivateUser: (id) => api.delete(`/admin/users/${id}`),
-  uploadUserDocument: (userId, data) => api.post(`/admin/users/${userId}/documents`, data, {
+  getUsers: (params?: any) => api.get('/admin/users', { params }),
+  createUser: (data?: any) => api.post('/admin/users', data),
+  updateUser: (id?: any, data?: any) => api.put(`/admin/users/${id}`, data),
+  deactivateUser: (id?: any) => api.delete(`/admin/users/${id}`),
+  uploadUserDocument: (userId?: any, data?: any) => api.post(`/admin/users/${userId}/documents`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  updateUserDocumentStatus: (documentId, status) => api.put(`/admin/users/documents/${documentId}`, { status }),
+  updateUserDocumentStatus: (documentId?: any, status?: any) => api.put(`/admin/users/documents/${documentId}`, { status }),
   getShifts: () => api.get('/admin/users/shifts'),
-  createShift: (data) => api.post('/admin/users/shifts', data),
+  createShift: (data?: any) => api.post('/admin/users/shifts', data),
 
   // Vehicles
-  getVehicles: (params?) => api.get('/admin/vehicles', { params }),
-  getVehicleAgents: (params?) => api.get('/admin/vehicles/agents', { params }),
-  createVehicle: (data) => api.post('/admin/vehicles', data, {
+  getVehicles: (params?: any) => api.get('/admin/vehicles', { params }),
+  getVehicleAgents: (params?: any) => api.get('/admin/vehicles/agents', { params }),
+  createVehicle: (data?: any) => api.post('/admin/vehicles', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  updateVehicle: (id, data) => api.put(`/admin/vehicles/${id}`, data, {
+  updateVehicle: (id?: any, data?: any) => api.put(`/admin/vehicles/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  deleteVehicle: (id) => api.delete(`/admin/vehicles/${id}`),
-  assignDriver: (id, userId) => api.put(`/admin/vehicles/${id}/assign`, { userId }),
-  executeVehicleHandover: (id, payload) => api.post(`/admin/vehicles/${id}/handover`, payload),
-  getVehicleStock: (id) => api.get(`/admin/vehicles/${id}/stock`),
-  getVehicleSales: (id) => api.get(`/admin/vehicles/${id}/sales`),
+  deleteVehicle: (id?: any) => api.delete(`/admin/vehicles/${id}`),
+  assignDriver: (id?: any, userId?: any) => api.put(`/admin/vehicles/${id}/assign`, { userId }),
+  executeVehicleHandover: (id?: any, payload?: any) => api.post(`/admin/vehicles/${id}/handover`, payload),
+  getVehicleStock: (id?: any) => api.get(`/admin/vehicles/${id}/stock`),
+  getVehicleSales: (id?: any) => api.get(`/admin/vehicles/${id}/sales`),
   
   // Vehicle Operations
-  getVehicleOpsTrips: (params) => api.get('/admin/vehicles/ops/trips', { params }),
-  startVehicleTrip: (data) => api.post('/admin/vehicles/ops/trips/start', data),
-  endVehicleTrip: (id, data) => api.put(`/admin/vehicles/ops/trips/${id}/end`, data),
-  getFuelLogs: (params) => api.get('/admin/vehicles/ops/fuel', { params }),
-  addFuelLog: (data) => api.post('/admin/vehicles/ops/fuel', data, {
+  getVehicleOpsTrips: (params?: any) => api.get('/admin/vehicles/ops/trips', { params }),
+  startVehicleTrip: (data?: any) => api.post('/admin/vehicles/ops/trips/start', data),
+  endVehicleTrip: (id?: any, data?: any) => api.put(`/admin/vehicles/ops/trips/${id}/end`, data),
+  updateVehicleTrip: (id?: any, data?: any) => api.put(`/admin/vehicles/ops/trips/${id}`, data),
+  deleteVehicleTrip: (id?: any) => api.delete(`/admin/vehicles/ops/trips/${id}`),
+  getFuelLogs: (params?: any) => api.get('/admin/vehicles/ops/fuel', { params }),
+  addFuelLog: (data?: any) => api.post('/admin/vehicles/ops/fuel', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  getMaintenanceLogs: (params) => api.get('/admin/vehicles/ops/maintenance', { params }),
-  addMaintenanceLog: (data) => api.post('/admin/vehicles/ops/maintenance', data, {
+  updateFuelLog: (id?: any, data?: any) => api.put(`/admin/vehicles/ops/fuel/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  deleteFuelLog: (id?: any) => api.delete(`/admin/vehicles/ops/fuel/${id}`),
+  getMaintenanceLogs: (params?: any) => api.get('/admin/vehicles/ops/maintenance', { params }),
+  addMaintenanceLog: (data?: any) => api.post('/admin/vehicles/ops/maintenance', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  updateMaintenanceLog: (id?: any, data?: any) => api.put(`/admin/vehicles/ops/maintenance/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteMaintenanceLog: (id?: any) => api.delete(`/admin/vehicles/ops/maintenance/${id}`),
 
   // Inventory
-  getInventoryInit: (params) => api.get('/admin/inventory/init', { params }),
-  getItems: (params) => api.get('/admin/inventory/items', { params }),
-  createItem: (data) => api.post('/admin/inventory/items', data, {
+  getInventoryInit: (params?: any) => api.get('/admin/inventory/init', { params }),
+  getItems: (params?: any) => api.get('/admin/inventory/items', { params }),
+  createItem: (data?: any) => api.post('/admin/inventory/items', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  bulkCreateItems: (data) => api.post('/admin/inventory/items/bulk', data),
-  bulkImportItems: (data) => api.post('/admin/inventory/items/bulk-import', data),
-  bulkDeleteItems: (ids) => api.post('/admin/inventory/items/bulk-delete', { ids }),
-  updateItem: (id, data) => api.put(`/admin/inventory/items/${id}`, data, {
+  bulkCreateItems: (data?: any) => api.post('/admin/inventory/items/bulk', data),
+  bulkImportItems: (data?: any) => api.post('/admin/inventory/items/bulk-import', data),
+  bulkDeleteItems: (ids?: any) => api.post('/admin/inventory/items/bulk-delete', { ids }),
+  updateItem: (id?: any, data?: any) => api.put(`/admin/inventory/items/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  deleteItem: (id) => api.delete(`/admin/inventory/items/${id}`),
-  loadStock: (data) => api.post('/admin/inventory/load', data),
-  returnStock: (data) => api.post('/admin/inventory/return', data),
-  getVehicleInventory: (id) => api.get(`/admin/inventory/vehicle/${id}`),
-  auditVehicleStock: (id, data) => api.put(`/admin/inventory/vehicle/${id}/audit`, data),
-  getRefillRequests: (params) => api.get('/admin/inventory/refills', { params }),
-  getAuditHistory: (params) => api.get('/admin/inventory/audit-history', { params }),
-  getLoadHistory: (params) => api.get('/admin/inventory/load-history', { params }),
-  getReturnHistory: (params) => api.get('/admin/inventory/return-history', { params }),
-  getRefillHistory: (params) => api.get('/admin/inventory/refill-history', { params }),
-  approveRefillRequest: (id, data) => api.put(`/admin/inventory/refills/${id}/approve`, data),
-  rejectRefillRequest: (id, data) => api.put(`/admin/inventory/refills/${id}/reject`, data),
-  updateProductStock: (data) => api.post('/admin/inventory/stock', data),
-  updateInventory: (data) => api.post('/admin/inventory/stock', data),
-  importZipInventory: (data) => api.post('/admin/inventory/items/zip-import', data, {
+  deleteItem: (id?: any) => api.delete(`/admin/inventory/items/${id}`),
+  loadStock: (data?: any) => api.post('/admin/inventory/load', data),
+  returnStock: (data?: any) => api.post('/admin/inventory/return', data),
+  getVehicleInventory: (id?: any) => api.get(`/admin/inventory/vehicle/${id}`),
+  auditVehicleStock: (id?: any, data?: any) => api.put(`/admin/inventory/vehicle/${id}/audit`, data),
+  getRefillRequests: (params?: any) => api.get('/admin/inventory/refills', { params }),
+  getAuditHistory: (params?: any) => api.get('/admin/inventory/audit-history', { params }),
+  getLoadHistory: (params?: any) => api.get('/admin/inventory/load-history', { params }),
+  getReturnHistory: (params?: any) => api.get('/admin/inventory/return-history', { params }),
+  getRefillHistory: (params?: any) => api.get('/admin/inventory/refill-history', { params }),
+  approveRefillRequest: (id?: any, data?: any) => api.put(`/admin/inventory/refills/${id}/approve`, data),
+  rejectRefillRequest: (id?: any, data?: any) => api.put(`/admin/inventory/refills/${id}/reject`, data),
+  updateProductStock: (data?: any) => api.post('/admin/inventory/stock', data),
+  updateInventory: (data?: any) => api.post('/admin/inventory/stock', data),
+  importZipInventory: (data?: any) => api.post('/admin/inventory/items/zip-import', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
 
   // Returns management
-  getReturnRequests: (params) => api.get('/admin/inventory/returns', { params }),
-  approveReturnRequest: (id) => api.put(`/admin/inventory/returns/${id}/approve`),
-  rejectReturnRequest: (id) => api.put(`/admin/inventory/returns/${id}/reject`),
+  getReturnRequests: (params?: any) => api.get('/admin/inventory/returns', { params }),
+  approveReturnRequest: (id?: any) => api.put(`/admin/inventory/returns/${id}/approve`),
+  rejectReturnRequest: (id?: any) => api.put(`/admin/inventory/returns/${id}/reject`),
 
   // Agent Transfers
-  getAgentTransfers: (params) => api.get('/admin/agent-transfers', { params }),
-  createAgentTransfer: (data) => api.post('/admin/agent-transfers', data),
-  getAgentTransferById: (id) => api.get(`/admin/agent-transfers/${id}`),
-  approveAgentTransfer: (id, data) => api.post(`/admin/agent-transfers/${id}/approve`, data),
-  rejectAgentTransfer: (id, data) => api.post(`/agent-transfers/${id}/reject`, data),
+  getAgentTransfers: (params?: any) => api.get('/admin/agent-transfers', { params }),
+  createAgentTransfer: (data?: any) => api.post('/admin/agent-transfers', data),
+  getAgentTransferById: (id?: any) => api.get(`/admin/agent-transfers/${id}`),
+  approveAgentTransfer: (id?: any, data?: any) => api.post(`/admin/agent-transfers/${id}/approve`, data),
+  rejectAgentTransfer: (id?: any, data?: any) => api.post(`/admin/agent-transfers/${id}/reject`, data),
 
   // Brands
-  getBrands: (params) => api.get('/admin/brands', { params }),
+  getBrands: (params?: any) => api.get('/admin/brands', { params }),
 
   // Sales
-  getSales: (params) => api.get('/admin/sales', { params }),
-  createManualSale: (data) => api.post('/admin/sales', data),
-  getSuspendedSales: (params) => api.get('/admin/sales/suspended', { params }),
-  suspendSale: (data) => api.post('/admin/sales/suspend', data),
-  deleteSuspendedSale: (id) => api.delete(`/admin/sales/suspended/${id}`),
+  getSales: (params?: any) => api.get('/admin/sales', { params }),
+  createManualSale: (data?: any) => api.post('/admin/sales', data),
+  getSuspendedSales: (params?: any) => api.get('/admin/sales/suspended', { params }),
+  suspendSale: (data?: any) => api.post('/admin/sales/suspend', data),
+  deleteSuspendedSale: (id?: any) => api.delete(`/admin/sales/suspended/${id}`),
 
   // Activity Logs
-  getActivityLogs: (params) => api.get('/admin/activities', { params }),
+  getActivityLogs: (params?: any) => api.get('/admin/activities', { params }),
 
   // Reports
-  getDailyReport: (params) => api.get('/admin/reports/daily', { params }),
-  getPOSDailyReport: (params) => api.get('/admin/reports/pos-daily', { params }),
-  getTrendsReport: (params) => api.get('/admin/reports/trends', { params }),
-  getTopProducts: (params) => api.get('/admin/reports/top-products', { params }),
-  getVehicleReport: (id) => api.get(`/admin/reports/vehicle/${id}`),
-  getItemReport: (params) => api.get('/admin/reports/item', { params }),
-  getDateRangeReport: (params) => api.get('/admin/reports/date-range', { params }),
-  getReconciliationReport: (params) => api.get('/admin/reports/reconciliation', { params }),
-  getRouteWiseReport: (params) => api.get('/admin/reports/route-wise', { params }),
-  getVillageWiseReport: (params) => api.get('/admin/reports/village-wise', { params }),
-  getAgentPerformance: (params) => api.get('/admin/reports/agent-performance', { params }),
-  getCategoryReport: (params) => api.get('/admin/reports/category-wise', { params }),
-  getReturnReport: (params) => api.get('/admin/reports/returns', { params }),
-  getSessionReport: (params) => api.get('/admin/reports/sessions', { params }),
-  getVehicleAllPerformance: (params) => api.get('/admin/reports/vehicle-all', { params }),
-  getDayDetailedSales: (params) => api.get('/admin/reports/day-detailed', { params }),
-  getPaymentReport: (params) => api.get('/admin/reports/daily', { params }),
-  getDamageReports: (params) => api.get('/damage/reports', { params }),
-  getDamageEntries: (params) => api.get('/damage/entries', { params }),
+  getDailyReport: (params?: any) => api.get('/admin/reports/daily', { params }),
+  getPOSDailyReport: (params?: any) => api.get('/admin/reports/pos-daily', { params }),
+  getTrendsReport: (params?: any) => api.get('/admin/reports/trends', { params }),
+  getTopProducts: (params?: any) => api.get('/admin/reports/top-products', { params }),
+  getVehicleReport: (id?: any) => api.get(`/admin/reports/vehicle/${id}`),
+  getItemReport: (params?: any) => api.get('/admin/reports/item', { params }),
+  getDateRangeReport: (params?: any) => api.get('/admin/reports/date-range', { params }),
+  getReconciliationReport: (params?: any) => api.get('/admin/reports/reconciliation', { params }),
+  getRouteWiseReport: (params?: any) => api.get('/admin/reports/route-wise', { params }),
+  getVillageWiseReport: (params?: any) => api.get('/admin/reports/village-wise', { params }),
+  getAgentPerformance: (params?: any) => api.get('/admin/reports/agent-performance', { params }),
+  getCategoryReport: (params?: any) => api.get('/admin/reports/category-wise', { params }),
+  getReturnReport: (params?: any) => api.get('/admin/reports/returns', { params }),
+  getSessionReport: (params?: any) => api.get('/admin/reports/sessions', { params }),
+  getVehicleAllPerformance: (params?: any) => api.get('/admin/reports/vehicle-all', { params }),
+  getDayDetailedSales: (params?: any) => api.get('/admin/reports/day-detailed', { params }),
+  getPaymentReport: (params?: any) => api.get('/admin/reports/daily', { params }),
+  getDamageReports: (params?: any) => api.get('/damage/reports', { params }),
+  getDamageEntries: (params?: any) => api.get('/damage/entries', { params }),
 
   // Vehicle Damage CRUD (Separate)
-  getVehicleDamages: (params) => api.get('/admin/vehicle-damages', { params }),
-  getVehicleDamageById: (id) => api.get(`/admin/vehicle-damages/${id}`),
-  createVehicleDamage: (data) => api.post('/admin/vehicle-damages', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  updateVehicleDamage: (id, data) => api.put(`/admin/vehicle-damages/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  deleteVehicleDamage: (id) => api.delete(`/admin/vehicle-damages/${id}`),
-  getInvoiceReport: (params) => api.get('/admin/sales', { params }),
-  getTrackingVillageVisits: (params) => api.get('/reports/tracking/village-visits', { params }),
-  getTrackingTimeDeviation: (params) => api.get('/reports/tracking/time-deviation', { params }),
+  getVehicleDamages: (params?: any) => api.get('/admin/vehicle-damages', { params }),
+  getVehicleDamageById: (id?: any) => api.get(`/admin/vehicle-damages/${id}`),
+  createVehicleDamage: (data?: any) => api.post('/admin/vehicle-damages', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateVehicleDamage: (id?: any, data?: any) => api.put(`/admin/vehicle-damages/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteVehicleDamage: (id?: any) => api.delete(`/admin/vehicle-damages/${id}`),
+  getInvoiceReport: (params?: any) => api.get('/admin/sales', { params }),
+  getTrackingVillageVisits: (params?: any) => api.get('/reports/tracking/village-visits', { params }),
+  getTrackingTimeDeviation: (params?: any) => api.get('/reports/tracking/time-deviation', { params }),
 
   // Settings
-  getSettings: (params) => api.get('/admin/settings', { params }).catch(err => {
+  getSettings: (params?: any) => api.get('/admin/settings', { params }).catch(err => {
     if (err.response?.status === 404) {
       console.warn('[System] Admin settings route not found on server yet. Using defaults.');
       return { data: { success: true, data: { businessName: 'VillagKart', taxRates: '0,5,12,18' } } };
     }
     throw err;
   }),
-  updateSettings: (data) => api.put('/admin/settings', data),
+  updateSettings: (data: any) => api.put('/admin/settings', data),
+
+  // Shift Configurations
+  getShiftConfigs: (params?: any) => api.get('/admin/shift-configs', { params }).catch((err: any) => {
+    console.warn('[System] Fallback for shift-configs:', err.message);
+    return api.get('/admin/settings', { params });
+  }),
+  createShiftConfig: (data: any) => api.post('/admin/shift-configs', data),
+  updateShiftConfig: (id: string, data: any) => api.put(`/admin/shift-configs/${id}`, data),
+  deleteShiftConfig: (id: string) => api.delete(`/admin/shift-configs/${id}`),
 
   // Units
-  getUnits: (params) => api.get('/unit/getall', { params }),
-  createUnit: (data) => api.post('/unit/create', data),
-  updateUnit: (id, data) => api.put(`/unit/update/${id}`, data),
-  deleteUnit: (id) => api.delete(`/unit/toggle/${id}`),
+  getUnits: (params?: any) => api.get('/unit/getall', { params }),
+  createUnit: (data?: any) => api.post('/unit/create', data),
+  updateUnit: (id?: any, data?: any) => api.put(`/unit/update/${id}`, data),
+  deleteUnit: (id?: any) => api.delete(`/unit/toggle/${id}`),
 
   // Categories
-  getCategories: (params) => api.get('/category/getCategoryList', { params }),
-  createCategory: (data) => api.post('/category/createCategory', data),
-  updateCategory: (id, data) => api.patch(`/category/${id}`, data),
-  deleteCategory: (id) => api.delete(`/category/${id}`),
+  getCategories: (params?: any) => api.get('/category/getCategoryList', { params }),
+  createCategory: (data?: any) => api.post('/category/createCategory', data),
+  updateCategory: (id?: any, data?: any) => api.patch(`/category/${id}`, data),
+  deleteCategory: (id?: any) => api.delete(`/category/${id}`),
 
   // Sub-Categories
-  getSubCategories: (params) => api.get('/subCategory/getSubCategoryList', { params }),
-  createSubCategory: (data) => api.post('/subCategory/createSubCategory', data),
-  updateSubCategory: (id, data) => api.patch(`/subCategory/${id}`, data),
-  deleteSubCategory: (id) => api.delete(`/subCategory/${id}`),
+  getSubCategories: (params?: any) => api.get('/subCategory/getSubCategoryList', { params }),
+  createSubCategory: (data?: any) => api.post('/subCategory/createSubCategory', data),
+  updateSubCategory: (id?: any, data?: any) => api.patch(`/subCategory/${id}`, data),
+  deleteSubCategory: (id?: any) => api.delete(`/subCategory/${id}`),
 
   // VGE Targets & Incentives
-  vgeAllPerformance: (params) => api.get('/vge/admin/all-performance', { params }),
-  vgeAgentPerformance: (userId, params) => api.get(`/vge/admin/agent/${userId}`, { params }),
-  vgeMonthlyReport: (params) => api.get('/vge/admin/monthly-report', { params }),
-  vgeGetConfig: (params) => api.get('/vge/admin/config', { params }),
-  vgeUpdateConfig: (data) => api.put('/vge/admin/config', data),
-  vgeRecalculate: (data) => api.post('/vge/admin/recalculate', data),
-  vgeEndOfDay: (data) => api.post('/vge/admin/end-of-day', data || {}),
-  vgeGenerateMonthly: (data) => api.post('/vge/admin/generate-monthly', data || {}),
+  vgeAllPerformance: (params?: any) => api.get('/vge/admin/all-performance', { params }),
+  vgeAgentPerformance: (userId?: any, params?: any) => api.get(`/vge/admin/agent/${userId}`, { params }),
+  vgeMonthlyReport: (params?: any) => api.get('/vge/admin/monthly-report', { params }),
+  vgeGetConfig: (params?: any) => api.get('/vge/admin/config', { params }),
+  vgeUpdateConfig: (data?: any) => api.put('/vge/admin/config', data),
+  vgeRecalculate: (data?: any) => api.post('/vge/admin/recalculate', data),
+  vgeEndOfDay: (data?: any) => api.post('/vge/admin/end-of-day', data || {}),
+  vgeGenerateMonthly: (data?: any) => api.post('/vge/admin/generate-monthly', data || {}),
 
   // Asset Management
-  getAssets: (params) => api.get('/admin/assets', { params }),
-  createAsset: (data) => api.post('/admin/assets', data, {
+  getAssets: (params?: any) => api.get('/admin/assets', { params }),
+  createAsset: (data?: any) => api.post('/admin/assets', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  updateAsset: (id, data) => api.put(`/admin/assets/${id}`, data, {
+  updateAsset: (id?: any, data?: any) => api.put(`/admin/assets/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  deleteAsset: (id) => api.delete(`/admin/assets/${id}`),
-  addAssetUnits: (id, data) => api.post(`/admin/assets/${id}/units`, data),
-  assignAsset: (data) => api.post('/admin/assets/assign', data),
-  returnAsset: (data) => api.post('/admin/assets/return', data),
-  getAssetTracking: (params) => api.get('/admin/assets/tracking', { params }),
-  getAssetIssues: (params) => api.get('/admin/assets/issues', { params }),
-  updateAssetIssue: (id, data) => api.put(`/admin/assets/issues/${id}`, data),
-  getAssetRequests: (params) => api.get('/admin/assets/requests', { params }),
-  updateAssetRequest: (id, data) => api.put(`/admin/assets/requests/${id}`, data),
-  getAssetReports: (params) => api.get('/admin/assets/reports', { params }),
+  deleteAsset: (id?: any) => api.delete(`/admin/assets/${id}`),
+  addAssetUnits: (id?: any, data?: any) => api.post(`/admin/assets/${id}/units`, data),
+  assignAsset: (data?: any) => api.post('/admin/assets/assign', data),
+  returnAsset: (data?: any) => api.post('/admin/assets/return', data),
+  getAssetTracking: (params?: any) => api.get('/admin/assets/tracking', { params }),
+  getAssetIssues: (params?: any) => api.get('/admin/assets/issues', { params }),
+  updateAssetIssue: (id?: any, data?: any) => api.put(`/admin/assets/issues/${id}`, data),
+  getAssetRequests: (params?: any) => api.get('/admin/assets/requests', { params }),
+  updateAssetRequest: (id?: any, data?: any) => api.put(`/admin/assets/requests/${id}`, data),
+  getAssetReports: (params?: any) => api.get('/admin/assets/reports', { params }),
 
   // Asset Categories
-  getAssetCategories: (params) => api.get('/admin/asset-categories', { params }),
-  createAssetCategory: (data) => api.post('/admin/asset-categories', data),
-  updateAssetCategory: (id, data) => api.put(`/admin/asset-categories/${id}`, data),
-  deleteAssetCategory: (id) => api.delete(`/admin/asset-categories/${id}`),
+  getAssetCategories: (params?: any) => api.get('/admin/asset-categories', { params }),
+  createAssetCategory: (data?: any) => api.post('/admin/asset-categories', data),
+  updateAssetCategory: (id?: any, data?: any) => api.put(`/admin/asset-categories/${id}`, data),
+  deleteAssetCategory: (id?: any) => api.delete(`/admin/asset-categories/${id}`),
 
   // Financial Reports
-  getFinancialReport: async (params) => {
+  getFinancialReport: async (params?: any) => {
     const response = await api.get('/admin/finance/reports', { params });
     return response.data;
   },
-  resolveVillageLink: (url) => api.post('/admin/villages/resolve-link', { url }),
+  resolveVillageLink: (url?: any) => api.post('/admin/villages/resolve-link', { url }),
 
   // Organization Stores Management (Admin Perspective)
   getStores: () => api.get('/admin/stores'),
-  createStore: (data) => api.post('/admin/stores', data),
-  updateStore: (id, data) => api.put(`/admin/stores/${id}`, data),
-  deleteStore: (id) => api.delete(`/admin/stores/${id}`),
+  createStore: (data?: any) => api.post('/admin/stores', data),
+  updateStore: (id?: any, data?: any) => api.put(`/admin/stores/${id}`, data),
+  deleteStore: (id?: any) => api.delete(`/admin/stores/${id}`),
 
   // Warehouses (for location dropdowns)
-  getWarehouses: (params?) => api.get('/warehouses', { params }),
+  getWarehouses: (params?: any) => api.get('/warehouses', { params }),
 
   // Role & Privileges Management
   getRoles: () => api.get('/admin/roles'),
-  getRole: (id) => api.get(`/admin/roles/${id}`),
-  createRole: (data) => api.post('/admin/roles', data),
-  updateRole: (id, data) => api.put(`/admin/roles/${id}`, data),
-  deleteRole: (id) => api.delete(`/admin/roles/${id}`),
-  assignRole: (data) => api.put('/admin/roles/assign', data),
+  getRole: (id?: any) => api.get(`/admin/roles/${id}`),
+  createRole: (data?: any) => api.post('/admin/roles', data),
+  updateRole: (id?: any, data?: any) => api.put(`/admin/roles/${id}`, data),
+  deleteRole: (id?: any) => api.delete(`/admin/roles/${id}`),
+  assignRole: (data?: any) => api.put('/admin/roles/assign', data),
 
   // Media / Uploads
-  uploadProductImage: (data) => api.post('/admin/upload-image', data, {
+  uploadProductImage: (data?: any) => api.post('/admin/upload-image', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
 
   // Customers Module
-  getCustomers: (params) => api.get('/customers', { params }),
-  registerCustomer: (data) => api.post('/customers', data),
-  loginCustomer: (data) => api.post('/customers/login', data),
-  getCustomerHistory: (id) => api.get(`/customers/${id}/history`),
-  updateCustomerProfile: (id, data) => api.put(`/customers/${id}`, data),
-  adjustCreditBalance: (id, data) => api.post(`/customers/${id}/credit`, data),
-  adjustLoyaltyPoints: (id, data) => api.post(`/customers/${id}/points`, data),
+  getCustomers: (params?: any) => api.get('/customers', { params }),
+  registerCustomer: (data?: any) => api.post('/customers', data),
+  loginCustomer: (data?: any) => api.post('/customers/login', data),
+  getCustomerHistory: (id?: any) => api.get(`/customers/${id}/history`),
+  updateCustomerProfile: (id?: any, data?: any) => api.put(`/customers/${id}`, data),
+  adjustCreditBalance: (id?: any, data?: any) => api.post(`/customers/${id}/credit`, data),
+  adjustLoyaltyPoints: (id?: any, data?: any) => api.post(`/customers/${id}/points`, data),
 
   // Module 14 Enterprise Asset Extensions
-  updateAssetVehicleMapping: (data) => api.put('/admin/assets/vehicle-mapping', data),
-  getDepreciationSchedules: (params) => api.get('/admin/assets/depreciation', { params }),
-  saveDepreciationSchedule: (data) => api.post('/admin/assets/depreciation', data),
-  getAssetAudits: (params) => api.get('/admin/assets/audits', { params }),
-  createAssetAudit: (data) => api.post('/admin/assets/audits', data),
+  updateAssetVehicleMapping: (data?: any) => api.put('/admin/assets/vehicle-mapping', data),
+  getDepreciationSchedules: (params?: any) => api.get('/admin/assets/depreciation', { params }),
+  saveDepreciationSchedule: (data?: any) => api.post('/admin/assets/depreciation', data),
+  getAssetAudits: (params?: any) => api.get('/admin/assets/audits', { params }),
+  createAssetAudit: (data?: any) => api.post('/admin/assets/audits', data),
 
   // POS Terminals
-  getTerminals: (params) => api.get('/admin/terminals', { params }),
-  createTerminal: (data) => api.post('/admin/terminals', data),
-  updateTerminal: (id, data) => api.put(`/admin/terminals/${id}`, data),
-  deleteTerminal: (id) => api.delete(`/admin/terminals/${id}`),
+  getTerminals: (params?: any) => api.get('/admin/terminals', { params }),
+  createTerminal: (data?: any) => api.post('/admin/terminals', data),
+  updateTerminal: (id?: any, data?: any) => api.put(`/admin/terminals/${id}`, data),
+  deleteTerminal: (id?: any) => api.delete(`/admin/terminals/${id}`),
 
   // Asset Transfers
-  getAssetTransfers: (params) => api.get('/admin/assets/transfers', { params }),
-  createAssetTransfer: (data) => api.post('/admin/assets/transfers', data),
+  getAssetTransfers: (params?: any) => api.get('/admin/assets/transfers', { params }),
+  createAssetTransfer: (data?: any) => api.post('/admin/assets/transfers', data),
 
   // Bundle Deals (Partner Scope)
-  getBundles: (params) => api.get('/partner/bundles', { params }),
-  createBundle: (data) => api.post('/partner/bundles', data),
-  updateBundle: (id, data) => api.put(`/partner/bundles/${id}`, data),
-  deleteBundle: (id) => api.delete(`/partner/bundles/${id}`),
+  getBundles: (params?: any) => api.get('/partner/bundles', { params }),
+  createBundle: (data?: any) => api.post('/partner/bundles', data),
+  updateBundle: (id?: any, data?: any) => api.put(`/partner/bundles/${id}`, data),
+  deleteBundle: (id?: any) => api.delete(`/partner/bundles/${id}`),
 };
 
 export default adminAPI;

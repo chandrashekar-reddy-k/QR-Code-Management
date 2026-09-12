@@ -13,6 +13,7 @@ const AdminLateEntryConfig = () => {
     isActive: true
   });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -21,11 +22,11 @@ const AdminLateEntryConfig = () => {
   const fetchConfig = async () => {
     try {
       const res = await lateEntryService.getConfig();
-      if (res.success && res.data) {
+      if (res?.success && res?.data) {
         setConfig(res.data);
       }
     } catch (err) {
-      toast.error('Failed to load rules');
+      console.error('[LateEntryConfig] Failed to fetch config:', err);
     } finally {
       setLoading(false);
     }
@@ -33,12 +34,29 @@ const AdminLateEntryConfig = () => {
 
   const handleSave = async () => {
     try {
-      const res = await lateEntryService.updateConfig(config);
-      if (res.success) {
-        toast.success('Late entry rules updated successfully');
+      setSaving(true);
+      const payload = {
+        id: config.id || undefined,
+        graceMins: parseInt(config.graceMins) || 10,
+        penaltyType: config.penaltyType || 'COUNT',
+        rules: config.rules || [],
+        scope: config.scope || 'COMPANY',
+        scopeValue: config.scopeValue || null,
+        isActive: config.isActive !== undefined ? config.isActive : true
+      };
+      const res = await lateEntryService.updateConfig(payload);
+      if (res?.success) {
+        toast.success(res.message || 'Late entry rules updated successfully');
+        if (res.data) setConfig(res.data);
+      } else {
+        toast.error(res?.message || 'Failed to save rules');
       }
     } catch (err) {
-      toast.error('Failed to save rules');
+      console.error('[LateEntryConfig] Save error:', err);
+      const serverMsg = err.response?.data?.message || err.message;
+      toast.error(serverMsg ? `Failed: ${serverMsg}` : 'Failed to save rules');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -276,10 +294,21 @@ const AdminLateEntryConfig = () => {
 
           <div className="pt-6 border-t border-gray-100 flex justify-end">
             <button 
+              type="button"
               onClick={handleSave}
-              className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all transform hover:-translate-y-0.5 active:scale-95"
+              disabled={saving}
+              className={`px-8 py-3 rounded-xl font-bold text-white shadow-lg transition-all flex items-center gap-2 ${
+                saving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 transform hover:-translate-y-0.5 active:scale-95'
+              }`}
             >
-              Save Late Entry Rules
+              {saving ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Saving Rules...
+                </>
+              ) : (
+                'Save Late Entry Rules'
+              )}
             </button>
           </div>
         </div>

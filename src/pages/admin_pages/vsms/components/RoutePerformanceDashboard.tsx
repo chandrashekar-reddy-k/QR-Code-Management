@@ -454,8 +454,11 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                     const svgPin = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
                       <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="64" viewBox="0 0 ${svgWidth} 64">
                         <rect x="5" y="4" width="${textWidth}" height="24" rx="12" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
-                        <circle cx="18" cy="16" r="4.5" fill="${pinColor}"/>
-                        <text x="28" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName}</text>
+                        <!-- Delivery Truck Icon replacing the dot -->
+                        <g transform="translate(10, 8) scale(0.65)" fill="${pinColor}">
+                          <path d="M20 8h-3V4c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-5.5l1.96 2.5H17V11h2.5zM18 16.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                        </g>
+                        <text x="30" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">${displayName}</text>
                         <path d="M ${centerX} 28 L ${centerX + 6} 40 L ${centerX - 6} 40 Z" fill="#0f172a"/>
                         <circle cx="${centerX}" cy="50" r="7" fill="${pinColor}" stroke="#ffffff" stroke-width="2.5"/>
                       </svg>
