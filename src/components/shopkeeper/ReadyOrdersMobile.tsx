@@ -168,7 +168,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
         <div className="grid grid-cols-3 gap-2 mt-4">
           {[
             { label: "Ready", value: orders.length, color: "white" },
-            { label: "Handed Over", value: handedOverCount, color: "#4CAF50" },
+            { label: "Dispatched", value: handedOverCount, color: "#4CAF50" },
             { label: "Overdue", value: overdueCount, color: "#FF5252" },
           ].map(s => (
             <div key={s.label} className="bg-white/10 rounded-xl p-2 text-center">
