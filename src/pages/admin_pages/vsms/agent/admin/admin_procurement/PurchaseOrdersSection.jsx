@@ -436,52 +436,75 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
   const handleEdit = async (po) => {
     try {
       const { data: v } = await procurementAPI.getVendors({ status: 'ACTIVE' });
-      setVendors(v);
+      setVendors(v?.data || v || []);
       const { data: m } = await procurementAPI.getVendorMappings(po.vendorId);
-      const mapped = m.map(item => ({
-        productId: item.product.id,
-        name: item.product.name,
-        skuCode: item.product.skuCode || 'NO-SKU',
-        category: item.product.category?.name || 'UNCATEGORIZED',
-        weight: item.product.unitValue ? `${item.product.unitValue}${item.product.unit?.name || ''}` : '',
-        purchasePrice: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product.purchasePrice || item.product.price || 0)),
+      const mappedArray = Array.isArray(m?.data) ? m.data : (Array.isArray(m) ? m : []);
+      const mapped = mappedArray.map(item => ({
+        productId: item.product?.id || item.productId,
+        name: item.product?.name || 'Product',
+        skuCode: item.product?.skuCode || 'NO-SKU',
+        category: item.product?.category?.name || 'UNCATEGORIZED',
+        weight: item.product?.unitValue ? `${item.product.unitValue} ${item.product.unit?.name || ''}`.trim() : '',
+        purchasePrice: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product?.purchasePrice || item.product?.price || 0)),
         quantity: 0,
-        rate: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product.purchasePrice || item.product.price || 0))
+        rate: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product?.purchasePrice || item.product?.price || 0))
       }));
 
       // Append items in po.items that are not in mapped
-      po.items.forEach(poItem => {
-        if (!mapped.some(x => x.productId === poItem.productId)) {
-          mapped.push({
-            productId: poItem.productId,
-            name: poItem.product?.name || 'Product',
-            skuCode: poItem.product?.skuCode || 'NO-SKU',
-            category: poItem.product?.category?.name || 'UNCATEGORIZED',
-            weight: poItem.product?.unitValue ? `${poItem.product.unitValue}${poItem.product.unit?.name || ''}` : '',
-            purchasePrice: poItem.rate || poItem.product?.purchasePrice || 0,
-            quantity: poItem.quantity,
-            rate: poItem.rate
-          });
-        }
-      });
+      if (Array.isArray(po.items)) {
+        po.items.forEach(poItem => {
+          if (!mapped.some(x => x.productId === poItem.productId)) {
+            mapped.push({
+              productId: poItem.productId,
+              name: poItem.product?.name || 'Product',
+              skuCode: poItem.product?.skuCode || 'NO-SKU',
+              category: poItem.product?.category?.name || 'UNCATEGORIZED',
+              weight: poItem.product?.unitValue ? `${poItem.product.unitValue} ${poItem.product.unit?.name || ''}`.trim() : '',
+              purchasePrice: poItem.rate || poItem.product?.purchasePrice || 0,
+              quantity: poItem.quantity,
+              rate: poItem.rate
+            });
+          }
+        });
+      }
 
       setMappedItems(mapped);
-      setPoType(po.items.some(poItem => !m.some(x => x.productId === poItem.productId)) ? 'DIRECT' : 'REQUISITION');
+      const computedPoType = po.poType || (po.items?.some(poItem => !mappedArray.some(x => (x.product?.id || x.productId) === poItem.productId)) ? 'DIRECT' : 'REQUISITION');
+      setPoType(computedPoType);
       setAttachments({
         vendorQuotations: po.attachments?.vendorQuotations || null,
         bills: po.attachments?.bills || null,
         supportingDocs: po.attachments?.supportingDocs || null
       });
+
+      const cleanRemarks = po.remarks && po.remarks.includes('\n[PO_METADATA]:')
+        ? po.remarks.slice(0, po.remarks.indexOf('\n[PO_METADATA]:'))
+        : (po.remarks || '');
+
       setForm({
         id: po.id,
         vendorId: po.vendorId,
-        poDate: format(new Date(po.poDate), 'yyyy-MM-dd'),
+        poDate: po.poDate ? format(new Date(po.poDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
         expectedDelivery: po.expectedDelivery ? format(new Date(po.expectedDelivery), 'yyyy-MM-dd') : '',
-        remarks: po.remarks || '',
-        items: po.items.map(i => ({ productId: i.productId, quantity: i.quantity, rate: i.rate, tax: i.tax || 0, discount: i.discount || 0 }))
+        remarks: cleanRemarks,
+        taxDiscount: po.taxDiscount || '',
+        items: (po.items || []).map(i => ({
+          productId: i.productId,
+          name: i.product?.name || (mapped.find(m => m.productId === i.productId)?.name || ''),
+          quantity: i.quantity,
+          rate: i.rate,
+          tax: i.tax || 0,
+          discount: i.discount || 0,
+          unit: i.product?.unitValue ? (i.product?.unit?.name || 'KG') : 'KG'
+        }))
       });
+      setSelectedPO(null);
+      setViewingPO(null);
       setShowForm(true);
-    } catch { toast.error('Failed to load data for editing'); }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load data for editing');
+    }
   };
 
   const handleDeletePO = async (id) => {
@@ -1319,6 +1342,17 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
               </div>
               
               <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    const poToEdit = viewingPO;
+                    setSelectedPO(null);
+                    setViewingPO(null);
+                    handleEdit(poToEdit);
+                  }}
+                  className="h-10 px-5 bg-amber-500 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  <Edit3 size={14} strokeWidth={2.5} /> Edit PO
+                </button>
                 {viewingPO.status === 'CREATED' ? (
                   <>
                     <button 
@@ -1451,46 +1485,34 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
 
           {loading ? (
             <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-emerald-600" size={40} /></div>
-          ) : pos.length === 0 ? (
-            <div className="bg-white rounded-3xl p-16 border border-dashed border-gray-200 text-center">
-              <ClipboardList size={48} className="mx-auto text-gray-200 mb-3" />
-              <h3 className="text-lg font-black text-gray-300">No Purchase Orders</h3>
+          ) : filteredPOs.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-3xl border border-gray-100 p-12 text-center">
+              <ClipboardList size={48} className="text-gray-300 mb-4" />
+              <h3 className="text-lg font-black text-gray-800 uppercase tracking-wider mb-1">No Purchase Orders Found</h3>
+              <p className="text-sm text-gray-400 font-medium">Get started by creating a direct or requisition-based purchase order.</p>
             </div>
           ) : (
-            <div className="flex-1 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-0">
-              <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 w-full">
-              <table className="w-max min-w-full text-left border-collapse">
+            <div className="flex-1 min-h-0 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+              <div className="overflow-x-auto flex-1 custom-scrollbar">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100 whitespace-nowrap">
-                    <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">PO Number</th>
-                    <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Vendor</th>
-                    <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Order Date</th>
-                    <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Total Value</th>
-                    <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Status</th>
-                    <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider text-right sticky right-0 bg-[#f8fafc] z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.05)] whitespace-nowrap">Actions</th>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">PO ID</th>
+                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Vendor</th>
+                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Date</th>
+                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Total</th>
+                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Status</th>
+                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 text-right sticky right-0 bg-gray-50/50">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {pos.filter(po => {
-                    const searchLower = search.toLowerCase();
-                    const poNumStr = po.displayId?.toString() || '';
-                    const vendorStr = po.vendor?.vendorName || '';
-                    const poIdStr = po.id?.toString() || '';
-                    
-                    return !search || 
-                      poNumStr.toLowerCase().includes(searchLower) || 
-                      vendorStr.toLowerCase().includes(searchLower) ||
-                      poIdStr.toLowerCase().includes(searchLower);
-                  }).map(po => (
-                    <tr key={po.id} className="hover:bg-gray-50/50 transition-all group border-b border-gray-50 last:border-0">
+                  {filteredPOs.map((po) => (
+                    <tr key={po.id} className="hover:bg-emerald-50/30 transition-colors group">
                       <td className="py-4 px-6 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-black text-gray-955 uppercase tracking-tight">#{po.displayId}</span>
-                          <span className="text-[10px] font-bold text-gray-400 mt-0.5 uppercase">ID: {po.id.slice(-6).toUpperCase()}</span>
-                        </div>
+                        <span className="text-sm font-black text-emerald-600 tracking-tight">{po.displayId}</span>
                       </td>
                       <td className="py-4 px-6 whitespace-nowrap">
-                        <span className="text-sm font-black text-gray-900">{po.vendor?.vendorName}</span>
+                        <span className="text-sm font-bold text-gray-800">{po.vendor?.vendorName || 'Direct Vendor'}</span>
                       </td>
                       <td className="py-4 px-6 whitespace-nowrap">
                         <span className="text-sm font-medium text-gray-600">{format(new Date(po.poDate), 'dd MMM yyyy')}</span>
@@ -1505,6 +1527,14 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
                       </td>
                       <td className="py-4 px-6 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50/50 transition-all z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.03)]">
                         <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={() => handleEdit(po)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 text-amber-600 hover:text-white hover:bg-amber-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-50/50 transition-all shadow-sm active:scale-95"
+                            title="Edit Purchase Order"
+                          >
+                            <Edit3 size={12} strokeWidth={2.5} /> Edit
+                          </button>
+
                           {po.status === 'CREATED' ? (
                             <>
                               {can('PROCUREMENT', 'UPDATE', 'PO') && (
@@ -1518,7 +1548,7 @@ const PurchaseOrdersSection = ({ can, setHideMainHeader }) => {
                               )}
                               {can('PROCUREMENT', 'UPDATE', 'PO') && (
                                 <button 
-                                  onClick={() => handleViewDetails(po)} 
+                                  onClick={() => updateStatus(po.id, 'CANCELLED')} 
                                   className="flex items-center gap-1.5 px-3 py-1.5 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-50/50 hover:bg-rose-600 hover:text-white transition-all active:scale-95 shadow-sm"
                                   title="Cancel PO"
                                 >

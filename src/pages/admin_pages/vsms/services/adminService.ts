@@ -89,7 +89,7 @@ export const adminAPI = {
   createAgentTransfer: (data?: any) => api.post('/admin/agent-transfers', data),
   getAgentTransferById: (id?: any) => api.get(`/admin/agent-transfers/${id}`),
   approveAgentTransfer: (id?: any, data?: any) => api.post(`/admin/agent-transfers/${id}/approve`, data),
-  rejectAgentTransfer: (id?: any, data?: any) => api.post(`/agent-transfers/${id}/reject`, data),
+  rejectAgentTransfer: (id?: any, data?: any) => api.post(`/admin/agent-transfers/${id}/reject`, data),
 
   // Brands
   getBrands: (params?: any) => api.get('/admin/brands', { params }),
