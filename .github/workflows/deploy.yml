@@ -1,48 +1,46 @@
 name: Frontend Partner Deploy
 
 on:
-  push:
-    branches:
-      - master
+  push:
+    branches:
+      - master
 
 concurrency:
-  group: frontend-partner-deploy
-  cancel-in-progress: false
+  group: frontend-partner-deploy
+  cancel-in-progress: false
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
 
-    steps:
-      - name: Deploy Partner-Frontend Application
-        uses: appleboy/ssh-action@v1.2.0
+    steps:
+      - name: Deploy Partner-Frontend Application
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
 
-        with:
-          host: ${{ secrets.PROD_EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.PROD_EC2_SSH_KEY }}
-          command_timeout: 10m
+            cd /var/www/villagkart/villagkart-partner-web
 
-          script: |
-            set -e
+            echo "Updating repository..."
 
-            cd /var/www/villagkart/villagkart-partner-web
+            git checkout master
+            git pull origin master
 
-            echo "Updating repository..."
+            echo "Installing dependencies..."
 
-            git checkout master
-            git pull origin master
+            npm i
 
-            echo "Installing dependencies..."
+            echo "Building frontend..."
 
-            npm i
+            npm run build
 
-            echo "Building frontend..."
+            echo "Restarting Nginx..."
 
-            npm run build
+            sudo systemctl reload nginx
 
-            echo "Restarting Nginx..."
-
-            sudo systemctl reload nginx
-
-            echo "Frontend deployment completed successfully."
+            echo "Frontend deployment completed successfully."
