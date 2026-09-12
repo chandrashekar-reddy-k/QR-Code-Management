@@ -1,32 +1,54 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, 
-  Search, 
   Loader2, 
   Wrench, 
-  Calendar, 
-  User, 
   Camera, 
-  AlertCircle,
-  TrendingUp,
   ShieldCheck,
-  History,
   CheckCircle2,
-  Filter,
-  X,
-  ArrowLeft
+  ArrowLeft,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
-import adminAPI from '.././services/adminService';
+import adminAPI from '../services/adminService';
 
-export default function MaintenanceSection({ storeId, vehicles }) {
+interface MaintenanceLog {
+  id: string;
+  vehicleId: string;
+  tripId?: string | null;
+  date: string;
+  odometer: number | string;
+  serviceType: string;
+  details?: string;
+  amount: number | string;
+  mechanicName?: string;
+  billImage?: string | null;
+  vehicle?: {
+    vehicleNumber: string;
+  };
+}
+
+interface Vehicle {
+  id: string;
+  vehicleNumber: string;
+}
+
+interface MaintenanceSectionProps {
+  storeId?: string;
+  vehicles?: Vehicle[];
+}
+
+export default function MaintenanceSection({ storeId, vehicles = [] }: MaintenanceSectionProps) {
   const [loading, setLoading] = useState(true);
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<MaintenanceLog[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+
+  const initialFormState = {
     vehicleId: '',
     serviceType: 'General Service',
     amount: '',
@@ -34,69 +56,122 @@ export default function MaintenanceSection({ storeId, vehicles }) {
     mechanicName: '',
     details: '',
     date: format(new Date(), 'yyyy-MM-dd'),
-    billImage: null
-  });
-  const [previewUrl, setPreviewUrl] = useState(null);
+    billImage: null as File | string | null
+  };
 
-  useEffect(() => {
-    fetchLogs();
-  }, [storeId]);
+  const [formData, setFormData] = useState(initialFormState);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
-      const response = await adminAPI.getMaintenanceLogs();
-      if (response.data.success) {
-        setLogs(response.data.logs);
+      const response = await adminAPI.getMaintenanceLogs(storeId ? { storeId } : {});
+      if (response.data?.success) {
+        setLogs(response.data.logs || []);
       }
     } catch (error) {
       console.error('Error fetching maintenance logs:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [storeId]);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      setFormData({ ...formData, billImage: file });
+      setFormData(prev => ({ ...prev, billImage: file }));
       setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleOpenCreateForm = () => {
+    setEditingLogId(null);
+    setFormData({
+      vehicleId: vehicles[0]?.id || '',
+      serviceType: 'General Service',
+      amount: '',
+      odometer: '',
+      mechanicName: '',
+      details: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      billImage: null
+    });
+    setPreviewUrl(null);
+    setShowForm(true);
+  };
+
+  const handleOpenEditForm = (log: MaintenanceLog) => {
+    setEditingLogId(log.id);
+    setFormData({
+      vehicleId: log.vehicleId || '',
+      serviceType: log.serviceType || 'General Service',
+      amount: log.amount ? String(log.amount) : '',
+      odometer: log.odometer ? String(log.odometer) : '',
+      mechanicName: log.mechanicName || '',
+      details: log.details || '',
+      date: log.date ? format(new Date(log.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      billImage: log.billImage || null
+    });
+    setPreviewUrl(log.billImage || null);
+    setShowForm(true);
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    if (!window.confirm('Are you sure you want to delete this maintenance record?')) return;
+
+    try {
+      const response = await adminAPI.deleteMaintenanceLog(logId);
+      if (response.data?.success) {
+        toast.success('Maintenance log deleted successfully');
+        fetchLogs();
+      } else {
+        toast.error(response.data?.message || 'Failed to delete maintenance log');
+      }
+    } catch (error: any) {
+      console.error('Delete Maintenance Log Error:', error);
+      toast.error(error.response?.data?.message || 'Error deleting maintenance log');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
       const form = new FormData();
       Object.keys(formData).forEach(key => {
-        form.append(key, formData[key]);
+        if (key === 'billImage') {
+          if (formData.billImage instanceof File) {
+            form.append('billImage', formData.billImage);
+          }
+        } else if (formData[key] !== null && formData[key] !== undefined) {
+          form.append(key, formData[key]);
+        }
       });
-      // form.append('storeId', storeId);
 
-      const response = await adminAPI.addMaintenanceLog(form);
+      let response;
+      if (editingLogId) {
+        response = await adminAPI.updateMaintenanceLog(editingLogId, form);
+      } else {
+        response = await adminAPI.addMaintenanceLog(form);
+      }
 
-      if (response.data.success) {
-        toast.success('Maintenance log recorded!');
-        setFormData({
-          vehicleId: '',
-          serviceType: 'General Service',
-          amount: '',
-          odometer: '',
-          mechanicName: '',
-          details: '',
-          date: format(new Date(), 'yyyy-MM-dd'),
-          billImage: null
-        });
+      if (response.data?.success) {
+        toast.success(editingLogId ? 'Maintenance log updated successfully!' : 'Maintenance log recorded!');
+        setFormData(initialFormState);
         setPreviewUrl(null);
         setShowForm(false);
+        setEditingLogId(null);
         fetchLogs();
       } else {
-        toast.error(response.data.message || 'Failed to record maintenance');
+        toast.error(response.data?.message || 'Failed to record maintenance');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submission Error:', error);
-      toast.error('Connection error');
+      toast.error(error.response?.data?.message || 'Connection error');
     } finally {
       setIsSubmitting(false);
     }
@@ -115,19 +190,27 @@ export default function MaintenanceSection({ storeId, vehicles }) {
     <div className="h-full">
       {showForm ? (
         <div className="max-w-6xl mx-auto h-[calc(100vh-140px)] flex flex-col">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col flex-1">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-2xl overflow-hidden flex flex-col flex-1">
             {/* Ultra Compact Header */}
             <div className="px-8 py-6 bg-emerald-600 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={() => setShowForm(false)}
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingLogId(null);
+                  }}
                   className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all"
                 >
                   <ArrowLeft size={20} />
                 </button>
                 <div>
-                  <h4 className="text-lg font-bold tracking-tight leading-none">Record Maintenance</h4>
-                  <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80">Log repairs & part replacements</p>
+                  <h4 className="text-lg font-bold tracking-tight leading-none">
+                    {editingLogId ? 'Edit Maintenance Record' : 'Record Maintenance'}
+                  </h4>
+                  <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80">
+                    {editingLogId ? 'Update repairs & part replacements' : 'Log repairs & part replacements'}
+                  </p>
                 </div>
               </div>
               <ShieldCheck size={28} className="opacity-20" />
@@ -137,14 +220,14 @@ export default function MaintenanceSection({ storeId, vehicles }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
                 {/* Column 1: Basic Info */}
                 <div className="space-y-5">
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200/50 dark:border-gray-700/50">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Vehicle & Date</label>
                     <div className="space-y-4">
                       <select 
                         required
                         value={formData.vehicleId}
                         onChange={e => setFormData({...formData, vehicleId: e.target.value})}
-                        className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                       >
                         <option value="">Select Vehicle...</option>
                         {vehicles.map(v => (
@@ -156,19 +239,19 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                         required
                         value={formData.date}
                         onChange={e => setFormData({...formData, date: e.target.value})}
-                        className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200/50 dark:border-gray-700/50">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Service Details</label>
                     <div className="space-y-4">
                       <select 
                         required
                         value={formData.serviceType}
                         onChange={e => setFormData({...formData, serviceType: e.target.value})}
-                        className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                       >
                         <option value="General Service">General Service</option>
                         <option value="Engine Repair">Engine Repair</option>
@@ -184,7 +267,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                         step="0.1"
                         value={formData.odometer}
                         onChange={e => setFormData({...formData, odometer: e.target.value})}
-                        className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                         placeholder="ODO Reading (km)"
                       />
                     </div>
@@ -193,33 +276,33 @@ export default function MaintenanceSection({ storeId, vehicles }) {
 
                 {/* Column 2: Financial & Workshop */}
                 <div className="space-y-5">
-                  <div className="bg-emerald-50/30 p-5 rounded-xl border border-emerald-100/50">
-                    <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-3 block">Cost Analysis</label>
+                  <div className="bg-emerald-50/30 dark:bg-emerald-950/20 p-5 rounded-xl border border-emerald-100/50 dark:border-emerald-900/50">
+                    <label className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 block">Cost Analysis</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-bold">₹</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400 font-bold">₹</span>
                       <input 
                         type="number"
                         required
                         value={formData.amount}
                         onChange={e => setFormData({...formData, amount: e.target.value})}
-                        className="w-full bg-white border-emerald-100 text-emerald-700 rounded-xl py-3.5 pl-8 pr-4 text-lg font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none shadow-sm"
+                        className="w-full bg-white dark:bg-gray-900 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded-xl py-3.5 pl-8 pr-4 text-lg font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none shadow-sm"
                         placeholder="0.00"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200/50 dark:border-gray-700/50">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Workshop Info</label>
                     <input 
                       type="text"
                       value={formData.mechanicName}
                       onChange={e => setFormData({...formData, mechanicName: e.target.value})}
-                      className="w-full bg-white border-gray-200 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                      className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                       placeholder="Mechanic / Workshop Name"
                     />
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50 min-h-[140px]">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200/50 dark:border-gray-700/50 min-h-[140px]">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Upload Bill</label>
                     <input 
                       type="file"
@@ -230,13 +313,13 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                     />
                     <label 
                       htmlFor="maintenance-bill-compact"
-                      className="w-full h-24 bg-white border-2 border-dashed border-gray-200 hover:border-emerald-300 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
+                      className="w-full h-24 bg-white dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-emerald-300 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
                     >
                        {previewUrl ? (
                          <img src={previewUrl} className="h-20 w-auto rounded-lg object-cover border-2 border-emerald-500" alt="Preview" />
                        ) : (
                          <>
-                          <Camera size={20} className="text-gray-300" />
+                          <Camera size={20} className="text-gray-300 dark:text-gray-600" />
                           <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Attach Receipt</span>
                          </>
                        )}
@@ -246,13 +329,13 @@ export default function MaintenanceSection({ storeId, vehicles }) {
 
                 {/* Column 3: Work Details */}
                 <div className="flex flex-col">
-                  <div className="bg-gray-50 dark:bg-gray-900/50/50 p-5 rounded-xl border border-gray-200/50 flex flex-col min-h-[300px]">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-5 rounded-xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col min-h-[300px]">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Work Report</label>
                     <textarea 
                       required
                       value={formData.details}
                       onChange={e => setFormData({...formData, details: e.target.value})}
-                      className="w-full bg-white border-gray-200 rounded-lg py-4 px-5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 transition-all outline-none resize-none flex-1"
+                      className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-lg py-4 px-5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 transition-all outline-none resize-none flex-1"
                       placeholder="Describe parts replaced or work done in detail..."
                     />
                   </div>
@@ -260,11 +343,14 @@ export default function MaintenanceSection({ storeId, vehicles }) {
               </div>
 
               {/* Action Bar */}
-              <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-200 shrink-0">
+              <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-800 shrink-0">
                 <button 
                   type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-8 py-4 bg-gray-100 text-gray-600 font-bold uppercase tracking-widest text-[10px] rounded-lg hover:bg-gray-200 transition-all"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingLogId(null);
+                  }}
+                  className="px-8 py-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold uppercase tracking-widest text-[10px] rounded-lg hover:bg-gray-200 transition-all"
                 >
                   Discard
                 </button>
@@ -276,7 +362,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
                   {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (
                     <>
                       <CheckCircle2 size={18} />
-                      Finalize Maintenance Entry
+                      {editingLogId ? 'Update Maintenance Record' : 'Finalize Maintenance Entry'}
                     </>
                   )}
                 </button>
@@ -287,7 +373,7 @@ export default function MaintenanceSection({ storeId, vehicles }) {
       ) : (
         <div className="space-y-6">
           {/* Compact Header for History View */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/50 backdrop-blur-md p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md p-6 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-emerald-600 text-white rounded-lg flex items-center justify-center">
                 <Wrench size={24} />
@@ -299,19 +385,19 @@ export default function MaintenanceSection({ storeId, vehicles }) {
             </div>
 
             <div className="flex items-center gap-6">
-                <div className="flex gap-4 border-r border-gray-200 pr-6">
+                <div className="flex gap-4 border-r border-gray-200 dark:border-gray-700 pr-6">
                     <div className="text-right">
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">History</p>
-                        <p className="text-lg font-bold text-emerald-600">{logs.length}</p>
+                        <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{logs.length}</p>
                     </div>
                     <div className="text-right">
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total Spend</p>
-                        <p className="text-lg font-bold text-emerald-600">₹{logs.reduce((acc, l) => acc + (Number(l.amount) || 0), 0).toLocaleString()}</p>
+                        <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">₹{logs.reduce((acc, l) => acc + (Number(l.amount) || 0), 0).toLocaleString()}</p>
                     </div>
                 </div>
                 
                 <button
-                    onClick={() => setShowForm(true)}
+                    onClick={handleOpenCreateForm}
                     className="flex items-center gap-2 px-6 py-3.5 bg-emerald-600 text-white rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
                 >
                     <Plus size={16} /> Record Maintenance
@@ -319,41 +405,60 @@ export default function MaintenanceSection({ storeId, vehicles }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-900/50/50 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                  <tr className="bg-gray-50 dark:bg-gray-800/50 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
                     <th className="px-8 py-4 text-left">Vehicle / Date</th>
                     <th className="px-8 py-4 text-left">Service Type</th>
                     <th className="px-8 py-4 text-left">Details</th>
                     <th className="px-8 py-4 text-right">Amount</th>
+                    <th className="px-8 py-4 text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                   {logs.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="px-8 py-12 text-center text-gray-400 font-medium italic text-xs">No maintenance history found</td>
+                      <td colSpan={5} className="px-8 py-12 text-center text-gray-400 font-medium italic text-xs">No maintenance history found</td>
                     </tr>
                   ) : (
                     logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50 dark:bg-gray-900/50/80 transition-colors">
+                      <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <td className="px-8 py-5">
-                          <p className="text-xs font-bold text-gray-800 tracking-tight">{log.date ? format(new Date(log.date), 'dd MMM yyyy') : '--'}</p>
-                          <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">{log.vehicle?.vehicleNumber}</p>
+                          <p className="text-xs font-bold text-gray-800 dark:text-gray-200 tracking-tight">{log.date ? format(new Date(log.date), 'dd MMM yyyy') : '--'}</p>
+                          <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mt-0.5">{log.vehicle?.vehicleNumber || 'Vehicle'}</p>
                         </td>
                         <td className="px-8 py-5">
-                          <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-emerald-100">{log.serviceType}</span>
+                          <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-emerald-100 dark:border-emerald-800">{log.serviceType}</span>
                         </td>
                         <td className="px-8 py-5 max-w-sm">
-                          <p className="text-[11px] text-gray-600 line-clamp-1">{log.details || 'No details'}</p>
+                          <p className="text-[11px] text-gray-600 dark:text-gray-300 line-clamp-1">{log.details || 'No details'}</p>
                         </td>
                         <td className="px-8 py-5 text-right">
                           <div className="flex flex-col items-end">
                             <p className="text-sm font-bold text-gray-900 dark:text-white">₹{(Number(log.amount) || 0).toLocaleString()}</p>
                             {log.billImage && (
-                              <a href={log.billImage} target="_blank" rel="noreferrer" className="text-[9px] font-bold text-emerald-600 hover:underline mt-1 uppercase tracking-widest">View Bill</a>
+                              <a href={log.billImage} target="_blank" rel="noreferrer" className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline mt-1 uppercase tracking-widest">View Bill</a>
                             )}
+                          </div>
+                        </td>
+                        <td className="px-8 py-5 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleOpenEditForm(log)}
+                              title="Edit Maintenance Log"
+                              className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLog(log.id)}
+                              title="Delete Maintenance Log"
+                              className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={15} />
+                            </button>
                           </div>
                         </td>
                       </tr>

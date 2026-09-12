@@ -46,10 +46,18 @@ export const adminAPI = {
   addFuelLog: (data?: any) => api.post('/admin/vehicles/ops/fuel', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  updateFuelLog: (id?: any, data?: any) => api.put(`/admin/vehicles/ops/fuel/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteFuelLog: (id?: any) => api.delete(`/admin/vehicles/ops/fuel/${id}`),
   getMaintenanceLogs: (params?: any) => api.get('/admin/vehicles/ops/maintenance', { params }),
   addMaintenanceLog: (data?: any) => api.post('/admin/vehicles/ops/maintenance', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  updateMaintenanceLog: (id?: any, data?: any) => api.put(`/admin/vehicles/ops/maintenance/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteMaintenanceLog: (id?: any) => api.delete(`/admin/vehicles/ops/maintenance/${id}`),
 
   // Inventory
   getInventoryInit: (params?: any) => api.get('/admin/inventory/init', { params }),
