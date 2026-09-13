@@ -341,10 +341,10 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     );
   }
 
-  // Punch-in gate disabled — agents go straight to the portal after login
-  // if (isAgent && user?.attendanceEnabled !== false && attendanceChecked && !hasPunchedIn) {
-  //   return <PunchInScreen onPunchIn={handlePunchIn} />;
-  // }
+  // Gate agent portal with PunchInScreen until punched in
+  if (isAgent && user?.attendanceEnabled !== false && attendanceChecked && !hasPunchedIn) {
+    return <PunchInScreen onPunchIn={handlePunchIn} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 flex flex-col md:flex-row relative overflow-x-hidden">
