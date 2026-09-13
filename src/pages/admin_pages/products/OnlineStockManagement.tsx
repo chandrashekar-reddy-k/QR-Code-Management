@@ -39,6 +39,7 @@ export interface OnlineStockProduct {
   maxOrderQty: number;
   discountPercentage?: number;
   badge?: string;
+  baseStock?: number;
 }
 
 export default function OnlineStockManagement() {
@@ -67,7 +68,7 @@ export default function OnlineStockManagement() {
 
       const mapped: OnlineStockProduct[] = raw
         .filter((p: any) => {
-          if (Number(p.stock) > 0) return true;
+          if (Number(p.baseStock ?? p.stock) > 0) return true;
           if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
           if (p.liveStock !== undefined && Number(p.liveStock) > 0) return true;
           const tagStage = Array.isArray(p.tags) ? p.tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null;
@@ -88,9 +89,15 @@ export default function OnlineStockManagement() {
 
           const productId = (p.productId as string) || String(p.id ?? '').slice(0, 8).toUpperCase();
           const img = p.image || (Array.isArray(p.images) ? p.images[0] : null);
-          const stageStock = p.onlineAppStock?.onlineStock !== undefined && p.onlineAppStock?.onlineStock !== null
-            ? Number(p.onlineAppStock.onlineStock)
-            : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : Number(p.liveStock || p.stock || 0));
+          const stageStock = (p.onlineStock !== undefined && p.onlineStock !== null)
+            ? Number(p.onlineStock)
+            : (p.onlineAppStock?.onlineStock !== undefined && p.onlineAppStock?.onlineStock !== null
+              ? Number(p.onlineAppStock.onlineStock)
+              : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : 0));
+              
+          if (p.onlineAppStock || p.onlineStock !== undefined) {
+            console.log(`Product ${p.name} has onlineStock: ${p.onlineStock}, onlineAppStock:`, p.onlineAppStock, 'stageStock evaluated to:', stageStock);
+          }
 
           // Sanitize clean unit label (strip UUIDs)
           let cleanUnit = p.unit || 'Unit';
@@ -124,7 +131,8 @@ export default function OnlineStockManagement() {
             appVisibility: isOnline && (p.isActive !== false),
             minOrderQty: p.minOrderQuantity || p.minOrderQty || 1,
             maxOrderQty: p.maxOrderQuantity || p.maxOrderQty || 50,
-            badge: p.tags?.find((t: string) => t.startsWith('BADGE:'))?.split(':')[1] || (stageStock <= 5 ? 'Low Stock' : 'In Stock')
+            badge: p.tags?.find((t: string) => t.startsWith('BADGE:'))?.split(':')[1] || (stageStock <= 5 ? 'Low Stock' : 'In Stock'),
+            baseStock: p.baseStock
           };
         });
 
@@ -400,9 +408,14 @@ export default function OnlineStockManagement() {
                       <div className="text-[10px] text-gray-400">per {p.unit}</div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'}`}>
-                        {p.stock} {p.unit}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold w-max ${p.stock <= 5 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'}`}>
+                          {p.stock} {p.unit}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-medium mt-1">
+                          {p.baseStock ?? 0} {p.unit} in Warehouse
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 text-gray-600 dark:text-gray-300">
                       <span className="font-medium">{p.minOrderQty}</span> min / <span className="font-medium">{p.maxOrderQty}</span> max

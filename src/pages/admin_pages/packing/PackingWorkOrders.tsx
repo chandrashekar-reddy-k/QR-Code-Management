@@ -990,7 +990,7 @@ export const PackingWorkOrders: React.FC = () => {
                     Required Quantity
                   </span>
                   <span className="font-bold text-gray-900 dark:text-white">
-                    {selectedWO.requiredQty} Units
+                    {selectedWO.requiredQty} {selectedWO.product?.unit || 'Units'}
                   </span>
                 </div>
                 <div className="flex justify-between p-2.5">
@@ -1274,8 +1274,7 @@ export const PackingWorkOrders: React.FC = () => {
                           {item.inputProduct?.name || item.inputProductId}
                         </span>
                         <span className="font-bold text-gray-800 dark:text-gray-200">
-                          {reqQty.toFixed(1)}{' '}
-                          {item.isPackaging ? 'Units' : 'kg'}
+                          {reqQty.toFixed(1)} {item.inputProduct?.unit || ''}
                         </span>
                       </div>
                     );

@@ -74,7 +74,7 @@ export const PackingFinishedGoods: React.FC = () => {
   // Post Modal state
   const [isPostOpen, setIsPostOpen] = useState(false);
   const [formWoNo, setFormWoNo] = useState('');
-  const [allocations, setAllocations] = useState({ pos: 0, online: 0, vehicle: 0 });
+  const [allocations, setAllocations] = useState({ ready: 0 });
   const [maxPostedQty, setMaxPostedQty] = useState<number>(0);
   const [isPosting, setIsPosting] = useState(false);
 
@@ -257,7 +257,7 @@ export const PackingFinishedGoods: React.FC = () => {
       const maxQty = Math.max(0, totalApproved - alreadyPosted);
       
       setMaxPostedQty(maxQty);
-      setAllocations({ pos: 0, online: 0, vehicle: 0 });
+      setAllocations({ ready: 0 });
       setRawCost(3000);
       setPackagingCost(400);
       setEmployeeCost(250);
@@ -275,7 +275,7 @@ export const PackingFinishedGoods: React.FC = () => {
       return;
     }
     
-    const totalAllocated = allocations.pos + allocations.online + allocations.vehicle;
+    const totalAllocated = allocations.ready;
     if (totalAllocated <= 0) {
       toast.error('Please allocate quantity to at least one destination.');
       return;
@@ -302,9 +302,7 @@ export const PackingFinishedGoods: React.FC = () => {
       setIsPosting(true);
       
       const payloadAllocations: { destination: string, qty: number }[] = [];
-      if (allocations.pos > 0) payloadAllocations.push({ destination: 'POS Stock', qty: allocations.pos });
-      if (allocations.online > 0) payloadAllocations.push({ destination: 'Online Stock', qty: allocations.online });
-      if (allocations.vehicle > 0) payloadAllocations.push({ destination: 'Vehicle Stock', qty: allocations.vehicle });
+      if (allocations.ready > 0) payloadAllocations.push({ destination: 'Ready Inventory', qty: allocations.ready });
 
       await finishedGoodsService.postFinishedGoods({
         woId: wo.id,
@@ -788,51 +786,27 @@ export const PackingFinishedGoods: React.FC = () => {
                   </span>
                   <div className="flex gap-4">
                     <span className="text-xs font-bold text-slate-600 dark:text-gray-300">
-                      Allocated: <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded ml-1">{allocations.pos + allocations.online + allocations.vehicle}</span>
+                      Allocated: <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded ml-1">{allocations.ready}</span>
                     </span>
                     <span className="text-xs font-bold text-slate-600 dark:text-gray-300">
-                      Remaining: <span className={`px-2 py-0.5 rounded ml-1 ${maxPostedQty - (allocations.pos + allocations.online + allocations.vehicle) < 0 ? 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400' : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
-                        {maxPostedQty - (allocations.pos + allocations.online + allocations.vehicle)}
+                      Remaining: <span className={`px-2 py-0.5 rounded ml-1 ${maxPostedQty - allocations.ready < 0 ? 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400' : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                        {maxPostedQty - allocations.ready}
                       </span>
                     </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                      POS Stock Allocation
+                      Ready Inventory (Warehouse) Allocation
                     </label>
                     <input
                       type="number"
                       min="0"
                       className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-bold font-mono focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                      value={allocations.pos || ''}
-                      onChange={(e) => setAllocations(prev => ({ ...prev, pos: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                      Online Stock Allocation
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-bold font-mono focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                      value={allocations.online || ''}
-                      onChange={(e) => setAllocations(prev => ({ ...prev, online: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                      Vehicle Stock Allocation
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-bold font-mono focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                      value={allocations.vehicle || ''}
-                      onChange={(e) => setAllocations(prev => ({ ...prev, vehicle: Number(e.target.value) }))}
+                      value={allocations.ready || ''}
+                      onChange={(e) => setAllocations(prev => ({ ...prev, ready: Number(e.target.value) }))}
                     />
                   </div>
                 </div>
@@ -849,7 +823,7 @@ export const PackingFinishedGoods: React.FC = () => {
                       Total Allocated
                     </span>
                     <span className="font-semibold text-slate-800 dark:text-white">
-                      {allocations.pos + allocations.online + allocations.vehicle} units
+                      {allocations.ready} units
                     </span>
                   </div>
                   <div>
@@ -857,10 +831,8 @@ export const PackingFinishedGoods: React.FC = () => {
                       Destinations
                     </span>
                     <span className="font-semibold text-slate-800 dark:text-white text-xs flex gap-2 flex-wrap">
-                      {allocations.pos > 0 && <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">POS ({allocations.pos})</span>}
-                      {allocations.online > 0 && <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">Online ({allocations.online})</span>}
-                      {allocations.vehicle > 0 && <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded">Vehicle ({allocations.vehicle})</span>}
-                      {allocations.pos === 0 && allocations.online === 0 && allocations.vehicle === 0 && <span className="text-gray-400">-</span>}
+                      {allocations.ready > 0 && <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded">Ready Inventory ({allocations.ready})</span>}
+                      {allocations.ready === 0 && <span className="text-gray-400">-</span>}
                     </span>
                   </div>
                   <div>

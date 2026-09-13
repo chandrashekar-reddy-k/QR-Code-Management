@@ -106,7 +106,9 @@ export function HandoverVerificationMobile({ onBack, data }: HandoverVerificatio
                 try {
                   setLoading(true);
                   if (order.id) {
-                    // Update local cache only; leave backend status as 'ready'
+                    await api.put(`/orders/${order.id}/handover`);
+                    
+                    // Fallback local cache
                     const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
                     if (!handedOverIds.includes(String(order.id))) {
                       const newIds = [...handedOverIds, String(order.id)];

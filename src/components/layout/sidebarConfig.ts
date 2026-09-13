@@ -15,7 +15,6 @@ import {
   Upload,
   RefreshCw,
   Film,
-  FolderArchive,
   Users,
   Radio,
   Boxes,
@@ -350,6 +349,21 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isInventoryManagementOpen",
     hasSubPermissions: false,
     subItems: [
+      {
+        path: "/inventory/dashboard",
+        label: "Dashboard",
+        icon: Home,
+      },
+      {
+        path: "/inventory/raw",
+        label: "Raw Inventory",
+        icon: Package,
+      },
+      {
+        path: "/inventory/ready",
+        label: "Ready Inventory",
+        icon: CheckCircle,
+      },
       {
         path: "/inventory/online",
         label: "Online (Customer App)",

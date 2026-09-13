@@ -113,7 +113,7 @@ export default function VehicleStockManagement() {
 
       const mapped: VehicleInventoryItem[] = raw
         .filter((p: any) => {
-          if (Number(p.stock) > 0 || Number(p.vehicleStock || 0) > 0) return true;
+          if (Number(p.baseStock ?? p.stock) > 0 || Number(p.vehicleStock || 0) > 0) return true;
           if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
           return false;
         })
@@ -154,11 +154,7 @@ export default function VehicleStockManagement() {
               };
             });
 
-          const liveAvailableStock = p.liveStock !== undefined && p.liveStock !== null
-            ? Number(p.liveStock)
-            : (p.liveStockChannel?.liveAvailable !== undefined
-              ? Number(p.liveStockChannel.liveAvailable)
-              : Number(p.stock || 0));
+          const liveAvailableStock = Number(p.baseStock ?? p.stock ?? 0);
 
           return {
             id: p.id,

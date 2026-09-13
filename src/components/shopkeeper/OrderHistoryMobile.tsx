@@ -147,7 +147,11 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
           const matchesId = skId && String(oAssignedId) === String(skId);
           const matchesPhone = skPhone && (o.assignedShopkeeper?.phone === skPhone || o.assigned_shopkeeper_phone === skPhone || o.shopkeeper_phone === skPhone);
           const matchesHandedOver = handedOverIds.map(String).includes(String(o.id || o.order_number));
-          return matchesId || matchesPhone || matchesHandedOver;
+          
+          const s = o.status?.toLowerCase();
+          const isNewPhase = ['new', 'placed', 'assigned', 'confirmed', 'pending'].includes(s);
+
+          return matchesId || matchesPhone || matchesHandedOver || isNewPhase;
         });
       }
     }
@@ -162,8 +166,8 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
     } else if (activeTab !== "All") {
       result = orders.filter((o: any) => {
         const s = o.status?.toLowerCase();
-        if (activeTab === "New") return s === "new" || s === "placed" || s === "assigned";
-        if (activeTab === "Picking") return s === "picking" || s === "accepted" || s === "confirmed";
+        if (activeTab === "New") return s === "new" || s === "placed" || s === "assigned" || s === "confirmed" || s === "pending";
+        if (activeTab === "Picking") return s === "picking" || s === "accepted";
         if (activeTab === "Packing") return s === "packing" || s === "processing";
         if (activeTab === "Ready") return s === "ready" && (!isAdmin ? !handedOverIds.map(String).includes(String(o.id || o.order_number)) : true);
         if (activeTab === "Dispatched") return s === "dispatched";

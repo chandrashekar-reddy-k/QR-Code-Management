@@ -19,6 +19,8 @@ import {
 export const PackingProductBOM: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [uoms, setUoms] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -27,6 +29,14 @@ export const PackingProductBOM: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateProductOpen, setIsCreateProductOpen] = useState(false);
+
+  // New Product Form State
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductSku, setNewProductSku] = useState('');
+  const [newProductCategoryId, setNewProductCategoryId] = useState('');
+  const [newProductUom, setNewProductUom] = useState('');
+  const [productSubmitLoading, setProductSubmitLoading] = useState(false);
 
   // Form State
   const [formCode, setFormCode] = useState('');
@@ -59,12 +69,16 @@ export const PackingProductBOM: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const [fetchedRecipes, fetchedProducts] = await Promise.all([
+      const [fetchedRecipes, fetchedProducts, fetchedCategories, fetchedUoms] = await Promise.all([
         masterDataService.getRecipes(),
         masterDataService.getProducts(),
+        masterDataService.getCategories(),
+        masterDataService.getUOMs(),
       ]);
       setRecipes(fetchedRecipes || []);
       setProducts(fetchedProducts || []);
+      setCategories(fetchedCategories || []);
+      setUoms(fetchedUoms || []);
     } catch (err: any) {
       setError(
         'Failed to load master data. ' +
@@ -147,12 +161,55 @@ export const PackingProductBOM: React.FC = () => {
       setIsCreateOpen(false);
       resetForm();
       await fetchData();
+      setIsCreateOpen(false);
     } catch (err: any) {
       setError(
         err.message || err.response?.data?.message || 'Failed to create Product BOM'
       );
     } finally {
       setSubmitLoading(false);
+    }
+  };
+
+  const handleCreateFinishedProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProductSubmitLoading(true);
+    setError('');
+
+    try {
+      // Prevent duplicates
+      const exists = products.some(
+        (p) =>
+          p.sku.toLowerCase() === newProductSku.toLowerCase() ||
+          p.name.toLowerCase() === newProductName.toLowerCase()
+      );
+      if (exists) {
+        throw new Error('A product with this Name or SKU already exists.');
+      }
+
+      const res = await masterDataService.createProduct({
+        name: newProductName,
+        sku: newProductSku,
+        categoryId: newProductCategoryId,
+        unit: newProductUom,
+        type: 'FINISHED_GOOD',
+      });
+
+      // Refetch to get the new product in the dropdown
+      const fetchedProducts = await masterDataService.getProducts();
+      setProducts(fetchedProducts || []);
+
+      // Auto-select
+      setFormOutputProductId(res.id || '');
+      setIsCreateProductOpen(false);
+      setNewProductName('');
+      setNewProductSku('');
+      setNewProductCategoryId('');
+      setNewProductUom('');
+    } catch (err: any) {
+      setError(err.message || err.response?.data?.message || 'Failed to create finished product');
+    } finally {
+      setProductSubmitLoading(false);
     }
   };
 
@@ -358,7 +415,7 @@ export const PackingProductBOM: React.FC = () => {
                               {item.requiredQty}
                             </td>
                             <td className="p-3 text-center text-slate-600 dark:text-gray-300 font-mono text-xs">
-                              {product?.uom?.abbreviation || '-'}
+                              {product?.unit || '-'}
                             </td>
                             <td className="p-3 text-center text-slate-500 dark:text-gray-400">
                               ±{item.tolerancePct || 0}%
@@ -455,9 +512,18 @@ export const PackingProductBOM: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                      Output Product *
-                    </label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase">
+                        Output Product *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCreateProductOpen(true)}
+                        className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        + Create Finished Product
+                      </button>
+                    </div>
                     {products.length === 0 ? (
                       <div className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
                         Please create a Product first in Master Data.
@@ -473,7 +539,7 @@ export const PackingProductBOM: React.FC = () => {
                           Select Target Product
                         </option>
                         {products
-                          .filter((p) => p.type === 'FINISHED_GOOD' || p.type === 'BRANDED')
+                          .filter((p) => p.type === 'FINISHED_GOOD')
                           .map((p) => (
                             <option key={p.id} value={p.id} className="dark:bg-gray-800">
                               {p.name} ({p.sku})
@@ -575,9 +641,12 @@ export const PackingProductBOM: React.FC = () => {
                                   Select Material
                                 </option>
                                 {products
-                                  .filter(
-                                    (p) => p.type === item.materialType
-                                  )
+                                  .filter((p) => {
+                                    if (item.materialType === 'PACKAGING') {
+                                      return p.type === 'PACKAGING';
+                                    }
+                                    return p.type !== 'FINISHED_GOOD' && p.type !== 'PACKAGING';
+                                  })
                                   .map((p) => (
                                     <option key={p.id} value={p.id} className="dark:bg-gray-800">
                                       {p.name}
@@ -614,7 +683,7 @@ export const PackingProductBOM: React.FC = () => {
                               type="text"
                               readOnly
                               className="w-full p-1.5 border border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 rounded-lg text-xs focus:outline-none cursor-not-allowed"
-                              value={selectedProduct?.uom?.abbreviation || ''}
+                              value={selectedProduct?.unit || ''}
                               placeholder="-"
                             />
                           </div>
@@ -673,6 +742,106 @@ export const PackingProductBOM: React.FC = () => {
                   <Loader2 size={16} className="animate-spin" />
                 )}
                 Save Configuration
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Finished Product Modal */}
+      {isCreateProductOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex justify-center items-center z-[60] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-md overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center bg-slate-900 text-white shrink-0">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <Sparkles className="text-amber-400" size={18} />
+                <span>Create Finished Product</span>
+              </h3>
+              <button
+                onClick={() => setIsCreateProductOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 flex-1">
+              <form id="createProductForm" onSubmit={handleCreateFinishedProduct} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Product Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:outline-none"
+                    value={newProductName}
+                    onChange={(e) => setNewProductName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    SKU *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:outline-none"
+                    value={newProductSku}
+                    onChange={(e) => setNewProductSku(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Category *
+                  </label>
+                  <select
+                    required
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm bg-white focus:outline-none"
+                    value={newProductCategoryId}
+                    onChange={(e) => setNewProductCategoryId(e.target.value)}
+                  >
+                    <option value="" className="dark:bg-gray-800">Select Category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id} className="dark:bg-gray-800">{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                    Unit of Measure *
+                  </label>
+                  <select
+                    required
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm bg-white focus:outline-none"
+                    value={newProductUom}
+                    onChange={(e) => setNewProductUom(e.target.value)}
+                  >
+                    <option value="" className="dark:bg-gray-800">Select Unit</option>
+                    {uoms.map((u) => (
+                      <option key={u.id} value={u.id} className="dark:bg-gray-800">{u.name} ({u.abbreviation})</option>
+                    ))}
+                  </select>
+                </div>
+              </form>
+            </div>
+
+            <div className="border-t border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 shrink-0 p-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsCreateProductOpen(false)}
+                className="px-4 py-2 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="createProductForm"
+                disabled={productSubmitLoading}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              >
+                {productSubmitLoading && <Loader2 size={16} className="animate-spin" />}
+                Create Finished Product
               </button>
             </div>
           </div>

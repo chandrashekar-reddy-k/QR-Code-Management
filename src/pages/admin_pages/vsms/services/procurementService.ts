@@ -24,11 +24,13 @@ export const procurementAPI = {
   updatePOStatus: (id, data) => api.put(`/procurement/purchase-orders/${id}/status`, data),
 
   // ─── GOODS RECEIPT NOTES ─────────────────────────────────────
-  getGRNs: (params) => api.get('/procurement/grns', { params }),
-  createGRN: (data) => api.post('/procurement/grns', data),
-  updateGRN: (id, data) => api.put(`/procurement/grns/${id}`, data),
-  deleteGRN: (id) => api.delete(`/procurement/grns/${id}`),
-  updateQCStatus: (itemId, data) => api.put(`/procurement/grns/item/${itemId}/qc`, data),
+  getGRNs: (params?: any) => api.get('/procurement/grns', { params }),
+  getUnconfiguredGRNItems: () => api.get('/procurement/grns/unconfigured-items'),
+  configureGRNItemsToRaw: (data: any) => api.post('/procurement/grns/configure-to-raw', data),
+  createGRN: (data: any) => api.post('/procurement/grns', data),
+  updateGRN: (id: string, data: any) => api.put(`/procurement/grns/${id}`, data),
+  deleteGRN: (id: string) => api.delete(`/procurement/grns/${id}`),
+  updateQCStatus: (itemId: string, data: any) => api.put(`/procurement/grns/item/${itemId}/qc`, data),
 
   // ─── PURCHASES (INVOICES) ─────────────────────────────────────
   getPurchases: (params) => api.get('/procurement/purchases', { params }),

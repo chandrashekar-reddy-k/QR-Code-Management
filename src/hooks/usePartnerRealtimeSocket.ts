@@ -80,9 +80,18 @@ export function usePartnerRealtimeSocket() {
       window.dispatchEvent(new Event('agentStatusUpdated'))
     }
 
+    const onDeliveryAssigned = (payload: Record<string, unknown>) => {
+      const k = `assign:${payload?.orderId}:${payload?.agentId}`
+      if (dedupe(k)) return
+      toast.info(`Rider auto-assigned to order ${payload?.orderNumber || ''}`, { autoClose: 3000 })
+      // Refresh the shared orders so ready screen shows updated rider name
+      window.dispatchEvent(new CustomEvent('deliveryAgentAssigned', { detail: payload }))
+      window.dispatchEvent(new Event('agentStatusUpdated'))
+    }
+
     socket.on('partner:order_updated', onOrder)
     socket.on('partner:new_order', onOrder)
-    socket.on('partner:delivery_assigned', onOrder)
+    socket.on('partner:delivery_assigned', onDeliveryAssigned)
     socket.on('partner:agent_status_updated', onAgentStatusUpdated)
 
     socket.connect()
@@ -91,7 +100,7 @@ export function usePartnerRealtimeSocket() {
       started.current = false
       socket?.off('partner:order_updated', onOrder)
       socket?.off('partner:new_order', onOrder)
-      socket?.off('partner:delivery_assigned', onOrder)
+      socket?.off('partner:delivery_assigned', onDeliveryAssigned)
       socket?.off('partner:agent_status_updated', onAgentStatusUpdated)
       socket?.disconnect()
       socket = null

@@ -12,11 +12,13 @@ export interface NewOrderAlertData {
   orderNumber: string;
   status: "PLACED" | "CONFIRMED" | string;
   customerName: string;
-  customerPhone: string;
-  paymentMethod: string;
-  deliveryAddress: string;
+  customerPhone?: string;
+  paymentMethod?: string;
+  deliveryAddress?: string;
+  customerAddress?: string;
   totalAmount: number;
-  itemCount: number;
+  itemCount?: number;
+  items?: any[];
   fulfillmentType: "HOME_DELIVERY" | "SELF_PICKUP" | string;
   placedAt: string;
   autoConfirmAt: string;
@@ -33,6 +35,9 @@ interface ShopkeeperNewOrderAlertContextType {
   enableAudio: () => void;
   disableAudio: () => void;
   toggleAudio: () => void;
+  acceptAlertOrder: (orderId: string) => Promise<void>;
+  rejectAlertOrder: (orderId: string) => Promise<void>;
+  silenceAlarm: () => void;
 }
 
 // -----------------------------------------------------------------------------
@@ -458,6 +463,9 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
         enableAudio,
         disableAudio,
         toggleAudio,
+        acceptAlertOrder,
+        rejectAlertOrder,
+        silenceAlarm,
       }}
     >
       {children}
@@ -481,6 +489,9 @@ export function useShopkeeperNewOrderAlert() {
       disableAudio: () => {},
       toggleAudio: () => {},
       dismissAlert: () => {},
+      acceptAlertOrder: async () => {},
+      rejectAlertOrder: async () => {},
+      silenceAlarm: () => {},
     };
   }
   return context;

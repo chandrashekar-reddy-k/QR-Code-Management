@@ -491,6 +491,21 @@ const AddEditPartner = lazy(
 );
 
 // Inventory
+const ReserveStock = lazy(
+  () => import("../pages/admin_pages/inventory/ReserveStock")
+);
+const ReadyInventory = lazy(
+  () => import("../pages/admin_pages/inventory/ReadyInventory")
+);
+const ConfigureStock = lazy(
+  () => import("../pages/admin_pages/inventory/ConfigureStock")
+);
+const RawInventory = lazy(
+  () => import("../pages/admin_pages/inventory/RawInventory")
+);
+const InventoryDashboard = lazy(
+  () => import("../pages/admin_pages/inventory/InventoryDashboard")
+);
 const InventoryOverview = lazy(
   () => import("../pages/admin_pages/inventory/InventoryOverview")
 );
@@ -1482,6 +1497,31 @@ export const protectedRoutes: RouteConfig[] = [
     requiresAuth: true,
   },
   // Inventory
+  {
+    path: "/inventory/ready/reserve",
+    component: ReserveStock,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/ready",
+    component: ReadyInventory,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/raw/configure",
+    component: ConfigureStock,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/raw",
+    component: RawInventory,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/dashboard",
+    component: InventoryDashboard,
+    requiresAuth: true,
+  },
   {
     path: "/inventory/overview",
     component: InventoryOverview,

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, User, Clock } from "lucide-react";
+import { ArrowLeft, Package, CheckCircle, QrCode, AlertCircle, User, Search } from "lucide-react";
 import api from "../../api/axios";
 import { useSharedOrders } from "./SharedOrdersContext";
 import toast from "react-hot-toast";
 import { getSLAInfo } from "../../utils/slaHelper";
+import { Modal, SearchInput } from "../ui";
 
 interface ReadyOrdersMobileProps {
   onNavigate: (screen: string, data?: any) => void;
@@ -20,39 +21,62 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
 
   const [agents, setAgents] = useState<any[]>([]);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [selectedOrderForRider, setSelectedOrderForRider] = useState<any | null>(null);
+  const [agentSearchTerm, setAgentSearchTerm] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchAgents = () => {
     api.get('/delivery-agents')
       .then(res => setAgents(res.data))
       .catch(err => console.error("Failed to load riders", err));
+  };
+
+  useEffect(() => {
+    fetchAgents();
+    const handleAssigned = () => { fetchAgents(); refreshOrders(); };
+    window.addEventListener('agentStatusUpdated', fetchAgents);
+    window.addEventListener('deliveryAgentAssigned', handleAssigned);
+    return () => {
+      window.removeEventListener('agentStatusUpdated', fetchAgents);
+      window.removeEventListener('deliveryAgentAssigned', handleAssigned);
+    };
   }, []);
 
-  const [handedOverIds, setHandedOverIds] = useState<string[]>(() => {
+  const handleAssignRider = async (orderId: string, agentId: string) => {
+    if (!agentId) return;
+    setAssigningId(orderId);
     try {
-      return JSON.parse(localStorage.getItem('handedOverIds') || '[]');
-    } catch {
-      return [];
+      await api.post(`/orders/${orderId}/assign-rider`, { agentId });
+      if (refreshOrders) refreshOrders();
+      setSelectedOrderForRider(null);
+      toast.success("Rider assigned successfully");
+    } catch (err) {
+      console.error("Failed to assign rider", err);
+      toast.error("Failed to assign rider");
+    } finally {
+      setAssigningId(null);
     }
-  });
+  };
 
   const orders = useMemo(() => {
+    const handedOverIds = JSON.parse(localStorage.getItem('handedOverIds') || '[]');
     return sharedOrders.filter((o: any) => {
       if (o.status?.toLowerCase() !== 'ready' || o.order_type === 'Self Pickup') return false;
-      if (o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver') return false;
-      const orderId = String(o.id || o.order_number);
-      if (handedOverIds.map(String).includes(orderId)) return false;
+      const isHandedOverDb = o.allocationStatus === 'HandedOver' || o.allocation_status === 'HandedOver';
+      if (isHandedOverDb) return false;
+      if (handedOverIds.includes(String(o.id || o.order_number))) return false;
       return true;
     });
-  }, [sharedOrders, handedOverIds]);
+  }, [sharedOrders]);
 
   const overdueCount = orders.filter(o => getSLAInfo(o).isBreached).length;
 
   const handedOverCount = useMemo(() => {
     return sharedOrders.filter((o: any) => {
-      const s = o.status?.toLowerCase();
-      return s === 'dispatched' || handedOverIds.map(String).includes(String(o.id));
+      return o.status?.toLowerCase() === 'dispatched';
     }).length;
-  }, [sharedOrders, handedOverIds]);
+  }, [sharedOrders]);
 
   // ──────────────────────────────────────────────
   // Skeleton loader
@@ -143,8 +167,8 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
 
         <div className="grid grid-cols-3 gap-2 mt-4">
           {[
-            { label: "Ready", value: orders.filter(o => !handedOverIds.map(String).includes(String(o.id))).length, color: "white" },
-            { label: "Handed Over", value: handedOverCount, color: "#4CAF50" },
+            { label: "Ready", value: orders.length, color: "white" },
+            { label: "Dispatched", value: handedOverCount, color: "#4CAF50" },
             { label: "Overdue", value: overdueCount, color: "#FF5252" },
           ].map(s => (
             <div key={s.label} className="bg-white/10 rounded-xl p-2 text-center">
@@ -158,7 +182,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
       <div className="flex flex-col gap-3 p-4">
         {orders.map((order) => {
           const isOverdue = getSLAInfo(order).isBreached;
-          const isHandedOver = handedOverIds.map(String).includes(String(order.id));
+          const hasRider = !!order.agentId;
           return (
             <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden dark:bg-gray-800">
               {isOverdue && (
@@ -200,25 +224,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                 )}
 
                 <div className="mb-3">
-                  <div className="mb-2">
-                    {isHandedOver ? (
-                      <div className="flex items-center gap-2 p-2.5 bg-green-50 rounded-lg border border-green-100">
-                        <CheckCircle size={16} className="text-[#2E7D32]" />
-                        <span className="text-[#2E7D32]" style={{ fontSize: "13px", fontWeight: 600 }}>
-                          Handover Status: Handed Over
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
-                        <Clock size={16} className="text-gray-500 dark:text-gray-400" />
-                        <span className="text-gray-600 dark:text-gray-300" style={{ fontSize: "13px", fontWeight: 600 }}>
-                          Handover Status: Pending Handover
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {order.agentId && (
+                  {hasRider && (
                     <div className="flex items-center gap-2 p-2.5 bg-green-50 rounded-lg border border-green-100 mt-2">
                       <User size={16} className="text-[#2E7D32]" />
                       <span className="text-[#2E7D32]" style={{ fontSize: "13px", fontWeight: 600 }}>
@@ -228,31 +234,35 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                   )}
                 </div>
 
-                {!isHandedOver && (
+                {hasRider ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedOrderForRider(order)}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border border-[#00891D] bg-white text-[#00891D]"
+                    >
+                      <span style={{ fontWeight: 600, fontSize: "14px" }}>Change Rider</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const agentName = order.agent?.name || agents.find(a => a.id === order.agentId)?.name || "N/A";
+                        onNavigate("handover-verification", {
+                          ...order,
+                          riderName: agentName
+                        });
+                      }}
+                      className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-3 bg-[#2E7D32]"
+                    >
+                      <QrCode size={16} color="white" />
+                      <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Handover to Rider</span>
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={async () => {
-                      try {
-                        const orderIdToSave = order.id || order.order_number;
-                        const newIds = [...handedOverIds, String(orderIdToSave)];
-                        setHandedOverIds(newIds);
-                        localStorage.setItem('handedOverIds', JSON.stringify(newIds));
-                        
-                        // Call backend to update status
-                        await api.put(`/orders/${orderIdToSave}/handover`);
-                        
-                        if (refreshOrders) {
-                          refreshOrders();
-                        }
-                        
-                        toast.success("Order handed over to Store Manager!");
-                      } catch (err) {
-                        toast.error("Failed to handover order");
-                      }
-                    }}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl py-3 transition-opacity bg-[#2E7D32]"
+                    onClick={() => setSelectedOrderForRider(order)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl py-3 transition-opacity bg-blue-600"
                   >
-                    <QrCode size={16} color="white" />
-                    <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Handover to Store Manager</span>
+                    <User size={16} color="white" />
+                    <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Assign Rider</span>
                   </button>
                 )}
               </div>
@@ -267,6 +277,100 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
           </div>
         )}
       </div>
+
+      {/* Assign Rider Modal */}
+      <Modal
+        isOpen={!!selectedOrderForRider}
+        onClose={() => {
+          setSelectedOrderForRider(null);
+          setSelectedAgentId(null);
+          setAgentSearchTerm("");
+        }}
+        title="Assign Delivery Agent"
+        size="sm"
+        showCloseButton={true}
+      >
+        <div className="space-y-4">
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={16}
+            />
+            <SearchInput
+              placeholder="Search"
+              value={agentSearchTerm}
+              onChange={(e) => setAgentSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {agents
+              .filter(a => (a.name || '').toLowerCase().includes(agentSearchTerm.toLowerCase()) || (a.phone || a.mobileNumber || '').includes(agentSearchTerm))
+              .map((agent) => {
+                const phone = agent.phone || agent.mobileNumber || agent.mobile || "";
+                const profilePic = agent.profilePic || agent.profilePicUrl || agent.profileImage;
+
+                return (
+                  <div
+                    key={agent.id}
+                    onClick={() => setSelectedAgentId(agent.id)}
+                    className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-colors ${selectedAgentId === agent.id
+                        ? 'border-[#00891D] bg-green-50/50 dark:bg-green-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-[#00891D] hover:bg-green-50/30'
+                      }`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden shrink-0 border border-gray-200 dark:border-gray-700">
+                      {profilePic ? (
+                        <img src={profilePic} alt={agent.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={20} className="text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">{agent.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{phone}</div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${selectedAgentId === agent.id
+                        ? 'border-[#00891D] bg-[#00891D]'
+                        : 'border-gray-300 dark:border-gray-600'
+                      }`}>
+                      {selectedAgentId === agent.id && <CheckCircle size={14} className="text-white" />}
+                    </div>
+                  </div>
+                );
+              })}
+            {agents.length === 0 && (
+              <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
+                No delivery agents found
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+            <button
+              onClick={() => {
+                setSelectedOrderForRider(null);
+                setSelectedAgentId(null);
+              }}
+              className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={!selectedAgentId || assigningId === selectedOrderForRider?.id}
+              onClick={() => {
+                if (selectedAgentId && selectedOrderForRider) {
+                  handleAssignRider(selectedOrderForRider.id || selectedOrderForRider.order_number, selectedAgentId);
+                }
+              }}
+              className="px-4 py-2 text-sm font-bold text-white bg-[#00891D] hover:bg-[#006614] rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {assigningId === selectedOrderForRider?.id ? "Assigning..." : "Assign Rider"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

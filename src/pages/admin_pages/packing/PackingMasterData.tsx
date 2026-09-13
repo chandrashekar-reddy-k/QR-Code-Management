@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Layers,
-  Box,
-  Tag,
   Plus,
   Loader2,
   CheckCircle2,
@@ -17,7 +14,6 @@ import {
   masterDataService,
   Category,
   UnitOfMeasure,
-  Product,
 } from '../../../api/packing/masterDataService';
 import DataTable from '../../../components/packing/ui/DataTable';
 import Modal from '../../../components/packing/ui/Modal';
@@ -25,7 +21,6 @@ import ConfirmModal from '../../../components/packing/ui/ConfirmModal';
 import Button from '../../../components/packing/ui/Button';
 
 export const PackingMasterData: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'categories' | 'uom' | 'products'>('categories');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -53,20 +48,12 @@ export const PackingMasterData: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      if (activeTab === 'categories') {
-        const data = await masterDataService.getCategories();
-        setDataList(data);
-      } else if (activeTab === 'uom') {
-        const data = await masterDataService.getUOMs();
-        setDataList(data);
-      } else if (activeTab === 'products') {
-        const data = await masterDataService.getProducts();
-        setDataList(data);
-        const cats = await masterDataService.getCategories();
-        setCategories(cats);
-        const ums = await masterDataService.getUOMs();
-        setUOMs(ums);
-      }
+      const data = await masterDataService.getProducts();
+      setDataList(data);
+      const cats = await masterDataService.getCategories();
+      setCategories(cats);
+      const ums = await masterDataService.getUOMs();
+      setUOMs(ums);
       setSearchQuery('');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch master data.');
@@ -77,7 +64,7 @@ export const PackingMasterData: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,14 +74,10 @@ export const PackingMasterData: React.FC = () => {
 
     try {
       if (isCreating) {
-        if (activeTab === 'categories') await masterDataService.createCategory(formData);
-        if (activeTab === 'uom') await masterDataService.createUOM(formData);
-        if (activeTab === 'products') await masterDataService.createProduct(formData);
+        await masterDataService.createProduct(formData);
         setSuccess('Created successfully!');
       } else if (isEditing && selectedRecord) {
-        if (activeTab === 'categories') await masterDataService.updateCategory(selectedRecord.id, formData);
-        if (activeTab === 'uom') await masterDataService.updateUOM(selectedRecord.id, formData);
-        if (activeTab === 'products') await masterDataService.updateProduct(selectedRecord.id, formData);
+        await masterDataService.updateProduct(selectedRecord.id, formData);
         setSuccess('Updated successfully!');
       }
       closeModals();
@@ -113,9 +96,7 @@ export const PackingMasterData: React.FC = () => {
     setError('');
     setSuccess('');
     try {
-      if (activeTab === 'categories') await masterDataService.deleteCategory(selectedRecord.id);
-      if (activeTab === 'uom') await masterDataService.deleteUOM(selectedRecord.id);
-      if (activeTab === 'products') await masterDataService.deleteProduct(selectedRecord.id);
+      await masterDataService.deleteProduct(selectedRecord.id);
       setSuccess('Deleted successfully!');
       closeModals();
       await fetchData();
@@ -134,9 +115,7 @@ export const PackingMasterData: React.FC = () => {
     setError('');
     setSuccess('');
     try {
-      if (activeTab === 'categories') await masterDataService.toggleCategoryStatus(selectedRecord.id);
-      if (activeTab === 'uom') await masterDataService.toggleUOMStatus(selectedRecord.id);
-      if (activeTab === 'products') await masterDataService.toggleProductStatus(selectedRecord.id);
+      await masterDataService.toggleProductStatus(selectedRecord.id);
       setSuccess('Status toggled successfully!');
       closeModals();
       await fetchData();
@@ -200,37 +179,19 @@ export const PackingMasterData: React.FC = () => {
         if (filterStatus === 'Inactive' && item.isActive) return false;
       }
 
-      if (activeTab === 'products') {
-        if (filterType !== 'All' && item.type !== filterType) return false;
-        if (filterCategory !== 'All' && item.categoryId !== filterCategory) return false;
-      }
+      if (filterType !== 'All' && item.type !== filterType) return false;
+      if (filterCategory !== 'All' && item.categoryId !== filterCategory) return false;
 
       if (!searchQuery) return true;
       const lowerQuery = searchQuery.toLowerCase();
-      if (activeTab === 'categories')
-        return (
-          item.name?.toLowerCase().includes(lowerQuery) ||
-          item.description?.toLowerCase().includes(lowerQuery)
-        );
-      if (activeTab === 'uom')
-        return (
-          item.name?.toLowerCase().includes(lowerQuery) ||
-          item.abbreviation?.toLowerCase().includes(lowerQuery)
-        );
-      if (activeTab === 'products')
-        return (
-          item.name?.toLowerCase().includes(lowerQuery) ||
-          item.sku?.toLowerCase().includes(lowerQuery)
-        );
-      return true;
+      return (
+        item.name?.toLowerCase().includes(lowerQuery) ||
+        item.sku?.toLowerCase().includes(lowerQuery)
+      );
     });
-  }, [dataList, searchQuery, activeTab, filterType, filterCategory, filterStatus]);
+  }, [dataList, searchQuery, filterType, filterCategory, filterStatus]);
 
-  const tabs = [
-    { id: 'categories', label: 'Categories', icon: <Layers size={16} /> },
-    { id: 'uom', label: 'Units of Measure', icon: <Box size={16} /> },
-    { id: 'products', label: 'Products', icon: <Tag size={16} /> },
-  ] as const;
+
 
   const renderActions = (row: any) => {
     const isReferenced = checkIsReferenced(row);
@@ -267,118 +228,70 @@ export const PackingMasterData: React.FC = () => {
 
   const getColumns = () => {
     const cols: any[] = [];
-    if (activeTab === 'categories') {
-      cols.push({
-        key: 'name',
-        label: 'Name',
-        className: 'w-[35%] text-left p-4',
-        render: (r: any) => (
-          <span
-            className="font-semibold text-slate-800 dark:text-white block truncate max-w-[200px]"
-            title={r.name}
-          >
-            {r.name}
-          </span>
-        ),
-      });
-      cols.push({
-        key: 'description',
-        label: 'Description',
-        className: 'w-[40%] text-left p-4',
-        render: (r: any) => (
-          <span
-            className="text-slate-600 dark:text-gray-300 block truncate max-w-[300px]"
-            title={r.description}
-          >
-            {r.description || '-'}
-          </span>
-        ),
-      });
-    } else if (activeTab === 'uom') {
-      cols.push({
-        key: 'name',
-        label: 'Name',
-        className: 'w-[45%] text-left p-4',
-        render: (r: any) => (
-          <span
-            className="font-semibold text-slate-800 dark:text-white block truncate max-w-[250px]"
-            title={r.name}
-          >
-            {r.name}
-          </span>
-        ),
-      });
-      cols.push({
-        key: 'abbreviation',
-        label: 'Abbreviation',
-        className: 'w-[30%] text-left p-4',
-        render: (r: any) => (
-          <span className="font-mono text-slate-600 dark:text-gray-300">
-            {r.abbreviation}
-          </span>
-        ),
-      });
-    } else if (activeTab === 'products') {
-      cols.push({
-        key: 'sku',
-        label: 'SKU',
-        className: 'w-[20%] text-left p-4',
-        render: (r: any) => (
-          <span
-            className="font-mono font-medium text-slate-600 dark:text-gray-300 block truncate max-w-[120px]"
-            title={r.sku}
-          >
-            {r.sku}
-          </span>
-        ),
-      });
-      cols.push({
-        key: 'name',
-        label: 'Name',
-        className: 'w-[25%] text-left p-4',
-        render: (r: any) => (
-          <span
-            className="font-semibold text-slate-800 dark:text-white block truncate max-w-[200px]"
-            title={r.name}
-          >
-            {r.name}
-          </span>
-        ),
-      });
-      cols.push({
-        key: 'type',
-        label: 'Type',
-        className: 'w-[15%] text-left p-4',
-        render: (r: any) => (
-          <span className="text-slate-600 dark:text-gray-300 text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-gray-700 px-2 py-1 rounded-md">
-            {r.type?.replace('_', ' ')}
-          </span>
-        ),
-      });
-      cols.push({
-        key: 'category',
-        label: 'Category',
-        className: 'w-[15%] text-left p-4',
-        render: (r: any) => (
-          <span
-            className="text-slate-600 dark:text-gray-300 block truncate max-w-[150px]"
-            title={r.category?.name}
-          >
-            {r.category?.name || '-'}
-          </span>
-        ),
-      });
-      cols.push({
-        key: 'uom',
-        label: 'UOM',
-        className: 'w-[10%] text-left p-4',
-        render: (r: any) => (
-          <span className="text-slate-600 dark:text-gray-300">
-            {r.uom?.abbreviation || '-'}
-          </span>
-        ),
-      });
-    }
+    
+    cols.push({
+      key: 'sku',
+      label: 'SKU',
+      className: 'w-[20%] text-left p-4',
+      render: (r: any) => (
+        <span
+          className="font-mono font-medium text-slate-600 dark:text-gray-300 block truncate max-w-[120px]"
+          title={r.sku}
+        >
+          {r.sku}
+        </span>
+      ),
+    });
+    
+    cols.push({
+      key: 'name',
+      label: 'Name',
+      className: 'w-[25%] text-left p-4',
+      render: (r: any) => (
+        <span
+          className="font-semibold text-slate-800 dark:text-white block truncate max-w-[200px]"
+          title={r.name}
+        >
+          {r.name}
+        </span>
+      ),
+    });
+    
+    cols.push({
+      key: 'type',
+      label: 'Type',
+      className: 'w-[15%] text-left p-4',
+      render: (r: any) => (
+        <span className="text-slate-600 dark:text-gray-300 text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-gray-700 px-2 py-1 rounded-md">
+          {r.type?.replace('_', ' ')}
+        </span>
+      ),
+    });
+    
+    cols.push({
+      key: 'category',
+      label: 'Category',
+      className: 'w-[15%] text-left p-4',
+      render: (r: any) => (
+        <span
+          className="text-slate-600 dark:text-gray-300 block truncate max-w-[150px]"
+          title={r.category?.name}
+        >
+          {r.category?.name || '-'}
+        </span>
+      ),
+    });
+    
+    cols.push({
+      key: 'uom',
+      label: 'UOM',
+      className: 'w-[10%] text-left p-4',
+      render: (r: any) => (
+        <span className="text-slate-600 dark:text-gray-300">
+          {r.uom?.abbreviation || '-'}
+        </span>
+      ),
+    });
 
     cols.push({
       key: 'isActive',
@@ -410,12 +323,14 @@ export const PackingMasterData: React.FC = () => {
         </div>
       ),
     });
+    
     cols.push({
       key: 'actions',
       label: 'Actions',
       className: 'w-[15%] text-center p-4',
       render: renderActions,
     });
+    
     return cols;
   };
 
@@ -424,12 +339,19 @@ export const PackingMasterData: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
-            Master Data Management
+            Product Master
           </h2>
           <p className="text-sm text-slate-500 dark:text-gray-400">
             Manage foundational entities for the Packing ERP system.
           </p>
         </div>
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold shadow-xs transition-all mb-2 sm:mb-0"
+        >
+          <Plus size={16} />
+          <span>Create New</span>
+        </button>
       </div>
 
       {error && (
@@ -446,39 +368,7 @@ export const PackingMasterData: React.FC = () => {
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 dark:border-gray-700 gap-4">
-        <div className="flex flex-wrap gap-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                closeModals();
-                setError('');
-              }}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-green-600 text-green-700 dark:text-green-400 bg-green-50/50 dark:bg-green-900/20'
-                  : 'border-transparent text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 hover:border-slate-300'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold shadow-xs transition-all mb-2"
-        >
-          <Plus size={16} />
-          <span>Create New</span>
-        </button>
-      </div>
-
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        {activeTab === 'products' ? (
           <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 shadow-xs h-10 overflow-hidden">
             <div className="px-3 flex items-center justify-center text-slate-500 dark:text-gray-400">
               <Filter size={16} />
@@ -493,7 +383,7 @@ export const PackingMasterData: React.FC = () => {
               <option value="All" className="dark:bg-gray-800">Type</option>
               <option value="RAW_MATERIAL" className="dark:bg-gray-800">RAW MATERIAL</option>
               <option value="PACKAGING" className="dark:bg-gray-800">PACKAGING</option>
-              <option value="FINISHED_GOOD" className="dark:bg-gray-800">FINISHED GOOD</option>
+              <option value="NON-BRANDED" className="dark:bg-gray-800">NON BRANDED</option>
             </select>
 
             <div className="w-px h-6 bg-slate-200 dark:bg-gray-700" />
@@ -537,36 +427,6 @@ export const PackingMasterData: React.FC = () => {
               Reset Filter
             </button>
           </div>
-        ) : (
-          <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 shadow-xs h-10 overflow-hidden">
-            <div className="px-3 flex items-center justify-center text-slate-500 dark:text-gray-400">
-              <Filter size={16} />
-            </div>
-            <div className="w-px h-6 bg-slate-200 dark:bg-gray-700" />
-
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 text-sm font-semibold text-slate-700 dark:text-gray-300 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[100px]"
-            >
-              <option value="All" className="dark:bg-gray-800">Status</option>
-              <option value="Active" className="dark:bg-gray-800">Active</option>
-              <option value="Inactive" className="dark:bg-gray-800">Inactive</option>
-            </select>
-
-            <div className="w-px h-6 bg-slate-200 dark:bg-gray-700" />
-
-            <button
-              onClick={() => {
-                setFilterStatus('All');
-              }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors bg-transparent"
-            >
-              <RotateCcw size={14} />
-              Reset Filter
-            </button>
-          </div>
-        )}
 
         <div className="relative w-full md:w-64 h-10 flex items-center bg-white dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 shadow-xs">
           <input
@@ -598,79 +458,11 @@ export const PackingMasterData: React.FC = () => {
       <Modal
         isOpen={isCreating || isEditing}
         onClose={closeModals}
-        title={`${isCreating ? 'Create' : 'Edit'} ${
-          tabs.find((t) => t.id === activeTab)?.label
-        }`}
+        title={`${isCreating ? 'Create' : 'Edit'} Product`}
         size="lg"
       >
         <form onSubmit={handleSave} className="space-y-4">
-          {activeTab === 'categories' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-gray-300 mb-1">
-                  Name
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={formData.name || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 focus:border-green-600"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-gray-300 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={formData.description || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 focus:border-green-600"
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'uom' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-gray-300 mb-1">
-                  Name (e.g. Kilograms)
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={formData.name || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 focus:border-green-600"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-gray-300 mb-1">
-                  Abbreviation (e.g. kg)
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={formData.abbreviation || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, abbreviation: e.target.value })
-                  }
-                  className="w-full border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 focus:border-green-600"
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'products' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-gray-300 mb-1">
                   Product SKU
@@ -758,7 +550,6 @@ export const PackingMasterData: React.FC = () => {
                 </select>
               </div>
             </div>
-          )}
 
           <div className="flex justify-end pt-4 gap-2 border-t border-slate-100 dark:border-gray-700 mt-4">
             <Button type="button" variant="secondary" onClick={closeModals}>

@@ -23,10 +23,17 @@ export interface Product {
   name: string;
   categoryId: string;
   uomId: string;
-  type?: 'RAW_MATERIAL' | 'PACKAGING' | 'FINISHED_GOOD' | 'BRANDED';
+  unit?: string;
+  productType?: 'RAW_MATERIAL' | 'PACKAGING' | 'FINISHED_GOOD' | 'BRANDED';
+  type?: string; // For backward compatibility if any component uses it
   isActive?: boolean;
   category?: Category;
   uom?: UnitOfMeasure;
+  productionStock?: {
+    inProductionQty: number;
+    packedQty: number;
+    processingStage?: string;
+  };
 }
 
 export interface Warehouse {
