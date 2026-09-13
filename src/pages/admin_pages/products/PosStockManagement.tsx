@@ -38,6 +38,7 @@ export interface PosStockProduct {
   updatedAt: string;
   shelfLocation?: string;
   taxRate?: number;
+  baseStock?: number;
 }
 
 export default function PosStockManagement() {
@@ -66,7 +67,7 @@ export default function PosStockManagement() {
 
       const mapped: PosStockProduct[] = raw
         .filter((p: any) => {
-          if (Number(p.stock) > 0) return true;
+          if (Number(p.baseStock ?? p.stock) > 0) return true;
           if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
           if (p.liveStock !== undefined && Number(p.liveStock) > 0) return true;
           const tagStage = Array.isArray(p.tags) ? p.tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null;
@@ -87,9 +88,11 @@ export default function PosStockManagement() {
 
           const productId = (p.productId as string) || String(p.id ?? '').slice(0, 8).toUpperCase();
           const img = p.image || (Array.isArray(p.images) ? p.images[0] : null);
-          const stageStock = p.posStoreStock?.posStock !== undefined && p.posStoreStock?.posStock !== null
-            ? Number(p.posStoreStock.posStock)
-            : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : Number(p.liveStock || p.stock || 0));
+          const stageStock = (p.posStock !== undefined && p.posStock !== null)
+            ? Number(p.posStock)
+            : (p.posStoreStock?.posStock !== undefined && p.posStoreStock?.posStock !== null
+              ? Number(p.posStoreStock.posStock)
+              : (p.liveStockChannel?.posAvailable !== undefined ? Number(p.liveStockChannel.posAvailable) : 0));
 
           // Sanitize clean unit label (strip UUIDs)
           let cleanUnit = p.unit || 'Unit';
@@ -123,7 +126,8 @@ export default function PosStockManagement() {
             stageNotes: p.stageNotes || '',
             updatedAt: p.updatedAt || new Date().toISOString(),
             shelfLocation: p.tags?.find((t: string) => t.startsWith('SHELF:'))?.split(':')[1] || 'Aisle 1 - Bay A',
-            taxRate: p.taxRate || 5
+            taxRate: p.taxRate || 5,
+            baseStock: p.baseStock
           };
         });
 
@@ -398,9 +402,14 @@ export default function PosStockManagement() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200'}`}>
-                        {p.stock} {p.unit}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold w-max ${p.stock <= 5 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'}`}>
+                          {p.stock} {p.unit}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-medium mt-1">
+                          {p.baseStock ?? 0} {p.unit} in Warehouse
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.posPrice || p.price).toFixed(2)}</div>

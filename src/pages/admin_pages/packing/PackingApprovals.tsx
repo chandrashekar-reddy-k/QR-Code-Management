@@ -63,7 +63,7 @@ export const PackingApprovals: React.FC = () => {
           recipe?.items?.map((item: any, idx: number) => {
             const reqQty = (item.requiredQty / targetYield) * woQty;
             const inputProd = item.inputProduct;
-            const availableStock = inputProd?.productionStock?.inProductionQty ?? (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? 0;
+            const availableStock = inputProd?.productionStock?.inProductionQty ?? (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? (inputProd as any)?.stock ?? 0;
             const shortage = Math.max(0, reqQty - availableStock);
             const status: InventoryValidationItem['status'] =
               availableStock === 0
@@ -79,7 +79,7 @@ export const PackingApprovals: React.FC = () => {
               materialName: inputProd?.name || 'Input Material',
               type: (inputProd?.type as any) || (item.isPackaging ? 'PACKAGING' : 'RAW_MATERIAL'),
               requiredQty: Math.round(reqQty * 100) / 100,
-              uom: inputProd?.uom?.abbreviation || (item.isPackaging ? 'PCS' : 'KG'),
+              uom: inputProd?.unit || '',
               availableStock,
               shortage: Math.round(shortage * 100) / 100,
               status,
@@ -108,7 +108,7 @@ export const PackingApprovals: React.FC = () => {
             recipeCode: recipe?.code || wo.recipeId,
             targetQty: woQty,
             targetYieldQty: targetYield,
-            uomName: wo.product?.uom?.name || 'Units',
+            uomName: wo.product?.unit || 'Units',
             requestedBy: wo.supervisor?.name || wo.operator?.name || 'Store Manager',
             requestedDate: wo.createdAt || new Date().toISOString(),
             priority: (wo.priority as Priority) || 'MEDIUM',

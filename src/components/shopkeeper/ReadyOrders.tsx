@@ -462,7 +462,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             {filteredAgents.length > 0 ? (
               filteredAgents.map((agent) => {
                 const phone = agent.phone || agent.mobileNumber || agent.mobile || "";
-                const isOnline = agent.availabilityStatus === "ONLINE" || agent.status === "ACTIVE" || agent.availabilityStatus === "ACTIVE";
+
                 const profilePic = agent.profilePic || agent.profilePicUrl || agent.profileImage;
 
                 return (

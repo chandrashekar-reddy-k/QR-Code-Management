@@ -81,11 +81,11 @@ export const PackingMaterialIssueDetails: React.FC = () => {
     const items: MaterialItem[] = (recipe.items || []).map((item, idx) => {
       const reqQty = Math.round(item.requiredQty * ratio * 100) / 100;
       const inputProd = item.inputProduct;
-      const uom = inputProd?.uom?.abbreviation || (item.isPackaging ? 'PCS' : 'KG');
+      const uom = inputProd?.unit || '';
       const type = inputProd?.type || (item.isPackaging ? 'PACKAGING' : 'RAW_MATERIAL');
 
       // Check stock
-      const stockQty = inputProd?.productionStock?.inProductionQty ?? (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? 0;
+      const stockQty = inputProd?.productionStock?.inProductionQty ?? (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? (inputProd as any)?.stock ?? 0;
       const shortage = Math.max(0, reqQty - stockQty);
 
       let status: MaterialItem['status'] = 'AVAILABLE';
@@ -302,7 +302,7 @@ export const PackingMaterialIssueDetails: React.FC = () => {
                   Required Qty
                 </span>
                 <span className="text-slate-800 dark:text-white font-bold font-mono block mt-0.5">
-                  {selectedWO.requiredQty} Units
+                  {selectedWO.requiredQty} {selectedWO.product?.unit || 'Units'}
                 </span>
               </div>
               <div>

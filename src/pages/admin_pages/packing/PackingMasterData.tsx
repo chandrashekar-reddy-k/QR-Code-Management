@@ -383,7 +383,7 @@ export const PackingMasterData: React.FC = () => {
               <option value="All" className="dark:bg-gray-800">Type</option>
               <option value="RAW_MATERIAL" className="dark:bg-gray-800">RAW MATERIAL</option>
               <option value="PACKAGING" className="dark:bg-gray-800">PACKAGING</option>
-              <option value="FINISHED_GOOD" className="dark:bg-gray-800">FINISHED GOOD</option>
+              <option value="NON-BRANDED" className="dark:bg-gray-800">NON BRANDED</option>
             </select>
 
             <div className="w-px h-6 bg-slate-200 dark:bg-gray-700" />

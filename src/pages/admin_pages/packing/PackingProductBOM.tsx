@@ -415,7 +415,7 @@ export const PackingProductBOM: React.FC = () => {
                               {item.requiredQty}
                             </td>
                             <td className="p-3 text-center text-slate-600 dark:text-gray-300 font-mono text-xs">
-                              {product?.uom?.abbreviation || '-'}
+                              {product?.unit || '-'}
                             </td>
                             <td className="p-3 text-center text-slate-500 dark:text-gray-400">
                               ±{item.tolerancePct || 0}%
@@ -683,7 +683,7 @@ export const PackingProductBOM: React.FC = () => {
                               type="text"
                               readOnly
                               className="w-full p-1.5 border border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 rounded-lg text-xs focus:outline-none cursor-not-allowed"
-                              value={selectedProduct?.uom?.abbreviation || ''}
+                              value={selectedProduct?.unit || ''}
                               placeholder="-"
                             />
                           </div>
