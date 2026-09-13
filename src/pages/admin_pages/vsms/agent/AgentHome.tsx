@@ -11,7 +11,7 @@ import PunchOutModal from '../components/PunchOutModal';
 import { useUserStore } from '../store/userStore';
 import * as routeService from '../services/routeService';
 import * as shiftService from '../services/shiftService';
-import { ordersAPI, productsAPI } from '../services/api';
+import { ordersAPI, productsAPI, attendanceAPI } from '../services/api';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
 import * as locationService from '../services/locationService';
 
@@ -30,6 +30,7 @@ export default function AgentHome() {
   const [todayPlan, setTodayPlan] = useState<any>(null);
   const [todayOrders, setTodayOrders] = useState<any[]>([]);
   const [activeShift, setActiveShift] = useState<any>(null);
+  const [todayAttendance, setTodayAttendance] = useState<any>(null);
 
   useEffect(() => {
     loadHomeData();
@@ -47,12 +48,21 @@ export default function AgentHome() {
         console.error('Failed to load coverage plan', e);
       }
 
-      // 2. Fetch shift status
+      // 2. Fetch shift and attendance status
       try {
         const { data } = await shiftService.getShiftStatus();
         setActiveShift(data?.activeShift || null);
       } catch (e) {
         console.error('Failed to load shift status', e);
+      }
+
+      try {
+        const { data: attRes } = await attendanceAPI.getToday();
+        if (attRes?.attendance) {
+          setTodayAttendance(attRes.attendance);
+        }
+      } catch (e) {
+        console.error('Failed to load attendance status', e);
       }
 
       // 3. Fetch Orders History (Today)
@@ -127,13 +137,21 @@ export default function AgentHome() {
           >
             <Bell size={18} />
           </button>
-          <button
-            onClick={() => setShowPunchOutModal(true)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
-          >
-            <LogOut size={14} />
-            <span>Punch Out</span>
-          </button>
+          {todayAttendance?.status === 'ACTIVE' && (
+            <button
+              onClick={() => setShowPunchOutModal(true)}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+            >
+              <LogOut size={14} />
+              <span>Punch Out</span>
+            </button>
+          )}
+          {todayAttendance?.status === 'COMPLETED' && (
+            <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
+              <CheckCircle2 size={14} className="text-emerald-600" />
+              <span>Shift Ended</span>
+            </div>
+          )}
           <button
             onClick={() => openHRMSPortal()}
             className="bg-[#00891D] hover:bg-[#007318] text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 tracking-wide"
