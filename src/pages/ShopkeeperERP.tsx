@@ -1,6 +1,6 @@
 // Trigger re-evaluation comment
 import { useState, useEffect } from "react";
-import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History, Settings as SettingsIcon } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History } from "lucide-react";
 import { DashboardMobile as Dashboard } from "../components/shopkeeper/DashboardMobile";
 import { NewOrders } from "../components/shopkeeper/NewOrdersMobile";
 import { OrderDetails } from "../components/shopkeeper/OrderDetailsMobile";
@@ -439,7 +439,6 @@ export default function ShopkeeperERP() {
         </div>
 
         {/* Dynamic Screens (re-mounted on navigation) */}
-        {screen === "sla-monitoring" && <SLAMonitoring onBack={goBack} onNavigate={navigate} />}
         {screen === "orderhistory" && <AllOrders onBack={goBack} onNavigate={navigate} initialStatus={allOrdersStatus} />}
         {screen === "order-details" && <OrderDetails onBack={goBack} onNavigate={navigate} order={orderData as Record<string, unknown>} socket={socket} />}
         {screen === "picking-screen" && <PickingScreen onNavigate={navigate} onBack={goBack} order={orderData as Record<string, unknown>} />}
@@ -511,7 +510,6 @@ export default function ShopkeeperERP() {
                 { id: "picking-queue", label: "Picking Queue", icon: <Package size={18} /> },
                 { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={18} /> },
                 { id: "profile", label: "Profile", icon: <User size={18} /> },
-                { id: "settings", label: "Settings", icon: <SettingsIcon size={18} /> },
               ].filter(item => hasShopkeeperPermission(item.id)).map((item) => {
                 const isActive = screen === item.id || (
                   item.id === "new-orders" && screen === "order-details"

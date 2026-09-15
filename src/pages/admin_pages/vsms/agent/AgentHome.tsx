@@ -5,13 +5,15 @@ import {
   Bell, MapPin, Clock, Truck, Package, ArrowUpRight,
   ChevronRight, ArrowRight, ShieldCheck, CheckCircle2,
   AlertTriangle, Store, BarChart2, TrendingUp, Layers,
-  RefreshCw, RotateCcw, Gift, FileCheck, LogOut
+  RefreshCw, RotateCcw, Gift, FileCheck, LogOut, LogIn
 } from 'lucide-react';
+import { format } from 'date-fns';
 import PunchOutModal from '../components/PunchOutModal';
+import PunchInScreen from './PunchInScreen';
 import { useUserStore } from '../store/userStore';
 import * as routeService from '../services/routeService';
 import * as shiftService from '../services/shiftService';
-import { ordersAPI, productsAPI } from '../services/api';
+import { ordersAPI, productsAPI, attendanceAPI } from '../services/api';
 import { openHRMSPortal } from '../../../../utils/hrmsSSO';
 import * as locationService from '../services/locationService';
 
@@ -19,6 +21,7 @@ export default function AgentHome() {
   const navigate = useNavigate();
   const { user } = useUserStore();
   const [showPunchOutModal, setShowPunchOutModal] = useState(false);
+  const [showPunchInScreen, setShowPunchInScreen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -30,6 +33,7 @@ export default function AgentHome() {
   const [todayPlan, setTodayPlan] = useState<any>(null);
   const [todayOrders, setTodayOrders] = useState<any[]>([]);
   const [activeShift, setActiveShift] = useState<any>(null);
+  const [todayAttendance, setTodayAttendance] = useState<any>(null);
 
   useEffect(() => {
     loadHomeData();
@@ -47,12 +51,21 @@ export default function AgentHome() {
         console.error('Failed to load coverage plan', e);
       }
 
-      // 2. Fetch shift status
+      // 2. Fetch shift and attendance status
       try {
         const { data } = await shiftService.getShiftStatus();
         setActiveShift(data?.activeShift || null);
       } catch (e) {
         console.error('Failed to load shift status', e);
+      }
+
+      try {
+        const { data: attRes } = await attendanceAPI.getToday();
+        if (attRes?.attendance) {
+          setTodayAttendance(attRes.attendance);
+        }
+      } catch (e) {
+        console.error('Failed to load attendance status', e);
       }
 
       // 3. Fetch Orders History (Today)
@@ -109,6 +122,18 @@ export default function AgentHome() {
   const agentName = user?.name || user?.firstName || user?.fullName || 'VSMS Agent User';
   const roleName = 'Sales Agent';
 
+  const isPunchedIn = Boolean(
+    (todayAttendance?.punchInTime && !todayAttendance?.punchOutTime) ||
+    todayAttendance?.status === 'ACTIVE' ||
+    todayAttendance?.status === 'Present'
+  );
+
+  const isCompleted = Boolean(
+    (todayAttendance?.punchInTime && todayAttendance?.punchOutTime) ||
+    todayAttendance?.status === 'COMPLETED' ||
+    todayAttendance?.status === 'Shift Ended'
+  );
+
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-20 pt-1">
       {/* ── Top Header Strip ── */}
@@ -127,13 +152,28 @@ export default function AgentHome() {
           >
             <Bell size={18} />
           </button>
-          <button
-            onClick={() => setShowPunchOutModal(true)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
-          >
-            <LogOut size={14} />
-            <span>Punch Out</span>
-          </button>
+          {isCompleted ? (
+            <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
+              <CheckCircle2 size={14} className="text-emerald-600" />
+              <span>Shift Ended</span>
+            </div>
+          ) : isPunchedIn ? (
+            <button
+              onClick={() => setShowPunchOutModal(true)}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+            >
+              <LogOut size={14} />
+              <span>Punch Out</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowPunchInScreen(true)}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+            >
+              <LogIn size={14} />
+              <span>Punch In</span>
+            </button>
+          )}
           <button
             onClick={() => openHRMSPortal()}
             className="bg-[#00891D] hover:bg-[#007318] text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 tracking-wide"
@@ -141,6 +181,92 @@ export default function AgentHome() {
             HRMS
           </button>
         </div>
+      </div>
+
+      {/* ── Attendance Duty Card ── */}
+      <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold ${
+              isCompleted 
+                ? 'bg-emerald-100 text-emerald-700' 
+                : isPunchedIn 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-amber-100 text-amber-700'
+            }`}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-gray-900">Today's Duty Status</h3>
+              <p className="text-[11px] font-bold text-gray-400">
+                {format(new Date(), 'EEEE, dd MMMM yyyy')}
+              </p>
+            </div>
+          </div>
+
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+            isCompleted 
+              ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+              : isPunchedIn 
+              ? 'bg-blue-50 text-blue-600 border border-blue-100 animate-pulse' 
+              : 'bg-amber-50 text-amber-600 border border-amber-100'
+          }`}>
+            {isCompleted ? 'Work Completed' : isPunchedIn ? 'Punch In Completed' : 'Punch In Pending'}
+          </span>
+        </div>
+
+        {/* Dynamic State Content */}
+        {isCompleted ? (
+          <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-emerald-500 text-white mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <CheckCircle2 size={26} strokeWidth={2.5} />
+            </div>
+            <h4 className="text-base font-black text-emerald-950 tracking-tight">Today's Work is Completed</h4>
+            <p className="text-xs font-semibold text-emerald-700/80 max-w-xs mx-auto">
+              You have successfully completed your shift for today. Thank you for your hard work and dedication!
+            </p>
+            <div className="flex items-center justify-center gap-6 pt-2 text-xs font-black text-emerald-900 border-t border-emerald-100/80">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-emerald-600 block">Punch In</span>
+                {todayAttendance?.punchInTime ? format(new Date(todayAttendance.punchInTime), 'hh:mm a') : '—'}
+              </div>
+              <div className="w-px h-6 bg-emerald-200" />
+              <div>
+                <span className="text-[10px] font-bold uppercase text-emerald-600 block">Punch Out</span>
+                {todayAttendance?.punchOutTime ? format(new Date(todayAttendance.punchOutTime), 'hh:mm a') : '—'}
+              </div>
+            </div>
+          </div>
+        ) : isPunchedIn ? (
+          <div className="space-y-3">
+            <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-3.5 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 font-bold text-blue-900">
+                <CheckCircle2 size={16} className="text-blue-600" />
+                <span>Punch In Completed at {todayAttendance?.punchInTime ? format(new Date(todayAttendance.punchInTime), 'hh:mm a') : '—'}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowPunchOutModal(true)}
+              className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl text-xs font-black tracking-wider uppercase transition-all shadow-lg shadow-orange-500/20 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <LogOut size={16} />
+              <span>Punch Out</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+              Please punch in to start your shift, enable live location tracking, and receive route orders.
+            </p>
+            <button
+              onClick={() => setShowPunchInScreen(true)}
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black tracking-wider uppercase transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <LogIn size={16} />
+              <span>Punch In</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Notification Announcement Card ── */}
@@ -513,6 +639,16 @@ export default function AgentHome() {
             window.location.reload();
           }}
         />
+      )}
+      {showPunchInScreen && (
+        <div className="fixed inset-0 z-[100] bg-white">
+          <PunchInScreen
+            onPunchIn={() => {
+              setShowPunchInScreen(false);
+              window.location.reload();
+            }}
+          />
+        </div>
       )}
     </div>
   );

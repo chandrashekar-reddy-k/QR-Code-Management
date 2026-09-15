@@ -327,6 +327,17 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                   zoom={selectedAssignment ? 13 : 10}
                   options={{ disableDefaultUI: true, styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }] }}
                 >
+                  {selectedAssignment && breadcrumbPath.length > 1 && (
+                    <PolylineF
+                      path={breadcrumbPath}
+                      options={{
+                        strokeColor: '#10b981',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 4,
+                        geodesic: true
+                      }}
+                    />
+                  )}
                   {selectedAssignment && breadcrumbPath.length > 0 && (
                     <MarkerF
                       position={breadcrumbPath[breadcrumbPath.length - 1]}
@@ -340,10 +351,18 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                       icon={{ path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z', fillColor: v.visited ? '#10b981' : '#ef4444', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5, scale: 1.2, anchor: { x: 12, y: 24 } }}
                     />
                   ))}
-                  {!selectedAssignment && liveLocations.filter(l => l.lat && l.long && (new Date() - new Date(l.updatedAt)) < 15 * 60 * 1000).map(loc => (
+                  {/* If selectedAssignment is set, only show that agent's location marker; otherwise show all */}
+                  {liveLocations
+                    .filter(l => (l.lat || l.latitude) && (l.long || l.longitude))
+                    .filter(loc => {
+                      if (!selectedAssignment) return (new Date() - new Date(loc.updatedAt || loc.timestamp || new Date())) < 15 * 60 * 1000;
+                      const selectedPerfItem = data.performance.find(p => p.assignmentId === selectedAssignment);
+                      return selectedPerfItem && (selectedPerfItem.userId === loc.userId);
+                    })
+                    .map(loc => (
                     <MarkerF
                       key={loc.userId}
-                      position={{ lat: loc.lat, lng: loc.long }}
+                      position={{ lat: parseFloat(loc.lat || loc.latitude), lng: parseFloat(loc.long || loc.longitude) }}
                       onClick={() => { const p = data.performance.find(x => x.userId === loc.userId); if (p) fetchDetail(p.assignmentId); }}
                       icon={{ path: window.google?.maps.SymbolPath.CIRCLE, fillColor: '#10b981', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 7 }}
                     />

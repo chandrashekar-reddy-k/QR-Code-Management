@@ -9,6 +9,7 @@ import {
   Search,
   Filter,
   RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import {
   masterDataService,
@@ -226,21 +227,41 @@ export const PackingMasterData: React.FC = () => {
     );
   };
 
+  const generateSkuFromName = (name: string, uomId?: string) => {
+    if (!name?.trim()) return '';
+    const nameClean = name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase().padEnd(4, 'X');
+    const selectedUom = uoms.find((u) => u.id === (uomId || formData.uomId));
+    let unitCode = selectedUom?.abbreviation || selectedUom?.name || 'P';
+    let qty = 1;
+    const match = name.match(/(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?/);
+    if (match) {
+      qty = match[1] as any;
+      if (match[2] && !uomId) {
+        unitCode = match[2].toUpperCase();
+      }
+    }
+    const unitClean = unitCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    return `${nameClean}-${qty}-${unitClean}`;
+  };
+
   const getColumns = () => {
     const cols: any[] = [];
     
     cols.push({
       key: 'sku',
       label: 'SKU',
-      className: 'w-[20%] text-left p-4',
-      render: (r: any) => (
-        <span
-          className="font-mono font-medium text-slate-600 dark:text-gray-300 block truncate max-w-[120px]"
-          title={r.sku}
-        >
-          {r.sku}
-        </span>
-      ),
+      className: 'w-[18%] text-left p-4',
+      render: (r: any) => {
+        const skuValue = r.sku || r.resolvedSku || '-';
+        return (
+          <span
+            className="font-mono font-semibold text-xs text-slate-700 dark:text-gray-200 bg-slate-100 dark:bg-gray-700/60 px-2 py-0.5 rounded border border-slate-200 dark:border-gray-600 inline-block truncate max-w-[160px]"
+            title={skuValue}
+          >
+            {skuValue}
+          </span>
+        );
+      },
     });
     
     cols.push({
@@ -465,30 +486,47 @@ export const PackingMasterData: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-gray-300 mb-1">
-                  Product SKU
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={formData.sku || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sku: e.target.value })
-                  }
-                  className="w-full border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 focus:border-green-600"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-gray-300 mb-1">
                   Product Name
                 </label>
                 <input
                   required
                   type="text"
+                  placeholder="e.g. Aashirvaad Atta 5kg"
                   value={formData.name || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const autoSku = isCreating ? generateSkuFromName(val, formData.uomId) : formData.sku;
+                    setFormData({ ...formData, name: val, ...(isCreating && { sku: autoSku }) });
+                  }}
                   className="w-full border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 focus:border-green-600"
+                />
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-gray-300">
+                    Product SKU
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const autoSku = generateSkuFromName(formData.name || '', formData.uomId);
+                      setFormData({ ...formData, sku: autoSku });
+                    }}
+                    className="text-[11px] text-green-600 dark:text-green-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                  >
+                    <Sparkles size={12} />
+                    Auto Generate
+                  </button>
+                </div>
+                <input
+                  required
+                  type="text"
+                  placeholder="e.g. AASH-5-KG"
+                  value={formData.sku || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sku: e.target.value })
+                  }
+                  className="w-full border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm font-mono focus:ring-1 focus:ring-green-600 focus:border-green-600"
                 />
               </div>
               <div>
@@ -518,9 +556,11 @@ export const PackingMasterData: React.FC = () => {
                 <select
                   required
                   value={formData.uomId || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, uomId: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const autoSku = isCreating ? generateSkuFromName(formData.name || '', val) : formData.sku;
+                    setFormData({ ...formData, uomId: val, ...(isCreating && { sku: autoSku }) });
+                  }}
                   className="w-full border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 focus:border-green-600"
                 >
                   <option value="">Select UOM</option>

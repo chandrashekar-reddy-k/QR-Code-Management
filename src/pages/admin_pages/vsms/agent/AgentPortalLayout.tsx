@@ -71,8 +71,10 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   const agentName = user?.name || localStorage.getItem('userName') || 'Agent';
 
   // Only gate agent roles
+  const portalMode = (sessionStorage.getItem('portalMode') || localStorage.getItem('portalMode') || '').toUpperCase();
+  const customRoleUpper = ((user?.customRole?.name || user?.customRole?.portalType || '') as string).toUpperCase();
   const roleUpper = (user?.role || localStorage.getItem('role') || localStorage.getItem('partnerRole') || '').toUpperCase();
-  const isAgent = roleUpper === 'SALES_AGENT' || roleUpper === 'VEHICLE_AGENT' || roleUpper === 'VSMS_AGENT' || roleUpper === 'DELIVERY_AGENT' || roleUpper.endsWith('_AGENT') || roleUpper === 'AGENT';
+  const isAgent = portalMode === 'AGENT' || roleUpper === 'SALES_AGENT' || roleUpper === 'VEHICLE_AGENT' || roleUpper === 'VSMS_AGENT' || roleUpper === 'DELIVERY_AGENT' || roleUpper.endsWith('_AGENT') || roleUpper === 'AGENT' || roleUpper.includes('AGENT') || customRoleUpper.includes('AGENT');
 
   useEffect(() => {
     // Check attendance for agent portal users
@@ -341,10 +343,10 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     );
   }
 
-  // Punch-in gate disabled — agents go straight to the portal after login
-  // if (isAgent && user?.attendanceEnabled !== false && attendanceChecked && !hasPunchedIn) {
-  //   return <PunchInScreen onPunchIn={handlePunchIn} />;
-  // }
+  // Gate agent portal with PunchInScreen until punched in
+  if (isAgent && user?.attendanceEnabled !== false && attendanceChecked && !hasPunchedIn) {
+    return <PunchInScreen onPunchIn={handlePunchIn} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 flex flex-col md:flex-row relative overflow-x-hidden">

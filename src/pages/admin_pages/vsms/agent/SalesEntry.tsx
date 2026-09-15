@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, ShoppingCart, Smartphone, Gift, Grid, ScanBarcode, AlertTriangle, Plus, Minus } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
-import { productsAPI } from '../services/api';
+import { productsAPI, authAPI } from '../services/api';
 import { useCartStore } from '../store/cartStore';
 import ProductGrid from './components/ProductGrid';
 import CartDrawer from './components/CartDrawer';

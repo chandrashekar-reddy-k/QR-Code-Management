@@ -385,9 +385,6 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
       );
       setCountdown(remaining);
       if (remaining <= 0) {
-        if (activeOrder.status !== "CONFIRMED") {
-          api.put(`/orders/${activeOrder.orderId}/accept`).catch(err => console.error("Auto confirm failed", err));
-        }
         stopAlarm();
         setActiveOrder(null);
       }

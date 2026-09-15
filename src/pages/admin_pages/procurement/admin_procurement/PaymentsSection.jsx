@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   CreditCard, Plus, Search, Loader2, X, Trash2, Eye, Download,
   FileText, CheckCircle2, ArrowLeft, Calendar, User, Phone,
-  ShieldAlert, Building2, Wallet, AlertCircle
+  ShieldAlert, Building2, Wallet, AlertCircle, Edit, DollarSign,
+  Package, ShoppingBag, Tag, Boxes
 } from 'lucide-react';
 import { procurementAPI } from '../../vsms/services/procurementService';
 import toast from 'react-hot-toast';
@@ -13,11 +14,13 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingPaymentId, setEditingPaymentId] = useState(null);
   const [vendors, setVendors] = useState([]);
   const [outstanding, setOutstanding] = useState([]);
   const [form, setForm] = useState({
     vendorId: '', amount: '', mode: 'CASH', referenceNo: '',
-    paymentDate: format(new Date(), 'yyyy-MM-dd'), invoiceId: '', remarks: ''
+    paymentDate: format(new Date(), 'yyyy-MM-dd'), invoiceId: '', remarks: '',
+    paymentStatus: 'PAID' // 'PAID', 'PARTIAL', 'UNPAID'
   });
   
   const [search, setSearch] = useState('');
@@ -80,28 +83,83 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
     try {
       const { data } = await procurementAPI.getVendors({ status: 'ACTIVE' });
       setVendors(data?.data || data || []);
+      setEditingPaymentId(null);
       setForm({ 
         vendorId: '', amount: '', mode: 'CASH', referenceNo: '', 
-        paymentDate: format(new Date(), 'yyyy-MM-dd'), invoiceId: '', remarks: '' 
+        paymentDate: format(new Date(), 'yyyy-MM-dd'), invoiceId: '', remarks: '',
+        paymentStatus: 'PAID'
       });
       setOutstanding([]);
       setShowForm(true);
     } catch { toast.error('Failed to load vendors'); }
   };
 
+  const openEditForm = async (paymentItem) => {
+    try {
+      const { data } = await procurementAPI.getVendors({ status: 'ACTIVE' });
+      setVendors(data?.data || data || []);
+      const p = paymentItem.raw || paymentItem;
+      const targetVendorId = p.vendorId || p.vendor?.id || '';
+      const targetInvoiceId = p.invoiceId || p.allocations?.[0]?.invoiceId || '';
+      
+      setEditingPaymentId(p.id);
+      
+      if (targetVendorId) {
+        const { data: invData } = await procurementAPI.getOutstandingInvoices(targetVendorId);
+        let list = invData || [];
+        // If editing a payment linked to an invoice, ensure that invoice is present in dropdown
+        if (targetInvoiceId && !list.some(inv => inv.id === targetInvoiceId)) {
+          const invObj = p.invoice || p.allocations?.[0]?.invoice;
+          if (invObj) {
+            list = [{
+              id: invObj.id,
+              invoiceNumber: invObj.invoiceNumber,
+              totalAmount: invObj.totalAmount,
+              paidAmount: invObj.paidAmount,
+              outstanding: Math.max(0, invObj.totalAmount - invObj.paidAmount + (p.amount || 0)),
+              dueDate: invObj.dueDate || invObj.invoiceDate
+            }, ...list];
+          }
+        }
+        setOutstanding(list);
+      } else {
+        setOutstanding([]);
+      }
+
+      const invObj = p.invoice || p.allocations?.[0]?.invoice;
+      let initialStatus = 'PAID';
+      if (p.amount === 0) {
+        initialStatus = 'UNPAID';
+      } else if (invObj) {
+        initialStatus = (invObj.paidAmount >= invObj.totalAmount) ? 'PAID' : 'PARTIAL';
+      }
+
+      setForm({
+        vendorId: targetVendorId,
+        amount: String(p.amount ?? ''),
+        mode: p.mode || 'CASH',
+        referenceNo: p.referenceNo || '',
+        paymentDate: p.paymentDate ? format(new Date(p.paymentDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        invoiceId: targetInvoiceId,
+        remarks: p.remarks || '',
+        paymentStatus: initialStatus
+      });
+      setShowForm(true);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to prepare payment for editing');
+    }
+  };
+
   const onVendorSelect = async (vendorId) => {
-    console.log("onVendorSelect triggered for vendorId:", vendorId);
     setForm(f => ({ ...f, vendorId, invoiceId: '', amount: '' }));
     if (!vendorId) {
-      console.log("Empty vendorId selected, clearing outstanding list.");
       setOutstanding([]);
       return;
     }
     try {
-      console.log("Calling getOutstandingInvoices for:", vendorId);
       const { data } = await procurementAPI.getOutstandingInvoices(vendorId);
-      console.log("getOutstandingInvoices returned:", data);
-      setOutstanding(data);
+      setOutstanding(data || []);
     } catch (err) {
       console.error("Error loading outstanding invoices in frontend:", err.response || err);
       toast.error(`Error loading invoices: ${err.response?.data?.message || err.message}`);
@@ -114,34 +172,75 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
     setForm(f => ({
       ...f,
       invoiceId,
-      amount: selected ? String(selected.outstanding) : ''
+      amount: selected ? (f.paymentStatus === 'UNPAID' ? '0' : String(selected.outstanding)) : f.amount
+    }));
+  };
+
+  const handlePaymentStatusChange = (status) => {
+    const selected = outstanding.find(inv => inv.id === form.invoiceId);
+    let newAmount = form.amount;
+    if (status === 'UNPAID') {
+      newAmount = '0';
+    } else if (status === 'PAID' && selected) {
+      newAmount = String(selected.outstanding);
+    }
+    setForm(f => ({
+      ...f,
+      paymentStatus: status,
+      amount: newAmount
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.vendorId || !form.amount) return toast.error('Fill required fields');
+    if (!form.vendorId) return toast.error('Vendor is required');
+    const numericAmount = parseFloat(form.amount) || 0;
+    
+    if (form.paymentStatus === 'UNPAID' && !form.invoiceId) {
+      return toast.error('Please select an invoice to record an Unpaid status, or enter an amount paid');
+    }
+    if (form.paymentStatus !== 'UNPAID' && numericAmount <= 0) {
+      return toast.error('Please enter a valid paid amount greater than 0');
+    }
+
+    const payload = {
+      vendorId: form.vendorId,
+      invoiceId: form.invoiceId || null,
+      amount: numericAmount,
+      mode: form.mode || 'CASH',
+      referenceNo: form.referenceNo || null,
+      paymentDate: form.paymentDate,
+      remarks: form.remarks || ''
+    };
+
     try {
-      await procurementAPI.createPayment({
-        ...form,
-        amount: parseFloat(form.amount)
-      });
-      toast.success('Payment recorded');
+      if (editingPaymentId) {
+        await procurementAPI.updatePayment(editingPaymentId, payload);
+        toast.success('Payment updated successfully');
+      } else {
+        await procurementAPI.createPayment(payload);
+        toast.success('Payment recorded successfully');
+      }
+
       setShowForm(false);
+      setEditingPaymentId(null);
       setForm({ 
         vendorId: '', amount: '', mode: 'CASH', referenceNo: '', 
-        paymentDate: format(new Date(), 'yyyy-MM-dd'), invoiceId: '', remarks: '' 
+        paymentDate: format(new Date(), 'yyyy-MM-dd'), invoiceId: '', remarks: '',
+        paymentStatus: 'PAID'
       });
       setOutstanding([]);
       
       // Reload lists
       const [pmtsRes, purchRes] = await Promise.all([
-        procurementAPI.getPayments(),
-        procurementAPI.getPurchases()
+        procurementAPI.getPayments({ storeId: storeId || undefined }),
+        procurementAPI.getPurchases({ storeId: storeId || undefined })
       ]);
       setPayments(pmtsRes.data || []);
       setPurchases(purchRes.data || []);
-    } catch (err) { toast.error(err.response?.data?.message || 'Payment error'); }
+    } catch (err) { 
+      toast.error(err.response?.data?.message || 'Payment save error'); 
+    }
   };
 
   const handleDeletePayment = async (id) => {
@@ -179,7 +278,15 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
       outstandingVal = Math.max(0, invoice.totalAmount - invoice.paidAmount);
       invoiceNumberVal = invoice.invoiceNumber;
       dueDateVal = invoice.dueDate || invoice.invoiceDate;
-      statusText = outstandingVal === 0 ? 'Paid' : 'Partial';
+      if (p.amount === 0 || invoice.paidAmount === 0) {
+        statusText = 'Unpaid';
+      } else if (invoice.paidAmount >= invoice.totalAmount) {
+        statusText = 'Paid';
+      } else {
+        statusText = 'Partial';
+      }
+    } else if (p.amount === 0) {
+      statusText = 'Unpaid';
     }
 
     trackingItems.push({
@@ -213,8 +320,12 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
     let statusText = 'Unpaid';
     if (isOverdue) {
       statusText = 'Overdue';
-    } else if (inv.status === 'PARTIAL_PAID' || inv.paidAmount > 0) {
+    } else if (inv.paidAmount > 0 && inv.paidAmount < inv.totalAmount) {
       statusText = 'Partial';
+    } else if (inv.paidAmount >= inv.totalAmount) {
+      statusText = 'Paid';
+    } else {
+      statusText = 'Unpaid';
     }
 
     trackingItems.push({
@@ -426,6 +537,57 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
       ? format(new Date(selectedItem.paymentDate), 'dd MMM yyyy') 
       : (selectedItem.raw.invoiceDate ? format(new Date(selectedItem.raw.invoiceDate), 'dd MMM yyyy') : '—');
 
+    // Extract direct line items for linked invoice
+    let directItems = [];
+    if (selectedItem.type === 'INVOICE' && selectedItem.raw.items) {
+      directItems = selectedItem.raw.items;
+    } else if (selectedItem.type === 'PAYMENT') {
+      const inv = selectedItem.raw.invoice || selectedItem.raw.allocations?.[0]?.invoice;
+      if (inv && inv.items) {
+        directItems = inv.items;
+      }
+    }
+
+    const formatCategoryName = (cat) => {
+      if (!cat) return 'General';
+      if (typeof cat === 'string') return cat;
+      if (typeof cat === 'object' && cat.name) return cat.name;
+      return 'General';
+    };
+
+    const formatUnitName = (u) => {
+      if (!u) return 'Unit';
+      if (typeof u === 'string') return u;
+      if (typeof u === 'object' && u.name) return u.name;
+      return 'Unit';
+    };
+
+    // Extract all products supplied by this vendor across all purchases in state
+    const vendorPurchases = purchases.filter(p => 
+      (p.vendorId && p.vendorId === selectedItem.vendorId) || 
+      (p.vendor?.vendorName && p.vendor.vendorName === selectedItem.vendorName)
+    );
+    const vendorProductsMap = new Map();
+    vendorPurchases.forEach(inv => {
+      (inv.items || []).forEach(item => {
+        const prodId = item.productId || item.product?.id || item.product?.sku || item.productName;
+        if (!prodId) return;
+        const existing = vendorProductsMap.get(prodId) || {
+          id: prodId,
+          name: item.product?.name || item.productName || 'Product',
+          sku: item.product?.sku || 'N/A',
+          unit: formatUnitName(item.product?.unit || item.uom),
+          category: formatCategoryName(item.product?.category),
+          totalQtySupplied: 0,
+          totalSupplyValue: 0
+        };
+        existing.totalQtySupplied += Number(item.quantity || 0);
+        existing.totalSupplyValue += Number(item.totalPrice || (item.quantity * (item.unitPrice || 0)) || 0);
+        vendorProductsMap.set(prodId, existing);
+      });
+    });
+    const allVendorProducts = Array.from(vendorProductsMap.values());
+
     return (
       <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
         {/* Detail Header */}
@@ -478,6 +640,19 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
                 </p>
               </div>
             </div>
+            {selectedItem.type === 'PAYMENT' && can('PROCUREMENT', 'UPDATE', 'PAYMENTS') && (
+              <button 
+                onClick={() => {
+                  const item = selectedItem;
+                  setSelectedItem(null);
+                  openEditForm(item);
+                }}
+                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold transition-all shadow-lg shadow-blue-600/10 active:scale-95"
+              >
+                <Edit size={14} />
+                Edit Payment
+              </button>
+            )}
             <button 
               onClick={() => handleDownloadReceipt(selectedItem)}
               className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all shadow-lg shadow-emerald-600/10 active:scale-95"
@@ -679,6 +854,111 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
           )}
         </div>
 
+        {/* Vendor Supplied Products & Catalog Card */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+            <div>
+              <h3 className="text-sm font-black text-gray-950 uppercase tracking-wider flex items-center gap-2">
+                <Package size={18} className="text-emerald-600" />
+                Products Provided By Vendor ({selectedItem.vendorName})
+              </h3>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">
+                Comprehensive product line items and supply history for this vendor
+              </p>
+            </div>
+            <span className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-xs font-black self-start sm:self-auto flex items-center gap-1.5">
+              <Boxes size={14} />
+              {directItems.length > 0 ? `${directItems.length} Linked Invoice Items` : `${allVendorProducts.length} Vendor Products`}
+            </span>
+          </div>
+
+          {/* 1. Direct Invoice Items (if linked to an invoice with items) */}
+          {directItems.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Tag size={13} className="text-emerald-600" />
+                Line Items in Linked Invoice ({selectedItem.invoiceNumber})
+              </h4>
+              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-inner">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-100 font-black text-gray-500 uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="py-3 px-4">#</th>
+                      <th className="py-3 px-4">Product Name & SKU</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4 text-center">Quantity</th>
+                      <th className="py-3 px-4 text-right">Unit Price</th>
+                      <th className="py-3 px-4 text-right">Total Line Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-gray-700 font-bold">
+                    {directItems.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3.5 px-4 text-gray-400 font-mono">{idx + 1}</td>
+                        <td className="py-3.5 px-4">
+                          <p className="font-black text-gray-900">{item.product?.name || item.productName || 'Unnamed Item'}</p>
+                          <span className="text-[10px] font-mono text-gray-400">SKU: {item.product?.sku || 'N/A'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md text-[10px] font-bold">
+                            {formatCategoryName(item.product?.category)}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className="font-black text-gray-900">{item.quantity}</span>{' '}
+                          <span className="text-gray-400 text-[10px] uppercase font-bold">{formatUnitName(item.product?.unit || item.uom)}</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono text-gray-900">
+                          ₹{Number(item.unitPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600">
+                          ₹{Number(item.totalPrice || (item.quantity * item.unitPrice) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 2. All Vendor Supplied Products Catalog */}
+          <div className="space-y-3 pt-2">
+            <h4 className="text-xs font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+              <ShoppingBag size={13} className="text-blue-600" />
+              Vendor Catalog & Overall Supply History ({allVendorProducts.length} Total Items)
+            </h4>
+            {allVendorProducts.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-gray-400 text-xs font-bold">
+                No catalog items logged for this vendor yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {allVendorProducts.map((p, idx) => (
+                  <div key={idx} className="p-4 bg-slate-50/80 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl transition-all flex flex-col justify-between space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h5 className="font-black text-gray-950 text-xs tracking-tight leading-snug">{p.name}</h5>
+                        <p className="text-[10px] font-mono text-gray-400 mt-0.5">SKU: {p.sku}</p>
+                      </div>
+                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[9px] font-black uppercase tracking-wider border border-blue-100/50 shrink-0">
+                        {p.category}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[11px] font-bold">
+                      <span className="text-gray-500">Total Supplied:</span>
+                      <span className="font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-100/60">
+                        {p.totalQtySupplied.toLocaleString()} {p.unit}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Vendor Ledger Card */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h3 className="text-sm font-black text-gray-950 uppercase tracking-wider flex items-center gap-2">
@@ -780,7 +1060,7 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => setShowForm(false)}
+              onClick={() => { setShowForm(false); setEditingPaymentId(null); }}
               className="p-2.5 bg-white border border-gray-200 rounded-2xl text-gray-500 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-95"
               title="Back to Payments"
             >
@@ -788,10 +1068,10 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
             </button>
             <div>
               <h2 className="text-2xl font-black text-gray-950 tracking-tight uppercase">
-                Record Payment
+                {editingPaymentId ? 'Edit Payment' : 'Record Payment'}
               </h2>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-1">
-                Record a new vendor payment transaction
+                {editingPaymentId ? 'Modify vendor payment details and balance allocation' : 'Record a new vendor payment transaction'}
               </p>
             </div>
           </div>
@@ -800,6 +1080,31 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
         {/* Form Body */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* Live Calculation Summary Banner */}
+            {selectedInvoice && (
+              <div className="bg-gradient-to-r from-emerald-50/70 via-slate-50 to-blue-50/60 p-5 rounded-2xl border border-emerald-100/60 grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Invoice Total</span>
+                  <p className="text-base font-black text-gray-900 mt-0.5">₹{selectedInvoice.totalAmount?.toLocaleString()}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Current Outstanding</span>
+                  <p className="text-base font-black text-orange-500 mt-0.5">₹{selectedInvoice.outstanding?.toLocaleString()}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Paying Now</span>
+                  <p className="text-base font-black text-emerald-600 mt-0.5">₹{(parseFloat(form.amount) || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Remaining Balance</span>
+                  <p className={`text-base font-black mt-0.5 ${Math.max(0, (selectedInvoice.outstanding || 0) - (parseFloat(form.amount) || 0)) > 0 ? 'text-amber-600' : 'text-emerald-700'}`}>
+                    ₹{Math.max(0, (selectedInvoice.outstanding || 0) - (parseFloat(form.amount) || 0)).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
               {/* Left Column */}
               <div className="space-y-4">
@@ -821,23 +1126,94 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
                   </select>
                 </div>
 
+                {/* Linked Invoice */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 pl-1">Linked Invoice / Purchase Entry</label>
+                  <select 
+                    value={form.invoiceId} 
+                    onChange={e => onInvoiceSelect(e.target.value)}
+                    disabled={!form.vendorId}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Advance / On Account (No Invoice)</option>
+                    {outstanding.map(inv => (
+                      <option key={inv.id} value={inv.id}>
+                        #{inv.invoiceNumber} (O/S: ₹{inv.outstanding.toLocaleString()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Payment Status (Paid / Partial / Unpaid) */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-700 pl-1">Payment Status <span className="text-red-500">*</span></label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'PAID', label: 'Full Paid', color: 'border-emerald-500 bg-emerald-50 text-emerald-700' },
+                      { id: 'PARTIAL', label: 'Partial Paid', color: 'border-amber-500 bg-amber-50 text-amber-700' },
+                      { id: 'UNPAID', label: 'Unpaid / Due', color: 'border-slate-400 bg-slate-100 text-slate-700' }
+                    ].map(st => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => handlePaymentStatusChange(st.id)}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-black transition-all ${
+                          form.paymentStatus === st.id
+                            ? `${st.color} shadow-sm ring-2 ring-emerald-500/20`
+                            : 'border-slate-200 bg-slate-50 text-gray-500 hover:bg-slate-100'
+                        }`}
+                      >
+                        {st.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Amount Input */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 pl-1">Amount <span className="text-red-500">*</span></label>
+                  <div className="flex items-center justify-between pl-1">
+                    <label className="text-xs font-bold text-gray-700">
+                      {form.paymentStatus === 'UNPAID' ? 'Amount To Pay' : 'Amount Paid (₹)'} <span className="text-red-500">*</span>
+                    </label>
+                    {selectedInvoice && form.paymentStatus !== 'UNPAID' && (
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, amount: String(selectedInvoice.outstanding) }))}
+                        className="text-[10px] font-black text-emerald-600 hover:underline"
+                      >
+                        Set Full (₹{selectedInvoice.outstanding})
+                      </button>
+                    )}
+                  </div>
                   <div className="relative group">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">₹</span>
                     <input 
                       type="number" 
                       step="any"
+                      min="0"
                       required 
+                      disabled={form.paymentStatus === 'UNPAID'}
                       placeholder="0.00"
                       value={form.amount} 
-                      onChange={e => setForm({...form, amount: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-4 py-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all" 
+                      onChange={e => {
+                        const val = e.target.value;
+                        const num = parseFloat(val) || 0;
+                        let inferredStatus = form.paymentStatus;
+                        if (selectedInvoice) {
+                          if (num >= selectedInvoice.outstanding) inferredStatus = 'PAID';
+                          else if (num > 0) inferredStatus = 'PARTIAL';
+                          else inferredStatus = 'UNPAID';
+                        }
+                        setForm({...form, amount: val, paymentStatus: inferredStatus});
+                      }}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-8 pr-4 py-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed" 
                     />
                   </div>
                 </div>
+              </div>
 
+              {/* Right Column */}
+              <div className="space-y-4">
                 {/* Payment Mode */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-700 pl-1">Payment Mode <span className="text-red-500">*</span></label>
@@ -847,12 +1223,23 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
                     required
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all"
                   >
-                    <option value="">Select payment mode</option>
                     <option value="CASH">Cash</option>
-                    <option value="BANK">Bank</option>
-                    <option value="UPI">UPI</option>
+                    <option value="BANK">Bank Transfer / NEFT / RTGS</option>
+                    <option value="UPI">UPI / QR Code</option>
                     <option value="CHEQUE">Cheque</option>
                   </select>
+                </div>
+
+                {/* Reference / Transaction No */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 pl-1">Reference / UTR / Cheque No</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. UTR-9821734912 or Cheque #00492"
+                    value={form.referenceNo} 
+                    onChange={e => setForm({...form, referenceNo: e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all" 
+                  />
                 </div>
 
                 {/* Payment Date */}
@@ -866,53 +1253,34 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all" 
                   />
                 </div>
-              </div>
 
-              {/* Right Column */}
-              <div className="space-y-4">
-                {/* Linked Invoice */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 pl-1">Linked Invoice / Purchase Entry</label>
-                  <select 
-                    value={form.invoiceId} 
-                    onChange={e => onInvoiceSelect(e.target.value)}
-                    disabled={!form.vendorId}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <option value="">Select invoice</option>
-                    {outstanding.map(inv => (
-                      <option key={inv.id} value={inv.id}>
-                        #{inv.invoiceNumber} (O/S: ₹{inv.outstanding.toLocaleString()})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Outstanding Amount (Read-only) */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 pl-1">Outstanding Amount</label>
-                  <div className="w-full bg-slate-100/70 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-500 select-none">
-                    {outstandingDisplay}
+                {/* Remaining Balance & Due Date Display */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700 pl-1">Remaining Balance</label>
+                    <div className="w-full bg-slate-100/70 border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-black text-amber-700 select-none">
+                      {selectedInvoice 
+                        ? `₹ ${Math.max(0, (selectedInvoice.outstanding || 0) - (parseFloat(form.amount) || 0)).toLocaleString()}`
+                        : '—'}
+                    </div>
                   </div>
-                </div>
-
-                {/* Due Date (Read-only) */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 pl-1">Due Date</label>
-                  <div className="w-full bg-slate-100/70 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-500 select-none">
-                    {dueDateDisplay}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700 pl-1">Due Date</label>
+                    <div className="w-full bg-slate-100/70 border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-500 select-none">
+                      {dueDateDisplay}
+                    </div>
                   </div>
                 </div>
 
                 {/* Remarks */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 pl-1">Remarks</label>
+                  <label className="text-xs font-bold text-gray-700 pl-1">Remarks & Notes</label>
                   <textarea 
-                    placeholder="Add payment notes or transaction remarks..." 
+                    placeholder="Add payment notes, settlement remarks, or transaction breakdown..." 
                     value={form.remarks} 
                     onChange={e => setForm({...form, remarks: e.target.value})}
-                    rows={3}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all resize-none placeholder:text-gray-400" 
+                    rows={2}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all resize-none placeholder:text-gray-400" 
                   />
                 </div>
               </div>
@@ -922,16 +1290,17 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-50">
               <button 
                 type="button" 
-                onClick={() => setShowForm(false)} 
+                onClick={() => { setShowForm(false); setEditingPaymentId(null); }} 
                 className="px-6 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-600 hover:bg-slate-50 hover:text-gray-800 transition-all active:scale-95 shadow-sm"
               >
                 Cancel
               </button>
               <button 
                 type="submit" 
-                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all shadow-lg shadow-emerald-600/10 active:scale-95"
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all shadow-lg shadow-emerald-600/10 active:scale-95 flex items-center gap-2"
               >
-                Save Payment
+                <CheckCircle2 size={16} />
+                {editingPaymentId ? 'Update Payment' : 'Save Payment'}
               </button>
             </div>
           </form>
@@ -1082,6 +1451,15 @@ const PaymentsSection = ({ can, setHeaderExtra, setHideMainHeader, storeId }) =>
                     {/* Actions */}
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        {item.type === 'PAYMENT' && can('PROCUREMENT', 'UPDATE', 'PAYMENTS') && (
+                          <button 
+                            onClick={() => openEditForm(item)} 
+                            className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all active:scale-95" 
+                            title="Edit Payment"
+                          >
+                            <Edit size={13} />
+                          </button>
+                        )}
                         {item.type === 'PAYMENT' && can('PROCUREMENT', 'DELETE', 'PAYMENTS') && (
                           <button 
                             onClick={() => handleDeletePayment(item.dbId)} 
