@@ -444,8 +444,15 @@ const ManagePromoCodes = () => {
         return (
           <div className="text-center flex items-center justify-center">
             <button
-              onClick={() => handleStatusToggle(promoCode.id)}
-              disabled={isUpdating}
+              onClick={() => {
+                if (!isActive) {
+                  alert("Activating a promo code requires Admin approval");
+                  return;
+                }
+                handleStatusToggle(promoCode.id);
+              }}
+              disabled={isUpdating || !isActive}
+              title={!isActive ? "Activating requires Admin approval" : "Deactivate promo code"}
               className={`
                 relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2
                 ${
