@@ -267,8 +267,8 @@ export default function TodayPlan() {
   const hasPlan = today && !today.message && !today.noVillage;
   const hasTomorrow = tomorrow && !tomorrow.message && !tomorrow.noVillage;
   const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-  const currentShift = (configShifts || []).find((s: any) => currentTime >= s.startTime && currentTime <= s.endTime) || (configShifts ? configShifts[0] : null);
-  const sessionName = currentShift ? currentShift.name : (new Date().getHours() < 14 ? 'Morning' : 'Evening');
+  const currentShift = (configShifts || []).find((s: any) => s && s.startTime && s.endTime && currentTime >= s.startTime && currentTime <= s.endTime) || (configShifts ? configShifts[0] : null);
+  const sessionName = currentShift?.name || (new Date().getHours() < 14 ? 'Morning' : 'Evening');
 
   return (
     <div className="min-h-screen pb-24 pt-2 bg-[#FAFAFA]">
@@ -718,20 +718,23 @@ export default function TodayPlan() {
         {hasPlan && (
           <div className="space-y-3">
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Coverage Tracking</h4>
-            {(statusData.shifts || []).map((shift: any) => {
-              const isDone = coverage.shiftStatus?.[shift.name] || (shift.name.toUpperCase() === 'MORNING' && coverage.morningDone) || (shift.name.toUpperCase() === 'EVENING' && coverage.eveningDone);
-              const isPM = shift.startTime >= '12:00';
+            {(statusData.shifts || []).filter(Boolean).map((shift: any) => {
+              const shiftName = shift?.name || 'Shift';
+              const isDone = coverage.shiftStatus?.[shiftName] || (shiftName.toUpperCase() === 'MORNING' && coverage.morningDone) || (shiftName.toUpperCase() === 'EVENING' && coverage.eveningDone);
+              const startTime = shift?.startTime || '09:00';
+              const endTime = shift?.endTime || '18:00';
+              const isPM = startTime >= '12:00';
               return (
-                <div key={shift.id || shift.name} className={`rounded-2xl p-4 border transition-all ${isDone ? 'bg-emerald-50/80 border-emerald-200 shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}>
+                <div key={shift.id || shiftName} className={`rounded-2xl p-4 border transition-all ${isDone ? 'bg-emerald-50/80 border-emerald-200 shadow-sm' : 'bg-white border-gray-100 shadow-sm'}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${isDone ? 'bg-emerald-100 text-emerald-600' : (isPM ? 'bg-indigo-50 text-indigo-500' : 'bg-amber-50 text-amber-500')}`}>
                         {isPM ? <Moon size={22} strokeWidth={2.5} /> : <Sun size={22} strokeWidth={2.5} />}
                       </div>
                       <div>
-                        <h5 className="font-bold text-gray-900 text-sm">{shift.name}</h5>
+                        <h5 className="font-bold text-gray-900 text-sm">{shiftName}</h5>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                          {isDone ? 'Completed' : `${shift.startTime} - ${shift.endTime}`}
+                          {isDone ? 'Completed' : `${startTime} - ${endTime}`}
                         </p>
                       </div>
                     </div>

@@ -139,7 +139,7 @@ export default function AgentHome() {
           >
             <Bell size={18} />
           </button>
-          {todayAttendance?.status === 'ACTIVE' ? (
+          {((todayAttendance?.status === 'ACTIVE' || (todayAttendance?.punchInTime && !todayAttendance?.punchOutTime)) || ['Present', 'Approval Pending'].includes(todayAttendance?.status)) ? (
             <button
               onClick={() => setShowPunchOutModal(true)}
               className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
@@ -147,7 +147,7 @@ export default function AgentHome() {
               <LogOut size={14} />
               <span>Punch Out</span>
             </button>
-          ) : todayAttendance?.status === 'COMPLETED' ? (
+          ) : (todayAttendance?.status === 'COMPLETED' || todayAttendance?.punchOutTime) ? (
             <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
               <CheckCircle2 size={14} className="text-emerald-600" />
               <span>Shift Ended</span>
