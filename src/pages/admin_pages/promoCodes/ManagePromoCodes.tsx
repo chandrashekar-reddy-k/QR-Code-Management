@@ -44,6 +44,7 @@ type PromoCodeRow = PromoCode & {
   endTime?: string;
   createdAt?: string;
   noOfUsers?: number | null;
+  approvalStatus?: string;
   status: "ACTIVE" | "INACTIVE";
   discountType: PromoCode["discountType"] | "RUPEES" | "PERCENTAGE" | "AMOUNT";
 };
@@ -392,8 +393,50 @@ const ManagePromoCodes = () => {
       ),
     },
     {
+      key: "approvalStatus",
+      label: "APPROVAL STATUS",
+      sortable: true,
+      render: (promoCode: PromoCodeRow) => {
+        const rawStatus = (
+          promoCode.approvalStatus ||
+          (promoCode.status === "ACTIVE" ? "APPROVED" : "PENDING")
+        ).toUpperCase();
+
+        if (rawStatus === "APPROVED" || rawStatus === "COMPLETED") {
+          return (
+            <div className="text-center">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Completed
+              </span>
+            </div>
+          );
+        }
+
+        if (rawStatus === "REJECTED") {
+          return (
+            <div className="text-center">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                Rejected
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <div className="text-center">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              Pending
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       key: "status",
-      label: "STATUS",
+      label: "ACTIVE STATUS",
       sortable: true,
       render: (promoCode: PromoCodeRow) => {
         const isActive = promoCode.status === "ACTIVE";
