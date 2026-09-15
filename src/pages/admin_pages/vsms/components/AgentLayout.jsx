@@ -14,8 +14,10 @@ export default function AgentLayout() {
   const [checkingAttendance, setCheckingAttendance] = useState(true);
 
   // Only gate SALES_AGENT, VEHICLE_AGENT, VSMS_AGENT, DELIVERY_AGENT roles
-  const roleUpper = (user?.role || '').toUpperCase();
-  const isAgent = roleUpper === 'SALES_AGENT' || roleUpper === 'VEHICLE_AGENT' || roleUpper === 'VSMS_AGENT' || roleUpper === 'DELIVERY_AGENT' || roleUpper.endsWith('_AGENT');
+  const portalMode = (sessionStorage.getItem('portalMode') || localStorage.getItem('portalMode') || '').toUpperCase();
+  const customRoleUpper = (user?.customRole?.name || user?.customRole?.portalType || '').toString().toUpperCase();
+  const roleUpper = (user?.role || localStorage.getItem('role') || localStorage.getItem('partnerRole') || '').toUpperCase();
+  const isAgent = portalMode === 'AGENT' || roleUpper === 'SALES_AGENT' || roleUpper === 'VEHICLE_AGENT' || roleUpper === 'VSMS_AGENT' || roleUpper === 'DELIVERY_AGENT' || roleUpper.endsWith('_AGENT') || roleUpper === 'AGENT' || roleUpper.includes('AGENT') || customRoleUpper.includes('AGENT');
 
   useEffect(() => {
     if (!isAgent) {
