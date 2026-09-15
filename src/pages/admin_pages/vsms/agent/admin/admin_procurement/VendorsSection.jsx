@@ -34,14 +34,14 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
   const loadVendors = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await procurementAPI.getVendors({ status: statusFilter || undefined });
-      setVendors(data);
+      const { data } = await procurementAPI.getVendors({ status: statusFilter || undefined, storeId: storeId || undefined });
+      setVendors(data?.data || data || []);
     } catch { 
       toast.error('Failed to load vendors'); 
     } finally { 
       setLoading(false); 
     }
-  }, [statusFilter]);
+  }, [statusFilter, storeId]);
 
   useEffect(() => { 
     loadVendors(); 
@@ -72,13 +72,32 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
       return;
     }
 
+    if (!form.vendorName || !form.vendorName.trim()) {
+      setActiveFormTab('general');
+      toast.error('Vendor Name is required.');
+      return;
+    }
+
+    if (!form.mobile || !form.mobile.trim()) {
+      setActiveFormTab('general');
+      toast.error('Mobile Number is required.');
+      return;
+    }
+
     try {
+      const payload = {
+        ...form,
+        vendorName: form.vendorName.trim(),
+        mobile: form.mobile.trim(),
+        storeId: storeId || undefined
+      };
+
       if (editVendor) {
-        await procurementAPI.updateVendor(editVendor.id, form);
+        await procurementAPI.updateVendor(editVendor.id, payload);
         toast.success('Vendor details updated successfully');
       } else {
-        await procurementAPI.createVendor(form);
-        toast.success('Vendor onboarding request registered successfully');
+        await procurementAPI.createVendor(payload);
+        toast.success('Vendor onboarded successfully');
       }
       setShowForm(false);
       setEditVendor(null);

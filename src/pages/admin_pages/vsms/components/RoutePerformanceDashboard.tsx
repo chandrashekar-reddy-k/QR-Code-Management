@@ -366,17 +366,36 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
             <div className="px-5 py-4 border-b border-gray-200 flex items-start justify-between">
               <div>
                 <p className="text-base font-bold text-gray-900 dark:text-white leading-none">
-                  {selectedPerf?.agentName || 'Select an Agent'}
+                  {selectedPerf?.agentName || 'All Agents (Live Map)'}
                 </p>
                 <p className="text-[10px] font-bold text-gray-400 mt-1">
-                  {selectedPerf?.routeName || 'Click a row to drill down'}
+                  {selectedPerf?.routeName || 'Click any agent from the list to filter map to that person'}
                 </p>
               </div>
-              {selectedAssignment && (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded-lg border border-emerald-100 uppercase tracking-widest">
-                  <Activity size={10} className="animate-pulse" /> Live Tracking
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedAssignment && (
+                  <>
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded-lg border border-emerald-100 uppercase tracking-widest">
+                      <Activity size={10} className="animate-pulse" /> Selected
+                    </span>
+                    <button
+                      onClick={() => {
+                        setSelectedAssignment(null);
+                        setAssignmentDetail(null);
+                        setBreadcrumbPath([]);
+                        if (liveLocations.length > 0) {
+                          const first = liveLocations.find(l => (l.lat || l.latitude) && (l.long || l.longitude));
+                          if (first) setMapCenter({ lat: parseFloat(first.lat || first.latitude), lng: parseFloat(first.long || first.longitude) });
+                        }
+                      }}
+                      className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[9px] font-bold rounded-lg transition-colors"
+                      title="Show all agents on map"
+                    >
+                      Show All
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Map Container with Expandable In-Page Height */}
@@ -426,15 +445,22 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                 <GoogleMap
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={mapCenter}
-                  zoom={selectedAssignment ? 13 : (isMapFullscreen ? 12 : 10)}
+                  zoom={selectedAssignment ? 14 : (isMapFullscreen ? 12 : 10)}
                   options={{ 
                     disableDefaultUI: false, 
                     zoomControl: true,
                     styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }] 
                   }}
                 >
-                  {/* Always render all live agent location markers with dynamic full name SVG badges */}
-                  {liveLocations.filter(l => (l.lat || l.latitude) && (l.long || l.longitude)).map(loc => {
+                  {/* Selected agent mode: only display selected agent marker; Global mode: display all agents */}
+                  {liveLocations
+                    .filter(l => (l.lat || l.latitude) && (l.long || l.longitude))
+                    .filter(loc => {
+                      if (!selectedAssignment) return true;
+                      const selectedPerfItem = data.performance.find(p => p.assignmentId === selectedAssignment);
+                      return selectedPerfItem && (selectedPerfItem.userId === loc.userId);
+                    })
+                    .map(loc => {
                     const latNum = parseFloat(loc.lat || loc.latitude);
                     const lngNum = parseFloat(loc.long || loc.longitude);
                     if (isNaN(latNum) || isNaN(lngNum)) return null;
@@ -477,6 +503,20 @@ export default function RoutePerformanceDashboard({ storeId, isLoaded }) {
                       />
                     );
                   })}
+
+                  {/* Polyline path for selected agent breadcrumb trail */}
+                  {selectedAssignment && breadcrumbPath.length > 1 && (
+                    <PolylineF
+                      path={breadcrumbPath}
+                      options={{
+                        strokeColor: '#10b981',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 4,
+                        geodesic: true
+                      }}
+                    />
+                  )}
+
                   {selectedAssignment && breadcrumbPath.length > 0 && (
                     <MarkerF
                       position={breadcrumbPath[breadcrumbPath.length - 1]}

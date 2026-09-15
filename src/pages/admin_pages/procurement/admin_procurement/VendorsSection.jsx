@@ -23,8 +23,8 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
   // Tab navigation for vendor form sections
   const [activeFormTab, setActiveFormTab] = useState('general');
 
-  const [form, setForm] = useState({
-    hasGst: 'Yes',
+  const initialForm = {
+    hasGst: 'No',
     vendorType: 'Company',
     panNumber: '',
     pincode: '',
@@ -32,12 +32,26 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
     state: '',
     branch: '',
     isTds: false,
-    vendorName: '', mobile: '', email: '', address: '',
-    gstNumber: '', contactPerson: '', creditDays: '30', openingBalance: '0',
-    paymentTerms: 'Net 30', creditLimit: '0',
-    bankName: '', accountNumber: '', ifscCode: '', bankBranch: '',
-    vendorCategory: 'RAW_MATERIAL', minOrderQty: '1', isTaxable: false
-  });
+    vendorName: '', 
+    mobile: '', 
+    email: '', 
+    address: '',
+    gstNumber: '', 
+    contactPerson: '', 
+    creditDays: '30', 
+    openingBalance: '0',
+    paymentTerms: 'Net 30', 
+    creditLimit: '0',
+    bankName: '', 
+    accountNumber: '', 
+    ifscCode: '', 
+    bankBranch: '',
+    vendorCategory: 'RAW_MATERIAL', 
+    minOrderQty: '1', 
+    isTaxable: false
+  };
+
+  const [form, setForm] = useState(initialForm);
 
   const loadVendors = useCallback(async () => {
     setLoading(true);
@@ -68,56 +82,53 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
     e.preventDefault();
 
     // Final checks before submitting
-    const isGstRequired = form.hasGst === 'Yes' || form.isTaxable;
-    if (isGstRequired && (!form.gstNumber || !form.gstNumber.trim())) {
-      setActiveFormTab('regulation');
-      toast.error('GST Identification Number is mandatory.');
-      return;
-    }
-
-    if (form.hasGst === 'Yes' && form.gstNumber && form.gstNumber.trim() && form.gstNumber.trim().length !== 15) {
-      setActiveFormTab('regulation');
-      toast.error('GST Identification Number must be exactly 15 characters.');
-      return;
+    if (form.hasGst === 'Yes') {
+      if (!form.gstNumber || !form.gstNumber.trim()) {
+        setActiveFormTab('regulation');
+        toast.error('GST Identification Number is mandatory when GST is selected.');
+        return;
+      }
+      if (form.gstNumber.trim().length !== 15) {
+        setActiveFormTab('regulation');
+        toast.error('GST Identification Number must be exactly 15 characters.');
+        return;
+      }
     }
 
     if (!form.vendorName || !form.vendorName.trim()) {
       setActiveFormTab('general');
-      toast.error('Vendor Name is required (General Details tab).');
+      toast.error('Vendor Name is required.');
       return;
     }
 
     if (!form.mobile || !form.mobile.trim()) {
       setActiveFormTab('general');
-      toast.error('Phone Number is required (General Details tab).');
+      toast.error('Mobile Number is required.');
       return;
     }
 
     try {
+      const payload = {
+        ...form,
+        vendorName: form.vendorName.trim(),
+        mobile: form.mobile.trim(),
+        email: form.email?.trim() || undefined,
+        address: form.address?.trim() || undefined,
+        gstNumber: form.hasGst === 'Yes' ? form.gstNumber.trim() : undefined,
+        storeId: storeId || undefined
+      };
+
       if (editVendor) {
-        await procurementAPI.updateVendor(editVendor.id, { ...form, storeId: storeId || undefined });
+        await procurementAPI.updateVendor(editVendor.id, payload);
         toast.success('Vendor details updated successfully');
       } else {
-        await procurementAPI.createVendor({ ...form, storeId: storeId || undefined });
-        toast.success('Vendor onboarding request registered successfully');
+        await procurementAPI.createVendor(payload);
+        toast.success('Vendor onboarded successfully');
       }
       setShowForm(false);
       setEditVendor(null);
-      setActiveFormTab('regulation');
-      setForm({ 
-        hasGst: 'Yes',
-        vendorType: 'Company',
-        panNumber: '',
-        pincode: '',
-        city: '',
-        state: '',
-        branch: '',
-        isTds: false,
-        vendorName: '', mobile: '', email: '', address: '', gstNumber: '', contactPerson: '', creditDays: '30', openingBalance: '0',
-        paymentTerms: 'Net 30', creditLimit: '0',
-        bankName: '', accountNumber: '', ifscCode: '', bankBranch: '',
-        vendorCategory: 'RAW_MATERIAL', minOrderQty: '1', isTaxable: false
-      });
+      setActiveFormTab('general');
+      setForm(initialForm);
       await loadVendors();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving vendor information');
@@ -217,7 +228,10 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
 
   const isTabIncomplete = (tabId) => {
     if (tabId === 'regulation') {
-      return form.isTaxable && (!form.gstNumber || form.gstNumber.trim().length !== 15);
+      return form.hasGst === 'Yes' && (!form.gstNumber || form.gstNumber.trim().length !== 15);
+    }
+    if (tabId === 'general') {
+      return !form.vendorName?.trim() || !form.mobile?.trim();
     }
     return false;
   };
@@ -809,7 +823,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
               >
                 Cancel
               </button>
-              {activeFormTab !== 'general' && (
+              {activeFormTab !== 'regulation' && (
                 <button
                   type="button"
                   onClick={(e) => prevTab(e)}
@@ -858,34 +872,29 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
           <input 
             placeholder="Search vendors..." 
             value={search} 
-            onChange={e => setSearch(e.target.value)}
-            className="bg-transparent border-none focus:outline-none text-xs font-bold text-gray-700 w-full" 
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent border-none text-xs font-bold text-gray-800 focus:outline-none w-full placeholder:text-gray-400"
           />
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Active Status Filters */}
-          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
-            <span className="text-[7.5px] font-black uppercase text-gray-400 px-1 border-r border-slate-100">Status</span>
-            {['', 'ACTIVE', 'INACTIVE'].map(s => (
-              <button 
-                key={s} 
-                onClick={() => setStatusFilter(s)}
-                className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
-                  statusFilter === s ? 'bg-slate-900 text-white shadow-sm' : 'bg-transparent text-slate-400'
-                }`}
-              >
-                {s || 'All'}
-              </button>
-            ))}
-          </div>
+        {/* Filters and Actions */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          {/* Status Filter */}
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-white border border-gray-100 text-slate-700 text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl shadow-sm outline-none cursor-pointer"
+          >
+            <option value="">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </select>
 
-          {/* Governance / Approval Filters */}
-          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
-            <span className="text-[7.5px] font-black uppercase text-gray-400 px-1 border-r border-slate-100">Workflow</span>
-            {['', 'PENDING', 'APPROVED', 'REJECTED'].map(a => (
-              <button 
-                key={a} 
+          {/* Approval Filter Chips */}
+          <div className="hidden sm:flex bg-slate-100/80 p-1 rounded-xl items-center gap-1 border border-slate-200/50">
+            {['', 'APPROVED', 'PENDING', 'REJECTED'].map((a) => (
+              <button
+                key={a}
                 onClick={() => setApprovalFilter(a)}
                 className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
                   approvalFilter === a ? 'bg-emerald-600 text-white shadow-sm' : 'bg-transparent text-slate-400'
@@ -901,21 +910,8 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
               onClick={() => { 
                 setShowForm(true); 
                 setEditVendor(null); 
-                setActiveFormTab('regulation');
-                setForm({ 
-                  hasGst: 'Yes',
-                  vendorType: 'Company',
-                  panNumber: '',
-                  pincode: '',
-                  city: '',
-                  state: '',
-                  branch: '',
-                  isTds: false,
-                  vendorName: '', mobile: '', email: '', address: '', gstNumber: '', contactPerson: '', creditDays: '30', openingBalance: '0',
-                  paymentTerms: 'Net 30', creditLimit: '0',
-                  bankName: '', accountNumber: '', ifscCode: '', bankBranch: '',
-                  vendorCategory: 'RAW_MATERIAL', minOrderQty: '1', isTaxable: false
-                }); 
+                setActiveFormTab('general');
+                setForm(initialForm); 
               }}
               className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/10"
             >

@@ -42,6 +42,7 @@ export const procurementAPI = {
   // ─── PAYMENTS ─────────────────────────────────────
   getPayments: (params) => api.get('/procurement/payments', { params }),
   createPayment: (data) => api.post('/procurement/payments', data),
+  updatePayment: (id, data) => api.put(`/procurement/payments/${id}`, data),
   deletePayment: (id) => api.delete(`/procurement/payments/${id}`),
   getOutstandingInvoices: (vendorId) => api.get(`/procurement/payments/outstanding/${vendorId}`),
 

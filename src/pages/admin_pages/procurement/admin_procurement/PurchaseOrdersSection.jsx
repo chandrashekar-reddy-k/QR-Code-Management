@@ -285,6 +285,11 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
     };
   }, [showForm, showTypeSelection, selectedPO, setHideMainHeader]);
 
+  const handleSelectPoType = (type) => {
+    setPoType(type);
+    openForm(type);
+  };
+
   const openForm = (type) => {
     const selectedType = type || poType;
     setIsNewVendor(false);
