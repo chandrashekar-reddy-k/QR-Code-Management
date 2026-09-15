@@ -20,6 +20,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const menuItems = [
     { name: 'Sales Grid', path: '/', icon: PackageSearch, color: 'text-emerald-600', bg: 'bg-emerald-50', module: 'AGENT_PORTAL', section: 'SALES_POS' },
     { name: 'Pre-Orders', path: '/vsms/agent-portal/pre-orders', icon: ShoppingBag, color: 'text-teal-600', bg: 'bg-teal-50', module: 'AGENT_PORTAL', section: 'PRE_ORDERS' },
+    { name: 'Scheduled Deliveries', path: '/vsms/agent-portal/scheduled-deliveries', icon: Package, color: 'text-blue-600', bg: 'bg-blue-50', module: 'AGENT_PORTAL', section: 'SCHEDULED_DELIVERIES' },
     { name: 'Today\'s Plan', path: '/today-plan', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50', module: 'AGENT_PORTAL', section: 'ROUTE_PLAN' },
     // { name: 'Shift Tracking', path: '/shift-tracking', icon: Clock, color: 'text-rose-600', bg: 'bg-rose-50' },
     // { name: 'Refill Stock', path: '/refill-stock', icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },

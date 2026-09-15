@@ -5,7 +5,7 @@ import {
   Bell, MapPin, Clock, Truck, Package, ArrowUpRight,
   ChevronRight, ArrowRight, ShieldCheck, CheckCircle2,
   AlertTriangle, Store, BarChart2, TrendingUp, Layers,
-  RefreshCw, RotateCcw, Gift, FileCheck, LogOut
+  RefreshCw, RotateCcw, Gift, FileCheck, LogOut, LogIn
 } from 'lucide-react';
 import PunchOutModal from '../components/PunchOutModal';
 import { useUserStore } from '../store/userStore';
@@ -137,7 +137,7 @@ export default function AgentHome() {
           >
             <Bell size={18} />
           </button>
-          {todayAttendance?.status === 'ACTIVE' && (
+          {todayAttendance?.status === 'ACTIVE' ? (
             <button
               onClick={() => setShowPunchOutModal(true)}
               className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
@@ -145,12 +145,19 @@ export default function AgentHome() {
               <LogOut size={14} />
               <span>Punch Out</span>
             </button>
-          )}
-          {todayAttendance?.status === 'COMPLETED' && (
+          ) : todayAttendance?.status === 'COMPLETED' ? (
             <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
               <CheckCircle2 size={14} className="text-emerald-600" />
               <span>Shift Ended</span>
             </div>
+          ) : (
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+            >
+              <LogIn size={14} />
+              <span>Punch In</span>
+            </button>
           )}
           <button
             onClick={() => openHRMSPortal()}
