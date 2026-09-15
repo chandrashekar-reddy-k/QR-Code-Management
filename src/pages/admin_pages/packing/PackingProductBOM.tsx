@@ -36,6 +36,7 @@ export const PackingProductBOM: React.FC = () => {
   const [newProductSku, setNewProductSku] = useState('');
   const [newProductCategoryId, setNewProductCategoryId] = useState('');
   const [newProductUom, setNewProductUom] = useState('');
+  const [modalError, setModalError] = useState('');
   const [productSubmitLoading, setProductSubmitLoading] = useState(false);
 
   // Form State
@@ -171,25 +172,38 @@ export const PackingProductBOM: React.FC = () => {
     }
   };
 
+  const generateSkuFromName = (name: string, uomId?: string) => {
+    if (!name.trim()) return '';
+    const nameClean = name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase().padEnd(4, 'X');
+    const selectedUom = uoms.find((u) => u.id === (uomId || newProductUom));
+    let unitCode = selectedUom?.abbreviation || selectedUom?.name || 'P';
+    
+    let qty = 1;
+    const match = name.match(/(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?/);
+    if (match) {
+      qty = match[1] as any;
+      if (match[2] && !uomId) {
+        unitCode = match[2].toUpperCase();
+      }
+    }
+    const unitClean = unitCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    return `${nameClean}-${qty}-${unitClean}`;
+  };
+
   const handleCreateFinishedProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setProductSubmitLoading(true);
-    setError('');
+    setModalError('');
 
     try {
-      // Prevent duplicates
-      const exists = products.some(
-        (p) =>
-          p.sku.toLowerCase() === newProductSku.toLowerCase() ||
-          p.name.toLowerCase() === newProductName.toLowerCase()
-      );
-      if (exists) {
-        throw new Error('A product with this Name or SKU already exists.');
+      const finalSku = newProductSku.trim() || generateSkuFromName(newProductName, newProductUom);
+      if (!finalSku) {
+        throw new Error('Please provide or generate a valid SKU.');
       }
 
       const res = await masterDataService.createProduct({
-        name: newProductName,
-        sku: newProductSku,
+        name: newProductName.trim(),
+        sku: finalSku,
         categoryId: newProductCategoryId,
         unit: newProductUom,
         type: 'FINISHED_GOOD',
@@ -206,8 +220,9 @@ export const PackingProductBOM: React.FC = () => {
       setNewProductSku('');
       setNewProductCategoryId('');
       setNewProductUom('');
+      setModalError('');
     } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Failed to create finished product');
+      setModalError(err.response?.data?.message || err.message || 'Failed to create finished product');
     } finally {
       setProductSubmitLoading(false);
     }
@@ -415,7 +430,7 @@ export const PackingProductBOM: React.FC = () => {
                               {item.requiredQty}
                             </td>
                             <td className="p-3 text-center text-slate-600 dark:text-gray-300 font-mono text-xs">
-                              {product?.unit || '-'}
+                              {product?.uom?.abbreviation || product?.uom?.name || uoms.find((u) => u.id === product?.unit)?.abbreviation || uoms.find((u) => u.id === product?.unit)?.name || product?.unit || '-'}
                             </td>
                             <td className="p-3 text-center text-slate-500 dark:text-gray-400">
                               ±{item.tolerancePct || 0}%
@@ -539,10 +554,10 @@ export const PackingProductBOM: React.FC = () => {
                           Select Target Product
                         </option>
                         {products
-                          .filter((p) => p.type === 'FINISHED_GOOD')
+                          .filter((p) => p.type === 'FINISHED_GOOD' || p.productType === 'FINISHED_GOOD')
                           .map((p) => (
                             <option key={p.id} value={p.id} className="dark:bg-gray-800">
-                              {p.name} ({p.sku})
+                              {p.name} ({p.sku || p.resolvedSku || 'No SKU'})
                             </option>
                           ))}
                       </select>
@@ -675,15 +690,22 @@ export const PackingProductBOM: React.FC = () => {
                               }
                             />
                           </div>
-                          <div className="w-16">
+                          <div className="w-20">
                             <label className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase mb-1">
                               UOM
                             </label>
                             <input
                               type="text"
                               readOnly
-                              className="w-full p-1.5 border border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 rounded-lg text-xs focus:outline-none cursor-not-allowed"
-                              value={selectedProduct?.unit || ''}
+                              className="w-full p-1.5 border border-slate-200 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 font-medium rounded-lg text-xs focus:outline-none cursor-not-allowed"
+                              value={
+                                selectedProduct?.uom?.abbreviation ||
+                                selectedProduct?.uom?.name ||
+                                uoms.find((u) => u.id === selectedProduct?.unit)?.abbreviation ||
+                                uoms.find((u) => u.id === selectedProduct?.unit)?.name ||
+                                selectedProduct?.unit ||
+                                ''
+                              }
                               placeholder="-"
                             />
                           </div>
@@ -766,6 +788,12 @@ export const PackingProductBOM: React.FC = () => {
             </div>
 
             <div className="p-6 flex-1">
+              {modalError && (
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg text-xs flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <form id="createProductForm" onSubmit={handleCreateFinishedProduct} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
@@ -774,19 +802,35 @@ export const PackingProductBOM: React.FC = () => {
                   <input
                     type="text"
                     required
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:outline-none"
+                    placeholder="e.g. Aashirvaad Atta 5kg"
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     value={newProductName}
-                    onChange={(e) => setNewProductName(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewProductName(val);
+                      setNewProductSku(generateSkuFromName(val, newProductUom));
+                    }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                    SKU *
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase">
+                      SKU *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setNewProductSku(generateSkuFromName(newProductName, newProductUom))}
+                      className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+                    >
+                      <Sparkles size={12} />
+                      Auto Generate
+                    </button>
+                  </div>
                   <input
                     type="text"
                     required
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:outline-none"
+                    placeholder="e.g. AASH-5-KG"
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     value={newProductSku}
                     onChange={(e) => setNewProductSku(e.target.value)}
                   />
@@ -797,7 +841,7 @@ export const PackingProductBOM: React.FC = () => {
                   </label>
                   <select
                     required
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm bg-white focus:outline-none"
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     value={newProductCategoryId}
                     onChange={(e) => setNewProductCategoryId(e.target.value)}
                   >
@@ -813,13 +857,21 @@ export const PackingProductBOM: React.FC = () => {
                   </label>
                   <select
                     required
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm bg-white focus:outline-none"
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     value={newProductUom}
-                    onChange={(e) => setNewProductUom(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewProductUom(val);
+                      if (newProductName) {
+                        setNewProductSku(generateSkuFromName(newProductName, val));
+                      }
+                    }}
                   >
                     <option value="" className="dark:bg-gray-800">Select Unit</option>
                     {uoms.map((u) => (
-                      <option key={u.id} value={u.id} className="dark:bg-gray-800">{u.name} ({u.abbreviation})</option>
+                      <option key={u.id} value={u.id} className="dark:bg-gray-800">
+                        {u.name} {u.abbreviation ? `(${u.abbreviation})` : ''}
+                      </option>
                     ))}
                   </select>
                 </div>

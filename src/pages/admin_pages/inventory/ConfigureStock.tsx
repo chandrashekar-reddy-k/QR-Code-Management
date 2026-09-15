@@ -40,11 +40,11 @@ const ConfigureStock: React.FC = () => {
         const items = res.data.data.map((item: any) => ({
           id: item.id,
           name: item.product?.name || 'Unknown',
-          sku: item.product?.sku || 'Unknown',
-          category: item.product?.category?.name || item.product?.category || 'Unknown',
+          sku: item.resolvedSku || item.product?.sku || item.product?.masterProduct?.sku || item.product?.barcode || 'N/A',
+          category: item.resolvedCategory || item.product?.category?.name || item.product?.subCategory?.name || 'General',
           quantity: item.receivedQty || 0,
-          unit: item.product?.unit || 'Units',
-          price: item.grn?.po?.totalAmount || 0, // Fallback
+          unit: item.resolvedUnit || item.product?.unit || 'Units',
+          price: item.resolvedPurchasePrice ?? item.product?.price ?? 0,
           image: item.product?.name?.[0]?.toUpperCase() || 'P'
         }));
         setData(items);
