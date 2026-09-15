@@ -8,6 +8,7 @@ import {
   RefreshCw, RotateCcw, Gift, FileCheck, LogOut, LogIn
 } from 'lucide-react';
 import PunchOutModal from '../components/PunchOutModal';
+import PunchInScreen from './PunchInScreen';
 import { useUserStore } from '../store/userStore';
 import * as routeService from '../services/routeService';
 import * as shiftService from '../services/shiftService';
@@ -19,6 +20,7 @@ export default function AgentHome() {
   const navigate = useNavigate();
   const { user } = useUserStore();
   const [showPunchOutModal, setShowPunchOutModal] = useState(false);
+  const [showPunchInScreen, setShowPunchInScreen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -152,7 +154,7 @@ export default function AgentHome() {
             </div>
           ) : (
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => setShowPunchInScreen(true)}
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
             >
               <LogIn size={14} />
@@ -538,6 +540,16 @@ export default function AgentHome() {
             window.location.reload();
           }}
         />
+      )}
+      {showPunchInScreen && (
+        <div className="fixed inset-0 z-[100] bg-white">
+          <PunchInScreen
+            onPunchIn={() => {
+              setShowPunchInScreen(false);
+              window.location.reload();
+            }}
+          />
+        </div>
       )}
     </div>
   );
