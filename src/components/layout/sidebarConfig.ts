@@ -508,27 +508,6 @@ export const sidebarConfig: MenuSection[] = [
     ],
   },
 
-  {
-    type: "collapsible",
-    permission: "Partner: Barcode Management",
-    label: "Barcode Management",
-    icon: ScanLine,
-    stateKey: "isBarcodeOpen",
-    hasSubPermissions: true,
-    activeCheck: (pathname: string) => pathname.startsWith("/vsms/barcodes"),
-    subItems: [
-      {
-        path: "/vsms/barcodes?tab=master",
-        label: "Barcode Master",
-        icon: ScanLine,
-      },
-      {
-        path: "/vsms/barcodes?tab=printing",
-        label: "Barcode Printing",
-        icon: Printer,
-      },
-    ],
-  },
 
   // Promotions and Offers
   {
