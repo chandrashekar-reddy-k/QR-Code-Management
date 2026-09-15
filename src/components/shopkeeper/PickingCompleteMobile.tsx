@@ -1,7 +1,7 @@
 import { CheckCircle, Package, ArrowRight, Clock, XCircle } from "lucide-react";
 
 interface PickingCompleteMobileProps {
-  onNavigate: (screen: string) => void;
+  onNavigate: (screen: string, data?: any) => void;
   data?: any;
 }
 
@@ -217,7 +217,7 @@ export function PickingCompleteMobile({ onNavigate, data }: PickingCompleteMobil
       {/* CTA Button */}
       <div className="w-full max-w-sm">
         <button
-          onClick={() => onNavigate("packing-queue")}
+          onClick={() => onNavigate("packing-screen", data)}
           className="w-full flex items-center justify-center gap-3 rounded-2xl py-4 shadow-lg"
           style={{ backgroundColor: "#00891D" }}
         >

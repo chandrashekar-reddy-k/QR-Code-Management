@@ -1,7 +1,7 @@
 import { CheckCircle, Package, ArrowRight, ChevronRight } from "lucide-react";
 
 interface PickingCompleteProps {
-  onNavigate: (screen: string) => void;
+  onNavigate: (screen: string, data?: any) => void;
   data?: any;
 }
 
@@ -147,7 +147,7 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
             const buttonText = isInProgress ? "Resume Packing" : "Start Packing";
             return (
               <button
-                onClick={() => onNavigate("packing-queue")}
+                onClick={() => onNavigate("packing-screen", data)}
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg py-3 px-4 bg-[#00891D] hover:bg-[#006614] transition-colors text-white font-bold text-sm shadow-sm"
               >
                 <Package size={18} />
