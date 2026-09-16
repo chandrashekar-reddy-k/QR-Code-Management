@@ -40,7 +40,7 @@ import {
 import TripManagementSection from './admin_inventory/TripManagementSection';
 import FuelLogsSection from './admin_inventory/FuelLogsSection';
 import MaintenanceSection from './admin_inventory/MaintenanceSection';
-import { getAllExpenses, updateExpenseStatus, getExpenseCategories, createExpenseCategory, bulkUpdateExpenseStatus } from './services/expenseService';
+import { getAllExpenses, updateExpenseStatus, getExpenseCategories, createExpenseCategory, bulkUpdateExpenseStatus, addExpense } from './services/expenseService';
 import { getStoreCashRegister } from './services/cashService';
 import { exportExpensesToExcel } from '../../../utils/expenseExportHelper';
 import ExpenseAnalytics from './ExpenseAnalytics';
@@ -553,9 +553,11 @@ export default function AdminExpenses() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const { addExpense } = await import('./services/expenseService');
             const formData = new FormData();
-            formData.append('type', `${newExpense.mainCategory} | ${newExpense.subCategory}`);
+            const finalType = newExpense.subCategory 
+                ? `${newExpense.mainCategory} | ${newExpense.subCategory}` 
+                : newExpense.mainCategory;
+            formData.append('type', finalType);
             formData.append('amount', newExpense.amount);
             formData.append('paymentMode', newExpense.paymentMode);
             formData.append('description', newExpense.description);
