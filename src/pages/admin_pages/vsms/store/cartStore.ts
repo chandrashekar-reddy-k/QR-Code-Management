@@ -95,11 +95,51 @@ const calculateTotals = (items: CartItem[], deliverySlabs: DeliverySlab[] = [], 
     }
   }
 
+  // GST Tax Calculation at Item Level
+  let totalTaxableAmount = 0;
+  let totalGSTAmount = 0;
+  const taxRatesMap: Record<number, { rate: number; taxableAmount: number; cgst: number; sgst: number; totalTax: number }> = {};
+
+  items.forEach(i => {
+    const isFreeInCart = checkIsFree(i.isFree);
+    const threshold = Number(i.minShopAmount || 0);
+    const lineTotal = (isFreeInCart && subtotal >= threshold) ? 0 : Number(i.price || 0) * i.quantity;
+
+    const rate = Number(i.taxRate ?? i.gstRate ?? i.tax ?? 5);
+    const taxable = rate > 0 ? (lineTotal / (1 + rate / 100)) : lineTotal;
+    const gstAmt = lineTotal - taxable;
+    const halfTax = gstAmt / 2;
+
+    totalTaxableAmount += taxable;
+    totalGSTAmount += gstAmt;
+
+    if (!taxRatesMap[rate]) {
+      taxRatesMap[rate] = { rate, taxableAmount: 0, cgst: 0, sgst: 0, totalTax: 0 };
+    }
+    taxRatesMap[rate].taxableAmount += taxable;
+    taxRatesMap[rate].cgst += halfTax;
+    taxRatesMap[rate].sgst += halfTax;
+    taxRatesMap[rate].totalTax += gstAmt;
+  });
+
+  const taxBreakdown = Object.values(taxRatesMap).map(t => ({
+    rate: t.rate,
+    taxableAmount: Math.round(t.taxableAmount * 100) / 100,
+    cgst: Math.round(t.cgst * 100) / 100,
+    sgst: Math.round(t.sgst * 100) / 100,
+    totalTax: Math.round(t.totalTax * 100) / 100
+  }));
+
   const totalAmount = itemsTotal + deliveryCharge - promotionDiscount;
   const totalItemsCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return { 
     totalAmount: Math.round(Math.max(0, totalAmount)), 
+    taxableAmount: Math.round(totalTaxableAmount * 100) / 100,
+    totalGSTAmount: Math.round(totalGSTAmount * 100) / 100,
+    totalCGST: Math.round((totalGSTAmount / 2) * 100) / 100,
+    totalSGST: Math.round((totalGSTAmount / 2) * 100) / 100,
+    taxBreakdown,
     deliveryCharge,
     promotionDiscount: Math.round(promotionDiscount),
     totalItems: totalItemsCount

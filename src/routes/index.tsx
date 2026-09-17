@@ -633,6 +633,10 @@ const AdminPOS = lazy(() => import("../pages/admin_pages/vsms/AdminPOS"));
 const BarcodeManagement = lazy(() => import("../pages/admin_pages/vsms/BarcodeManagement"));
 const AdminSalesPage = lazy(() => import("../pages/admin_pages/vsms/AdminSales"));
 const AdminAssets = lazy(() => import("../pages/admin_pages/vsms/AdminAssets"));
+const AdminReports = lazy(() => import("../pages/admin_pages/vsms/AdminReports"));
+
+
+
 const PartnerScheduledOrders = lazy(() => import("../pages/admin_pages/vsms/PartnerScheduledOrders"));
 const PreOrdersManagement = lazy(() => import("../pages/admin_pages/vsms/PreOrdersManagement"));
 
@@ -2004,6 +2008,12 @@ export const protectedRoutes: RouteConfig[] = [
     component: AdminSalesPage,
     requiresAuth: true,
   },
+  {
+    path: "/vsms/reports",
+    component: AdminReports,
+    requiresAuth: true,
+  },
+
   {
     path: "/vsms/scheduled-deliveries",
     component: PartnerScheduledOrders,

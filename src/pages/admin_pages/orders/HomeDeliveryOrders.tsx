@@ -102,10 +102,19 @@ interface TableOrder {
   orderDate: string;
 }
 
-const HomeDeliveryOrders = () => {
+interface HomeDeliveryOrdersProps {
+  defaultDeliveryType?: string;
+}
+
+const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialDeliveryType = defaultDeliveryType || 
+    searchParams.get("deliveryType") || 
+    searchParams.get("type") || 
+    (location.pathname.includes("scheduled") ? "scheduled" : "");
 
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(
@@ -114,7 +123,7 @@ const HomeDeliveryOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [dateFilter, setDateFilter] = useState<string>("");
-  const [deliveryTypeFilter, setDeliveryTypeFilter] = useState<string>("");
+  const [deliveryTypeFilter, setDeliveryTypeFilter] = useState<string>(initialDeliveryType);
   const [cartTypeFilter, setCartTypeFilter] = useState<string>("");
   const [routeFilter, setRouteFilter] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);

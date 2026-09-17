@@ -40,7 +40,7 @@ import {
 import TripManagementSection from './admin_inventory/TripManagementSection';
 import FuelLogsSection from './admin_inventory/FuelLogsSection';
 import MaintenanceSection from './admin_inventory/MaintenanceSection';
-import { getAllExpenses, updateExpenseStatus, getExpenseCategories, createExpenseCategory, bulkUpdateExpenseStatus } from './services/expenseService';
+import { getAllExpenses, updateExpenseStatus, getExpenseCategories, createExpenseCategory, bulkUpdateExpenseStatus, addExpense } from './services/expenseService';
 import { getStoreCashRegister } from './services/cashService';
 import { exportExpensesToExcel } from '../../../utils/expenseExportHelper';
 import ExpenseAnalytics from './ExpenseAnalytics';
@@ -368,7 +368,7 @@ export default function AdminExpenses() {
     const [branchStats, setBranchStats] = useState({});
     const [vehicles, setVehicles] = useState([]);
     const user = useUserStore(s => s.user);
-    const isGlobalRole = user?.role === 'TENANT_OWNER' || user?.role === 'SUPER_ADMIN' || (user?.role === 'ADMIN' && !user?.customRoleId) || user?.portalType === 'ADMIN';
+    const isGlobalRole = user?.role === 'TENANT_OWNER' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'PARTNER' || user?.portalType === 'ADMIN' || !user?.storeId;
 
     useEffect(() => {
         const fetchStores = async () => {
@@ -477,10 +477,6 @@ export default function AdminExpenses() {
     };
 
     const loadExpenses = async () => {
-        if (!isGlobalRole && !storeId) {
-            setLoading(false);
-            return;
-        }
         setLoading(true);
         setExpenses([]);
         try {
@@ -488,7 +484,7 @@ export default function AdminExpenses() {
             if (storeId) params.storeId = storeId;
             if (paymentFilter) params.paymentMode = paymentFilter;
             const data = await getAllExpenses(params);
-            setExpenses(data);
+            setExpenses(Array.isArray(data) ? data : []);
         } catch (err) {
             toast.error('Failed to load expenses');
         } finally {
@@ -553,9 +549,11 @@ export default function AdminExpenses() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const { addExpense } = await import('./services/expenseService');
             const formData = new FormData();
-            formData.append('type', `${newExpense.mainCategory} | ${newExpense.subCategory}`);
+            const finalType = newExpense.subCategory 
+                ? `${newExpense.mainCategory} | ${newExpense.subCategory}` 
+                : newExpense.mainCategory;
+            formData.append('type', finalType);
             formData.append('amount', newExpense.amount);
             formData.append('paymentMode', newExpense.paymentMode);
             formData.append('description', newExpense.description);
@@ -580,6 +578,7 @@ export default function AdminExpenses() {
             });
             setBillFile(null); setBillPreview(null);
             loadExpenses();
+            setActiveTab('monitoring');
         } catch (e) {
             toast.error(e?.response?.data?.message || 'Failed to create expense');
         } finally {

@@ -833,7 +833,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const filteredProductSubItems = productSubItems.filter(() => hasModuleViewPermission("Product Management"));
   const filteredPricingSubItems = pricingSubItems.filter(() => hasModuleViewPermission("Pricing Engine"));
   const filteredProductMasterDataSubItems = productMasterDataSubItems.filter(() => hasModuleViewPermission("Product Management"));
-  const filteredBarcodeSubItems = barcodeSubItems.filter(item => hasSubPermission("Barcode Management", item.label) || hasModuleViewPermission(item.label));
+  const filteredBarcodeSubItems: any[] = [];
   const filteredProcurementSubItems = procurementSubItems.filter(() => hasModuleViewPermission("Procurement Management"));
   const filteredPartnerSubItems = partnerSubItems.filter(() => hasModuleViewPermission("Partner Management"));
   const filteredOrdersSubItems = ordersSubItems.filter(() => hasModuleViewPermission("Orders Management"));

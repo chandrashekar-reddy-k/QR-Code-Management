@@ -14,12 +14,10 @@ export function useVehiclesQuery(storeFilterId: string | null) {
   return useQuery({
     queryKey: ['vsms', 'vehicles', storeKey],
     queryFn: async () => {
-      const [vRes, uRes, sRes, stockRes, auditRes] = await Promise.all([
+      const [vRes, uRes, sRes] = await Promise.all([
         adminAPI.getVehicles({ storeId: storeFilterId }),
         adminAPI.getVehicleAgents({ storeId: storeFilterId }),
-        adminAPI.getStores(),
-        adminAPI.getInventoryInit({ storeId: storeFilterId }),
-        adminAPI.getAuditHistory({ storeId: storeFilterId })
+        adminAPI.getStores()
       ]);
 
       const vehicleList = Array.isArray(vRes.data)
@@ -36,17 +34,10 @@ export function useVehiclesQuery(storeFilterId: string | null) {
         (u: any) => u.role !== 'CONSUMER' && u.role !== 'ADMIN'
       );
 
-      const items = stockRes.data?.items || [];
-      const vehicleStock = stockRes.data?.vehicleStock || {};
-      const auditHistory = auditRes.data || [];
-
       return {
         vehicles: vehicleList,
         stores: fetchedStores,
         users: filteredUsers,
-        items,
-        vehicleStock,
-        auditHistory,
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes fresh
@@ -157,23 +148,45 @@ export function useCollectionsQuery(storeId: string | null) {
  * Instant cache-first hydration (0ms render) for Sales History, Stores, Users,
  * and Today's Session summary.
  */
-export function useSalesQuery(storeFilterId: string | null, filterDate: string = 'Today') {
+export function useSalesQuery(
+  storeFilterId: string | null,
+  filterDate: string = 'Today',
+  customStartDate?: string,
+  customEndDate?: string
+) {
   const storeKey = storeFilterId || 'all';
 
   return useQuery({
-    queryKey: ['vsms', 'sales', storeKey, filterDate],
+    queryKey: ['vsms', 'sales', storeKey, filterDate, customStartDate, customEndDate],
     queryFn: async () => {
       const params: Record<string, any> = {};
       if (storeFilterId) params.storeId = storeFilterId;
+      const todayStr = new Date().toISOString().split('T')[0];
+
       if (filterDate === 'Today') {
-        params.fromDate = new Date().toISOString().split('T')[0];
-      } else if (filterDate === 'This Week') {
-        const d = new Date(); d.setDate(d.getDate() - 7);
+        params.fromDate = todayStr;
+        params.toDate = todayStr;
+      } else if (filterDate === 'Yesterday') {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        const yestStr = d.toISOString().split('T')[0];
+        params.fromDate = yestStr;
+        params.toDate = yestStr;
+      } else if (filterDate === 'Last 7 Days' || filterDate === 'This Week') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
         params.fromDate = d.toISOString().split('T')[0];
+        params.toDate = todayStr;
       } else if (filterDate === 'This Month') {
-        const d = new Date(); d.setDate(1);
+        const d = new Date();
+        d.setDate(1);
         params.fromDate = d.toISOString().split('T')[0];
+        params.toDate = todayStr;
+      } else if (filterDate === 'Custom' || filterDate === 'Custom Range') {
+        if (customStartDate) params.fromDate = customStartDate;
+        if (customEndDate) params.toDate = customEndDate;
       }
+      // 'All Time' will pass no fromDate/toDate to retrieve all sales history
 
       const [salesRes, storesRes, usersRes] = await Promise.allSettled([
         adminAPI.getSales(params),

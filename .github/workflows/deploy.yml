@@ -27,7 +27,7 @@ jobs:
             set -e
 
             export PATH=$PATH:/home/ubuntu/n/bin
-            
+
             cd /opt/apps/villagkart/erp-dev/partner_web
 
             echo "Updating repository..."
@@ -41,10 +41,10 @@ jobs:
 
             echo "Building frontend..."
 
-            NODE_OPTIONS="--max-old-space-size=4096" npm run build
+            npm run build
 
             echo "Restarting Nginx..."
-            
+
             sudo systemctl reload nginx
-            
+
             echo "Frontend deployment completed successfully."
