@@ -133,6 +133,9 @@ export const adminAPI = {
   getDayDetailedSales: (params?: any) => api.get('/admin/reports/day-detailed', { params }),
   getPaymentReport: (params?: any) => api.get('/admin/reports/daily', { params }),
   getDamageReports: (params?: any) => api.get('/damage/reports', { params }),
+  getProcurementSalesReport: (params?: any) => api.get('/admin/reports/procurement-sales', { params }),
+  getCreditSalesReport: (params?: any) => api.get('/admin/reports/credit-sales', { params }),
+  updateCreditPaymentStatus: (orderId: string, data: any) => api.put(`/admin/reports/credit-sales/${orderId}/payment-status`, data),
   getDamageEntries: (params?: any) => api.get('/damage/entries', { params }),
 
   // Vehicle Damage CRUD (Separate)

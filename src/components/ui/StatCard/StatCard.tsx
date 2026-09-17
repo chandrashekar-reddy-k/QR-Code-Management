@@ -94,6 +94,8 @@ const valueSizeClasses: Record<
   "2xl": "text-2xl",
 };
 
+import React from "react";
+
 const StatCard = ({
   title,
   value,
@@ -103,11 +105,17 @@ const StatCard = ({
   trend,
   valueSize = "2xl",
 }: StatCardProps) => {
-  const variantClass = variantClasses[variant];
+  const normalizedVariant =
+    variant === ("emerald" as any)
+      ? "green"
+      : variant === ("amber" as any)
+      ? "yellow"
+      : variant;
+  const variantClass = variantClasses[normalizedVariant] || variantClasses.blue;
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 ${sizeClasses[size]} w-full overflow-hidden`}
+      className={`bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 ${sizeClasses[size] || sizeClasses.md} w-full overflow-hidden`}
     >
       <div className="flex items-start justify-between min-w-0">
         <div className="flex-1 min-w-0 pr-2">
@@ -115,7 +123,7 @@ const StatCard = ({
             {title}
           </h3>
           <p
-            className={`${valueSizeClasses[valueSize]} font-bold text-gray-900 dark:text-gray-100 break-words`}
+            className={`${valueSizeClasses[valueSize] || valueSizeClasses["2xl"]} font-bold text-gray-900 dark:text-gray-100 break-words`}
           >
             {value}
           </p>
@@ -134,7 +142,12 @@ const StatCard = ({
         <div
           className={`rounded-lg p-3 ${variantClass.iconWrapper} mt-2 flex-shrink-0`}
         >
-          <Icon size={24} className={variantClass.textColor} />
+          {React.isValidElement(Icon) ? (
+            Icon
+          ) : Icon ? (
+            // @ts-ignore
+            <Icon size={24} className={variantClass.textColor} />
+          ) : null}
         </div>
       </div>
     </div>

@@ -69,7 +69,7 @@ export default function AdminRoutes() {
   const location = useLocation();
 
   const getInitialTab = () => {
-    if (urlTab && ['performance', 'villages', 'routes', 'assignments', 'sales', 'collections'].includes(urlTab)) return urlTab;
+    if (urlTab && ['villages', 'routes', 'assignments', 'sales', 'collections'].includes(urlTab)) return urlTab;
     if (isAdmin || !currentUser?.customRoleId || !currentUser?.permissions?.ROUTE_TARGET_SECTIONS) return 'villages';
     const sections = currentUser.permissions.ROUTE_TARGET_SECTIONS;
     if (sections.includes('VILLAGES')) return 'villages';
@@ -78,12 +78,10 @@ export default function AdminRoutes() {
     return 'villages';
   };
 
-  const [activeTab, setActiveTab] = useState('performance');
+  const [activeTab, setActiveTab] = useState(getInitialTab);
 
   useEffect(() => {
-    if (location.pathname === '/vsms/live-tracking' && activeTab !== 'performance') {
-      setActiveTab('performance');
-    } else if (urlTab && ['performance', 'villages', 'routes', 'assignments', 'sales', 'collections'].includes(urlTab) && urlTab !== activeTab) {
+    if (urlTab && ['villages', 'routes', 'assignments', 'sales', 'collections'].includes(urlTab) && urlTab !== activeTab) {
       setActiveTab(urlTab);
     }
   }, [urlTab, location.pathname]);
@@ -582,7 +580,6 @@ export default function AdminRoutes() {
             <div className="w-full overflow-x-auto custom-scrollbar">
               <div className="flex items-center gap-8 w-fit min-w-max">
                 {[
-                  { id: 'performance', label: 'Performance', icon: Target, visible: true },
                   { id: 'villages', label: 'Village', icon: MapPin, visible: canSection('VILLAGES') },
                   { id: 'routes', label: 'Routes', icon: Navigation, visible: canSection('ROUTES') },
                   { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: canSection('ASSIGNMENTS') }
@@ -609,13 +606,13 @@ export default function AdminRoutes() {
         )}
       </div>
 
-      {/* --- PERFORMANCE TAB --- */}
-      {activeTab === 'performance' && (
+      {/* --- LIVE AGENT TRACKING / PERFORMANCE VIEW --- */}
+      {(location.pathname === '/vsms/live-tracking' || activeTab === 'performance') && (
         <RoutePerformanceDashboard storeId={storeId} isLoaded={isLoaded} />
       )}
 
       {/* --- VILLAGES TAB --- */}
-      {activeTab === 'villages' && (
+      {location.pathname !== '/vsms/live-tracking' && activeTab === 'villages' && (
         <div className="animate-fade-in">
           {isVillageEditorOpen ? (
             <div className="space-y-6">

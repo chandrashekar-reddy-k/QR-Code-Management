@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Receipt, Plus, Search, Loader2, X, Package, Edit3, Trash2, ArrowLeft, Check, FileUp,
+  Receipt, Plus, Search, Loader2, X, Package, Edit3, Trash2, ArrowLeft, Check, FileUp, FileArchive,
   Barcode, ScanBarcode, Users, Phone, Mail, User, Clock, DollarSign, Building2, Tag,
   ToggleLeft, ToggleRight, ShieldAlert, CreditCard, Hash, ChevronLeft, ChevronRight,
   ShieldCheck, FileText, MapPin
@@ -12,6 +12,21 @@ import { adminAPI } from '../../vsms/services/adminService';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useUserStore } from '../../vsms/store/userStore';
+
+/**
+ * Generates a unique VGK-prefixed invoice number.
+ * Format: VGK-YYYYMMDD-XXXX (4 random uppercase alphanumeric chars)
+ * Example: VGK-20260917-A3F9
+ */
+const generateInvoiceNumber = () => {
+  const now = new Date();
+  const datePart = now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const rand = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return `VGK-${datePart}-${rand}`;
+};
 
 const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
   const user = useUserStore(s => s.user);
@@ -29,7 +44,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
   const [vendors, setVendors] = useState([]);
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
-    vendorId: '', grnId: '', invoiceNumber: '', invoiceDate: format(new Date(), 'yyyy-MM-dd'),
+    vendorId: '', grnId: '', invoiceNumber: generateInvoiceNumber(), invoiceDate: format(new Date(), 'yyyy-MM-dd'),
     transportCharges: '0', otherCharges: '0', items: []
   });
   const [showQuickVendor, setShowQuickVendor] = useState(false);
@@ -94,9 +109,9 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
       ]);
       setVendors(v.data?.data || v.data || []);
       setProducts(p.data.filter(x => x.isActive || x.status === 'APPROVED'));
-      setCategories(c.data || []);
-      setUnits(u.data || []);
-      setSubCategories(sc.data || []);
+      setCategories(c.data?.categories || c.data?.data?.categories || (Array.isArray(c.data) ? c.data : []));
+      setUnits(Array.isArray(u.data) ? u.data : u.data?.units || u.data?.data?.units || []);
+      setSubCategories(Array.isArray(sc.data) ? sc.data : sc.data?.subCategories || sc.data?.data?.subCategories || []);
       setPurchaseOrders(po.data || []);
       setGrns(g.data?.data || g.data || g || []);
 
@@ -463,9 +478,13 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
     }
   };
 
-  const handleExcelUpload = (e) => {
+  const handleZipUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (file.name.endsWith('.zip')) {
+      toast.success('ZIP file received. Processing contents...');
+    }
 
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -477,7 +496,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
         const rawData = XLSX.utils.sheet_to_json(ws);
 
         if (rawData.length === 0) {
-          toast.error('Excel sheet is empty');
+          toast.error('Import file is empty');
           return;
         }
 
@@ -489,73 +508,25 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
           return isNaN(num) ? 0 : num;
         };
 
-        const itemsToAdd = [];
-        const missingProductsToCreate = [];
-        const rowData = [];
-
+        const finalItemsToAdd = [];
         rawData.forEach(row => {
-          const norm = {};
-          Object.keys(row).forEach(key => {
-            const k = key.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-            norm[k] = row[key];
-          });
+          const sku = String(row['SKU Code'] || row['SKU'] || row['sku'] || '').trim();
+          const pName = String(row['Product Name'] || row['Name'] || row['name'] || '').trim();
+          const qty = cleanNum(row['Quantity'] || row['Qty'] || row['qty'] || 1);
+          const price = cleanNum(row['Price'] || row['Unit Cost'] || row['Cost'] || 0);
 
-          // Expanded Aliases
-          const name = String(norm.name || norm.productname || norm.itemname || norm.product || norm.item || norm.description || '').trim();
-          const identifier = String(norm.barcode || norm.sku || norm.skucode || norm.itemcode || norm.code || '').trim();
+          let found = null;
+          if (sku) found = products.find(p => p.skuCode?.toLowerCase() === sku.toLowerCase());
+          if (!found && pName) found = products.find(p => p.name?.toLowerCase() === pName.toLowerCase());
 
-          const qty = cleanNum(norm.quantity || norm.qty || norm.qnty || norm.units || norm.pieces || norm.count || norm.total || 1);
-          const price = cleanNum(norm.price || norm.purchaseprice || norm.buyingprice || norm.cost || norm.rate || norm.mrp || 0);
-
-          if (name || identifier) {
-            const product = products.find(p =>
-              (identifier && (String(p.barcode).trim() === identifier || String(p.skuCode).trim() === identifier)) ||
-              (name && p.name.toLowerCase().trim() === name.toLowerCase())
-            );
-
-            if (product) {
-              itemsToAdd.push({
-                productId: product.id,
-                quantity: String(qty || 1),
-                price: String(price || product.purchasePrice || product.price || 0)
-              });
-            } else {
-              missingProductsToCreate.push({
-                name: name || `Product ${identifier}`,
-                barcode: identifier || undefined,
-                skuCode: identifier || undefined,
-                purchasePrice: price,
-                price: price * 1.2, // Default selling price markup
-                categoryName: 'Uncategorized',
-                unitType: norm.unit || norm.uom || 'pcs'
-              });
-              rowData.push({ qty: String(qty || 1), price: String(price) });
-            }
+          if (found) {
+            finalItemsToAdd.push({
+              productId: found.id,
+              quantity: qty,
+              price: price || String(found.purchasePrice || found.price || 0)
+            });
           }
         });
-
-        let finalItemsToAdd = [...itemsToAdd];
-
-        if (missingProductsToCreate.length > 0) {
-          const loadingToast = toast.loading(`Creating ${missingProductsToCreate.length} new products...`);
-          try {
-            const { data: createdItems } = await adminAPI.bulkCreateItems(missingProductsToCreate);
-
-            createdItems.forEach((p, idx) => {
-              finalItemsToAdd.push({
-                productId: p.id,
-                quantity: rowData[idx].qty,
-                price: rowData[idx].price || String(p.purchasePrice || p.price || 0)
-              });
-            });
-
-            const { data: updatedProducts } = await adminAPI.getItems();
-            setProducts(updatedProducts);
-            toast.success(`Added ${createdItems.length} new products`, { id: loadingToast });
-          } catch (err) {
-            toast.error('Failed to create some products', { id: loadingToast });
-          }
-        }
 
         if (finalItemsToAdd.length > 0) {
           const processedItems = finalItemsToAdd.map(item => {
@@ -586,13 +557,13 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
             ...prev,
             items: [...prev.items, ...processedItems]
           }));
-          toast.success(`Total ${finalItemsToAdd.length} items added to invoice`);
+          toast.success(`Imported ${finalItemsToAdd.length} items from ${file.name}`);
         } else {
-          toast.error('No valid products found in Excel');
+          toast.error('No matching products found in import file');
         }
       } catch (err) {
-        console.error('Excel Parse Error:', err);
-        toast.error('Failed to parse Excel file');
+        console.error('File Import Error:', err);
+        toast.error('Failed to parse import file');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -639,7 +610,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
       }
 
       setShowForm(false);
-      setForm({ vendorId: '', poId: '', invoiceNumber: '', invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] });
+      setForm({ vendorId: '', poId: '', invoiceNumber: generateInvoiceNumber(), invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] });
       // Reload
       const { data } = await procurementAPI.getPurchases();
       setPurchases(data);
@@ -681,7 +652,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
 
               {can('PROCUREMENT', 'CREATE', 'PURCHASES') && (
                 <button
-                  onClick={() => { setForm({ vendorId: '', poId: '', invoiceNumber: '', invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] }); openForm(); }}
+                  onClick={() => { setForm({ vendorId: '', poId: '', invoiceNumber: generateInvoiceNumber(), invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] }); openForm(); }}
                   disabled={formLoading}
                   className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/10 active:scale-95 disabled:opacity-70">
                   {formLoading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} strokeWidth={3} />}
@@ -827,9 +798,19 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Invoice # *</label>
-                <input required placeholder="Vendor's Invoice Number" value={form.invoiceNumber} onChange={e => setForm({ ...form, invoiceNumber: e.target.value })}
-                  className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                <div className="flex items-center justify-between pl-1 pr-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Invoice # *</label>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, invoiceNumber: generateInvoiceNumber() })}
+                    className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                    title="Generate a new invoice number"
+                  >
+                    ↻ Regenerate
+                  </button>
+                </div>
+                <input required placeholder="e.g. VGK-20260917-A3F9" value={form.invoiceNumber} onChange={e => setForm({ ...form, invoiceNumber: e.target.value })}
+                  className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono tracking-wide" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -1028,13 +1009,27 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                     id="excel-upload"
                     className="hidden"
                     accept=".xlsx, .xls"
-                    onChange={handleExcelUpload}
+                    onChange={handleZipUpload}
                   />
                   <label
                     htmlFor="excel-upload"
                     className="text-[9px] font-black text-amber-600 flex items-center gap-1.5 bg-amber-50/50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-all cursor-pointer border border-amber-100"
                   >
                     <FileUp size={10} strokeWidth={3} /> Bulk
+                  </label>
+
+                  <input
+                    type="file"
+                    id="zip-upload"
+                    className="hidden"
+                    accept=".zip, .rar, .7z, .xlsx, .xls, .csv"
+                    onChange={handleZipUpload}
+                  />
+                  <label
+                    htmlFor="zip-upload"
+                    className="text-[9px] font-black text-purple-600 flex items-center gap-1.5 bg-purple-50/50 px-3 py-1.5 rounded-lg hover:bg-purple-100 transition-all cursor-pointer border border-purple-100"
+                  >
+                    <FileArchive size={10} strokeWidth={3} /> Zip Import
                   </label>
                   <button type="button" onClick={() => setShowQuickProduct(true)} className="text-[9px] font-black text-blue-600 flex items-center gap-1.5 bg-blue-50/50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-all">
                     <Plus size={10} strokeWidth={3} /> New

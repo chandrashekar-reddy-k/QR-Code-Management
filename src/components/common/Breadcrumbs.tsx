@@ -42,6 +42,8 @@ const pathLabelMap: Record<string, string> = {
   "scheduled-delivery": "Scheduled Delivery",
   "resource-management": "Resource Management",
   "administration-report": "Resource Management",
+  vsms: "Order Management",
+  sales: "Sales History",
 };
 
 // Format a path segment to a readable label

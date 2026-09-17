@@ -625,31 +625,61 @@ export const sidebarConfig: MenuSection[] = [
   //   icon: Wallet,
   // },
 
-  // // REPORTS Section
-  // {
-  //   type: "section",
-  //   sectionTitle: "REPORTS",
-  // },
-  // {
-  //   type: "collapsible",
-  //   permission: "Partner: Reports",
-  //   label: "Reports",
-  //   icon: BarChart3,
-  //   stateKey: "isReportsOpen",
-  //   subItems: [
-  //     {
-  //       path: "/reports/product-sales-reports",
-  //       label: "Product Sales Report",
-  //       icon: BarChart3,
-  //     },
-  //     {
-  //       path: "/reports/sales-reports",
-  //       label: "Sales Reports",
-  //       icon: BarChart3,
-  //     },
-  //     { path: "/reports/pos-reports", label: "POS Reports", icon: BarChart3 },
-  //   ],
-  // },
+  // REPORTS Section
+  {
+    type: "section",
+    sectionTitle: "REPORTS",
+  },
+  {
+    type: "collapsible",
+    permission: "Partner: Reports",
+    label: "VSMS Reports",
+    icon: BarChart3,
+    stateKey: "isReportsOpen",
+    subItems: [
+      {
+        path: "/vsms/reports?tab=day-wise",
+        label: "Day-wise Sales",
+        icon: Calendar,
+      },
+      {
+        path: "/vsms/reports?tab=item-wise",
+        label: "Item-wise Sales",
+        icon: Package,
+      },
+      {
+        path: "/vsms/reports?tab=category-wise",
+        label: "Category-wise Sales",
+        icon: Tag,
+      },
+      {
+        path: "/vsms/reports?tab=invoice-wise",
+        label: "Invoice-wise Report",
+        icon: Receipt,
+      },
+      {
+        path: "/vsms/reports?tab=return",
+        label: "Return Report",
+        icon: RotateCcw,
+      },
+      {
+        path: "/vsms/reports?tab=damage",
+        label: "Damage Report",
+        icon: AlertTriangle,
+      },
+      {
+        path: "/vsms/reports?tab=procurement",
+        label: "Procurement Sales",
+        icon: ShoppingCart,
+      },
+      {
+        path: "/vsms/reports?tab=credit",
+        label: "Credit Sales",
+        icon: CreditCard,
+      },
+    ],
+  },
+
 
   // {
   //   type: "collapsible",

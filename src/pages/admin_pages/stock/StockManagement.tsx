@@ -106,6 +106,39 @@ const StockManagement = () => {
   const { mutate: deleteMutation } = useDeleteProduct();
 
 
+  const isUuid = (val: any) => typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
+
+  const KNOWN_UNIT_TYPE_MAP: Record<string, string> = {
+    "541eee62-334f-475d-b2bc-3bc953edb2a0": "Weight",
+    "2d8a8cb8-a847-40e4-bf07-89cd284d954d": "Pack",
+    "2d014ffc-7cd1-404b-90ed-1b9569d33a97": "Volume",
+    "66f022cb-26e1-4b7b-bb14-3c8ae0868a8a": "gm",
+    "e5e6d1b6-5754-4967-a393-0c5d56c0fd1d": "kg",
+    "4eb90754-8726-4c76-8df8-abd734b39278": "kgs",
+    "9351f2cc-5597-4bed-9d7e-8af0fb7fdc58": "Gms",
+    "465c261c-d865-4574-8eda-52d0463753e7": "Weight",
+  };
+
+  const resolveDisplayUnitType = (p: any): string => {
+    if (p.unitTypeName && !isUuid(p.unitTypeName)) return p.unitTypeName;
+    if (p.unitType) {
+      if (KNOWN_UNIT_TYPE_MAP[p.unitType]) return KNOWN_UNIT_TYPE_MAP[p.unitType];
+      if (!isUuid(p.unitType)) return p.unitType;
+    }
+    if (p.unitObj?.unitType?.name) return p.unitObj.unitType.name;
+    if (p.unit) {
+      if (KNOWN_UNIT_TYPE_MAP[p.unit]) return KNOWN_UNIT_TYPE_MAP[p.unit];
+      const unitStr = String(p.unit).toLowerCase();
+      if (unitStr.includes("kg") || unitStr.includes("gram") || unitStr.includes("gm") || unitStr.includes("weight")) return "Weight";
+      if (unitStr.includes("litre") || unitStr.includes("liter") || unitStr.includes("ml") || unitStr.includes("volume")) return "Volume";
+      if (unitStr.includes("pack") || unitStr.includes("piece") || unitStr.includes("pc") || unitStr.includes("box")) return "Pack";
+    }
+    if (p.productType && !isUuid(p.productType)) {
+      return p.productType.replace(/_/g, " ");
+    }
+    return "Pack";
+  };
+
   // Normalise API products → ApiStock shape
   const stocks: ApiStock[] = useMemo(() => {
     const resp = apiData as { data?: { products?: ApiStock[] } | ApiStock[] } | undefined;
@@ -119,7 +152,7 @@ const StockManagement = () => {
       const stage = p.lifecycleStage || tagStage || 'STORE_ROOM';
       const prodId = p.productId || String(p.id ?? '').slice(0, 8).toUpperCase();
       const variantName = p.variantName || (Array.isArray(p.variants) && p.variants[0]?.variantName) || p.unit || "—";
-      const unitType = p.unitType || p.productType || "—";
+      const unitType = resolveDisplayUnitType(p);
 
       const hasChTag = tags.some((t: string) => t.startsWith('CH:'));
       const isOnline = hasChTag ? tags.includes('CH:ONLINE') : (p.isOnline !== false);

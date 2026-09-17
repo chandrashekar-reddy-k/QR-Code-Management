@@ -1,11 +1,11 @@
 // @ts-nocheck
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  FileDown, Search, Filter, ShoppingCart, Calendar, Truck, Download, ChevronRight, ChevronLeft,
+  FileDown, Search, Filter, ShoppingCart, Calendar, Truck, Download, ChevronRight, ChevronLeft, ChevronDown,
   Loader2, ArrowLeft, User, Smartphone, Shield, Coins, Package, Info, MapPin, Printer, Clock,
   CreditCard, Wallet, CalendarClock, Map, Building2, Tag, CheckCircle2, AlertCircle, RefreshCw,
   FileText, Edit3, Trash2, RotateCcw, XCircle, Minus, Plus, AlertTriangle, Lock, Unlock, BarChart3,
-  FileSpreadsheet, Upload
+  FileSpreadsheet, Upload, ArrowUpDown, ArrowUp, ArrowDown, TrendingUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
@@ -18,10 +18,29 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import { generateReportPDF } from './adminreports/ReportUtils';
 import { useSalesQuery, useVsmsCacheInvalidator } from './hooks/useVsmsCache';
+import Breadcrumbs from '../../../components/common/Breadcrumbs';
+import StatCard from '../../../components/ui/StatCard/StatCard';
 // ManualSaleDrawer stubbed
 const ManualSaleDrawer = () => null;
 // CustomerManagement stubbed
 const CustomerManagement = () => null;
+
+const calculateMargin = (item) => {
+  const totAmt = Number(item.totalAmount) || 0;
+  if (item.items && item.items.length > 0) {
+    const calculatedMargin = item.items.reduce((mSum, i) => {
+      const sp = Number(i.price || i.sellingPrice || i.unitPrice || 0);
+      const lp = Number(i.landingPrice ?? i.landing_price ?? i.product?.landingPrice ?? i.costPrice ?? 0);
+      const qty = Number(i.quantity || 1);
+      if (lp > 0 && sp > lp) {
+        return mSum + (sp - lp) * qty;
+      }
+      return mSum + (sp > 0 ? sp * 0.20 * qty : 0);
+    }, 0);
+    return calculatedMargin > 0 ? calculatedMargin : totAmt * 0.20;
+  }
+  return totAmt * 0.20;
+};
 
 const containsUnicode = (str) => /[^\x00-\x7F]/.test(str);
 
@@ -143,7 +162,11 @@ export default function AdminSales() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState('Today');
+  const [customStartDate, setCustomStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [saleType, setSaleType] = useState('ALL'); // ALL, POS, AGENT
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL'); // ALL, COMPLETED, PENDING, CANCELLED, RETURNED
+  const [selectedOrders, setSelectedOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [showCreateSale, setShowCreateSale] = useState(false);
@@ -152,6 +175,30 @@ export default function AdminSales() {
   const [uploadProgress, setUploadProgress] = useState('');
   const [autoCreateProducts, setAutoCreateProducts] = useState(true);
   const ITEMS_PER_PAGE = 10;
+
+  // ── Column Sorting States ──
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
+  const [customerSortField, setCustomerSortField] = useState('totalSpent');
+  const [customerSortDirection, setCustomerSortDirection] = useState('desc');
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleCustomerSort = (field) => {
+    if (customerSortField === field) {
+      setCustomerSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setCustomerSortField(field);
+      setCustomerSortDirection('asc');
+    }
+  };
 
   // ── Order Edit / Return / Cancel States ──
   const [fullOrder, setFullOrder] = useState(null);
@@ -263,7 +310,7 @@ export default function AdminSales() {
   const can = useUserStore(s => s.can);
 
   const { invalidateSales } = useVsmsCacheInvalidator();
-  const { data: cachedSalesData, isLoading: isSalesQueryLoading, isFetching: isSalesQueryFetching, refetch: refetchSalesQuery } = useSalesQuery(storeFilterId, filterDate);
+  const { data: cachedSalesData, isLoading: isSalesQueryLoading, isFetching: isSalesQueryFetching, refetch: refetchSalesQuery } = useSalesQuery(storeFilterId, filterDate, customStartDate, customEndDate);
 
   // Sync React Query cache instantly to component state
   useEffect(() => {
@@ -291,7 +338,7 @@ export default function AdminSales() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterDate, storeFilterId]);
+  }, [searchQuery, filterDate, customStartDate, customEndDate, storeFilterId]);
 
   // Aggregated Customer List for the "Customer" Tab
   const customerList = React.useMemo(() => {
@@ -479,7 +526,6 @@ export default function AdminSales() {
   useEffect(() => {
     fetchSessionData();
   }, [storeFilterId]);
-
 
   const exportHistoryToExcel = () => {
     const data = listToRender.map(s => {
@@ -703,7 +749,7 @@ export default function AdminSales() {
       doc.text("Total", 175, y, { align: "right" });
 
       y += 8;
-      order.items?.forEach((item, idx) => {
+      order.items?.forEach((item: any, idx: number) => {
         if (y > 270) { doc.addPage(); y = 30; }
         if (idx % 2 === 0) {
           doc.setFillColor(255, 255, 255);
@@ -711,10 +757,12 @@ export default function AdminSales() {
           doc.setFillColor(252, 252, 252);
         }
         doc.rect(20, y - 5, 170, 7, 'F');
-        drawUnicodeText(doc, item.product?.name || item.productName || 'Unknown', 25, y, { fontSize: 9, color: [51, 65, 85] });
-        doc.text(String(item.quantity), 120, y);
-        doc.text(item.price.toFixed(0), 145, y);
-        doc.text((item.price * item.quantity).toFixed(0), 185, y, { align: "right" });
+        drawUnicodeText(doc, item.product?.name || item.productName || item.name || 'Unknown Item', 25, y, { fontSize: 9, color: [51, 65, 85] });
+        const qty = Number(item.quantity || item.qty || 1);
+        const price = Number(item.price ?? item.unitPrice ?? item.rate ?? 0);
+        doc.text(String(qty), 120, y);
+        doc.text(price.toFixed(0), 145, y);
+        doc.text((price * qty).toFixed(0), 185, y, { align: "right" });
         y += 7;
       });
 
@@ -1085,6 +1133,27 @@ export default function AdminSales() {
 
   // Gatekeeper removed for Tenant Owners to allow "All Stores" sales view
 
+  const summaryStats = useMemo(() => {
+    const totalRev = sales.reduce((acc, s) => acc + (Number(s.totalAmount) || 0), 0);
+    const totalOrd = sales.length;
+    const totalMargin = sales.reduce((acc, item) => acc + calculateMargin(item), 0);
+    const totalCash = sales.reduce((acc, s) => {
+      const pMode = (s.paymentMode || '').toUpperCase();
+      if (pMode === 'CASH' || pMode === 'COD') {
+        return acc + (Number(s.totalAmount) || 0);
+      }
+      return acc;
+    }, 0);
+    const avgVal = totalOrd > 0 ? totalRev / totalOrd : 0;
+    return {
+      totalRevenue: totalRev,
+      totalOrdersCount: totalOrd,
+      totalMargin: totalMargin,
+      totalCash: totalCash,
+      avgOrderValue: avgVal,
+    };
+  }, [sales]);
+
   // Apply Store filter mathematically to sales
   const listToRender = sales.filter(s => {
     if (storeFilterId && s.storeId !== storeFilterId) return false;
@@ -1100,16 +1169,99 @@ export default function AdminSales() {
     if (saleType === 'POS' && s.vehicleId) return false;
     if (saleType === 'AGENT' && !s.vehicleId) return false;
 
+    // Order Status Filter
+    if (orderStatusFilter && orderStatusFilter !== 'ALL') {
+      const statusUpper = (s.status || '').toUpperCase();
+      if (orderStatusFilter === 'COMPLETED' && statusUpper !== 'COMPLETED' && statusUpper !== 'DELIVERED') return false;
+      if (orderStatusFilter === 'PENDING' && statusUpper !== 'PENDING' && statusUpper !== 'CONFIRMED' && statusUpper !== 'PLACED') return false;
+      if (orderStatusFilter === 'CANCELLED' && statusUpper !== 'CANCELLED' && statusUpper !== 'CANCELED') return false;
+      if (orderStatusFilter === 'RETURNED' && statusUpper !== 'RETURNED') return false;
+    }
+
     const query = searchQuery.toLowerCase();
     const invoiceStr = s.orderNumber ? `vk-${s.orderNumber}` : `vk-${Date.now().toString().slice(-6)}`;
     const customerName = s.customerName ? s.customerName.toLowerCase() : '';
     return invoiceStr.includes(query) || (s.mobile && s.mobile.includes(searchQuery)) || customerName.includes(query);
   });
 
-  // Gatekeeper removed for Tenant Owners to allow "All Stores" sales view
+  // Apply Column Sorting to Lists
+  const sortedListToRender = useMemo(() => {
+    return [...listToRender].sort((a, b) => {
+      let aVal, bVal;
+      switch (sortField) {
+        case 'orderNumber':
+        case 'invoiceId':
+          aVal = a.orderNumber || (a.id ? String(a.id).replace(/\D/g, '') : '') || '';
+          bVal = b.orderNumber || (b.id ? String(b.id).replace(/\D/g, '') : '') || '';
+          break;
+        case 'createdAt':
+          aVal = new Date(a.createdAt || 0).getTime();
+          bVal = new Date(b.createdAt || 0).getTime();
+          break;
+        case 'customerName':
+          aVal = (a.customerName || 'Walk-in').toLowerCase();
+          bVal = (b.customerName || 'Walk-in').toLowerCase();
+          break;
+        case 'soldBy':
+          aVal = (a.user?.name || a.userName || 'System').toLowerCase();
+          bVal = (b.user?.name || b.userName || 'System').toLowerCase();
+          break;
+        case 'totalAmount':
+          aVal = Number(a.totalAmount) || 0;
+          bVal = Number(b.totalAmount) || 0;
+          break;
+        case 'margin':
+          aVal = calculateMargin(a);
+          bVal = calculateMargin(b);
+          break;
+        case 'paymentMode':
+          aVal = (a.paymentMode || 'Cash').toLowerCase();
+          bVal = (b.paymentMode || 'Cash').toLowerCase();
+          break;
+        default:
+          aVal = a[sortField];
+          bVal = b[sortField];
+      }
 
-  const totalPages = Math.ceil((roleTab === 'Customer' ? customerList.length : listToRender.length) / ITEMS_PER_PAGE);
-  const paginatedData = (roleTab === 'Customer' ? customerList : listToRender).slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortDirection === 'asc' ? (aVal > bVal ? 1 : aVal < bVal ? -1 : 0) : (bVal > aVal ? 1 : bVal < aVal ? -1 : 0);
+    });
+  }, [listToRender, sortField, sortDirection]);
+
+  const sortedCustomerList = useMemo(() => {
+    return [...customerList].sort((a, b) => {
+      let aVal = a[customerSortField];
+      let bVal = b[customerSortField];
+
+      if (customerSortField === 'name') {
+        aVal = (a.name || '').toLowerCase();
+        bVal = (b.name || '').toLowerCase();
+      } else if (customerSortField === 'mobile') {
+        aVal = a.mobile || '';
+        bVal = b.mobile || '';
+      } else if (customerSortField === 'orderCount') {
+        aVal = Number(a.orderCount) || 0;
+        bVal = Number(b.orderCount) || 0;
+      } else if (customerSortField === 'totalSpent') {
+        aVal = Number(a.totalSpent) || 0;
+        bVal = Number(b.totalSpent) || 0;
+      } else if (customerSortField === 'lastOrderDate') {
+        aVal = new Date(a.lastOrderDate || 0).getTime();
+        bVal = new Date(b.lastOrderDate || 0).getTime();
+      }
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return customerSortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return customerSortDirection === 'asc' ? (aVal > bVal ? 1 : aVal < bVal ? -1 : 0) : (bVal > aVal ? 1 : bVal < aVal ? -1 : 0);
+    });
+  }, [customerList, customerSortField, customerSortDirection]);
+
+  const activeList = roleTab === 'Customer' ? sortedCustomerList : sortedListToRender;
+  const totalPages = Math.ceil(activeList.length / ITEMS_PER_PAGE);
+  const paginatedData = activeList.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
 
 
@@ -1212,96 +1364,183 @@ export default function AdminSales() {
   );
 
   return (
-    <div className="main-content-to-print space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+    <div className="main-content-to-print w-full px-1 sm:px-2 md:px-3 pb-4 relative">
       {/* Background sync progress bar */}
       {isSalesQueryFetching && (
         <div className="fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-emerald-100/50">
           <div className="h-full bg-emerald-600 animate-pulse w-full" />
         </div>
       )}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            {false && storeFilterId && stores.length > 1 && (
-              <button
-                onClick={() => setSearchParams({})}
-                className="p-2.5 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-90"
-                title="Back to All Branches"
-              >
-                <ChevronLeft size={18} />
-              </button>
-            )}
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Sales Management</h2>
-            {false && stores.length > 1 && (
-              <select
-                value={storeFilterId || ''}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setSearchParams({ storeId: e.target.value });
-                  } else {
-                    setSearchParams({});
-                  }
-                }}
-                className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest pl-3 pr-7 py-1.5 rounded-xl border-none outline-none appearance-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer shadow-sm ml-1"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23047857' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5.25 7.5L10 12.25L14.75 7.5'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 0.35rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1.1rem'
-                }}
-              >
-                <option value="">All Branches</option>
-                {stores.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            )}
-          </div>
-          <p className="text-sm font-medium text-gray-500">View and manage all transaction history</p>
+
+      {/* Page Title & Breadcrumbs Header */}
+      <div className="mb-2 mt-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
+            Sales History
+          </h1>
+          <Breadcrumbs />
         </div>
 
         {can('SALES', 'CREATE') && !viewingOrder && !showCreateSale && (
-          <div className="flex items-center gap-2 no-print">
+          <div className="flex items-center gap-2 no-print flex-wrap">
             <button
               onClick={() => setShowCreateSale(true)}
-              className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-700 hover:shadow-md transition-all flex items-center gap-2 group"
+              className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-700 transition-all flex items-center gap-2"
             >
-              <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+              <Plus size={18} />
               Create Sale
             </button>
             <button
               onClick={() => setShowBulkUploadModal(true)}
-              className="bg-amber-50 text-amber-700 border border-amber-100 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-amber-100 transition-all flex items-center gap-2 group"
+              className="bg-amber-50 text-amber-700 border border-amber-100 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-amber-100 transition-all flex items-center gap-2"
               title="Bulk Import Sales via Excel"
             >
-              <FileSpreadsheet size={18} className="group-hover:-translate-y-0.5 transition-transform" />
+              <FileSpreadsheet size={18} />
               Bulk Import
             </button>
 
             <button
               onClick={exportHistoryToExcel}
-              className="bg-emerald-50 text-emerald-600 border border-emerald-100 p-3 rounded-xl hover:bg-emerald-100 transition-all shadow-sm group"
+              className="bg-emerald-50 text-emerald-600 border border-emerald-100 p-2.5 rounded-xl hover:bg-emerald-100 transition-all shadow-sm"
               title="Export Excel"
             >
-              <Download size={20} />
+              <Download size={18} />
             </button>
             <button
               onClick={handleExportPDF}
-              className="bg-rose-50 text-rose-600 border border-rose-100 p-3 rounded-xl hover:bg-rose-100 transition-all shadow-sm group"
+              className="bg-rose-50 text-rose-600 border border-rose-100 p-2.5 rounded-xl hover:bg-rose-100 transition-all shadow-sm"
               title="Export PDF"
             >
-              <FileText size={20} />
+              <FileText size={18} />
             </button>
             <button
               onClick={handlePrintList}
-              className="bg-blue-50 text-blue-600 border border-blue-100 p-3 rounded-xl hover:bg-blue-100 transition-all shadow-sm group"
+              className="bg-blue-50 text-blue-600 border border-blue-100 p-2.5 rounded-xl hover:bg-blue-100 transition-all shadow-sm"
               title="Print History"
             >
-              <Printer size={20} />
+              <Printer size={18} />
             </button>
           </div>
         )}
       </div>
+
+      {/* Important & Data Analysis KPI Cards */}
+      {!viewingOrder && !showCreateSale && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 mt-4">
+          <StatCard
+            title="Total Revenue"
+            value={`₹${summaryStats.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+            icon={<Wallet size={20} className="text-emerald-600" />}
+            variant="green"
+            size="md"
+            valueSize="2xl"
+          />
+          <StatCard
+            title="Total Orders"
+            value={summaryStats.totalOrdersCount.toString()}
+            icon={<ShoppingCart size={20} className="text-blue-600" />}
+            variant="blue"
+            size="md"
+            valueSize="2xl"
+          />
+          <StatCard
+            title="Margin Money"
+            value={`₹${summaryStats.totalMargin.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+            icon={<TrendingUp size={20} className="text-emerald-600" />}
+            variant="green"
+            size="md"
+            valueSize="2xl"
+          />
+          <StatCard
+            title="Cash Collected"
+            value={`₹${summaryStats.totalCash.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+            icon={<Coins size={20} className="text-amber-600" />}
+            variant="yellow"
+            size="md"
+            valueSize="2xl"
+          />
+          <StatCard
+            title="Avg Order Value"
+            value={`₹${summaryStats.avgOrderValue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+            icon={<BarChart3 size={20} className="text-purple-600" />}
+            variant="purple"
+            size="md"
+            valueSize="2xl"
+          />
+        </div>
+      )}
+
+      {/* Session Control Panel (Today's Session) */}
+      {!viewingOrder && !showCreateSale && sessionData && (
+        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 space-y-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100"><BarChart3 size={20} /></div>
+              <div>
+                <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Today's Session</h3>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{format(new Date(), 'dd MMM yyyy')} • {sessionData.isFrozen ? 'FROZEN' : 'ACTIVE'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={fetchSessionData} disabled={sessionLoading} className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-100 transition-all border border-gray-100">
+                <RefreshCw size={14} className={sessionLoading ? 'animate-spin' : ''} />
+              </button>
+              {!sessionData.isFrozen && (
+                <button onClick={handleFreezeSession} className="flex items-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all border border-rose-100">
+                  <Lock size={12} /> Freeze Session
+                </button>
+              )}
+              {sessionData.isFrozen && (
+                <span className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-500 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200">
+                  <Lock size={12} /> Session Frozen
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            <StatCard
+              title="Orders"
+              value={sessionData.totalOrders || 0}
+              icon={<ShoppingCart size={20} className="text-emerald-600" />}
+              variant="green"
+              size="md"
+              valueSize="2xl"
+            />
+            <StatCard
+              title="Sales"
+              value={`₹${(sessionData.totalSales || 0).toLocaleString()}`}
+              icon={<Wallet size={20} className="text-blue-600" />}
+              variant="blue"
+              size="md"
+              valueSize="2xl"
+            />
+            <StatCard
+              title="Returns"
+              value={`₹${(sessionData.totalReturns || 0).toLocaleString()}`}
+              icon={<RotateCcw size={20} className="text-rose-600" />}
+              variant="red"
+              size="md"
+              valueSize="2xl"
+            />
+            <StatCard
+              title="Net Sales"
+              value={`₹${(sessionData.netSales || 0).toLocaleString()}`}
+              icon={<Coins size={20} className="text-purple-600" />}
+              variant="purple"
+              size="md"
+              valueSize="2xl"
+            />
+            <StatCard
+              title="Cash / UPI"
+              value={`₹${(sessionData.cashSales || 0).toLocaleString()} / ₹${(sessionData.upiSales || 0).toLocaleString()}`}
+              icon={<CreditCard size={20} className="text-amber-600" />}
+              variant="yellow"
+              size="md"
+              valueSize="lg"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Global Tab Navigation */}
       {!viewingOrder && !showCreateSale && (
@@ -1852,191 +2091,152 @@ export default function AdminSales() {
         <div className="space-y-6">
           {activeTab === 'sales' && (
             <>
-              {/* Session Control Panel */}
-              {sessionData && (
-                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100"><BarChart3 size={20} /></div>
-                      <div>
-                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Today's Session</h3>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{format(new Date(), 'dd MMM yyyy')} • {sessionData.isFrozen ? 'FROZEN' : 'ACTIVE'}</p>
+
+              {/* Filters + Search Bar */}
+              {viewMode === 'list' && (
+                <>
+                  <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                    <div className="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-300 dark:divide-gray-600 w-full sm:w-auto overflow-x-auto">
+                      {/* Filter icon */}
+                      <div className="px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-center flex-shrink-0">
+                        <Filter size={18} className="text-gray-700" />
+                      </div>
+
+                      {/* Status Filter */}
+                      <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex items-center justify-between flex-shrink-0">
+                        <select
+                          value={orderStatusFilter}
+                          onChange={(e) => {
+                            setOrderStatusFilter(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}
+                          className="w-full bg-transparent border-0 font-bold text-xs sm:text-sm text-gray-900 focus:outline-none cursor-pointer pr-4"
+                        >
+                          <option value="ALL">Status</option>
+                          <option value="COMPLETED">Completed</option>
+                          <option value="PENDING">Pending</option>
+                          <option value="CANCELLED">Cancelled</option>
+                          <option value="RETURNED">Returned</option>
+                        </select>
+                        <ChevronDown
+                          size={16}
+                          className="pointer-events-none text-gray-500 flex-shrink-0"
+                        />
+                      </div>
+
+                      {/* Date Filter */}
+                      <div className="px-3 sm:px-4 py-3 sm:py-4 w-[130px] sm:w-[140px] relative flex items-center justify-between flex-shrink-0">
+                        <select
+                          value={filterDate}
+                          onChange={(e) => {
+                            setFilterDate(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}
+                          className="w-full bg-transparent border-0 font-bold text-xs sm:text-sm text-gray-900 focus:outline-none cursor-pointer pr-4"
+                        >
+                          <option value="Today">Date</option>
+                          <option value="Today">Today</option>
+                          <option value="Yesterday">Yesterday</option>
+                          <option value="Last 7 Days">This Week</option>
+                          <option value="This Month">This Month</option>
+                          <option value="Custom Range">Custom Range</option>
+                          <option value="All Time">All Time</option>
+                        </select>
+                        <ChevronDown
+                          size={16}
+                          className="pointer-events-none text-gray-500 flex-shrink-0"
+                        />
+                      </div>
+
+                      {/* Delivery Type / Sale Type Filter */}
+                      <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex items-center justify-between flex-shrink-0">
+                        <select
+                          value={saleType}
+                          onChange={(e) => {
+                            setSaleType(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}
+                          className="w-full bg-transparent border-0 font-bold text-xs sm:text-sm text-gray-900 focus:outline-none cursor-pointer pr-4"
+                        >
+                          <option value="ALL">Delivery Type</option>
+                          <option value="ALL">All Types</option>
+                          <option value="POS">POS</option>
+                          <option value="AGENT">Agent (Scheduled)</option>
+                        </select>
+                        <ChevronDown
+                          size={16}
+                          className="pointer-events-none text-gray-500 flex-shrink-0"
+                        />
+                      </div>
+
+                      {/* Reset Filter Button */}
+                      <div className="px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setSearchQuery('');
+                            setFilterDate('Today');
+                            setSaleType('ALL');
+                            setOrderStatusFilter('ALL');
+                            setSearchParams({});
+                            setCurrentPage(1);
+                          }}
+                          className="flex items-center gap-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap hover:opacity-80 text-orange-600 dark:text-orange-400 w-full sm:w-auto justify-center"
+                        >
+                          <RotateCcw
+                            size={14}
+                            className="sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400"
+                          />
+                          <span>Reset Filter</span>
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={fetchSessionData} disabled={sessionLoading} className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-100 transition-all border border-gray-100">
-                        <RefreshCw size={14} className={sessionLoading ? 'animate-spin' : ''} />
-                      </button>
-                      {!sessionData.isFrozen && (
-                        <button onClick={handleFreezeSession} className="flex items-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all border border-rose-100">
-                          <Lock size={12} /> Freeze Session
-                        </button>
-                      )}
-                      {sessionData.isFrozen && (
-                        <span className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-500 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200">
-                          <Lock size={12} /> Session Frozen
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
-                      <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest">Orders</p>
-                      <p className="text-xl font-black text-emerald-800 tracking-tighter">{sessionData.totalOrders || 0}</p>
-                    </div>
-                    <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                      <p className="text-[9px] font-black text-blue-600/60 uppercase tracking-widest">Sales</p>
-                      <p className="text-xl font-black text-blue-800 tracking-tighter">₹{(sessionData.totalSales || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100">
-                      <p className="text-[9px] font-black text-rose-600/60 uppercase tracking-widest">Returns</p>
-                      <p className="text-xl font-black text-rose-800 tracking-tighter">₹{(sessionData.totalReturns || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                      <p className="text-[9px] font-black text-gray-500/60 uppercase tracking-widest">Net Sales</p>
-                      <p className="text-xl font-black text-gray-900 tracking-tighter">₹{(sessionData.netSales || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100">
-                      <p className="text-[9px] font-black text-amber-600/60 uppercase tracking-widest">Cash / UPI</p>
-                      <p className="text-sm font-black text-amber-800 tracking-tight">₹{(sessionData.cashSales || 0).toLocaleString()} / ₹{(sessionData.upiSales || 0).toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              {/* KPI Summary Cards Banner (Always visible in List View) */}
-              {viewMode === 'list' && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                      <ShoppingCart size={22} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Orders</p>
-                      <p className="text-xl font-black text-gray-900">{listToRender.length}</p>
+                    {/* Search input beside filters */}
+                    <div className="w-full lg:w-auto lg:min-w-[220px] lg:flex-shrink-0">
+                      <div className="relative flex items-center bg-white rounded-xl shadow-md border border-gray-200 px-3 py-2">
+                        <input
+                          type="text"
+                          placeholder="Search"
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          className="w-full bg-transparent border-none text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none pr-8"
+                        />
+                        <Search size={16} className="absolute right-3 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                      <Coins size={22} />
+                  {/* Custom Date Range Picker */}
+                  {filterDate === 'Custom Range' && (
+                    <div className="mb-4 flex flex-wrap items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                      <span className="text-xs font-bold text-gray-600 uppercase">Custom Date Range:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500">From</span>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="border border-gray-300 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-800"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500">To</span>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="border border-gray-300 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-800"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Sales</p>
-                      <p className="text-xl font-black text-emerald-700">₹{listToRender.reduce((acc, curr) => acc + (Number(curr.totalAmount) || 0), 0).toLocaleString()}</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-5 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/50 to-teal-50/30 shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
-                      <Coins size={22} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Margin Money</p>
-                      <p className="text-xl font-black text-emerald-700">
-                        +₹{listToRender.reduce((acc, item) => {
-                          const totAmt = Number(item.totalAmount) || 0;
-                          if (item.items && item.items.length > 0) {
-                            const calculatedMargin = item.items.reduce((mSum, i) => {
-                              const sp = Number(i.price || i.sellingPrice || i.unitPrice || 0);
-                              const lp = Number(i.landingPrice ?? i.landing_price ?? i.product?.landingPrice ?? i.costPrice ?? 0);
-                              const qty = Number(i.quantity || 1);
-                              if (lp > 0 && sp > lp) {
-                                return mSum + (sp - lp) * qty;
-                              }
-                              return mSum + (sp > 0 ? sp * 0.20 * qty : 0);
-                            }, 0);
-                            return acc + (calculatedMargin > 0 ? calculatedMargin : totAmt * 0.20);
-                          }
-                          return acc + (totAmt * 0.20);
-                        }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
-                      <BarChart3 size={22} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Avg Margin %</p>
-                      <p className="text-xl font-black text-purple-700">
-                        {(() => {
-                          const totSales = listToRender.reduce((acc, curr) => acc + (Number(curr.totalAmount) || 0), 0);
-                          const totMargin = listToRender.reduce((acc, item) => {
-                            const totAmt = Number(item.totalAmount) || 0;
-                            if (item.items && item.items.length > 0) {
-                              const calculatedMargin = item.items.reduce((mSum, i) => {
-                                const sp = Number(i.price || i.sellingPrice || i.unitPrice || 0);
-                                const lp = Number(i.landingPrice ?? i.landing_price ?? i.product?.landingPrice ?? i.costPrice ?? 0);
-                                const qty = Number(i.quantity || 1);
-                                if (lp > 0 && sp > lp) {
-                                  return mSum + (sp - lp) * qty;
-                                }
-                                return mSum + (sp > 0 ? sp * 0.20 * qty : 0);
-                              }, 0);
-                              return acc + (calculatedMargin > 0 ? calculatedMargin : totAmt * 0.20);
-                            }
-                            return acc + (totAmt * 0.20);
-                          }, 0);
-                          return totSales > 0 ? ((totMargin / totSales) * 100).toFixed(1) + '%' : '20.0%';
-                        })()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {viewMode === 'list' && (
-                <div className="flex flex-col lg:flex-row items-center gap-3">
-                  <div className="flex-1 w-full flex items-center gap-3 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm transition-all focus-within:border-emerald-200 focus-within:ring-4 focus-within:ring-emerald-500/5">
-                    <Search size={20} className="text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search invoice or mobile..."
-                      className="flex-1 bg-transparent border-none focus:outline-none text-sm font-bold placeholder:text-gray-300"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="w-full lg:w-auto flex flex-col md:flex-row items-center gap-3">
-                    <div className="w-full md:w-auto flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-100 px-4">
-                      <Calendar size={18} className="text-gray-400" />
-                      <select
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        className="bg-transparent border-none focus:outline-none text-xs font-black uppercase tracking-widest appearance-none cursor-pointer"
-                      >
-                        <option>Today</option>
-                        <option>Yesterday</option>
-                        <option>Last 7 Days</option>
-                        <option>All Time</option>
-                      </select>
-                      {/* <Filter size={16} className="text-gray-400" /> */}
-                    </div>
-
-                    {/* Segmented Control - Sale Type Tabs */}
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5 w-fit no-print">
-                      <ShoppingCart size={14} className="text-gray-400 shrink-0" />
-                      <select
-                        value={saleType}
-                        onChange={(e) => { setSaleType(e.target.value); setCurrentPage(1); }}
-                        className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-gray-700 cursor-pointer appearance-none pr-5"
-                        style={{
-                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5.25 7.5L10 12.25L14.75 7.5'/%3e%3c/svg%3e")`,
-                          backgroundPosition: 'right 0rem center',
-                          backgroundRepeat: 'no-repeat',
-                          backgroundSize: '1rem'
-                        }}
-                      >
-                        <option value="ALL">All Sales</option>
-                        <option value="POS">POS Sales</option>
-                        <option value="AGENT">Agent Sales</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                  )}
+                </>
               )}
 
               <div className="space-y-4">
@@ -2135,160 +2335,260 @@ export default function AdminSales() {
                       </div>
 
                       {/* Desktop Table View & Print Table */}
-                      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="bg-gray-50/50">
-                              {roleTab === 'Customer' ? (
-                                <>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Name</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Mobile Number</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Total Orders</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Total Spent</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Last Purchase</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 no-print text-right">Actions</th>
-                                </>
-                              ) : (
-                                <>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Invoice ID</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Date & Time</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Customer</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Sold By</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Amount</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-emerald-600">Margin Money</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Payment</th>
-                                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 no-print text-right">Actions</th>
-                                </>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50 text-sm">
-                            {(window.matchMedia && window.matchMedia('print').matches ? (roleTab === 'Customer' ? customerList : listToRender) : paginatedData).map((item) => (
-                              <tr key={item.id || item.mobile} className="hover:bg-gray-50/30 transition-colors group">
+                      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-gray-50/70 border-b border-gray-200 text-[11px] font-bold text-gray-700 uppercase tracking-wider">
                                 {roleTab === 'Customer' ? (
                                   <>
-                                    <td className="px-6 py-4">
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center font-black text-xs">
-                                          {item.name.charAt(0)}
-                                        </div>
-                                        <span className="font-black text-gray-900 uppercase">{item.name}</span>
+                                    <th
+                                      onClick={() => handleCustomerSort('name')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Customer Name</span>
+                                        <ArrowUpDown size={12} className={customerSortField === 'name' ? 'text-emerald-600' : 'text-gray-400'} />
                                       </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <span className="text-xs text-gray-600 font-bold flex items-center gap-1.5">
-                                        <Smartphone size={12} className="text-gray-400" />
-                                        {item.mobile}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">
-                                        {item.orderCount} Orders
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <span className="font-black text-emerald-700">₹{item.totalSpent.toLocaleString()}</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <span className="text-[10px] text-gray-400 font-bold uppercase">
-                                        {format(new Date(item.lastOrderDate), 'dd MMM yyyy')}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                      <button
-                                        onClick={() => {
-                                          setSearchQuery(item.mobile);
-                                          setRoleTab('All');
-                                        }}
-                                        className="text-[10px] font-black text-emerald-600 hover:underline uppercase tracking-widest"
-                                      >
-                                        View History
-                                      </button>
-                                    </td>
+                                    </th>
+                                    <th
+                                      onClick={() => handleCustomerSort('mobile')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Mobile Number</span>
+                                        <ArrowUpDown size={12} className={customerSortField === 'mobile' ? 'text-emerald-600' : 'text-gray-400'} />
+                                      </div>
+                                    </th>
+                                    <th
+                                      onClick={() => handleCustomerSort('orderCount')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Total Orders</span>
+                                        <ArrowUpDown size={12} className={customerSortField === 'orderCount' ? 'text-emerald-600' : 'text-gray-400'} />
+                                      </div>
+                                    </th>
+                                    <th
+                                      onClick={() => handleCustomerSort('totalSpent')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Total Spent</span>
+                                        <ArrowUpDown size={12} className={customerSortField === 'totalSpent' ? 'text-emerald-600' : 'text-gray-400'} />
+                                      </div>
+                                    </th>
+                                    <th
+                                      onClick={() => handleCustomerSort('lastOrderDate')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Last Purchase</span>
+                                        <ArrowUpDown size={12} className={customerSortField === 'lastOrderDate' ? 'text-emerald-600' : 'text-gray-400'} />
+                                      </div>
+                                    </th>
+                                    <th className="px-4 py-3 text-center">Actions</th>
                                   </>
                                 ) : (
                                   <>
-                                    <td className="px-6 py-4">
-                                      <span className="font-black text-gray-900 uppercase">
-                                        {item.displayId || (item.orderNumber ? `VK-${item.orderNumber}` : `VK-${String(item.id).replace(/\D/g, '').slice(0, 6)}`)}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                      <span className="text-xs text-gray-600 font-bold">
-                                        {format(new Date(item.createdAt), 'dd-MM-yy, HH:mm')}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <div className="flex flex-col">
-                                        <span className="font-bold text-gray-800 uppercase text-[10px]">{item.customerName || 'Walk-in'}</span>
-                                        <span className="text-[9px] text-gray-400 font-bold">{item.mobile || 'N/A'}</span>
+                                    <th className="px-4 py-3 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={paginatedData.length > 0 && selectedOrders.length === paginatedData.length}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setSelectedOrders(paginatedData.map(o => o.id));
+                                          } else {
+                                            setSelectedOrders([]);
+                                          }
+                                        }}
+                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                                      />
+                                    </th>
+                                    <th
+                                      onClick={() => handleSort('orderNumber')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Invoice ID</span>
+                                        <ArrowUpDown size={12} className={sortField === 'orderNumber' ? 'text-emerald-600' : 'text-gray-400'} />
                                       </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <div className="flex flex-col min-w-[120px]">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-bold text-gray-800 whitespace-nowrap truncate uppercase text-[10px]">
-                                            {item.user?.name || item.userName || 'System'}
-                                          </span>
-                                          {item.terminal && (
-                                            <span className="text-[7px] font-black bg-blue-50 text-blue-600 px-1 rounded border border-blue-100 uppercase tracking-tighter">POS</span>
-                                          )}
-                                        </div>
-                                        <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest whitespace-nowrap truncate">
-                                          {item.terminal?.name || item.vehicle?.vehicleNumber || 'Walk-in'}
-                                        </span>
+                                    </th>
+                                    <th
+                                      onClick={() => handleSort('createdAt')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Date & Time</span>
+                                        <ArrowUpDown size={12} className={sortField === 'createdAt' ? 'text-emerald-600' : 'text-gray-400'} />
                                       </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <div className="flex flex-col">
-                                        <span className="font-black text-emerald-700">₹{(Number(item.totalAmount) || 0).toFixed(0)}</span>
-                                        {item.discountAmount > 0 && (
-                                          <span className="text-[7px] font-black text-emerald-500 bg-emerald-50 px-1 rounded border border-emerald-100 uppercase mt-0.5 tracking-tighter w-fit">PROMO</span>
-                                        )}
+                                    </th>
+                                    <th
+                                      onClick={() => handleSort('customerName')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Customer</span>
+                                        <ArrowUpDown size={12} className={sortField === 'customerName' ? 'text-emerald-600' : 'text-gray-400'} />
                                       </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                       <span className="font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 text-xs w-fit">
-                                         +₹{(() => {
-                                           const totAmt = Number(item.totalAmount) || 0;
-                                           if (item.items && item.items.length > 0) {
-                                             const calculatedMargin = item.items.reduce((mSum, i) => {
-                                               const sp = Number(i.price || i.sellingPrice || i.unitPrice || 0);
-                                               const lp = Number(i.landingPrice ?? i.landing_price ?? i.product?.landingPrice ?? i.costPrice ?? 0);
-                                               const qty = Number(i.quantity || 1);
-                                               if (lp > 0 && sp > lp) {
-                                                 return mSum + (sp - lp) * qty;
-                                               }
-                                               return mSum + (sp > 0 ? sp * 0.20 * qty : 0);
-                                             }, 0);
-                                             return (calculatedMargin > 0 ? calculatedMargin : totAmt * 0.20).toFixed(2);
-                                           }
-                                           return (totAmt * 0.20).toFixed(2);
-                                         })()}
-                                       </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-black uppercase tracking-widest border border-emerald-100">
-                                        {item.paymentMode || 'Cash'}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap no-print">
-                                      <div className="flex items-center justify-end">
-                                        <button
-                                          onClick={() => openOrderDetail(item)}
-                                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all whitespace-nowrap"
-                                        >
-                                          View
-                                          <ChevronRight size={14} />
-                                        </button>
+                                    </th>
+                                    <th className="px-4 py-3 text-center">
+                                      <span>Sold By</span>
+                                    </th>
+                                    <th
+                                      onClick={() => handleSort('totalAmount')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Amount</span>
+                                        <ArrowUpDown size={12} className={sortField === 'totalAmount' ? 'text-emerald-600' : 'text-gray-400'} />
                                       </div>
-                                    </td>
+                                    </th>
+                                    <th className="px-4 py-3 text-center">
+                                      <span>Margin Money</span>
+                                    </th>
+                                    <th
+                                      onClick={() => handleSort('paymentMode')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Payment</span>
+                                        <ArrowUpDown size={12} className={sortField === 'paymentMode' ? 'text-emerald-600' : 'text-gray-400'} />
+                                      </div>
+                                    </th>
+                                    <th className="px-4 py-3 text-center">
+                                      <span>Actions</span>
+                                    </th>
                                   </>
                                 )}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
+                              {(window.matchMedia && window.matchMedia('print').matches ? (roleTab === 'Customer' ? sortedCustomerList : sortedListToRender) : paginatedData).map((item) => (
+                                <tr key={item.id || item.mobile} className="hover:bg-gray-50/50 transition-colors">
+                                  {roleTab === 'Customer' ? (
+                                    <>
+                                      <td className="px-4 py-3.5 text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                          <div className="w-7 h-7 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center font-bold text-xs">
+                                            {item.name.charAt(0)}
+                                          </div>
+                                          <span className="font-medium text-gray-800 uppercase">{item.name}</span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3.5 text-center">
+                                        <span className="text-xs sm:text-sm text-green-600 font-medium">
+                                          {item.mobile}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3.5 text-center">
+                                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                          {item.orderCount} Orders
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3.5 text-center">
+                                        <span className="font-semibold text-emerald-700">₹{item.totalSpent.toLocaleString()}</span>
+                                      </td>
+                                      <td className="px-4 py-3.5 text-center">
+                                        <span className="text-xs text-gray-600 font-medium">
+                                          {format(new Date(item.lastOrderDate), 'dd-MM-yyyy')}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3.5 text-center">
+                                        <button
+                                          onClick={() => {
+                                            setSearchQuery(item.mobile);
+                                            setRoleTab('All');
+                                          }}
+                                          className="text-xs font-semibold text-emerald-600 hover:underline uppercase"
+                                        >
+                                          View History
+                                        </button>
+                                      </td>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <td className="px-4 py-3.5 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedOrders.includes(item.id)}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setSelectedOrders(prev => [...prev, item.id]);
+                                            } else {
+                                              setSelectedOrders(prev => prev.filter(id => id !== item.id));
+                                            }
+                                          }}
+                                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                                        />
+                                      </td>
+                                      {/* Invoice ID */}
+                                      <td className="px-4 py-3.5 text-center">
+                                        <span className="text-xs sm:text-sm text-gray-800 font-medium">
+                                          {item.displayId || (item.orderNumber ? `VK-${item.orderNumber}` : `VK-${String(item.id).replace(/\D/g, '').slice(0, 6)}`)}
+                                        </span>
+                                      </td>
+                                      {/* Date & Time */}
+                                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                                        <span className="text-xs sm:text-sm text-gray-800 font-medium">
+                                          {format(new Date(item.createdAt), 'dd-MM-yyyy, h:mm a')}
+                                        </span>
+                                      </td>
+                                      {/* Customer */}
+                                      <td className="px-4 py-3.5 text-center">
+                                        <div className="text-xs sm:text-sm text-gray-800 font-medium">
+                                          {item.customerName || 'Walk-in Customer'}
+                                        </div>
+                                        <div className="text-xs text-emerald-600 font-medium">
+                                          {item.mobile || item.customerPhone || 'N/A'}
+                                        </div>
+                                      </td>
+                                      {/* Sold By */}
+                                      <td className="px-4 py-3.5 text-center">
+                                        <span className="text-xs sm:text-sm text-gray-800 font-medium">
+                                          {item.user?.name || item.userName || item.soldBy || 'System'}
+                                        </span>
+                                      </td>
+                                      {/* Amount */}
+                                      <td className="px-4 py-3.5 text-center font-bold text-gray-900">
+                                        ₹{(item.totalAmount || 0).toLocaleString()}
+                                      </td>
+                                      {/* Margin Money */}
+                                      <td className="px-4 py-3.5 text-center font-bold text-emerald-700">
+                                        ₹{((item.marginMoney ?? item.marginAmount ?? ((item.totalAmount || 0) * (item.marginRate || 0.1))) || 0).toFixed(0)}
+                                      </td>
+                                      {/* Payment */}
+                                      <td className="px-4 py-3.5 text-center">
+                                        <span className="text-xs sm:text-sm text-gray-800 font-medium">
+                                          {item.paymentMode || 'Cash'}
+                                        </span>
+                                      </td>
+                                      {/* Actions */}
+                                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                                        <div className="flex items-center justify-center gap-1.5">
+                                          <button
+                                            onClick={() => handleDownloadDocument(item)}
+                                            title="Download Invoice PDF"
+                                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                                          >
+                                            <FileText size={16} />
+                                          </button>
+                                          <button
+                                            onClick={() => openOrderDetail(item)}
+                                            title="View Details"
+                                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+                                          >
+                                            <ChevronRight size={16} />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
 
