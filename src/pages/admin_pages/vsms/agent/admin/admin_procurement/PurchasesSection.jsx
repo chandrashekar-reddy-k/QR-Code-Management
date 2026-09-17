@@ -92,7 +92,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
       ]);
       setVendors(v.data);
       setProducts(p.data.filter(x => x.status === 'ACTIVE'));
-      setCategories(c.data || []);
+      setCategories(c.data?.categories || c.data?.data?.categories || (Array.isArray(c.data) ? c.data : []));
       setUnits(u.data || []);
       setSubCategories(sc.data || []);
       setPurchaseOrders(po.data || []);

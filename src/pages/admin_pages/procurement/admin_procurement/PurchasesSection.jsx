@@ -109,7 +109,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
       ]);
       setVendors(v.data?.data || v.data || []);
       setProducts(p.data.filter(x => x.isActive || x.status === 'APPROVED'));
-      setCategories(c.data || []);
+      setCategories(c.data?.categories || c.data?.data?.categories || (Array.isArray(c.data) ? c.data : []));
       setUnits(u.data || []);
       setSubCategories(sc.data || []);
       setPurchaseOrders(po.data || []);
