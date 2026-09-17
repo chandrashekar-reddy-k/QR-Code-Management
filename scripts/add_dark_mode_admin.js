@@ -4,7 +4,7 @@ const files = [
   'c:/Users/Nisha Reddy Teegala/Desktop/ERP/villagkart-admin-web/src/components/shopkeeper/ReadyOrders.tsx',
   'c:/Users/Nisha Reddy Teegala/Desktop/ERP/villagkart-admin-web/src/components/shopkeeper/SLAMonitoring.tsx'
 ];
-
+// skdjklsjd
 const classMap = {
   'bg-white': 'dark:bg-gray-800',
   'bg-[#F3F4F6]': 'dark:bg-gray-900',
