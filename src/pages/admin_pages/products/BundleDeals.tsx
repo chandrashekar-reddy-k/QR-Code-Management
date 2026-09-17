@@ -204,16 +204,24 @@ export default function BundleDeals() {
       return;
     }
 
+    const parsedPrice = Math.round(parseFloat(form.price));
+    const parsedMrp = Math.round(parseFloat(form.originalPrice || form.price));
+    const img = form.imageUrl || form.image || '';
+
     const payload = {
       name: form.name.trim(),
       description: form.description ? form.description.trim() : '',
-      price: Math.round(parseFloat(form.price)),
-      originalPrice: Math.round(parseFloat(form.originalPrice || form.price)),
-      imageUrl: form.imageUrl || '',
+      price: parsedPrice,
+      bundlePrice: parsedPrice,
+      originalPrice: parsedMrp,
+      mrp: parsedMrp,
+      imageUrl: img,
+      image: img,
       startDate: (form.startDate && !isNaN(new Date(form.startDate).getTime())) ? new Date(form.startDate).toISOString() : null,
       endDate: (form.endDate && !isNaN(new Date(form.endDate).getTime())) ? new Date(form.endDate).toISOString() : null,
       items: form.items.map(i => ({
-        productId: i.productId,
+        productId: i.productId || i.id,
+        id: i.productId || i.id,
         quantity: Math.max(1, parseInt(i.quantity || 1))
       }))
     };

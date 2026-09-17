@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import Modal from "../ui/Modal/Modal";
-import { Search, ChevronDown, X as CloseIcon } from "lucide-react";
+import { Search, ChevronDown, X as CloseIcon, PlusCircle } from "lucide-react";
 import { 
   useGetCategoriesAndSubCategories, 
   useAddCategoriesAndSubCategories,
   useGetWarehouseCategories,
-  useEditWarehouseCategories
+  useEditWarehouseCategories,
+  useRequestNewCategory,
+  useRequestNewSubCategory
 } from "../../hooks/category";
 
 interface BusinessSettingsModalProps {
@@ -67,6 +69,20 @@ const BusinessSettingsModal = ({
   const [search, setSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
+  // Modal state for requesting new category / subcategory
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [showSubCatModal, setShowSubCatModal] = useState(false);
+
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatDesc, setNewCatDesc] = useState("");
+
+  const [selectedParentCatId, setSelectedParentCatId] = useState("");
+  const [newSubCatName, setNewSubCatName] = useState("");
+  const [newSubCatDesc, setNewSubCatDesc] = useState("");
+
+  const requestCatMutation = useRequestNewCategory();
+  const requestSubCatMutation = useRequestNewSubCategory();
+
   // Only fetch when modal is open — avoids GET partner/categories/*/catandsubcat on every
   // Dashboard / Business Settings page load (backend treats unsolicited calls as "blank" requests).
   const { data: categoriesData, isLoading } = useGetCategoriesAndSubCategories({
@@ -91,21 +107,22 @@ const BusinessSettingsModal = ({
     return categories.length > 0;
   }, [warehouseCategoriesData]);
 
-  // Transform API response to flat structure with level and parent
-  const BUSINESS_CATEGORIES = useMemo<CategoryOption[]>(() => {
+  // Extract raw categories list for dropdown and selection
+  const categoriesList = useMemo(() => {
     const apiData = categoriesData as ApiResponse | undefined;
     if (!apiData?.data) return [];
-
-    // API response structure: data is an array of categories or data.categories
-    const categories: ApiCategory[] = Array.isArray(apiData.data) 
+    return Array.isArray(apiData.data) 
       ? apiData.data 
       : (apiData.data && typeof apiData.data === 'object' && 'categories' in apiData.data)
         ? (apiData.data.categories || [])
         : [];
+  }, [categoriesData]);
 
+  // Transform API response to flat structure with level and parent
+  const BUSINESS_CATEGORIES = useMemo<CategoryOption[]>(() => {
     const flatCategories: CategoryOption[] = [];
 
-    categories.forEach((category: ApiCategory) => {
+    categoriesList.forEach((category: ApiCategory) => {
       // Main category - using exact API field names: id, name
       const categoryId = category.id;
       const categoryName = category.name;
@@ -138,7 +155,7 @@ const BusinessSettingsModal = ({
     });
 
     return flatCategories;
-  }, [categoriesData]);
+  }, [categoriesList]);
 
   // Filter categories: if main category matches, show it + all sub-categories
   // If sub-category matches, show it + its parent
@@ -263,6 +280,40 @@ const BusinessSettingsModal = ({
 
     return { categories };
   }, [selectedCategories, BUSINESS_CATEGORIES]);
+
+  const handleCreateCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    try {
+      await requestCatMutation.mutateAsync({
+        name: newCatName.trim(),
+        description: newCatDesc.trim() || undefined
+      });
+      setNewCatName("");
+      setNewCatDesc("");
+      setShowCatModal(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateSubCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedParentCatId || !newSubCatName.trim()) return;
+    try {
+      await requestSubCatMutation.mutateAsync({
+        categoryId: selectedParentCatId,
+        name: newSubCatName.trim(),
+        description: newSubCatDesc.trim() || undefined
+      });
+      setSelectedParentCatId("");
+      setNewSubCatName("");
+      setNewSubCatDesc("");
+      setShowSubCatModal(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -402,136 +453,272 @@ const BusinessSettingsModal = ({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Business Settings"
-      size="sm"
-    >
-      <form onSubmit={handleSubmit} className="space-y-6 pt-2">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-            Business Category
-          </label>
-          <div className="w-full max-w-md" ref={dropdownRef}>
-            {/* Trigger */}
-            <button
-              type="button"
-              onClick={() => setIsOpenDropdown((prev) => !prev)}
-              className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              <div className="flex-1 min-w-0 mr-2">
-                {selectedOptions.length === 0 ? (
-                  <span className="text-gray-400 text-sm">Select Category</span>
-                ) : (
-                  <div className="inline-flex flex-wrap items-center gap-1 px-2 py-1 rounded-md bg-gray-100 border border-gray-200">
-                    {selectedOptions.map((opt) => (
-                      <span
-                        key={opt.value}
-                        className="inline-flex items-center gap-1 text-xs text-gray-800"
-                      >
-                        {/* Label text */}
-                        {opt.label}
-                        {/* Close (x) icon */}
-                        <button
-                          type="button"
-                          onClick={(e) => handleRemoveCategory(opt.value, e)}
-                          className="focus:outline-none"
-                        >
-                          <CloseIcon
-                            size={10}
-                            className="text-gray-500 hover:text-gray-700"
-                          />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Business Settings"
+        size="sm"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Business Category
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCatModal(true)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
+                >
+                  <PlusCircle size={13} /> New Category
+                </button>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
+                <button
+                  type="button"
+                  onClick={() => setShowSubCatModal(true)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <PlusCircle size={13} /> New SubCategory
+                </button>
               </div>
-              <ChevronDown size={16} className="text-gray-400" />
-            </button>
+            </div>
 
-            {/* Dropdown panel */}
-            {isOpenDropdown && (
-              <div className="mt-1 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                {/* Search */}
-                <div className="flex items-center px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                  <Search size={16} className="text-gray-400 mr-2" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => {
-                      // This field lives inside <form onSubmit={handleSubmit}>. Enter would submit
-                      // the form and fire POST/PUT without the user clicking Submit.
-                      if (e.key === "Enter") e.preventDefault();
-                    }}
-                    placeholder="Search Category"
-                    className="w-full bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
-                  />
-                </div>
-
-                {/* Options */}
-                <div className="max-h-60 overflow-y-auto">
-                  {isLoading ? (
-                    <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                      Loading categories...
-                    </div>
+            <div className="w-full max-w-md" ref={dropdownRef}>
+              {/* Trigger */}
+              <button
+                type="button"
+                onClick={() => setIsOpenDropdown((prev) => !prev)}
+                className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <div className="flex-1 min-w-0 mr-2">
+                  {selectedOptions.length === 0 ? (
+                    <span className="text-gray-400 text-sm">Select Category</span>
                   ) : (
-                    <>
-                      {filteredCategories.map((opt) => {
-                        const checked = selectedCategories.includes(opt.value);
-                        return (
+                    <div className="inline-flex flex-wrap items-center gap-1 px-2 py-1 rounded-md bg-gray-100 border border-gray-200">
+                      {selectedOptions.map((opt) => (
+                        <span
+                          key={opt.value}
+                          className="inline-flex items-center gap-1 text-xs text-gray-800"
+                        >
+                          {opt.label}
                           <button
-                            key={opt.value}
                             type="button"
-                            onClick={() => handleSelectCategory(opt.value)}
-                            className={`w-full flex items-center py-3 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                              opt.level ? "pl-8 pr-4" : "px-4"
-                            }`}
+                            onClick={(e) => handleRemoveCategory(opt.value, e)}
+                            className="focus:outline-none"
                           >
-                            <input
-                              type="checkbox"
-                              readOnly
-                              checked={checked}
-                              className="w-4 h-4 mr-3 border-gray-300 dark:border-gray-600 rounded"
+                            <CloseIcon
+                              size={10}
+                              className="text-gray-500 hover:text-gray-700"
                             />
-                            <span className={`truncate ${opt.level ? "" : "font-medium"}`}>
-                              {opt.label}
-                            </span>
                           </button>
-                        );
-                      })}
-                      {filteredCategories.length === 0 && (
-                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          No results
-                        </div>
-                      )}
-                    </>
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
-            )}
+                <ChevronDown size={16} className="text-gray-400" />
+              </button>
 
-            {error && (
-              <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                {error}
-              </p>
-            )}
+              {/* Dropdown panel */}
+              {isOpenDropdown && (
+                <div className="mt-1 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                  {/* Search */}
+                  <div className="flex items-center px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                    <Search size={16} className="text-gray-400 mr-2" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.preventDefault();
+                      }}
+                      placeholder="Search Category"
+                      className="w-full bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Options */}
+                  <div className="max-h-60 overflow-y-auto">
+                    {isLoading ? (
+                      <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                        Loading categories...
+                      </div>
+                    ) : (
+                      <>
+                        {filteredCategories.map((opt) => {
+                          const checked = selectedCategories.includes(opt.value);
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => handleSelectCategory(opt.value)}
+                              className={`w-full flex items-center py-3 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                                opt.level ? "pl-8 pr-4" : "px-4"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                readOnly
+                                checked={checked}
+                                className="w-4 h-4 mr-3 border-gray-300 dark:border-gray-600 rounded"
+                              />
+                              <span className={`truncate ${opt.level ? "" : "font-medium"}`}>
+                                {opt.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                        {filteredCategories.length === 0 && (
+                          <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            No results
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {error}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={addCategoriesMutation.isPending || editCategoriesMutation.isPending || isLoading}
-            className="w-full sm:w-40 mx-auto block bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg shadow-md transition-colors text-sm"
-          >
-            {(addCategoriesMutation.isPending || editCategoriesMutation.isPending) ? "Saving..." : "Submit"}
-          </button>
-        </div>
-      </form>
-    </Modal>
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={addCategoriesMutation.isPending || editCategoriesMutation.isPending || isLoading}
+              className="w-full sm:w-40 mx-auto block bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg shadow-md transition-colors text-sm"
+            >
+              {(addCategoriesMutation.isPending || editCategoriesMutation.isPending) ? "Saving..." : "Submit"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Request New Category Modal */}
+      <Modal isOpen={showCatModal} onClose={() => setShowCatModal(false)} title="Request New Category" size="sm">
+        <form onSubmit={handleCreateCategorySubmit} className="space-y-4 pt-2">
+          <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
+            Note: Requested categories require Admin approval before appearing in your store or active categories list.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Category Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              placeholder="e.g. Organic Produce"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              rows={3}
+              value={newCatDesc}
+              onChange={(e) => setNewCatDesc(e.target.value)}
+              placeholder="Brief description of the category..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowCatModal(false)}
+              className="px-4 py-2 border rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={requestCatMutation.isPending}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm shadow disabled:opacity-50"
+            >
+              {requestCatMutation.isPending ? "Submitting..." : "Submit Request"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Request New SubCategory Modal */}
+      <Modal isOpen={showSubCatModal} onClose={() => setShowSubCatModal(false)} title="Request New SubCategory" size="sm">
+        <form onSubmit={handleCreateSubCategorySubmit} className="space-y-4 pt-2">
+          <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
+            Note: Requested subcategories require Admin approval before appearing in your store.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Parent Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              required
+              value={selectedParentCatId}
+              onChange={(e) => setSelectedParentCatId(e.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            >
+              <option value="">Select Parent Category</option>
+              {categoriesList.map((cat: ApiCategory) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              SubCategory Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={newSubCatName}
+              onChange={(e) => setNewSubCatName(e.target.value)}
+              placeholder="e.g. Leafy Greens"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              rows={3}
+              value={newSubCatDesc}
+              onChange={(e) => setNewSubCatDesc(e.target.value)}
+              placeholder="Brief description of the subcategory..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowSubCatModal(false)}
+              className="px-4 py-2 border rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={requestSubCatMutation.isPending}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm shadow disabled:opacity-50"
+            >
+              {requestSubCatMutation.isPending ? "Submitting..." : "Submit Request"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </>
   );
 };
 

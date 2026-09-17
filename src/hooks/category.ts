@@ -248,6 +248,62 @@ const useToggleWarehouseCategory = () => {
     });
 };
 
+/** Partner request creation for brand new master Category requiring Admin approval */
+interface SubCategoryItemInput {
+    name: string;
+    description?: string;
+    image?: string;
+}
+
+interface RequestNewCategoryPayload {
+    name: string;
+    description?: string;
+    image?: string;
+    icon?: string;
+    subCategoryNames?: string[];
+    subCategories?: SubCategoryItemInput[];
+}
+
+const useRequestNewCategory = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: RequestNewCategoryPayload) =>
+            fetchData("partner/categories/request-category", "POST", payload),
+        onSuccess: (data: createCategoryResponse) => {
+            toast.success(data.response || "Category request submitted for Admin approval");
+            queryClient.invalidateQueries({ queryKey: ["categoriesAndSubCategories"] });
+            queryClient.invalidateQueries({ queryKey: ["warehouseCategories"] });
+        },
+        onError: (error: any) => {
+            toast.error(error?.message || error?.response || "Failed to submit category request");
+        },
+    });
+};
+
+/** Partner request creation for brand new master SubCategory requiring Admin approval */
+interface RequestNewSubCategoryPayload {
+    categoryId: string;
+    name: string;
+    description?: string;
+    image?: string;
+}
+
+const useRequestNewSubCategory = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: RequestNewSubCategoryPayload) =>
+            fetchData("partner/categories/request-subcategory", "POST", payload),
+        onSuccess: (data: createCategoryResponse) => {
+            toast.success(data.response || "Subcategory request submitted for Admin approval");
+            queryClient.invalidateQueries({ queryKey: ["categoriesAndSubCategories"] });
+            queryClient.invalidateQueries({ queryKey: ["warehouseCategories"] });
+        },
+        onError: (error: any) => {
+            toast.error(error?.message || error?.response || "Failed to submit subcategory request");
+        },
+    });
+};
+
 export {
     useGetAllCategoryList,
     useGetAllCategoriesForManage,
@@ -263,4 +319,7 @@ export {
     useGetWarehouseCategories,
     useEditWarehouseCategories,
     useToggleWarehouseCategory,
+    useRequestNewCategory,
+    useRequestNewSubCategory,
 };
+

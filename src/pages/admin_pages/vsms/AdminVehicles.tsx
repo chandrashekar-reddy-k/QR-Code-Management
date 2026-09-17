@@ -61,6 +61,7 @@ export default function AdminVehicles() {
   const [editDocuments, setEditDocuments] = useState({ rcDocument: null, insuranceDocument: null, permitDocument: null });
   const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Audit Modal States
@@ -119,14 +120,21 @@ export default function AdminVehicles() {
   const { invalidateVehicles } = useVsmsCacheInvalidator();
   const { data: cachedData, isLoading, isFetching, refetch } = useVehiclesQuery(storeFilterId);
 
+  // Lazy-load inventory and audit history only when sub-tabs require stock/audits
+  useEffect(() => {
+    if (['inventory', 'loading', 'return', 'opening_stock'].includes(activeSub)) {
+      adminAPI.getInventoryInit({ storeId: storeFilterId }).then(res => {
+        if (res.data?.items) setItems(res.data.items);
+        if (res.data?.vehicleStock) setAllVehiclesStock(res.data.vehicleStock);
+      }).catch(() => {});
+    }
+  }, [activeSub, storeFilterId]);
+
   useEffect(() => {
     if (cachedData) {
       setVehicles(cachedData.vehicles || []);
       setStores(cachedData.stores || []);
       setUsers(cachedData.users || []);
-      if (cachedData.items) setItems(cachedData.items);
-      if (cachedData.vehicleStock) setAllVehiclesStock(cachedData.vehicleStock);
-      if (cachedData.auditHistory) setAuditHistory(cachedData.auditHistory);
 
       if (cachedData.stores?.length === 1 && !storeFilterId) {
         setSearchParams({ storeId: cachedData.stores[0].id });
@@ -630,11 +638,42 @@ export default function AdminVehicles() {
   const handleCreateVehicle = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    const rawNum = (newVehicle.vehicleNumber || '').trim();
+    if (!rawNum) {
+      toast.error('Vehicle registration number is required');
+      return;
+    }
+
+    if (rawNum.length < 5 || rawNum.length > 20) {
+      toast.error('Vehicle registration number must be between 5 and 20 characters long');
+      return;
+    }
+
+    const vehicleRegRegex = /^[A-Za-z]{2}\s*[-]?\s*[0-9]{1,2}\s*[-]?\s*([A-Za-z]{1,3}\s*[-]?\s*)?[0-9]{1,4}$/;
+    if (!vehicleRegRegex.test(rawNum)) {
+      toast.error('Invalid vehicle registration number format (e.g. KA 01 AB 1234 or MH12AB1234)');
+      return;
+    }
+
+    const normalizedNum = rawNum.toUpperCase().replace(/\s+/g, ' ');
+    const isDuplicate = vehicles.some(v => v.vehicleNumber?.toUpperCase().replace(/\s+/g, ' ') === normalizedNum);
+    if (isDuplicate) {
+      toast.error(`A vehicle with registration number "${normalizedNum}" already exists in your fleet`);
+      return;
+    }
+
+    const cleanName = (newVehicle.vehicleName || '').trim();
+    if (cleanName && (cleanName.length < 2 || cleanName.length > 50)) {
+      toast.error('Vehicle model/name must be between 2 and 50 characters long');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const fd = new FormData();
-      fd.append('vehicleNumber', newVehicle.vehicleNumber);
-      if (newVehicle.vehicleName) fd.append('vehicleName', newVehicle.vehicleName);
+      fd.append('vehicleNumber', normalizedNum);
+      if (cleanName) fd.append('vehicleName', cleanName);
 
       const finalStoreId = newVehicle.storeId || storeFilterId || currentUser?.storeId || '';
       if (finalStoreId) fd.append('storeId', finalStoreId);
@@ -644,9 +683,15 @@ export default function AdminVehicles() {
       if (documents.insuranceDocument) fd.append('insuranceDocument', documents.insuranceDocument);
       if (documents.permitDocument) fd.append('permitDocument', documents.permitDocument);
 
-      await adminAPI.createVehicle(fd);
+      const res = await adminAPI.createVehicle(fd);
+      const createdVehicle = res.data?.vehicle || res.data;
       toast.success('Vehicle added successfully');
       setShowAddModal(false);
+      setSearchTerm('');
+      setCurrentPage(1);
+      if (createdVehicle && createdVehicle.id) {
+        setVehicles(prev => [createdVehicle, ...prev.filter(v => v.id !== createdVehicle.id)]);
+      }
       setNewVehicle({ vehicleNumber: '', vehicleName: '', assignedUserId: '', status: true, storeId: storeFilterId || currentUser?.storeId || '' });
       setDocuments({ rcDocument: null, insuranceDocument: null, permitDocument: null });
       fetchData();
@@ -669,11 +714,42 @@ export default function AdminVehicles() {
   const handleUpdateVehicle = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    const rawNum = (editingVehicle.vehicleNumber || '').trim();
+    if (!rawNum) {
+      toast.error('Vehicle registration number is required');
+      return;
+    }
+
+    if (rawNum.length < 5 || rawNum.length > 20) {
+      toast.error('Vehicle registration number must be between 5 and 20 characters long');
+      return;
+    }
+
+    const vehicleRegRegex = /^[A-Za-z]{2}\s*[-]?\s*[0-9]{1,2}\s*[-]?\s*([A-Za-z]{1,3}\s*[-]?\s*)?[0-9]{1,4}$/;
+    if (!vehicleRegRegex.test(rawNum)) {
+      toast.error('Invalid vehicle registration number format (e.g. KA 01 AB 1234 or MH12AB1234)');
+      return;
+    }
+
+    const normalizedNum = rawNum.toUpperCase().replace(/\s+/g, ' ');
+    const isDuplicate = vehicles.some(v => v.id !== editingVehicle.id && v.vehicleNumber?.toUpperCase().replace(/\s+/g, ' ') === normalizedNum);
+    if (isDuplicate) {
+      toast.error(`A vehicle with registration number "${normalizedNum}" already exists in your fleet`);
+      return;
+    }
+
+    const cleanEditName = (editingVehicle.vehicleName || '').trim();
+    if (cleanEditName && (cleanEditName.length < 2 || cleanEditName.length > 50)) {
+      toast.error('Vehicle model/name must be between 2 and 50 characters long');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const fd = new FormData();
-      fd.append('vehicleNumber', editingVehicle.vehicleNumber);
-      fd.append('vehicleName', editingVehicle.vehicleName || '');
+      fd.append('vehicleNumber', normalizedNum);
+      fd.append('vehicleName', cleanEditName);
       fd.append('status', editingVehicle.status);
 
       const finalStoreId = editingVehicle.storeId || storeFilterId || currentUser?.storeId || '';
@@ -723,15 +799,32 @@ export default function AdminVehicles() {
     }
   };
 
-  const filteredVehicles = vehicles.filter((v) => {
-    const searchLower = searchTerm.toLowerCase();
-    const assignedUser = users.find(u => u.assignedVehicleId === v.id);
-    return (
-      v.vehicleNumber?.toLowerCase().includes(searchLower) ||
-      v.vehicleName?.toLowerCase().includes(searchLower) ||
-      assignedUser?.name?.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredVehicles = vehicles
+    .filter((v) => {
+      // 1. Store/Branch filter
+      if (storeFilterId && v.storeId && v.storeId !== storeFilterId) {
+        return false;
+      }
+      // 2. Status filter
+      if (statusFilter === 'ACTIVE' && !v.status) return false;
+      if (statusFilter === 'INACTIVE' && v.status) return false;
+
+      // 3. Search term filter
+      if (!searchTerm) return true;
+      const searchLower = searchTerm.toLowerCase();
+      const assignedUser = users.find(u => u.assignedVehicleId === v.id);
+      return (
+        v.vehicleNumber?.toLowerCase().includes(searchLower) ||
+        v.vehicleName?.toLowerCase().includes(searchLower) ||
+        assignedUser?.name?.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeA !== timeB) return timeB - timeA;
+      return (b.id || '').localeCompare(a.id || '');
+    });
 
   const totalPages = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -924,7 +1017,19 @@ export default function AdminVehicles() {
           onChange={(e) => setFiles(prev => ({ ...prev, [fieldKey]: e.target.files[0] }))}
         />
       </div>
-      {files[fieldKey] && <p className="text-[10px] text-emerald-600 font-bold">✓ {files[fieldKey].name}</p>}
+      {files[fieldKey] && (
+        <div className="flex items-center justify-between gap-2 mt-1 px-2 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
+          <span className="text-[10px] text-emerald-700 font-bold truncate">✓ {files[fieldKey].name}</span>
+          <button
+            type="button"
+            onClick={() => setFiles(prev => ({ ...prev, [fieldKey]: null }))}
+            className="text-gray-400 hover:text-rose-600 p-0.5 rounded-full transition-colors shrink-0"
+            title="Remove file"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -1284,16 +1389,16 @@ export default function AdminVehicles() {
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                         <Truck size={12} className="text-emerald-500" /> Vehicle Number <span className="text-red-500">*</span>
                       </label>
-                      <input type="text" required placeholder="e.g. KA 01 AB 1234"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight"
-                        value={newVehicle.vehicleNumber} onChange={(e) => setNewVehicle({ ...newVehicle, vehicleNumber: e.target.value })} />
+                      <input type="text" required placeholder="e.g. KA 01 AB 1234" maxLength={20} minLength={5}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight uppercase"
+                        value={newVehicle.vehicleNumber} onChange={(e) => setNewVehicle({ ...newVehicle, vehicleNumber: e.target.value.toUpperCase() })} />
                     </div>
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                         <Package size={12} className="text-emerald-500" /> Vehicle Model / Name
                       </label>
-                      <input type="text" placeholder="e.g. Tata Ace Gold"
+                      <input type="text" placeholder="e.g. Tata Ace Gold" maxLength={50} minLength={2}
                         className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight"
                         value={newVehicle.vehicleName} onChange={(e) => setNewVehicle({ ...newVehicle, vehicleName: e.target.value })} />
                     </div>
@@ -1372,17 +1477,17 @@ export default function AdminVehicles() {
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                         <Truck size={12} className="text-emerald-500" /> Vehicle Number <span className="text-red-500">*</span>
                       </label>
-                      <input type="text" required placeholder="e.g. KA 01 AB 1234"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight"
+                      <input type="text" required placeholder="e.g. KA 01 AB 1234" maxLength={20} minLength={5}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight uppercase"
                         value={editingVehicle.vehicleNumber}
-                        onChange={(e) => setEditingVehicle({ ...editingVehicle, vehicleNumber: e.target.value })} />
+                        onChange={(e) => setEditingVehicle({ ...editingVehicle, vehicleNumber: e.target.value.toUpperCase() })} />
                     </div>
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                         <Package size={12} className="text-emerald-500" /> Vehicle Model / Name
                       </label>
-                      <input type="text" placeholder="e.g. Tata Ace Gold"
+                      <input type="text" placeholder="e.g. Tata Ace Gold" maxLength={50} minLength={2}
                         className="w-full bg-slate-50 border border-slate-100 rounded-lg px-6 py-5 text-base focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold tracking-tight"
                         value={editingVehicle.vehicleName || ''}
                         onChange={(e) => setEditingVehicle({ ...editingVehicle, vehicleName: e.target.value })} />
@@ -1507,16 +1612,7 @@ export default function AdminVehicles() {
               {/* Right: Search & Fleet Actions */}
               {activeSub === 'master' && (
                 <div className="flex flex-wrap items-center gap-2.5 self-end lg:self-center shrink-0 ml-auto">
-                  <div className="relative group hidden sm:block">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={15} strokeWidth={2.5} />
-                    <input
-                      type="text"
-                      placeholder="Search fleet or driver..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900/50 border-none rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all w-48 outline-none font-bold"
-                    />
-                  </div>
+
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={handleExportPDF}
@@ -1622,42 +1718,15 @@ export default function AdminVehicles() {
                   <Search size={16} className="text-gray-400" />
                 </div>
 
-                {/* Branch Selection Dropdown */}
-                {stores.length > 1 && (
-                  <div className="px-3 py-2 flex-1 min-w-[150px] relative">
-                    <select
-                      value={storeFilterId || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val) {
-                          setSearchParams({ sub: activeSub, storeId: val });
-                        } else {
-                          // "All Branches" selected — remove storeId from URL entirely
-                          setSearchParams({ sub: activeSub });
-                        }
-                      }}
-                      className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.25rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat cursor-pointer"
-                    >
-                      <option value="">All Branches</option>
-                      {stores.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+
 
                 {/* Status Dropdown */}
                 <div className="px-3 py-2 flex-1 min-w-[130px] relative">
                   <select
+                    value={statusFilter}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === 'ACTIVE') {
-                        setSearchTerm('active');
-                      } else if (val === 'INACTIVE') {
-                        setSearchTerm('inactive');
-                      } else {
-                        setSearchTerm('');
-                      }
+                      setStatusFilter(e.target.value);
+                      setCurrentPage(1);
                     }}
                     className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_0.25rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat cursor-pointer"
                   >
@@ -1673,7 +1742,10 @@ export default function AdminVehicles() {
                     type="text"
                     placeholder="Search vehicle or driver..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="w-full bg-transparent border-none focus:ring-0 outline-none text-xs font-semibold text-gray-700"
                   />
                 </div>
@@ -1683,7 +1755,9 @@ export default function AdminVehicles() {
               <button
                 onClick={() => {
                   setSearchTerm('');
+                  setStatusFilter('ALL');
                   setSearchParams({ sub: activeSub });
+                  setCurrentPage(1);
                 }}
                 className="flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all shadow-sm shrink-0"
               >
@@ -1796,13 +1870,15 @@ export default function AdminVehicles() {
                     {!isSubmitting && <ArrowRight size={18} className="text-gray-300 group-hover:text-emerald-500 transition-colors" />}
                   </button>
                 ))}
-              <button onClick={() => {
-                if (window.confirm("Are you sure you want to unassign the current driver?")) {
-                  handleUnassignDriver();
-                }
-              }} className="w-full py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-500 font-bold text-sm uppercase tracking-widest rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors border border-gray-200 hover:border-rose-100 mt-4">
-                Unassign Current Driver
-              </button>
+              {selectedVehicle?.assignedUsers?.length > 0 && (
+                <button onClick={() => {
+                  if (window.confirm("Are you sure you want to unassign the current driver?")) {
+                    handleUnassignDriver();
+                  }
+                }} className="w-full py-4 bg-gray-50 dark:bg-gray-900/50 text-gray-500 font-bold text-sm uppercase tracking-widest rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors border border-gray-200 hover:border-rose-100 mt-4">
+                  Unassign Current Driver
+                </button>
+              )}
             </div>
           </div>
         </div>

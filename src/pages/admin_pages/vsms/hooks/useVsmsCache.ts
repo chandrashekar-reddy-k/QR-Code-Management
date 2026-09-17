@@ -14,12 +14,10 @@ export function useVehiclesQuery(storeFilterId: string | null) {
   return useQuery({
     queryKey: ['vsms', 'vehicles', storeKey],
     queryFn: async () => {
-      const [vRes, uRes, sRes, stockRes, auditRes] = await Promise.all([
+      const [vRes, uRes, sRes] = await Promise.all([
         adminAPI.getVehicles({ storeId: storeFilterId }),
         adminAPI.getVehicleAgents({ storeId: storeFilterId }),
-        adminAPI.getStores(),
-        adminAPI.getInventoryInit({ storeId: storeFilterId }),
-        adminAPI.getAuditHistory({ storeId: storeFilterId })
+        adminAPI.getStores()
       ]);
 
       const vehicleList = Array.isArray(vRes.data)
@@ -36,17 +34,10 @@ export function useVehiclesQuery(storeFilterId: string | null) {
         (u: any) => u.role !== 'CONSUMER' && u.role !== 'ADMIN'
       );
 
-      const items = stockRes.data?.items || [];
-      const vehicleStock = stockRes.data?.vehicleStock || {};
-      const auditHistory = auditRes.data || [];
-
       return {
         vehicles: vehicleList,
         stores: fetchedStores,
         users: filteredUsers,
-        items,
-        vehicleStock,
-        auditHistory,
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes fresh

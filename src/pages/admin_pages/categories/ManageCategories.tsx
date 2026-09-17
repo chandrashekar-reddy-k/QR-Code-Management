@@ -7,6 +7,7 @@ import {
   Download,
   FileUp,
   Camera,
+  PlusCircle,
 } from "lucide-react";
 import {
   SearchInput,
@@ -19,10 +20,18 @@ import {
   Pagination,
   PrimaryButton,
   Button,
+  Modal,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import { toast } from "react-toastify";
-import { useDeleteCategory, useGetAllCategoriesForManage, useToggleCategory } from "../../../hooks/category";
+import { 
+  useDeleteCategory, 
+  useGetAllCategoriesForManage, 
+  useToggleCategory,
+  useRequestNewCategory,
+  useRequestNewSubCategory,
+  useGetActiveCategoriesList
+} from "../../../hooks/category";
 
 // Define the API response type
 interface ApiCategory {
@@ -83,16 +92,6 @@ const ManageCategories = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    if (refetch) {
-      refetch();
-    }
-    // Optionally, add tab focus as well:
-    const onFocus = () => { refetch && refetch(); };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [location]);
-  
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(
     null
@@ -104,10 +103,39 @@ const ManageCategories = () => {
   }>({ isOpen: false, id: null });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Request Category / Subcategory modals state
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [showSubCatModal, setShowSubCatModal] = useState(false);
+
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatDesc, setNewCatDesc] = useState("");
+
+  const [selectedParentCatId, setSelectedParentCatId] = useState("");
+  const [newSubCatName, setNewSubCatName] = useState("");
+  const [newSubCatDesc, setNewSubCatDesc] = useState("");
+
+  const requestCatMutation = useRequestNewCategory();
+  const requestSubCatMutation = useRequestNewSubCategory();
+  const { data: activeCategoriesData } = useGetActiveCategoriesList();
+
+  const activeCategoriesList = useMemo(() => {
+    const res = activeCategoriesData as any;
+    return res?.data?.categories || res?.data || [];
+  }, [activeCategoriesData]);
   
   const { data, isLoading, refetch } = useGetAllCategoriesForManage(currentPage, itemsPerPage);
   const { mutate } = useDeleteCategory();
   const { mutate: toggleCategory, isPending: isTogglingCategory } = useToggleCategory();
+
+  useEffect(() => {
+    if (refetch) {
+      refetch();
+    }
+    const onFocus = () => { refetch && refetch(); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [location, refetch]);
 
   // Type assertion for the data
   const apiData = data as ApiResponse | undefined;
@@ -121,6 +149,40 @@ const ManageCategories = () => {
     totalPages: 1,
     hasNext: false,
     hasPrev: false 
+  };
+
+  const handleCreateCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    try {
+      await requestCatMutation.mutateAsync({
+        name: newCatName.trim(),
+        description: newCatDesc.trim() || undefined
+      });
+      setNewCatName("");
+      setNewCatDesc("");
+      setShowCatModal(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateSubCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedParentCatId || !newSubCatName.trim()) return;
+    try {
+      await requestSubCatMutation.mutateAsync({
+        categoryId: selectedParentCatId,
+        name: newSubCatName.trim(),
+        description: newSubCatDesc.trim() || undefined
+      });
+      setSelectedParentCatId("");
+      setNewSubCatName("");
+      setNewSubCatDesc("");
+      setShowSubCatModal(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Transform API categories to table format
@@ -333,14 +395,30 @@ const ManageCategories = () => {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Manage Categories
         </h1>
-        <PrimaryButton
-          onClick={() => navigate("/categories/create")}
-          size="sm"
-          className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center"
-        >
-          <Plus size={14} className="sm:w-4 sm:h-4" />
-          <span className="text-xs sm:text-sm">Add Category</span>
-        </PrimaryButton>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowCatModal(true)}
+            className="flex items-center gap-1.5 h-9 sm:h-10 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition-colors text-xs sm:text-sm"
+          >
+            <PlusCircle size={15} />
+            <span>Request New Category</span>
+          </button>
+          <button
+            onClick={() => setShowSubCatModal(true)}
+            className="flex items-center gap-1.5 h-9 sm:h-10 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors text-xs sm:text-sm"
+          >
+            <PlusCircle size={15} />
+            <span>Request New SubCategory</span>
+          </button>
+          <PrimaryButton
+            onClick={() => navigate("/categories/create")}
+            size="sm"
+            className="flex items-center gap-1.5 h-9 sm:h-10 justify-center"
+          >
+            <Plus size={14} className="sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">Add Category</span>
+          </PrimaryButton>
+        </div>
       </div>
 
       {/* Breadcrumbs */}
@@ -599,6 +677,124 @@ const ManageCategories = () => {
         cancelText="Cancel"
         variant="danger"
       />
+
+      {/* Request New Category Modal */}
+      <Modal isOpen={showCatModal} onClose={() => setShowCatModal(false)} title="Request New Category" size="sm">
+        <form onSubmit={handleCreateCategorySubmit} className="space-y-4 pt-2">
+          <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
+            Note: Requested categories require Admin approval before appearing in your store or active categories list.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Category Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              placeholder="e.g. Organic Produce"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              rows={3}
+              value={newCatDesc}
+              onChange={(e) => setNewCatDesc(e.target.value)}
+              placeholder="Brief description of the category..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowCatModal(false)}
+              className="px-4 py-2 border rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={requestCatMutation.isPending}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm shadow disabled:opacity-50"
+            >
+              {requestCatMutation.isPending ? "Submitting..." : "Submit Request"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Request New SubCategory Modal */}
+      <Modal isOpen={showSubCatModal} onClose={() => setShowSubCatModal(false)} title="Request New SubCategory" size="sm">
+        <form onSubmit={handleCreateSubCategorySubmit} className="space-y-4 pt-2">
+          <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
+            Note: Requested subcategories require Admin approval before appearing in your store.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Parent Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              required
+              value={selectedParentCatId}
+              onChange={(e) => setSelectedParentCatId(e.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            >
+              <option value="">Select Parent Category</option>
+              {activeCategoriesList.map((cat: any) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              SubCategory Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={newSubCatName}
+              onChange={(e) => setNewSubCatName(e.target.value)}
+              placeholder="e.g. Leafy Greens"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              rows={3}
+              value={newSubCatDesc}
+              onChange={(e) => setNewSubCatDesc(e.target.value)}
+              placeholder="Brief description of the subcategory..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowSubCatModal(false)}
+              className="px-4 py-2 border rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={requestSubCatMutation.isPending}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm shadow disabled:opacity-50"
+            >
+              {requestSubCatMutation.isPending ? "Submitting..." : "Submit Request"}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
