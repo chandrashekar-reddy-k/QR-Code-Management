@@ -539,7 +539,12 @@ export default function AdminPOS() {
     try {
       setLoading(true);
       const { data } = await productsAPI.getAll({ showAll: true, storeId, bypassCache: true });
-      setProducts(data);
+      // Map the stock to posStock since this is a POS terminal
+      const mappedData = data.map(p => ({
+        ...p,
+        stock: p.posStock !== undefined && p.posStock !== null ? p.posStock : p.stock
+      }));
+      setProducts(mappedData);
     } catch (err) {
       toast.error('Failed to load products');
     } finally {

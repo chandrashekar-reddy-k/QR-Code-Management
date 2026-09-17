@@ -34,6 +34,7 @@ export interface Product {
     packedQty: number;
     processingStage?: string;
   };
+  resolvedSku?: string;
 }
 
 export interface Warehouse {

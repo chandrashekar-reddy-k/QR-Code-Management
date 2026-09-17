@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, RotateCcw, Lock, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import {
   DataTable,
@@ -21,6 +22,7 @@ interface ReadyInventoryItem {
   pos: string;
   vehicle: string;
   remainingQty: string;
+  rawUnit: string;
   image: string;
 }
 
@@ -28,6 +30,7 @@ interface ReadyInventoryItem {
 const ReadyInventory: React.FC = () => {
   const [data, setData] = useState<ReadyInventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [unitFilter, setUnitFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string | null>(null);
@@ -50,19 +53,20 @@ const ReadyInventory: React.FC = () => {
           // Channels start at 0 — user allocates manually
           const onlineQty = item.onlineAppStock?.onlineStock ?? 0;
           const posQty = item.posStoreStock?.posStock ?? 0;
-          const vehicleQty = item.vehicleStock ?? 0;
+          const vehicleQty = item.vehicleStoreStock ?? item.vehicleStock ?? 0;
           const remainingQty = totalStock - onlineQty - posQty - vehicleQty;
           return {
             id: item.id,
             name: item.name,
             sku: item.sku || '-',
             category: item.category?.name || 'N/A',
-            units: item.unit ? `${totalStock} ${item.unit}` : `${totalStock} units`,
+            units: item.unit || 'Units',
             readyQty: String(totalStock),
             online: String(onlineQty),
             pos: String(posQty),
             vehicle: String(vehicleQty),
             remainingQty: String(Math.max(0, remainingQty)),
+            rawUnit: item.unit || 'Units',
             image: item.name ? item.name.charAt(0).toUpperCase() : 'N'
           };
         });
@@ -73,9 +77,19 @@ const ReadyInventory: React.FC = () => {
     }
   };
 
+  const availableUnits = useMemo(() => {
+    const unitsSet = new Set<string>();
+    data.forEach(item => unitsSet.add(item.rawUnit));
+    return Array.from(unitsSet).sort();
+  }, [data]);
+
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
+
+    if (unitFilter !== 'ALL') {
+      filtered = filtered.filter((item) => item.rawUnit === unitFilter);
+    }
 
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -102,7 +116,7 @@ const ReadyInventory: React.FC = () => {
     }
 
     return filtered;
-  }, [data, searchTerm, sortField, sortDirection]);
+  }, [data, searchTerm, unitFilter, sortField, sortDirection]);
 
   // Pagination
   const paginatedData = filteredAndSortedData.slice(
@@ -158,9 +172,10 @@ const ReadyInventory: React.FC = () => {
         return p;
       }));
       closeEdit();
+      toast.success('Stock updated successfully');
     } catch (err) {
       console.error('Failed to save:', err);
-      alert('Failed to save allocation. Please try again.');
+      toast.error('Failed to save allocation. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -331,10 +346,18 @@ const ReadyInventory: React.FC = () => {
           </div>
           
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[120px] cursor-pointer">
-              <option>Units</option>
-              <option>kg</option>
-              <option>g</option>
+            <select 
+              value={unitFilter}
+              onChange={(e) => {
+                setUnitFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[120px] cursor-pointer"
+            >
+              <option value="ALL">All Units</option>
+              {availableUnits.map(u => (
+                <option key={u} value={u}>{u}</option>
+              ))}
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -342,7 +365,11 @@ const ReadyInventory: React.FC = () => {
           </div>
 
           <button
-            onClick={() => {}}
+            onClick={() => {
+              setUnitFilter('ALL');
+              setSearchTerm('');
+              setCurrentPage(1);
+            }}
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <RotateCcw size={14} />

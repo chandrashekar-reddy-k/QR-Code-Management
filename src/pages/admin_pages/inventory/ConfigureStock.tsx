@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, RotateCcw, ArrowLeft, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   DataTable,
   SearchInput,
@@ -70,10 +71,12 @@ const ConfigureStock: React.FC = () => {
       const res = await procurementService.configureGRNItemsToRaw(payload);
       if (res.data?.success) {
         setSelectedItems([]);
+        toast.success(`Successfully marked as ${type === 'BRANDED' ? 'branded' : 'unbranded'}`);
         navigate('/inventory/raw');
       }
     } catch (error) {
       console.error("Configuration failed", error);
+      toast.error('Configuration failed. Please try again.');
     } finally {
       setLoading(false);
       fetchItems();

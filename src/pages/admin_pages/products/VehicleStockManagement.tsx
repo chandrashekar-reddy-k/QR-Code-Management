@@ -29,6 +29,7 @@ export interface VehicleInventoryItem {
   sku: string;
   price: number;
   totalCatalogStock: number;
+  vehicleStoreStock: number;
   vehicleStock: number;
   vehicleAssignedCount: number;
   isVehicle: boolean;
@@ -127,7 +128,8 @@ export default function VehicleStockManagement() {
 
           const productId = (p.productId as string) || String(p.id ?? '').slice(0, 8).toUpperCase();
           const img = p.image || (Array.isArray(p.images) ? p.images[0] : null);
-          const vStock = Number(p.vehicleStock || (Array.isArray(p.vehicleStocks) ? p.vehicleStocks.reduce((a: number, c: any) => a + c.quantity, 0) : 0));
+          // Total In-Van Stock: only count actual per-vehicle loaded quantities (NOT the channel reservation)
+          const vStock = Number(Array.isArray(p.vehicleStocks) ? p.vehicleStocks.reduce((a: number, c: any) => a + (c.quantity || 0), 0) : 0);
 
           // Sanitize clean unit label (strip UUIDs)
           let cleanUnit = p.unit || 'Unit';
@@ -166,6 +168,7 @@ export default function VehicleStockManagement() {
             sku: p.sku || firstVar.sku || 'N/A',
             price: Number(p.price || p.mrp || 0),
             totalCatalogStock: liveAvailableStock,
+            vehicleStoreStock: Number(p.vehicleStoreStock ?? p.stageStocks?.VEHICLE ?? p.vehicleStock ?? vStock ?? 0),
             vehicleStock: vStock,
             vehicleAssignedCount: assignedVehicles.length || (vStock > 0 ? 1 : 0),
             isVehicle,
@@ -342,8 +345,8 @@ export default function VehicleStockManagement() {
 
         <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xs flex items-center justify-between">
           <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Central Warehouse Stock</div>
-            <div className="text-2xl font-bold text-gray-700 dark:text-gray-300 mt-1">{items.reduce((a, c) => a + c.totalCatalogStock, 0).toLocaleString()}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Vehicle Store Stock</div>
+            <div className="text-2xl font-bold text-gray-700 dark:text-gray-300 mt-1">{items.reduce((a, c) => a + c.vehicleStoreStock, 0).toLocaleString()}</div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold">
             <Layers size={20} />
@@ -407,7 +410,7 @@ export default function VehicleStockManagement() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/75 dark:bg-gray-900/40 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Product Details</th>
-                  <th className="py-3 px-4">Warehouse Stock</th>
+                  <th className="py-3 px-4">Vehicle Store Stock</th>
                   <th className="py-3 px-4">Total In-Van Stock</th>
                   <th className="py-3 px-4">Van Channel Status</th>
                   <th className="py-3 px-4 text-center">Van Permission</th>
@@ -437,13 +440,13 @@ export default function VehicleStockManagement() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-gray-800 dark:text-gray-200">{item.totalCatalogStock} {item.unit}</div>
-                      <div className="text-[10px] text-gray-400">In Store-Room/Live</div>
+                      <div className="font-semibold text-gray-800 dark:text-gray-200">{item.vehicleStoreStock}</div>
+                      <div className="text-[10px] text-gray-400">Reserved for Vehicle</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${item.vehicleStock > 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200' : 'bg-gray-100 dark:bg-gray-700/50 text-gray-500'}`}>
                         <Truck size={12} />
-                        {item.vehicleStock} {item.unit} in Fleet
+                        {item.vehicleStock} in Fleet
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
@@ -613,21 +616,21 @@ export default function VehicleStockManagement() {
               <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30">
                 <div className="text-[11px] font-medium text-emerald-800 dark:text-emerald-300">Total In-Van Fleet</div>
                 <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">
-                  {viewProduct.vehicleStock} <span className="text-xs font-normal text-emerald-600">{viewProduct.unit}</span>
+                  {viewProduct.vehicleStock}
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-200 dark:border-gray-700">
-                <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400">Warehouse Stock</div>
+                <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400">Vehicle Store Stock</div>
                 <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">
-                  {viewProduct.totalCatalogStock} <span className="text-xs font-normal text-gray-500">{viewProduct.unit}</span>
+                  {viewProduct.vehicleStoreStock}
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30">
                 <div className="text-[11px] font-medium text-blue-800 dark:text-blue-300">Total Available</div>
                 <div className="text-lg font-bold text-blue-700 dark:text-blue-400 mt-0.5">
-                  {viewProduct.totalCatalogStock + viewProduct.vehicleStock} <span className="text-xs font-normal text-blue-600">{viewProduct.unit}</span>
+                  {viewProduct.vehicleStoreStock + viewProduct.vehicleStock}
                 </div>
               </div>
             </div>
@@ -663,7 +666,7 @@ export default function VehicleStockManagement() {
                 </h4>
                 {viewProduct.assignedVehicles && viewProduct.assignedVehicles.length > 0 && (
                   <span className="text-[11px] font-semibold text-emerald-600">
-                    {viewProduct.assignedVehicles.reduce((a, c) => a + c.quantity, 0)} {viewProduct.unit} in circulation
+                    {viewProduct.assignedVehicles.reduce((a, c) => a + c.quantity, 0)} in circulation
                   </span>
                 )}
               </div>
@@ -707,7 +710,7 @@ export default function VehicleStockManagement() {
 
                       <div className="text-right pl-3">
                         <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                          {vs.quantity} {viewProduct.unit}
+                          {vs.quantity}
                         </div>
                         <div className="text-[10px] text-gray-400 font-medium">In Van Stock</div>
                       </div>

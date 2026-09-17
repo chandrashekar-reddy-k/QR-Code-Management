@@ -120,7 +120,7 @@ const ReturnSection = ({
         <thead>
           <tr className="bg-gray-50/50 dark:bg-gray-800/30 text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">
             <th className="px-4 py-3 w-[25%]">Product Details</th>
-            <th className="px-3 py-3 text-center bg-amber-50/20 dark:bg-amber-950/10 text-amber-600 dark:text-amber-400 w-[28%]">System Availability</th>
+            <th className="px-3 py-3 text-center bg-amber-50/20 dark:bg-amber-950/10 text-amber-600 dark:text-amber-400 w-[28%]">VSM Availability</th>
             {can && can('INVENTORY', 'UPDATE', 'RETURN') && (
               <th className="px-3 py-3 text-center bg-indigo-50/20 dark:bg-indigo-950/10 text-indigo-600 dark:text-indigo-400 w-[15%]">Return Qty</th>
             )}
@@ -153,20 +153,20 @@ const ReturnSection = ({
                 <td className="px-3 py-2.5 bg-amber-50/5 dark:bg-amber-950/5">
                   <div className="flex items-center justify-center gap-3">
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-black text-amber-700 dark:text-amber-500">{currentStock}</span>
+                      <span className="text-[10px] font-black text-amber-700 dark:text-amber-500">{item.loadedVehicleStock || 0}</span>
                       <span className="text-[7px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest leading-none mt-0.5">In Vehicle</span>
                     </div>
                     <div className="w-px h-4 bg-amber-100 dark:bg-amber-900" />
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{item.warehouseStock ?? item.stock ?? 0}</span>
+                      <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{item.posStoreStock?.posStock || 0}</span>
                       <span className="text-[7px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest leading-none mt-0.5">In Store</span>
                     </div>
                     <div className="w-px h-4 bg-amber-100 dark:bg-amber-900" />
                     <div className="flex flex-col items-center bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded-lg border border-amber-100 dark:border-amber-900/50 shadow-sm">
                       <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">
-                        {item.totalStock || ((item.warehouseStock || 0) + (item.vehicleStock || 0))}
+                        {Math.max(0, (item.vehicleStock || 0) - (item.loadedVehicleStock || 0))}
                       </span>
-                      <span className="text-[7px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest leading-none mt-0.5">System</span>
+                      <span className="text-[7px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest leading-none mt-0.5">VSM</span>
                     </div>
                   </div>
                 </td>

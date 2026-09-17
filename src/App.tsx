@@ -18,11 +18,11 @@ import { publicRoutes, protectedRoutes } from "./routes";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastContainer } from "react-toastify";
+import { Toaster as HotToaster } from "react-hot-toast";
 import { NewOrderAlertProvider } from "./contexts/NewOrderAlertContext";
 import { OmsNewOrderAlertOverlay } from "./components/common/OmsNewOrderAlertOverlay";
 import { sidebarConfig } from "./components/layout/sidebarConfig";
 import SecurityVerificationOverlay from "./components/SecurityVerificationOverlay";
-import { useIpProtection } from "./hooks/useIpProtection";
 
 // Helper to check if a route is allowed based on active database permissions
 const isRouteAllowed = (pathname: string, permissions: string[]) => {
@@ -363,7 +363,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   let role = "";
   let userEmailOrName = "";
   try {
-    const user = userStr ? JSON.parse(userStr) : null;
     role = user?.role || user?.customRole?.portalType || user?.customRole?.name || user?.customRole?.code || "";
     userEmailOrName = ((user?.email || user?.name || user?.phone || "") as string).toLowerCase();
   } catch (e) { }
@@ -593,6 +592,7 @@ function App() {
             <Routes>{renderRoutes()}</Routes>
           </Router>
           <ToastContainer />
+          <HotToaster position="top-right" />
         </Provider>
       </QueryClientProvider>
     </ThemeProvider>

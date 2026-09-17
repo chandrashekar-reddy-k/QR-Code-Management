@@ -7,7 +7,8 @@ import {
   Eye, 
   EyeOff, 
   Sliders,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import { toast } from 'react-toastify';
@@ -26,6 +27,9 @@ export interface OnlineStockProduct {
   unitType: string;
   sku: string;
   price: number;
+  mrp?: number;
+  landingPrice?: number;
+  sellingPrice?: number;
   stock: number;
   isOnline: boolean;
   isPos: boolean;
@@ -50,6 +54,7 @@ export default function OnlineStockManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [returningId, setReturningId] = useState<string | null>(null);
 
   // Quick edit modal for Online App Settings
   const [editProduct, setEditProduct] = useState<OnlineStockProduct | null>(null);
@@ -58,6 +63,9 @@ export default function OnlineStockManagement() {
   const [editMinQty, setEditMinQty] = useState<number>(1);
   const [editMaxQty, setEditMaxQty] = useState<number>(100);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Return to ready confirmation modal
+  const [confirmProduct, setConfirmProduct] = useState<OnlineStockProduct | null>(null);
 
   const loadOnlineStock = async () => {
     setIsLoading(true);
@@ -68,12 +76,18 @@ export default function OnlineStockManagement() {
 
       const mapped: OnlineStockProduct[] = raw
         .filter((p: any) => {
+          if (p.inventoryType === 'READY' || p.inventoryType === 'RAW') {
+            // ONLY show READY items if they are actively published/online
+            const isPublished = p.isOnline === true || p.onlineAppStock?.isPublished === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE'));
+            return isPublished;
+          }
+
           if (Number(p.baseStock ?? p.stock) > 0) return true;
           if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
           if (p.liveStock !== undefined && Number(p.liveStock) > 0) return true;
           const tagStage = Array.isArray(p.tags) ? p.tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null;
-          const stage = p.lifecycleStage || tagStage;
-          return stage === 'LIVE';
+          const isLive = (p.lifecycleStage || tagStage) === 'LIVE';
+          return isLive;
         })
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
@@ -119,7 +133,10 @@ export default function OnlineStockManagement() {
             unit: cleanUnit,
             unitType: p.unitType || 'Unit',
             sku: p.sku || firstVar.sku || 'N/A',
-            price: Number(p.price || p.mrp || 0),
+            price: Number(p.price || 0),
+            mrp: Number(p.mrp || 0),
+            landingPrice: Number(p.landingPrice || 0),
+            sellingPrice: Number(p.sellingPrice || 0),
             stock: stageStock,
             isOnline,
             isPos,
@@ -193,12 +210,12 @@ export default function OnlineStockManagement() {
     try {
       await fetchData(`productmanagement/product/${editProduct.id}`, 'PUT', {
         price: Number(editPrice),
-        minOrderQuantity: Number(editMinQty),
-        maxOrderQuantity: Number(editMaxQty)
+        minOrderQty: Number(editMinQty),
+        maxOrderQty: Number(editMaxQty)
       }).catch(() => fetchData(`product/${editProduct.id}`, 'PUT', {
         price: Number(editPrice),
-        minOrderQuantity: Number(editMinQty),
-        maxOrderQuantity: Number(editMaxQty)
+        minOrderQty: Number(editMinQty),
+        maxOrderQty: Number(editMaxQty)
       }));
 
       setProducts(prev => prev.map(p => p.id === editProduct.id ? {
@@ -214,6 +231,48 @@ export default function OnlineStockManagement() {
       toast.error(err?.message || 'Failed to update product details');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleReturnToReady = (product: OnlineStockProduct) => {
+    setConfirmProduct(product);
+  };
+
+  const executeReturnToReady = async () => {
+    if (!confirmProduct) return;
+    const product = confirmProduct;
+    setReturningId(product.id);
+    setConfirmProduct(null); // Close modal immediately
+    try {
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', {
+        inventoryType: 'READY'
+      }).catch(() => fetchData(`product/${product.id}`, 'PUT', {
+        inventoryType: 'READY'
+      }));
+
+      // Auto-unpublish from consumer app
+      if (product.isOnline) {
+        await fetchData(`productmanagement/product/${product.id}/lifecycle`, 'POST', {
+          stage: 'LIVE',
+          isOnline: false,
+          isPos: product.isPos,
+          isVehicle: product.isVehicle,
+          notes: product.stageNotes
+        }).catch(() => fetchData(`product/${product.id}/lifecycle`, 'POST', {
+          stage: 'LIVE',
+          isOnline: false,
+          isPos: product.isPos,
+          isVehicle: product.isVehicle,
+          notes: product.stageNotes
+        }));
+      }
+
+      toast.success(`${product.name} returned to Ready Inventory and unpublished`);
+      loadOnlineStock();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to return product to Ready Inventory');
+    } finally {
+      setReturningId(null);
     }
   };
 
@@ -373,10 +432,13 @@ export default function OnlineStockManagement() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/75 dark:bg-gray-900/40 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Product Details</th>
+                  <th className="py-3 px-4">MRP</th>
+                  <th className="py-3 px-4">Landing Price</th>
+                  <th className="py-3 px-4">Selling Price</th>
                   <th className="py-3 px-4">Online Price</th>
+                  <th className="py-3 px-4">Discount</th>
                   <th className="py-3 px-4">Available Qty</th>
                   <th className="py-3 px-4">Order Limits (Min / Max)</th>
-                  <th className="py-3 px-4">App Status</th>
                   <th className="py-3 px-4 text-center">App Visibility</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -404,27 +466,35 @@ export default function OnlineStockManagement() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
+                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.mrp || 0).toFixed(2)}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.landingPrice || 0).toFixed(2)}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.sellingPrice || 0).toFixed(2)}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
                       <div className="font-bold text-gray-900 dark:text-gray-100">₹{p.price.toFixed(2)}</div>
-                      <div className="text-[10px] text-gray-400">per {p.unit}</div>
+                      <div className="text-[10px] text-gray-400">per unit</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {p.mrp && p.price && p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) + '%' : '0%'}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex flex-col">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold w-max ${p.stock <= 5 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'}`}>
-                          {p.stock} {p.unit}
+                          {p.stock}
                         </span>
                         <span className="text-[10px] text-gray-400 font-medium mt-1">
-                          {p.baseStock ?? 0} {p.unit} in Warehouse
+                          {p.baseStock ?? 0} in Warehouse
                         </span>
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-gray-600 dark:text-gray-300">
                       <span className="font-medium">{p.minOrderQty}</span> min / <span className="font-medium">{p.maxOrderQty}</span> max
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${p.isOnline ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 border border-gray-200'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${p.isOnline ? 'bg-emerald-500' : 'bg-gray-400'}`}></span>
-                        {p.isOnline ? 'Active on App' : 'Disabled'}
-                      </span>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <button
@@ -436,13 +506,23 @@ export default function OnlineStockManagement() {
                       </button>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleOpenEditModal(p)}
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer"
-                        title="Configure App Settings"
-                      >
-                        <Sliders size={16} />
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleReturnToReady(p)}
+                          disabled={returningId === p.id}
+                          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-amber-600 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Return to Ready Inventory"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditModal(p)}
+                          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer"
+                          title="Configure App Settings"
+                        >
+                          <Sliders size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -525,6 +605,45 @@ export default function OnlineStockManagement() {
               >
                 {isSubmitting && <RefreshCw size={12} className="animate-spin" />}
                 <span>Save App Settings</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return to Ready Confirmation Modal */}
+      {confirmProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-500 mb-2">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Return to Ready Inventory?</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Are you sure you want to return <strong>{confirmProduct.name}</strong> ({confirmProduct.variantName}) to Ready Inventory?
+                </p>
+                {confirmProduct.isOnline && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-2 font-medium">
+                    This will also unpublish the product from the consumer app.
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-3 w-full mt-6">
+              <button
+                onClick={() => setConfirmProduct(null)}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeReturnToReady}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+              >
+                Yes, Return
               </button>
             </div>
           </div>

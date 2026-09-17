@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, RotateCcw, Send, Plus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   DataTable,
   SearchInput,
@@ -28,6 +29,7 @@ import { inventoryService } from './services/inventoryService';
 const RawInventory: React.FC = () => {
   const [data, setData] = useState<RawInventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string | null>(null);
@@ -51,7 +53,7 @@ const RawInventory: React.FC = () => {
           name: item.name,
           sku: item.sku || '-',
           category: item.category?.name || 'N/A',
-          units: (item.baseStock ?? item.stock) + ' units',
+          units: item.unit || 'Units',
           type: item.productType === 'BRANDED' ? 'Branded' : 'Unbranded',
           quantity: String(item.baseStock ?? item.stock ?? 0),
           price: '₹' + (item.mrp || 0),
@@ -68,6 +70,10 @@ const RawInventory: React.FC = () => {
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
+
+    if (typeFilter !== 'ALL') {
+      filtered = filtered.filter((item) => item.type === typeFilter);
+    }
 
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -94,7 +100,7 @@ const RawInventory: React.FC = () => {
     }
 
     return filtered;
-  }, [data, searchTerm, sortField, sortDirection]);
+  }, [data, searchTerm, typeFilter, sortField, sortDirection]);
 
   // Pagination
   const paginatedData = filteredAndSortedData.slice(
@@ -115,9 +121,10 @@ const RawInventory: React.FC = () => {
     try {
       await inventoryService.updateProductInventoryType(item.id, 'READY');
       setData(prev => prev.filter(p => p.id !== item.id));
+      toast.success('Successfully marked as ready');
     } catch (error) {
       console.error('Failed to mark as ready:', error);
-      alert('Failed to mark item as ready. Please try again.');
+      toast.error('Failed to mark item as ready. Please try again.');
     }
   };
 
@@ -125,9 +132,10 @@ const RawInventory: React.FC = () => {
     try {
       await inventoryService.updateProductInventoryType(item.id, 'PRODUCTION');
       setData(prev => prev.filter(p => p.id !== item.id));
+      toast.success('Successfully sent to production');
     } catch (error) {
       console.error('Failed to send to production:', error);
-      alert('Failed to send item to production. Please try again.');
+      toast.error('Failed to send item to production. Please try again.');
     }
   };
 
@@ -137,8 +145,10 @@ const RawInventory: React.FC = () => {
       setData(prev => prev.map(p =>
         p.id === item.id ? { ...p, status: !p.status } : p
       ));
+      toast.success('Status updated successfully');
     } catch (error) {
       console.error('Failed to toggle status:', error);
+      toast.error('Failed to update status');
     }
   };
 
@@ -169,9 +179,10 @@ const RawInventory: React.FC = () => {
           : p
       ));
       closeEdit();
+      toast.success('Successfully updated inventory');
     } catch (err) {
       console.error('Failed to save:', err);
-      alert('Failed to save changes. Please try again.');
+      toast.error('Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -394,10 +405,17 @@ const RawInventory: React.FC = () => {
           </div>
           
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[160px] cursor-pointer">
-              <option>Branded/Unbranded</option>
-              <option>Branded</option>
-              <option>Unbranded</option>
+            <select 
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[160px] cursor-pointer"
+            >
+              <option value="ALL">All Types</option>
+              <option value="Branded">Branded</option>
+              <option value="Unbranded">Unbranded</option>
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -405,7 +423,11 @@ const RawInventory: React.FC = () => {
           </div>
 
           <button
-            onClick={() => {}}
+            onClick={() => {
+              setTypeFilter('ALL');
+              setSearchTerm('');
+              setCurrentPage(1);
+            }}
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <RotateCcw size={14} />

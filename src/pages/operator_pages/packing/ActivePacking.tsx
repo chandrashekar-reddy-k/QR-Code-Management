@@ -336,8 +336,17 @@ export const ActivePacking: React.FC = () => {
                 <input
                   type="number"
                   min="0"
+                  max={requiredQty}
                   value={addPacked}
-                  onChange={(e) => setAddPacked(e.target.value === '' ? '' : Number(e.target.value))}
+                  onChange={(e) => {
+                    if (e.target.value === '') {
+                      setAddPacked('');
+                    } else {
+                      let val = Number(e.target.value);
+                      if (val > requiredQty) val = requiredQty;
+                      setAddPacked(val);
+                    }
+                  }}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-900 text-sm font-bold focus:ring-1 focus:ring-green-500 focus:outline-none"
                   placeholder="0"
                 />

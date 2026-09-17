@@ -11,7 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
-  Trash2,
+  // Trash2,
 } from "lucide-react";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
@@ -91,9 +91,6 @@ function computeAutoVariantName(
     .trim();
 }
 
-function digitsOnlyMeasurement(value: string): string {
-  return String(value).replace(/\D/g, "");
-}
 
 interface VariantAttribute {
   name: string; // e.g., "Color", "Size", "Weight"
@@ -380,8 +377,8 @@ const AddProduct = () => {
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const [savedProductId, setSavedProductId] = useState<string | null>(null);
   /** Bump to remount Jodit after “Add new product” on same route (navigate no-ops). */
-  const [descriptionEditorKey, setDescriptionEditorKey] = useState(0);
-  const [isSavingVariants, setIsSavingVariants] = useState(false);
+  const [_descriptionEditorKey, setDescriptionEditorKey] = useState(0);
+  const [_isSavingVariants, _setIsSavingVariants] = useState(false);
 
   // Product creation mutation
   const createProductMutation = useCreateProduct();
@@ -416,7 +413,7 @@ const AddProduct = () => {
   const [secondImagePreview, setSecondImagePreview] = useState<string | null>(
     null,
   );
-  const [barcodeImagePreview, setBarcodeImagePreview] = useState<string | null>(
+  const [_barcodeImagePreview, setBarcodeImagePreview] = useState<string | null>(
     null,
   );
   const [variantImagePreviews, setVariantImagePreviews] = useState<
@@ -572,67 +569,9 @@ const AddProduct = () => {
     resetCreateProductForm,
   ]);
 
-  // Match admin (`vilagkart_new_admin` AddProducts) Jodit options + stable reference so the editor is not recreated every render.
-  const joditDescriptionConfig = useMemo(
-    () => ({
-      readonly: false,
-      placeholder: "Start writing...",
-      height: 250,
-      toolbar: true,
-      spellcheck: true,
-      language: "en",
-      toolbarButtonSize: "small" as const,
-      showCharsCounter: true,
-      showWordsCounter: true,
-      showXPathInStatusbar: false,
-      askBeforePasteHTML: true,
-      askBeforePasteFromWord: true,
-      defaultActionOnPaste: "insert_as_html" as const,
-      buttons: [
-        "bold",
-        "italic",
-        "underline",
-        "strikethrough",
-        "|",
-        "fontsize",
-        "brush",
-        "paragraph",
-        "|",
-        "ul",
-        "ol",
-        "|",
-        "outdent",
-        "indent",
-        "|",
-        "align",
-        "|",
-        "link",
-        "|",
-        "undo",
-        "redo",
-        "|",
-        "hr",
-        "eraser",
-        "|",
-        "source",
-      ],
-    }),
-    [],
-  );
 
-  const handleDescriptionBlur = useCallback((content: string) => {
-    setFormData((prev) => ({ ...prev, description: content }));
-    setErrors((prev) =>
-      prev.description ? { ...prev, description: "" } : prev,
-    );
-  }, []);
+
   /** Keep description in sync while typing so Step 1 “Next” validates the visible editor content (not only on blur). */
-  const handleDescriptionChange = useCallback((content: string) => {
-    setFormData((prev) => ({ ...prev, description: content }));
-    setErrors((prev) =>
-      prev.description ? { ...prev, description: "" } : prev,
-    );
-  }, []);
 
   // Toggle section expand/collapse
   const toggleSection = (variantId: number, section: string) => {
@@ -653,71 +592,12 @@ const AddProduct = () => {
   };
 
   // Handle variant attribute changes
-  const handleAttributeChange = (
-    variantId: number,
-    attrIndex: number,
-    field: "name" | "value",
-    value: string,
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      variants: prev.variants.map((variant) => {
-        if (variant.id !== variantId) return variant;
-        const newAttributes = [...variant.attributes];
-        newAttributes[attrIndex] = {
-          ...newAttributes[attrIndex],
-          [field]: value,
-        };
-        return { ...variant, attributes: newAttributes };
-      }),
-    }));
-  };
 
-  const handleAddAttribute = (variantId: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      variants: prev.variants.map((variant) => {
-        if (variant.id !== variantId) return variant;
-        return {
-          ...variant,
-          attributes: [...variant.attributes, { name: "", value: "" }],
-        };
-      }),
-    }));
-  };
 
-  const handleRemoveAttribute = (variantId: number, attrIndex: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      variants: prev.variants.map((variant) => {
-        if (variant.id !== variantId) return variant;
-        return {
-          ...variant,
-          attributes: variant.attributes.filter((_, i) => i !== attrIndex),
-        };
-      }),
-    }));
-  };
 
   // Available attribute names for variants (can be configured from master settings)
-  const attributeNames = [
-    "Color",
-    "Size",
-    "Weight",
-    "Flavor",
-    "Material",
-    "Brand",
-  ];
 
   // Predefined attribute values (can be expanded)
-  const attributeValues: Record<string, string[]> = {
-    Color: ["Red", "Blue", "Green", "Yellow", "Black", "White", "Gray"],
-    Size: ["Small", "Medium", "Large", "XL", "XXL"],
-    Weight: ["100g", "250g", "500g", "1kg", "2kg", "5kg"],
-    Flavor: ["Vanilla", "Chocolate", "Strawberry", "Mint", "Original"],
-    Material: ["Cotton", "Polyester", "Leather", "Plastic", "Metal"],
-    Brand: ["Generic", "Premium", "Standard"],
-  };
 
   // Helper functions for variant type-specific labels and field visibility
   const getUnitLabel = (variantType: string): string => {
@@ -780,14 +660,6 @@ const AddProduct = () => {
   // };
 
   // Vendor data
-  const vendors = [
-    { id: "vendor1", name: "ABC Trading Company" },
-    { id: "vendor2", name: "XYZ Retail Solutions" },
-    { id: "vendor3", name: "Global Merchandise Inc" },
-    { id: "vendor4", name: "Premium Suppliers Ltd" },
-    { id: "vendor5", name: "Best Deal Wholesale" },
-    { id: "vendor6", name: "Quality Goods Corp" },
-  ];
 
 
   // Fetch Categories from partner API: GET productmanagement/product/categories/list
@@ -1882,24 +1754,7 @@ const AddProduct = () => {
     setErrors((prev) => ({ ...prev, secondImage: "" }));
   };
 
-  const handleBarcodeImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const objectUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({ ...prev, barcodeImage: file }));
-      setBarcodeImagePreview(objectUrl);
-      setErrors((prev) => ({ ...prev, barcodeImage: "" }));
-    }
-  };
 
-  const removeBarcodeImage = () => {
-    if (barcodeImagePreview) {
-      URL.revokeObjectURL(barcodeImagePreview);
-    }
-    setBarcodeImagePreview(null);
-    setFormData((prev) => ({ ...prev, barcodeImage: null }));
-    setErrors((prev) => ({ ...prev, barcodeImage: "" }));
-  };
 
   const handleVariantImageChange = (
     variantId: number,
@@ -2127,109 +1982,7 @@ const AddProduct = () => {
     });
   };
 
-  const handleAddVariant = () => {
-    setFormData((prev) => {
-      const nextId =
-        prev.variants.length > 0
-          ? Math.max(...prev.variants.map((v) => v.id)) + 1
-          : 1;
 
-      const newVariant: Variant = {
-        id: nextId,
-        // Basic Information
-        variantName:
-          !isEditMode && SHOW_VARIANT_BASIC_AND_STATUS_SECTIONS
-            ? computeAutoVariantName(
-              unitsByTypeId,
-              prev.productName.trim() ||
-              parentProductData?.productName?.trim() ||
-              "",
-              "",
-              "",
-              "",
-            )
-            : "",
-        sku: "",
-        barcode: "",
-        // Variant Type & Measurement
-        type: "" as Variant["type"],
-        unit: "",
-        measurement: "",
-        // Pricing
-        mrp: "",
-        price: "",
-        discountType: "percentage",
-        discount: "",
-        salePrice: "",
-        // Inventory & Availability
-        stock: "",
-        stockStatus: "",
-        minOrderQuantity: "",
-        maxOrderQuantity: "",
-        lowStockThreshold: "",
-        // Attributes
-        attributes: [],
-        // Shipping & Dimensions
-        weight: "",
-        length: "",
-        width: "",
-        height: "",
-        shippingClass: "",
-        // Status & Visibility
-        variantStatus: "active",
-        // SEO & Settings
-        metaTitle: "",
-        metaKeywords: "",
-        schemaMarkup: "",
-        metaDescription: "",
-        // Images
-        primaryImage: null,
-        secondaryImage: null,
-        barcodeImage: null,
-      };
-
-      return {
-        ...prev,
-        variants: [...prev.variants, newVariant],
-      };
-    });
-
-    if (errors.variants) {
-      setErrors((prev) => ({ ...prev, variants: "" }));
-    }
-  };
-
-  const handleRemoveVariant = (id: number) => {
-    setFormData((prev) => {
-      if (prev.variants.length <= 1) {
-        return prev; // keep at least one variant
-      }
-
-      // Clean up image previews when variant is removed
-      const variantToRemove = prev.variants.find((v) => v.id === id);
-      if (variantToRemove) {
-        const previews = variantImagePreviews[id];
-        if (previews?.primary) {
-          URL.revokeObjectURL(previews.primary);
-        }
-        if (previews?.secondary) {
-          URL.revokeObjectURL(previews.secondary);
-        }
-        if (previews?.barcode) {
-          URL.revokeObjectURL(previews.barcode);
-        }
-        setVariantImagePreviews((prevPreviews) => {
-          const { [id]: removed, ...rest } = prevPreviews;
-          return rest;
-        });
-      }
-
-      return {
-        ...prev,
-        variants: prev.variants.filter((variant) => variant.id !== id),
-      };
-    });
-  };
 
   // Validate variant step 1 fields only (before allowing move to variant step 2)
   const validateVariantStep1 = (): boolean => {
@@ -2448,7 +2201,7 @@ const AddProduct = () => {
         return;
       }
 
-      setIsSavingVariants(true);
+      _setIsSavingVariants(true);
 
       // 1. Upload images and get URLs (API expects primaryImages, secondaryImages, barcodeImage as URLs)
       let primaryImages: string[] = [];
@@ -2641,7 +2394,7 @@ const AddProduct = () => {
         "Error saving variant. Please try again.",
       );
     } finally {
-      setIsSavingVariants(false);
+      _setIsSavingVariants(false);
     }
   };
 
@@ -3287,12 +3040,25 @@ const AddProduct = () => {
         await queryClient.invalidateQueries({ queryKey: ["product"] });
         navigate(backToManage);
       } else {
+        if (location.state?.returnTo === '/packing-erp/product-bom') {
+          payload.productType = 'FINISHED_GOOD';
+          payload.inventoryType = 'PRODUCTION';
+        }
         const response = await createProductMutation.mutateAsync(payload);
         const productId = (response as any)?.data?.id || (response as any)?.id;
 
         if (productId) {
+          if (location.state?.returnTo) {
+             navigate(location.state.returnTo, {
+               state: {
+                 bomFormState: location.state.bomFormState,
+                 newProductId: productId
+               }
+             });
+             return;
+          }
           setSavedProductId(productId);
-          setIsSavingVariants(false);
+          _setIsSavingVariants(false);
           sessionStorage.setItem(
             `product_${productId}`,
             JSON.stringify({
