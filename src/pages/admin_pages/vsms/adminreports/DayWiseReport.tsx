@@ -6,7 +6,6 @@ import adminAPI from '.././services/adminService';
 import toast from 'react-hot-toast';
 import ReportLayout from './ReportLayout';
 import * as XLSX from 'xlsx';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export default function DayWiseReport() {
   const [reportData, setReportData] = useState(null);
@@ -70,14 +69,10 @@ export default function DayWiseReport() {
 
   return (
     <ReportLayout title="Day-wise Sales" icon={Calendar} activeTab="day-wise" reportData={reportData} isLoading={isLoading}>
-      <AnimatePresence mode="wait">
+      <div>
         {!selectedDate ? (
-          <motion.div 
+          <div 
             key="summary"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.4 }}
             className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
           >
             <div className="p-8 border-b border-gray-200 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50/30">
@@ -108,10 +103,9 @@ export default function DayWiseReport() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {Array.isArray(reportData) && reportData.map((item, i) => (
-                    <motion.tr 
+                    <tr 
                       key={i} 
-                      whileHover={{ backgroundColor: "rgba(16, 185, 129, 0.05)" }}
-                      className="transition-all group cursor-pointer" 
+                      className="transition-all group cursor-pointer hover:bg-emerald-50/20" 
                       onClick={() => fetchDetailedData(item.rawDate || item.date)}
                     >
                       <td className="px-8 py-6">
@@ -138,30 +132,25 @@ export default function DayWiseReport() {
                           </div>
                         </div>
                       </td>
-                    </motion.tr>
+                    </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </motion.div>
+          </div>
         ) : (
-          <motion.div 
+          <div 
             key="details"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.4 }}
             className="space-y-6"
           >
             <div className="flex items-center justify-between">
-              <motion.button 
-                whileHover={{ x: -4 }}
+              <button 
                 onClick={() => setSelectedDate(null)}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-900/50 transition-all shadow-sm group"
               >
                 <ArrowLeft size={18} className="text-emerald-500" />
                 <span className="text-xs font-bold uppercase tracking-widest">Back to Overview</span>
-              </motion.button>
+              </button>
 
               <div className="flex items-center gap-3">
                  <button 
@@ -239,11 +228,8 @@ export default function DayWiseReport() {
                         </td>
                       </tr>
                     ) : filteredDetailed.map((item, i) => (
-                      <motion.tr 
+                      <tr 
                         key={i} 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.02 }}
                         className="hover:bg-emerald-50/10 transition-colors"
                       >
                         <td className="px-10 py-6">
@@ -275,15 +261,15 @@ export default function DayWiseReport() {
                               </div>
                            </div>
                         </td>
-                      </motion.tr>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </ReportLayout>
   );
 }

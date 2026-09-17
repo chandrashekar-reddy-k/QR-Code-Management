@@ -157,23 +157,45 @@ export function useCollectionsQuery(storeId: string | null) {
  * Instant cache-first hydration (0ms render) for Sales History, Stores, Users,
  * and Today's Session summary.
  */
-export function useSalesQuery(storeFilterId: string | null, filterDate: string = 'Today') {
+export function useSalesQuery(
+  storeFilterId: string | null,
+  filterDate: string = 'Today',
+  customStartDate?: string,
+  customEndDate?: string
+) {
   const storeKey = storeFilterId || 'all';
 
   return useQuery({
-    queryKey: ['vsms', 'sales', storeKey, filterDate],
+    queryKey: ['vsms', 'sales', storeKey, filterDate, customStartDate, customEndDate],
     queryFn: async () => {
       const params: Record<string, any> = {};
       if (storeFilterId) params.storeId = storeFilterId;
+      const todayStr = new Date().toISOString().split('T')[0];
+
       if (filterDate === 'Today') {
-        params.fromDate = new Date().toISOString().split('T')[0];
-      } else if (filterDate === 'This Week') {
-        const d = new Date(); d.setDate(d.getDate() - 7);
+        params.fromDate = todayStr;
+        params.toDate = todayStr;
+      } else if (filterDate === 'Yesterday') {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        const yestStr = d.toISOString().split('T')[0];
+        params.fromDate = yestStr;
+        params.toDate = yestStr;
+      } else if (filterDate === 'Last 7 Days' || filterDate === 'This Week') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
         params.fromDate = d.toISOString().split('T')[0];
+        params.toDate = todayStr;
       } else if (filterDate === 'This Month') {
-        const d = new Date(); d.setDate(1);
+        const d = new Date();
+        d.setDate(1);
         params.fromDate = d.toISOString().split('T')[0];
+        params.toDate = todayStr;
+      } else if (filterDate === 'Custom' || filterDate === 'Custom Range') {
+        if (customStartDate) params.fromDate = customStartDate;
+        if (customEndDate) params.toDate = customEndDate;
       }
+      // 'All Time' will pass no fromDate/toDate to retrieve all sales history
 
       const [salesRes, storesRes, usersRes] = await Promise.allSettled([
         adminAPI.getSales(params),

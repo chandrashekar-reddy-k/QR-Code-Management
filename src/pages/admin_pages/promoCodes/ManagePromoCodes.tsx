@@ -466,7 +466,6 @@ const ManagePromoCodes = () => {
                     : "cursor-pointer"
                 }
               `}
-              title={isActive ? "Click to deactivate" : "Click to activate"}
             >
               <span
                 className={`
