@@ -13,6 +13,21 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useUserStore } from '../../vsms/store/userStore';
 
+/**
+ * Generates a unique VGK-prefixed invoice number.
+ * Format: VGK-YYYYMMDD-XXXX (4 random uppercase alphanumeric chars)
+ * Example: VGK-20260917-A3F9
+ */
+const generateInvoiceNumber = () => {
+  const now = new Date();
+  const datePart = now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const rand = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return `VGK-${datePart}-${rand}`;
+};
+
 const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
   const user = useUserStore(s => s.user);
   const [purchases, setPurchases] = useState([]);
@@ -29,7 +44,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
   const [vendors, setVendors] = useState([]);
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
-    vendorId: '', grnId: '', invoiceNumber: '', invoiceDate: format(new Date(), 'yyyy-MM-dd'),
+    vendorId: '', grnId: '', invoiceNumber: generateInvoiceNumber(), invoiceDate: format(new Date(), 'yyyy-MM-dd'),
     transportCharges: '0', otherCharges: '0', items: []
   });
   const [showQuickVendor, setShowQuickVendor] = useState(false);
@@ -639,7 +654,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
       }
 
       setShowForm(false);
-      setForm({ vendorId: '', poId: '', invoiceNumber: '', invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] });
+      setForm({ vendorId: '', poId: '', invoiceNumber: generateInvoiceNumber(), invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] });
       // Reload
       const { data } = await procurementAPI.getPurchases();
       setPurchases(data);
@@ -681,7 +696,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
 
               {can('PROCUREMENT', 'CREATE', 'PURCHASES') && (
                 <button
-                  onClick={() => { setForm({ vendorId: '', poId: '', invoiceNumber: '', invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] }); openForm(); }}
+                  onClick={() => { setForm({ vendorId: '', poId: '', invoiceNumber: generateInvoiceNumber(), invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] }); openForm(); }}
                   disabled={formLoading}
                   className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/10 active:scale-95 disabled:opacity-70">
                   {formLoading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} strokeWidth={3} />}
@@ -827,9 +842,19 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Invoice # *</label>
-                <input required placeholder="Vendor's Invoice Number" value={form.invoiceNumber} onChange={e => setForm({ ...form, invoiceNumber: e.target.value })}
-                  className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                <div className="flex items-center justify-between pl-1 pr-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Invoice # *</label>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, invoiceNumber: generateInvoiceNumber() })}
+                    className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                    title="Generate a new invoice number"
+                  >
+                    ↻ Regenerate
+                  </button>
+                </div>
+                <input required placeholder="e.g. VGK-20260917-A3F9" value={form.invoiceNumber} onChange={e => setForm({ ...form, invoiceNumber: e.target.value })}
+                  className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono tracking-wide" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
