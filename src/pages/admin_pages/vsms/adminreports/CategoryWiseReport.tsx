@@ -16,7 +16,7 @@ export default function CategoryWiseReport() {
     setIsLoading(true);
     try {
       const res = await adminAPI.getCategoryReport({ storeId });
-      setReportData(res.data);
+      setReportData(res.data?.data || res.data || []);
     } catch (error) {
       toast.error('Failed to load category-wise data');
     } finally {

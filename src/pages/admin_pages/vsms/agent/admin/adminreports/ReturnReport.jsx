@@ -16,7 +16,7 @@ export default function ReturnReport() {
     setIsLoading(true);
     try {
       const res = await adminAPI.getReturnReport({ storeId });
-      setReportData(res.data);
+      setReportData(res.data?.data || res.data || []);
     } catch (error) {
       toast.error('Failed to load return data');
     } finally {

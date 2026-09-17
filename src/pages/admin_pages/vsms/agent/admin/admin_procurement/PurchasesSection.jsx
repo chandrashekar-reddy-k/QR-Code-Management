@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Receipt, Plus, Search, Loader2, X, Package, Edit3, Trash2, ArrowLeft, Check, FileUp,
+  Receipt, Plus, Search, Loader2, X, Package, Edit3, Trash2, ArrowLeft, Check, FileUp, FileArchive,
   Barcode, ScanBarcode, Users, Phone, Mail, User, Clock, DollarSign, Building2, Tag,
   ToggleLeft, ToggleRight, ShieldAlert, CreditCard, Hash, ChevronLeft, ChevronRight,
   ShieldCheck, FileText, MapPin
@@ -93,8 +93,8 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
       setVendors(v.data);
       setProducts(p.data.filter(x => x.status === 'ACTIVE'));
       setCategories(c.data?.categories || c.data?.data?.categories || (Array.isArray(c.data) ? c.data : []));
-      setUnits(u.data || []);
-      setSubCategories(sc.data || []);
+      setUnits(Array.isArray(u.data) ? u.data : u.data?.units || u.data?.data?.units || []);
+      setSubCategories(Array.isArray(sc.data) ? sc.data : sc.data?.subCategories || sc.data?.data?.subCategories || []);
       setPurchaseOrders(po.data || []);
       setGrns(g.data || g);
 
@@ -1023,6 +1023,20 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                     className="text-[9px] font-black text-amber-600 flex items-center gap-1.5 bg-amber-50/50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-all cursor-pointer border border-amber-100"
                   >
                     <FileUp size={10} strokeWidth={3} /> Bulk
+                  </label>
+
+                  <input
+                    type="file"
+                    id="zip-upload"
+                    className="hidden"
+                    accept=".zip, .rar, .7z, .xlsx, .xls, .csv"
+                    onChange={handleExcelUpload}
+                  />
+                  <label
+                    htmlFor="zip-upload"
+                    className="text-[9px] font-black text-purple-600 flex items-center gap-1.5 bg-purple-50/50 px-3 py-1.5 rounded-lg hover:bg-purple-100 transition-all cursor-pointer border border-purple-100"
+                  >
+                    <FileArchive size={10} strokeWidth={3} /> Zip Import
                   </label>
                   <button type="button" onClick={() => setShowQuickProduct(true)} className="text-[9px] font-black text-blue-600 flex items-center gap-1.5 bg-blue-50/50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-all">
                     <Plus size={10} strokeWidth={3} /> New

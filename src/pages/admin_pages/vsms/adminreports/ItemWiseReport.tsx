@@ -16,7 +16,7 @@ export default function ItemWiseReport() {
     setIsLoading(true);
     try {
       const res = await adminAPI.getItemReport({ storeId });
-      setReportData(res.data.data);
+      setReportData(res.data?.data || res.data || []);
     } catch (error) {
       toast.error('Failed to load item-wise data');
     } finally {
