@@ -408,7 +408,7 @@ export default function AdminInventory() {
         : (hasChTag ? itemTags.includes('CH:VEHICLE') : (i.isVehicle !== false));
 
       const storeStock = Number(i.stock !== undefined && i.stock !== null ? i.stock : (i.warehouseStock || 0));
-      const hasAvailableStock = storeStock > 0;
+      const hasAvailableStock = storeStock > 0 || (i.vehicleStoreStock !== undefined && i.vehicleStoreStock > 0);
 
       const matchesSearch = !q ||
         (i.name && i.name.toLowerCase().includes(q)) ||
@@ -458,7 +458,9 @@ export default function AdminInventory() {
   const hasInvalidQuantities = React.useMemo(() => {
     return Object.entries(stockQuantities).some(([pid, qty]) => {
       const prod = items.find(p => p.id === pid);
-      return prod && (parseInt(qty) || 0) > (prod.stock || 0);
+      if (!prod) return false;
+      const maxAllowed = Math.max(0, (prod.vehicleStoreStock || 0) - (prod.loadedVehicleStock || 0));
+      return (parseInt(qty) || 0) > maxAllowed;
     });
   }, [stockQuantities, items]);
 
@@ -515,7 +517,7 @@ export default function AdminInventory() {
   }, [groupedRefills, viewingAgentId]);
 
   useEffect(() => {
-    if (selectedVehicleId && activeTab === 'return' && subTab === 'return') {
+    if (selectedVehicleId && activeTab === 'return' && (subTab === 'return' || subTab === 'loading')) {
       fetchVehicleInventory(selectedVehicleId);
     }
   }, [selectedVehicleId, activeTab, subTab]);
@@ -1415,6 +1417,7 @@ export default function AdminInventory() {
       handleInitiateLoad={handleInitiateLoad}
       isSubmitting={isSubmitting}
       hasInvalidQuantities={hasInvalidQuantities}
+      vehicleInventoryMap={vehicleInventoryMap}
       can={can}
     />
   );

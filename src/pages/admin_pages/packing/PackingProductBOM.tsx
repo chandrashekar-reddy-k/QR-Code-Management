@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -17,9 +18,10 @@ import {
 } from '../../../api/packing/masterDataService';
 
 export const PackingProductBOM: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
   const [uoms, setUoms] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -29,18 +31,9 @@ export const PackingProductBOM: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isCreateProductOpen, setIsCreateProductOpen] = useState(false);
-
-  // New Product Form State
-  const [newProductName, setNewProductName] = useState('');
-  const [newProductSku, setNewProductSku] = useState('');
-  const [newProductCategoryId, setNewProductCategoryId] = useState('');
-  const [newProductUom, setNewProductUom] = useState('');
-  const [modalError, setModalError] = useState('');
-  const [productSubmitLoading, setProductSubmitLoading] = useState(false);
 
   // Form State
-  const [formCode, setFormCode] = useState('');
+  const [formCode, setFormCode] = useState(`RCP-${Math.floor(100000 + Math.random() * 900000)}`);
   const [formName, setFormName] = useState('');
   const [formOutputProductId, setFormOutputProductId] = useState('');
   const [formOutputQty, setFormOutputQty] = useState(1);
@@ -63,22 +56,37 @@ export const PackingProductBOM: React.FC = () => {
   ]);
 
   useEffect(() => {
+    if (location.state?.bomFormState) {
+      const state = location.state.bomFormState;
+      setIsCreateOpen(state.isCreateOpen || false);
+      setFormCode(state.formCode || '');
+      setFormName(state.formName || '');
+      setFormOutputQty(state.formOutputQty || 1);
+      setBomItems(state.bomItems || [{ inputProductId: '', requiredQty: 1, tolerancePct: 0, materialType: 'RAW_MATERIAL' }]);
+      
+      if (location.state.newProductId) {
+        setFormOutputProductId(location.state.newProductId);
+      } else {
+        setFormOutputProductId(state.formOutputProductId || '');
+      }
+
+      // Clear the state so a reload doesn't trigger this again
+      navigate(location.pathname, { replace: true, state: {} });
+    }
     fetchData();
-  }, []);
+  }, [location.state, location.pathname, navigate]);
 
   const fetchData = async () => {
     setLoading(true);
     setError('');
     try {
-      const [fetchedRecipes, fetchedProducts, fetchedCategories, fetchedUoms] = await Promise.all([
+      const [fetchedRecipes, fetchedProducts, fetchedUoms] = await Promise.all([
         masterDataService.getRecipes(),
         masterDataService.getProducts(),
-        masterDataService.getCategories(),
         masterDataService.getUOMs(),
       ]);
       setRecipes(fetchedRecipes || []);
       setProducts(fetchedProducts || []);
-      setCategories(fetchedCategories || []);
       setUoms(fetchedUoms || []);
     } catch (err: any) {
       setError(
@@ -120,7 +128,7 @@ export const PackingProductBOM: React.FC = () => {
   };
 
   const resetForm = () => {
-    setFormCode('');
+    setFormCode(`RCP-${Math.floor(100000 + Math.random() * 900000)}`);
     setFormName('');
     setFormOutputProductId('');
     setFormOutputQty(1);
@@ -169,62 +177,6 @@ export const PackingProductBOM: React.FC = () => {
       );
     } finally {
       setSubmitLoading(false);
-    }
-  };
-
-  const generateSkuFromName = (name: string, uomId?: string) => {
-    if (!name.trim()) return '';
-    const nameClean = name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase().padEnd(4, 'X');
-    const selectedUom = uoms.find((u) => u.id === (uomId || newProductUom));
-    let unitCode = selectedUom?.abbreviation || selectedUom?.name || 'P';
-    
-    let qty = 1;
-    const match = name.match(/(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?/);
-    if (match) {
-      qty = match[1] as any;
-      if (match[2] && !uomId) {
-        unitCode = match[2].toUpperCase();
-      }
-    }
-    const unitClean = unitCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    return `${nameClean}-${qty}-${unitClean}`;
-  };
-
-  const handleCreateFinishedProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setProductSubmitLoading(true);
-    setModalError('');
-
-    try {
-      const finalSku = newProductSku.trim() || generateSkuFromName(newProductName, newProductUom);
-      if (!finalSku) {
-        throw new Error('Please provide or generate a valid SKU.');
-      }
-
-      const res = await masterDataService.createProduct({
-        name: newProductName.trim(),
-        sku: finalSku,
-        categoryId: newProductCategoryId,
-        unit: newProductUom,
-        type: 'FINISHED_GOOD',
-      });
-
-      // Refetch to get the new product in the dropdown
-      const fetchedProducts = await masterDataService.getProducts();
-      setProducts(fetchedProducts || []);
-
-      // Auto-select
-      setFormOutputProductId(res.id || '');
-      setIsCreateProductOpen(false);
-      setNewProductName('');
-      setNewProductSku('');
-      setNewProductCategoryId('');
-      setNewProductUom('');
-      setModalError('');
-    } catch (err: any) {
-      setModalError(err.response?.data?.message || err.message || 'Failed to create finished product');
-    } finally {
-      setProductSubmitLoading(false);
     }
   };
 
@@ -504,8 +456,9 @@ export const PackingProductBOM: React.FC = () => {
                     <input
                       type="text"
                       required
+                      readOnly
                       placeholder="e.g. RCP-001"
-                      className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none font-mono"
+                      className="w-full p-2 border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 dark:text-gray-400 text-slate-500 rounded-lg text-sm focus:outline-none font-mono cursor-not-allowed"
                       value={formCode}
                       onChange={(e) => setFormCode(e.target.value)}
                     />
@@ -533,7 +486,19 @@ export const PackingProductBOM: React.FC = () => {
                       </label>
                       <button
                         type="button"
-                        onClick={() => setIsCreateProductOpen(true)}
+                        onClick={() => navigate('/products/create', {
+                          state: {
+                            returnTo: '/packing-erp/product-bom',
+                            bomFormState: {
+                              isCreateOpen: true,
+                              formCode,
+                              formName,
+                              formOutputQty,
+                              bomItems,
+                              formOutputProductId,
+                            }
+                          }
+                        })}
                         className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                       >
                         + Create Finished Product
@@ -701,6 +666,8 @@ export const PackingProductBOM: React.FC = () => {
                               value={
                                 selectedProduct?.uom?.abbreviation ||
                                 selectedProduct?.uom?.name ||
+                                uoms.find((u) => u.id === selectedProduct?.uomId)?.abbreviation ||
+                                uoms.find((u) => u.id === selectedProduct?.uomId)?.name ||
                                 uoms.find((u) => u.id === selectedProduct?.unit)?.abbreviation ||
                                 uoms.find((u) => u.id === selectedProduct?.unit)?.name ||
                                 selectedProduct?.unit ||
@@ -764,136 +731,6 @@ export const PackingProductBOM: React.FC = () => {
                   <Loader2 size={16} className="animate-spin" />
                 )}
                 Save Configuration
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Finished Product Modal */}
-      {isCreateProductOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex justify-center items-center z-[60] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-md overflow-hidden flex flex-col">
-            <div className="p-5 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center bg-slate-900 text-white shrink-0">
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <Sparkles className="text-amber-400" size={18} />
-                <span>Create Finished Product</span>
-              </h3>
-              <button
-                onClick={() => setIsCreateProductOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 flex-1">
-              {modalError && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg text-xs flex items-center gap-2">
-                  <AlertCircle size={16} className="shrink-0" />
-                  <span>{modalError}</span>
-                </div>
-              )}
-              <form id="createProductForm" onSubmit={handleCreateFinishedProduct} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                    Product Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Aashirvaad Atta 5kg"
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={newProductName}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setNewProductName(val);
-                      setNewProductSku(generateSkuFromName(val, newProductUom));
-                    }}
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase">
-                      SKU *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setNewProductSku(generateSkuFromName(newProductName, newProductUom))}
-                      className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
-                    >
-                      <Sparkles size={12} />
-                      Auto Generate
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. AASH-5-KG"
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={newProductSku}
-                    onChange={(e) => setNewProductSku(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                    Category *
-                  </label>
-                  <select
-                    required
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={newProductCategoryId}
-                    onChange={(e) => setNewProductCategoryId(e.target.value)}
-                  >
-                    <option value="" className="dark:bg-gray-800">Select Category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id} className="dark:bg-gray-800">{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                    Unit of Measure *
-                  </label>
-                  <select
-                    required
-                    className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={newProductUom}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setNewProductUom(val);
-                      if (newProductName) {
-                        setNewProductSku(generateSkuFromName(newProductName, val));
-                      }
-                    }}
-                  >
-                    <option value="" className="dark:bg-gray-800">Select Unit</option>
-                    {uoms.map((u) => (
-                      <option key={u.id} value={u.id} className="dark:bg-gray-800">
-                        {u.name} {u.abbreviation ? `(${u.abbreviation})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </form>
-            </div>
-
-            <div className="border-t border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 shrink-0 p-4 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsCreateProductOpen(false)}
-                className="px-4 py-2 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="createProductForm"
-                disabled={productSubmitLoading}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
-              >
-                {productSubmitLoading && <Loader2 size={16} className="animate-spin" />}
-                Create Finished Product
               </button>
             </div>
           </div>

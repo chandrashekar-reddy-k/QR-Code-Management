@@ -89,6 +89,11 @@ export const workOrderService = {
     return res.data.data;
   },
 
+  async updateWorkOrder(id: string, data: Partial<WorkOrder>): Promise<WorkOrder> {
+    const res = await apiClient.put<{ success: boolean; data: WorkOrder }>(`/work-orders/${id}`, data);
+    return res.data.data;
+  },
+
   async updateWorkOrderStatus(id: string, status: WoStatus, extra?: any): Promise<WorkOrder> {
     const res = await apiClient.patch<{ success: boolean; data: WorkOrder }>(`/work-orders/${id}/status`, { status, extra });
     return res.data.data;

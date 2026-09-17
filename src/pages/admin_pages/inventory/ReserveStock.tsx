@@ -41,14 +41,14 @@ const ReserveStock: React.FC = () => {
       if (response.data?.data) {
         const unallocatedProducts = response.data.data.products.filter((item: any) => {
           const totalStock = item.baseStock ?? item.stock ?? 0;
-          const vStock = Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0;
+          const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
           const allocated = (item.onlineAppStock?.onlineStock ?? 0) + (item.posStoreStock?.posStock ?? 0) + vStock;
           return totalStock > allocated;
         });
 
         const mapped: ReserveStockItem[] = unallocatedProducts.map((item: any) => {
           const totalStock = item.baseStock ?? item.stock ?? 0;
-          const vStock = Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0;
+          const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
           const allocated = (item.onlineAppStock?.onlineStock ?? 0) + (item.posStoreStock?.posStock ?? 0) + vStock;
           const remaining = Math.max(0, totalStock - allocated);
 
@@ -123,10 +123,7 @@ const ReserveStock: React.FC = () => {
       await fetchReadyItems();
       setSelectedItems([]);
       
-      // Delay toast slightly so UI updates first
-      setTimeout(() => {
-        toast.success(`Allocation saved for ${selectedItems.length} item(s).`);
-      }, 100);
+      toast.success(`Stock reserved successfully for ${selectedItems.length} item(s).`);
     } catch (err) {
       console.error('Failed to save allocations:', err);
       toast.error('Failed to save allocation. Please try again.');

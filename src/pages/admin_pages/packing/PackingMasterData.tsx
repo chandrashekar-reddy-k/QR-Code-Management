@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Plus,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -138,12 +137,6 @@ export const PackingMasterData: React.FC = () => {
     setFormData({});
   };
 
-  const openCreate = () => {
-    closeModals();
-    setFormData({});
-    setIsCreating(true);
-  };
-
   const openEdit = (record: any) => {
     closeModals();
     setSelectedRecord(record);
@@ -175,6 +168,9 @@ export const PackingMasterData: React.FC = () => {
 
   const filteredData = useMemo(() => {
     return dataList.filter((item) => {
+      // Exclude Finished Goods from this view
+      if (item.type === 'FINISHED_GOOD' || item.productType === 'FINISHED_GOOD') return false;
+
       if (filterStatus !== 'All') {
         if (filterStatus === 'Active' && !item.isActive) return false;
         if (filterStatus === 'Inactive' && item.isActive) return false;
@@ -366,13 +362,6 @@ export const PackingMasterData: React.FC = () => {
             Manage foundational entities for the Packing ERP system.
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold shadow-xs transition-all mb-2 sm:mb-0"
-        >
-          <Plus size={16} />
-          <span>Create New</span>
-        </button>
       </div>
 
       {error && (

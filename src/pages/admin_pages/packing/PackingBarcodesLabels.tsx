@@ -26,6 +26,31 @@ interface PrintJob {
   assignedOperator?: string;
 }
 
+// Deterministic 13-digit barcode generator from SKU
+const generateBarcodeFromSKU = (sku: string): string => {
+  if (!sku) return '8901234567890';
+  let hash = 5381;
+  for (let i = 0; i < sku.length; i++) {
+    hash = ((hash << 5) + hash) + sku.charCodeAt(i);
+  }
+  let result = '890'; // Prefix (e.g., India GS1)
+  let seed = Math.abs(hash);
+  for (let i = 0; i < 9; i++) {
+    seed = (seed * 9301 + 49297) % 233280;
+    result += Math.floor((seed / 233280) * 10).toString();
+  }
+  
+  let oddSum = 0;
+  let evenSum = 0;
+  for (let i = 0; i < 12; i++) {
+    const digit = parseInt(result[i]);
+    if (i % 2 === 0) oddSum += digit;
+    else evenSum += digit;
+  }
+  const checksum = (10 - ((oddSum + evenSum * 3) % 10)) % 10;
+  return result + checksum.toString();
+};
+
 // Code 128 Barcode drawing function on Canvas
 const drawBarcode128 = (canvas: HTMLCanvasElement | null, text: string) => {
   if (!canvas || !text) return;
@@ -91,24 +116,35 @@ const drawBarcode128 = (canvas: HTMLCanvasElement | null, text: string) => {
   });
   bars = bars.concat(PATTERNS[106]);
 
-  const scale = 3;
+  const scale = 2; // slightly smaller scale to fit longer texts
   const barcodeWidth = bars.reduce((acc, curr) => acc + curr, 0) * scale;
 
-  canvas.width = Math.max(barcodeWidth, 200);
+  canvas.width = Math.max(barcodeWidth + 40, 300);
   canvas.height = 100;
+  
+  const barcodeHeight = 75;
 
-  let x = 0;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  let x = (canvas.width - barcodeWidth) / 2;
   let isBar = true;
 
   bars.forEach((width) => {
     const w = width * scale;
     if (isBar) {
       ctx.fillStyle = '#000000';
-      ctx.fillRect(x, 0, w, 100);
+      ctx.fillRect(x, 0, w, barcodeHeight);
     }
     x += w;
     isBar = !isBar;
   });
+
+  // Draw text
+  ctx.fillStyle = '#000000';
+  ctx.font = 'bold 16px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, canvas.width / 2, barcodeHeight + 18);
 };
 
 export const PackingBarcodesLabels: React.FC = () => {
@@ -153,7 +189,7 @@ export const PackingBarcodesLabels: React.FC = () => {
   const [labelsPrinted, setLabelsPrinted] = useState(0);
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-    batchNo || sku || '9031123456789'
+    (selectedWO?.product as any)?.barcode || generateBarcodeFromSKU(sku)
   )}`;
 
   const fetchWorkOrders = async () => {
@@ -267,7 +303,7 @@ export const PackingBarcodesLabels: React.FC = () => {
   // Draw barcode on preview canvas
   useEffect(() => {
     if (barcodeType !== 'QR Code' && previewCanvasRef.current) {
-      drawBarcode128(previewCanvasRef.current, batchNo || sku || '9031123456789');
+      drawBarcode128(previewCanvasRef.current, (selectedWO?.product as any)?.barcode || generateBarcodeFromSKU(sku));
     }
   }, [batchNo, sku, barcodeType, selectedWO]);
 
@@ -295,7 +331,7 @@ export const PackingBarcodesLabels: React.FC = () => {
     if (!expiryDate) return setValidationError('Expiry Date is required.');
 
     if (barcodeType !== 'QR Code' && previewCanvasRef.current) {
-      drawBarcode128(previewCanvasRef.current, batchNo || sku || '9031123456789');
+      drawBarcode128(previewCanvasRef.current, (selectedWO?.product as any)?.barcode || generateBarcodeFromSKU(sku));
     }
 
     setPreviewNotice(
@@ -313,7 +349,7 @@ export const PackingBarcodesLabels: React.FC = () => {
     let barcodeDataUrl = '';
     if (type !== 'QR Code') {
       const offCanvas = document.createElement('canvas');
-      drawBarcode128(offCanvas, job.batchNo || job.sku || '9031123456789');
+      drawBarcode128(offCanvas, (selectedWO?.product as any)?.barcode || generateBarcodeFromSKU(job.sku));
       barcodeDataUrl = offCanvas.toDataURL('image/png');
     }
 
@@ -345,7 +381,7 @@ export const PackingBarcodesLabels: React.FC = () => {
         <div style="border-top:1px solid #e5e7eb; padding-top:6px; margin-top:auto;">
           ${
             type !== 'QR Code'
-              ? `<img src="${barcodeDataUrl}" style="width:100%; height:28px; image-rendering:pixelated; display:block;" alt="barcode" />`
+              ? `<div style="display:flex;justify-content:center;width:100%;"><img src="${barcodeDataUrl}" style="max-width:100%; height:auto; max-height:40px; image-rendering:pixelated; display:block;" alt="barcode" /></div>`
               : `<div style="display:flex;justify-content:center;"><img src="${qrCodeUrl}" style="width:35px;height:35px;" alt="QR" /></div>`
           }
         </div>
@@ -1027,13 +1063,13 @@ export const PackingBarcodesLabels: React.FC = () => {
                   margin: '4px 0',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '4px', whiteSpace: 'nowrap', fontSize: 10 }}>
                   <span>
                     SKU: <b>{sku || '—'}</b>
                   </span>
-                  <span>
+                  <span style={{ textAlign: 'right' }}>
                     Batch:{' '}
-                    <b style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                    <b style={{ fontFamily: 'monospace', fontSize: 10 }}>
                       {batchNo || '—'}
                     </b>
                   </span>

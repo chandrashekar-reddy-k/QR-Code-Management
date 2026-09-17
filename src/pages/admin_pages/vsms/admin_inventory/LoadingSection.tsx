@@ -24,6 +24,7 @@ const LoadingSection = ({
   handleInitiateLoad,
   isSubmitting,
   hasInvalidQuantities,
+  vehicleInventoryMap,
   can
 }) => {
   const [showLoadModal, setShowLoadModal] = useState(false);
@@ -87,7 +88,7 @@ const LoadingSection = ({
           <tr className="bg-gray-50 dark:bg-gray-900/50/50 text-[9px] font-bold uppercase tracking-widest text-gray-400">
             <th className="px-4 py-3 w-[25%]">Product Details</th>
             <th className="px-3 py-3 text-center w-[12%]">Rate</th>
-            <th className="px-3 py-3 text-center bg-emerald-50/20 text-emerald-600 w-[28%]">System Availability</th>
+            <th className="px-3 py-3 text-center bg-emerald-50/20 text-emerald-600 w-[28%]">VSM Availability</th>
             <th className="px-3 py-3 text-center bg-emerald-50/20 text-emerald-600 w-[15%]">Load Qty</th>
             <th className="pr-4 py-3 text-right w-[20%]">Net Value</th>
           </tr>
@@ -124,20 +125,20 @@ const LoadingSection = ({
                 <td className="px-3 py-2.5 bg-emerald-50/5">
                   <div className="flex items-center justify-center gap-3">
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-bold text-emerald-700">{item.warehouseStock ?? item.stock ?? 0}</span>
+                      <span className="text-[10px] font-bold text-emerald-700">{item.posStoreStock?.posStock || 0}</span>
                       <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest leading-none mt-0.5">In Store</span>
                     </div>
                     <div className="w-px h-4 bg-emerald-100" />
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-bold text-amber-600">{item.vehicleStock || 0}</span>
+                      <span className="text-[10px] font-bold text-amber-600">{item.loadedVehicleStock || 0}</span>
                       <span className="text-[7px] font-bold text-amber-500 uppercase tracking-widest leading-none mt-0.5">In Vehicle</span>
                     </div>
                     <div className="w-px h-4 bg-emerald-100" />
                     <div className="flex flex-col items-center bg-white px-1.5 py-0.5 rounded-lg border border-emerald-100 shadow-sm">
                       <span className="text-[10px] font-bold text-blue-600">
-                        {item.totalStock || ((item.warehouseStock || 0) + (item.vehicleStock || 0))}
+                        {Math.max(0, (item.vehicleStoreStock || 0) - (item.loadedVehicleStock || 0))}
                       </span>
-                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">System</span>
+                      <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">VSM</span>
                     </div>
                   </div>
                 </td>
@@ -148,14 +149,14 @@ const LoadingSection = ({
                       placeholder="0"
                       min="0"
                       onWheel={(e) => e.target.blur()}
-                      className={`w-16 bg-white border ${qty > (item.warehouseStock || 0) ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-200'} rounded-lg px-2 py-1 text-[11px] text-center font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-sm`}
+                      className={`w-16 bg-white border ${qty > Math.max(0, (item.vehicleStoreStock || 0) - (item.loadedVehicleStock || 0)) ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-200'} rounded-lg px-2 py-1 text-[11px] text-center font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-sm`}
                       value={stockQuantities[item.id] || ''}
                       onChange={(e) => {
                         const val = Math.max(0, parseInt(e.target.value) || 0);
                         handleQuantityChange(item.id, val);
                       }}
                     />
-                    {qty > (item.warehouseStock || 0) && (
+                    {qty > Math.max(0, (item.vehicleStoreStock || 0) - (item.loadedVehicleStock || 0)) && (
                       <span className="text-[7px] font-bold text-rose-600 uppercase animate-pulse">Low Stock</span>
                     )}
                   </div>
@@ -271,7 +272,7 @@ const LoadingSection = ({
                   setShowLoadModal(false);
                   fetchHistory();
                 }} 
-                disabled={isSubmitting || !selectedVehicleId || totalLoadingValue === 0 || hasInvalidQuantities} 
+                disabled={isSubmitting || !selectedVehicleId || !Object.values(stockQuantities).some(q => (parseFloat(q) || 0) > 0) || hasInvalidQuantities} 
                 className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-md disabled:opacity-40 flex items-center gap-2"
               >
                 {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpCircle size={14} />}

@@ -341,7 +341,7 @@ export const PackingWorkOrders: React.FC = () => {
     e.preventDefault();
     if (!isEditOpen) return;
     try {
-      await workOrderService.updateWorkOrderStatus(isEditOpen.id, isEditOpen.status, {
+      await workOrderService.updateWorkOrder(isEditOpen.id, {
         requiredQty: editQty,
         priority: editPriority,
         operatorId: editSupervisor || undefined,
@@ -353,9 +353,7 @@ export const PackingWorkOrders: React.FC = () => {
       showToast('Work order updated successfully.');
       fetchWorkOrders();
     } catch (err: any) {
-      showToast(
-        err.response?.data?.message || err.message || 'Error updating Work Order'
-      );
+      showToast(err.response?.data?.message || err.message || 'Error updating Work Order');
     }
   };
 
@@ -1116,17 +1114,20 @@ export const PackingWorkOrders: React.FC = () => {
             {/* Bottom Actions in Drawer */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-4 -mx-6 -mb-6 rounded-b-lg">
               <div className="flex gap-2">
+                {['DRAFT', 'PENDING'].includes(selectedWO.status) && (
+                  <button
+                    onClick={() => {
+                      handleOpenEdit(selectedWO);
+                      setSelectedWO(null);
+                    }}
+                    className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg font-bold cursor-pointer text-xs mr-2"
+                  >
+                    Edit
+                  </button>
+                )}
+
                 {selectedWO.status === 'DRAFT' && (
                   <>
-                    <button
-                      onClick={() => {
-                        handleOpenEdit(selectedWO);
-                        setSelectedWO(null);
-                      }}
-                      className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg font-bold cursor-pointer text-xs"
-                    >
-                      Edit
-                    </button>
                     <button
                       onClick={() => {
                         workOrderService

@@ -186,7 +186,7 @@ export const PackingQualityCheck: React.FC = () => {
 
   // Form fields
   const [formBatchNo, setFormBatchNo] = useState('');
-  const [formCheckedQty, setFormCheckedQty] = useState(10);
+  const [formCheckedQty, setFormCheckedQty] = useState<number | ''>('');
   const [formPackedQty, setFormPackedQty] = useState(0);
   const [formInspectionType, setFormInspectionType] = useState('Sampling Inspection');
   const [formResult, setFormResult] = useState('PASS');
@@ -380,7 +380,7 @@ export const PackingQualityCheck: React.FC = () => {
     setSelectedWO(wo);
     const packed = wo.actualProduced ?? wo.requiredQty;
     setFormPackedQty(packed);
-    setFormCheckedQty(Math.max(1, Math.round(packed * 0.2)));
+    setFormCheckedQty('');
     setFormBatchNo(wo.batchNumber ?? `BATCH-${wo.woNumber.split('-').pop()}`);
     setFormInspectionType('Sampling Inspection');
     setFormResult('PASS');
@@ -417,7 +417,7 @@ export const PackingQualityCheck: React.FC = () => {
     try {
       await qualityCheckService.submitQualityCheck({
         woId: selectedWO.id,
-        checkedQty: formCheckedQty,
+        checkedQty: Number(formCheckedQty),
         result: formResult,
         severity: ['REWORK', 'REJECT', 'DISCARD'].includes(formResult)
           ? formSeverity
@@ -1120,7 +1120,7 @@ export const PackingQualityCheck: React.FC = () => {
                     min={1}
                     className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm font-mono bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                     value={formCheckedQty}
-                    onChange={(e) => setFormCheckedQty(Number(e.target.value))}
+                    onChange={(e) => setFormCheckedQty(e.target.value === '' ? '' : Number(e.target.value))}
                   />
                 </div>
                 <div>
@@ -1133,7 +1133,7 @@ export const PackingQualityCheck: React.FC = () => {
                         ? (() => {
                             const p = Math.min(
                               100,
-                              Math.round((formCheckedQty / formPackedQty) * 100)
+                              Math.round((Number(formCheckedQty) / formPackedQty) * 100)
                             );
                             return p >= 50
                               ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
@@ -1147,7 +1147,7 @@ export const PackingQualityCheck: React.FC = () => {
                     {formPackedQty > 0
                       ? `${Math.min(
                           100,
-                          Math.round((formCheckedQty / formPackedQty) * 100)
+                          Math.round((Number(formCheckedQty) / formPackedQty) * 100)
                         )}%`
                       : '—'}
                   </div>

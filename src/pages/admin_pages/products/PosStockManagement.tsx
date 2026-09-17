@@ -404,10 +404,10 @@ export default function PosStockManagement() {
                     <td className="py-3.5 px-4">
                       <div className="flex flex-col">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold w-max ${p.stock <= 5 ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'}`}>
-                          {p.stock} {p.unit}
+                          {p.stock}
                         </span>
                         <span className="text-[10px] text-gray-400 font-medium mt-1">
-                          {p.baseStock ?? 0} {p.unit} in Warehouse
+                          {p.baseStock ?? 0} in Warehouse
                         </span>
                       </div>
                     </td>

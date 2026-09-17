@@ -473,7 +473,7 @@ export const sidebarConfig: MenuSection[] = [
     activeCheck: (pathname: string) => pathname.startsWith("/packing-erp"),
     subItems: [
       { path: "/packing-erp/dashboard", label: "Dashboard", icon: Home },
-      { path: "/packing-erp/master-data", label: "Master Data", icon: Database },
+      { path: "/packing-erp/master-data", label: "Store Room", icon: Database },
       { path: "/packing-erp/product-bom", label: "Product BOM", icon: ClipboardList },
       { path: "/packing-erp/work-orders", label: "Work Orders", icon: FileText },
       { path: "/packing-erp/approvals", label: "Approvals", icon: CheckCircle },

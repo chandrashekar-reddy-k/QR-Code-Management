@@ -44,17 +44,17 @@ export const PackingApprovals: React.FC = () => {
         console.warn('Approvals API failed:', e);
       }
 
-      let pendingWOs: any[] = [];
+      let allWOs: any[] = [];
       try {
-        const woRes = await workOrderService.getWorkOrders({ status: 'PENDING' });
-        pendingWOs = (woRes.data || []).filter((w: any) => w.status === 'PENDING');
+        const woRes = await workOrderService.getWorkOrders({ limit: 1000 });
+        allWOs = woRes.data || [];
       } catch (e) {
-        console.warn('Failed to fetch PENDING work orders:', e);
+        console.warn('Failed to fetch work orders:', e);
       }
 
       const woApprovalMap = new Map<string, ApprovalRequest>();
 
-      for (const wo of pendingWOs) {
+      for (const wo of allWOs) {
         const recipe = wo.recipe;
         const targetYield = recipe?.outputQty || 1;
         const woQty = wo.requiredQty || 100;
@@ -169,7 +169,7 @@ export const PackingApprovals: React.FC = () => {
   // Filters & State
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<ApprovalType | 'ALL'>('ALL');
-  const [statusFilter, setStatusFilter] = useState<ApprovalStatus | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<ApprovalStatus | 'ALL'>('PENDING');
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'ALL'>('ALL');
   const [inventoryStatusFilter, setInventoryStatusFilter] = useState<string>('ALL');
 
@@ -250,9 +250,9 @@ export const PackingApprovals: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearchTerm('');
-    setStatusFilter('ALL');
-    setPriorityFilter('ALL');
     setTypeFilter('ALL');
+    setStatusFilter('PENDING');
+    setPriorityFilter('ALL');
     setInventoryStatusFilter('ALL');
     setCurrentPage(1);
   };
@@ -291,7 +291,7 @@ export const PackingApprovals: React.FC = () => {
           selectedRequest.woDetails?.woNumber || selectedRequest.relatedEntityName
         } approved!`
       );
-      const updated = approvals.filter((a) => a.id !== selectedRequest.id);
+      const updated = approvals.map((a) => a.id === selectedRequest.id ? { ...a, status: 'APPROVED' as ApprovalStatus } : a);
       setApprovals(updated);
       setSelectedRequest(null);
     } catch (err: any) {
@@ -328,7 +328,7 @@ export const PackingApprovals: React.FC = () => {
         } rejected.`
       );
       setRejectionReason('');
-      const updated = approvals.filter((a) => a.id !== selectedRequest.id);
+      const updated = approvals.map((a) => a.id === selectedRequest.id ? { ...a, status: 'REJECTED' as ApprovalStatus } : a);
       setApprovals(updated);
       setSelectedRequest(null);
     } catch (err: any) {
@@ -543,8 +543,12 @@ export const PackingApprovals: React.FC = () => {
                   <span className="text-slate-500 dark:text-gray-400 block mb-1">
                     Status
                   </span>
-                  <span className="px-3 py-1 text-xs font-bold rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 inline-flex items-center whitespace-nowrap">
-                    Pending Approval
+                  <span className={`px-3 py-1 text-xs font-bold rounded-full inline-flex items-center whitespace-nowrap border ${
+                    selectedRequest.status === 'APPROVED' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' :
+                    selectedRequest.status === 'REJECTED' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' :
+                    'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                  }`}>
+                    {selectedRequest.status === 'APPROVED' ? 'Approved' : selectedRequest.status === 'REJECTED' ? 'Rejected' : 'Pending Approval'}
                   </span>
                 </div>
               </div>
@@ -555,43 +559,53 @@ export const PackingApprovals: React.FC = () => {
               <h3 className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider border-b border-slate-100 dark:border-gray-700 pb-3">
                 Approval Decision
               </h3>
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300">
-                  Rejection Reason{' '}
-                  <span className="text-slate-400 font-normal">
-                    (Required if rejecting)
-                  </span>
-                </label>
-                <textarea
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Enter reason for rejection..."
-                  className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-xs bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:border-emerald-600 h-24 shadow-2xs resize-none"
-                />
-              </div>
-              <div className="flex justify-end items-center gap-3 pt-2">
-                <button
-                  onClick={handleReject}
-                  disabled={!rejectionReason.trim()}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 rounded-xl text-xs font-bold transition-colors shadow-2xs disabled:opacity-50 cursor-pointer whitespace-nowrap"
-                >
-                  <X size={16} />
-                  Reject
-                </button>
-                <button
-                  onClick={handleApprove}
-                  disabled={isApprovalDisabled}
-                  title={
-                    isApprovalDisabled
-                      ? 'Approval disabled due to stock shortages or unavailable inventory'
-                      : 'Approve Work Order'
-                  }
-                  className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-                >
-                  <Check size={16} />
-                  Approve
-                </button>
-              </div>
+              {selectedRequest.status !== 'PENDING' ? (
+                <div className="p-4 bg-slate-50 dark:bg-gray-800/50 rounded-lg text-center border border-slate-100 dark:border-gray-700">
+                   <p className="text-sm font-semibold text-slate-600 dark:text-gray-400">
+                     This request has already been {selectedRequest.status.toLowerCase()}.
+                   </p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300">
+                      Rejection Reason{' '}
+                      <span className="text-slate-400 font-normal">
+                        (Required if rejecting)
+                      </span>
+                    </label>
+                    <textarea
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Enter reason for rejection..."
+                      className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-xs bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:border-emerald-600 h-24 shadow-2xs resize-none"
+                    />
+                  </div>
+                  <div className="flex justify-end items-center gap-3 pt-2">
+                    <button
+                      onClick={handleReject}
+                      disabled={!rejectionReason.trim()}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 rounded-xl text-xs font-bold transition-colors shadow-2xs disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                    >
+                      <X size={16} />
+                      Reject
+                    </button>
+                    <button
+                      onClick={handleApprove}
+                      disabled={isApprovalDisabled}
+                      title={
+                        isApprovalDisabled
+                          ? 'Approval disabled due to stock shortages or unavailable inventory'
+                          : 'Approve Work Order'
+                      }
+                      className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                    >
+                      <Check size={16} />
+                      Approve
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -963,9 +977,13 @@ export const PackingApprovals: React.FC = () => {
                       <td className="p-4 text-center whitespace-nowrap">
                         <button
                           onClick={() => setSelectedRequest(req)}
-                          className="px-4 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors shadow-2xs cursor-pointer whitespace-nowrap"
+                          className={`px-4 py-1.5 text-xs font-semibold border rounded-lg transition-colors shadow-2xs cursor-pointer whitespace-nowrap ${
+                            req.status === 'PENDING'
+                              ? 'text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'
+                              : 'text-slate-600 dark:text-gray-300 border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700'
+                          }`}
                         >
-                          Review
+                          {req.status === 'PENDING' ? 'Review' : 'View'}
                         </button>
                       </td>
                     </tr>

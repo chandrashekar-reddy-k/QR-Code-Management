@@ -431,8 +431,18 @@ export const LabelApplication: React.FC = () => {
                 <input
                   type="number"
                   min="1"
+                  max={Math.max(0, (activeTask.actualProduced || activeTask.requiredQty) - (activeTask.labelsApplied || 0))}
                   value={applyIncrement}
-                  onChange={(e) => setApplyIncrement(e.target.value === '' ? '' : Number(e.target.value))}
+                  onChange={(e) => {
+                    if (e.target.value === '') {
+                      setApplyIncrement('');
+                    } else {
+                      let val = Number(e.target.value);
+                      const maxAllowed = Math.max(0, (activeTask.actualProduced || activeTask.requiredQty) - (activeTask.labelsApplied || 0));
+                      if (val > maxAllowed) val = maxAllowed;
+                      setApplyIncrement(val);
+                    }
+                  }}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-900 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   placeholder="Enter count..."
                   autoFocus
