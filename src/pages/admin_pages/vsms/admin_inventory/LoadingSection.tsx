@@ -96,7 +96,7 @@ const LoadingSection = ({
         <tbody className="divide-y divide-gray-50">
           {itemsToRender.map((item) => {
             const qty = parseFloat(stockQuantities[item.id]) || 0;
-            const price = parseFloat(item.sellingPrice ?? item.price ?? item.selling_price ?? 0) || 0;
+            const price = parseFloat(item.vsmPrice || 0) || 0;
             const displayAmount = qty * price;
             return (
               <tr key={`load-table-${item.id}`} className={`hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group ${isFreeGroup ? 'bg-emerald-50/10' : ''}`}>

@@ -27,6 +27,9 @@ export interface PosStockProduct {
   sku: string;
   barcode?: string;
   price: number;
+  mrp?: number;
+  landingPrice?: number;
+  sellingPrice?: number;
   posPrice?: number;
   stock: number;
   isOnline: boolean;
@@ -50,6 +53,13 @@ export default function PosStockManagement() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // Return to ready modal
+  const [confirmProduct, setConfirmProduct] = useState<PosStockProduct | null>(null);
+  const [returningId, setReturningId] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [isBulkReturning, setIsBulkReturning] = useState(false);
+  const [showBulkReturnModal, setShowBulkReturnModal] = useState(false);
+
   // Edit POS quick modal
   const [editProduct, setEditProduct] = useState<PosStockProduct | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -67,12 +77,14 @@ export default function PosStockManagement() {
 
       const mapped: PosStockProduct[] = raw
         .filter((p: any) => {
-          if (Number(p.baseStock ?? p.stock) > 0) return true;
-          if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
-          if (p.liveStock !== undefined && Number(p.liveStock) > 0) return true;
-          const tagStage = Array.isArray(p.tags) ? p.tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null;
-          const stage = p.lifecycleStage || tagStage;
-          return stage === 'LIVE';
+          const isPos = p.isPos === true || p.posStoreStock?.isPosEnabled === true || (Array.isArray(p.tags) && p.tags.includes('CH:POS'));
+          const hasPosStock = Number(p.posStock ?? p.posStoreStock?.posStock ?? p.liveStockChannel?.posAvailable) > 0;
+          
+          if (p.inventoryType === 'READY' || p.inventoryType === 'RAW') {
+            return isPos;
+          }
+
+          return isPos || hasPosStock;
         })
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
@@ -115,8 +127,11 @@ export default function PosStockManagement() {
             unitType: p.unitType || 'Unit',
             sku: p.sku || firstVar.sku || 'N/A',
             barcode: p.barcode || firstVar.barcode || p.gtin || '890' + Math.floor(100000000 + Math.random() * 900000000),
-            price: Number(p.price || p.mrp || 0),
-            posPrice: Number(p.posPrice || p.price || p.mrp || 0),
+            price: Number(p.price || 0),
+            mrp: Number(p.mrp || 0),
+            landingPrice: Number(p.landingPrice || 0),
+            sellingPrice: Number(p.sellingPrice || 0),
+            posPrice: Number(p.posPrice || 0),
             stock: stageStock,
             isOnline,
             isPos,
@@ -180,6 +195,47 @@ export default function PosStockManagement() {
     setIsEditModalOpen(true);
   };
 
+  const handleReturnToReady = (product: PosStockProduct) => {
+    setConfirmProduct(product);
+  };
+
+  const executeReturnToReady = async () => {
+    if (!confirmProduct) return;
+    const product = confirmProduct;
+    setReturningId(product.id);
+    setConfirmProduct(null);
+    try {
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', {
+        inventoryType: 'READY'
+      }).catch(() => fetchData(`product/${product.id}`, 'PUT', {
+        inventoryType: 'READY'
+      }));
+
+      if (product.isPos) {
+        await fetchData(`productmanagement/product/${product.id}/lifecycle`, 'POST', {
+          stage: 'LIVE',
+          isOnline: product.isOnline,
+          isPos: false,
+          isVehicle: product.isVehicle,
+          notes: product.stageNotes
+        }).catch(() => fetchData(`product/${product.id}/lifecycle`, 'POST', {
+          stage: 'LIVE',
+          isOnline: product.isOnline,
+          isPos: false,
+          isVehicle: product.isVehicle,
+          notes: product.stageNotes
+        }));
+      }
+
+      toast.success(`${product.name} returned to Ready Inventory and disabled from POS`);
+      loadPosStock();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to return product to Ready Inventory');
+    } finally {
+      setReturningId(null);
+    }
+  };
+
   const handleSavePosConfig = async () => {
     if (!editProduct) return;
     setIsSubmitting(true);
@@ -205,6 +261,42 @@ export default function PosStockManagement() {
       toast.error(err?.message || 'Failed to update POS parameters');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const toggleSelection = (productId: string) => {
+    setSelectedProducts(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === filtered.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filtered.map(p => p.id)));
+    }
+  };
+
+  const executeBulkReturnToReady = async () => {
+    if (selectedProducts.size === 0) return;
+    setIsBulkReturning(true);
+    setShowBulkReturnModal(false);
+    try {
+      await fetchData(`productmanagement/product/bulk/lifecycle/return-to-ready`, 'POST', {
+        productIds: Array.from(selectedProducts),
+        channel: 'POS'
+      });
+      toast.success(`Successfully returned ${selectedProducts.size} products to Ready Inventory`);
+      setSelectedProducts(new Set());
+      loadPosStock();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to perform bulk return');
+    } finally {
+      setIsBulkReturning(false);
     }
   };
 
@@ -346,6 +438,24 @@ export default function PosStockManagement() {
         </div>
       </div>
 
+      {/* Bulk Actions */}
+      {selectedProducts.size > 0 && (
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-sm">
+              {selectedProducts.size} product{selectedProducts.size > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <button
+            onClick={() => setShowBulkReturnModal(true)}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+            <RefreshCw size={16} />
+            Bulk Return to Ready
+          </button>
+        </div>
+      )}
+
       {/* Products Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         {isLoading ? (
@@ -364,7 +474,18 @@ export default function PosStockManagement() {
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/75 dark:bg-gray-900/40 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4 w-12 text-center">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                      checked={filtered.length > 0 && selectedProducts.size === filtered.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="py-3 px-4">Product Details</th>
+                  <th className="py-3 px-4">MRP</th>
+                  <th className="py-3 px-4">Landing Price</th>
+                  <th className="py-3 px-4">Selling Price</th>
                   <th className="py-3 px-4">Barcode / GTIN</th>
                   <th className="py-3 px-4">Counter Stock</th>
                   <th className="py-3 px-4">POS Billing Price</th>
@@ -375,7 +496,15 @@ export default function PosStockManagement() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {paginatedProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-750/50 transition-colors">
+                  <tr key={p.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors group">
+                    <td className="py-3 px-4 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        checked={selectedProducts.has(p.id)}
+                        onChange={() => toggleSelection(p.id)}
+                      />
+                    </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
                         {p.image ? (
@@ -396,6 +525,15 @@ export default function PosStockManagement() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{p.mrp?.toFixed(2) || '0.00'}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{p.landingPrice?.toFixed(2) || '0.00'}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{p.sellingPrice?.toFixed(2) || '0.00'}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700/60 font-mono text-xs text-gray-800 dark:text-gray-200">
                         <Barcode size={13} className="text-gray-500" />
                         <span>{p.barcode || 'N/A'}</span>
@@ -412,7 +550,7 @@ export default function PosStockManagement() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.posPrice || p.price).toFixed(2)}</div>
+                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.posPrice || 0).toFixed(2)}</div>
                       <div className="text-[10px] text-gray-400 font-medium">Incl. Tax ({p.taxRate}%)</div>
                     </td>
                     <td className="py-3.5 px-4">
@@ -431,12 +569,22 @@ export default function PosStockManagement() {
                       </button>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleOpenEditModal(p)}
-                        className="px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors cursor-pointer"
-                      >
-                        Edit POS
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleReturnToReady(p)}
+                          disabled={returningId === p.id}
+                          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-amber-600 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Return to Ready Inventory"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditModal(p)}
+                          className="px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Edit POS
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -532,6 +680,86 @@ export default function PosStockManagement() {
           </div>
         </div>
       )}
+
+      {/* Bulk Return Confirmation Modal */}
+      {showBulkReturnModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Confirm Bulk Return</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  You are about to return {selectedProducts.size} product{selectedProducts.size > 1 ? 's' : ''} to Ready Inventory.
+                </p>
+              </div>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 p-3 rounded-xl text-xs leading-relaxed mb-6 border border-orange-100 dark:border-orange-800/50 font-medium">
+              This will set the POS Counter Stock for all selected products to 0 and disable them from the POS system immediately.
+            </div>
+            
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowBulkReturnModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+                disabled={isBulkReturning}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeBulkReturnToReady}
+                disabled={isBulkReturning}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-xs shadow-red-500/20 cursor-pointer"
+              >
+                {isBulkReturning ? <RefreshCw className="animate-spin" size={16} /> : null}
+                Yes, Return {selectedProducts.size} Item{selectedProducts.size > 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return to Ready Confirmation Modal */}
+      {confirmProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-500 mb-2">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Return to Ready Inventory?</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Are you sure you want to return <strong>{confirmProduct.name}</strong> ({confirmProduct.variantName}) to Ready Inventory?
+                </p>
+                {confirmProduct.isPos && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-2 font-medium">
+                    This will also disable the product from Store POS.
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-3 w-full mt-6">
+              <button
+                onClick={() => setConfirmProduct(null)}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeReturnToReady}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+              >
+                Yes, Return
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

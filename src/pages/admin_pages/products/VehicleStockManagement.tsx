@@ -12,7 +12,9 @@ import {
   X,
   Calendar,
   Tag,
-  DollarSign
+  DollarSign,
+  AlertTriangle,
+  Sliders
 } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import { toast } from 'react-toastify';
@@ -28,6 +30,10 @@ export interface VehicleInventoryItem {
   unit: string;
   sku: string;
   price: number;
+  mrp?: number;
+  landingPrice?: number;
+  sellingPrice?: number;
+  vsmPrice?: number;
   totalCatalogStock: number;
   vehicleStoreStock: number;
   vehicleStock: number;
@@ -61,9 +67,21 @@ export default function VehicleStockManagement() {
   const [itemsPerPage] = useState(10);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // Return to ready modal
+  const [confirmProduct, setConfirmProduct] = useState<VehicleInventoryItem | null>(null);
+  const [returningId, setReturningId] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [isBulkReturning, setIsBulkReturning] = useState(false);
+  const [showBulkReturnModal, setShowBulkReturnModal] = useState(false);
+
   // View Vehicle Stock Details Modal
   const [viewProduct, setViewProduct] = useState<VehicleInventoryItem | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  // Edit VSM Config Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState<VehicleInventoryItem | null>(null);
+  const [editVsmPrice, setEditVsmPrice] = useState<number>(0);
 
   // Transfer / Load Modal
   const [selectedProduct, setSelectedProduct] = useState<VehicleInventoryItem | null>(null);
@@ -114,9 +132,22 @@ export default function VehicleStockManagement() {
 
       const mapped: VehicleInventoryItem[] = raw
         .filter((p: any) => {
-          if (Number(p.baseStock ?? p.stock) > 0 || Number(p.vehicleStock || 0) > 0) return true;
-          if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
-          return false;
+          const isVehicle = p.isVehicle === true || p.liveStockChannel?.isVehicle === true || (Array.isArray(p.tags) && p.tags.includes('CH:VEHICLE'));
+          let parsedNotes: any = {};
+          if (p.liveStockChannel?.channelNotes && typeof p.liveStockChannel.channelNotes === 'string') {
+            try {
+              parsedNotes = JSON.parse(p.liveStockChannel.channelNotes);
+            } catch (e) {
+              // Ignore invalid JSON in legacy data
+            }
+          }
+          const hasVehicleStock = Number(p.vehicleStock) > 0 || Number(parsedNotes?.vehicleStoreStock || 0) > 0;
+          
+          if (p.inventoryType === 'READY' || p.inventoryType === 'RAW') {
+            return isVehicle;
+          }
+
+          return isVehicle || hasVehicleStock;
         })
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
@@ -156,7 +187,6 @@ export default function VehicleStockManagement() {
               };
             });
 
-          const liveAvailableStock = Number(p.baseStock ?? p.stock ?? 0);
 
           return {
             id: p.id,
@@ -166,8 +196,12 @@ export default function VehicleStockManagement() {
             variantName,
             unit: cleanUnit,
             sku: p.sku || firstVar.sku || 'N/A',
-            price: Number(p.price || p.mrp || 0),
-            totalCatalogStock: liveAvailableStock,
+            price: Number(p.price || 0),
+            mrp: Number(p.mrp || 0),
+            landingPrice: Number(p.landingPrice || 0),
+            sellingPrice: Number(p.sellingPrice || 0),
+            vsmPrice: Number(p.vsmPrice || 0),
+            totalCatalogStock: Number(p.stock || 0),
             vehicleStoreStock: Number(p.vehicleStoreStock ?? p.stageStocks?.VEHICLE ?? p.vehicleStock ?? vStock ?? 0),
             vehicleStock: vStock,
             vehicleAssignedCount: assignedVehicles.length || (vStock > 0 ? 1 : 0),
@@ -221,6 +255,109 @@ export default function VehicleStockManagement() {
     setLoadQuantity(1);
     setLoadNotes('');
     setIsLoadModalOpen(true);
+  };
+
+  const handleOpenEditModal = (item: VehicleInventoryItem) => {
+    setEditProduct(item);
+    setEditVsmPrice(item.vsmPrice || item.sellingPrice || item.price || 0);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveVsmConfig = async () => {
+    if (!editProduct) return;
+    setIsSubmitting(true);
+    try {
+      await fetchData(`productmanagement/product/${editProduct.id}`, 'PUT', {
+        vsmPrice: Number(editVsmPrice)
+      }).catch(() => fetchData(`product/${editProduct.id}`, 'PUT', {
+        vsmPrice: Number(editVsmPrice)
+      }));
+
+      // Update local state
+      setItems((prev: VehicleInventoryItem[]) => prev.map(p => p.id === editProduct.id ? { ...p, vsmPrice: Number(editVsmPrice) } : p));
+
+      toast.success(`Vehicle channel configuration updated for ${editProduct.name}`);
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update vehicle channel configuration');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReturnToReady = (item: VehicleInventoryItem) => {
+    setConfirmProduct(item);
+  };
+
+  const executeReturnToReady = async () => {
+    if (!confirmProduct) return;
+    const item = confirmProduct;
+    setReturningId(item.id);
+    setConfirmProduct(null);
+    try {
+      await fetchData(`productmanagement/product/${item.id}`, 'PUT', {
+        inventoryType: 'READY'
+      }).catch(() => fetchData(`product/${item.id}`, 'PUT', {
+        inventoryType: 'READY'
+      }));
+
+      if (item.isVehicle) {
+        await fetchData(`productmanagement/product/${item.id}/lifecycle`, 'POST', {
+          stage: 'LIVE',
+          isVehicle: false,
+          isOnline: true,
+          isPos: true
+        }).catch(() => fetchData(`product/${item.id}/lifecycle`, 'POST', {
+          stage: 'LIVE',
+          isVehicle: false,
+          isOnline: true,
+          isPos: true
+        }));
+      }
+
+      toast.success(`${item.name} returned to Ready Inventory and disabled from Vehicles`);
+      loadVehicleData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to return product to Ready Inventory');
+    } finally {
+      setReturningId(null);
+    }
+  };
+
+  const toggleSelection = (productId: string) => {
+    setSelectedProducts(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === filtered.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filtered.map(p => p.id)));
+    }
+  };
+
+  const executeBulkReturnToReady = async () => {
+    if (selectedProducts.size === 0) return;
+    setIsBulkReturning(true);
+    setShowBulkReturnModal(false);
+    try {
+      await fetchData(`productmanagement/product/bulk/lifecycle/return-to-ready`, 'POST', {
+        productIds: Array.from(selectedProducts),
+        channel: 'VEHICLE'
+      });
+      toast.success(`Successfully returned ${selectedProducts.size} products to Ready Inventory`);
+      setSelectedProducts(new Set());
+      loadVehicleData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to perform bulk return');
+    } finally {
+      setIsBulkReturning(false);
+    }
   };
 
   const handleConfirmVehicleLoad = async () => {
@@ -391,12 +528,30 @@ export default function VehicleStockManagement() {
         </div>
       </div>
 
-      {/* Products Table */}
+      {/* Bulk Actions */}
+      {selectedProducts.size > 0 && (
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-sm">
+              {selectedProducts.size} product{selectedProducts.size > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <button
+            onClick={() => setShowBulkReturnModal(true)}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+            <RefreshCw size={16} />
+            Bulk Return to Ready
+          </button>
+        </div>
+      )}
+
+      {/* Vehicle Inventory Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center text-gray-400">
             <RefreshCw className="animate-spin mb-3 text-emerald-500" size={32} />
-            <p className="text-sm">Loading Delivery Fleet stock catalogue...</p>
+            <p className="text-sm">Loading Vehicle Fleet Inventory...</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center text-gray-400">
@@ -409,17 +564,37 @@ export default function VehicleStockManagement() {
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/75 dark:bg-gray-900/40 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4 w-12 text-center">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                      checked={filtered.length > 0 && selectedProducts.size === filtered.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="py-3 px-4">Product Details</th>
+                  <th className="py-3 px-4">MRP</th>
+                  <th className="py-3 px-4">Landing Price</th>
+                  <th className="py-3 px-4">Selling Price</th>
+                  <th className="py-3 px-4">VSM Price</th>
                   <th className="py-3 px-4">Vehicle Store Stock</th>
                   <th className="py-3 px-4">Total In-Van Stock</th>
                   <th className="py-3 px-4">Van Channel Status</th>
                   <th className="py-3 px-4 text-center">Van Permission</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4 text-right pr-[110px]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {paginatedItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-750/50 transition-colors">
+                  <tr key={item.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors group">
+                    <td className="py-3 px-4 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        checked={selectedProducts.has(item.id)}
+                        onChange={() => toggleSelection(item.id)}
+                      />
+                    </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
                         {item.image ? (
@@ -438,6 +613,18 @@ export default function VehicleStockManagement() {
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{item.mrp?.toFixed(2) || '0.00'}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{item.landingPrice?.toFixed(2) || '0.00'}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{(item.sellingPrice || 0).toFixed(2)}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-emerald-600 dark:text-emerald-400">₹{(item.vsmPrice || 0).toFixed(2)}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-gray-800 dark:text-gray-200">{item.vehicleStoreStock}</div>
@@ -466,6 +653,22 @@ export default function VehicleStockManagement() {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="inline-flex items-center gap-1.5 justify-end">
+                        <button
+                          onClick={() => handleReturnToReady(item)}
+                          disabled={returningId === item.id}
+                          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-amber-600 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Return to Ready Inventory"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditModal(item)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 hover:bg-blue-50 text-gray-700 hover:text-blue-700 dark:bg-gray-750 dark:hover:bg-blue-950/40 dark:text-gray-300 dark:hover:text-blue-400 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
+                          title="Quick Edit VSM Price"
+                        >
+                          <Sliders size={12} />
+                          <span>Edit</span>
+                        </button>
                         <button
                           onClick={() => { setViewProduct(item); setIsViewModalOpen(true); }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 dark:bg-gray-750 dark:hover:bg-emerald-950/40 dark:text-gray-300 dark:hover:text-emerald-400 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer"
@@ -749,6 +952,132 @@ export default function VehicleStockManagement() {
           </div>
         </div>
       )}
+
+      {/* Bulk Return Confirmation Modal */}
+      {showBulkReturnModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Confirm Bulk Return</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  You are about to return {selectedProducts.size} product{selectedProducts.size > 1 ? 's' : ''} to Ready Inventory.
+                </p>
+              </div>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 p-3 rounded-xl text-xs leading-relaxed mb-6 border border-orange-100 dark:border-orange-800/50 font-medium">
+              This will set the Vehicle Store Stock for all selected products to 0 and disable them from the Fleet system immediately.
+            </div>
+            
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowBulkReturnModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+                disabled={isBulkReturning}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeBulkReturnToReady}
+                disabled={isBulkReturning}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-xs shadow-red-500/20 cursor-pointer"
+              >
+                {isBulkReturning ? <RefreshCw className="animate-spin" size={16} /> : null}
+                Yes, Return {selectedProducts.size} Item{selectedProducts.size > 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return to Ready Confirmation Modal */}
+      {confirmProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-500 mb-2">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Return to Ready Inventory?</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Are you sure you want to return <strong>{confirmProduct.name}</strong> ({confirmProduct.variantName}) to Ready Inventory?
+                </p>
+                {confirmProduct.isVehicle && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-2 font-medium">
+                    This will also disable the product from Fleet Vans.
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-3 w-full mt-6">
+              <button
+                onClick={() => setConfirmProduct(null)}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeReturnToReady}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+              >
+                Yes, Return
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit VSM Config Modal */}
+      {isEditModalOpen && editProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Vehicle Channel Configuration</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{editProduct.name}</p>
+              </div>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">✕</button>
+            </div>
+
+            <div className="space-y-3.5 text-xs sm:text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">VSM Price (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={editVsmPrice}
+                  onChange={(e) => setEditVsmPrice(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 w-full mt-6 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveVsmConfig}
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSubmitting && <RefreshCw size={14} className="animate-spin" />}
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

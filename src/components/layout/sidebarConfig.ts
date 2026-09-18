@@ -32,7 +32,6 @@ import {
   Calendar,
   AlertTriangle,
   ScanLine,
-  Printer,
   Receipt,
   BookOpen,
   Link2,
@@ -380,7 +379,7 @@ export const sidebarConfig: MenuSection[] = [
         label: "Vehicle Stock & Audits",
         icon: Boxes,
       },
-      { path: "/stock", label: "Stock Management", icon: Boxes },
+      // { path: "/stock", label: "Stock Management", icon: Boxes },
     ],
   },
   // kjsghjkdsfhgk

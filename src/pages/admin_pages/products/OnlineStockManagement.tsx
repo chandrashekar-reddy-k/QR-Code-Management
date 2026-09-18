@@ -30,6 +30,7 @@ export interface OnlineStockProduct {
   mrp?: number;
   landingPrice?: number;
   sellingPrice?: number;
+  onlinePrice?: number;
   stock: number;
   isOnline: boolean;
   isPos: boolean;
@@ -55,6 +56,9 @@ export default function OnlineStockManagement() {
   const [itemsPerPage] = useState(10);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [returningId, setReturningId] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [isBulkReturning, setIsBulkReturning] = useState(false);
+  const [showBulkReturnModal, setShowBulkReturnModal] = useState(false);
 
   // Quick edit modal for Online App Settings
   const [editProduct, setEditProduct] = useState<OnlineStockProduct | null>(null);
@@ -76,18 +80,15 @@ export default function OnlineStockManagement() {
 
       const mapped: OnlineStockProduct[] = raw
         .filter((p: any) => {
+          const isPublished = p.isOnline === true || p.onlineAppStock?.isPublished === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE'));
+          const hasOnlineStock = Number(p.onlineStock ?? p.onlineAppStock?.onlineStock) > 0;
+          
           if (p.inventoryType === 'READY' || p.inventoryType === 'RAW') {
             // ONLY show READY items if they are actively published/online
-            const isPublished = p.isOnline === true || p.onlineAppStock?.isPublished === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE'));
             return isPublished;
           }
 
-          if (Number(p.baseStock ?? p.stock) > 0) return true;
-          if (p.stageStocks?.LIVE !== undefined && Number(p.stageStocks.LIVE) > 0) return true;
-          if (p.liveStock !== undefined && Number(p.liveStock) > 0) return true;
-          const tagStage = Array.isArray(p.tags) ? p.tags.find((t: string) => t.startsWith('LIFECYCLE:'))?.split(':')[1] : null;
-          const isLive = (p.lifecycleStage || tagStage) === 'LIVE';
-          return isLive;
+          return isPublished || hasOnlineStock;
         })
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
@@ -137,6 +138,7 @@ export default function OnlineStockManagement() {
             mrp: Number(p.mrp || 0),
             landingPrice: Number(p.landingPrice || 0),
             sellingPrice: Number(p.sellingPrice || 0),
+            onlinePrice: Number(p.onlinePrice || 0),
             stock: stageStock,
             isOnline,
             isPos,
@@ -197,7 +199,7 @@ export default function OnlineStockManagement() {
 
   const handleOpenEditModal = (product: OnlineStockProduct) => {
     setEditProduct(product);
-    setEditPrice(product.price);
+    setEditPrice(product.onlinePrice || product.price);
     setEditMinQty(product.minOrderQty);
     setEditMaxQty(product.maxOrderQty);
     // setEditBadge(product.badge || '');
@@ -209,18 +211,18 @@ export default function OnlineStockManagement() {
     setIsSubmitting(true);
     try {
       await fetchData(`productmanagement/product/${editProduct.id}`, 'PUT', {
-        price: Number(editPrice),
+        onlinePrice: Number(editPrice),
         minOrderQty: Number(editMinQty),
         maxOrderQty: Number(editMaxQty)
       }).catch(() => fetchData(`product/${editProduct.id}`, 'PUT', {
-        price: Number(editPrice),
+        onlinePrice: Number(editPrice),
         minOrderQty: Number(editMinQty),
         maxOrderQty: Number(editMaxQty)
       }));
 
       setProducts(prev => prev.map(p => p.id === editProduct.id ? {
         ...p,
-        price: Number(editPrice),
+        onlinePrice: Number(editPrice),
         minOrderQty: Number(editMinQty),
         maxOrderQty: Number(editMaxQty)
       } : p));
@@ -267,12 +269,48 @@ export default function OnlineStockManagement() {
         }));
       }
 
-      toast.success(`${product.name} returned to Ready Inventory and unpublished`);
-      loadOnlineStock();
+      toast.success(`${product.name} returned to ready inventory`);
+      loadOnlineStock(); // Reload to refresh list and numbers
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to return product to Ready Inventory');
+      toast.error(err?.message || 'Failed to return to ready inventory');
     } finally {
       setReturningId(null);
+    }
+  };
+
+  const toggleSelection = (productId: string) => {
+    setSelectedProducts(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === filtered.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filtered.map(p => p.id)));
+    }
+  };
+
+  const executeBulkReturnToReady = async () => {
+    if (selectedProducts.size === 0) return;
+    setIsBulkReturning(true);
+    setShowBulkReturnModal(false);
+    try {
+      await fetchData(`productmanagement/product/bulk/lifecycle/return-to-ready`, 'POST', {
+        productIds: Array.from(selectedProducts),
+        channel: 'ONLINE'
+      });
+      toast.success(`Successfully returned ${selectedProducts.size} products to Ready Inventory`);
+      setSelectedProducts(new Set());
+      loadOnlineStock();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to perform bulk return');
+    } finally {
+      setIsBulkReturning(false);
     }
   };
 
@@ -413,6 +451,24 @@ export default function OnlineStockManagement() {
         </div>
       </div>
 
+      {/* Bulk Actions */}
+      {selectedProducts.size > 0 && (
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-sm">
+              {selectedProducts.size} product{selectedProducts.size > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <button
+            onClick={() => setShowBulkReturnModal(true)}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+            <RefreshCw size={16} />
+            Bulk Return to Ready
+          </button>
+        </div>
+      )}
+
       {/* Products Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         {isLoading ? (
@@ -431,6 +487,14 @@ export default function OnlineStockManagement() {
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/75 dark:bg-gray-900/40 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4 w-12 text-center">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                      checked={filtered.length > 0 && selectedProducts.size === filtered.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="py-3 px-4">Product Details</th>
                   <th className="py-3 px-4">MRP</th>
                   <th className="py-3 px-4">Landing Price</th>
@@ -445,8 +509,16 @@ export default function OnlineStockManagement() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {paginatedProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-750/50 transition-colors">
-                    <td className="py-3.5 px-4">
+                  <tr key={p.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors group">
+                    <td className="py-3 px-4 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        checked={selectedProducts.has(p.id)}
+                        onChange={() => toggleSelection(p.id)}
+                      />
+                    </td>
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         {p.image ? (
                           <img src={p.image} alt={p.name} className="w-10 h-10 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shrink-0" />
@@ -466,21 +538,20 @@ export default function OnlineStockManagement() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.mrp || 0).toFixed(2)}</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{(p.mrp || 0).toFixed(2)}</div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.landingPrice || 0).toFixed(2)}</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{(p.landingPrice || 0).toFixed(2)}</div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.sellingPrice || 0).toFixed(2)}</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-100">₹{(p.sellingPrice || 0).toFixed(2)}</div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{p.price.toFixed(2)}</div>
-                      <div className="text-[10px] text-gray-400">per unit</div>
+                      <div className="font-bold text-emerald-600 dark:text-emerald-400">₹{(p.onlinePrice || 0).toFixed(2)}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-emerald-600 dark:text-emerald-400">
-                        {p.mrp && p.price && p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) + '%' : '0%'}
+                        {p.mrp && p.onlinePrice && p.mrp > p.onlinePrice ? Math.round(((p.mrp - p.onlinePrice) / p.mrp) * 100) + '%' : '0%'}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
@@ -611,7 +682,47 @@ export default function OnlineStockManagement() {
         </div>
       )}
 
-      {/* Return to Ready Confirmation Modal */}
+      {/* Bulk Return Confirmation Modal */}
+      {showBulkReturnModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Confirm Bulk Return</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  You are about to return {selectedProducts.size} product{selectedProducts.size > 1 ? 's' : ''} to Ready Inventory.
+                </p>
+              </div>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 p-3 rounded-xl text-xs leading-relaxed mb-6 border border-orange-100 dark:border-orange-800/50 font-medium">
+              This will set the Online App Stock for all selected products to 0 and unpublish them from the customer app immediately.
+            </div>
+            
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowBulkReturnModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+                disabled={isBulkReturning}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeBulkReturnToReady}
+                disabled={isBulkReturning}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-xs shadow-red-500/20 cursor-pointer"
+              >
+                {isBulkReturning ? <RefreshCw className="animate-spin" size={16} /> : null}
+                Yes, Return {selectedProducts.size} Item{selectedProducts.size > 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return to Ready Inventory Confirmation Modal */}
       {confirmProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700">
