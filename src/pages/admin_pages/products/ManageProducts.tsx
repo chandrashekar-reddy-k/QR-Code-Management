@@ -761,21 +761,16 @@ const ManageProducts = () => {
         product.name.toLowerCase().includes(searchLower) ||
         product.id.toLowerCase().includes(searchLower) ||
         product.sku.toLowerCase().includes(searchLower) ||
-        (product.barcode && product.barcode.toLowerCase().includes(searchLower));
-
-      const matchesBarcode =
-        !barcodeSearchLower ||
-        (product.barcode && product.barcode.toLowerCase().includes(barcodeSearchLower)) ||
-        product.sku.toLowerCase().includes(barcodeSearchLower) ||
-        product.id.toLowerCase().includes(barcodeSearchLower) ||
+        (product.barcode && product.barcode.toLowerCase().includes(searchLower)) ||
         (product.variants && product.variants.some((v: any) =>
-          (v.barcode && String(v.barcode).toLowerCase().includes(barcodeSearchLower)) ||
-          (v.sku && String(v.sku).toLowerCase().includes(barcodeSearchLower))
+          (v.barcode && String(v.barcode).toLowerCase().includes(searchLower)) ||
+          (v.sku && String(v.sku).toLowerCase().includes(searchLower)) ||
+          (v.variantName && String(v.variantName).toLowerCase().includes(searchLower))
         ));
 
       const matchesCategory = !categoryFilter || product.categoryId === categoryFilter;
 
-      return matchesSearch && matchesBarcode && matchesCategory;
+      return matchesSearch && matchesCategory;
     });
 
     if (sortField) {
@@ -1118,49 +1113,10 @@ const ManageProducts = () => {
         </div>
 
         {/* Search & Barcode Scanner Section */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-          {/* Barcode Number Search Field with Scanner Button */}
-          <div className="flex items-center gap-2">
-            <div className="relative w-full sm:w-60 lg:w-56">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <Barcode size={16} />
-              </div>
-              <input
-                type="text"
-                placeholder="Barcode Number..."
-                value={barcodeSearch}
-                onChange={(e) => {
-                  setBarcodeSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 h-10"
-              />
-              {barcodeSearch && (
-                <button
-                  type="button"
-                  onClick={() => setBarcodeSearch("")}
-                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsScannerOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 h-10"
-              title="Scan product barcode using camera"
-            >
-              <Camera size={16} />
-              <span>Scan</span>
-            </button>
-          </div>
-
-          {/* General Search */}
-          <div className="w-full sm:w-52 lg:w-48">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="w-full sm:w-72 lg:w-80">
             <SearchInput
-              placeholder="Search name, ID..."
+              placeholder="Search name, ID, SKU, barcode..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -1169,6 +1125,16 @@ const ManageProducts = () => {
               className="h-10 w-full"
             />
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 h-10 shrink-0"
+            title="Scan product barcode using camera"
+          >
+            <Camera size={16} />
+            <span className="hidden sm:inline">Scan</span>
+          </button>
         </div>
       </div>
 
@@ -1178,7 +1144,7 @@ const ManageProducts = () => {
           onScan={(code) => {
             const cleanCode = String(code || "").trim();
             if (cleanCode) {
-              setBarcodeSearch(cleanCode);
+              setSearchTerm(cleanCode);
               setCurrentPage(1);
               setIsScannerOpen(false);
               toast.success(`Scanned Barcode: ${cleanCode}`);

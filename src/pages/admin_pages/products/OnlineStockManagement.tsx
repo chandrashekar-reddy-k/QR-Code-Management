@@ -8,17 +8,20 @@ import {
   EyeOff, 
   Sliders,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Camera
 } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import { toast } from 'react-toastify';
 import fetchData from '../../../helper';
 import Pagination from '../../../components/ui/Pagination';
+import BarcodeScannerOverlay from '../../../components/BarcodeScannerOverlay';
 
 export interface OnlineStockProduct {
   id: string;
   productId: string;
   name: string;
+  barcode?: string;
   image?: string;
   variantName: string;
   variantsCount: number;
@@ -50,6 +53,7 @@ export default function OnlineStockManagement() {
   const [products, setProducts] = useState<OnlineStockProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [filterVisibility, setFilterVisibility] = useState<'ALL' | 'VISIBLE' | 'HIDDEN'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -126,6 +130,7 @@ export default function OnlineStockManagement() {
             id: p.id,
             productId,
             name: p.name || '',
+            barcode: p.barcode || p.posStoreStock?.barcode || '',
             image: img,
             variantName,
             variantsCount,
@@ -283,10 +288,13 @@ export default function OnlineStockManagement() {
   const lowStockCount = useMemo(() => products.filter(p => p.isOnline && p.stock <= 5).length, [products]);
 
   const filtered = products.filter(p => {
-    const matchesSearch = !search.trim() || 
-      p.name.toLowerCase().includes(search.toLowerCase()) || 
-      p.productId.toLowerCase().includes(search.toLowerCase()) || 
-      p.sku.toLowerCase().includes(search.toLowerCase());
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q || 
+      p.name.toLowerCase().includes(q) || 
+      p.productId.toLowerCase().includes(q) || 
+      p.id.toLowerCase().includes(q) || 
+      (p.barcode && p.barcode.toLowerCase().includes(q)) || 
+      p.sku.toLowerCase().includes(q);
 
     if (!matchesSearch) return false;
     if (filterVisibility === 'VISIBLE' && !p.isOnline) return false;
@@ -378,15 +386,26 @@ export default function OnlineStockManagement() {
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search by product name, SKU, or Product ID..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:text-gray-100"
-          />
+        <div className="flex items-center gap-2 flex-1 w-full">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by product name, SKU, barcode, or ID..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:text-gray-100"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 shrink-0 cursor-pointer"
+            title="Scan product barcode using camera"
+          >
+            <Camera size={16} />
+            <span className="hidden sm:inline">Scan</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -412,6 +431,20 @@ export default function OnlineStockManagement() {
           </div>
         </div>
       </div>
+
+      {isScannerOpen && (
+        <BarcodeScannerOverlay
+          onScan={(code) => {
+            const cleanCode = String(code || '').trim();
+            if (cleanCode) {
+              setSearch(cleanCode);
+              setCurrentPage(1);
+              setIsScannerOpen(false);
+            }
+          }}
+          onClose={() => setIsScannerOpen(false)}
+        />
+      )}
 
       {/* Products Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">

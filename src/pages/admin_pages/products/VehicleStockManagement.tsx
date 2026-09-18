@@ -12,12 +12,14 @@ import {
   X,
   Calendar,
   Tag,
-  DollarSign
+  DollarSign,
+  Camera
 } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import { toast } from 'react-toastify';
 import fetchData from '../../../helper';
 import Pagination from '../../../components/ui/Pagination';
+import BarcodeScannerOverlay from '../../../components/BarcodeScannerOverlay';
 
 export interface VehicleInventoryItem {
   id: string;
@@ -27,6 +29,7 @@ export interface VehicleInventoryItem {
   variantName: string;
   unit: string;
   sku: string;
+  barcode?: string;
   price: number;
   totalCatalogStock: number;
   vehicleStoreStock: number;
@@ -51,11 +54,12 @@ export default function VehicleStockManagement() {
     id: string; 
     registrationNumber: string; 
     vehicleName: string;
-    driverName: string;
+    driverName: string; 
     driverPhone?: string;
   }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [filterActive, setFilterActive] = useState<'ALL' | 'LOADED' | 'UNASSIGNED'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -166,6 +170,7 @@ export default function VehicleStockManagement() {
             variantName,
             unit: cleanUnit,
             sku: p.sku || firstVar.sku || 'N/A',
+            barcode: p.barcode || p.posStoreStock?.barcode || '',
             price: Number(p.price || p.mrp || 0),
             totalCatalogStock: liveAvailableStock,
             vehicleStoreStock: Number(p.vehicleStoreStock ?? p.stageStocks?.VEHICLE ?? p.vehicleStock ?? vStock ?? 0),
@@ -261,10 +266,13 @@ export default function VehicleStockManagement() {
   const activeFleetCount = vehicles.length;
 
   const filtered = items.filter(i => {
-    const matchesSearch = !search.trim() || 
-      i.name.toLowerCase().includes(search.toLowerCase()) || 
-      i.productId.toLowerCase().includes(search.toLowerCase()) || 
-      i.sku.toLowerCase().includes(search.toLowerCase());
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q || 
+      i.name.toLowerCase().includes(q) || 
+      i.productId.toLowerCase().includes(q) || 
+      i.id.toLowerCase().includes(q) || 
+      (i.barcode && i.barcode.toLowerCase().includes(q)) || 
+      i.sku.toLowerCase().includes(q);
 
     if (!matchesSearch) return false;
     if (filterActive === 'LOADED' && i.vehicleStock <= 0) return false;
@@ -356,15 +364,26 @@ export default function VehicleStockManagement() {
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search products by name, SKU, or Product ID..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:text-gray-100"
-          />
+        <div className="flex items-center gap-2 flex-1 w-full">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search products by name, SKU, barcode, or ID..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:text-gray-100"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 shrink-0 cursor-pointer"
+            title="Scan product barcode using camera"
+          >
+            <Camera size={16} />
+            <span className="hidden sm:inline">Scan</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -390,6 +409,20 @@ export default function VehicleStockManagement() {
           </div>
         </div>
       </div>
+
+      {isScannerOpen && (
+        <BarcodeScannerOverlay
+          onScan={(code) => {
+            const cleanCode = String(code || '').trim();
+            if (cleanCode) {
+              setSearch(cleanCode);
+              setCurrentPage(1);
+              setIsScannerOpen(false);
+            }
+          }}
+          onClose={() => setIsScannerOpen(false)}
+        />
+      )}
 
       {/* Products Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
