@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Plus, Search, Loader2, ClipboardList, X, ArrowLeft, Edit3, Trash2, CheckCircle2,
-  Truck, PackageCheck, FileText, Check, Eye, Download, Upload, Paperclip, Users, TrendingUp
+  Truck, PackageCheck, FileText, Check, Eye, Download, Upload, Paperclip, Users, TrendingUp,
+  Sparkles, RefreshCw
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useGetProductCategoriesList } from '../../../../hooks/product';
+import fetchData from '../../../../helper';
 import { procurementAPI } from '../../vsms/services/procurementService';
 import { adminAPI } from '../../vsms/services/adminService';
 import { productsAPI, API_URL } from '../../vsms/services/api';
@@ -10,6 +14,56 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useSearchParams } from 'react-router-dom';
 import jsPDF from 'jspdf';
+import AddProduct from '../../products/AddProducts';
+
+const generateAutoSku = (name = '', unit = 'KG', category = '') => {
+  const letters = (name || category || 'ITEM').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase() || 'ITEM';
+  const cleanUnit = (unit || 'KG').replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase() || 'KG';
+  const randNum = Math.floor(100 + Math.random() * 900);
+  return `VK-${letters}-${cleanUnit}-${randNum}`;
+};
+
+const CATEGORY_HSN_MAP = {
+  'veg': '0709',
+  'fruit': '0804',
+  'dairy': '0401',
+  'milk': '0401',
+  'grain': '1006',
+  'rice': '1006',
+  'cereal': '1006',
+  'pulse': '0713',
+  'dal': '0713',
+  'spice': '0910',
+  'oil': '1512',
+  'flour': '1101',
+  'atta': '1101',
+  'bakery': '1905',
+  'snack': '1905',
+  'beverage': '2202',
+  'tea': '0902',
+  'coffee': '0901',
+  'sweet': '1704',
+  'sugar': '1701',
+  'salt': '2501',
+  'meat': '0201',
+  'poultry': '0207',
+  'egg': '0407',
+  'clean': '3402',
+  'soap': '3401',
+  'personal': '3304',
+  'pack': '4819'
+};
+
+const generateAutoHsn = (category = '', name = '') => {
+  const cat = (category || '').toLowerCase();
+  const nm = (name || '').toLowerCase();
+  for (const [key, code] of Object.entries(CATEGORY_HSN_MAP)) {
+    if (cat.includes(key) || nm.includes(key)) {
+      return code;
+    }
+  }
+  return '2106';
+};
 
 const containsUnicode = (str) => /[^\x00-\x7F]/.test(str);
 
@@ -81,7 +135,7 @@ const drawUnicodeText = (pdf, text, x, y, options = {}) => {
 };
 
 
-const SearchableProductDropdown = ({ products, selectedProductId, onChange, placeholder = "Select a product" }) => {
+const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCreateNew, placeholder = "Select a product" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -109,19 +163,33 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
       </div>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh] bg-black/40 backdrop-blur-sm" onClick={() => setIsOpen(false)}>
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[12vh] bg-black/40 backdrop-blur-sm" onClick={() => setIsOpen(false)}>
           <div 
             className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 m-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Select Product</span>
-              <button 
-                onClick={() => setIsOpen(false)} 
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
-              >
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                {onCreateNew && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onCreateNew();
+                    }}
+                    className="flex items-center gap-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm shadow-emerald-600/20 active:scale-95 uppercase tracking-wider"
+                  >
+                    <Plus size={13} strokeWidth={3} /> Add New Product
+                  </button>
+                )}
+                <button 
+                  onClick={() => setIsOpen(false)} 
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
             <div className="p-4 border-b border-slate-100">
               <input
@@ -135,7 +203,21 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
             </div>
             <div className="overflow-y-auto max-h-72 custom-scrollbar p-2 divide-y divide-slate-50">
               {filteredProducts.length === 0 ? (
-                <div className="text-xs font-bold text-slate-400 text-center py-8">No products found</div>
+                <div className="text-center py-8 space-y-3">
+                  <p className="text-xs font-bold text-slate-400">No products found {search ? `matching "${search}"` : ''}</p>
+                  {onCreateNew && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false);
+                        onCreateNew();
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition-all shadow-sm active:scale-95 uppercase tracking-wider"
+                    >
+                      <Plus size={14} strokeWidth={3} /> Create Product Form
+                    </button>
+                  )}
+                </div>
               ) : (
                 filteredProducts.map(p => {
                   const pid = p.productId || p.id;
@@ -197,10 +279,140 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
     vendorName: '', mobile: '', contactPerson: '', creditDays: '30', openingBalance: '0'
   });
   const [isNewVendor, setIsNewVendor] = useState(false);
-  const [inlineVendor, setInlineVendor] = useState({
-    vendorName: '', mobile: '', gstNumber: '', address: ''
-  });
+  const [inlineVendor, setInlineVendor] = useState({ vendorName: '', mobile: '', gstNumber: '', address: '' });
   const [preloadedProducts, setPreloadedProducts] = useState([]);
+  const [showCreateProductModal, setShowCreateProductModal] = useState(false);
+  const [activeItemIndexForProduct, setActiveItemIndexForProduct] = useState(null);
+
+  const { data: categoriesData } = useGetProductCategoriesList();
+  const { data: brandsData } = useQuery({
+    queryKey: ['procurementProductBrandsList'],
+    queryFn: () => fetchData('productmanagement/product/brands/list', 'GET'),
+    retry: false
+  });
+
+  const categoryList = useMemo(() => {
+    const root = categoriesData?.data?.data || categoriesData?.data || categoriesData || [];
+    if (!Array.isArray(root)) return [];
+    return root.map(c => ({
+      id: c.id || c._id || c.name,
+      name: c.name || c.title || '',
+      subCategories: (c.subCategories || c.subcategories || []).map(sc => ({
+        id: sc.id || sc._id || sc.name,
+        name: sc.name || sc.title || ''
+      }))
+    })).filter(c => c.name);
+  }, [categoriesData]);
+
+  const brandList = useMemo(() => {
+    let root = brandsData?.data?.data || brandsData?.data || brandsData?.brands || brandsData || [];
+    if (!Array.isArray(root)) return [];
+    return root.map(b => typeof b === 'string' ? b : (b.name || b.brandName || b.title || '')).filter(Boolean);
+  }, [brandsData]);
+
+  const handleProductCreated = (createdProduct) => {
+    if (!createdProduct || !createdProduct.id) return;
+    
+    const catName = typeof createdProduct.category === 'string' ? createdProduct.category : (createdProduct.category?.name || 'UNCATEGORIZED');
+    const autoSku = createdProduct.skuCode || generateAutoSku(createdProduct.name, createdProduct.unit, catName);
+    const autoHsn = createdProduct.hsnCode || generateAutoHsn(catName, createdProduct.name);
+
+    const formattedItem = {
+      productId: createdProduct.id,
+      id: createdProduct.id,
+      name: createdProduct.name,
+      skuCode: autoSku,
+      category: catName,
+      subCategory: createdProduct.subCategory || '',
+      brand: createdProduct.brand || 'Villagkart',
+      hsnCode: autoHsn,
+      weight: createdProduct.weight || createdProduct.unit || 'KG',
+      mrp: Number(createdProduct.mrp || 0),
+      purchasePrice: Number(createdProduct.purchasePrice ?? createdProduct.rate ?? createdProduct.price ?? 0),
+      rate: Number(createdProduct.purchasePrice ?? createdProduct.rate ?? createdProduct.price ?? 0),
+      tax: Number(createdProduct.tax ?? createdProduct.taxRate ?? 0),
+      discount: Number(createdProduct.discount ?? 0),
+      quantity: Number(createdProduct.quantity || 1),
+      unit: (createdProduct.unit || 'KG').toUpperCase()
+    };
+
+    // Update mapped items and preloaded products
+    setMappedItems(prev => [formattedItem, ...prev.filter(p => (p.productId || p.id) !== createdProduct.id)]);
+    setPreloadedProducts(prev => [createdProduct, ...prev.filter(p => p.id !== createdProduct.id)]);
+
+    // Update active row or add new item to form
+    setForm(prevForm => {
+      const targetIdx = activeItemIndexForProduct;
+      if (targetIdx !== null && targetIdx !== undefined && prevForm.items[targetIdx]) {
+        const updated = [...prevForm.items];
+        updated[targetIdx] = {
+          ...updated[targetIdx],
+          productId: createdProduct.id,
+          name: createdProduct.name,
+          skuCode: formattedItem.skuCode,
+          category: formattedItem.category,
+          subCategory: formattedItem.subCategory,
+          brand: formattedItem.brand,
+          hsnCode: formattedItem.hsnCode,
+          mrp: formattedItem.mrp,
+          rate: formattedItem.rate,
+          unit: formattedItem.unit,
+          tax: formattedItem.tax,
+          discount: formattedItem.discount,
+          quantity: updated[targetIdx].quantity || formattedItem.quantity || 1
+        };
+        return { ...prevForm, items: updated };
+      } else {
+        const emptyIdx = prevForm.items.findIndex(it => !it.productId);
+        if (emptyIdx !== -1) {
+          const updated = [...prevForm.items];
+          updated[emptyIdx] = {
+            ...updated[emptyIdx],
+            productId: createdProduct.id,
+            name: createdProduct.name,
+            skuCode: formattedItem.skuCode,
+            category: formattedItem.category,
+            subCategory: formattedItem.subCategory,
+            brand: formattedItem.brand,
+            hsnCode: formattedItem.hsnCode,
+            mrp: formattedItem.mrp,
+            rate: formattedItem.rate,
+            unit: formattedItem.unit,
+            tax: formattedItem.tax,
+            discount: formattedItem.discount,
+            quantity: updated[emptyIdx].quantity || formattedItem.quantity || 1
+          };
+          return { ...prevForm, items: updated };
+        } else {
+          return {
+            ...prevForm,
+            items: [
+              ...prevForm.items,
+              {
+                productId: createdProduct.id,
+                name: createdProduct.name,
+                skuCode: formattedItem.skuCode,
+                category: formattedItem.category,
+                subCategory: formattedItem.subCategory,
+                brand: formattedItem.brand,
+                hsnCode: formattedItem.hsnCode,
+                mrp: formattedItem.mrp,
+                quantity: formattedItem.quantity || 1,
+                unit: formattedItem.unit,
+                rate: formattedItem.rate,
+                tax: formattedItem.tax,
+                discount: formattedItem.discount
+              }
+            ]
+          };
+        }
+      }
+    });
+
+    setShowCreateProductModal(false);
+    setActiveItemIndexForProduct(null);
+    toast.success(`Product "${createdProduct.name}" created and added to PO!`);
+  };
 
   const [isSubmitDraft, setIsSubmitDraft] = useState(false);
 
@@ -410,9 +622,25 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
   };
 
   const handleAddDirectItem = () => {
+    const autoSku = generateAutoSku('', 'KG', '');
+    const autoHsn = generateAutoHsn('', '');
     setForm(f => ({
       ...f,
-      items: [...f.items, { productId: '', name: '', quantity: 1, unit: 'KG', rate: 0, tax: 0, discount: 0 }]
+      items: [...f.items, { 
+        productId: '', 
+        name: '', 
+        skuCode: autoSku, 
+        category: '', 
+        subCategory: '', 
+        brand: 'Villagkart', 
+        hsnCode: autoHsn, 
+        mrp: 0, 
+        quantity: 1, 
+        unit: 'KG', 
+        rate: 0, 
+        tax: 0, 
+        discount: 0 
+      }]
     }));
   };
 
@@ -1907,144 +2135,313 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                 <div className="bg-white rounded-xl border border-slate-200/60 p-6 md:p-8 space-y-6 shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                     <h2 className="text-base font-bold text-slate-900">Items</h2>
-                    <button 
-                      type="button"
-                      onClick={handleAddDirectItem}
-                      className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-emerald-600 hover:text-white transition-all shadow-sm active:scale-95 border border-emerald-100"
-                    >
-                      <Plus size={14} strokeWidth={2.5} /> Add Item
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setActiveItemIndexForProduct(null);
+                          setShowCreateProductModal(true);
+                        }}
+                        className="flex items-center gap-1.5 bg-white text-slate-700 hover:bg-slate-50 px-3.5 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95 border border-slate-200 hover:border-emerald-300 hover:text-emerald-700"
+                      >
+                        <Plus size={14} strokeWidth={2.5} className="text-emerald-600" /> Create Product Form
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={handleAddDirectItem}
+                        className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-emerald-600 hover:text-white transition-all shadow-sm active:scale-95 border border-emerald-100"
+                      >
+                        <Plus size={14} strokeWidth={2.5} /> Add Item Row
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm custom-scrollbar">
+                    <table className="w-full text-left border-collapse min-w-[1550px]">
                       <thead>
-                        <tr className="border-b border-slate-150 bg-slate-50/50">
-                          <th className="px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-wider">Item Name</th>
-                          <th className="px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-wider text-center w-24">Quantity</th>
-                          <th className="px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-wider text-center w-24">Unit</th>
-                          <th className="px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-wider text-center w-32">Purchase Rate</th>
-                          <th className="px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-wider text-center w-24">Tax (%)</th>
-                          <th className="px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-wider text-center w-24">Discount (%)</th>
-                          <th className="px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-wider text-right w-32">Total Value</th>
-                          <th className="px-4 py-3 text-xs font-black text-slate-600 uppercase tracking-wider text-right w-16"></th>
+                        <tr className="border-b border-slate-200 bg-slate-50/80">
+                          <th className="px-3.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider min-w-[220px]">Item Name</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-36">Category</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-36">Sub Category</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-32">Brand</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-36">SKU Code</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">HSN Code</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Quantity</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Unit</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">MRP</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-32">Purchase Rate</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Tax (%)</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Discount (%)</th>
+                          <th className="px-3.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-right w-32">Total Value</th>
+                          <th className="px-2 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-12"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {form.items.map((item, idx) => (
-                          <tr key={idx}>
-                            <td className="px-4 py-3.5">
-                              <SearchableProductDropdown
-                                products={mappedItems}
-                                selectedProductId={item.productId}
-                                onChange={productId => {
-                                  const matched = mappedItems.find(p => p.productId === productId);
-                                  setForm(f => {
-                                    const updated = [...f.items];
-                                    updated[idx] = {
-                                      ...updated[idx],
-                                      productId: productId,
-                                      name: matched ? matched.name : '',
-                                      rate: matched ? matched.purchasePrice || 0 : 0,
-                                      unit: matched ? matched.weight.replace(/[\d\s.]/g, '') || 'KG' : 'KG'
-                                    };
-                                    return { ...f, items: updated };
-                                  });
-                                }}
-                              />
-                            </td>
-                            <td className="px-4 py-3.5 text-center">
-                              <input 
-                                type="number" 
-                                min="1" 
-                                value={item.quantity || 1} 
-                                onChange={e => handleDirectItemChange(idx, 'quantity', parseInt(e.target.value) || 1)}
-                                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-slate-850 border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all"
-                                required
-                              />
-                            </td>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {form.items.map((item, idx) => {
+                          const activeCatObj = categoryList.find(c => (c.name || '').toLowerCase() === (item.category || '').toLowerCase() || c.id === item.category);
+                          const subCatList = activeCatObj?.subCategories || [];
 
-                            {/* Unit */}
-                            <td className="px-4 py-3.5 text-center">
-                              <select 
-                                value={item.unit || 'KG'} 
-                                onChange={e => handleDirectItemChange(idx, 'unit', e.target.value)}
-                                className="w-full bg-white rounded-lg px-2 py-2 text-sm text-slate-850 border border-slate-200 focus:border-emerald-500 outline-none transition-all"
-                              >
-                                <option value="KG">KG</option>
-                                <option value="PCS">PCS</option>
-                                <option value="PACK">PACK</option>
-                                <option value="BOX">BOX</option>
-                                <option value="LTR">LTR</option>
-                                <option value="GRAMS">GRAMS</option>
-                              </select>
-                            </td>
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                              {/* Item Name */}
+                              <td className="px-3.5 py-3">
+                                <SearchableProductDropdown
+                                  products={mappedItems}
+                                  selectedProductId={item.productId}
+                                  onCreateNew={() => {
+                                    setActiveItemIndexForProduct(idx);
+                                    setShowCreateProductModal(true);
+                                  }}
+                                  onChange={productId => {
+                                    const matched = mappedItems.find(p => (p.productId || p.id) === productId);
+                                    setForm(f => {
+                                      const updated = [...f.items];
+                                      const matchedCat = matched ? (typeof matched.category === 'string' ? matched.category : (matched.category?.name || '')) : '';
+                                      const matchedName = matched ? matched.name : '';
+                                      const matchedUnit = matched ? (matched.weight?.replace(/[\d\s.]/g, '') || matched.unit || 'KG').toUpperCase() : 'KG';
+                                      const autoSku = matched?.skuCode && matched?.skuCode !== 'NO-SKU' 
+                                        ? matched.skuCode 
+                                        : generateAutoSku(matchedName, matchedUnit, matchedCat);
+                                      const autoHsn = matched?.hsnCode || generateAutoHsn(matchedCat, matchedName);
 
-                            {/* Purchase Rate */}
-                            <td className="px-4 py-3.5 text-center">
-                              <div className="relative flex items-center">
-                                <span className="absolute left-3 text-slate-400 text-sm font-semibold">₹</span>
+                                      updated[idx] = {
+                                        ...updated[idx],
+                                        productId: productId,
+                                        name: matchedName,
+                                        skuCode: autoSku,
+                                        category: matchedCat,
+                                        subCategory: matched?.subCategory || '',
+                                        brand: matched ? (typeof matched.brand === 'string' ? matched.brand : (matched.brand?.name || 'Villagkart')) : 'Villagkart',
+                                        hsnCode: autoHsn,
+                                        mrp: matched ? (matched.mrp || 0) : 0,
+                                        rate: matched ? (matched.purchasePrice ?? matched.rate ?? 0) : 0,
+                                        unit: matchedUnit,
+                                        tax: matched?.tax ?? matched?.taxRate ?? updated[idx].tax ?? 0,
+                                        discount: matched?.discount ?? updated[idx].discount ?? 0
+                                      };
+                                      return { ...f, items: updated };
+                                    });
+                                  }}
+                                />
+                              </td>
+
+                              {/* Category Dropdown */}
+                              <td className="px-2 py-3 text-center">
+                                <select
+                                  value={item.category || ''}
+                                  onChange={e => {
+                                    const newCat = e.target.value;
+                                    const autoHsn = generateAutoHsn(newCat, item.name);
+                                    handleDirectItemChange(idx, 'category', newCat);
+                                    handleDirectItemChange(idx, 'subCategory', '');
+                                    if (!item.hsnCode || item.hsnCode === '2106') {
+                                      handleDirectItemChange(idx, 'hsnCode', autoHsn);
+                                    }
+                                    if (!item.skuCode || item.skuCode.startsWith('VK-ITEM')) {
+                                      handleDirectItemChange(idx, 'skuCode', generateAutoSku(item.name, item.unit, newCat));
+                                    }
+                                  }}
+                                  className="w-full bg-slate-50 hover:bg-white rounded-lg px-2 py-2 text-xs text-slate-800 font-bold border border-slate-200 focus:border-emerald-500 focus:bg-white outline-none transition-all shadow-sm cursor-pointer"
+                                >
+                                  <option value="">Select Category</option>
+                                  {categoryList.map(c => (
+                                    <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                                  ))}
+                                  {item.category && !categoryList.some(c => (c.name || '').toLowerCase() === item.category.toLowerCase()) && (
+                                    <option value={item.category}>{item.category}</option>
+                                  )}
+                                </select>
+                              </td>
+
+                              {/* Sub Category Dropdown */}
+                              <td className="px-2 py-3 text-center">
+                                <select
+                                  value={item.subCategory || ''}
+                                  onChange={e => handleDirectItemChange(idx, 'subCategory', e.target.value)}
+                                  className="w-full bg-slate-50 hover:bg-white rounded-lg px-2 py-2 text-xs text-slate-800 font-semibold border border-slate-200 focus:border-emerald-500 focus:bg-white outline-none transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                  disabled={!item.category}
+                                >
+                                  <option value="">{item.category ? 'Select Subcategory' : 'Choose Category'}</option>
+                                  {subCatList.map(sc => (
+                                    <option key={sc.id || sc.name} value={sc.name}>{sc.name}</option>
+                                  ))}
+                                  {item.subCategory && !subCatList.some(sc => (sc.name || '').toLowerCase() === item.subCategory.toLowerCase()) && (
+                                    <option value={item.subCategory}>{item.subCategory}</option>
+                                  )}
+                                </select>
+                              </td>
+
+                              {/* Brand Dropdown */}
+                              <td className="px-2 py-3 text-center">
+                                <select
+                                  value={item.brand || 'Villagkart'}
+                                  onChange={e => handleDirectItemChange(idx, 'brand', e.target.value)}
+                                  className="w-full bg-slate-50 hover:bg-white rounded-lg px-2 py-2 text-xs text-slate-800 font-semibold border border-slate-200 focus:border-emerald-500 focus:bg-white outline-none transition-all shadow-sm cursor-pointer"
+                                >
+                                  <option value="Villagkart">Villagkart</option>
+                                  <option value="Generic">Generic / Loose</option>
+                                  {brandList.filter(b => b !== 'Villagkart' && b !== 'Generic').map(b => (
+                                    <option key={b} value={b}>{b}</option>
+                                  ))}
+                                  {item.brand && item.brand !== 'Villagkart' && item.brand !== 'Generic' && !brandList.includes(item.brand) && (
+                                    <option value={item.brand}>{item.brand}</option>
+                                  )}
+                                </select>
+                              </td>
+
+                              {/* SKU Code (Auto-generated with refresh button) */}
+                              <td className="px-2 py-3 text-center">
+                                <div className="relative flex items-center">
+                                  <input 
+                                    type="text" 
+                                    value={item.skuCode || ''} 
+                                    placeholder="SKU"
+                                    onChange={e => handleDirectItemChange(idx, 'skuCode', e.target.value)}
+                                    className="w-full bg-slate-50 hover:bg-white rounded-lg pl-2 pr-6 py-2 text-xs text-slate-800 font-bold border border-slate-200 focus:border-emerald-500 focus:bg-white text-center outline-none transition-all shadow-sm"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDirectItemChange(idx, 'skuCode', generateAutoSku(item.name, item.unit, item.category))}
+                                    className="absolute right-1 p-1 text-slate-400 hover:text-emerald-600 rounded transition-all"
+                                    title="Auto-generate SKU"
+                                  >
+                                    <Sparkles size={12} className="text-emerald-600" />
+                                  </button>
+                                </div>
+                              </td>
+
+                              {/* HSN Code (Auto-generated with refresh button) */}
+                              <td className="px-2 py-3 text-center">
+                                <div className="relative flex items-center">
+                                  <input 
+                                    type="text" 
+                                    value={item.hsnCode || ''} 
+                                    placeholder="HSN"
+                                    onChange={e => handleDirectItemChange(idx, 'hsnCode', e.target.value)}
+                                    className="w-full bg-slate-50 hover:bg-white rounded-lg pl-2 pr-6 py-2 text-xs text-slate-800 font-bold border border-slate-200 focus:border-emerald-500 focus:bg-white text-center outline-none transition-all shadow-sm"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDirectItemChange(idx, 'hsnCode', generateAutoHsn(item.category, item.name))}
+                                    className="absolute right-1 p-1 text-slate-400 hover:text-emerald-600 rounded transition-all"
+                                    title="Auto-resolve HSN Code"
+                                  >
+                                    <Sparkles size={12} className="text-emerald-600" />
+                                  </button>
+                                </div>
+                              </td>
+
+                              {/* Quantity */}
+                              <td className="px-2.5 py-3 text-center">
+                                <input 
+                                  type="number" 
+                                  min="1" 
+                                  value={item.quantity || 1} 
+                                  onChange={e => handleDirectItemChange(idx, 'quantity', parseInt(e.target.value) || 1)}
+                                  className="w-full bg-white rounded-lg px-2 py-2 text-sm text-slate-850 font-bold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
+                                  required
+                                />
+                              </td>
+
+                              {/* Unit */}
+                              <td className="px-2.5 py-3 text-center">
+                                <select 
+                                  value={item.unit || 'KG'} 
+                                  onChange={e => handleDirectItemChange(idx, 'unit', e.target.value)}
+                                  className="w-full bg-white rounded-lg px-2 py-2 text-xs text-slate-850 font-bold border border-slate-200 focus:border-emerald-500 outline-none transition-all shadow-sm cursor-pointer"
+                                >
+                                  <option value="KG">KG</option>
+                                  <option value="PCS">PCS</option>
+                                  <option value="PACK">PACK</option>
+                                  <option value="BOX">BOX</option>
+                                  <option value="LTR">LTR</option>
+                                  <option value="GRAMS">GRAMS</option>
+                                </select>
+                              </td>
+
+                              {/* MRP */}
+                              <td className="px-2.5 py-3 text-center">
+                                <div className="relative flex items-center">
+                                  <span className="absolute left-2 text-slate-400 text-xs font-semibold">₹</span>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="any" 
+                                    value={item.mrp || ''} 
+                                    placeholder="0"
+                                    onChange={e => handleDirectItemChange(idx, 'mrp', parseFloat(e.target.value) || 0)}
+                                    className="w-full bg-white rounded-lg pl-5 pr-2 py-2 text-xs text-slate-850 border border-slate-200 focus:border-emerald-500 outline-none transition-all shadow-sm font-semibold"
+                                  />
+                                </div>
+                              </td>
+
+                              {/* Purchase Rate */}
+                              <td className="px-2.5 py-3 text-center">
+                                <div className="relative flex items-center">
+                                  <span className="absolute left-2.5 text-slate-400 text-xs font-semibold">₹</span>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="any" 
+                                    value={item.rate || ''} 
+                                    placeholder="0"
+                                    onChange={e => handleDirectItemChange(idx, 'rate', parseFloat(e.target.value) || 0)}
+                                    className="w-full bg-white rounded-lg pl-6 pr-2 py-2 text-sm text-slate-850 font-black border border-slate-200 focus:border-emerald-500 outline-none transition-all shadow-sm text-emerald-700"
+                                    required
+                                  />
+                                </div>
+                              </td>
+
+                              {/* Tax (%) */}
+                              <td className="px-2.5 py-3 text-center">
                                 <input 
                                   type="number" 
                                   min="0" 
-                                  step="any" 
-                                  value={item.rate || ''} 
-                                  placeholder="0"
-                                  onChange={e => handleDirectItemChange(idx, 'rate', parseFloat(e.target.value) || 0)}
-                                  className="w-full bg-white rounded-lg pl-6 pr-3 py-2 text-sm text-slate-850 border border-slate-200 focus:border-emerald-500 outline-none transition-all"
-                                  required
+                                  max="100" 
+                                  value={item.tax || 0} 
+                                  onChange={e => handleDirectItemChange(idx, 'tax', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-white rounded-lg px-2 py-2 text-xs text-slate-850 font-bold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
                                 />
-                              </div>
-                            </td>
+                              </td>
 
-                            {/* Tax (%) */}
-                            <td className="px-4 py-3.5 text-center">
-                              <input 
-                                type="number" 
-                                min="0" 
-                                max="100" 
-                                value={item.tax || 0} 
-                                onChange={e => handleDirectItemChange(idx, 'tax', parseFloat(e.target.value) || 0)}
-                                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-slate-850 border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all"
-                              />
-                            </td>
+                              {/* Discount (%) */}
+                              <td className="px-2.5 py-3 text-center">
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  max="100" 
+                                  value={item.discount || 0} 
+                                  onChange={e => handleDirectItemChange(idx, 'discount', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-white rounded-lg px-2 py-2 text-xs text-slate-850 font-bold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
+                                />
+                              </td>
 
-                            {/* Discount (%) */}
-                            <td className="px-4 py-3.5 text-center">
-                              <input 
-                                type="number" 
-                                min="0" 
-                                max="100" 
-                                value={item.discount || 0} 
-                                onChange={e => handleDirectItemChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-slate-850 border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all"
-                              />
-                            </td>
+                              {/* Total Value */}
+                              <td className="px-3.5 py-3 text-right font-black text-slate-900 text-sm whitespace-nowrap">
+                                ₹{(() => {
+                                  const base = (item.quantity || 0) * (item.rate || 0);
+                                  const disc = base * ((item.discount || 0) / 100);
+                                  const tax = (base - disc) * ((item.tax || 0) / 100);
+                                  return base - disc + tax;
+                                })().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
 
-                            {/* Total Value */}
-                            <td className="px-4 py-3.5 text-right font-bold text-slate-900 text-sm">
-                              ₹{(() => {
-                                const base = (item.quantity || 0) * (item.rate || 0);
-                                const disc = base * ((item.discount || 0) / 100);
-                                const tax = (base - disc) * ((item.tax || 0) / 100);
-                                return base - disc + tax;
-                              })().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-
-                            {/* Remove Row */}
-                            <td className="px-4 py-3.5 text-right">
-                              {form.items.length > 1 && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => handleRemoveDirectItem(idx)}
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                              {/* Remove Row */}
+                              <td className="px-2 py-3 text-center">
+                                {form.items.length > 1 && (
+                                  <button 
+                                    type="button" 
+                                    onClick={() => handleRemoveDirectItem(idx)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                    title="Delete Item"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -2418,6 +2815,24 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Direct Purchase Product Creation Modal */}
+      {showCreateProductModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 md:p-6 overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-6xl max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="overflow-y-auto custom-scrollbar p-3 sm:p-6 flex-1">
+              <AddProduct
+                isModal={true}
+                onClose={() => {
+                  setShowCreateProductModal(false);
+                  setActiveItemIndexForProduct(null);
+                }}
+                onProductCreated={handleProductCreated}
+              />
+            </div>
           </div>
         </div>
       )}

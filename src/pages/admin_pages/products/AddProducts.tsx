@@ -331,9 +331,6 @@ function getEmptyCreateProductFormData(): FormData {
         shippingClass: "",
         variantStatus: "active",
         metaTitle: "",
-        metaKeywords: "",
-        schemaMarkup: "",
-        metaDescription: "",
         primaryImage: null,
         secondaryImage: null,
         barcodeImage: null,
@@ -342,7 +339,28 @@ function getEmptyCreateProductFormData(): FormData {
   };
 }
 
-const AddProduct = () => {
+export interface AddProductProps {
+  isModal?: boolean;
+  onClose?: () => void;
+  onProductCreated?: (createdProduct: {
+    id: string;
+    productId?: string;
+    name: string;
+    skuCode?: string;
+    purchasePrice?: number;
+    price?: number;
+    unit?: string;
+    weight?: string;
+    category?: any;
+    [key: string]: any;
+  }) => void;
+}
+
+const AddProduct: React.FC<AddProductProps> = ({
+  isModal = false,
+  onClose,
+  onProductCreated,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams<{ id?: string }>();
@@ -3066,6 +3084,33 @@ const AddProduct = () => {
         const productId = (response as any)?.data?.id || (response as any)?.id;
 
         if (productId) {
+          if (onProductCreated) {
+            onProductCreated({
+              id: productId,
+              productId: productId,
+              name: formData.productName,
+              skuCode: payload.sku || 'NO-SKU',
+              brand: formData.brand || '',
+              hsnCode: formData.hsnCode || '',
+              category: typeof formData.category === 'string' ? formData.category : (formData.category?.name || 'UNCATEGORIZED'),
+              subCategory: formData.subCategory || '',
+              mrp: Number(payload.mrp || 0),
+              purchasePrice: Number(payload.price || payload.purchasePrice || 0),
+              price: Number(payload.finalPrice || payload.mrp || payload.price || 0),
+              rate: Number(payload.price || payload.purchasePrice || 0),
+              tax: Number((formData as any).tax || (formData as any).taxRate || payload.tax || payload.taxRate || 0),
+              taxRate: Number((formData as any).tax || (formData as any).taxRate || payload.tax || payload.taxRate || 0),
+              discount: Number((formData as any).discount || payload.discountValue || 0),
+              unit: (payload.unit || 'KG').toUpperCase(),
+              measurement: payload.measurement || '',
+              weight: payload.measurement ? `${payload.measurement} ${payload.unit || ''}`.trim() : (payload.unit || 'KG'),
+              quantity: Number((formData as any).stock || 1),
+            });
+            if (isModal && onClose) {
+              onClose();
+              return;
+            }
+          }
           if (location.state?.returnTo) {
              navigate(location.state.returnTo, {
                state: {
@@ -3124,40 +3169,60 @@ const AddProduct = () => {
         : backToManage;
 
   return (
-    <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
-      {/* Page Title */}
-      <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-            {shouldShowVariants
-              ? isEditVariantMode
-                ? "Update Variant"
-                : "Add Variant"
-              : isEditMode
-                ? "Edit Product"
-                : "Add Product"}
-          </h1>
-          {isEditMode && !shouldShowVariants && (
+    <div className={`w-full ${isModal ? 'p-1' : 'px-1 sm:px-2 md:px-3 pb-4'}`}>
+      {/* Page Title & Breadcrumbs */}
+      {isModal ? (
+        <div className="mb-4 flex items-center justify-between pb-3 border-b border-gray-100">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Add New Product</h1>
+            <p className="text-xs text-gray-500">Create a new product directly for your procurement purchase order</p>
+          </div>
+          {onClose && (
             <button
               type="button"
-              onClick={() => navigate(`/products/create?productId=${id}&addVariant=true`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+              onClick={onClose}
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
             >
-              <Plus size={14} />
-              Add Variant
+              <X size={20} />
             </button>
           )}
         </div>
-        <BackButton to={backUrl} />
-      </div>
+      ) : (
+        <>
+          <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                {shouldShowVariants
+                  ? isEditVariantMode
+                    ? "Update Variant"
+                    : "Add Variant"
+                  : isEditMode
+                    ? "Edit Product"
+                    : "Add Product"}
+              </h1>
+              {isEditMode && !shouldShowVariants && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/products/create?productId=${id}&addVariant=true`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                >
+                  <Plus size={14} />
+                  Add Variant
+                </button>
+              )}
+            </div>
+            <BackButton to={backUrl} />
+          </div>
 
-      {/* Breadcrumbs */}
-      <div className="mb-4">
-        <Breadcrumbs />
-      </div>
+          {/* Breadcrumbs */}
+          <div className="mb-4">
+            <Breadcrumbs />
+          </div>
+        </>
+      )}
 
       {/* Add Product Form */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+      <div className={`bg-white rounded-xl shadow-md border border-gray-200 ${isModal ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}`}>
         {/* Progress Indicator */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
