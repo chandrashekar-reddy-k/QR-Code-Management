@@ -214,10 +214,23 @@ export const generateInvoicePDF = async (order: InvoiceOrder, bizSettings?: BizS
     drawUnicodeText(pdf, `Ph: ${currentSettings.contactNo}`, margin, sellerDetailsY, { fontSize: 7.5, color: grayText });
     sellerDetailsY += 4;
   }
-  if (currentSettings.address) {
+  const sellerAddress = (
+    (typeof currentSettings.address === 'string' && currentSettings.address.trim()) ||
+    (typeof currentSettings.fullAddress === 'string' && currentSettings.fullAddress.trim()) ||
+    localStorage.getItem('receiptStoreAddress') ||
+    localStorage.getItem('vsms_receipt_address') ||
+    order.store?.address ||
+    order.store?.fullAddress ||
+    order.store?.warehouse?.address ||
+    order.pickupStore?.address ||
+    order.warehouse?.address ||
+    ''
+  );
+
+  if (sellerAddress) {
     let lines: string[] = [];
-    if (containsUnicode(currentSettings.address)) {
-      const words = currentSettings.address.split(' ');
+    if (containsUnicode(sellerAddress)) {
+      const words = sellerAddress.split(' ');
       let currentLine = '';
       const maxW = contentWidth * 0.45;
       for (const word of words) {
@@ -231,7 +244,7 @@ export const generateInvoicePDF = async (order: InvoiceOrder, bizSettings?: BizS
       }
       if (currentLine) lines.push(currentLine);
     } else {
-      lines = pdf.splitTextToSize(currentSettings.address, contentWidth * 0.45);
+      lines = pdf.splitTextToSize(sellerAddress, contentWidth * 0.45);
     }
 
     lines.forEach((line) => {

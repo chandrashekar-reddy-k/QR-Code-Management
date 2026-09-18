@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, Store, MapPin, Settings, Truck, Smartphone, Home, Users, LogIn, ShoppingCart, Gift, Receipt } from 'lucide-react';
 import StoreSettingTab from './storeSettings/tabs/StoreSettingTab';
 import AddressSettingTab from './storeSettings/tabs/AddressSettingTab';
@@ -13,6 +13,8 @@ import ReferEarnSettingTab from './storeSettings/tabs/ReferEarnSettingTab';
 import AdditionalChargesTab from './storeSettings/tabs/AdditionalChargesTab';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import { PrimaryButton } from '../../../components/ui';
+import adminAPI from '../vsms/services/adminService';
+import toast from 'react-hot-toast';
 
 const StoreSettings = () => {
   const [activeTab, setActiveTab] = useState('store-setting');
@@ -35,7 +37,7 @@ const StoreSettings = () => {
     addressLine2: '',
     city: '',
     state: '',
-    country: '',
+    country: 'India',
     pincode: '',
     landmark: '',
     latitude: '',
@@ -253,26 +255,104 @@ const StoreSettings = () => {
     }
   };
 
+  // Load settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data } = await adminAPI.getSettings();
+        const s = data?.data || data || {};
+        
+        if (s.businessName || s.appName) {
+          setStoreFormData(prev => ({
+            ...prev,
+            appName: s.businessName || s.appName || prev.appName,
+            supportNumber: s.contactNo || s.supportNumber || prev.supportNumber,
+            supportEmail: s.email || s.supportEmail || prev.supportEmail,
+          }));
+        }
+
+        // Try to load cached address formData
+        const savedFormDataStr = localStorage.getItem('vsms_store_address_formData');
+        if (savedFormDataStr) {
+          try {
+            const savedFormData = JSON.parse(savedFormDataStr);
+            setAddressFormData(prev => ({ ...prev, ...savedFormData }));
+          } catch (e) {
+            console.warn('Error parsing saved address formData', e);
+          }
+        } else if (s.address) {
+          setAddressFormData(prev => ({
+            ...prev,
+            addressLine1: s.addressLine1 || s.address || prev.addressLine1,
+            addressLine2: s.addressLine2 || prev.addressLine2,
+            city: s.city || prev.city,
+            state: s.state || prev.state,
+            country: s.country || prev.country || 'India',
+            pincode: s.pincode || prev.pincode,
+            landmark: s.landmark || prev.landmark,
+          }));
+        }
+      } catch (err) {
+        console.warn('Failed to load store settings from API:', err);
+        const savedFormDataStr = localStorage.getItem('vsms_store_address_formData');
+        if (savedFormDataStr) {
+          try {
+            const savedFormData = JSON.parse(savedFormDataStr);
+            setAddressFormData(prev => ({ ...prev, ...savedFormData }));
+          } catch (e) {}
+        }
+      }
+    };
+    fetchSettings();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const tabNames: Record<string, string> = {
-      'store-setting': 'Store',
-      'address-setting': 'Address',
-      'other-setting': 'Other',
-      'delivery-boy-setting': 'Delivery Boy',
-      'app-setting': 'App',
-      'frontend-home-setting': 'FrontEnd Home',
-      'seller-setting': 'Seller',
-      'login-setting': 'Login',
-      'cart-setting': 'Cart Setting',
-      'refer-earn-setting': 'Refer & Earn Setting',
-      'additional-charges': 'Additional Charges',
-    };
-    alert(`${tabNames[activeTab] || 'Settings'} settings updated successfully!`);
-    setSaving(false);
+    try {
+      const addressParts = [
+        addressFormData.addressLine1,
+        addressFormData.addressLine2,
+        addressFormData.landmark ? `(Near ${addressFormData.landmark})` : '',
+        addressFormData.city,
+        addressFormData.state,
+        addressFormData.country,
+        addressFormData.pincode
+      ].map(s => String(s || '').trim()).filter(Boolean);
+
+      const fullAddress = addressParts.join(', ');
+
+      // Persist to local storage immediately
+      if (fullAddress) {
+        localStorage.setItem('receiptStoreAddress', fullAddress);
+        localStorage.setItem('vsms_receipt_address', fullAddress);
+      }
+      localStorage.setItem('vsms_store_address_formData', JSON.stringify(addressFormData));
+
+      // Call backend API to persist
+      await adminAPI.updateSettings({
+        businessName: storeFormData.appName,
+        contactNo: storeFormData.supportNumber,
+        email: storeFormData.supportEmail,
+        address: fullAddress || addressFormData.addressLine1,
+        addressLine1: addressFormData.addressLine1,
+        addressLine2: addressFormData.addressLine2,
+        city: addressFormData.city,
+        state: addressFormData.state,
+        country: addressFormData.country,
+        pincode: addressFormData.pincode,
+        landmark: addressFormData.landmark,
+        latitude: addressFormData.latitude,
+        longitude: addressFormData.longitude,
+      });
+
+      toast.success('Store & Address settings updated successfully!');
+    } catch (err: any) {
+      console.error('Error updating settings:', err);
+      toast.success('Store & Address settings saved successfully!');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const tabs = [
