@@ -32,8 +32,9 @@ jobs:
 
             echo "Updating repository..."
 
-            git checkout erp/dev
-            git pull origin erp/dev
+            git fetch origin erp/dev
+            git reset --hard origin/erp/dev
+            git clean -fd
 
             echo "Installing dependencies..."
 
