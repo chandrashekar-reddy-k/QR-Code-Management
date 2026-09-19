@@ -11,7 +11,12 @@ import {
   Upload,
   FolderArchive,
   ChevronDown,
+  Barcode,
+  Camera,
+  Scan,
+  X,
 } from "lucide-react";
+import BarcodeScannerOverlay from "../../../components/BarcodeScannerOverlay";
 import {
   SearchInput,
   ConfirmModal,
@@ -57,6 +62,9 @@ interface ApiProduct {
   unit: string;
   unitType?: string;
   sku?: string;
+  barcode?: string;
+  gtin?: string;
+  barCode?: string;
   stock: number;
   isActive: boolean;
   status: string; // e.g. APPROVED, PENDING, REJECTED, ACTIVE, INACTIVE
@@ -81,6 +89,8 @@ interface Variant {
   variantName?: string;
   name?: string;
   sku?: string;
+  barcode?: string;
+  gtin?: string;
   unit?: string;
   unitType?: string;
   measurement?: string;
@@ -130,6 +140,7 @@ interface TableProduct {
   sellerName: string;
   name: string;
   sku: string;
+  barcode: string;
   unit: string;
   unitType: string;
   image: string | null;
@@ -211,6 +222,8 @@ const ManageProducts = () => {
     storedState?.sortDirection ?? null
   );
   const [searchTerm, setSearchTerm] = useState(storedState?.searchTerm ?? "");
+  const [barcodeSearch, setBarcodeSearch] = useState("");
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState(storedState?.categoryFilter ?? "");
   const [statusFilter, setStatusFilter] = useState(() =>
     normalizeProductListStatusFilter(storedState?.statusFilter),
@@ -671,6 +684,7 @@ const ManageProducts = () => {
           variantName: (v.variantName ?? v.name) as string,
           name: (v.variantName ?? v.name ?? product.name) as string,
           sku: (v.sku as string) ?? "",
+          barcode: String(v.barcode ?? v.gtin ?? v.sku ?? ""),
           unit: vu || "N/A",
           unitType: vut || "N/A",
           measurement: (v.measurement as string) ?? "",
@@ -683,12 +697,21 @@ const ManageProducts = () => {
         };
       });
 
+      const resolvedBarcode = String(
+        (product as any).barcode ??
+        (product as any).gtin ??
+        (product as any).barCode ??
+        resolvedSku ??
+        ""
+      );
+
       return {
         id: product.id,
         productId: product.id.slice(0, 8).toUpperCase(),
         sellerName,
         name: product.name,
         sku: resolvedSku || "N/A",
+        barcode: resolvedBarcode || "N/A",
         unit: dispUnit || "N/A",
         unitType: dispUnitType || "N/A",
         image,
@@ -727,14 +750,23 @@ const ManageProducts = () => {
     }
   };
 
-  // Filter and sort products (search, category, status)
+  // Filter and sort products (search, barcode, category, status)
   const filteredAndSortedProducts: TableProduct[] = useMemo(() => {
     let filtered = tableProducts.filter((product) => {
       const searchLower = searchTerm.trim().toLowerCase();
+      const barcodeSearchLower = barcodeSearch.trim().toLowerCase();
+
       const matchesSearch =
         !searchLower ||
         product.name.toLowerCase().includes(searchLower) ||
-        product.id.toLowerCase().includes(searchLower);
+        product.id.toLowerCase().includes(searchLower) ||
+        product.sku.toLowerCase().includes(searchLower) ||
+        (product.barcode && product.barcode.toLowerCase().includes(searchLower)) ||
+        (product.variants && product.variants.some((v: any) =>
+          (v.barcode && String(v.barcode).toLowerCase().includes(searchLower)) ||
+          (v.sku && String(v.sku).toLowerCase().includes(searchLower)) ||
+          (v.variantName && String(v.variantName).toLowerCase().includes(searchLower))
+        ));
 
       const matchesCategory = !categoryFilter || product.categoryId === categoryFilter;
 
@@ -758,6 +790,10 @@ const ManageProducts = () => {
           case "sku":
             aValue = a.sku.toLowerCase();
             bValue = b.sku.toLowerCase();
+            break;
+          case "barcode":
+            aValue = a.barcode.toLowerCase();
+            bValue = b.barcode.toLowerCase();
             break;
           case "price":
             aValue = a.price;
@@ -799,6 +835,7 @@ const ManageProducts = () => {
   }, [
     tableProducts,
     searchTerm,
+    barcodeSearch,
     categoryFilter,
     sortField,
     sortDirection,
@@ -806,6 +843,7 @@ const ManageProducts = () => {
 
   const handleResetFilters = () => {
     setSearchTerm("");
+    setBarcodeSearch("");
     setCategoryFilter("");
     setStatusFilter("");
     setCurrentPage(1);
@@ -1074,19 +1112,47 @@ const ManageProducts = () => {
           </div>
         </div>
 
-        {/* Search - Beside filters */}
-        <div className="w-full lg:w-auto lg:min-w-[200px] lg:flex-shrink-0">
-          <SearchInput
-            placeholder="Search"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="h-10 w-full"
-          />
+        {/* Search & Barcode Scanner Section */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="w-full sm:w-72 lg:w-80">
+            <SearchInput
+              placeholder="Search name, ID, SKU, barcode..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-10 w-full"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 h-10 shrink-0"
+            title="Scan product barcode using camera"
+          >
+            <Camera size={16} />
+            <span className="hidden sm:inline">Scan</span>
+          </button>
         </div>
       </div>
+
+      {/* Barcode Scanner Modal */}
+      {isScannerOpen && (
+        <BarcodeScannerOverlay
+          onScan={(code) => {
+            const cleanCode = String(code || "").trim();
+            if (cleanCode) {
+              setSearchTerm(cleanCode);
+              setCurrentPage(1);
+              setIsScannerOpen(false);
+              toast.success(`Scanned Barcode: ${cleanCode}`);
+            }
+          }}
+          onClose={() => setIsScannerOpen(false)}
+        />
+      )}
 
       {/* Products Table: S.NO, IMAGE, NAME, UNIT, UNIT TYPE, PRICE, D.PRICE, VARIANTS, SKU, STATUS, ACTIONS */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -1325,6 +1391,21 @@ const ManageProducts = () => {
         cancelText="Cancel"
         variant="danger"
       />
+
+      {/* Barcode Scanner Modal */}
+      {isScannerOpen && (
+        <BarcodeScannerOverlay
+          onScan={(code) => {
+            const trimmed = (code || "").trim();
+            if (trimmed) {
+              setBarcodeSearch(trimmed);
+              setCurrentPage(1);
+            }
+            setIsScannerOpen(false);
+          }}
+          onClose={() => setIsScannerOpen(false)}
+        />
+      )}
     </div>
   );
 };

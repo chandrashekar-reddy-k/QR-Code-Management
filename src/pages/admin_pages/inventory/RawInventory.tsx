@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Filter, RotateCcw, Send, Plus, X } from 'lucide-react';
+import { Filter, RotateCcw, Send, Plus, X, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import BarcodeScannerOverlay from '../../../components/BarcodeScannerOverlay';
 import {
   DataTable,
   SearchInput,
@@ -15,6 +16,7 @@ interface RawInventoryItem {
   id: string;
   name: string;
   sku: string;
+  barcode?: string;
   category: string;
   units: string;
   type: 'Branded' | 'Unbranded';
@@ -37,6 +39,7 @@ const RawInventory: React.FC = () => {
   const [editingItem, setEditingItem] = useState<RawInventoryItem | null>(null);
   const [editForm, setEditForm] = useState({ name: '', sku: '', quantity: '', price: '', type: 'Branded' as 'Branded' | 'Unbranded' });
   const [saving, setSaving] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +55,7 @@ const RawInventory: React.FC = () => {
           id: item.id,
           name: item.name,
           sku: item.sku || '-',
+          barcode: item.barcode || item.posStoreStock?.barcode || '',
           category: item.category?.name || 'N/A',
           units: item.unit || 'Units',
           type: item.productType === 'BRANDED' ? 'Branded' : 'Unbranded',
@@ -76,11 +80,13 @@ const RawInventory: React.FC = () => {
     }
 
     if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
+      const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (item) =>
           item.name.toLowerCase().includes(searchLower) ||
           item.sku.toLowerCase().includes(searchLower) ||
+          item.id.toLowerCase().includes(searchLower) ||
+          (item.barcode && item.barcode.toLowerCase().includes(searchLower)) ||
           item.category.toLowerCase().includes(searchLower)
       );
     }
@@ -435,18 +441,43 @@ const RawInventory: React.FC = () => {
           </button>
         </div>
         
-        <div className="w-full lg:w-auto lg:min-w-[320px] lg:flex-shrink-0">
-          <SearchInput
-            placeholder="Search...."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="h-10 w-full rounded-lg"
-          />
+        <div className="w-full lg:w-auto flex items-center gap-2">
+          <div className="w-full sm:w-72 lg:w-80">
+            <SearchInput
+              placeholder="Search name, ID, SKU, barcode..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-10 w-full rounded-lg"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 h-10 shrink-0"
+            title="Scan product barcode using camera"
+          >
+            <Camera size={16} />
+            <span className="hidden sm:inline">Scan</span>
+          </button>
         </div>
       </div>
+
+      {isScannerOpen && (
+        <BarcodeScannerOverlay
+          onScan={(code) => {
+            const cleanCode = String(code || '').trim();
+            if (cleanCode) {
+              setSearchTerm(cleanCode);
+              setCurrentPage(1);
+              setIsScannerOpen(false);
+            }
+          }}
+          onClose={() => setIsScannerOpen(false)}
+        />
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">

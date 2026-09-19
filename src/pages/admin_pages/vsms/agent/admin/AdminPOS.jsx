@@ -401,9 +401,11 @@ export default function AdminPOS() {
     }
   };
 
-  // Fetch Warehouse Products
+  const [activeStore, setActiveStore] = useState(null);
+
+  // Fetch Warehouse Products & Store/Business Details
   useEffect(() => {
-    const fetchSettings = async () => {
+    const fetchSettingsAndStore = async () => {
       try {
         const { data } = await adminAPI.getSettings({ storeId });
         if (data?.success) {
@@ -415,11 +417,24 @@ export default function AdminPOS() {
       } catch (err) {
         console.warn('Failed to load settings');
       }
+
+      try {
+        const { data: storeRes } = await adminAPI.getStores();
+        if (storeRes?.success && Array.isArray(storeRes.data)) {
+          setStores(storeRes.data);
+          const matched = storeRes.data.find(s => s.id === storeId || s.id === user?.storeId);
+          if (matched) {
+            setActiveStore(matched);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load store list');
+      }
     };
 
     fetchProducts();
-    fetchSettings();
-  }, [storeId]);
+    fetchSettingsAndStore();
+  }, [storeId, user]);
 
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
@@ -690,10 +705,23 @@ export default function AdminPOS() {
       drawUnicodeText(pdf, `Ph: ${currentSettings.contactNo}`, margin, sellerDetailsY, { fontSize: 7.5, color: grayText });
       sellerDetailsY += 4;
     }
-    if (currentSettings.address) {
+    const sellerAddress = (
+      (typeof currentSettings.address === 'string' && currentSettings.address.trim()) ||
+      (typeof currentSettings.fullAddress === 'string' && currentSettings.fullAddress.trim()) ||
+      localStorage.getItem('receiptStoreAddress') ||
+      localStorage.getItem('vsms_receipt_address') ||
+      order.store?.address ||
+      order.store?.fullAddress ||
+      order.store?.warehouse?.address ||
+      order.pickupStore?.address ||
+      order.warehouse?.address ||
+      ''
+    );
+
+    if (sellerAddress) {
       let lines = [];
-      if (containsUnicode(currentSettings.address)) {
-        const words = currentSettings.address.split(' ');
+      if (containsUnicode(sellerAddress)) {
+        const words = sellerAddress.split(' ');
         let currentLine = '';
         const maxW = contentWidth * 0.45;
         for (const word of words) {
@@ -707,7 +735,7 @@ export default function AdminPOS() {
         }
         if (currentLine) lines.push(currentLine);
       } else {
-        lines = pdf.splitTextToSize(currentSettings.address, contentWidth * 0.45);
+        lines = pdf.splitTextToSize(sellerAddress, contentWidth * 0.45);
       }
 
       lines.forEach((line) => {
@@ -1026,23 +1054,85 @@ export default function AdminPOS() {
   const handlePrintReceipt = () => {
     if (!lastOrder) return;
 
-    const bizSettings = settings || { businessName: 'VillagKart' };
+    const getAddressStr = (addr) => {
+      if (!addr) return '';
+      if (typeof addr === 'string') return addr.trim();
+      if (typeof addr === 'object') {
+        if (addr.fullAddress && typeof addr.fullAddress === 'string') return addr.fullAddress.trim();
+        if (addr.address && typeof addr.address === 'string') return addr.address.trim();
+
+        const door = addr.doorNo || addr.permDoorNo || addr.commDoorNo || addr.houseNo || addr.flatNo || addr.addressLine1 || addr.building || '';
+        const street = addr.street || addr.roadNo || addr.permRoadNo || addr.commRoadNo || addr.addressLine2 || '';
+        const colony = addr.colony || addr.permColony || addr.commColony || addr.locality || addr.area || addr.village || '';
+        const landmark = addr.landmark ? `(Near ${addr.landmark})` : '';
+        const mandal = addr.mandal || addr.permMandal || addr.commMandal || addr.tehsil || '';
+        const city = addr.city || addr.district || addr.permCity || addr.commCity || addr.town || '';
+        const state = addr.state || addr.permState || addr.commState || '';
+        const pincode = addr.pincode || addr.permPincode || addr.commPincode || addr.zipCode || addr.postalCode || '';
+
+        const parts = [door, street, colony, landmark, mandal, city, state, pincode]
+          .map(s => String(s || '').trim())
+          .filter(Boolean);
+
+        if (parts.length > 0) return parts.join(', ');
+      }
+      return '';
+    };
+
+    const bizSettings = (typeof settings !== 'undefined' && settings) ? settings : { businessName: 'VillagKart' };
     const invoiceNo = getInvoiceNumber(lastOrder);
     const dateStr = new Date(lastOrder.createdAt || Date.now()).toLocaleString('en-IN', {
       dateStyle: 'medium',
       timeStyle: 'short'
     });
 
-    const subTotalMRP = lastOrder.items?.reduce((sum, i) => sum + (i.mrp || i.price) * i.quantity, 0) || lastOrder.totalAmount;
-    const savings = subTotalMRP - lastOrder.totalAmount;
-    const totalTax = lastOrder.items?.reduce((sum, item) => {
-      const rate = item.gst || 0;
-      if (rate === 0) return sum;
-      const taxable = (item.price * item.quantity) / (1 + rate / 100);
-      return sum + ((item.price * item.quantity) - taxable);
-    }, 0) || 0;
-    const deliveryFee = lastOrder.deliveryCharge || 0;
-    const taxableValue = lastOrder.totalAmount - totalTax - deliveryFee;
+    const storeAddr = getAddressStr(
+      bizSettings.address || 
+      bizSettings.fullAddress || 
+      localStorage.getItem('receiptStoreAddress') ||
+      localStorage.getItem('vsms_receipt_address') ||
+      activeStore?.address || 
+      activeStore?.fullAddress || 
+      activeStore?.warehouse?.address ||
+      activeStore?.warehouse?.communicationAddress ||
+      stores?.find(s => s.id === storeId || s.id === user?.storeId)?.address || 
+      stores?.find(s => s.id === storeId || s.id === user?.storeId)?.warehouse?.address || 
+      lastOrder.store?.address || 
+      lastOrder.store?.fullAddress || 
+      lastOrder.store?.warehouse?.address || 
+      lastOrder.pickupStore?.address || 
+      lastOrder.pickupStore?.fullAddress || 
+      lastOrder.warehouse?.address || 
+      lastOrder.warehouse?.fullAddress || 
+      user?.store?.address || 
+      user?.store?.fullAddress || 
+      user?.store?.warehouse?.address || 
+      user?.partner?.address || 
+      user?.partner?.fullAddress || 
+      user?.address || 
+      user?.fullAddress
+    );
+    const customerAddr = getAddressStr(lastOrder.address || lastOrder.deliveryAddress || lastOrder.customerAddress || lastOrder.shippingAddress || lastOrder.userAddress || lastOrder.addressDetails);
+
+    const itemsList = (lastOrder.items || []).map(item => {
+      const name = item.product?.name || item.name || item.productName || 'Product';
+      const qty = item.quantity || item.qty || 1;
+      const price = Number(item.unitPrice ?? item.sellingPrice ?? item.finalPrice ?? item.posPrice ?? item.price ?? item.product?.sellingPrice ?? item.product?.finalPrice ?? item.product?.posPrice ?? item.product?.price ?? 0);
+      const mrp = Number(item.mrp ?? item.product?.mrp ?? price);
+      const gst = Number(item.gst ?? item.taxRate ?? item.product?.gst ?? item.product?.taxRate ?? 0);
+      const hsn = item.hsnCode || item.hsn || item.product?.hsnCode || item.product?.hsn || '';
+      const itemTot = price * qty;
+      const taxable = gst > 0 ? (itemTot / (1 + gst / 100)) : itemTot;
+      const itemTax = itemTot - taxable;
+      return { name, qty, price, mrp, gst, hsn, itemTot, taxable, itemTax };
+    });
+
+    const totalAmount = Number(lastOrder.totalAmount || 0);
+    const subTotalMRP = itemsList.reduce((sum, i) => sum + (i.mrp || i.price) * i.qty, 0) || totalAmount;
+    const savings = Math.max(0, subTotalMRP - totalAmount);
+    const totalTax = itemsList.reduce((sum, item) => sum + item.itemTax, 0);
+    const deliveryFee = Number(lastOrder.deliveryCharge || 0);
+    const taxableValue = Math.max(0, totalAmount - totalTax - deliveryFee);
 
     const printWindow = window.open('', '_blank', 'width=320,height=650');
 
@@ -1085,11 +1175,11 @@ export default function AdminPOS() {
           </style>
         </head>
         <body>
-          <div class="center bold header">${bizSettings.businessName.toUpperCase()}</div>
-          ${bizSettings.address ? `<div class="center subheader">${bizSettings.address}</div>` : ''}
-          ${bizSettings.gstNo ? `<div class="center subheader">GSTIN: ${bizSettings.gstNo}</div>` : ''}
-          ${bizSettings.contactNo ? `<div class="center subheader">Ph: ${bizSettings.contactNo}</div>` : ''}
-          ${bizSettings.email ? `<div class="center subheader">Email: ${bizSettings.email}</div>` : ''}
+          <div class="center bold header">${(bizSettings.businessName || activeStore?.name || lastOrder.store?.name || 'VillagKart').toUpperCase()}</div>
+          ${storeAddr ? `<div class="center subheader" style="font-size: 8.5px; color: #222; margin-bottom: 3px; word-break: break-word;">${storeAddr}</div>` : ''}
+          ${(bizSettings.gstNo || activeStore?.gstNo || lastOrder.store?.gstNo) ? `<div class="center subheader">GSTIN: ${bizSettings.gstNo || activeStore?.gstNo || lastOrder.store?.gstNo}</div>` : ''}
+          ${(bizSettings.contactNo || activeStore?.contactPhone || activeStore?.phone || lastOrder.store?.phone) ? `<div class="center subheader">Ph: ${bizSettings.contactNo || activeStore?.contactPhone || activeStore?.phone || lastOrder.store?.phone}</div>` : ''}
+          ${(bizSettings.email || activeStore?.contactEmail) ? `<div class="center subheader">Email: ${bizSettings.email || activeStore?.contactEmail}</div>` : ''}
           
           <div class="divider"></div>
           <div class="item-row">
@@ -1098,10 +1188,15 @@ export default function AdminPOS() {
           <div class="item-row">
             <span>Date: ${dateStr}</span>
           </div>
-          ${lastOrder.customerName || lastOrder.mobile ? `
+          ${(lastOrder.customerName || lastOrder.mobile || lastOrder.customerPhone || customerAddr) ? `
             <div class="item-row">
-              <span>Customer: ${lastOrder.customerName?.toUpperCase() || ''} ${lastOrder.mobile ? `(${lastOrder.mobile})` : ''}</span>
+              <span>Customer: ${(lastOrder.customerName || '').toUpperCase()} ${lastOrder.mobile || lastOrder.customerPhone ? `(${lastOrder.mobile || lastOrder.customerPhone})` : ''}</span>
             </div>
+            ${customerAddr ? `
+              <div style="font-size: 9px; color: #333; margin-bottom: 2px; word-break: break-word;">
+                Address: ${customerAddr}
+              </div>
+            ` : ''}
           ` : ''}
           <div class="divider"></div>
           
@@ -1111,11 +1206,14 @@ export default function AdminPOS() {
           </div>
           <div class="divider"></div>
           
-          ${lastOrder.items.map(item => `
-            <div class="item-name">${item.product?.name || 'Product'}</div>
+          ${itemsList.map(item => `
+            <div class="item-name">
+              ${item.name}
+              ${item.hsn ? `<span style="font-weight: normal; font-size: 8.5px; color: #555;"> (HSN: ${item.hsn})</span>` : ''}
+            </div>
             <div class="item-details">
-              <span>${item.quantity} Qty x Rs.${item.price.toFixed(2)}</span>
-              <span>Rs.${(item.price * item.quantity).toFixed(2)}</span>
+              <span>${item.qty} Qty x Rs.${item.price.toFixed(2)} ${item.gst > 0 ? `| GST: ${item.gst}% (Rs.${item.itemTax.toFixed(2)})` : '| GST: 0%'}</span>
+              <span>Rs.${item.itemTot.toFixed(2)}</span>
             </div>
           `).join('')}
           
@@ -1157,11 +1255,11 @@ export default function AdminPOS() {
 
           <div class="total-row grand-total">
             <span>GRAND TOTAL</span>
-            <span>Rs.${lastOrder.totalAmount.toFixed(2)}</span>
+            <span>Rs.${totalAmount.toFixed(2)}</span>
           </div>
 
           <div class="item-row" style="font-size: 9.5px; margin-top: 6px; font-weight: bold;">
-            <span>Payment Mode: ${lastOrder.paymentMode === 'CASH_UPI' ? 'Split (Cash+UPI)' : lastOrder.paymentMode === 'CREDIT' ? 'Credit (Udhar)' : lastOrder.paymentMode}</span>
+            <span>Payment Mode: ${lastOrder.paymentMode === 'CASH_UPI' ? 'Split (Cash+UPI)' : lastOrder.paymentMode === 'CREDIT' ? 'Credit (Udhar)' : (lastOrder.paymentMode || 'CASH')}</span>
             <span>Status: ${lastOrder.paymentMode === 'CREDIT' ? 'DUE' : 'PAID'}</span>
           </div>
 

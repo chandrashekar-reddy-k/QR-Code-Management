@@ -11,8 +11,11 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
+  Barcode,
+  Camera,
   // Trash2,
 } from "lucide-react";
+import BarcodeScannerOverlay from "../../../components/BarcodeScannerOverlay";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import {
@@ -328,9 +331,6 @@ function getEmptyCreateProductFormData(): FormData {
         shippingClass: "",
         variantStatus: "active",
         metaTitle: "",
-        metaKeywords: "",
-        schemaMarkup: "",
-        metaDescription: "",
         primaryImage: null,
         secondaryImage: null,
         barcodeImage: null,
@@ -339,7 +339,28 @@ function getEmptyCreateProductFormData(): FormData {
   };
 }
 
-const AddProduct = () => {
+export interface AddProductProps {
+  isModal?: boolean;
+  onClose?: () => void;
+  onProductCreated?: (createdProduct: {
+    id: string;
+    productId?: string;
+    name: string;
+    skuCode?: string;
+    purchasePrice?: number;
+    price?: number;
+    unit?: string;
+    weight?: string;
+    category?: any;
+    [key: string]: any;
+  }) => void;
+}
+
+const AddProduct: React.FC<AddProductProps> = ({
+  isModal = false,
+  onClose,
+  onProductCreated,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams<{ id?: string }>();
@@ -376,6 +397,7 @@ const AddProduct = () => {
   const [showVariantSuccessModal, setShowVariantSuccessModal] = useState(false);
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const [savedProductId, setSavedProductId] = useState<string | null>(null);
+  const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
   /** Bump to remount Jodit after “Add new product” on same route (navigate no-ops). */
   const [_descriptionEditorKey, setDescriptionEditorKey] = useState(0);
   const [_isSavingVariants, _setIsSavingVariants] = useState(false);
@@ -2543,8 +2565,12 @@ const AddProduct = () => {
         maxOrderQtyRaw !== "" ? parseFloat(maxOrderQtyRaw) : undefined;
 
       // Variant info - use only user-entered values
-      const sku = (firstVariant?.sku ?? "").trim();
-      const barcode = (firstVariant?.barcode ?? formData.barcode ?? "").trim();
+      const sku = (formData.variants?.[0]?.sku ?? "").trim();
+      const barcode = (
+        formData.barcode ||
+        formData.variants?.[0]?.barcode ||
+        ""
+      ).trim();
 
       // costPrice for partner API (typically lower than price)
       const costPrice = price > 0 ? Math.round(price * 0.6 * 100) / 100 : 0;
@@ -2876,6 +2902,10 @@ const AddProduct = () => {
                 ? (currentProduct as { cancellableOrderStatuses: string[] })
                   .cancellableOrderStatuses
                 : [],
+            barcode:
+              payload.barcode !== undefined
+                ? payload.barcode
+                : (currentProduct as { barcode?: string })?.barcode ?? "",
           }
           : payload;
       // Only remove undefined so API always receives the expected fields
@@ -2921,6 +2951,12 @@ const AddProduct = () => {
         updatePayload.taxRate = Number(
           parseFloat(String(formData.tax ?? "")) || 0,
         );
+
+        if (String(formData.barcode ?? "").trim()) {
+          updatePayload.barcode = String(formData.barcode).trim();
+        } else if (payload.barcode) {
+          updatePayload.barcode = payload.barcode;
+        }
 
         const editMeasurement =
           String(firstVariant?.measurement ?? "").trim() ||
@@ -3048,6 +3084,33 @@ const AddProduct = () => {
         const productId = (response as any)?.data?.id || (response as any)?.id;
 
         if (productId) {
+          if (onProductCreated) {
+            onProductCreated({
+              id: productId,
+              productId: productId,
+              name: formData.productName,
+              skuCode: payload.sku || 'NO-SKU',
+              brand: formData.brand || '',
+              hsnCode: formData.hsnCode || '',
+              category: typeof formData.category === 'string' ? formData.category : (formData.category?.name || 'UNCATEGORIZED'),
+              subCategory: formData.subCategory || '',
+              mrp: Number(payload.mrp || 0),
+              purchasePrice: Number(payload.price || payload.purchasePrice || 0),
+              price: Number(payload.finalPrice || payload.mrp || payload.price || 0),
+              rate: Number(payload.price || payload.purchasePrice || 0),
+              tax: Number((formData as any).tax || (formData as any).taxRate || payload.tax || payload.taxRate || 0),
+              taxRate: Number((formData as any).tax || (formData as any).taxRate || payload.tax || payload.taxRate || 0),
+              discount: Number((formData as any).discount || payload.discountValue || 0),
+              unit: (payload.unit || 'KG').toUpperCase(),
+              measurement: payload.measurement || '',
+              weight: payload.measurement ? `${payload.measurement} ${payload.unit || ''}`.trim() : (payload.unit || 'KG'),
+              quantity: Number((formData as any).stock || 1),
+            });
+            if (isModal && onClose) {
+              onClose();
+              return;
+            }
+          }
           if (location.state?.returnTo) {
              navigate(location.state.returnTo, {
                state: {
@@ -3106,40 +3169,60 @@ const AddProduct = () => {
         : backToManage;
 
   return (
-    <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
-      {/* Page Title */}
-      <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-            {shouldShowVariants
-              ? isEditVariantMode
-                ? "Update Variant"
-                : "Add Variant"
-              : isEditMode
-                ? "Edit Product"
-                : "Add Product"}
-          </h1>
-          {isEditMode && !shouldShowVariants && (
+    <div className={`w-full ${isModal ? 'p-1' : 'px-1 sm:px-2 md:px-3 pb-4'}`}>
+      {/* Page Title & Breadcrumbs */}
+      {isModal ? (
+        <div className="mb-4 flex items-center justify-between pb-3 border-b border-gray-100">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Add New Product</h1>
+            <p className="text-xs text-gray-500">Create a new product directly for your procurement purchase order</p>
+          </div>
+          {onClose && (
             <button
               type="button"
-              onClick={() => navigate(`/products/create?productId=${id}&addVariant=true`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+              onClick={onClose}
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
             >
-              <Plus size={14} />
-              Add Variant
+              <X size={20} />
             </button>
           )}
         </div>
-        <BackButton to={backUrl} />
-      </div>
+      ) : (
+        <>
+          <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                {shouldShowVariants
+                  ? isEditVariantMode
+                    ? "Update Variant"
+                    : "Add Variant"
+                  : isEditMode
+                    ? "Edit Product"
+                    : "Add Product"}
+              </h1>
+              {isEditMode && !shouldShowVariants && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/products/create?productId=${id}&addVariant=true`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                >
+                  <Plus size={14} />
+                  Add Variant
+                </button>
+              )}
+            </div>
+            <BackButton to={backUrl} />
+          </div>
 
-      {/* Breadcrumbs */}
-      <div className="mb-4">
-        <Breadcrumbs />
-      </div>
+          {/* Breadcrumbs */}
+          <div className="mb-4">
+            <Breadcrumbs />
+          </div>
+        </>
+      )}
 
       {/* Add Product Form */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
+      <div className={`bg-white rounded-xl shadow-md border border-gray-200 ${isModal ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}`}>
         {/* Progress Indicator */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -3414,8 +3497,8 @@ const AddProduct = () => {
                   </SelectInput>
                 </div>
 
-                {/* Row: Tags, Product Type *, Inventory Type (3 in a row) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Row: Tags, Product Type *, Inventory Type, Barcode (4 in a row) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <TextInput
                     label="Tags"
                     type="text"
@@ -3448,6 +3531,33 @@ const AddProduct = () => {
                     <option value="Physical">Physical</option>
                     <option value="Digital">Digital</option>
                   </SelectInput>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Barcode Number
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative flex-1">
+                        <Barcode className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        <input
+                          type="text"
+                          name="barcode"
+                          value={formData.barcode}
+                          onChange={handleChange}
+                          placeholder="Scan or enter barcode"
+                          className="w-full pl-8 pr-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#16813D] focus:border-transparent transition-all"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsBarcodeScannerOpen(true)}
+                        className="inline-flex items-center gap-1 px-2.5 py-2 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors shrink-0"
+                        title="Scan Barcode using Camera"
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>Scan</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Description and Short Description side by side */}
@@ -5835,6 +5945,15 @@ const AddProduct = () => {
           </div>
         </div>
       </Modal>
+      {isBarcodeScannerOpen && (
+        <BarcodeScannerOverlay
+          onScan={(code) => {
+            setFormData((prev) => ({ ...prev, barcode: code }));
+            setIsBarcodeScannerOpen(false);
+          }}
+          onClose={() => setIsBarcodeScannerOpen(false)}
+        />
+      )}
     </div>
   );
 };
