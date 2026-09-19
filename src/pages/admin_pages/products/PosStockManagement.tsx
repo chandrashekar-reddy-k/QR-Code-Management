@@ -7,12 +7,15 @@ import {
   AlertTriangle,
   Package,
   Store,
-  CreditCard
+  CreditCard,
+  Camera
 } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import { toast } from 'react-toastify';
 import fetchData from '../../../helper';
 import Pagination from '../../../components/ui/Pagination';
+// @ts-ignore
+import BarcodeScannerOverlay from '../../../components/BarcodeScannerOverlay';
 
 export interface PosStockProduct {
   id: string;
@@ -48,6 +51,7 @@ export default function PosStockManagement() {
   const [products, setProducts] = useState<PosStockProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [filterPos, setFilterPos] = useState<'ALL' | 'ENABLED' | 'DISABLED'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -63,7 +67,7 @@ export default function PosStockManagement() {
   // Edit POS quick modal
   const [editProduct, setEditProduct] = useState<PosStockProduct | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editPosPrice, setEditPosPrice] = useState<number>(0);
+  const [editPosPrice, setEditPosPrice] = useState<number | string>('');
   const [editBarcode, setEditBarcode] = useState<string>('');
   const [editShelfLocation, setEditShelfLocation] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,12 +81,10 @@ export default function PosStockManagement() {
 
       const mapped: PosStockProduct[] = raw
         .filter((p: any) => {
-          const isPos = p.isPos === true || p.posStoreStock?.isPosEnabled === true || (Array.isArray(p.tags) && p.tags.includes('CH:POS'));
+          const isPos = p.posStoreStock?.isPosEnabled !== undefined
+            ? Boolean(p.posStoreStock.isPosEnabled)
+            : (p.isPos === true || (Array.isArray(p.tags) && p.tags.includes('CH:POS')));
           const hasPosStock = Number(p.posStock ?? p.posStoreStock?.posStock ?? p.liveStockChannel?.posAvailable) > 0;
-          
-          if (p.inventoryType === 'READY' || p.inventoryType === 'RAW') {
-            return isPos;
-          }
 
           return isPos || hasPosStock;
         })
@@ -90,7 +92,9 @@ export default function PosStockManagement() {
           const tags = Array.isArray(p.tags) ? p.tags : [];
           const hasChTag = tags.some((t: string) => t.startsWith('CH:'));
           const isOnline = hasChTag ? tags.includes('CH:ONLINE') : (p.isOnline !== false);
-          const isPos = hasChTag ? tags.includes('CH:POS') : (p.isPos !== false);
+          const isPos = p.posStoreStock?.isPosEnabled !== undefined
+            ? Boolean(p.posStoreStock.isPosEnabled)
+            : (hasChTag ? tags.includes('CH:POS') : (p.isPos !== false));
           const isVehicle = hasChTag ? tags.includes('CH:VEHICLE') : (p.isVehicle !== false);
 
           const variants = Array.isArray(p.variants) ? p.variants : [];
@@ -126,12 +130,12 @@ export default function PosStockManagement() {
             unit: cleanUnit,
             unitType: p.unitType || 'Unit',
             sku: p.sku || firstVar.sku || 'N/A',
-            barcode: p.barcode || firstVar.barcode || p.gtin || '890' + Math.floor(100000000 + Math.random() * 900000000),
+            barcode: p.barcode || firstVar.barcode || p.gtin || '',
             price: Number(p.price || 0),
             mrp: Number(p.mrp || 0),
             landingPrice: Number(p.landingPrice || 0),
             sellingPrice: Number(p.sellingPrice || 0),
-            posPrice: Number(p.posPrice || 0),
+            posPrice: Number(p.posPrice ?? p.posStoreStock?.posPrice ?? p.posStoreStock?.price ?? 0),
             stock: stageStock,
             isOnline,
             isPos,
@@ -140,7 +144,7 @@ export default function PosStockManagement() {
             lifecycleStage: 'LIVE',
             stageNotes: p.stageNotes || '',
             updatedAt: p.updatedAt || new Date().toISOString(),
-            shelfLocation: p.tags?.find((t: string) => t.startsWith('SHELF:'))?.split(':')[1] || 'Aisle 1 - Bay A',
+            shelfLocation: p.tags?.find((t: string) => t.startsWith('SHELF:'))?.split(':')[1] || '',
             taxRate: p.taxRate || 5,
             baseStock: p.baseStock
           };
@@ -189,7 +193,7 @@ export default function PosStockManagement() {
 
   const handleOpenEditModal = (product: PosStockProduct) => {
     setEditProduct(product);
-    setEditPosPrice(product.posPrice || product.price);
+    setEditPosPrice((product.posPrice ?? 0) > 0 ? (product.posPrice as number) : '');
     setEditBarcode(product.barcode || '');
     setEditShelfLocation(product.shelfLocation || '');
     setIsEditModalOpen(true);
@@ -205,27 +209,10 @@ export default function PosStockManagement() {
     setReturningId(product.id);
     setConfirmProduct(null);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', {
-        inventoryType: 'READY'
-      }).catch(() => fetchData(`product/${product.id}`, 'PUT', {
-        inventoryType: 'READY'
-      }));
-
-      if (product.isPos) {
-        await fetchData(`productmanagement/product/${product.id}/lifecycle`, 'POST', {
-          stage: 'LIVE',
-          isOnline: product.isOnline,
-          isPos: false,
-          isVehicle: product.isVehicle,
-          notes: product.stageNotes
-        }).catch(() => fetchData(`product/${product.id}/lifecycle`, 'POST', {
-          stage: 'LIVE',
-          isOnline: product.isOnline,
-          isPos: false,
-          isVehicle: product.isVehicle,
-          notes: product.stageNotes
-        }));
-      }
+      await fetchData(`productmanagement/product/bulk/lifecycle/return-to-ready`, 'POST', {
+        productIds: [product.id],
+        channel: 'POS'
+      });
 
       toast.success(`${product.name} returned to Ready Inventory and disabled from POS`);
       loadPosStock();
@@ -403,15 +390,26 @@ export default function PosStockManagement() {
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search by barcode, product name, SKU, or Product ID..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:text-gray-100"
-          />
+        <div className="flex items-center gap-2 flex-1 w-full">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by barcode, product name, SKU, or Product ID..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:text-gray-100"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 shrink-0 cursor-pointer"
+            title="Scan product barcode using camera"
+          >
+            <Camera size={16} />
+            <span className="hidden sm:inline">Scan</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -456,6 +454,20 @@ export default function PosStockManagement() {
         </div>
       )}
 
+      {isScannerOpen && (
+        <BarcodeScannerOverlay
+          onScan={(code: string) => {
+            const cleanCode = String(code || '').trim();
+            if (cleanCode) {
+              setSearch(cleanCode);
+              setCurrentPage(1);
+              setIsScannerOpen(false);
+            }
+          }}
+          onClose={() => setIsScannerOpen(false)}
+        />
+      )}
+
       {/* Products Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         {isLoading ? (
@@ -475,8 +487,8 @@ export default function PosStockManagement() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/75 dark:bg-gray-900/40 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4 w-12 text-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                       checked={filtered.length > 0 && selectedProducts.size === filtered.length}
                       onChange={toggleSelectAll}
@@ -486,9 +498,9 @@ export default function PosStockManagement() {
                   <th className="py-3 px-4">MRP</th>
                   <th className="py-3 px-4">Landing Price</th>
                   <th className="py-3 px-4">Selling Price</th>
+                  <th className="py-3 px-4">POS Billing Price</th>
                   <th className="py-3 px-4">Barcode / GTIN</th>
                   <th className="py-3 px-4">Counter Stock</th>
-                  <th className="py-3 px-4">POS Billing Price</th>
                   <th className="py-3 px-4">Shelf / Bay Location</th>
                   <th className="py-3 px-4 text-center">POS Terminal</th>
                   <th className="py-3 px-4 text-right">Quick Edit</th>
@@ -498,8 +510,8 @@ export default function PosStockManagement() {
                 {paginatedProducts.map((p) => (
                   <tr key={p.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors group">
                     <td className="py-3 px-4 text-center">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                         checked={selectedProducts.has(p.id)}
                         onChange={() => toggleSelection(p.id)}
@@ -534,6 +546,10 @@ export default function PosStockManagement() {
                       <div className="font-semibold text-gray-900 dark:text-gray-100">₹{p.sellingPrice?.toFixed(2) || '0.00'}</div>
                     </td>
                     <td className="py-3.5 px-4">
+                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.posPrice || 0).toFixed(2)}</div>
+                      <div className="text-[10px] text-gray-400 font-medium">Incl. Tax ({p.taxRate}%)</div>
+                    </td>
+                    <td className="py-3.5 px-4">
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700/60 font-mono text-xs text-gray-800 dark:text-gray-200">
                         <Barcode size={13} className="text-gray-500" />
                         <span>{p.barcode || 'N/A'}</span>
@@ -548,10 +564,6 @@ export default function PosStockManagement() {
                           {p.baseStock ?? 0} in Warehouse
                         </span>
                       </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-gray-900 dark:text-gray-100">₹{(p.posPrice || 0).toFixed(2)}</div>
-                      <div className="text-[10px] text-gray-400 font-medium">Incl. Tax ({p.taxRate}%)</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <span className="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/40 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600">
@@ -576,7 +588,7 @@ export default function PosStockManagement() {
                           className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-amber-600 transition-colors cursor-pointer disabled:opacity-50"
                           title="Return to Ready Inventory"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" /></svg>
                         </button>
                         <button
                           onClick={() => handleOpenEditModal(p)}
@@ -633,7 +645,7 @@ export default function PosStockManagement() {
                   min="0"
                   step="0.5"
                   value={editPosPrice}
-                  onChange={(e) => setEditPosPrice(Number(e.target.value))}
+                  onChange={(e) => setEditPosPrice(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -699,7 +711,7 @@ export default function PosStockManagement() {
             <div className="bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 p-3 rounded-xl text-xs leading-relaxed mb-6 border border-orange-100 dark:border-orange-800/50 font-medium">
               This will set the POS Counter Stock for all selected products to 0 and disable them from the POS system immediately.
             </div>
-            
+
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowBulkReturnModal(false)}
@@ -741,7 +753,7 @@ export default function PosStockManagement() {
                 )}
               </div>
             </div>
-            
+
             <div className="flex gap-3 w-full mt-6">
               <button
                 onClick={() => setConfirmProduct(null)}

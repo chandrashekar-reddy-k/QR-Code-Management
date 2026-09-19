@@ -327,9 +327,11 @@ export const PackingProductBOM: React.FC = () => {
                     Output Product
                   </span>
                   <span className="font-semibold text-slate-800 dark:text-white text-lg">
-                    {products.find(
-                      (p) => p.id === selectedRecipe.outputProductId
-                    )?.name || selectedRecipe.outputProductId}
+                    {selectedRecipe.outputProduct?.name ||
+                      products.find(
+                        (p) => p.id === selectedRecipe.outputProductId
+                      )?.name ||
+                      selectedRecipe.outputProductId}
                   </span>
                 </div>
                 <div className="text-right">

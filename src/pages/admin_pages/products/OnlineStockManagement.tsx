@@ -1,24 +1,28 @@
 import { useState, useEffect, useMemo } from 'react';
-import { 
-  Smartphone, 
-  RefreshCw, 
-  Search,  
-  Package,  
-  Eye, 
-  EyeOff, 
+import {
+  Smartphone,
+  RefreshCw,
+  Search,
+  Package,
+  Eye,
+  EyeOff,
   Sliders,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Camera
 } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import { toast } from 'react-toastify';
 import fetchData from '../../../helper';
 import Pagination from '../../../components/ui/Pagination';
+// @ts-ignore
+import BarcodeScannerOverlay from '../../../components/BarcodeScannerOverlay';
 
 export interface OnlineStockProduct {
   id: string;
   productId: string;
   name: string;
+  barcode?: string;
   image?: string;
   variantName: string;
   variantsCount: number;
@@ -51,6 +55,7 @@ export default function OnlineStockManagement() {
   const [products, setProducts] = useState<OnlineStockProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [filterVisibility, setFilterVisibility] = useState<'ALL' | 'VISIBLE' | 'HIDDEN'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -63,9 +68,9 @@ export default function OnlineStockManagement() {
   // Quick edit modal for Online App Settings
   const [editProduct, setEditProduct] = useState<OnlineStockProduct | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editPrice, setEditPrice] = useState<number>(0);
-  const [editMinQty, setEditMinQty] = useState<number>(1);
-  const [editMaxQty, setEditMaxQty] = useState<number>(100);
+  const [editPrice, setEditPrice] = useState<number | string>('');
+  const [editMinQty, setEditMinQty] = useState<number | string>(1);
+  const [editMaxQty, setEditMaxQty] = useState<number | string>(100);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Return to ready confirmation modal
@@ -80,20 +85,19 @@ export default function OnlineStockManagement() {
 
       const mapped: OnlineStockProduct[] = raw
         .filter((p: any) => {
-          const isPublished = p.isOnline === true || p.onlineAppStock?.isPublished === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE'));
+          const isPublished = p.onlineAppStock?.isPublished !== undefined
+            ? Boolean(p.onlineAppStock.isPublished)
+            : (p.isOnline === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE')));
           const hasOnlineStock = Number(p.onlineStock ?? p.onlineAppStock?.onlineStock) > 0;
-          
-          if (p.inventoryType === 'READY' || p.inventoryType === 'RAW') {
-            // ONLY show READY items if they are actively published/online
-            return isPublished;
-          }
 
           return isPublished || hasOnlineStock;
         })
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
           const hasChTag = tags.some((t: string) => t.startsWith('CH:'));
-          const isOnline = hasChTag ? tags.includes('CH:ONLINE') : (p.isOnline !== false);
+          const isOnline = p.onlineAppStock?.isPublished !== undefined
+            ? Boolean(p.onlineAppStock.isPublished)
+            : (hasChTag ? tags.includes('CH:ONLINE') : (p.isOnline !== false));
           const isPos = hasChTag ? tags.includes('CH:POS') : (p.isPos !== false);
           const isVehicle = hasChTag ? tags.includes('CH:VEHICLE') : (p.isVehicle !== false);
 
@@ -109,7 +113,7 @@ export default function OnlineStockManagement() {
             : (p.onlineAppStock?.onlineStock !== undefined && p.onlineAppStock?.onlineStock !== null
               ? Number(p.onlineAppStock.onlineStock)
               : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : 0));
-              
+
           if (p.onlineAppStock || p.onlineStock !== undefined) {
             console.log(`Product ${p.name} has onlineStock: ${p.onlineStock}, onlineAppStock:`, p.onlineAppStock, 'stageStock evaluated to:', stageStock);
           }
@@ -127,6 +131,7 @@ export default function OnlineStockManagement() {
             id: p.id,
             productId,
             name: p.name || '',
+            barcode: p.barcode || p.posStoreStock?.barcode || '',
             image: img,
             variantName,
             variantsCount,
@@ -138,7 +143,7 @@ export default function OnlineStockManagement() {
             mrp: Number(p.mrp || 0),
             landingPrice: Number(p.landingPrice || 0),
             sellingPrice: Number(p.sellingPrice || 0),
-            onlinePrice: Number(p.onlinePrice || 0),
+            onlinePrice: Number(p.onlinePrice ?? p.onlineAppStock?.appPrice ?? p.onlineAppStock?.price ?? 0),
             stock: stageStock,
             isOnline,
             isPos,
@@ -199,9 +204,9 @@ export default function OnlineStockManagement() {
 
   const handleOpenEditModal = (product: OnlineStockProduct) => {
     setEditProduct(product);
-    setEditPrice(product.onlinePrice || product.price);
-    setEditMinQty(product.minOrderQty);
-    setEditMaxQty(product.maxOrderQty);
+    setEditPrice((product.onlinePrice ?? 0) > 0 ? (product.onlinePrice as number) : '');
+    setEditMinQty(product.minOrderQty || 1);
+    setEditMaxQty(product.maxOrderQty || 50);
     // setEditBadge(product.badge || '');
     setIsEditModalOpen(true);
   };
@@ -246,28 +251,10 @@ export default function OnlineStockManagement() {
     setReturningId(product.id);
     setConfirmProduct(null); // Close modal immediately
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', {
-        inventoryType: 'READY'
-      }).catch(() => fetchData(`product/${product.id}`, 'PUT', {
-        inventoryType: 'READY'
-      }));
-
-      // Auto-unpublish from consumer app
-      if (product.isOnline) {
-        await fetchData(`productmanagement/product/${product.id}/lifecycle`, 'POST', {
-          stage: 'LIVE',
-          isOnline: false,
-          isPos: product.isPos,
-          isVehicle: product.isVehicle,
-          notes: product.stageNotes
-        }).catch(() => fetchData(`product/${product.id}/lifecycle`, 'POST', {
-          stage: 'LIVE',
-          isOnline: false,
-          isPos: product.isPos,
-          isVehicle: product.isVehicle,
-          notes: product.stageNotes
-        }));
-      }
+      await fetchData(`productmanagement/product/bulk/lifecycle/return-to-ready`, 'POST', {
+        productIds: [product.id],
+        channel: 'ONLINE'
+      });
 
       toast.success(`${product.name} returned to ready inventory`);
       loadOnlineStock(); // Reload to refresh list and numbers
@@ -321,10 +308,13 @@ export default function OnlineStockManagement() {
   const lowStockCount = useMemo(() => products.filter(p => p.isOnline && p.stock <= 5).length, [products]);
 
   const filtered = products.filter(p => {
-    const matchesSearch = !search.trim() || 
-      p.name.toLowerCase().includes(search.toLowerCase()) || 
-      p.productId.toLowerCase().includes(search.toLowerCase()) || 
-      p.sku.toLowerCase().includes(search.toLowerCase());
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.productId.toLowerCase().includes(q) ||
+      p.id.toLowerCase().includes(q) ||
+      (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+      p.sku.toLowerCase().includes(q);
 
     if (!matchesSearch) return false;
     if (filterVisibility === 'VISIBLE' && !p.isOnline) return false;
@@ -416,15 +406,26 @@ export default function OnlineStockManagement() {
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search by product name, SKU, or Product ID..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:text-gray-100"
-          />
+        <div className="flex items-center gap-2 flex-1 w-full">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by product name, SKU, barcode, or ID..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:text-gray-100"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 shrink-0 cursor-pointer"
+            title="Scan product barcode using camera"
+          >
+            <Camera size={16} />
+            <span className="hidden sm:inline">Scan</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -469,6 +470,20 @@ export default function OnlineStockManagement() {
         </div>
       )}
 
+      {isScannerOpen && (
+        <BarcodeScannerOverlay
+          onScan={(code: string) => {
+            const cleanCode = String(code || '').trim();
+            if (cleanCode) {
+              setSearch(cleanCode);
+              setCurrentPage(1);
+              setIsScannerOpen(false);
+            }
+          }}
+          onClose={() => setIsScannerOpen(false)}
+        />
+      )}
+
       {/* Products Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         {isLoading ? (
@@ -488,8 +503,8 @@ export default function OnlineStockManagement() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/75 dark:bg-gray-900/40 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4 w-12 text-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                       checked={filtered.length > 0 && selectedProducts.size === filtered.length}
                       onChange={toggleSelectAll}
@@ -511,8 +526,8 @@ export default function OnlineStockManagement() {
                 {paginatedProducts.map((p) => (
                   <tr key={p.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors group">
                     <td className="py-3 px-4 text-center">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                         checked={selectedProducts.has(p.id)}
                         onChange={() => toggleSelection(p.id)}
@@ -584,7 +599,7 @@ export default function OnlineStockManagement() {
                           className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-amber-600 transition-colors cursor-pointer disabled:opacity-50"
                           title="Return to Ready Inventory"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" /></svg>
                         </button>
                         <button
                           onClick={() => handleOpenEditModal(p)}
@@ -633,7 +648,7 @@ export default function OnlineStockManagement() {
                   min="0"
                   step="0.5"
                   value={editPrice}
-                  onChange={(e) => setEditPrice(Number(e.target.value))}
+                  onChange={(e) => setEditPrice(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -645,7 +660,7 @@ export default function OnlineStockManagement() {
                     type="number"
                     min="1"
                     value={editMinQty}
-                    onChange={(e) => setEditMinQty(Number(e.target.value))}
+                    onChange={(e) => setEditMinQty(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -655,7 +670,7 @@ export default function OnlineStockManagement() {
                     type="number"
                     min="1"
                     value={editMaxQty}
-                    onChange={(e) => setEditMaxQty(Number(e.target.value))}
+                    onChange={(e) => setEditMaxQty(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -700,7 +715,7 @@ export default function OnlineStockManagement() {
             <div className="bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 p-3 rounded-xl text-xs leading-relaxed mb-6 border border-orange-100 dark:border-orange-800/50 font-medium">
               This will set the Online App Stock for all selected products to 0 and unpublish them from the customer app immediately.
             </div>
-            
+
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowBulkReturnModal(false)}
@@ -742,7 +757,7 @@ export default function OnlineStockManagement() {
                 )}
               </div>
             </div>
-            
+
             <div className="flex gap-3 w-full mt-6">
               <button
                 onClick={() => setConfirmProduct(null)}

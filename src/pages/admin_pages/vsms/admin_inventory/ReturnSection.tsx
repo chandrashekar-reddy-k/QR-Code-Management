@@ -1,10 +1,11 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { Truck, Search, Barcode, ArrowDownCircle, Gift, Package, ArrowLeft, Loader2, History, Clock, Printer, FileDown, FileText, RefreshCw, Check, X } from 'lucide-react';
+import { Truck, Search, Barcode, ArrowDownCircle, Gift, Package, ArrowLeft, Loader2, History, Clock, Printer, FileDown, FileText, RefreshCw, Check, X, Camera } from 'lucide-react';
 import { StockItemRow } from './SharedComponents';
 import adminAPI from '../services/adminService';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import BarcodeScannerOverlay from '../../../../components/BarcodeScannerOverlay';
 
 const ReturnSection = ({
   groupedReturnItems,
@@ -31,6 +32,7 @@ const ReturnSection = ({
   const [historyData, setHistoryData] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -259,16 +261,48 @@ const ReturnSection = ({
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                  <div className="relative flex-1 md:w-64">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                  <div className="relative flex-1 md:w-72">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="text" placeholder="Search products..." className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 rounded-2xl pl-10 pr-4 py-3 text-xs font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner" value={returnSearch} onChange={(e) => setReturnSearch(e.target.value)} />
+                    <input 
+                      type="text" 
+                      placeholder="Search name, ID, SKU, barcode..." 
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl pl-9 pr-3 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner" 
+                      value={returnSearch} 
+                      onChange={(e) => setReturnSearch(e.target.value)} 
+                    />
                   </div>
-                  <button onClick={() => { setScannerTarget('returnOps'); setShowScanner(true); }} className="p-3 bg-gray-50 dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-2xl text-gray-400 hover:text-emerald-600 transition-all border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900 shadow-sm">
-                    <Barcode size={24} />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (setShowScanner && setScannerTarget) {
+                        setScannerTarget('returnOps');
+                        setShowScanner(true);
+                      } else {
+                        setIsScannerOpen(true);
+                      }
+                    }} 
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl shadow-sm hover:shadow transition-all text-xs font-semibold whitespace-nowrap active:scale-95 h-9 shrink-0 cursor-pointer"
+                    title="Scan product barcode using camera"
+                  >
+                    <Camera size={15} />
+                    <span>Scan</span>
                   </button>
                 </div>
               </div>
+
+              {isScannerOpen && (
+                <BarcodeScannerOverlay
+                  onScan={(code) => {
+                    const cleanCode = String(code || '').trim();
+                    if (cleanCode) {
+                      setReturnSearch(cleanCode);
+                      setIsScannerOpen(false);
+                    }
+                  }}
+                  onClose={() => setIsScannerOpen(false)}
+                />
+              )}
 
               {selectedVehicleId ? (
                 <>
