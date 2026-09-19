@@ -616,15 +616,42 @@ export default function AdminPOS() {
     });
   }, [products, searchTerm, selectedCategory]);
 
+  const validateCustomerDetails = () => {
+    const trimmedName = customerName?.trim();
+    const cleanMobile = customerMobile?.trim().replace(/\D/g, '');
+
+    if (!trimmedName) {
+      toast.error('Customer name is required');
+      return false;
+    }
+    if (trimmedName.length < 2) {
+      toast.error('Customer name must be at least 2 characters');
+      return false;
+    }
+    if (!cleanMobile) {
+      toast.error('Customer mobile number is required');
+      return false;
+    }
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      toast.error('Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9)');
+      return false;
+    }
+    return true;
+  };
+
   const handleCheckout = () => {
     if (items.length === 0) {
       toast.error('Cart is empty');
+      return;
+    }
+    if (!validateCustomerDetails()) {
       return;
     }
     setCheckoutStep('PAYMENT');
   };
 
   const handlePayment = async () => {
+    if (!validateCustomerDetails()) return;
     if (!selectedPaymentMode) return toast.error('Please select payment mode');
 
     if (selectedPaymentMode === 'CREDIT') {
@@ -686,7 +713,18 @@ export default function AdminPOS() {
       // Fetch populated order for correct invoice data
       const { data: fullOrder } = await ordersAPI.getById(order.id);
 
-      setLastOrder(fullOrder);
+      const enrichedLastOrder = {
+        ...fullOrder,
+        customerName: fullOrder?.customerName || fullOrder?.customer?.name || customerName?.trim() || 'Walk-in Customer',
+        mobile: fullOrder?.mobile || fullOrder?.customerMobile || fullOrder?.customer?.mobile || customerMobile?.trim() || '',
+        customerMobile: fullOrder?.customerMobile || fullOrder?.mobile || fullOrder?.customer?.mobile || customerMobile?.trim() || '',
+        customer: fullOrder?.customer || {
+          name: customerName?.trim() || 'Walk-in Customer',
+          mobile: customerMobile?.trim() || ''
+        }
+      };
+
+      setLastOrder(enrichedLastOrder);
       setCheckoutStep('SUCCESS');
       clearCart();
       // Refresh products to show updated stock levels
@@ -706,7 +744,19 @@ export default function AdminPOS() {
           totalAmount,
         };
         const tempId = addOrderToQueue(offlinePayload);
-        setLastOrder({ _offline: true, tempId, ...offlinePayload });
+        const enrichedOfflineOrder = {
+          _offline: true,
+          tempId,
+          ...offlinePayload,
+          customerName: customerName?.trim() || 'Walk-in Customer',
+          mobile: customerMobile?.trim() || '',
+          customerMobile: customerMobile?.trim() || '',
+          customer: {
+            name: customerName?.trim() || 'Walk-in Customer',
+            mobile: customerMobile?.trim() || ''
+          }
+        };
+        setLastOrder(enrichedOfflineOrder);
         setCheckoutStep('SUCCESS');
         clearCart();
         toast('Offline bill saved. Will sync when network is restored.', { icon: '📶', duration: 4000 });
@@ -967,7 +1017,10 @@ export default function AdminPOS() {
     pdf.setFont('helvetica', 'normal');
     pdf.text(`${dateStr} | ${timeStr}`, pageWidth - margin, y + 22, { align: 'right' });
 
-    if (order.customerName || order.mobile) {
+    const effectiveCustName = order.customerName || order.customer?.name || order.consumer?.name || '';
+    const effectiveCustMobile = order.mobile || order.customerMobile || order.customerPhone || order.customer?.mobile || order.consumer?.phone || '';
+
+    if (effectiveCustName || effectiveCustMobile) {
       pdf.setTextColor(...grayText);
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'bold');
@@ -976,10 +1029,10 @@ export default function AdminPOS() {
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
       let customerInfo = '';
-      if (order.customerName && order.mobile) {
-        customerInfo = `${order.customerName.toUpperCase()} (${order.mobile})`;
+      if (effectiveCustName && effectiveCustMobile) {
+        customerInfo = `${effectiveCustName.toUpperCase()} (${effectiveCustMobile})`;
       } else {
-        customerInfo = order.customerName ? order.customerName.toUpperCase() : order.mobile;
+        customerInfo = effectiveCustName ? effectiveCustName.toUpperCase() : effectiveCustMobile;
       }
       drawUnicodeText(pdf, customerInfo, pageWidth - margin, y + 38, { fontSize: 10, align: 'right', color: darkText });
     }
@@ -1395,16 +1448,21 @@ export default function AdminPOS() {
           <div class="item-row">
             <span>Date: ${dateStr}</span>
           </div>
-          ${(lastOrder.customerName || lastOrder.mobile || lastOrder.customerPhone || customerAddr) ? `
-            <div class="item-row">
-              <span>Customer: ${(lastOrder.customerName || '').toUpperCase()} ${lastOrder.mobile || lastOrder.customerPhone ? `(${lastOrder.mobile || lastOrder.customerPhone})` : ''}</span>
-            </div>
-            ${customerAddr ? `
-              <div style="font-size: 9px; color: #333; margin-bottom: 2px; word-break: break-word;">
-                Address: ${customerAddr}
+          ${(() => {
+            const effectiveCustName = lastOrder.customerName || lastOrder.customer?.name || '';
+            const effectiveCustMobile = lastOrder.mobile || lastOrder.customerMobile || lastOrder.customerPhone || lastOrder.customer?.mobile || '';
+            if (!effectiveCustName && !effectiveCustMobile && !customerAddr) return '';
+            return `
+              <div class="item-row">
+                <span>Customer: <b>${(effectiveCustName || 'WALK-IN CUSTOMER').toUpperCase()}</b> ${effectiveCustMobile ? `(${effectiveCustMobile})` : ''}</span>
               </div>
-            ` : ''}
-          ` : ''}
+              ${customerAddr ? `
+                <div style="font-size: 9px; color: #333; margin-bottom: 2px; word-break: break-word;">
+                  Address: ${customerAddr}
+                </div>
+              ` : ''}
+            `;
+          })()}
           <div class="divider"></div>
           
           <div class="item-row bold" style="font-size: 10px;">
@@ -1880,27 +1938,33 @@ export default function AdminPOS() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                          <User size={10} className="text-emerald-500" /> Name
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                          <User size={10} className="text-emerald-500" /> Name <span className="text-rose-500 font-bold">*</span>
                         </label>
                         <input
                           type="text"
-                          placeholder="Walk-in Customer"
-                          className="w-full bg-slate-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500/20 transition-all placeholder:text-slate-300"
+                          required
+                          placeholder="Enter Customer Name *"
+                          className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                          <Smartphone size={10} className="text-emerald-500" /> Mobile
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                          <Smartphone size={10} className="text-emerald-500" /> Mobile <span className="text-rose-500 font-bold">*</span>
                         </label>
                         <input
                           type="tel"
-                          placeholder="Enter mobile"
-                          className="w-full bg-slate-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500/20 transition-all placeholder:text-slate-300"
+                          required
+                          maxLength={10}
+                          placeholder="Enter 10-digit mobile *"
+                          className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
                           value={customerMobile}
-                          onChange={(e) => setCustomerMobile(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setCustomerMobile(val);
+                          }}
                         />
                       </div>
                     </div>
@@ -2387,27 +2451,33 @@ export default function AdminPOS() {
               <div className="px-6 py-4 border-b border-slate-50 bg-white shrink-0 z-10">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                      <User size={10} className="text-emerald-500" /> Name
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                      <User size={10} className="text-emerald-500" /> Name <span className="text-rose-500 font-bold">*</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="Walk-in Customer"
-                      className="w-full bg-slate-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500/20 transition-all placeholder:text-slate-300"
+                      required
+                      placeholder="Enter Customer Name *"
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                      <Smartphone size={10} className="text-emerald-500" /> Mobile
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                      <Smartphone size={10} className="text-emerald-500" /> Mobile <span className="text-rose-500 font-bold">*</span>
                     </label>
                     <input
                       type="tel"
-                      placeholder="Enter mobile"
-                      className="w-full bg-slate-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500/20 transition-all placeholder:text-slate-300"
+                      required
+                      maxLength={10}
+                      placeholder="Enter 10-digit mobile *"
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
                       value={customerMobile}
-                      onChange={(e) => setCustomerMobile(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setCustomerMobile(val);
+                      }}
                     />
                   </div>
                 </div>

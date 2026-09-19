@@ -3,7 +3,7 @@ name: Frontend Partner Deploy
 on:
   push:
     branches:
-      - erp/dev
+      - master
 
 concurrency:
   group: frontend-partner-deploy
@@ -18,22 +18,22 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
 
         with:
-          host: ${{ secrets.DEV_EC2_HOST }}
+          host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
           command_timeout: 10m
 
           script: |
             set -e
 
-            export PATH=$PATH:/home/ubuntu/n/bin
+            # export PATH=$PATH:/home/ubuntu/n/bin
 
-            cd /opt/apps/villagkart/erp-dev/partner_web
+            cd /var/www/villagkart/villagkart-partner-web
 
             echo "Updating repository..."
 
-            git checkout erp/dev
-            git pull origin erp/dev
+            git checkout master
+            git pull origin master
 
             echo "Installing dependencies..."
 
