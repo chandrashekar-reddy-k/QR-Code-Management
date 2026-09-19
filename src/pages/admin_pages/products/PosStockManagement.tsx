@@ -72,6 +72,16 @@ export default function PosStockManagement() {
   const [editShelfLocation, setEditShelfLocation] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Bulk POS Price Edit State
+  const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
+  const [bulkPriceItems, setBulkPriceItems] = useState<
+    Record<string, { posPrice: string | number; sellingPrice: string | number; mrp: string | number; barcode?: string }>
+  >({});
+  const [bulkPriceMode, setBulkPriceMode] = useState<'TABLE' | 'UNIFORM'>('TABLE');
+  const [uniformType, setUniformType] = useState<'FIXED' | 'PERCENT_MRP' | 'FLAT_DISCOUNT'>('FIXED');
+  const [uniformVal, setUniformVal] = useState<string | number>('');
+  const [isSubmittingBulkPrice, setIsSubmittingBulkPrice] = useState(false);
+
   const loadPosStock = async () => {
     setIsLoading(true);
     try {
@@ -287,6 +297,109 @@ export default function PosStockManagement() {
     }
   };
 
+  const handleOpenBulkPriceModal = () => {
+    const initial: Record<string, { posPrice: string | number; sellingPrice: string | number; mrp: string | number; barcode?: string }> = {};
+    products.forEach((p) => {
+      if (selectedProducts.has(p.id)) {
+        initial[p.id] = {
+          posPrice: p.posPrice || 0,
+          sellingPrice: p.sellingPrice || 0,
+          mrp: p.mrp || 0,
+          barcode: p.barcode || '',
+        };
+      }
+    });
+    setBulkPriceItems(initial);
+    setBulkPriceMode('TABLE');
+    setUniformVal('');
+    setShowBulkPriceModal(true);
+  };
+
+  const handleApplyUniformRule = () => {
+    const val = Number(uniformVal);
+    if (isNaN(val) || val < 0) {
+      toast.error('Please enter a valid positive number');
+      return;
+    }
+
+    setBulkPriceItems((prev) => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach((id) => {
+        const prod = products.find((p) => p.id === id);
+        if (!prod) return;
+
+        let newPos = Number(updated[id].posPrice);
+        const mrp = Number(updated[id].mrp || prod.mrp || 0);
+        const selling = Number(updated[id].sellingPrice || prod.sellingPrice || 0);
+
+        if (uniformType === 'FIXED') {
+          newPos = val;
+        } else if (uniformType === 'PERCENT_MRP') {
+          if (mrp > 0) {
+            newPos = Math.max(0, Math.round(mrp * (1 - val / 100) * 100) / 100);
+          }
+        } else if (uniformType === 'FLAT_DISCOUNT') {
+          const base = selling > 0 ? selling : mrp;
+          newPos = Math.max(0, Math.round((base - val) * 100) / 100);
+        }
+
+        updated[id] = {
+          ...updated[id],
+          posPrice: newPos,
+        };
+      });
+      return updated;
+    });
+
+    toast.success('Applied rule across selected products');
+    setBulkPriceMode('TABLE');
+  };
+
+  const handleSaveBulkPrice = async () => {
+    setIsSubmittingBulkPrice(true);
+    try {
+      const updates = Object.keys(bulkPriceItems).map((productId) => {
+        const item = bulkPriceItems[productId];
+        return {
+          productId,
+          posPrice: Number(item.posPrice),
+          sellingPrice: Number(item.sellingPrice),
+          mrp: Number(item.mrp),
+          barcode: item.barcode || undefined,
+        };
+      });
+
+      const res = await fetchData<{ status: boolean; message?: string }>('productmanagement/product/bulk-update-online-price', 'POST', { updates })
+        .catch(() => fetchData<{ status: boolean; message?: string }>('product/bulk-update-online-price', 'POST', { updates }));
+
+      toast.success(res?.message || `Successfully updated POS prices for ${updates.length} products`);
+
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (bulkPriceItems[p.id]) {
+            const item = bulkPriceItems[p.id];
+            return {
+              ...p,
+              posPrice: Number(item.posPrice),
+              sellingPrice: Number(item.sellingPrice),
+              mrp: Number(item.mrp),
+              barcode: item.barcode || p.barcode,
+            };
+          }
+          return p;
+        })
+      );
+
+      setSelectedProducts(new Set());
+      setShowBulkPriceModal(false);
+    } catch (err: any) {
+      console.error('Failed to bulk update POS prices:', err);
+      toast.error(err?.message || 'Failed to update POS prices. Please try again.');
+    } finally {
+      setIsSubmittingBulkPrice(false);
+    }
+  };
+
   // Metrics
   const totalCatalogCount = products.length;
   const posActiveCount = useMemo(() => products.filter(p => p.isPos).length, [products]);
@@ -438,19 +551,28 @@ export default function PosStockManagement() {
 
       {/* Bulk Actions */}
       {selectedProducts.size > 0 && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex items-center justify-between shadow-sm">
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
             <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-sm">
               {selectedProducts.size} product{selectedProducts.size > 1 ? 's' : ''} selected
             </span>
           </div>
-          <button
-            onClick={() => setShowBulkReturnModal(true)}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
-          >
-            <RefreshCw size={16} />
-            Bulk Return to Ready
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOpenBulkPriceModal}
+              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg text-sm font-semibold transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <CreditCard size={16} />
+              Bulk Edit POS Prices
+            </button>
+            <button
+              onClick={() => setShowBulkReturnModal(true)}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <RefreshCw size={16} />
+              Bulk Return to Ready
+            </button>
+          </div>
         </div>
       )}
 
@@ -766,6 +888,224 @@ export default function PosStockManagement() {
                 className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-colors cursor-pointer"
               >
                 Yes, Return
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Bulk POS Price Edit Modal */}
+      {showBulkPriceModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[60] flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-slate-50 dark:bg-gray-900/50">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <CreditCard className="text-emerald-500" size={20} />
+                  Bulk Edit POS Prices ({selectedProducts.size} Items)
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Update POS Billing Prices individually per product or apply a mass rule across selected items.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowBulkPriceModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="px-6 pt-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-6 bg-white dark:bg-gray-800">
+              <button
+                onClick={() => setBulkPriceMode('TABLE')}
+                className={`pb-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+                  bulkPriceMode === 'TABLE'
+                    ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Batch Table Edit (Different Prices)
+              </button>
+              <button
+                onClick={() => setBulkPriceMode('UNIFORM')}
+                className={`pb-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+                  bulkPriceMode === 'UNIFORM'
+                    ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Apply Uniform Mass Rule
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {bulkPriceMode === 'UNIFORM' ? (
+                <div className="bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/40 rounded-xl p-5 space-y-4">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                    Apply Mass Rule across {selectedProducts.size} Selected Items
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                        Rule Strategy
+                      </label>
+                      <select
+                        value={uniformType}
+                        onChange={(e: any) => setUniformType(e.target.value)}
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="FIXED">Set Fixed POS Price (₹)</option>
+                        <option value="PERCENT_MRP">Apply % Discount off MRP</option>
+                        <option value="FLAT_DISCOUNT">Flat ₹ Discount off Selling Price</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                        {uniformType === 'FIXED' ? 'Fixed POS Price (₹)' : uniformType === 'PERCENT_MRP' ? 'Discount Percentage (%)' : 'Flat Discount Amount (₹)'}
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        placeholder={uniformType === 'PERCENT_MRP' ? 'e.g. 10' : 'e.g. 50'}
+                        value={uniformVal}
+                        onChange={(e) => setUniformVal(e.target.value)}
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={handleApplyUniformRule}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+                    >
+                      Apply Rule to Preview Table
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Table Preview & Individual Inputs */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-900/30">
+                <div className="overflow-x-auto max-h-[350px]">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead className="sticky top-0 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-[10px] font-bold tracking-wider z-10">
+                      <tr>
+                        <th className="p-3">Product Name</th>
+                        <th className="p-3">MRP (₹)</th>
+                        <th className="p-3">Selling Price (₹)</th>
+                        <th className="p-3 text-emerald-600 dark:text-emerald-400">POS Billing Price (₹)</th>
+                        <th className="p-3">Barcode</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {products
+                        .filter((p) => selectedProducts.has(p.id))
+                        .map((p) => {
+                          const itemState = bulkPriceItems[p.id] || {
+                            posPrice: p.posPrice || 0,
+                            sellingPrice: p.sellingPrice || 0,
+                            mrp: p.mrp || 0,
+                            barcode: p.barcode || '',
+                          };
+
+                          return (
+                            <tr key={p.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/40">
+                              <td className="p-3 max-w-[200px]">
+                                <div className="font-semibold text-gray-900 dark:text-gray-100 truncate" title={p.name}>
+                                  {p.name}
+                                </div>
+                                <div className="text-[10px] text-gray-400">SKU: {p.sku}</div>
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  value={itemState.mrp}
+                                  onChange={(e) =>
+                                    setBulkPriceItems((prev) => ({
+                                      ...prev,
+                                      [p.id]: { ...prev[p.id], mrp: e.target.value },
+                                    }))
+                                  }
+                                  className="w-20 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  value={itemState.sellingPrice}
+                                  onChange={(e) =>
+                                    setBulkPriceItems((prev) => ({
+                                      ...prev,
+                                      [p.id]: { ...prev[p.id], sellingPrice: e.target.value },
+                                    }))
+                                  }
+                                  className="w-20 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  value={itemState.posPrice}
+                                  onChange={(e) =>
+                                    setBulkPriceItems((prev) => ({
+                                      ...prev,
+                                      [p.id]: { ...prev[p.id], posPrice: e.target.value },
+                                    }))
+                                  }
+                                  className="w-28 border border-emerald-500 rounded px-2 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="text"
+                                  value={itemState.barcode || ''}
+                                  onChange={(e) =>
+                                    setBulkPriceItems((prev) => ({
+                                      ...prev,
+                                      [p.id]: { ...prev[p.id], barcode: e.target.value },
+                                    }))
+                                  }
+                                  className="w-32 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono"
+                                  placeholder="Barcode"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-3 bg-gray-50 dark:bg-gray-900/50">
+              <button
+                onClick={() => setShowBulkPriceModal(false)}
+                disabled={isSubmittingBulkPrice}
+                className="px-4 py-2 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveBulkPrice}
+                disabled={isSubmittingBulkPrice}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors disabled:opacity-60 flex items-center gap-2 shadow-xs cursor-pointer"
+              >
+                {isSubmittingBulkPrice ? <RefreshCw className="animate-spin" size={16} /> : null}
+                <span>Save Prices for {selectedProducts.size} Products</span>
               </button>
             </div>
           </div>
