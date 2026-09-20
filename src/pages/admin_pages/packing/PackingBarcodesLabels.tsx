@@ -4,7 +4,7 @@ import { authService, User } from '../../../api/packing/authService';
 import { workOrderService, WorkOrder, WoStatus } from '../../../api/packing/workOrderService';
 import { barcodeService } from '../../../api/packing/barcodeService';
 
-const PRINTERS = [
+const DEFAULT_PRINTERS = [
   'Zebra ZD420 (Thermal)',
   'TSC TE244 (Thermal)',
   'Brother TD-4420DN',
@@ -160,8 +160,22 @@ export const PackingBarcodesLabels: React.FC = () => {
   const [operators, setOperators] = useState<User[]>([]);
   const [assignedOperatorId, setAssignedOperatorId] = useState<string>('');
 
-  // Configuration Panel Fields
-  const [selectedPrinter, setSelectedPrinter] = useState(PRINTERS[0]);
+  // Dynamic Printers State (persisted in localStorage)
+  const [printersList, setPrintersList] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('custom_printers_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading saved printers:', e);
+    }
+    return DEFAULT_PRINTERS;
+  });
+  const [selectedPrinter, setSelectedPrinter] = useState<string>(printersList[0] || DEFAULT_PRINTERS[0]);
+  const [isAddingPrinter, setIsAddingPrinter] = useState<boolean>(false);
+  const [newPrinterName, setNewPrinterName] = useState<string>('');
   const [labelTemplate, setLabelTemplate] = useState<'Retail Label' | 'Bulk Label' | 'Export Label'>('Retail Label');
   const [barcodeType, setBarcodeType] = useState<'Code 128' | 'EAN-13' | 'QR Code' | 'GS1-128'>('Code 128');
 
@@ -836,20 +850,73 @@ export const PackingBarcodesLabels: React.FC = () => {
             {/* Target Printer selection */}
             <div className="grid grid-cols-2 gap-3 items-end">
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                  Target Printer
-                </label>
-                <select
-                  className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-slate-50 dark:bg-gray-900 text-slate-800 dark:text-gray-200 focus:ring-1 focus:ring-[#00891D]"
-                  value={selectedPrinter}
-                  onChange={(e) => setSelectedPrinter(e.target.value)}
-                >
-                  {PRINTERS.map((p) => (
-                    <option key={p} value={p} className="dark:bg-gray-800">
-                      {p}
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase">
+                    Target Printer
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingPrinter((prev) => !prev)}
+                    className="text-[10px] font-bold text-[#00891D] hover:underline cursor-pointer flex items-center gap-0.5"
+                  >
+                    {isAddingPrinter ? 'Cancel' : '+ Add New'}
+                  </button>
+                </div>
+
+                {!isAddingPrinter ? (
+                  <select
+                    className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-slate-50 dark:bg-gray-900 text-slate-800 dark:text-gray-200 focus:ring-1 focus:ring-[#00891D]"
+                    value={selectedPrinter}
+                    onChange={(e) => {
+                      if (e.target.value === '__ADD_NEW__') {
+                        setIsAddingPrinter(true);
+                      } else {
+                        setSelectedPrinter(e.target.value);
+                      }
+                    }}
+                  >
+                    {printersList.map((p) => (
+                      <option key={p} value={p} className="dark:bg-gray-800">
+                        {p}
+                      </option>
+                    ))}
+                    <option value="__ADD_NEW__" className="font-bold text-[#00891D] dark:bg-gray-800">
+                      + Add New Printer...
                     </option>
-                  ))}
-                </select>
+                  </select>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="e.g. Xprinter XP-365B"
+                      value={newPrinterName}
+                      onChange={(e) => setNewPrinterName(e.target.value)}
+                      className="w-full p-1.5 border border-[#00891D] rounded-lg text-xs bg-white dark:bg-gray-900 dark:text-white"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const trimmed = newPrinterName.trim();
+                        if (trimmed) {
+                          if (!printersList.includes(trimmed)) {
+                            const updated = [...printersList, trimmed];
+                            setPrintersList(updated);
+                            localStorage.setItem('custom_printers_list', JSON.stringify(updated));
+                            setSelectedPrinter(trimmed);
+                          } else {
+                            setSelectedPrinter(trimmed);
+                          }
+                          setNewPrinterName('');
+                          setIsAddingPrinter(false);
+                        }
+                      }}
+                      className="bg-[#00891D] hover:bg-[#00891D]/90 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg cursor-pointer shrink-0"
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
