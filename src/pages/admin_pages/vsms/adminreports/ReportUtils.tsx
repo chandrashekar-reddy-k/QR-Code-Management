@@ -123,21 +123,27 @@ export const generateReportPDF = (activeTab, reportData, shouldPrint = false) =>
           });
           break;
         }
-        case 'item-wise':
+        case 'item-wise': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || []);
           drawTable(['ITEM NAME', 'QTY SOLD', 'REVENUE'],
-            (Array.isArray(reportData) ? reportData : []).map(r => [safeStr(r.itemName, 50), safeNum(r.totalQty), `Rs ${safeNum(r.revenue)}`]),
+            list.map(r => [safeStr(r.itemName, 50), safeNum(r.totalQty), `Rs ${safeNum(r.revenue)}`]),
             [100, 40, 54]);
           break;
-        case 'category-wise':
+        }
+        case 'category-wise': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || []);
           drawTable(['CATEGORY', 'ORDERS', 'TOTAL SALES'],
-            (Array.isArray(reportData) ? reportData : []).map(r => [safeStr(r.name, 50), safeNum(r.orderCount), `Rs ${safeNum(r.totalSales)}`]),
+            list.map(r => [safeStr(r.name, 50), safeNum(r.orderCount), `Rs ${safeNum(r.totalSales)}`]),
             [100, 40, 54]);
           break;
-        case 'day-wise':
+        }
+        case 'day-wise': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || reportData.trends || []);
           drawTable(['DATE', 'ORDERS', 'REVENUE', 'PROFIT'],
-            (Array.isArray(reportData) ? reportData : []).map(r => [safeStr(r.date, 20), safeNum(r.orders), `Rs ${safeNum(r.revenue)}`, `Rs ${safeNum(r.profit)}`]),
+            list.map(r => [safeStr(r.date || r.rawDate, 20), safeNum(r.orders || r.totalOrders), `Rs ${safeNum(r.revenue || r.grandTotal || r.totalSales)}`, `Rs ${safeNum(r.profit || r.totalProfit)}`]),
             [50, 40, 52, 52]);
           break;
+        }
         case 'route-village': {
           const rts = reportData.routes || []; const vils = reportData.villages || [];
           drawTable(['ROUTE', 'TOTAL SALES', 'ORDERS'],
@@ -151,32 +157,34 @@ export const generateReportPDF = (activeTab, reportData, shouldPrint = false) =>
         }
         case 'agent-performance':
           drawTable(['AGENT', 'SALES', 'TARGET', 'ACHIEVEMENT'],
-            (Array.isArray(reportData) ? reportData : []).map(a => [safeStr(a.name, 25), `Rs ${safeNum(a.totalSales)}`, `Rs ${safeNum(a.dailyTarget)}`, `${a.percentage || 0}%`]),
+            (Array.isArray(reportData) ? reportData : (reportData.data || [])).map(a => [safeStr(a.name, 25), `Rs ${safeNum(a.totalSales)}`, `Rs ${safeNum(a.dailyTarget)}`, `${a.percentage || 0}%`]),
             [60, 44, 44, 46]);
           break;
         case 'location-tracking':
           drawTable(['AGENT', 'LOCATION', 'TYPE', 'TIME'],
-            (Array.isArray(reportData) ? reportData : []).map(l => [safeStr(l.user?.name, 25), safeStr(l.villageName || 'In-Transit', 25), safeStr(l.checkInType, 15), l.createdAt ? format(new Date(l.createdAt), 'hh:mm a') : 'N/A']),
+            (Array.isArray(reportData) ? reportData : (reportData.data || [])).map(l => [safeStr(l.user?.name, 25), safeStr(l.villageName || 'In-Transit', 25), safeStr(l.checkInType, 15), l.createdAt ? format(new Date(l.createdAt), 'hh:mm a') : 'N/A']),
             [55, 55, 40, 44]);
           break;
         case 'vehicle-wise':
           drawTable(['VEHICLE', 'DISPLAY ID', 'REVENUE', 'ORDERS'],
-            (Array.isArray(reportData) ? reportData : []).map(v => [safeStr(v.vehicleNumber, 20), safeStr(v.displayId, 15), `Rs ${safeNum(v.totalSales)}`, safeNum(v.orderCount)]),
+            (Array.isArray(reportData) ? reportData : (reportData.data || [])).map(v => [safeStr(v.vehicleNumber, 20), safeStr(v.displayId, 15), `Rs ${safeNum(v.totalSales)}`, safeNum(v.orderCount)]),
             [55, 45, 50, 44]);
           break;
         case 'payment-mode': {
-          const safeData = (reportData && typeof reportData === 'object' && !Array.isArray(reportData)) ? reportData : {};
+          const safeData = (reportData && typeof reportData === 'object' && !Array.isArray(reportData)) ? (reportData.data || reportData) : {};
           const entries = Object.entries(safeData);
           drawTable(['PAYMENT MODE', 'AMOUNT'],
             entries.map(([k, v]) => [String(k).toUpperCase(), `Rs ${safeNum(v)}`]),
             [100, 94]);
           break;
         }
-        case 'returns':
+        case 'returns': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || reportData.returns || []);
           drawTable(['ORDER ID', 'PRODUCT', 'QTY', 'AMOUNT', 'DATE'],
-            (Array.isArray(reportData) ? reportData : []).map(r => [safeStr(r.order?.displayId, 15), safeStr(r.product?.name, 25), `-${r.quantity || 0}`, `Rs ${safeNum(r.amount)}`, safeDateShort(r.createdAt)]),
+            list.map(r => [safeStr(r.order?.displayId || r.orderId, 15), safeStr(r.product?.name || r.productName, 25), `-${r.quantity || 0}`, `Rs ${safeNum(r.amount)}`, safeDateShort(r.createdAt)]),
             [36, 50, 24, 40, 44]);
           break;
+        }
         case 'damages': {
           const s = reportData.summary || {};
           const types = Object.entries(reportData.lossByType || {});
@@ -202,12 +210,13 @@ export const generateReportPDF = (activeTab, reportData, shouldPrint = false) =>
         }
         case 'sessions':
           drawTable(['SESSION', 'TOTAL SALES', 'ORDERS'],
-            (Array.isArray(reportData) ? reportData : []).map(s => [safeStr(s.session, 15), `Rs ${safeNum(s.totalSales)}`, safeNum(s.orderCount)]),
+            (Array.isArray(reportData) ? reportData : (reportData.data || [])).map(s => [safeStr(s.session, 15), `Rs ${safeNum(s.totalSales)}`, safeNum(s.orderCount)]),
             [80, 54, 60]);
           break;
-        case 'invoices':
+        case 'invoices': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || reportData.orders || []);
           drawTable(['DATE', 'INV ID', 'CUSTOMER', 'AGENT', 'AMOUNT', 'MODE', 'STATUS'],
-            (Array.isArray(reportData) ? reportData : []).map(o => [
+            list.map(o => [
               safeDateShort(o.createdAt),
               safeStr(o.displayId || o.orderNumber, 15),
               safeStr(o.customerName || 'Walk-in', 20),
@@ -218,6 +227,7 @@ export const generateReportPDF = (activeTab, reportData, shouldPrint = false) =>
             ]),
             [25, 30, 35, 35, 30, 20, 19]);
           break;
+        }
         case 'users':
           drawTable(['NAME', 'ROLE', 'MOBILE', 'STORE', 'STATUS'],
             (Array.isArray(reportData) ? reportData : []).map(u => [
@@ -378,28 +388,42 @@ export const exportReportToExcel = (activeTab, reportData) => {
           }));
           break;
         }
-        case 'item-wise':
-          exportData = (Array.isArray(reportData) ? reportData : []).map(r => ({
+        case 'item-wise': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || []);
+          exportData = list.map(r => ({
             'Item Name': r.itemName,
+            'SKU': r.sku || 'N/A',
+            'Category': r.categoryName || 'Uncategorized',
             'Quantity Sold': safeNum(r.totalQty),
-            'Revenue': safeNum(r.revenue)
+            'Total Revenue (₹)': safeNum(r.revenue)
           }));
           break;
-        case 'category-wise':
-          exportData = (Array.isArray(reportData) ? reportData : []).map(r => ({
+        }
+        case 'category-wise': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || []);
+          exportData = list.map(r => ({
             'Category': r.name,
-            'Orders': safeNum(r.orderCount),
-            'Total Sales': safeNum(r.totalSales)
+            'Orders Count': safeNum(r.orderCount),
+            'Total Quantity': safeNum(r.totalQty),
+            'Total Sales (₹)': safeNum(r.totalSales),
+            'Revenue Share %': `${r.percentage || 0}%`
           }));
           break;
+        }
         case 'day-wise':
-          exportData = (Array.isArray(reportData) ? reportData : []).map(r => ({
-            'Date': r.date,
-            'Orders': safeNum(r.orders),
-            'Revenue': safeNum(r.revenue),
-            'Profit': safeNum(r.profit)
+        case 'daily': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || reportData.trends || []);
+          exportData = list.map(r => ({
+            'Date / Session': r.date || r.rawDate || 'N/A',
+            'Orders Volume': safeNum(r.orders || r.totalOrders),
+            'Net Revenue (₹)': safeNum(r.revenue || r.grandTotal || r.totalSales),
+            'Gross Profit (₹)': safeNum(r.profit || r.totalProfit),
+            'Cash Sales (₹)': safeNum(r.totalCash),
+            'UPI Sales (₹)': safeNum(r.totalUpi),
+            'Credit Sales (₹)': safeNum(r.totalCredit)
           }));
           break;
+        }
         case 'route-village':
           // For Excel, we might want to export two sheets or just combine them. 
           // Let's export villages as it's more granular.
@@ -563,6 +587,31 @@ export const exportReportToExcel = (activeTab, reportData) => {
             'Date': r.createdAt ? format(new Date(r.createdAt), 'dd-MM-yyyy HH:mm') : 'N/A'
           }));
           break;
+        case 'returns':
+        case 'return': {
+          const list = Array.isArray(reportData) ? reportData : (reportData.data || reportData.returns || []);
+          exportData = list.map(r => ({
+            'Order ID': r.order?.displayId || r.order?.orderNumber || r.orderId || 'N/A',
+            'Product Name': r.product?.name || r.productName || 'N/A',
+            'Reason': r.reason || 'Customer Return',
+            'Returned Quantity': safeNum(r.quantity || r.returnQty),
+            'Return Amount (₹)': safeNum(r.amount || r.returnAmount),
+            'Date': r.createdAt ? format(new Date(r.createdAt), 'dd-MM-yyyy HH:mm') : 'N/A'
+          }));
+          break;
+        }
+        case 'damages':
+        case 'damage': {
+          const list = reportData.lossByType
+            ? Object.entries(reportData.lossByType).map(([t, d]) => ({ type: t, ...d }))
+            : (Array.isArray(reportData) ? reportData : []);
+          exportData = list.map(d => ({
+            'Damage Type / Category': String(d.type || d.damageType || 'N/A').replace(/_/g, ' '),
+            'Incidents Count': safeNum(d.count || 1),
+            'Total Loss Value (₹)': safeNum(d.loss || d.totalLoss)
+          }));
+          break;
+        }
         case 'attendance-logs':
           exportData = (Array.isArray(reportData) ? reportData : []).map(r => ({
             'Date': r.date,

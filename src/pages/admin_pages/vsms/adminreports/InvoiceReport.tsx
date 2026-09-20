@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { FileText, ChevronDown, ChevronUp, Printer, CheckCircle, Receipt } from 'lucide-react';
+import { FileText, ChevronDown, ChevronUp, Printer, CheckCircle, Receipt, Calendar, Search, RotateCcw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import adminAPI from '../services/adminService';
 import toast from 'react-hot-toast';
@@ -13,10 +13,46 @@ export default function InvoiceReport() {
   const [searchParams] = useSearchParams();
   const storeId = searchParams.get('storeId');
 
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [quickPreset, setQuickPreset] = useState('30days');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleQuickPreset = (preset) => {
+    setQuickPreset(preset);
+    const today = new Date();
+    const formatDateStr = (d) => d.toISOString().split('T')[0];
+
+    if (preset === 'today') {
+      const dStr = formatDateStr(today);
+      setStartDate(dStr);
+      setEndDate(dStr);
+    } else if (preset === 'yesterday') {
+      const yest = new Date();
+      yest.setDate(today.getDate() - 1);
+      const dStr = formatDateStr(yest);
+      setStartDate(dStr);
+      setEndDate(dStr);
+    } else if (preset === '7days') {
+      const past = new Date();
+      past.setDate(today.getDate() - 6);
+      setStartDate(formatDateStr(past));
+      setEndDate(formatDateStr(today));
+    } else if (preset === '30days') {
+      const past = new Date();
+      past.setDate(today.getDate() - 29);
+      setStartDate(formatDateStr(past));
+      setEndDate(formatDateStr(today));
+    }
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await adminAPI.getInvoiceReport({ storeId });
+      const params = { storeId };
+      if (startDate) { params.startDate = startDate; params.fromDate = startDate; }
+      if (endDate) { params.endDate = endDate; params.toDate = endDate; }
+      const res = await adminAPI.getInvoiceReport(params);
       setReportData(res.data?.data || res.data || []);
     } catch (error) {
       toast.error('Failed to load invoice data');
@@ -25,7 +61,16 @@ export default function InvoiceReport() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [storeId]);
+  useEffect(() => { fetchData(); }, [storeId, startDate, endDate]);
+
+  const invoicesList = Array.isArray(reportData) ? reportData : [];
+  const filteredInvoices = invoicesList.filter(ord => {
+    const q = searchQuery.toLowerCase();
+    const invId = (ord.displayId || ord.orderNumber || ord.id || '').toLowerCase();
+    const cust = (ord.customerName || ord.customer?.name || '').toLowerCase();
+    const mode = (ord.paymentMode || '').toLowerCase();
+    return invId.includes(q) || cust.includes(q) || mode.includes(q);
+  });
 
   const toggleExpand = (id) => {
     setExpandedInvoiceId(prev => prev === id ? null : id);
@@ -33,7 +78,7 @@ export default function InvoiceReport() {
 
   const calculateItemGST = (item) => {
     const total = Number(item.totalPrice || (item.unitPrice * item.quantity) || 0);
-    const rate = Number(item.taxRate || item.gstRate || 5); // default 5% GST if unassigned
+    const rate = Number(item.taxRate || item.gstRate || 5);
     const taxable = rate > 0 ? (total / (1 + rate / 100)) : total;
     const gstAmt = total - taxable;
     const halfTax = gstAmt / 2;
@@ -50,16 +95,84 @@ export default function InvoiceReport() {
   return (
     <ReportLayout title="Invoice & GST Report" icon={FileText} activeTab="invoices" reportData={reportData} isLoading={isLoading}>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in duration-500">
+        
+        {/* Custom Date Range Filter Bar */}
+        <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+            <span className="text-xs font-bold text-gray-500 mr-1 uppercase">Quick Range:</span>
+            {[
+              { id: 'today', label: 'Today' },
+              { id: 'yesterday', label: 'Yesterday' },
+              { id: '7days', label: 'Last 7 Days' },
+              { id: '30days', label: 'Last 30 Days' },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => handleQuickPreset(p.id)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  quickPreset === p.id
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-emerald-50'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1 shadow-2xs">
+              <Calendar size={14} className="text-emerald-600" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase">From</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => { setQuickPreset('custom'); setStartDate(e.target.value); }}
+                className="text-xs font-bold text-gray-800 bg-transparent outline-none cursor-pointer"
+              />
+              <span className="text-[10px] font-bold text-gray-400 uppercase">To</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => { setQuickPreset('custom'); setEndDate(e.target.value); }}
+                className="text-xs font-bold text-gray-800 bg-transparent outline-none cursor-pointer"
+              />
+            </div>
+            <button 
+              onClick={fetchData} 
+              className="p-2 rounded-xl bg-white text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-xs border border-gray-200 cursor-pointer"
+              title="Refresh Invoices Audit"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
+        </div>
+
         <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50">
           <div>
             <h3 className="text-base font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <Receipt size={18} className="text-emerald-600" />
               Recent Invoices & GST Tax Breakdown Audit
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">Itemized GST calculations (Taxable Amount, GST Rate %, CGST/SGST, Total)</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {startDate && endDate ? `${startDate} to ${endDate}` : 'Itemized GST calculations (Taxable Amount, GST Rate %, CGST/SGST, Total)'}
+            </p>
           </div>
-          <div className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider self-start sm:self-auto">
-            {Array.isArray(reportData) ? reportData.length : 0} Invoices Loaded
+          <div className="flex items-center gap-3">
+            <div className="relative w-full sm:w-64">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Search invoice, customer..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 text-xs font-medium border border-gray-200 rounded-xl outline-none focus:border-emerald-500 transition-all bg-white"
+              />
+            </div>
+            <div className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+              {filteredInvoices.length} Invoices
+            </div>
           </div>
         </div>
 
@@ -85,16 +198,16 @@ export default function InvoiceReport() {
                     Loading invoices...
                   </td>
                 </tr>
-              ) : !Array.isArray(reportData) || reportData.length === 0 ? (
+              ) : !Array.isArray(filteredInvoices) || filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-gray-400 font-medium">
                     No sales invoices available.
                   </td>
                 </tr>
               ) : (
-                reportData.map((ord, i) => {
+                filteredInvoices.map((ord, i) => {
                   const isExpanded = expandedInvoiceId === (ord.id || i);
-                  
+
                   // Calculate order level GST totals
                   let orderTaxable = 0;
                   let orderGST = 0;
@@ -125,9 +238,8 @@ export default function InvoiceReport() {
                         <td className="py-3 px-4 text-right text-emerald-700 font-medium">₹{orderGST.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                         <td className="py-3 px-4 text-right font-black text-gray-900">₹{(ord.totalAmount || 0).toLocaleString('en-IN')}</td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            ord.paymentMode === 'CASH' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-                          }`}>
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${ord.paymentMode === 'CASH' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                            }`}>
                             {ord.paymentMode || 'POS'}
                           </span>
                         </td>
