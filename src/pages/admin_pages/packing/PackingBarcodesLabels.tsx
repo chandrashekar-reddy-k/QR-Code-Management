@@ -165,6 +165,23 @@ export const PackingBarcodesLabels: React.FC = () => {
   const [labelTemplate, setLabelTemplate] = useState<'Retail Label' | 'Bulk Label' | 'Export Label'>('Retail Label');
   const [barcodeType, setBarcodeType] = useState<'Code 128' | 'EAN-13' | 'QR Code' | 'GS1-128'>('Code 128');
 
+  // Label Dimension & Preset State (Default: 50mm x 25mm Single Barcode Label)
+  const [labelSizePreset, setLabelSizePreset] = useState<'50x25' | '100x50' | 'custom'>('50x25');
+  const [customWidthMm, setCustomWidthMm] = useState<number>(50);
+  const [customHeightMm, setCustomHeightMm] = useState<number>(25);
+
+  const activeWidthMm = useMemo(() => {
+    if (labelSizePreset === '50x25') return 50;
+    if (labelSizePreset === '100x50') return 100;
+    return customWidthMm || 50;
+  }, [labelSizePreset, customWidthMm]);
+
+  const activeHeightMm = useMemo(() => {
+    if (labelSizePreset === '50x25') return 25;
+    if (labelSizePreset === '100x50') return 50;
+    return customHeightMm || 25;
+  }, [labelSizePreset, customHeightMm]);
+
   // Input Fields
   const [sku, setSku] = useState('');
   const [lotNo, setLotNo] = useState('');
@@ -356,33 +373,42 @@ export const PackingBarcodesLabels: React.FC = () => {
     const labelCards: string[] = [];
     const productName = selectedWO?.product?.name || 'Product Name';
 
+    const isCompact = activeHeightMm <= 30;
+    const headerFontSize = isCompact ? '11px' : '18px';
+    const headerPadding = isCompact ? '2px' : '6px';
+    const titleFontSize = isCompact ? '10.5px' : '13px';
+    const bodyFontSize = isCompact ? '8px' : '10px';
+    const bodyPadding = isCompact ? '1px 2px' : '0 8%';
+    const barcodeMaxHeight = isCompact ? '20px' : '40px';
+    const qrSize = isCompact ? '22px' : '35px';
+
     const cardBody = `
-      <div class="label-card" style="width: 100mm; height: 50mm; display:flex; flex-direction:column; justify-space-between; padding:10px 14px; font-family:'Segoe UI',Arial,sans-serif; background:#fff; overflow:hidden; page-break-after:always; break-after:page; border:none; box-sizing:border-box;">
-        <div style="text-align:center; font-size:18px; font-weight:900; color:#00891D; letter-spacing:1px; text-transform:uppercase; border-bottom:1px solid #e5e7eb; padding-bottom:6px; margin-bottom:0;">
+      <div class="label-card" style="width: ${activeWidthMm}mm; height: ${activeHeightMm}mm; display:flex; flex-direction:column; justify-content:space-between; padding:${isCompact ? '2.5mm 3.5mm' : '10px 14px'}; font-family:'Segoe UI',Arial,sans-serif; background:#fff; overflow:hidden; page-break-after:always; break-after:page; border:none; box-sizing:border-box;">
+        <div style="text-align:center; font-size:${headerFontSize}; font-weight:900; color:#00891D; letter-spacing:0.5px; text-transform:uppercase; border-bottom:1px solid #e5e7eb; padding-bottom:${headerPadding}; margin-bottom:0; line-height:1.1;">
           VILLAGKART RETAIL
         </div>
-        <div style="text-align:center; font-size:13px; font-weight:700; color:#111827; margin-bottom:0; margin-top:4px;">
+        <div style="text-align:center; font-size:${titleFontSize}; font-weight:700; color:#111827; margin-bottom:0; margin-top:1px; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
           ${productName}
         </div>
-        <div style="font-size:10px; color:#111827; line-height:1.4; padding:0 8%; flex-grow:1; display:flex; flex-direction:column; justify-content:center; margin:2px 0;">
-          <div style="display:flex; justify-content:space-between;">
+        <div style="font-size:${bodyFontSize}; color:#111827; line-height:1.25; padding:${bodyPadding}; flex-grow:1; display:flex; flex-direction:column; justify-content:center; margin:1px 0;">
+          <div style="display:flex; justify-content:space-between; gap:2px;">
             <span>SKU: <b>${job.sku}</b></span>
             <span>Batch: <b>${job.batchNo}</b></span>
           </div>
-          <div style="display:flex; justify-content:space-between;">
+          <div style="display:flex; justify-content:space-between; gap:2px;">
             <span>Lot: <b>${lotNo || 'N/A'}</b></span>
             <span>MRP: <b>₹${mrp || 0}.00</b></span>
           </div>
-          <div style="display:flex; justify-content:space-between;">
+          <div style="display:flex; justify-content:space-between; gap:2px;">
             <span>MFG: ${mfgDate}</span>
             <span>EXP: ${expiryDate}</span>
           </div>
         </div>
-        <div style="border-top:1px solid #e5e7eb; padding-top:6px; margin-top:auto;">
+        <div style="border-top:1px solid #e5e7eb; padding-top:${isCompact ? '2px' : '6px'}; margin-top:auto;">
           ${
             type !== 'QR Code'
-              ? `<div style="display:flex;justify-content:center;width:100%;"><img src="${barcodeDataUrl}" style="max-width:100%; height:auto; max-height:40px; image-rendering:pixelated; display:block;" alt="barcode" /></div>`
-              : `<div style="display:flex;justify-content:center;"><img src="${qrCodeUrl}" style="width:35px;height:35px;" alt="QR" /></div>`
+              ? `<div style="display:flex;justify-content:center;width:100%;"><img src="${barcodeDataUrl}" style="max-width:100%; height:auto; max-height:${barcodeMaxHeight}; image-rendering:pixelated; display:block;" alt="barcode" /></div>`
+              : `<div style="display:flex;justify-content:center;"><img src="${qrCodeUrl}" style="width:${qrSize};height:${qrSize};" alt="QR" /></div>`
           }
         </div>
       </div>
@@ -414,11 +440,12 @@ export const PackingBarcodesLabels: React.FC = () => {
           <meta charset="UTF-8" />
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
-            @page { size: 100mm 50mm; margin: 0; }
+            @page { size: ${activeWidthMm}mm ${activeHeightMm}mm; margin: 0; }
             body {
               font-family: 'Segoe UI', Arial, sans-serif;
               background: #fff;
-              width: 100mm;
+              width: ${activeWidthMm}mm;
+              height: ${activeHeightMm}mm;
             }
             .label-grid { display: block; }
             @media print { body { background: #fff; } }
@@ -491,7 +518,7 @@ export const PackingBarcodesLabels: React.FC = () => {
         printedQty: printQty,
         operatorId: assignedOperatorId,
         printer: selectedPrinter,
-        labelTemplate,
+        labelTemplate: `${labelTemplate} (${activeWidthMm}x${activeHeightMm}mm)`,
       });
 
       if (res && res.data) {
@@ -842,6 +869,58 @@ export const PackingBarcodesLabels: React.FC = () => {
               </div>
             </div>
 
+            {/* Label Dimensions / Preset */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                Label Dimensions Preset *
+              </label>
+              <select
+                className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-slate-50 dark:bg-gray-900 text-slate-800 dark:text-gray-200 focus:ring-1 focus:ring-[#00891D] font-medium"
+                value={labelSizePreset}
+                onChange={(e: any) => setLabelSizePreset(e.target.value)}
+              >
+                <option value="50x25" className="dark:bg-gray-800">
+                  Single Barcode Label (50 × 25 mm / 2" × 1" Landscape)
+                </option>
+                <option value="100x50" className="dark:bg-gray-800">
+                  Standard Shipping/Retail Label (100 × 50 mm / 4" × 2")
+                </option>
+                <option value="custom" className="dark:bg-gray-800">
+                  Custom Dimensions (mm)
+                </option>
+              </select>
+              {labelSizePreset === 'custom' && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block mb-1">Width (mm)</span>
+                    <input
+                      type="number"
+                      min={20}
+                      max={200}
+                      value={customWidthMm}
+                      onChange={(e) => setCustomWidthMm(Number(e.target.value))}
+                      className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block mb-1">Height (mm)</span>
+                    <input
+                      type="number"
+                      min={15}
+                      max={200}
+                      value={customHeightMm}
+                      onChange={(e) => setCustomHeightMm(Number(e.target.value))}
+                      className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="mt-1 text-[11px] text-[#00891D] font-semibold flex items-center justify-between">
+                <span>📐 Printer Target: {activeWidthMm} mm × {activeHeightMm} mm</span>
+                <span className="text-slate-400 font-normal text-[10px]">(Single Label Media)</span>
+              </div>
+            </div>
+
             {/* Label Template & Barcode Type */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -1000,38 +1079,46 @@ export const PackingBarcodesLabels: React.FC = () => {
           className="lg:col-span-1 bg-white border border-slate-200 dark:bg-gray-800 dark:border-gray-700 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4"
         >
           <div>
-            <h3 className="font-bold text-slate-800 dark:text-gray-200 text-sm flex items-center gap-2 border-b border-slate-100 dark:border-gray-700 pb-3 mb-4">
-              <Barcode size={18} className="text-[#00891D]" />
-              <span>Label Preview Template</span>
-            </h3>
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-gray-700 pb-3 mb-4">
+              <h3 className="font-bold text-slate-800 dark:text-gray-200 text-sm flex items-center gap-2">
+                <Barcode size={18} className="text-[#00891D]" />
+                <span>Label Preview Template</span>
+              </h3>
+              <span className="text-[10px] font-bold text-[#00891D] bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
+                {activeWidthMm} × {activeHeightMm} mm
+              </span>
+            </div>
 
-            {/* Label preview */}
+            {/* Label preview container */}
             <div
               style={{
                 background: '#fff',
                 border: '1.5px solid #d1d5db',
-                borderRadius: 12,
-                padding: '14px 18px',
-                maxWidth: 380,
+                borderRadius: 10,
+                padding: activeHeightMm <= 30 ? '10px 14px' : '14px 18px',
+                maxWidth: 360,
+                width: '100%',
                 margin: '0 auto',
                 fontFamily: "'Segoe UI', Arial, sans-serif",
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: 220,
+                minHeight: activeHeightMm <= 30 ? 170 : 220,
+                boxSizing: 'border-box',
               }}
             >
               <div
                 style={{
                   textAlign: 'center',
-                  fontSize: 20,
+                  fontSize: activeHeightMm <= 30 ? 14 : 20,
                   fontWeight: 900,
                   color: '#00891D',
-                  letterSpacing: 1,
+                  letterSpacing: 0.5,
                   textTransform: 'uppercase',
                   borderBottom: '1.5px solid #e5e7eb',
-                  paddingBottom: 8,
+                  paddingBottom: activeHeightMm <= 30 ? 4 : 8,
                   marginBottom: 0,
+                  lineHeight: 1.1,
                 }}
               >
                 VILLAGKART RETAIL
@@ -1040,11 +1127,12 @@ export const PackingBarcodesLabels: React.FC = () => {
               <div
                 style={{
                   textAlign: 'center',
-                  fontSize: 15,
+                  fontSize: activeHeightMm <= 30 ? 12 : 15,
                   fontWeight: 700,
                   color: '#111827',
                   marginBottom: 0,
-                  marginTop: 6,
+                  marginTop: activeHeightMm <= 30 ? 3 : 6,
+                  lineHeight: 1.1,
                 }}
               >
                 {selectedWO?.product?.name || 'Select a Work Order'}
@@ -1052,10 +1140,10 @@ export const PackingBarcodesLabels: React.FC = () => {
 
               <div
                 style={{
-                  fontSize: 12,
-                  lineHeight: 1.5,
+                  fontSize: activeHeightMm <= 30 ? 10 : 12,
+                  lineHeight: activeHeightMm <= 30 ? 1.3 : 1.5,
                   color: '#111827',
-                  padding: '0 8%',
+                  padding: activeHeightMm <= 30 ? '0 2%' : '0 8%',
                   flexGrow: 1,
                   display: 'flex',
                   flexDirection: 'column',
@@ -1063,18 +1151,18 @@ export const PackingBarcodesLabels: React.FC = () => {
                   margin: '4px 0',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '4px', whiteSpace: 'nowrap', fontSize: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '4px', whiteSpace: 'nowrap', fontSize: activeHeightMm <= 30 ? 9 : 10 }}>
                   <span>
                     SKU: <b>{sku || '—'}</b>
                   </span>
                   <span style={{ textAlign: 'right' }}>
                     Batch:{' '}
-                    <b style={{ fontFamily: 'monospace', fontSize: 10 }}>
+                    <b style={{ fontFamily: 'monospace', fontSize: activeHeightMm <= 30 ? 9 : 10 }}>
                       {batchNo || '—'}
                     </b>
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: activeHeightMm <= 30 ? 9 : 11 }}>
                   <span>
                     Lot: <b style={{ fontFamily: 'monospace' }}>{lotNo || '—'}</b>
                   </span>
@@ -1087,6 +1175,7 @@ export const PackingBarcodesLabels: React.FC = () => {
                     display: 'flex',
                     justifyContent: 'space-between',
                     color: '#374151',
+                    fontSize: activeHeightMm <= 30 ? 9 : 11,
                   }}
                 >
                   <span>MFG: {mfgDate || 'YYYY-MM-DD'}</span>
@@ -1094,20 +1183,20 @@ export const PackingBarcodesLabels: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 'auto', paddingTop: 8 }}>
+              <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 'auto', paddingTop: activeHeightMm <= 30 ? 4 : 8 }}>
                 {barcodeType !== 'QR Code' ? (
                   <canvas
                     ref={previewCanvasRef}
                     style={{
                       width: '100%',
-                      height: 72,
+                      height: activeHeightMm <= 30 ? 46 : 72,
                       display: 'block',
                       imageRendering: 'pixelated',
                     }}
                   />
                 ) : (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <img src={qrCodeUrl} style={{ width: 80, height: 80 }} alt="QR" />
+                    <img src={qrCodeUrl} style={{ width: activeHeightMm <= 30 ? 55 : 80, height: activeHeightMm <= 30 ? 55 : 80 }} alt="QR" />
                   </div>
                 )}
               </div>
