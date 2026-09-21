@@ -162,8 +162,15 @@ export default function SalesEntry() {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter((p) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.barcode && p.barcode.toLowerCase().includes(q))
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.variants && p.variants.some(v =>
+          (v.gtin && String(v.gtin).toLowerCase().includes(q)) ||
+          (v.barcode && String(v.barcode).toLowerCase().includes(q)) ||
+          (v.sku && String(v.sku).toLowerCase().includes(q)) ||
+          (v.variantName && String(v.variantName).toLowerCase().includes(q))
+        ))
       );
     }
     if (filterCategory !== 'ALL') {
