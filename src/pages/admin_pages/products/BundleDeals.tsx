@@ -1,9 +1,8 @@
-// @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Plus, Trash2, Edit3, Sparkles, Check, X, ArrowLeft,
   ShoppingBag, Search, Tag, DollarSign, Layers, ChevronLeft, ChevronRight, Upload,
-  Eye, Table, LayoutGrid, AlertCircle
+  Eye, Table, LayoutGrid, AlertCircle, Smartphone
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { adminAPI } from '../vsms/services/adminService';
@@ -62,7 +61,37 @@ export default function BundleDeals() {
 
   // Query products list via product management hook (1000 items limit to cover inventory list)
   const { data: productsRes } = useGetAllProductList(1, 1000, "", true, "APPROVED", partnerWarehouseId);
-  const products = (productsRes as any)?.data?.products ?? [];
+  const rawProducts = (productsRes as any)?.data?.products ?? [];
+
+  // Filter only products present in the Online (Customer App) channel (identical logic to /inventory/online)
+  const isOnlineProduct = (p: any) => {
+    const isPublished = p.onlineAppStock?.isPublished !== undefined
+      ? Boolean(p.onlineAppStock.isPublished)
+      : (p.isOnline === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE')));
+    const hasOnlineStock = Number(p.onlineStock ?? p.onlineAppStock?.onlineStock ?? p.stageStocks?.LIVE) > 0;
+
+    return isPublished || hasOnlineStock;
+  };
+
+  const onlineProducts = useMemo(() => {
+    return (rawProducts || []).filter(isOnlineProduct).map((p: any) => {
+      const onlineStock = (p.onlineStock !== undefined && p.onlineStock !== null)
+        ? Number(p.onlineStock)
+        : (p.onlineAppStock?.onlineStock !== undefined && p.onlineAppStock?.onlineStock !== null
+          ? Number(p.onlineAppStock.onlineStock)
+          : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : (p.stock ?? 0)));
+      
+      const effectivePrice = p.onlineAppStock?.onlinePrice ?? p.onlinePrice ?? p.sellingPrice ?? p.price ?? 0;
+      const effectiveMrp = p.mrp ?? p.price ?? effectivePrice;
+
+      return {
+        ...p,
+        onlineStock,
+        onlinePrice: effectivePrice,
+        effectiveMrp
+      };
+    });
+  }, [rawProducts]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -81,17 +110,23 @@ export default function BundleDeals() {
     fetchData();
   }, []);
 
-  // Filter products based on search query
-  const filteredProductsList = products.filter(p => 
-    p.name.toLowerCase().includes(productSearch.toLowerCase())
-  );
+  // Filter online products based on search query
+  const filteredProductsList = useMemo(() => {
+    return onlineProducts.filter(p => 
+      p.name?.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(productSearch.toLowerCase()) ||
+      (p.productId && String(p.productId).toLowerCase().includes(productSearch.toLowerCase()))
+    );
+  }, [onlineProducts, productSearch]);
 
   // Paginated products
   const totalProductPages = Math.ceil(filteredProductsList.length / productsPerPage) || 1;
-  const paginatedProducts = filteredProductsList.slice(
-    (productPage - 1) * productsPerPage,
-    productPage * productsPerPage
-  );
+  const paginatedProducts = useMemo(() => {
+    return filteredProductsList.slice(
+      (productPage - 1) * productsPerPage,
+      productPage * productsPerPage
+    );
+  }, [filteredProductsList, productPage, productsPerPage]);
 
   useEffect(() => {
     setProductPage(1);
@@ -122,7 +157,7 @@ export default function BundleDeals() {
   };
 
   const getItemPrice = (product) => {
-    return product?.sellingPrice ?? product?.price ?? product?.mrp ?? 0;
+    return product?.effectiveMrp ?? product?.mrp ?? product?.price ?? product?.sellingPrice ?? 0;
   };
 
   const handleOpenEdit = (bundle) => {
@@ -784,12 +819,20 @@ export default function BundleDeals() {
             {/* Product selection list */}
             <div className="space-y-3 pt-6 border-t border-gray-100 dark:border-gray-800">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                <h4 className="font-black text-sm uppercase tracking-wider">Select Products to Add</h4>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-violet-100 dark:bg-violet-900/40 text-violet-600 rounded-lg">
+                    <Smartphone size={16} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm uppercase tracking-wider text-gray-900 dark:text-white">Select Online Products (Customer App)</h4>
+                    <p className="text-[11px] text-gray-500 font-medium">Only products active in Online Inventory ({onlineProducts.length} available)</p>
+                  </div>
+                </div>
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                   <input
                     type="text"
-                    placeholder="Search product inventory..."
+                    placeholder="Search online products..."
                     value={productSearch}
                     onChange={e => setProductSearch(e.target.value)}
                     className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-9 pr-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-violet-500"
@@ -802,10 +845,10 @@ export default function BundleDeals() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-150 dark:border-gray-800 font-black text-gray-400 uppercase tracking-widest">
-                        <th className="py-3 px-4">PRODUCT</th>
-                        <th className="py-3 px-4">MRP / ORIG PRICE</th>
-                        <th className="py-3 px-4">SELLING PRICE</th>
-                        <th className="py-3 px-4">STOCK</th>
+                        <th className="py-3 px-4">ONLINE PRODUCT</th>
+                        <th className="py-3 px-4">ONLINE MRP</th>
+                        <th className="py-3 px-4">ONLINE SELLING PRICE</th>
+                        <th className="py-3 px-4">ONLINE STOCK</th>
                         <th className="py-3 px-4 text-right">ACTION</th>
                       </tr>
                     </thead>
@@ -813,13 +856,15 @@ export default function BundleDeals() {
                       {paginatedProducts.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="py-8 text-center text-gray-400 font-bold">
-                            No active products found matching your search.
+                            No online products found matching your search. Ensure products are enabled in <span className="text-violet-600 font-black">/inventory/online</span>.
                           </td>
                         </tr>
                       ) : (
                         paginatedProducts.map(p => {
                           const isAdded = form.items.some(i => i.productId === p.id);
                           const mrpVal = getItemPrice(p);
+                          const sellingVal = p.onlinePrice ?? p.price ?? 0;
+                          const stockVal = p.onlineStock ?? p.stock ?? 0;
                           return (
                             <tr key={p.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/40">
                               <td className="py-3 px-4">
@@ -831,12 +876,21 @@ export default function BundleDeals() {
                                       <ShoppingBag size={14} className="m-auto text-gray-400" />
                                     )}
                                   </div>
-                                  <span className="font-bold text-gray-800 dark:text-gray-200">{p.name}</span>
+                                  <div>
+                                    <span className="font-bold text-gray-800 dark:text-gray-200 block">{p.name}</span>
+                                    {p.sku && <span className="text-[10px] text-gray-400 font-semibold">{p.sku}</span>}
+                                  </div>
                                 </div>
                               </td>
                               <td className="py-3 px-4 font-bold text-gray-800 dark:text-gray-200">₹{mrpVal}</td>
-                              <td className="py-3 px-4 font-black text-emerald-600">₹{p.price}</td>
-                              <td className="py-3 px-4 font-bold text-gray-500">{p.stock ?? 0}</td>
+                              <td className="py-3 px-4 font-black text-emerald-600">₹{sellingVal}</td>
+                              <td className="py-3 px-4 font-bold text-gray-700 dark:text-gray-300">
+                                <span className={`px-2 py-0.5 rounded-md font-extrabold text-[11px] ${
+                                  stockVal > 10 ? 'bg-emerald-50 text-emerald-700' : (stockVal > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700')
+                                }`}>
+                                  {stockVal} units
+                                </span>
+                              </td>
                               <td className="py-3 px-4 text-right">
                                 <button
                                   type="button"
@@ -858,6 +912,33 @@ export default function BundleDeals() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalProductPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/80 border-t border-gray-150 dark:border-gray-800">
+                    <span className="text-xs font-bold text-gray-500">
+                      Page {productPage} of {totalProductPages} ({filteredProductsList.length} items)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={productPage === 1}
+                        onClick={() => setProductPage(prev => Math.max(prev - 1, 1))}
+                        className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={productPage === totalProductPages}
+                        onClick={() => setProductPage(prev => Math.min(prev + 1, totalProductPages))}
+                        className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

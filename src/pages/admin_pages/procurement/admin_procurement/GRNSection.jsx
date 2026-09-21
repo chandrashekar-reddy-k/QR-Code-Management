@@ -290,10 +290,29 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
   const handleEditGRN = (grn) => {
     setEditGRN(grn);
     setSelectedPO(grn.poId);
-    setPODetail(grn.po);
-    setGRNItems(grn.items.map(item => ({
+    
+    // Parse metadata if available from remarks
+    let parsedAttachments = [];
+    if (grn.remarks && grn.remarks.includes('[GRN_METADATA]:')) {
+      try {
+        const jsonStr = grn.remarks.split('[GRN_METADATA]:')[1];
+        const meta = JSON.parse(jsonStr);
+        if (Array.isArray(meta.attachments)) {
+          parsedAttachments = meta.attachments.map(url => ({ name: typeof url === 'string' ? url.split('/').pop() : 'Attachment', url }));
+        }
+      } catch (e) {
+        console.error('Error parsing GRN metadata:', e);
+      }
+    } else if (Array.isArray(grn.attachments)) {
+      parsedAttachments = grn.attachments.map(url => ({ name: typeof url === 'string' ? url.split('/').pop() : 'Attachment', url }));
+    }
+
+    setPODetail(grn.po || { challanId: grn.challanId || '', remarks: grn.remarks || '' });
+    setGRNItems((grn.items || []).map(item => ({
       productId: item.productId,
       name: item.product?.name,
+      sku: item.product?.skuCode,
+      weight: item.product?.unitValue ? `${item.product.unitValue} ${item.product.unit?.name || 'kg'}` : '1 kg',
       orderedQty: item.orderedQty,
       alreadyReceived: 0,
       balance: item.orderedQty,
@@ -301,7 +320,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       damagedQty: item.damagedQty || 0,
       expiryStatus: item.expiryStatus || 'SAFE'
     })));
-    setAttachments((grn.attachments || []).map(url => ({ name: url.split('/').pop(), url })));
+    setAttachments(parsedAttachments);
     setView('create-po');
   };
 
@@ -924,8 +943,12 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 </button>
               </div>
             <div className="space-y-1">
-              <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">CREATE PO-BASED GRN</h2>
-              <p className="text-sm font-bold text-gray-400">Record received stock against approved purchase orders.</p>
+              <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">
+                {editGRN ? `EDIT GOODS RECEIPT (GRN-${editGRN.displayId})` : 'CREATE PO-BASED GRN'}
+              </h2>
+              <p className="text-sm font-bold text-gray-400">
+                {editGRN ? 'Update received quantities, damages, expiry checks and documentation for this GRN.' : 'Record received stock against approved purchase orders.'}
+              </p>
             </div>
           </div>
 
@@ -939,10 +962,14 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Linked PO <span className="text-rose-500">*</span></label>
                     <select 
                       value={selectedPO || ''}
+                      disabled={Boolean(editGRN)}
                       onChange={e => e.target.value ? selectPO(e.target.value) : setSelectedPO(null)}
-                      className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none"
+                      className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       <option value="">Select a purchase order</option>
+                      {editGRN && editGRN.po && !pos.some(p => p.id === editGRN.poId) && (
+                        <option value={editGRN.poId}>PO-{editGRN.po.displayId} ({editGRN.po.vendor?.vendorName})</option>
+                      )}
                       {pos.map(po => (
                         <option key={po.id} value={po.id}>PO-{po.displayId} ({po.vendor?.vendorName})</option>
                       ))}
@@ -1219,7 +1246,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                       disabled={submitting}
                       className="flex-1 md:flex-none px-12 py-4 bg-emerald-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
                     >
-                      {submitting ? 'Processing...' : 'Complete GRN'}
+                      {submitting ? 'Processing...' : (editGRN ? 'Update GRN' : 'Complete GRN')}
                     </button>
                   </div>
                 </div>
@@ -1328,6 +1355,14 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                                 Approve QC
                               </button>
                             )}
+                            <button
+                              onClick={() => handleEditGRN(grn)}
+                              className="px-2.5 py-1.5 bg-white border border-gray-100 rounded text-[8px] font-black text-amber-600 uppercase tracking-widest hover:bg-amber-50 transition-all shadow-sm active:scale-95 flex items-center gap-1"
+                              title="Edit Goods Receipt"
+                            >
+                              <Edit3 size={10} />
+                              Edit
+                            </button>
                             <button
                               onClick={() => handleViewReport(grn)}
                               className="px-2.5 py-1.5 bg-white border border-gray-100 rounded text-[8px] font-black text-emerald-600 uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm active:scale-95"
@@ -1545,6 +1580,19 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
 
           {/* Footer Actions */}
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-50">
+            <button
+              onClick={() => {
+                const rep = selectedReport;
+                setView('history');
+                setSelectedReport(null);
+                setHideMainHeader?.(false);
+                handleEditGRN(rep);
+              }}
+              className="flex items-center gap-2 px-8 py-3.5 bg-white border border-amber-200 text-amber-600 rounded-xl text-sm font-bold hover:bg-amber-50 transition-all active:scale-95 shadow-sm"
+            >
+              <Edit3 size={18} />
+              Edit GRN
+            </button>
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 px-8 py-3.5 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-100 transition-all active:scale-95 shadow-sm"

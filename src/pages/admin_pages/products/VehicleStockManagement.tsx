@@ -148,7 +148,7 @@ export default function VehicleStockManagement() {
           const hasChTag = tags.some((t: string) => t.startsWith('CH:'));
           const isVehicle = p.liveStockChannel?.isVehicle !== undefined
             ? Boolean(p.liveStockChannel.isVehicle)
-            : (hasChTag ? tags.includes('CH:VEHICLE') : (p.isVehicle !== false));
+            : (hasChTag ? tags.includes('CH:VEHICLE') : Boolean(p.isVehicle));
           const variants = Array.isArray(p.variants) ? p.variants : [];
           const firstVar = variants[0] || {};
           const variantName = p.variantName || firstVar.variantName || firstVar.name || 'Default';

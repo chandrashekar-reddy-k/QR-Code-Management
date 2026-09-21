@@ -1,8 +1,7 @@
-// @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Sparkles, Search, Star, Percent, Clock, Zap,
-  Check, RefreshCw, ShoppingBag, X, RotateCcw 
+  Check, RefreshCw, ShoppingBag, X, RotateCcw, Smartphone
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -50,10 +49,40 @@ export default function HomepagePromos() {
 
   // Load products list via the hook - filter to only active, approved products for this partner's warehouse
   const { data: productsRes, isFetching } = useGetAllProductList(1, 1000, searchQuery, true, "APPROVED", partnerWarehouseId);
-  const products = (productsRes as any)?.data?.products ?? [];
+  const rawProducts = (productsRes as any)?.data?.products ?? [];
+
+  // Filter only products present in the Online (Customer App) channel (identical logic to /inventory/online)
+  const isOnlineProduct = (p: any) => {
+    const isPublished = p.onlineAppStock?.isPublished !== undefined
+      ? Boolean(p.onlineAppStock.isPublished)
+      : (p.isOnline === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE')));
+    const hasOnlineStock = Number(p.onlineStock ?? p.onlineAppStock?.onlineStock ?? p.stageStocks?.LIVE) > 0;
+
+    return isPublished || hasOnlineStock;
+  };
+
+  const onlineProducts = useMemo(() => {
+    return (rawProducts || []).filter(isOnlineProduct).map((p: any) => {
+      const onlineStock = (p.onlineStock !== undefined && p.onlineStock !== null)
+        ? Number(p.onlineStock)
+        : (p.onlineAppStock?.onlineStock !== undefined && p.onlineAppStock?.onlineStock !== null
+          ? Number(p.onlineAppStock.onlineStock)
+          : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : (p.stock ?? 0)));
+
+      const effectivePrice = p.onlineAppStock?.onlinePrice ?? p.onlinePrice ?? p.sellingPrice ?? p.price ?? 0;
+      const effectiveMrp = p.mrp ?? p.price ?? effectivePrice;
+
+      return {
+        ...p,
+        onlineStock,
+        onlinePrice: effectivePrice,
+        effectiveMrp
+      };
+    });
+  }, [rawProducts]);
 
   // Determine global/shared flash deal end time if there are active deals
-  const activeFlashProducts = products.filter(p => p.flashDealEnd && new Date(p.flashDealEnd) > new Date());
+  const activeFlashProducts = onlineProducts.filter(p => p.flashDealEnd && new Date(p.flashDealEnd) > new Date());
   // Find the longest remaining deal time to treat as the shared master end time
   const sharedFlashDealEnd = activeFlashProducts.length > 0 
     ? activeFlashProducts.reduce((latest, p) => {
@@ -328,7 +357,7 @@ export default function HomepagePromos() {
     }
   };
 
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = onlineProducts.filter(p => {
     if (activeTab === 'popular') {
       return p.isFeatured;
     } else if (activeTab === 'weekly') {
@@ -345,7 +374,7 @@ export default function HomepagePromos() {
   });
 
   const promotedIds = new Set(filteredProducts.map(p => p.id));
-  const nonPromotedProducts = products.filter(p => !promotedIds.has(p.id));
+  const nonPromotedProducts = onlineProducts.filter(p => !promotedIds.has(p.id));
 
   return (
     <div className="p-8 min-h-screen bg-gray-50/50 dark:bg-gray-955/20 text-gray-900 dark:text-gray-100 animate-fadeIn">
@@ -643,14 +672,17 @@ export default function HomepagePromos() {
 
         {/* Promotion Panel */}
         <div className="bg-white dark:bg-gray-900/50 border border-gray-150 dark:border-gray-800 p-6 rounded-3xl shadow-sm h-fit">
-          <h2 className="text-lg font-bold mb-1">Promote Products</h2>
-          <p className="text-gray-500 text-xs mb-4">Search and add products to the homepage promo sections.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <Smartphone size={18} className="text-violet-500" />
+            <h2 className="text-lg font-bold">Promote Online Products</h2>
+          </div>
+          <p className="text-gray-500 text-xs mb-4">Search and feature active online (Customer App) products ({onlineProducts.length} available).</p>
 
           <div className="relative mb-6">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Search product by name..."
+              placeholder="Search online products by name..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full bg-gray-50 dark:bg-gray-955 border border-gray-200 dark:border-gray-800 pl-10 pr-4 py-2.5 rounded-2xl outline-none focus:border-violet-500 font-bold text-xs"
@@ -659,10 +691,12 @@ export default function HomepagePromos() {
 
           <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
             {nonPromotedProducts.length === 0 ? (
-              <p className="text-center text-xs text-gray-400 py-6 italic">No other products available.</p>
+              <p className="text-center text-xs text-gray-400 py-6 italic">No other online products available to promote.</p>
             ) : (
               nonPromotedProducts.slice(0, 10).map(product => {
-                const isOutOfStock = product.stock <= 0;
+                const effectiveStock = product.onlineStock ?? product.stock ?? 0;
+                const effectivePrice = product.onlinePrice ?? product.price ?? 0;
+                const isOutOfStock = effectiveStock <= 0;
                 return (
                   <div 
                     key={product.id}
@@ -676,7 +710,7 @@ export default function HomepagePromos() {
                           {product.name}
                           {isOutOfStock && <span className="ml-2 text-[9px] text-red-500 font-extrabold uppercase">(Out of Stock)</span>}
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">Price: ₹{product.price} | Stock: {product.stock || 0}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Online Price: ₹{effectivePrice} | Online Stock: {effectiveStock}</div>
                       </div>
 
                       {isOutOfStock ? (
