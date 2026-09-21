@@ -1,10 +1,10 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, DollarSign, TrendingUp, Percent, RefreshCw, Search, ArrowUpDown } from 'lucide-react';
+import { ShoppingCart, DollarSign, TrendingUp, Percent, RefreshCw, Search, Package, Store } from 'lucide-react';
 import { adminAPI } from '../services/adminService';
 
 export default function ProcurementSalesReport() {
-  const [data, setData] = useState({ summary: null, items: [] });
+  const [data, setData] = useState({ summary: null, items: [], vendors: [] });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -38,10 +38,12 @@ export default function ProcurementSalesReport() {
   }, [startDate, endDate, selectedVendor]);
 
   const filteredItems = (data.items || []).filter(item => {
+    const vName = typeof item.vendorName === 'string' ? item.vendorName : (item.vendorName?.name || '');
     const matchesSearch = item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.vendorName?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesVendor = selectedVendor === 'ALL' || item.vendorName === selectedVendor;
+      vName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.vendorDetails?.displayId && item.vendorDetails.displayId.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesVendor = selectedVendor === 'ALL' || vName === selectedVendor;
     return matchesSearch && matchesVendor;
   });
 
@@ -63,12 +65,19 @@ export default function ProcurementSalesReport() {
           <select
             value={selectedVendor}
             onChange={(e) => setSelectedVendor(e.target.value)}
-            className="px-3 py-2 text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700 shadow-sm"
+            className="px-3 py-2 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-800 shadow-sm max-w-[280px]"
           >
-            <option value="ALL">All Vendors / Suppliers</option>
-            {(data.vendors || []).map((v, i) => (
-              <option key={i} value={v}>{v}</option>
-            ))}
+            <option value="ALL">All Vendors ({data.vendors?.length || 0} Registered)</option>
+            {(data.vendors || []).map((v, i) => {
+              const vendorName = typeof v === 'object' ? v.name : v;
+              const displayId = typeof v === 'object' && v.displayId ? ` (${v.displayId})` : '';
+              const stockInfo = typeof v === 'object' && v.stockQty !== undefined ? ` • Stock: ${v.stockQty}` : '';
+              return (
+                <option key={i} value={vendorName}>
+                  {vendorName}{displayId}{stockInfo}
+                </option>
+              );
+            })}
           </select>
           <input
             type="date"
@@ -140,7 +149,7 @@ export default function ProcurementSalesReport() {
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by item name, category, or vendor..."
+            placeholder="Search by item name, category, vendor or ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white shadow-sm"
@@ -151,21 +160,29 @@ export default function ProcurementSalesReport() {
           onChange={(e) => setSelectedVendor(e.target.value)}
           className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700 shadow-sm"
         >
-          <option value="ALL">Filter by Vendor: All Vendors</option>
-          {(data.vendors || []).map((v, i) => (
-            <option key={i} value={v}>{v}</option>
-          ))}
+          <option value="ALL">Filter by Vendor: All Vendors ({data.vendors?.length || 0})</option>
+          {(data.vendors || []).map((v, i) => {
+            const vendorName = typeof v === 'object' ? v.name : v;
+            const displayId = typeof v === 'object' && v.displayId ? ` (${v.displayId})` : '';
+            const stockInfo = typeof v === 'object' && v.stockQty !== undefined ? ` [Stock: ${v.stockQty} units]` : '';
+            return (
+              <option key={i} value={vendorName}>
+                {vendorName}{displayId}{stockInfo}
+              </option>
+            );
+          })}
         </select>
       </div>
 
       {/* Table Section */}
       <div className="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-collapse min-w-[1100px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
               <th className="py-3 px-4">Item Name</th>
               <th className="py-3 px-4">Category</th>
-              <th className="py-3 px-4">Vendor / Supplier</th>
+              <th className="py-3 px-4">Vendor / Supplier & Stock</th>
+              <th className="py-3 px-4 text-center">Available Stock</th>
               <th className="py-3 px-4 text-right">Procurement Cost</th>
               <th className="py-3 px-4 text-right">Selling Price</th>
               <th className="py-3 px-4 text-center">Qty Sold</th>
@@ -178,28 +195,44 @@ export default function ProcurementSalesReport() {
           <tbody className="divide-y divide-gray-100 text-xs">
             {loading ? (
               <tr>
-                <td colSpan={10} className="py-8 text-center text-gray-400 font-medium">
+                <td colSpan={11} className="py-8 text-center text-gray-400 font-medium">
                   Loading procurement sales data...
                 </td>
               </tr>
             ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-8 text-center text-gray-400 font-medium">
+                <td colSpan={11} className="py-8 text-center text-gray-400 font-medium">
                   No procurement sales data available for selected period.
                 </td>
               </tr>
             ) : (
               filteredItems.map((item, idx) => (
                 <tr key={idx} className="hover:bg-gray-50/80 transition-colors">
-                  <td className="py-3 px-4 font-semibold text-gray-900">{item.name}</td>
+                  <td className="py-3 px-4 font-bold text-gray-900">{item.name}</td>
                   <td className="py-3 px-4 text-gray-600">
                     <span className="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 text-gray-700 rounded-lg">
                       {item.category}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-gray-600">
-                    <span className="px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-700 rounded-lg">
-                      {item.vendorName || 'Direct Procurement'}
+                    <div className="flex flex-col gap-0.5">
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 rounded-lg w-max">
+                        {item.vendorName || 'Direct Procurement'}
+                      </span>
+                      {item.vendorDetails?.displayId && (
+                        <span className="text-[9px] text-gray-400 font-medium tracking-tight">
+                          {item.vendorDetails.displayId} • {item.vendorDetails.category || 'Raw Materials'}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-center font-bold">
+                    <span className={`px-2 py-0.5 rounded-lg text-[10px] ${
+                      (item.currentStock || 0) > 10 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                      (item.currentStock || 0) > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                      'bg-rose-50 text-rose-700 border border-rose-200'
+                    }`}>
+                      {item.currentStock || 0} units
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right text-gray-600">₹{item.procurementCost?.toFixed(2)}</td>
@@ -225,3 +258,4 @@ export default function ProcurementSalesReport() {
     </div>
   );
 }
+

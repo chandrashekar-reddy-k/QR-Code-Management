@@ -101,11 +101,13 @@ export default function PosStockManagement() {
         .map((p: any) => {
           const tags = Array.isArray(p.tags) ? p.tags : [];
           const hasChTag = tags.some((t: string) => t.startsWith('CH:'));
-          const isOnline = hasChTag ? tags.includes('CH:ONLINE') : (p.isOnline !== false);
+          const isOnline = p.onlineAppStock?.isPublished !== undefined
+            ? Boolean(p.onlineAppStock.isPublished)
+            : (hasChTag ? tags.includes('CH:ONLINE') : Boolean(p.isOnline));
           const isPos = p.posStoreStock?.isPosEnabled !== undefined
             ? Boolean(p.posStoreStock.isPosEnabled)
-            : (hasChTag ? tags.includes('CH:POS') : (p.isPos !== false));
-          const isVehicle = hasChTag ? tags.includes('CH:VEHICLE') : (p.isVehicle !== false);
+            : (hasChTag ? tags.includes('CH:POS') : Boolean(p.isPos));
+          const isVehicle = hasChTag ? tags.includes('CH:VEHICLE') : Boolean(p.isVehicle);
 
           const variants = Array.isArray(p.variants) ? p.variants : [];
           const firstVar = variants[0] || {};
