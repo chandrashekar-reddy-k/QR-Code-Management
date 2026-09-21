@@ -88,17 +88,19 @@ const ManageBanners = () => {
     enabled: true,
   });
 
-  const apiResponse = data as BannersApiResponse | undefined;
-  const banners = apiResponse?.data?.banners ?? [];
+  const apiResponse = data as any;
+  const banners = Array.isArray(apiResponse?.data)
+    ? apiResponse.data
+    : (apiResponse?.data?.banners ?? []);
   const bannersWithSerial = useMemo(
     () =>
-      banners.map((banner, index) => ({
+      banners.map((banner: any, index: number) => ({
         ...banner,
         serialNumber: (query.page - 1) * query.limit + index + 1,
       })),
     [banners, query.page, query.limit],
   );
-  const totalCount = Number(apiResponse?.pagination?.total ?? 0);
+  const totalCount = Number(apiResponse?.pagination?.total ?? banners.length);
   const totalPages = Number(apiResponse?.pagination?.totalPages ?? 1);
 
   const handleResetFilters = () => {
