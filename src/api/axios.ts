@@ -5,6 +5,9 @@ const getApiBaseUrl = () => {
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     return 'http://localhost:3004/api/v1';
   }
+  if (typeof window !== 'undefined' && (window.location.hostname.includes('dev') || window.location.hostname.includes('dpartner') || window.location.hostname.includes('uat'))) {
+    return 'https://dpartnerapi.villagkart.com/api/v1';
+  }
   return 'https://apierppartner.villagkart.com/api/v1';
 };
 
