@@ -13,16 +13,51 @@ export default function DayWiseReport() {
   const [searchParams] = useSearchParams();
   const storeId = searchParams.get('storeId');
 
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [quickPreset, setQuickPreset] = useState('30days');
+
   // Detailed View State
   const [selectedDate, setSelectedDate] = useState(null);
   const [detailedData, setDetailedData] = useState([]);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [detailSearch, setDetailSearch] = useState('');
 
+  const handleQuickPreset = (preset) => {
+    setQuickPreset(preset);
+    const today = new Date();
+    const formatDateStr = (d) => d.toISOString().split('T')[0];
+
+    if (preset === 'today') {
+      const dStr = formatDateStr(today);
+      setStartDate(dStr);
+      setEndDate(dStr);
+    } else if (preset === 'yesterday') {
+      const yest = new Date();
+      yest.setDate(today.getDate() - 1);
+      const dStr = formatDateStr(yest);
+      setStartDate(dStr);
+      setEndDate(dStr);
+    } else if (preset === '7days') {
+      const past = new Date();
+      past.setDate(today.getDate() - 6);
+      setStartDate(formatDateStr(past));
+      setEndDate(formatDateStr(today));
+    } else if (preset === '30days') {
+      const past = new Date();
+      past.setDate(today.getDate() - 29);
+      setStartDate(formatDateStr(past));
+      setEndDate(formatDateStr(today));
+    }
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await adminAPI.getTrendsReport({ days: 30, storeId });
+      const params = { storeId };
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      const res = await adminAPI.getDailyReport(params);
       setReportData(res.data);
     } catch (error) {
       toast.error('Failed to load day-wise data');
@@ -44,7 +79,7 @@ export default function DayWiseReport() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [storeId]);
+  useEffect(() => { fetchData(); }, [storeId, startDate, endDate]);
 
   const exportDetailedToExcel = () => {
     if (!detailedData.length) return;
@@ -67,73 +102,139 @@ export default function DayWiseReport() {
     item.category.toLowerCase().includes(detailSearch.toLowerCase())
   );
 
+  const listData = React.useMemo(() => {
+    if (!reportData) return [];
+    if (Array.isArray(reportData)) return reportData;
+    if (Array.isArray(reportData.data)) return reportData.data;
+    if (Array.isArray(reportData.trends)) return reportData.trends;
+    return [];
+  }, [reportData]);
+
   return (
     <ReportLayout title="Day-wise Sales" icon={Calendar} activeTab="day-wise" reportData={reportData} isLoading={isLoading}>
       <div>
         {!selectedDate ? (
           <div 
             key="summary"
-            className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+            className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden space-y-4"
           >
-            <div className="p-8 border-b border-gray-200 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50/30">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight uppercase">Daily Revenue Audit</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Last 30 Days Enterprise Performance</p>
-                  </div>
+            {/* Custom Date Range Filter Bar */}
+            <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+                <span className="text-xs font-bold text-gray-500 mr-1 uppercase">Quick Range:</span>
+                {[
+                  { id: 'today', label: 'Today' },
+                  { id: 'yesterday', label: 'Yesterday' },
+                  { id: '7days', label: 'Last 7 Days' },
+                  { id: '30days', label: 'Last 30 Days' },
+                ].map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleQuickPreset(p.id)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      quickPreset === p.id
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-emerald-50'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 py-1 shadow-2xs">
+                  <Calendar size={14} className="text-emerald-600" />
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">From</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => { setQuickPreset('custom'); setStartDate(e.target.value); }}
+                    className="text-xs font-bold text-gray-800 bg-transparent outline-none cursor-pointer"
+                  />
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">To</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => { setQuickPreset('custom'); setEndDate(e.target.value); }}
+                    className="text-xs font-bold text-gray-800 bg-transparent outline-none cursor-pointer"
+                  />
                 </div>
                 <button 
                   onClick={fetchData} 
-                  className="p-3 rounded-lg bg-white text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-gray-200 active:scale-95 hover:rotate-180 duration-500"
+                  className="p-2 rounded-xl bg-white text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-xs border border-gray-200 cursor-pointer"
+                  title="Refresh Sales Audit"
                 >
-                  <RotateCcw size={20} />
+                  <RotateCcw size={16} />
                 </button>
+              </div>
             </div>
+
+            <div className="px-6 pt-2 pb-4 flex justify-between items-center border-b border-gray-100">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 tracking-tight uppercase">Daily Revenue Audit</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      {startDate && endDate ? `${startDate} to ${endDate}` : 'Custom Date Sales Performance'}
+                    </p>
+                  </div>
+                </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-900/50/50">
-                    <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date / Session</th>
-                    <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Volume</th>
-                    <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Net Revenue</th>
-                    <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Gross Profit</th>
-                    <th className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Insights</th>
+                  <tr className="bg-gray-50/80">
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date / Session</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Volume</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Net Revenue</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Gross Profit</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Insights</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {Array.isArray(reportData) && reportData.map((item, i) => (
-                    <tr 
-                      key={i} 
-                      className="transition-all group cursor-pointer hover:bg-emerald-50/20" 
-                      onClick={() => fetchDetailedData(item.rawDate || item.date)}
-                    >
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center text-gray-400 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-inner">
-                            <Calendar size={20} />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-gray-800">{item.date}</span>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Business Day</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-center">
-                        <span className="px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-tight shadow-sm border border-blue-100">{item.orders} Orders</span>
-                      </td>
-                      <td className="px-8 py-6 text-center text-sm font-bold text-emerald-600 italic">₹{(item.revenue || 0).toLocaleString()}</td>
-                      <td className="px-8 py-6 text-center text-sm font-bold text-emerald-600">₹{(item.profit || 0).toLocaleString()}</td>
-                      <td className="px-8 py-6 text-right">
-                        <div className="flex items-center justify-end text-emerald-600 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                          <span className="text-[10px] font-bold uppercase tracking-widest mr-3">Detailed Audit</span>
-                          <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
-                            <ChevronRight size={18} strokeWidth={3} />
-                          </div>
-                        </div>
+                <tbody className="divide-y divide-gray-100">
+                  {listData.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-gray-400 font-medium">
+                        No sales records found for selected date range.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    listData.map((item, i) => (
+                      <tr 
+                        key={i} 
+                        className="transition-all group cursor-pointer hover:bg-emerald-50/20 text-xs" 
+                        onClick={() => fetchDetailedData(item.rawDate || item.date)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-2xs">
+                              <Calendar size={16} />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-bold text-gray-800">{item.date}</span>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Business Day</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-tight border border-blue-100">{item.orders || item.totalOrders || 0} Orders</span>
+                        </td>
+                        <td className="px-6 py-4 text-center font-bold text-emerald-700 italic">₹{(item.revenue || item.grandTotal || item.totalSales || 0).toLocaleString('en-IN')}</td>
+                        <td className="px-6 py-4 text-center font-bold text-emerald-700">₹{(item.profit || item.totalProfit || 0).toLocaleString('en-IN')}</td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end text-emerald-600 opacity-0 group-hover:opacity-100 transition-all">
+                            <span className="text-[10px] font-bold uppercase tracking-widest mr-2">Detailed Audit</span>
+                            <div className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
+                              <ChevronRight size={14} strokeWidth={3} />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

@@ -271,27 +271,27 @@ const StoreSettings = () => {
           }));
         }
 
-        // Try to load cached address formData
+        // Populate address fields from backend if available, or fall back to cached localStorage data
         const savedFormDataStr = localStorage.getItem('vsms_store_address_formData');
+        let cachedFormData = {};
         if (savedFormDataStr) {
-          try {
-            const savedFormData = JSON.parse(savedFormDataStr);
-            setAddressFormData(prev => ({ ...prev, ...savedFormData }));
-          } catch (e) {
-            console.warn('Error parsing saved address formData', e);
-          }
-        } else if (s.address) {
-          setAddressFormData(prev => ({
-            ...prev,
-            addressLine1: s.addressLine1 || s.address || prev.addressLine1,
-            addressLine2: s.addressLine2 || prev.addressLine2,
-            city: s.city || prev.city,
-            state: s.state || prev.state,
-            country: s.country || prev.country || 'India',
-            pincode: s.pincode || prev.pincode,
-            landmark: s.landmark || prev.landmark,
-          }));
+          try { cachedFormData = JSON.parse(savedFormDataStr); } catch (e) {}
         }
+
+        const addrDetails = s.addressDetails || s;
+        setAddressFormData(prev => ({
+          ...prev,
+          ...cachedFormData,
+          addressLine1: addrDetails.addressLine1 || s.address || cachedFormData.addressLine1 || prev.addressLine1,
+          addressLine2: addrDetails.addressLine2 || cachedFormData.addressLine2 || prev.addressLine2,
+          city: addrDetails.city || cachedFormData.city || prev.city,
+          state: addrDetails.state || cachedFormData.state || prev.state,
+          country: addrDetails.country || cachedFormData.country || prev.country || 'India',
+          pincode: addrDetails.pincode || cachedFormData.pincode || prev.pincode,
+          landmark: addrDetails.landmark || cachedFormData.landmark || prev.landmark,
+          latitude: addrDetails.latitude || cachedFormData.latitude || prev.latitude,
+          longitude: addrDetails.longitude || cachedFormData.longitude || prev.longitude,
+        }));
       } catch (err) {
         console.warn('Failed to load store settings from API:', err);
         const savedFormDataStr = localStorage.getItem('vsms_store_address_formData');
@@ -344,6 +344,7 @@ const StoreSettings = () => {
         landmark: addressFormData.landmark,
         latitude: addressFormData.latitude,
         longitude: addressFormData.longitude,
+        addressDetails: addressFormData,
       });
 
       toast.success('Store & Address settings updated successfully!');
