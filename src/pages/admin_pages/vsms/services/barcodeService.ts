@@ -4,6 +4,7 @@ export const barcodeAPI = {
   getDashboardStats: () => api.get('/barcode/dashboard'),
   getBarcodeMasterList: (params) => api.get('/barcode', { params }),
   generateBarcode: (productId, variantId) => api.post('/barcode', { productId, variantId }),
+  quickMapBarcode: (data: { productId: string; variantId?: string | null; barcode: string | null }) => api.post('/barcode/quick-map', data),
   mapSupplierBarcode: (data) => api.post('/barcode/map-supplier', data),
   deleteSupplierMapping: (id) => api.delete(`/barcode/map-supplier/${id}`),
   logPrint: (data) => api.post('/barcode/log-print', data),

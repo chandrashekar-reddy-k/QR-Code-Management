@@ -439,6 +439,7 @@ export default function AdminPOS() {
         totalAmount,
         items: items.map(i => ({
           productId: i.productId,
+          productVariantId: i.productVariantId || null,
           quantity: i.quantity,
           name: i.name,
           price: i.price,
@@ -473,7 +474,14 @@ export default function AdminPOS() {
     order.items.forEach(item => {
       const product = products.find(p => p.id === item.productId);
       if (product) {
-        addItem(product, item.quantity);
+        const itemObj = {
+          ...product,
+          id: product.id,
+          name: item.name || product.name,
+          price: item.price || product.price,
+          image: item.image || product.image
+        };
+        addItem(itemObj, item.quantity, item.productVariantId || null);
       }
     });
 
@@ -506,16 +514,59 @@ export default function AdminPOS() {
   };
 
   const handleBarcodeScan = (code) => {
-    const product = products.find(p => p.skuCode === code || p.barcode === code);
-    if (product) {
-      if (product.stock <= 0) {
-        toast.error(`${product.name} is out of stock`);
+    const cleanCode = String(code || '').trim();
+    if (!cleanCode) return;
+
+    // 1. Search flattened POS items (which contains all variants as separate items)
+    const matchingPosItem = flattenedPosItems.find(
+      (item: any) =>
+        (item.barcode && String(item.barcode).trim() === cleanCode) ||
+        (item.sku && String(item.sku).trim() === cleanCode) ||
+        (item.skuCode && String(item.skuCode).trim() === cleanCode) ||
+        (item.rawVariant?.gtin && String(item.rawVariant.gtin).trim() === cleanCode) ||
+        (item.rawVariant?.barcode && String(item.rawVariant.barcode).trim() === cleanCode) ||
+        (item.rawVariant?.sku && String(item.rawVariant.sku).trim() === cleanCode)
+    );
+
+    if (matchingPosItem) {
+      if (matchingPosItem.stock <= 0) {
+        toast.error(`${matchingPosItem.name} is out of stock`);
+        return;
+      }
+      addItem(
+        {
+          id: matchingPosItem.productId,
+          name: matchingPosItem.name,
+          price: matchingPosItem.price,
+          mrp: matchingPosItem.mrp,
+          stock: matchingPosItem.stock,
+          image: matchingPosItem.image,
+          category: matchingPosItem.category
+        },
+        1,
+        matchingPosItem.productVariantId || null
+      );
+      toast.success(`Scanned & added: ${matchingPosItem.name}`);
+      return;
+    }
+
+    // 2. Check if scanned barcode matches a parent product
+    const rawProd = products.find(
+      p => (p.skuCode && p.skuCode.trim() === cleanCode) ||
+           (p.barcode && p.barcode.trim() === cleanCode) ||
+           (p.sku && p.sku.trim() === cleanCode)
+    );
+    if (rawProd) {
+      if (rawProd.variants && rawProd.variants.length > 0) {
+        setActiveVariantProduct(rawProd);
+      } else if (rawProd.stock <= 0) {
+        toast.error(`${rawProd.name} is out of stock`);
       } else {
-        setScannedProduct(product);
+        setScannedProduct(rawProd);
         setScannedQuantity(1);
       }
     } else {
-      setUnavailableCode(code);
+      setUnavailableCode(cleanCode);
     }
   };
 
@@ -592,13 +643,10 @@ export default function AdminPOS() {
     return () => clearInterval(timer);
   }, []);
 
-  const categories = useMemo(() => {
-    const cats = [...new Set(products.map(p => p.category?.name).filter(Boolean))];
-    return ['ALL', ...cats];
-  }, [products]);
-
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+  // Flatten products so that every variant is displayed as a separate, distinct card in POS
+  const flattenedPosItems = useMemo(() => {
+    const list: any[] = [];
+    products.forEach((p: any) => {
       // Must be present in PosStoreStock and enabled for POS
       const isPos = p.isPosEnabled !== undefined
         ? p.isPosEnabled
@@ -606,15 +654,83 @@ export default function AdminPOS() {
           ? p.isPos
           : (p.posStoreStock?.isPosEnabled !== undefined ? p.posStoreStock.isPosEnabled : false));
 
-      if (!isPos) return false;
+      if (!isPos) return;
 
-      const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesCategory = selectedCategory === 'ALL' || p.category?.name === selectedCategory;
-      return matchesSearch && matchesCategory;
+      if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+        p.variants.forEach((v: any) => {
+          const varPrice = Number(v.sellingPrice ?? v.salePrice ?? v.finalPrice ?? v.posPrice ?? v.price ?? p.price ?? 0);
+          const varMrp = Number(v.mrp ?? p.mrp ?? 0);
+          const varStock = v.stock !== undefined && v.stock !== null ? Number(v.stock) : (v.posStock !== undefined && v.posStock !== null ? Number(v.posStock) : Number(p.stock ?? 0));
+          list.push({
+            ...p,
+            id: `${p.id}_var_${v.id}`,
+            productId: p.id,
+            productVariantId: v.id,
+            isVariant: true,
+            variantName: v.variantName,
+            displayName: p.name,
+            fullName: `${p.name} (${v.variantName})`,
+            name: `${p.name} (${v.variantName})`,
+            price: varPrice,
+            mrp: varMrp,
+            stock: varStock,
+            barcode: v.gtin || v.barcode || p.barcode || '',
+            sku: v.sku || p.sku || '',
+            image: v.image || p.image,
+            rawProduct: p,
+            rawVariant: v
+          });
+        });
+      } else {
+        list.push({
+          ...p,
+          productId: p.id,
+          productVariantId: null,
+          isVariant: false,
+          variantName: null,
+          displayName: p.name,
+          fullName: p.name,
+          name: p.name,
+          price: Number(p.price ?? 0),
+          mrp: Number(p.mrp ?? 0),
+          stock: Number(p.stock ?? 0),
+          barcode: p.barcode || '',
+          sku: p.sku || '',
+          rawProduct: p,
+          rawVariant: null
+        });
+      }
     });
-  }, [products, searchTerm, selectedCategory]);
+    return list;
+  }, [products]);
+
+  const categories = useMemo(() => {
+    const cats = [...new Set(flattenedPosItems.map((p: any) => p.category?.name).filter(Boolean))];
+    return ['ALL', ...cats];
+  }, [flattenedPosItems]);
+
+  const filteredProducts = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return flattenedPosItems.filter((item: any) => {
+      const matchesCategory = selectedCategory === 'ALL' || item.category?.name === selectedCategory;
+      if (!matchesCategory) return false;
+
+      if (!q) return true;
+
+      const matchesSearch =
+        (item.name && item.name.toLowerCase().includes(q)) ||
+        (item.displayName && item.displayName.toLowerCase().includes(q)) ||
+        (item.variantName && item.variantName.toLowerCase().includes(q)) ||
+        (item.barcode && String(item.barcode).toLowerCase().includes(q)) ||
+        (item.sku && String(item.sku).toLowerCase().includes(q)) ||
+        (item.skuCode && String(item.skuCode).toLowerCase().includes(q)) ||
+        (item.rawVariant?.gtin && String(item.rawVariant.gtin).toLowerCase().includes(q)) ||
+        (item.rawVariant?.barcode && String(item.rawVariant.barcode).toLowerCase().includes(q)) ||
+        (item.rawVariant?.sku && String(item.rawVariant.sku).toLowerCase().includes(q));
+
+      return matchesSearch;
+    });
+  }, [flattenedPosItems, searchTerm, selectedCategory]);
 
   const validateCustomerDetails = () => {
     const trimmedName = customerName?.trim();
@@ -677,7 +793,7 @@ export default function AdminPOS() {
       const offlinePayload = {
         mobile: customerMobile || undefined,
         customerName: customerName || undefined,
-        items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+        items: items.map(i => ({ productId: i.productId, productVariantId: i.productVariantId || undefined, quantity: i.quantity })),
         storeId,
         terminalId,
         paymentMode: selectedPaymentMode,
@@ -698,7 +814,7 @@ export default function AdminPOS() {
       const { data: order } = await ordersAPI.createFromCart({
         mobile: customerMobile || undefined,
         customerName: customerName || undefined,
-        items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+        items: items.map(i => ({ productId: i.productId, productVariantId: i.productVariantId || undefined, quantity: i.quantity })),
         storeId,
         terminalId,
       });
@@ -735,7 +851,7 @@ export default function AdminPOS() {
         const offlinePayload = {
           mobile: customerMobile || undefined,
           customerName: customerName || undefined,
-          items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+          items: items.map(i => ({ productId: i.productId, productVariantId: i.productVariantId || undefined, quantity: i.quantity })),
           storeId,
           terminalId,
           paymentMode: selectedPaymentMode,
@@ -1760,8 +1876,10 @@ export default function AdminPOS() {
                     <p className="font-black text-sm uppercase tracking-widest">No products found</p>
                   </div>
                 ) : (
-                  filteredProducts.map((product) => {
-                    const inCart = items.find(i => i.productId === product.id);
+                  filteredProducts.map((product: any) => {
+                    const inCart = items.find(
+                      (i) => i.productId === product.productId && (i.productVariantId || null) === (product.productVariantId || null)
+                    );
                     return (
                       <div
                         key={product.id}
@@ -1770,15 +1888,25 @@ export default function AdminPOS() {
                             toast.error('Please click DONE to start a new sale');
                             return;
                           }
-                          if (product.variants && product.variants.length > 0) {
-                            setActiveVariantProduct(product);
-                            return;
-                          }
                           if (product.stock <= 0) {
-                            toast.error('Product out of stock');
+                            toast.error(`${product.name} is out of stock`);
                             return;
                           }
-                          if (!inCart) addItem(product);
+                          if (!inCart) {
+                            addItem(
+                              {
+                                id: product.productId,
+                                name: product.name,
+                                price: product.price,
+                                mrp: product.mrp,
+                                stock: product.stock,
+                                image: product.image,
+                                category: product.category
+                              },
+                              1,
+                              product.productVariantId || null
+                            );
+                          }
                         }}
                         className={`group relative bg-white rounded-3xl p-3 border transition-all flex flex-col justify-between h-[300px] overflow-hidden ${
                           inCart ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/10' : 'border-slate-100 hover:border-slate-200 hover:shadow-xl hover:shadow-emerald-950/5'
@@ -1798,6 +1926,13 @@ export default function AdminPOS() {
                             </div>
                           )}
 
+                          {/* Variant Badge overlay on image */}
+                          {product.isVariant && product.variantName && (
+                            <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-violet-600/90 text-white shadow-sm backdrop-blur-xs">
+                              {product.variantName}
+                            </div>
+                          )}
+
                           {/* In-cart indicator badge */}
                           {inCart && (
                             <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-md animate-in zoom-in">
@@ -1806,16 +1941,24 @@ export default function AdminPOS() {
                           )}
                         </div>
 
-                        {/* Info Area (Name, Damage, Price, Stock) */}
+                        {/* Info Area (Name, Variant, Price, Stock) */}
                         <div className="flex-1 flex flex-col justify-between gap-1 mb-3">
                           <div className="space-y-0.5">
-                            {/* Category (small single line) */}
-                            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest block truncate" title={product.category?.name || 'General'}>
-                              {product.category?.name || 'General'}
-                            </span>
+                            {/* Category & Variant Tag */}
+                            <div className="flex items-center gap-1.5 overflow-hidden">
+                              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest truncate" title={product.category?.name || 'General'}>
+                                {product.category?.name || 'General'}
+                              </span>
+                              {product.isVariant && product.variantName && (
+                                <span className="text-[8px] font-black text-violet-600 bg-violet-50 px-1.5 py-0.2 rounded border border-violet-100 uppercase shrink-0">
+                                  {product.variantName}
+                                </span>
+                              )}
+                            </div>
+
                             {/* Name */}
                             <h4 className="text-[11px] font-black text-slate-800 leading-snug uppercase line-clamp-2 block" title={product.name}>
-                              {product.name}
+                              {product.displayName || product.name}
                             </h4>
                           </div>
 
@@ -1841,7 +1984,7 @@ export default function AdminPOS() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (checkoutStep === 'SUCCESS') return;
-                                  updateQuantity(inCart.productId, inCart.quantity - 1);
+                                  updateQuantity(product.productId, inCart.quantity - 1, product.productVariantId || null);
                                 }}
                                 className={`w-7 h-7 flex items-center justify-center bg-white rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600 border border-slate-100 shadow-sm transition-all ${checkoutStep === 'SUCCESS' ? 'cursor-not-allowed' : ''}`}
                               >
@@ -1852,7 +1995,11 @@ export default function AdminPOS() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (checkoutStep === 'SUCCESS') return;
-                                  updateQuantity(inCart.productId, inCart.quantity + 1);
+                                  if (inCart.quantity >= product.stock) {
+                                    toast.error('Cannot exceed available stock');
+                                    return;
+                                  }
+                                  updateQuantity(product.productId, inCart.quantity + 1, product.productVariantId || null);
                                 }}
                                 className={`w-7 h-7 flex items-center justify-center bg-white rounded-lg text-emerald-600 hover:bg-emerald-50 border border-slate-100 shadow-sm transition-all ${checkoutStep === 'SUCCESS' ? 'cursor-not-allowed' : ''}`}
                               >
@@ -1861,21 +2008,33 @@ export default function AdminPOS() {
                             </div>
                           ) : (
                             <button
-                              disabled={product.stock <= 0 && (!product.variants || product.variants.length === 0)}
+                              disabled={product.stock <= 0}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (checkoutStep === 'SUCCESS') {
                                   toast.error('Please click DONE to start a new sale');
                                   return;
                                 }
-                                if (product.variants && product.variants.length > 0) {
-                                  setActiveVariantProduct(product);
-                                } else {
-                                  addItem(product);
+                                if (product.stock <= 0) {
+                                  toast.error('Product out of stock');
+                                  return;
                                 }
+                                addItem(
+                                  {
+                                    id: product.productId,
+                                    name: product.name,
+                                    price: product.price,
+                                    mrp: product.mrp,
+                                    stock: product.stock,
+                                    image: product.image,
+                                    category: product.category
+                                  },
+                                  1,
+                                  product.productVariantId || null
+                                );
                               }}
                               className={`w-full py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 border ${
-                                product.stock <= 0 && (!product.variants || product.variants.length === 0)
+                                product.stock <= 0
                                   ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' 
                                   : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-100 hover:border-emerald-600 shadow-sm active:scale-95'
                               }`}
@@ -1998,7 +2157,7 @@ export default function AdminPOS() {
                         </div>
                       ) : (
                         items.map(item => (
-                          <div key={item.productId} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 group hover:border-emerald-200 transition-all">
+                          <div key={`${item.productId}-${item.productVariantId || 'base'}`} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 group hover:border-emerald-200 transition-all">
                             <div className="w-12 h-12 bg-slate-50 rounded-xl overflow-hidden shrink-0 border border-slate-100">
                               {item.image ? (
                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -2012,21 +2171,21 @@ export default function AdminPOS() {
                             </div>
                             <div className="flex flex-col items-end gap-1.5">
                               <button 
-                                onClick={() => removeItem(item.productId)}
+                                onClick={() => removeItem(item.productId, item.productVariantId || null)}
                                 className="p-1 text-slate-300 hover:text-rose-500 transition-colors"
                               >
                                 <Trash2 size={12} />
                               </button>
                               <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
                                 <button
-                                  onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                                  onClick={() => updateQuantity(item.productId, item.quantity - 1, item.productVariantId || null)}
                                   className="w-5 h-5 flex items-center justify-center bg-white rounded text-slate-400 hover:text-rose-500 shadow-sm"
                                 >
                                   <Minus size={10} strokeWidth={3} />
                                 </button>
                                 <span className="w-4 text-center text-[10px] font-black">{item.quantity}</span>
                                 <button
-                                  onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                                  onClick={() => updateQuantity(item.productId, item.quantity + 1, item.productVariantId || null)}
                                   className="w-5 h-5 flex items-center justify-center bg-white rounded text-emerald-600 hover:bg-emerald-50 shadow-sm"
                                 >
                                   <Plus size={10} strokeWidth={3} />
@@ -2901,16 +3060,44 @@ export default function AdminPOS() {
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 py-2 text-left">
               {activeVariantProduct.variants?.map((variant) => {
                 const inCartVar = items.find(i => i.productId === activeVariantProduct.id && i.productVariantId === variant.id);
+                const q = searchTerm.trim().toLowerCase();
+                const isMatch = Boolean(
+                  q && (
+                    (variant.gtin && String(variant.gtin).toLowerCase().includes(q)) ||
+                    (variant.barcode && String(variant.barcode).toLowerCase().includes(q)) ||
+                    (variant.sku && String(variant.sku).toLowerCase().includes(q)) ||
+                    (variant.variantName && String(variant.variantName).toLowerCase().includes(q))
+                  )
+                );
                 return (
                   <div 
                     key={variant.id}
                     className={`flex justify-between items-center p-4 rounded-2xl border transition-all ${
-                      inCartVar ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-100 hover:border-slate-200'
+                      isMatch
+                        ? 'border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-500/20'
+                        : inCartVar
+                        ? 'border-emerald-500 bg-emerald-50/10'
+                        : 'border-slate-100 hover:border-slate-200'
                     }`}
                   >
                     <div>
-                      <div className="text-xs font-black text-slate-800 uppercase">{variant.variantName}</div>
-                      <div className="text-[10px] text-slate-400 font-bold mt-0.5">SKU: {variant.sku || '—'}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-slate-800 uppercase">{variant.variantName}</span>
+                        {isMatch && (
+                          <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-emerald-600 text-white">
+                            Matched
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold mt-0.5">
+                        <span>SKU: {variant.sku || '—'}</span>
+                        {(variant.gtin || variant.barcode) && (
+                          <span className="inline-flex items-center gap-1 font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            <Barcode size={10} />
+                            {variant.gtin || variant.barcode}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-baseline gap-1.5 mt-2">
                         <span className="text-sm font-black text-slate-900">₹{(variant.price || variant.sellingPrice || 0).toFixed(2)}</span>
                         {variant.mrp > (variant.price || variant.sellingPrice) && (
@@ -2957,7 +3144,8 @@ export default function AdminPOS() {
                               name: `${activeVariantProduct.name} (${variant.variantName})`,
                               price: variant.price || variant.sellingPrice || 0,
                               mrp: variant.mrp || 0,
-                              stock: variant.stock || 0
+                              stock: variant.stock || 0,
+                              barcode: variant.gtin || variant.barcode || activeVariantProduct.barcode
                             };
                             addItem(variantProduct, 1, variant.id);
                             toast.success(`Added ${variant.variantName} to cart`);

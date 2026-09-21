@@ -5,13 +5,14 @@ import {
   Calendar, ArrowRight, User, DollarSign, FileText, AlertCircle,
   Truck, X, ChevronRight, Check, Send, Printer, RefreshCw,
   Camera, ShoppingBag, CreditCard, ChevronDown, MessageSquare,
-  ArrowLeft, ChevronLeft, Wand2, Sparkles, Loader2
+  ArrowLeft, ChevronLeft, Wand2, Sparkles, Loader2, Trash2, Tag
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useUserStore } from '../store/userStore';
 import { getTodayPlan } from '../services/routeService';
+import { productsAPI } from '../services/api';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3004/api/v1' : '/api/v1';
 
@@ -65,16 +66,14 @@ export default function AgentPreOrders() {
   const [deliveryDateOption, setDeliveryDateOption] = useState<'tomorrow' | 'day_after' | 'custom'>('tomorrow');
   const [customDate, setCustomDate] = useState('');
   const [deliverySlot, setDeliverySlot] = useState('Morning (8 AM - 12 PM)');
-  const [customNotes, setCustomNotes] = useState('');
-  const [customEstimatedAmount, setCustomEstimatedAmount] = useState<string>('');
   const [advanceAmount, setAdvanceAmount] = useState<string>('0');
   const [advanceMode, setAdvanceMode] = useState<'NONE' | 'CASH' | 'UPI'>('NONE');
   const [submitting, setSubmitting] = useState(false);
 
   // Product Catalog
-  const [itemMode, setItemMode] = useState<'catalog' | 'word_of_mouth'>('word_of_mouth');
   const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedCatalogItems, setSelectedCatalogItems] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
@@ -117,21 +116,64 @@ export default function AgentPreOrders() {
   useEffect(() => { loadData(); }, []);
 
   useEffect(() => {
-    if (view === 'form' && catalogProducts.length === 0) fetchCatalog();
-  }, [view]);
+    fetchCatalog();
+  }, []);
 
   const fetchCatalog = async () => {
     setLoadingProducts(true);
     try {
-      let res;
-      try {
-        res = await api.get('/agent/products');
-      } catch {
-        res = await api.get('/vsms/products');
-      }
-      const data = Array.isArray(res.data) ? res.data : (res.data?.products || []);
-      setCatalogProducts(data);
-    } catch { } finally {
+      const res = await productsAPI.getAll({ showAll: true });
+      const rawProducts = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.products || []);
+
+      // Flatten products and variants for direct catalog selection
+      const list: any[] = [];
+      rawProducts.forEach((p: any) => {
+        if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+          p.variants.forEach((v: any) => {
+            const price = Number(v.sellingPrice ?? v.salePrice ?? v.finalPrice ?? v.posPrice ?? v.price ?? p.price ?? 0);
+            list.push({
+              id: `${p.id}_var_${v.id}`,
+              productId: p.id,
+              productVariantId: v.id,
+              isVariant: true,
+              variantName: v.variantName,
+              displayName: p.name,
+              name: `${p.name} (${v.variantName})`,
+              price: price,
+              mrp: Number(v.mrp ?? p.mrp ?? 0),
+              stock: v.stock !== undefined && v.stock !== null ? Number(v.stock) : (v.posStock !== undefined && v.posStock !== null ? Number(v.posStock) : Number(p.stock ?? 0)),
+              sku: v.sku || p.sku || '',
+              barcode: v.gtin || v.barcode || p.barcode || '',
+              category: p.category?.name || 'General',
+              image: v.image || p.images?.[0] || p.image || null,
+              unit: p.unit?.type || p.unit || 'pcs'
+            });
+          });
+        } else {
+          list.push({
+            id: p.id,
+            productId: p.id,
+            productVariantId: null,
+            isVariant: false,
+            variantName: null,
+            displayName: p.name,
+            name: p.name,
+            price: Number(p.sellingPrice ?? p.price ?? 0),
+            mrp: Number(p.mrp ?? 0),
+            stock: Number(p.stock ?? 0),
+            sku: p.sku || p.skuCode || '',
+            barcode: p.barcode || '',
+            category: p.category?.name || 'General',
+            image: p.images?.[0] || p.image || null,
+            unit: p.unit?.type || p.unit || 'pcs'
+          });
+        }
+      });
+      setCatalogProducts(list);
+    } catch (err) {
+      console.error('Failed to load catalog in AgentPreOrders:', err);
+      toast.error('Failed to load product catalog');
+    } finally {
       setLoadingProducts(false);
     }
   };
@@ -150,33 +192,54 @@ export default function AgentPreOrders() {
     }
   }, [customerPhone]);
 
+  const categories = useMemo(() => {
+    const cats = [...new Set(catalogProducts.map(p => p.category).filter(Boolean))];
+    return ['ALL', ...cats];
+  }, [catalogProducts]);
+
   const filteredCatalog = useMemo(() => {
-    if (!catalogSearch) return catalogProducts.slice(0, 15);
-    const q = catalogSearch.toLowerCase();
-    return catalogProducts.filter(p =>
-      p.name?.toLowerCase().includes(q) || p.skuCode?.toLowerCase().includes(q)
-    ).slice(0, 20);
-  }, [catalogProducts, catalogSearch]);
+    const q = catalogSearch.trim().toLowerCase();
+    return catalogProducts.filter(p => {
+      const matchesCategory = selectedCategory === 'ALL' || p.category === selectedCategory;
+      if (!matchesCategory) return false;
+      if (!q) return true;
+      return (
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.displayName && p.displayName.toLowerCase().includes(q)) ||
+        (p.variantName && p.variantName.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.barcode && String(p.barcode).toLowerCase().includes(q))
+      );
+    });
+  }, [catalogProducts, catalogSearch, selectedCategory]);
 
   const handleAddCatalogItem = (prod: any) => {
-    const existing = selectedCatalogItems.find(i => i.productId === prod.id);
+    const existing = selectedCatalogItems.find(
+      i => i.productId === prod.productId && (i.productVariantId || null) === (prod.productVariantId || null)
+    );
     if (existing) {
-      setSelectedCatalogItems(prev => prev.map(i => i.productId === prod.id ? { ...i, quantity: i.quantity + 1 } : i));
+      setSelectedCatalogItems(prev => prev.map(i =>
+        (i.productId === prod.productId && (i.productVariantId || null) === (prod.productVariantId || null))
+          ? { ...i, quantity: i.quantity + 1 }
+          : i
+      ));
     } else {
       setSelectedCatalogItems(prev => [...prev, {
-        productId: prod.id,
+        id: prod.id,
+        productId: prod.productId,
+        productVariantId: prod.productVariantId || null,
         productName: prod.name,
-        unitPrice: Number(prod.sellingPrice || prod.price || 0),
+        unitPrice: Number(prod.price || prod.sellingPrice || 0),
         quantity: 1,
-        image: prod.images?.[0] || prod.image || null,
+        image: prod.image || null,
         unit: prod.unit || 'pcs'
       }]);
     }
   };
 
-  const handleUpdateCatalogQty = (identifier: string, delta: number) => {
+  const handleUpdateCatalogQty = (itemKey: string, delta: number) => {
     setSelectedCatalogItems(prev => prev.map(item => {
-      const match = (item.productId && item.productId === identifier) || item.productName === identifier || identifier.includes(item.productName);
+      const match = (item.id === itemKey) || (item.productId === itemKey) || (item.productName === itemKey);
       if (match) {
         const newQty = item.quantity + delta;
         return newQty > 0 ? { ...item, quantity: newQty } : null;
@@ -185,19 +248,21 @@ export default function AgentPreOrders() {
     }).filter(Boolean));
   };
 
+  const handleRemoveCatalogItem = (itemKey: string) => {
+    setSelectedCatalogItems(prev => prev.filter(item => item.id !== itemKey && item.productId !== itemKey && item.productName !== itemKey));
+  };
+
   const catalogSubtotal = useMemo(() =>
     selectedCatalogItems.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0)
   , [selectedCatalogItems]);
 
-  const calculatedTotal = useMemo(() =>
-    catalogSubtotal + Number(customEstimatedAmount || 0)
-  , [catalogSubtotal, customEstimatedAmount]);
+  const calculatedTotal = catalogSubtotal;
 
   const handleCreatePreOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerPhone || !customerName) return toast.error('Customer name and phone required');
     if (!villageName) return toast.error('Village / locality is required');
-    if (selectedCatalogItems.length === 0 && !customNotes.trim()) return toast.error('Add items or enter customer notes');
+    if (selectedCatalogItems.length === 0) return toast.error('Please select at least 1 product from the catalog');
 
     let resolvedDate = tomorrowStr;
     if (deliveryDateOption === 'day_after') resolvedDate = dayAfterStr;
@@ -214,14 +279,12 @@ export default function AgentPreOrders() {
         deliveryDate: resolvedDate,
         deliverySlot,
         catalogItems: selectedCatalogItems,
-        customNotes,
-        customEstimatedAmount: Number(customEstimatedAmount || 0),
         advanceAmount: Number(advanceAmount || 0),
         advancePaymentMode: advanceMode,
         source: 'VEHICLE_AGENT'
       });
       if (res.data.success) {
-        toast.success('Pre-order booked!');
+        toast.success('Pre-order booked successfully!');
         setSelectedOrderDetails(res.data.preOrder);
         resetForm();
         loadData();
@@ -239,28 +302,66 @@ export default function AgentPreOrders() {
     if (prods.length === 0) {
       setLoadingProducts(true);
       try {
-        let res;
-        try {
-          res = await api.get('/agent/products');
-        } catch {
-          res = await api.get('/vsms/products');
-        }
-        prods = Array.isArray(res.data) ? res.data : (res.data?.products || []);
-        setCatalogProducts(prods);
-      } catch {
-        // fallback
+        const res = await productsAPI.getAll({ showAll: true });
+        const rawProducts = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.products || []);
+        const list: any[] = [];
+        rawProducts.forEach((p: any) => {
+          if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+            p.variants.forEach((v: any) => {
+              const price = Number(v.sellingPrice ?? v.salePrice ?? v.finalPrice ?? v.posPrice ?? v.price ?? p.price ?? 0);
+              list.push({
+                id: `${p.id}_var_${v.id}`,
+                productId: p.id,
+                productVariantId: v.id,
+                isVariant: true,
+                variantName: v.variantName,
+                displayName: p.name,
+                name: `${p.name} (${v.variantName})`,
+                price: price,
+                mrp: Number(v.mrp ?? p.mrp ?? 0),
+                stock: v.stock !== undefined && v.stock !== null ? Number(v.stock) : (v.posStock !== undefined && v.posStock !== null ? Number(v.posStock) : Number(p.stock ?? 0)),
+                sku: v.sku || p.sku || '',
+                barcode: v.gtin || v.barcode || p.barcode || '',
+                category: p.category?.name || 'General',
+                image: v.image || p.images?.[0] || p.image || null,
+                unit: p.unit?.type || p.unit || 'pcs'
+              });
+            });
+          } else {
+            list.push({
+              id: p.id,
+              productId: p.id,
+              productVariantId: null,
+              isVariant: false,
+              variantName: null,
+              displayName: p.name,
+              name: p.name,
+              price: Number(p.sellingPrice ?? p.price ?? 0),
+              mrp: Number(p.mrp ?? 0),
+              stock: Number(p.stock ?? 0),
+              sku: p.sku || p.skuCode || '',
+              barcode: p.barcode || '',
+              category: p.category?.name || 'General',
+              image: p.images?.[0] || p.image || null,
+              unit: p.unit?.type || p.unit || 'pcs'
+            });
+          }
+        });
+        prods = list;
+        setCatalogProducts(list);
+      } catch (e) {
+        console.error('Autofill catalog fetch error:', e);
       } finally {
         setLoadingProducts(false);
       }
     }
 
-    // Pick 10-15 products
     const sampleNames = [
       'Ramesh Kumar', 'Suresh Reddy', 'Lakshmi Bai', 'Venkatesh Goud',
       'Narayana Murthy', 'Anitha Devi', 'Mallesh Yadav', 'Rajesh Sharma'
     ];
     const sampleVillages = [
-      'Shankarpally', 'Chevella', 'Mokila', 'Janwada', 'Kondapur Village', 'Mirzaguda'
+      'Shankarpally', 'Chevella', 'Mokila', 'Janwada', 'Kondapur Village', 'Mirzaguda', 'Komerapudi'
     ];
 
     const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
@@ -274,19 +375,19 @@ export default function AgentPreOrders() {
     setDeliveryAddress(`H.No 3-45, Main Bazaar, ${randomVillage}`);
     setDeliveryDateOption('tomorrow');
     setDeliverySlot('Morning (8 AM - 12 PM)');
-    setItemMode('catalog');
 
     if (prods && prods.length > 0) {
-      // Pick 10 to 15 random or sequential products from catalog
       const count = Math.min(prods.length, Math.floor(Math.random() * 6) + 10); // 10 to 15
       const shuffled = [...prods].sort(() => 0.5 - Math.random()).slice(0, count);
-      const items = shuffled.map((p, idx) => ({
-        productId: p.id,
+      const items = shuffled.map((p) => ({
+        id: p.id,
+        productId: p.productId,
+        productVariantId: p.productVariantId || null,
         productName: p.name,
-        unitPrice: Number(p.sellingPrice || p.price || 100),
+        unitPrice: Number(p.price || 100),
         quantity: Math.floor(Math.random() * 3) + 1,
-        image: p.images?.[0] || p.image || null,
-        unit: p.unit?.type || p.unit || 'pcs'
+        image: p.image || null,
+        unit: p.unit || 'pcs'
       }));
       setSelectedCatalogItems(items);
       const total = items.reduce((s, it) => s + (it.unitPrice * it.quantity), 0);
@@ -295,42 +396,15 @@ export default function AgentPreOrders() {
       setAdvanceAmount(String(adv));
       toast.success(`Autofilled with ${items.length} products!`);
     } else {
-      // Fallback if catalog products API is empty: populate with realistic 12 grocery items
-      const mockGrocery = [
-        { name: 'Sona Masoori Rice (25kg Bag)', price: 1450, qty: 1 },
-        { name: 'Freedom Sunflower Oil (1L Pouch)', price: 135, qty: 2 },
-        { name: 'Aashirvaad Superior MP Sharbati Atta (5kg)', price: 290, qty: 1 },
-        { name: 'Toor Dal Premium (1kg)', price: 165, qty: 2 },
-        { name: 'Tata Salt Crystal (1kg)', price: 25, qty: 2 },
-        { name: 'Tata Tea Gold (500g)', price: 280, qty: 1 },
-        { name: 'Surf Excel Quick Wash Detergent (1kg)', price: 155, qty: 1 },
-        { name: 'Vim Dishwash Bar (300g)', price: 35, qty: 3 },
-        { name: 'Colgate Strong Teeth Toothpaste (200g)', price: 110, qty: 1 },
-        { name: 'Organic Jaggery (Bellam 1kg)', price: 75, qty: 2 },
-        { name: 'Red Chilli Powder (500g)', price: 120, qty: 1 },
-        { name: 'Dettol Original Soap (Pack of 3)', price: 140, qty: 1 }
-      ];
-      const items = mockGrocery.map((p) => ({
-        productId: null,
-        productName: p.name,
-        unitPrice: p.price,
-        quantity: p.qty,
-        image: null,
-        unit: 'pack'
-      }));
-      setSelectedCatalogItems(items);
-      const total = items.reduce((s, it) => s + (it.unitPrice * it.quantity), 0);
-      const adv = Math.floor(total * 0.2);
-      setAdvanceMode('CASH');
-      setAdvanceAmount(String(adv));
-      toast.success(`Autofilled with ${items.length} products!`);
+      toast.error('No products found in catalog');
     }
   };
 
   const resetForm = () => {
     setCustomerPhone(''); setCustomerName(''); setDeliveryAddress(''); setLandmark('');
-    setCustomNotes(''); setCustomEstimatedAmount(''); setAdvanceAmount('0'); setAdvanceMode('NONE');
-    setSelectedCatalogItems([]); setDeliveryDateOption('tomorrow'); setItemMode('word_of_mouth');
+    setAdvanceAmount('0'); setAdvanceMode('NONE');
+    setSelectedCatalogItems([]); setDeliveryDateOption('tomorrow');
+    setCatalogSearch(''); setSelectedCategory('ALL');
   };
 
   const handleUpdateStatus = async (orderId: string, status: string, additionalData = {}) => {
@@ -639,104 +713,234 @@ export default function AgentPreOrders() {
             </select>
           </div>
 
-          {/* Items */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pre-Order Products</p>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleAutofillPreOrder}
-                  className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-black text-[11px] flex items-center gap-1 transition-all"
-                  title="Autofill with 10-15 items"
-                >
-                  <Sparkles className="w-3 h-3 text-amber-700" />
-                  Autofill 10-15 Items
-                </button>
-                <div className="flex bg-slate-100 rounded-lg p-0.5 text-xs font-bold">
-                  <button type="button" onClick={() => setItemMode('word_of_mouth')}
-                    className={`px-2.5 py-1 rounded-md transition-all ${itemMode === 'word_of_mouth' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500'}`}>
-                    Verbal List
-                  </button>
-                  <button type="button" onClick={() => setItemMode('catalog')}
-                    className={`px-2.5 py-1 rounded-md transition-all ${itemMode === 'catalog' ? 'bg-white shadow-sm text-emerald-700' : 'text-slate-500'}`}>
-                    Catalog
-                  </button>
-                </div>
+          {/* Products Selection Section */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pre-Order Products</p>
+                <p className="text-xs font-bold text-slate-700">Select items from catalog</p>
               </div>
+              <button
+                type="button"
+                onClick={handleAutofillPreOrder}
+                className="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-black text-[11px] flex items-center gap-1.5 transition-all shadow-xs"
+                title="Autofill with sample products"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                Autofill (10-15 Items)
+              </button>
             </div>
 
-            {itemMode === 'word_of_mouth' ? (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[11px] font-bold text-amber-900 block mb-1">Customer's Word-of-Mouth Request *</label>
-                  <textarea
-                    rows={3}
-                    placeholder="e.g. 2 bags 25kg Sona Masoori Rice, 2L Sunflower Oil, 1kg Jaggery, 1 pack Surf Excel"
-                    value={customNotes}
-                    onChange={(e) => setCustomNotes(e.target.value)}
-                    className="w-full text-sm font-medium p-2.5 rounded-xl border border-amber-200 bg-amber-50/30 focus:ring-2 focus:ring-amber-500 outline-none text-slate-800"
-                  />
+            {/* Selected Items Summary Card */}
+            {selectedCatalogItems.length > 0 && (
+              <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in">
+                <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200/60">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-emerald-600" />
+                    Selected Items ({selectedCatalogItems.length})
+                  </span>
+                  <span className="text-xs font-black text-emerald-900">₹{catalogSubtotal}</span>
                 </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Estimated Total Amount (₹)</label>
-                  <input
-                    type="number" placeholder="e.g. 1500"
-                    value={customEstimatedAmount}
-                    onChange={(e) => setCustomEstimatedAmount(e.target.value)}
-                    className="w-full text-sm font-black px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text" placeholder="Search product by name or SKU..."
-                    value={catalogSearch}
-                    onChange={(e) => setCatalogSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  />
-                </div>
-                {selectedCatalogItems.length > 0 && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2">
-                    <p className="text-[10px] font-black uppercase text-emerald-800">Selected Items ({selectedCatalogItems.length}):</p>
-                    {selectedCatalogItems.map((item, idx) => {
-                      const itemKey = item.productId || `item_${idx}_${item.productName}`;
-                      return (
-                        <div key={itemKey} className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-800">{item.productName}</span>
-                          <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => handleUpdateCatalogQty(itemKey, -1)} className="w-6 h-6 rounded-full bg-rose-100 text-rose-700 font-black flex items-center justify-center">−</button>
-                            <span className="font-black w-6 text-center">{item.quantity}</span>
-                            <button type="button" onClick={() => handleUpdateCatalogQty(itemKey, +1)} className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-black flex items-center justify-center">+</button>
-                            <span className="font-black text-slate-900 w-16 text-right">₹{item.unitPrice * item.quantity}</span>
+
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {selectedCatalogItems.map((item, idx) => {
+                    const itemKey = item.id || item.productId || `item_${idx}_${item.productName}`;
+                    return (
+                      <div key={itemKey} className="flex items-center justify-between p-2 bg-white rounded-xl border border-emerald-100 shadow-2xs text-xs">
+                        <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 overflow-hidden font-black text-[10px]">
+                            {item.image ? (
+                              <img src={item.image} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <Package size={14} />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-extrabold text-slate-900 truncate leading-tight">{item.productName}</p>
+                            <p className="text-[10px] font-semibold text-slate-400">₹{item.unitPrice} each</p>
                           </div>
                         </div>
-                      );
-                    })}
-                    <div className="pt-1.5 border-t border-emerald-200 flex justify-between font-black text-xs text-emerald-900">
-                      <span>Catalog Subtotal:</span><span>₹{catalogSubtotal}</span>
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {loadingProducts ? (
-                    <p className="text-xs text-center text-slate-400 py-4">Loading products...</p>
-                  ) : filteredCatalog.map(prod => (
-                    <div key={prod.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100 hover:border-emerald-300 cursor-pointer"
-                      onClick={() => handleAddCatalogItem(prod)}>
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">{prod.name}</p>
-                        <p className="text-[10px] text-slate-400">₹{prod.sellingPrice || prod.price}</p>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCatalogQty(itemKey, -1)}
+                              className="w-5 h-5 rounded-md bg-white text-slate-600 hover:text-rose-600 font-black flex items-center justify-center shadow-2xs"
+                            >
+                              −
+                            </button>
+                            <span className="font-black text-xs w-5 text-center text-slate-800">{item.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCatalogQty(itemKey, +1)}
+                              className="w-5 h-5 rounded-md bg-white text-emerald-700 hover:bg-emerald-50 font-black flex items-center justify-center shadow-2xs"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span className="font-black text-slate-900 w-14 text-right">₹{item.unitPrice * item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCatalogItem(itemKey)}
+                            className="p-1 text-slate-300 hover:text-rose-600 transition-colors"
+                            title="Remove"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">+ Add</span>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2 border-t border-emerald-200/80 flex justify-between font-black text-xs text-emerald-950">
+                  <span>Subtotal Amount:</span>
+                  <span className="text-sm">₹{catalogSubtotal}</span>
                 </div>
               </div>
             )}
+
+            {/* Catalog Search & Category Filters */}
+            <div className="space-y-2 pt-1">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Search products by name, variant, or SKU..."
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 text-xs font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+                {catalogSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setCatalogSearch('')}
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Categories Pills */}
+              {categories.length > 1 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[10px] font-bold">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 transition-all ${
+                        selectedCategory === cat
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Catalog Product Items Grid / List */}
+            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+              {loadingProducts ? (
+                <div className="py-8 text-center text-slate-400 space-y-2">
+                  <Loader2 size={24} className="animate-spin mx-auto text-emerald-600" />
+                  <p className="text-xs font-bold uppercase tracking-wider">Loading products catalog...</p>
+                </div>
+              ) : filteredCatalog.length === 0 ? (
+                <div className="py-8 text-center text-slate-400">
+                  <Package size={28} className="mx-auto mb-1.5 opacity-30" />
+                  <p className="text-xs font-bold">No products found</p>
+                </div>
+              ) : (
+                filteredCatalog.map((prod) => {
+                  const inSelected = selectedCatalogItems.find(
+                    (i) => i.productId === prod.productId && (i.productVariantId || null) === (prod.productVariantId || null)
+                  );
+                  return (
+                    <div
+                      key={prod.id}
+                      onClick={() => handleAddCatalogItem(prod)}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        inSelected
+                          ? 'bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-300/50'
+                          : 'bg-slate-50/80 border-slate-200/80 hover:border-emerald-300 hover:bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 overflow-hidden flex items-center justify-center shrink-0">
+                          {prod.image ? (
+                            <img src={prod.image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Package size={16} className="text-slate-300" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 overflow-hidden">
+                            <p className="text-xs font-extrabold text-slate-800 truncate">{prod.displayName || prod.name}</p>
+                            {prod.isVariant && prod.variantName && (
+                              <span className="px-1.5 py-0.2 rounded bg-violet-100 text-violet-700 text-[9px] font-black shrink-0 border border-violet-200/60">
+                                {prod.variantName}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-semibold mt-0.5">
+                            <span className="text-emerald-700 font-bold">₹{prod.price}</span>
+                            {prod.mrp > prod.price && (
+                              <span className="line-through text-slate-300">₹{prod.mrp}</span>
+                            )}
+                            {prod.category && <span className="truncate">• {prod.category}</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {inSelected ? (
+                          <div className="flex items-center gap-1 bg-white border border-emerald-300 rounded-lg p-0.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateCatalogQty(inSelected.id || inSelected.productId, -1);
+                              }}
+                              className="w-5 h-5 rounded bg-slate-50 hover:bg-rose-50 hover:text-rose-600 font-black text-xs flex items-center justify-center"
+                            >
+                              −
+                            </button>
+                            <span className="font-black text-xs px-1 text-emerald-800">{inSelected.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateCatalogQty(inSelected.id || inSelected.productId, 1);
+                              }}
+                              className="w-5 h-5 rounded bg-emerald-600 text-white font-black text-xs flex items-center justify-center"
+                            >
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddCatalogItem(prod);
+                            }}
+                            className="px-2.5 py-1 text-[11px] font-black rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 transition-all flex items-center gap-1"
+                          >
+                            <Plus size={11} strokeWidth={3} /> Add
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           {/* Advance Payment */}

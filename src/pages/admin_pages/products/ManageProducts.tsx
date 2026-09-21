@@ -587,6 +587,8 @@ const ManageProducts = () => {
         variantName: (variant.variantName ?? variant.name) as string,
         name: (variant.variantName ?? variant.name ?? p.name) as string,
         sku: (variant.sku as string) ?? "",
+        barcode: String(variant.gtin ?? variant.barcode ?? ""),
+        gtin: String(variant.gtin ?? variant.barcode ?? ""),
         unit: vu || "N/A",
         unitType: vut || "N/A",
         measurement: (variant.measurement as string) ?? "",
@@ -684,7 +686,8 @@ const ManageProducts = () => {
           variantName: (v.variantName ?? v.name) as string,
           name: (v.variantName ?? v.name ?? product.name) as string,
           sku: (v.sku as string) ?? "",
-          barcode: String(v.barcode ?? v.gtin ?? v.sku ?? ""),
+          barcode: String(v.gtin ?? v.barcode ?? ""),
+          gtin: String(v.gtin ?? v.barcode ?? ""),
           unit: vu || "N/A",
           unitType: vut || "N/A",
           measurement: (v.measurement as string) ?? "",
@@ -755,17 +758,19 @@ const ManageProducts = () => {
     let filtered = tableProducts.filter((product) => {
       const searchLower = searchTerm.trim().toLowerCase();
       const barcodeSearchLower = barcodeSearch.trim().toLowerCase();
+      const query = barcodeSearchLower || searchLower;
 
       const matchesSearch =
-        !searchLower ||
-        product.name.toLowerCase().includes(searchLower) ||
-        product.id.toLowerCase().includes(searchLower) ||
-        product.sku.toLowerCase().includes(searchLower) ||
-        (product.barcode && product.barcode.toLowerCase().includes(searchLower)) ||
+        !query ||
+        product.name.toLowerCase().includes(query) ||
+        product.id.toLowerCase().includes(query) ||
+        product.sku.toLowerCase().includes(query) ||
+        (product.barcode && product.barcode.toLowerCase().includes(query)) ||
         (product.variants && product.variants.some((v: any) =>
-          (v.barcode && String(v.barcode).toLowerCase().includes(searchLower)) ||
-          (v.sku && String(v.sku).toLowerCase().includes(searchLower)) ||
-          (v.variantName && String(v.variantName).toLowerCase().includes(searchLower))
+          (v.barcode && String(v.barcode).toLowerCase().includes(query)) ||
+          (v.gtin && String(v.gtin).toLowerCase().includes(query)) ||
+          (v.sku && String(v.sku).toLowerCase().includes(query)) ||
+          (v.variantName && String(v.variantName).toLowerCase().includes(query))
         ));
 
       const matchesCategory = !categoryFilter || product.categoryId === categoryFilter;
@@ -994,6 +999,14 @@ const ManageProducts = () => {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
+            onClick={() => navigate("/products/barcode-mapping")}
+            className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold"
+          >
+            <Barcode size={15} />
+            <span>Quick Barcode Map</span>
+          </button>
+          <button
+            type="button"
             onClick={() => navigate("/products/bulk-upload")}
             className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-xs sm:text-sm font-medium"
           >
@@ -1199,14 +1212,24 @@ const ManageProducts = () => {
               </thead>
               <tbody>
                 {paginatedProducts.map((product, index) => {
-                  const isExpanded = expandedRows.has(product.id);
                   const idKey = String(product.id);
                   const isActive = activeOverrides[idKey] !== undefined ? activeOverrides[idKey] : product.isActive;
                   const productForVariants = expandedProductDetailsCache[product.id] || product;
                   const hasVariants = productForVariants.variants && productForVariants.variants.length > 0;
                   const rowSerial = (currentPage - 1) * itemsPerPage + index + 1;
 
-
+                  const queryLower = (barcodeSearch.trim() || searchTerm.trim()).toLowerCase();
+                  const hasMatchingVariant = Boolean(
+                    queryLower &&
+                    productForVariants.variants &&
+                    productForVariants.variants.some((v: any) =>
+                      (v.barcode && String(v.barcode).toLowerCase().includes(queryLower)) ||
+                      (v.gtin && String(v.gtin).toLowerCase().includes(queryLower)) ||
+                      (v.sku && String(v.sku).toLowerCase().includes(queryLower)) ||
+                      (v.variantName && String(v.variantName).toLowerCase().includes(queryLower))
+                    )
+                  );
+                  const isExpanded = expandedRows.has(product.id) || hasMatchingVariant;
 
                   return (
                     <React.Fragment key={product.id}>
@@ -1274,19 +1297,46 @@ const ManageProducts = () => {
                                           const variantIdStr = String(variant.id ?? "");
                                           const isVariantActive = variantActiveOverrides[variantIdStr] !== undefined ? variantActiveOverrides[variantIdStr] : baseActive;
                                           const cellClass = "px-2 sm:px-4 py-3 sm:py-4 text-xs sm:text-sm text-center align-middle";
+                                          const isVarMatch = Boolean(
+                                            queryLower && (
+                                              (variant.barcode && String(variant.barcode).toLowerCase().includes(queryLower)) ||
+                                              (variant.gtin && String(variant.gtin).toLowerCase().includes(queryLower)) ||
+                                              (variant.sku && String(variant.sku).toLowerCase().includes(queryLower)) ||
+                                              (vName && vName.toLowerCase().includes(queryLower))
+                                            )
+                                          );
                                           return (
-                                            <tr key={variant.id ?? idx} className="border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+                                            <tr key={variant.id ?? idx} className={`border-b border-gray-100 dark:border-gray-700 transition-colors ${isVarMatch ? "bg-emerald-100/70 dark:bg-emerald-900/40 ring-1 ring-emerald-500/50" : "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30"}`}>
                                               <td className={`${cellClass} text-gray-800 dark:text-gray-200`}>{idx + 1}</td>
                                               <td className={cellClass}>
                                                 {vImg ? <img src={vImg} alt={vName} className="w-10 h-10 object-cover rounded mx-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-[10px] text-gray-400 dark:text-gray-500">No image</span>'; }} /> : <span className="text-[10px] text-gray-400 dark:text-gray-500">No image</span>}
                                               </td>
-                                              <td className={`${cellClass} font-semibold text-gray-800 dark:text-gray-200`}>{vName}</td>
+                                              <td className={`${cellClass} font-semibold text-gray-800 dark:text-gray-200`}>
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                  <span>{vName}</span>
+                                                  {isVarMatch && (
+                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-600 text-white shadow-xs">
+                                                      Matched
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </td>
                                               <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>{variant.unit || product.unit || "N/A"}</td>
                                               <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>{variant.unitType || "N/A"}</td>
                                               <td className={`${cellClass} font-semibold text-gray-800 dark:text-gray-200`}>{formatPrice(vMrp)}</td>
                                               <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>{formatPrice(vFinalSelling)}</td>
                                               <td className={cellClass} />
-                                              <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>{variant.sku || "N/A"}</td>
+                                              <td className={`${cellClass} text-gray-700 dark:text-gray-300`}>
+                                                <div className="flex flex-col items-center justify-center gap-0.5">
+                                                  <span className="font-mono text-xs">{variant.sku || "N/A"}</span>
+                                                  {variant.barcode && variant.barcode !== "N/A" && (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800" title="Variant Barcode">
+                                                      <Barcode size={10} className="shrink-0" />
+                                                      {variant.barcode}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </td>
                                               <td className={cellClass}>
                                                 <div className="flex items-center justify-center">
                                                   <button
