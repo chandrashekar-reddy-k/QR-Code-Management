@@ -3,7 +3,7 @@ import axios from 'axios';
 import { URL as configURL } from '../../../../config';
 import { useUserStore } from '../store/userStore';
 
-const baseAPI = window.location.hostname === 'localhost' ? 'http://localhost:3004/api/v1' : (configURL || '');
+const baseAPI = configURL || '';
 console.log('VSMS API Base URL:', baseAPI);
 
 
