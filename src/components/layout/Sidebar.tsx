@@ -230,6 +230,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       candidates.push('partner_product_view');
       candidates.push('partner_products_view');
       candidates.push('product_management_view');
+      if (labelPart === 'barcode_mapping' || labelPart.includes('barcode')) {
+        return true;
+      }
     }
 
     if (labelPart === 'ready_for_dispatch') {

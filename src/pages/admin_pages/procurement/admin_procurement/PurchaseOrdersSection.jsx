@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   Plus, Search, Loader2, ClipboardList, X, ArrowLeft, Edit3, Trash2, CheckCircle2,
   Truck, PackageCheck, FileText, Check, Eye, Download, Upload, Paperclip, Users, TrendingUp,
-  Sparkles, RefreshCw
+  Sparkles, RefreshCw, Barcode, Camera, Image as ImageIcon
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useGetProductCategoriesList } from '../../../../hooks/product';
+import { useGetProductCategoriesList, useGetProductUnitTypesList, useGetUnitsMapForUnitTypes } from '../../../../hooks/product';
 import fetchData from '../../../../helper';
+import { uploadImageFile } from '../../../../lib/uploadImage';
+import BarcodeScannerOverlay from '../../../../components/BarcodeScannerOverlay';
 import { procurementAPI } from '../../vsms/services/procurementService';
 import { adminAPI } from '../../vsms/services/adminService';
 import { productsAPI, API_URL } from '../../vsms/services/api';
@@ -284,12 +286,26 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [activeItemIndexForProduct, setActiveItemIndexForProduct] = useState(null);
 
+  const [activeBarcodeScanIdx, setActiveBarcodeScanIdx] = useState(null);
+  const [uploadingImageIdx, setUploadingImageIdx] = useState(null);
+  const fileInputRefs = useRef({});
+
   const { data: categoriesData } = useGetProductCategoriesList();
+  const { data: unitTypesData } = useGetProductUnitTypesList();
   const { data: brandsData } = useQuery({
     queryKey: ['procurementProductBrandsList'],
     queryFn: () => fetchData('productmanagement/product/brands/list', 'GET'),
     retry: false
   });
+
+  const unitTypesList = useMemo(() => {
+    const root = unitTypesData?.data?.data || unitTypesData?.data || unitTypesData || [];
+    if (!Array.isArray(root)) return [];
+    return root.filter(ut => ut && (ut.status === 'ACTIVE' || !ut.status));
+  }, [unitTypesData]);
+
+  const unitTypeIds = useMemo(() => unitTypesList.map(ut => ut.id).filter(Boolean), [unitTypesList]);
+  const unitsByTypeId = useGetUnitsMapForUnitTypes(unitTypeIds);
 
   const categoryList = useMemo(() => {
     const root = categoriesData?.data?.data || categoriesData?.data || categoriesData || [];
@@ -630,11 +646,18 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
         productId: '', 
         name: '', 
         skuCode: autoSku, 
+        barcode: '',
+        image: '',
         category: '', 
         subCategory: '', 
         brand: 'Villagkart', 
         hsnCode: autoHsn, 
+        unitType: '',
+        pack: '',
+        measurement: '',
         mrp: 0, 
+        landingPrice: 0,
+        sellingPrice: 0,
         quantity: 1, 
         unit: 'KG', 
         rate: 0, 
@@ -642,6 +665,23 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
         discount: 0 
       }]
     }));
+  };
+
+  const handleImageRowUpload = async (index, file) => {
+    if (!file) return;
+    try {
+      setUploadingImageIdx(index);
+      const url = await uploadImageFile(file);
+      if (url) {
+        handleDirectItemChange(index, 'image', url);
+        toast.success('Product image uploaded successfully!');
+      }
+    } catch (err) {
+      console.error('Image upload failed', err);
+      toast.error('Failed to upload product image');
+    } finally {
+      setUploadingImageIdx(null);
+    }
   };
 
   const handleRemoveDirectItem = (index) => {
@@ -2157,19 +2197,26 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                   </div>
 
                   <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm custom-scrollbar">
-                    <table className="w-full text-left border-collapse min-w-[1550px]">
+                    <table className="w-full text-left border-collapse min-w-[2150px]">
                       <thead>
                         <tr className="border-b border-slate-200 bg-slate-50/80">
-                          <th className="px-3.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider min-w-[220px]">Item Name</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-16">Image</th>
+                          <th className="px-3.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider min-w-[200px]">Item Name</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-40">Barcode</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-36">Category</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-36">Sub Category</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-32">Brand</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-36">SKU Code</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">HSN Code</th>
-                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Quantity</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-32">Unit Type</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">Measurement</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Pack</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Unit</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Quantity</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">MRP</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-32">Purchase Rate</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">Landing Price</th>
+                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">Selling Price</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Tax (%)</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Discount (%)</th>
                           <th className="px-3.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-right w-32">Total Value</th>
@@ -2180,9 +2227,47 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                         {form.items.map((item, idx) => {
                           const activeCatObj = categoryList.find(c => (c.name || '').toLowerCase() === (item.category || '').toLowerCase() || c.id === item.category);
                           const subCatList = activeCatObj?.subCategories || [];
+                          const activeUnitTypeId = item.unitType ? (unitTypesList.find(ut => ut.id === item.unitType || (ut.name || '').toLowerCase() === item.unitType.toLowerCase())?.id || item.unitType) : '';
+                          const measurementUnits = activeUnitTypeId ? (unitsByTypeId[activeUnitTypeId] || []) : [];
 
                           return (
                             <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                              {/* Image Upload / Preview */}
+                              <td className="px-2 py-3 text-center">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  ref={el => fileInputRefs.current[idx] = el}
+                                  className="hidden"
+                                  onChange={e => {
+                                    if (e.target.files?.[0]) {
+                                      handleImageRowUpload(idx, e.target.files[0]);
+                                    }
+                                  }}
+                                />
+                                <div
+                                  onClick={() => fileInputRefs.current[idx]?.click()}
+                                  title={item.image ? "Click to change image" : "Upload product image"}
+                                  className="relative w-10 h-10 mx-auto rounded-lg border border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 flex items-center justify-center cursor-pointer transition-all overflow-hidden group shadow-sm"
+                                >
+                                  {uploadingImageIdx === idx ? (
+                                    <Loader2 size={16} className="animate-spin text-emerald-600" />
+                                  ) : item.image ? (
+                                    <>
+                                      <img src={item.image} alt="Product" className="w-full h-full object-cover" />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                        <Upload size={12} className="text-white" />
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-emerald-600">
+                                      <ImageIcon size={14} />
+                                      <span className="text-[8px] font-bold leading-none mt-0.5">Add</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
                               {/* Item Name */}
                               <td className="px-3.5 py-3">
                                 <SearchableProductDropdown
@@ -2209,11 +2294,18 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                         productId: productId,
                                         name: matchedName,
                                         skuCode: autoSku,
+                                        barcode: matched?.barcode || updated[idx].barcode || '',
+                                        image: matched?.image || matched?.imageUrl || updated[idx].image || '',
                                         category: matchedCat,
                                         subCategory: matched?.subCategory || '',
                                         brand: matched ? (typeof matched.brand === 'string' ? matched.brand : (matched.brand?.name || 'Villagkart')) : 'Villagkart',
                                         hsnCode: autoHsn,
+                                        unitType: matched?.unitType || updated[idx].unitType || '',
+                                        pack: matched?.pack || updated[idx].pack || '',
+                                        measurement: matched?.measurement || updated[idx].measurement || '',
                                         mrp: matched ? (matched.mrp || 0) : 0,
+                                        landingPrice: matched ? (matched.landingPrice || matched.purchasePrice || 0) : 0,
+                                        sellingPrice: matched ? (matched.sellingPrice || matched.price || 0) : 0,
                                         rate: matched ? (matched.purchasePrice ?? matched.rate ?? 0) : 0,
                                         unit: matchedUnit,
                                         tax: matched?.tax ?? matched?.taxRate ?? updated[idx].tax ?? 0,
@@ -2223,6 +2315,27 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                     });
                                   }}
                                 />
+                              </td>
+
+                              {/* Barcode Number with Scanner Button */}
+                              <td className="px-2 py-3 text-center">
+                                <div className="relative flex items-center">
+                                  <input
+                                    type="text"
+                                    value={item.barcode || ''}
+                                    placeholder="Barcode"
+                                    onChange={e => handleDirectItemChange(idx, 'barcode', e.target.value)}
+                                    className="w-full bg-slate-50 hover:bg-white rounded-lg pl-2 pr-7 py-2 text-xs text-slate-800 font-bold border border-slate-200 focus:border-emerald-500 focus:bg-white outline-none transition-all shadow-sm"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveBarcodeScanIdx(idx)}
+                                    className="absolute right-1 p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all"
+                                    title="Scan Barcode using Camera"
+                                  >
+                                    <Camera size={14} className="text-emerald-600" />
+                                  </button>
+                                </div>
                               </td>
 
                               {/* Category Dropdown */}
@@ -2331,15 +2444,59 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                 </div>
                               </td>
 
-                              {/* Quantity */}
-                              <td className="px-2.5 py-3 text-center">
-                                <input 
-                                  type="number" 
-                                  min="1" 
-                                  value={item.quantity || 1} 
-                                  onChange={e => handleDirectItemChange(idx, 'quantity', parseInt(e.target.value) || 1)}
-                                  className="w-full bg-white rounded-lg px-2 py-2 text-sm text-slate-850 font-bold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
-                                  required
+                              {/* Unit Type Dropdown */}
+                              <td className="px-2 py-3 text-center">
+                                <select
+                                  value={item.unitType || ''}
+                                  onChange={e => {
+                                    handleDirectItemChange(idx, 'unitType', e.target.value);
+                                  }}
+                                  className="w-full bg-slate-50 hover:bg-white rounded-lg px-2 py-2 text-xs text-slate-800 font-semibold border border-slate-200 focus:border-emerald-500 focus:bg-white outline-none transition-all shadow-sm cursor-pointer"
+                                >
+                                  <option value="">Select Unit Type</option>
+                                  {unitTypesList.map(ut => (
+                                    <option key={ut.id || ut.name} value={ut.name || ut.id}>
+                                      {ut.name}
+                                    </option>
+                                  ))}
+                                  {item.unitType && !unitTypesList.some(ut => ut.name === item.unitType || ut.id === item.unitType) && (
+                                    <option value={item.unitType}>{item.unitType}</option>
+                                  )}
+                                </select>
+                              </td>
+
+                              {/* Measurement */}
+                              <td className="px-2 py-3 text-center">
+                                {measurementUnits.length > 0 ? (
+                                  <select
+                                    value={item.measurement || ''}
+                                    onChange={e => handleDirectItemChange(idx, 'measurement', e.target.value)}
+                                    className="w-full bg-white rounded-lg px-2 py-2 text-xs text-slate-800 font-semibold border border-slate-200 focus:border-emerald-500 outline-none transition-all shadow-sm cursor-pointer"
+                                  >
+                                    <option value="">Select</option>
+                                    {measurementUnits.map(u => (
+                                      <option key={u.value} value={u.label || u.value}>{u.label}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={item.measurement || ''}
+                                    placeholder="e.g. 500"
+                                    onChange={e => handleDirectItemChange(idx, 'measurement', e.target.value)}
+                                    className="w-full bg-white rounded-lg px-2 py-2 text-xs text-slate-800 font-semibold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
+                                  />
+                                )}
+                              </td>
+
+                              {/* Pack */}
+                              <td className="px-2 py-3 text-center">
+                                <input
+                                  type="text"
+                                  value={item.pack || ''}
+                                  placeholder="e.g. 1"
+                                  onChange={e => handleDirectItemChange(idx, 'pack', e.target.value)}
+                                  className="w-full bg-white rounded-lg px-2 py-2 text-xs text-slate-800 font-semibold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
                                 />
                               </td>
 
@@ -2357,6 +2514,18 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                   <option value="LTR">LTR</option>
                                   <option value="GRAMS">GRAMS</option>
                                 </select>
+                              </td>
+
+                              {/* Quantity */}
+                              <td className="px-2.5 py-3 text-center">
+                                <input 
+                                  type="number" 
+                                  min="1" 
+                                  value={item.quantity || 1} 
+                                  onChange={e => handleDirectItemChange(idx, 'quantity', parseInt(e.target.value) || 1)}
+                                  className="w-full bg-white rounded-lg px-2 py-2 text-sm text-slate-850 font-bold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
+                                  required
+                                />
                               </td>
 
                               {/* MRP */}
@@ -2388,6 +2557,38 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                     onChange={e => handleDirectItemChange(idx, 'rate', parseFloat(e.target.value) || 0)}
                                     className="w-full bg-white rounded-lg pl-6 pr-2 py-2 text-sm text-slate-850 font-black border border-slate-200 focus:border-emerald-500 outline-none transition-all shadow-sm text-emerald-700"
                                     required
+                                  />
+                                </div>
+                              </td>
+
+                              {/* Landing Price */}
+                              <td className="px-2.5 py-3 text-center">
+                                <div className="relative flex items-center">
+                                  <span className="absolute left-2 text-slate-400 text-xs font-semibold">₹</span>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="any" 
+                                    value={item.landingPrice || ''} 
+                                    placeholder="0"
+                                    onChange={e => handleDirectItemChange(idx, 'landingPrice', parseFloat(e.target.value) || 0)}
+                                    className="w-full bg-white rounded-lg pl-5 pr-2 py-2 text-xs text-slate-850 font-semibold border border-slate-200 focus:border-emerald-500 outline-none transition-all shadow-sm"
+                                  />
+                                </div>
+                              </td>
+
+                              {/* Selling Price */}
+                              <td className="px-2.5 py-3 text-center">
+                                <div className="relative flex items-center">
+                                  <span className="absolute left-2 text-slate-400 text-xs font-semibold">₹</span>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="any" 
+                                    value={item.sellingPrice || ''} 
+                                    placeholder="0"
+                                    onChange={e => handleDirectItemChange(idx, 'sellingPrice', parseFloat(e.target.value) || 0)}
+                                    className="w-full bg-white rounded-lg pl-5 pr-2 py-2 text-xs text-slate-850 font-bold text-emerald-600 border border-slate-200 focus:border-emerald-500 outline-none transition-all shadow-sm"
                                   />
                                 </div>
                               </td>
@@ -2835,6 +3036,20 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
             </div>
           </div>
         </div>
+      )}
+
+      {/* Barcode Scanner Overlay */}
+      {activeBarcodeScanIdx !== null && (
+        <BarcodeScannerOverlay
+          onScan={(code) => {
+            if (code && activeBarcodeScanIdx !== null) {
+              handleDirectItemChange(activeBarcodeScanIdx, 'barcode', code);
+              toast.success(`Scanned Barcode: ${code}`);
+            }
+            setActiveBarcodeScanIdx(null);
+          }}
+          onClose={() => setActiveBarcodeScanIdx(null)}
+        />
       )}
     </div>
   );

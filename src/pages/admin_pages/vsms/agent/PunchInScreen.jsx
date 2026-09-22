@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { attendanceAPI } from '../services/api';
-import { Fingerprint, Clock, MapPin, Loader2, Camera, RefreshCw, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Fingerprint, Clock, MapPin, Loader2, Camera, RefreshCw, CheckCircle2, ArrowLeft, ChevronRight, SkipForward } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import toast from 'react-hot-toast';
 
@@ -199,14 +199,28 @@ export default function PunchInScreen({ onPunchIn }) {
         <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] sm:w-[40vw] h-[60vw] sm:h-[40vw] rounded-full bg-orange-100/30 blur-[100px]" />
       </div>
 
-      {/* Back Button */}
-      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50">
+      {/* Header Actions (Back + Skip) */}
+      <div className="absolute top-4 inset-x-4 sm:top-6 sm:inset-x-6 z-50 flex items-center justify-between pointer-events-none">
         <button
           onClick={handleBackToLogin}
-          className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-2xl text-slate-700 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest shadow-sm hover:bg-white hover:text-emerald-600 transition-all active:scale-95 cursor-pointer"
+          className="pointer-events-auto flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-2xl text-slate-700 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest shadow-sm hover:bg-white hover:text-emerald-600 transition-all active:scale-95 cursor-pointer"
         >
           <ArrowLeft size={16} strokeWidth={3} />
           Back to Login
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            toast('Attendance skipped (Desktop Mode)', { icon: '⏭️' });
+            if (onPunchIn) onPunchIn({ skipped: true, punchInTime: new Date().toISOString() });
+          }}
+          className="pointer-events-auto flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-amber-500/10 hover:bg-amber-500 text-amber-800 hover:text-white border border-amber-300/80 rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest shadow-sm transition-all active:scale-95 cursor-pointer backdrop-blur-md"
+          title="Skip attendance requirement for desktop testing"
+        >
+          <SkipForward size={14} strokeWidth={2.5} />
+          <span>Skip for Now</span>
+          <ChevronRight size={14} strokeWidth={3} />
         </button>
       </div>
 
@@ -369,7 +383,21 @@ export default function PunchInScreen({ onPunchIn }) {
             </span>
           </button>
 
-          <p className="text-center text-emerald-600/40 text-[9px] font-bold uppercase tracking-widest mt-3">
+          {/* Desktop Skip Alternative Link */}
+          <div className="mt-3.5 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                toast('Attendance skipped (Desktop Mode)', { icon: '⏭️' });
+                if (onPunchIn) onPunchIn({ skipped: true, punchInTime: new Date().toISOString() });
+              }}
+              className="text-[11px] font-extrabold text-slate-500 hover:text-emerald-700 underline underline-offset-4 tracking-wide cursor-pointer transition-colors"
+            >
+              Desktop / No Camera? Skip Attendance →
+            </button>
+          </div>
+
+          <p className="text-center text-emerald-600/40 text-[9px] font-bold uppercase tracking-widest mt-2">
             Photo + Location + Time are recorded
           </p>
         </div>

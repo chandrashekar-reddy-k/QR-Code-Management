@@ -325,6 +325,11 @@ export const sidebarConfig: MenuSection[] = [
         icon: Package,
         activeCheck: activeCheckers.isManageProductsActive,
       },
+      {
+        path: "/products/barcode-mapping",
+        label: "Barcode Mapping",
+        icon: ScanLine,
+      },
       { path: "/products/bundles", label: "Bundle Deals", icon: Tag },
       { path: "/marketing/promos", label: "Homepage Promos", icon: Percent },
       { path: "/products/media", label: "Media", icon: Film },

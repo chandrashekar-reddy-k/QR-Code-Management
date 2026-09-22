@@ -131,6 +131,9 @@ const ViewSubCategory = lazy(
 const ManageProducts = lazy(
   () => import("../pages/admin_pages/products/ManageProducts")
 );
+const BarcodeMappingScreen = lazy(
+  () => import("../pages/admin_pages/products/BarcodeMappingScreen")
+);
 const OnlineStockManagement = lazy(
   () => import("../pages/admin_pages/products/OnlineStockManagement")
 );
@@ -899,6 +902,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/products/bundles",
     component: BundleDeals,
+    requiresAuth: true,
+  },
+  {
+    path: "/products/barcode-mapping",
+    component: BarcodeMappingScreen,
     requiresAuth: true,
   },
   {

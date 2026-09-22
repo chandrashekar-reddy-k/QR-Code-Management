@@ -1,15 +1,8 @@
 import axios from 'axios';
-
-const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_URL) return (import.meta.env.VITE_URL as string).replace(/\/+$/, '');
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3004/api/v1';
-  }
-  return 'https://apierppartner.villagkart.com/api/v1';
-};
+import { URL as configURL } from '../config';
 
 const api = axios.create({
-  baseURL: getApiBaseUrl(),
+  baseURL: configURL,
 });
 
 api.interceptors.request.use((config) => {

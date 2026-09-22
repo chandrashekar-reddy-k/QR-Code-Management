@@ -307,7 +307,21 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       parsedAttachments = grn.attachments.map(url => ({ name: typeof url === 'string' ? url.split('/').pop() : 'Attachment', url }));
     }
 
-    setPODetail(grn.po || { challanId: grn.challanId || '', remarks: grn.remarks || '' });
+    let cleanRemarkText = grn.remarks || '';
+    if (cleanRemarkText.includes('[GRN_METADATA]:')) {
+      cleanRemarkText = cleanRemarkText.split('[GRN_METADATA]:')[0].trim();
+    }
+
+    setPODetail(grn.po ? { ...grn.po, challanId: grn.challanId || grn.po.challanId || '', remarks: cleanRemarkText } : { challanId: grn.challanId || '', remarks: cleanRemarkText });
+    
+    // Set directGRNData for basic details (Received By, Delivery Date, Notes)
+    setDirectGRNData({
+      vendorId: grn.po?.vendorId || '',
+      purchaseDate: grn.createdAt ? format(new Date(grn.createdAt), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      receivedBy: grn.receivedBy || grn.userId || (users.length > 0 ? users[0].id : ''),
+      notes: cleanRemarkText
+    });
+
     setGRNItems((grn.items || []).map(item => ({
       productId: item.productId,
       name: item.product?.name,
@@ -316,8 +330,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       orderedQty: item.orderedQty,
       alreadyReceived: 0,
       balance: item.orderedQty,
-      receivedQty: String(item.receivedQty),
-      damagedQty: item.damagedQty || 0,
+      receivedQty: String(item.receivedQty !== undefined ? item.receivedQty : 0),
+      damagedQty: String(item.damagedQty !== undefined ? item.damagedQty : 0),
       expiryStatus: item.expiryStatus || 'SAFE'
     })));
     setAttachments(parsedAttachments);
@@ -1071,28 +1085,31 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                               <button
                                 onClick={() => {
                                   const updated = [...grnItems];
-                                  updated[idx].receivedQty = Math.max(0, (parseInt(updated[idx].receivedQty) || 0) - 1);
+                                  const cur = parseInt(updated[idx].receivedQty) || 0;
+                                  updated[idx].receivedQty = String(Math.max(0, cur - 1));
                                   setGRNItems(updated);
                                 }}
-                                className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+                                className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold"
                               >-</button>
                               <input
                                 type="number"
+                                min="0"
                                 value={item.receivedQty}
                                 onChange={e => {
                                   const updated = [...grnItems];
                                   updated[idx].receivedQty = e.target.value;
                                   setGRNItems(updated);
                                 }}
-                                className="w-16 bg-white border border-gray-100 rounded-lg px-2 py-1.5 text-xs font-black text-center focus:ring-1 focus:ring-emerald-500"
+                                className="w-16 bg-white border border-gray-100 rounded-lg px-2 py-1.5 text-xs font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
                               />
                               <button
                                 onClick={() => {
                                   const updated = [...grnItems];
-                                  updated[idx].receivedQty = Math.min(item.balance, (parseInt(updated[idx].receivedQty) || 0) + 1);
+                                  const cur = parseInt(updated[idx].receivedQty) || 0;
+                                  updated[idx].receivedQty = String(cur + 1);
                                   setGRNItems(updated);
                                 }}
-                                className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+                                className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold"
                               >+</button>
                             </div>
                           </td>
@@ -1100,13 +1117,14 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                             <div className="flex justify-center">
                               <input
                                 type="number"
-                                value={item.damagedQty || 0}
+                                min="0"
+                                value={item.damagedQty}
                                 onChange={e => {
                                   const updated = [...grnItems];
                                   updated[idx].damagedQty = e.target.value;
                                   setGRNItems(updated);
                                 }}
-                                className="w-16 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs font-black text-center focus:ring-1 focus:ring-emerald-500"
+                                className="w-16 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
                               />
                             </div>
                           </td>
@@ -1153,8 +1171,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                   <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Notes</label>
                   <textarea
                     placeholder="Add any remarks about the delivery..."
-                    value={cleanRemarks(poDetail?.remarks)}
-                    onChange={(e) => setPODetail({ ...poDetail, remarks: e.target.value })}
+                    value={poDetail?.remarks !== undefined ? poDetail.remarks : ''}
+                    onChange={(e) => setPODetail(prev => ({ ...prev, remarks: e.target.value }))}
                     className="w-full h-32 bg-gray-50 border border-gray-100 rounded-[1.5rem] p-4 text-xs font-bold text-gray-900 focus:ring-1 focus:ring-emerald-500 outline-none placeholder:text-gray-300 resize-none"
                   />
                 </div>
