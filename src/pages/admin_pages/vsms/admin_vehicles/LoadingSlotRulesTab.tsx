@@ -82,12 +82,43 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
     }
   };
 
+  // Automatically calculate Vehicle Loading Time (e.g. 30 mins before delivery start window, or matching delivery start)
+  const computeLoadingTime = (deliveryStartTime: string, cutoffMinutes: number = 60) => {
+    if (!deliveryStartTime) return '07:00';
+    const [h, m] = deliveryStartTime.split(':').map(Number);
+    if (isNaN(h)) return '07:00';
+    // Vehicle loading happens 30 minutes before customer delivery window start
+    let loadMinTotal = h * 60 + (m || 0) - 30;
+    if (loadMinTotal < 0) loadMinTotal += 24 * 60;
+    const loadH = Math.floor(loadMinTotal / 60) % 24;
+    const loadM = loadMinTotal % 60;
+    return `${String(loadH).padStart(2, '0')}:${String(loadM).padStart(2, '0')}`;
+  };
+
   const handleRuleChange = (index: number, field: keyof ShiftRule, value: any) => {
     setRules(prev => {
       const copy = [...prev];
-      copy[index] = { ...copy[index], [field]: value };
+      const updated = { ...copy[index], [field]: value };
+      
+      // When Customer Delivery Window start time or Cutoff buffer changes, automatically recalculate Vehicle Loading Time
+      if (field === 'deliveryStartTime') {
+        updated.loadingTime = computeLoadingTime(value, updated.cutoffMinutes);
+      }
+      
+      copy[index] = updated;
       return copy;
     });
+  };
+
+  const handleToggleActive = async (index: number) => {
+    const updatedRules = rules.map((r, i) => i === index ? { ...r, isActive: !r.isActive } : r);
+    setRules(updatedRules);
+    try {
+      await routeService.saveRouteLoadingRules(updatedRules);
+      toast.success(`Shift ${updatedRules[index].isActive ? 'activated' : 'deactivated'} successfully!`);
+    } catch (err: any) {
+      toast.error('Failed to update shift status');
+    }
   };
 
   const handleSave = async () => {
@@ -104,17 +135,21 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
   };
 
   const addCustomShift = () => {
+    const defaultStart = '12:00';
+    const defaultEnd = '15:00';
+    const autoLoadTime = computeLoadingTime(defaultStart, 60);
+
     setRules(prev => [
       ...prev,
       {
         id: `temp_${Date.now()}`,
         shiftType: 'CUSTOM',
         shiftName: `Custom Slot ${prev.length + 1}`,
-        loadingTime: '11:00',
+        loadingTime: autoLoadTime,
         cutoffMinutes: 60,
         maxOrders: 50,
-        deliveryStartTime: '12:00',
-        deliveryEndTime: '15:00',
+        deliveryStartTime: defaultStart,
+        deliveryEndTime: defaultEnd,
         isActive: true,
         notes: 'Custom scheduled slot'
       }
@@ -300,12 +335,12 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-black text-gray-500 uppercase tracking-wider">
-                <th className="py-3.5 px-4">Shift & Slot Name</th>
-                <th className="py-3.5 px-4">Vehicle Loading Time</th>
-                <th className="py-3.5 px-4">Order Cutoff Buffer</th>
-                <th className="py-3.5 px-4">Limit of Orders</th>
-                <th className="py-3.5 px-4">Customer Delivery Window</th>
-                <th className="py-3.5 px-4 text-center">Today's Booking Status</th>
+                <th className="py-3.5 px-4">1. Shift & Slot</th>
+                <th className="py-3.5 px-4">2. Customer Delivery Window</th>
+                <th className="py-3.5 px-4">3. Vehicle Loading Time</th>
+                <th className="py-3.5 px-4">4. Order Cutoff Buffer</th>
+                <th className="py-3.5 px-4">5. Shift Order Limit</th>
+                <th className="py-3.5 px-4 text-center">Today's Status</th>
                 <th className="py-3.5 px-4 text-center">Active</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
@@ -351,7 +386,31 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                       </div>
                     </td>
 
-                    {/* 2. Vehicle Loading Time */}
+                    {/* 2. Customer Delivery Window */}
+                    <td className="py-4 px-4 align-middle">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1 text-xs">
+                          <input
+                            type="time"
+                            value={rule.deliveryStartTime}
+                            onChange={(e) => handleRuleChange(idx, 'deliveryStartTime', e.target.value)}
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 font-bold text-gray-900 text-xs outline-none cursor-pointer"
+                          />
+                          <span className="text-gray-400 font-bold px-0.5">to</span>
+                          <input
+                            type="time"
+                            value={rule.deliveryEndTime}
+                            onChange={(e) => handleRuleChange(idx, 'deliveryEndTime', e.target.value)}
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 font-bold text-gray-900 text-xs outline-none cursor-pointer"
+                          />
+                        </div>
+                        <span className="inline-block text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                          {formatTime12h(rule.deliveryStartTime)} – {formatTime12h(rule.deliveryEndTime)}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* 3. Vehicle Loading Time */}
                     <td className="py-4 px-4 align-middle">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 w-fit">
@@ -362,6 +421,9 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                             onChange={(e) => handleRuleChange(idx, 'loadingTime', e.target.value)}
                             className="bg-transparent text-xs font-black text-gray-900 outline-none cursor-pointer"
                           />
+                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded border border-emerald-200">
+                            Auto
+                          </span>
                         </div>
                         <p className="text-[10px] font-bold text-gray-400">
                           Departs at <strong className="text-gray-700">{formatTime12h(rule.loadingTime)}</strong>
@@ -369,7 +431,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                       </div>
                     </td>
 
-                    {/* 3. Order Cutoff Buffer */}
+                    {/* 4. Order Cutoff Buffer */}
                     <td className="py-4 px-4 align-middle">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 w-fit">
@@ -391,7 +453,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                       </div>
                     </td>
 
-                    {/* 4. Limit of Orders (Max Orders / Shift) */}
+                    {/* 5. Limit of Orders (Max Orders / Shift) */}
                     <td className="py-4 px-4 align-middle">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 w-fit">
@@ -413,30 +475,6 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                       </div>
                     </td>
 
-                    {/* 5. Customer Delivery Window */}
-                    <td className="py-4 px-4 align-middle">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1 text-xs">
-                          <input
-                            type="time"
-                            value={rule.deliveryStartTime}
-                            onChange={(e) => handleRuleChange(idx, 'deliveryStartTime', e.target.value)}
-                            className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 font-bold text-gray-900 text-xs outline-none"
-                          />
-                          <span className="text-gray-400 font-bold px-0.5">to</span>
-                          <input
-                            type="time"
-                            value={rule.deliveryEndTime}
-                            onChange={(e) => handleRuleChange(idx, 'deliveryEndTime', e.target.value)}
-                            className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 font-bold text-gray-900 text-xs outline-none"
-                          />
-                        </div>
-                        <span className="inline-block text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                          {formatTime12h(rule.deliveryStartTime)} – {formatTime12h(rule.deliveryEndTime)}
-                        </span>
-                      </div>
-                    </td>
-
                     {/* 6. Today's Booking Status */}
                     <td className="py-4 px-4 align-middle text-center">
                       <div className="flex flex-col items-center gap-1">
@@ -454,7 +492,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                     <td className="py-4 px-4 align-middle text-center">
                       <button
                         type="button"
-                        onClick={() => handleRuleChange(idx, 'isActive', !rule.isActive)}
+                        onClick={() => handleToggleActive(idx)}
                         className={`p-1 rounded-full transition-colors cursor-pointer ${
                           rule.isActive ? 'text-emerald-600' : 'text-gray-300 hover:text-gray-400'
                         }`}
