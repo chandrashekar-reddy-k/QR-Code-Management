@@ -685,34 +685,34 @@ export default function SuccessScreen() {
   };
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center py-4 px-4 relative overflow-y-auto">
       {/* Immersive Background Effects */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-500/10 blur-[100px] animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-orange-500/10 blur-[80px]" />
       </div>
 
-      <div className="z-10 max-w-sm w-full space-y-4 animate-slide-up flex flex-col items-center">
+      <div className="z-10 max-w-[380px] w-full space-y-3 animate-slide-up flex flex-col items-center my-auto">
         {/* Success Icon */}
         <div className="flex flex-col items-center justify-center shrink-0">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30 mb-3 border-4 border-white relative">
-            <CheckCircle size={40} className="text-white drop-shadow-md relative z-10" strokeWidth={2.5} />
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/25 mb-2 border-4 border-white relative">
+            <CheckCircle size={32} className="text-white drop-shadow-md relative z-10" strokeWidth={2.5} />
             <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-125 animate-pulse" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-black text-emerald-950 tracking-tight">Payment Successful!</h1>
+            <h1 className="text-xl font-black text-emerald-950 tracking-tight">Payment Successful!</h1>
           </div>
         </div>
 
         {/* Order Details */}
         {order ? (
-          <div className="glass rounded-[2rem] p-5 shadow-2xl shadow-emerald-900/5 border border-white/80 bg-white/70 space-y-3 w-full">
+          <div className="glass rounded-3xl p-4 shadow-xl shadow-emerald-900/5 border border-white/80 bg-white/70 space-y-2.5 w-full">
             <div className="flex justify-between items-center pb-2 border-b border-emerald-100/50">
               <span className="text-[10px] font-black text-emerald-800/40 uppercase tracking-widest">Transaction ID</span>
               <span className="font-mono font-black text-emerald-900 text-[0.8rem] bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">#VK-{getInvoiceNumber(order)}</span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex justify-between items-center px-1">
                 <span className="text-[10px] font-black text-emerald-800/40 uppercase tracking-widest">Order Amount</span>
                 <span className="font-black text-2xl text-emerald-950 tracking-tighter">₹{Math.round(order.totalAmount || 0)}</span>
@@ -725,9 +725,9 @@ export default function SuccessScreen() {
                 </div>
               </div>
               {order.items?.some((i: any) => i.mrp > i.price) && (
-                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 p-3 rounded-2xl shadow-xl shadow-emerald-500/10 border border-emerald-400 group">
+                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 rounded-2xl shadow-lg shadow-emerald-500/10 border border-emerald-400 group">
                   <div className="absolute top-0 right-0 p-2 opacity-10 transform translate-x-1 -translate-y-1">
-                    <CheckCircle size={40} strokeWidth={1} />
+                    <CheckCircle size={36} strokeWidth={1} />
                   </div>
                   <div className="relative z-10 flex items-center justify-between px-1">
                     <div className="flex flex-col">
@@ -736,7 +736,7 @@ export default function SuccessScreen() {
                     </div>
                     <div className="flex items-baseline gap-0.5">
                       <span className="text-white text-xs font-bold">₹</span>
-                      <span className="text-2xl font-black text-white tracking-tighter">
+                      <span className="text-xl font-black text-white tracking-tighter">
                         {Math.round(order.items.reduce((sum: number, i: any) => sum + (i.mrp || i.price) * i.quantity, 0) - order.totalAmount)}
                       </span>
                     </div>
@@ -757,7 +757,7 @@ export default function SuccessScreen() {
                       <div className="flex flex-col">
                         <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest ml-1">Total GST (Included)</span>
                       </div>
-                      <span className="font-black text-base text-blue-600 tracking-tight">₹{totalTax.toFixed(2)}</span>
+                      <span className="font-black text-sm text-blue-600 tracking-tight">₹{totalTax.toFixed(2)}</span>
                     </div>
                   );
                 }
@@ -770,28 +770,28 @@ export default function SuccessScreen() {
             </div>
           </div>
         ) : (
-          <div className="glass rounded-[2.5rem] p-12 flex justify-center bg-white/70 border border-white/80 shadow-xl shadow-emerald-900/5">
-            <div className="w-10 h-10 rounded-full border-4 border-emerald-100 border-t-emerald-600 animate-spin" />
+          <div className="glass rounded-[2rem] p-8 flex justify-center bg-white/70 border border-white/80 shadow-xl shadow-emerald-900/5">
+            <div className="w-8 h-8 rounded-full border-4 border-emerald-100 border-t-emerald-600 animate-spin" />
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex flex-col gap-3 pt-2 w-full">
+        <div className="flex flex-col gap-2.5 pt-1 w-full">
           {order && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 onClick={handleShare}
-                className="w-full bg-white text-emerald-700 font-black text-sm py-4 rounded-2xl active:scale-[0.98] transition-all shadow-xl shadow-emerald-900/5 border border-emerald-100 hover:bg-emerald-50 flex items-center justify-center gap-2"
+                className="w-full bg-white text-emerald-700 font-black text-xs py-3 rounded-2xl active:scale-[0.98] transition-all shadow-md shadow-emerald-900/5 border border-emerald-100 hover:bg-emerald-50 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Share2 size={18} strokeWidth={3} />
+                <Share2 size={16} strokeWidth={2.5} />
                 <span>Share</span>
               </button>
               <button
                 onClick={handleDownloadPDF}
                 disabled={isDownloading}
-                className="w-full bg-white text-emerald-700 font-black text-sm py-4 rounded-2xl active:scale-[0.98] transition-all shadow-xl shadow-emerald-900/5 border border-emerald-100 hover:bg-emerald-50 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-white text-emerald-700 font-black text-xs py-3 rounded-2xl active:scale-[0.98] transition-all shadow-md shadow-emerald-900/5 border border-emerald-100 hover:bg-emerald-50 flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
-                <Download size={18} strokeWidth={3} />
+                <Download size={16} strokeWidth={2.5} />
                 <span>{isDownloading ? 'Saving...' : 'PDF'}</span>
               </button>
             </div>
@@ -799,10 +799,10 @@ export default function SuccessScreen() {
           <button
             id="new-sale-btn"
             onClick={() => navigate('/vsms/agent-portal/today-plan')}
-            className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl active:scale-[0.98] transition-all shadow-2xl shadow-emerald-600/30 flex items-center justify-center gap-2 relative overflow-hidden group"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl active:scale-[0.98] transition-all shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2 relative overflow-hidden group cursor-pointer"
           >
-            <Home size={18} strokeWidth={3} className="relative z-10" />
-            <span className="relative z-10 uppercase text-[10px] tracking-[0.2em] font-black">
+            <Home size={16} strokeWidth={2.5} className="relative z-10" />
+            <span className="relative z-10 uppercase text-[10px] tracking-[0.15em] font-black">
               Process New Sale
             </span>
           </button>

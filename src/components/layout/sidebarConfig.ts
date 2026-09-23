@@ -161,7 +161,10 @@ export const initialStateCheckers = {
   isDeliverySettingsOpen: (pathname: string) =>
     pathname.startsWith("/delivery-settings") ||
     pathname.startsWith("/delivery-types") ||
-    pathname.startsWith("/scheduled-delivery"),
+    pathname.startsWith("/scheduled-delivery") ||
+    pathname.startsWith("/vsms/live-tracking") ||
+    pathname.startsWith("/vsms/vehicles") ||
+    pathname.startsWith("/vsms/routes-coverage"),
   isVsmsOpen: (pathname: string) =>
     pathname.startsWith("/vsms") && !pathname.startsWith("/vsms/assets"),
   isAssetsOpen: (pathname: string) => pathname.startsWith("/vsms/assets"),
@@ -187,33 +190,6 @@ export const sidebarConfig: MenuSection[] = [
     permission: "Partner: Dashboard",
   },
 
-  // Route Management
-  {
-    type: "collapsible",
-    permission: "Partner: Route Management",
-    label: "Route Management",
-    icon: Map,
-    stateKey: "isRouteManagementOpen",
-    hasSubPermissions: true,
-    subItems: [
-      { path: "/vsms/live-tracking", label: "Live Agent Tracking", icon: Radio },
-      { path: "/vsms/vehicles", label: "Fleet Vehicles", icon: Truck },
-      {
-        path: "/vsms/routes-coverage",
-        label: "Routes & Coverage",
-        icon: MapPin,
-      },
-    ],
-  },
-
-  // Access Management
-  // {
-  //   type: "link",
-  //   permission: "Partner: Access Management",
-  //   path: "/access-management",
-  //   label: "Role Management",
-  //   icon: Shield,
-  // },
   // Staff Management
   {
     type: "collapsible",
@@ -400,8 +376,26 @@ export const sidebarConfig: MenuSection[] = [
       pathname.startsWith("/delivery-types") ||
       pathname.startsWith("/scheduled-delivery") ||
       pathname.startsWith("/delivery-settings/store-pickup") ||
-      pathname.startsWith("/delivery-settings/pick-at-vehicle"),
+      pathname.startsWith("/delivery-settings/pick-at-vehicle") ||
+      pathname.startsWith("/vsms/live-tracking") ||
+      pathname.startsWith("/vsms/vehicles") ||
+      pathname.startsWith("/vsms/routes-coverage"),
     subItems: [
+      {
+        path: "/vsms/live-tracking",
+        label: "Live Agent Tracking",
+        icon: Radio,
+      },
+      {
+        path: "/vsms/vehicles",
+        label: "Fleet Vehicles",
+        icon: Truck,
+      },
+      {
+        path: "/vsms/routes-coverage",
+        label: "Routes & Coverage",
+        icon: MapPin,
+      },
       {
         path: "/delivery-settings/delivery-types",
         label: "Delivery Types",

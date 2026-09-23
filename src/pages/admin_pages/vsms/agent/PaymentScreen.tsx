@@ -17,7 +17,7 @@ const PAYMENT_MODES = [
 export default function PaymentScreen() {
   const [selected, setSelected] = useState<string>('CASH');
   const [loading, setLoading] = useState(false);
-  const [cashReceived, setCashReceived] = useState('3000');
+  const [cashReceived, setCashReceived] = useState('');
   const [splitAmounts, setSplitAmounts] = useState({ cash: '', upi: '' });
   const { items, customerMobile, customerName, clearCart, totalAmount: cartTotal } = useCartStore();
   const { user } = useUserStore() as any;
@@ -26,7 +26,12 @@ export default function PaymentScreen() {
   const { deliverySlot, deliveryDate, orderId, orderNumber, amountToCollect } = location.state || {};
 
   const totalAmount = Number(amountToCollect || cartTotal || 2800);
-  const changeDue = Math.max(0, (parseFloat(cashReceived) || 0) - totalAmount);
+  const numCashReceived = parseFloat(cashReceived) || 0;
+  const changeDue = numCashReceived >= totalAmount ? numCashReceived - totalAmount : 0;
+
+  const isCashInvalid = selected === 'CASH' && (!cashReceived.trim() || numCashReceived < totalAmount);
+  const isSplitInvalid = selected === 'CASH_UPI' && (!splitAmounts.cash || !splitAmounts.upi || Math.abs((parseFloat(splitAmounts.cash) || 0) + (parseFloat(splitAmounts.upi) || 0) - totalAmount) > 0.01);
+  const isSubmitDisabled = loading || isCashInvalid || isSplitInvalid;
 
   // Auto-fill split amounts logic
   const handleSplitInput = (field: 'cash' | 'upi', value: string) => {
@@ -42,6 +47,15 @@ export default function PaymentScreen() {
 
   const handlePayment = async () => {
     if (!selected) return toast.error('Please select a payment method');
+
+    if (selected === 'CASH') {
+      if (!cashReceived.trim() || numCashReceived <= 0) {
+        return toast.error('Please enter the cash received amount');
+      }
+      if (numCashReceived < totalAmount) {
+        return toast.error(`Cash received cannot be less than total amount (₹${totalAmount.toFixed(2)})`);
+      }
+    }
 
     if (selected === 'CASH_UPI') {
       const cash = parseFloat(splitAmounts.cash) || 0;
@@ -219,24 +233,43 @@ export default function PaymentScreen() {
         {/* Cash Calculator Wrapper */}
         {selected === 'CASH' && (
           <div className="bg-white rounded-3xl p-5 border border-gray-100/90 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold text-gray-900">Cash Details</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-extrabold text-gray-900">Cash Details</h3>
+              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                Required
+              </span>
+            </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-extrabold text-gray-900">Cash Received</label>
-              <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 flex items-center gap-2 focus-within:border-[#00891D] transition-colors">
+              <label className="text-[11px] font-extrabold text-gray-900 flex items-center justify-between">
+                <span>Cash Received <span className="text-red-500">*</span></span>
+                {cashReceived.trim() && numCashReceived < totalAmount && (
+                  <span className="text-[10px] font-bold text-red-500">
+                    Min ₹{totalAmount.toFixed(2)} required
+                  </span>
+                )}
+              </label>
+              <div className={`w-full bg-white border rounded-2xl px-4 py-3 flex items-center gap-2 transition-colors ${
+                cashReceived.trim() && numCashReceived < totalAmount
+                  ? 'border-red-300 focus-within:border-red-500'
+                  : 'border-gray-200 focus-within:border-[#00891D]'
+              }`}>
                 <span className="text-sm font-extrabold text-gray-600">₹</span>
                 <input
                   type="number"
                   value={cashReceived}
                   onChange={(e) => setCashReceived(e.target.value)}
-                  placeholder="0.00"
+                  placeholder="Enter cash received"
+                  autoFocus
                   className="w-full text-sm font-black text-gray-900 bg-transparent border-none outline-none"
                 />
               </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-extrabold text-gray-900">Change Due</label>
-              <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3">
-                <p className="text-sm font-extrabold text-gray-700">₹ {changeDue.toFixed(2)}</p>
+              <div className="w-full bg-gray-50/80 border border-gray-100 rounded-2xl px-4 py-3">
+                <p className="text-sm font-extrabold text-gray-700">
+                  ₹ {numCashReceived >= totalAmount ? changeDue.toFixed(2) : '0.00'}
+                </p>
               </div>
             </div>
           </div>
@@ -249,11 +282,11 @@ export default function PaymentScreen() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-extrabold text-gray-900">Cash</label>
-                <input type="number" value={splitAmounts.cash} onChange={(e) => handleSplitInput('cash', e.target.value)} className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm font-black" />
+                <input type="number" value={splitAmounts.cash} onChange={(e) => handleSplitInput('cash', e.target.value)} placeholder="0.00" className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm font-black outline-none focus:border-[#00891D]" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] font-extrabold text-gray-900">UPI</label>
-                <input type="number" value={splitAmounts.upi} onChange={(e) => handleSplitInput('upi', e.target.value)} className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm font-black" />
+                <input type="number" value={splitAmounts.upi} onChange={(e) => handleSplitInput('upi', e.target.value)} placeholder="0.00" className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm font-black outline-none focus:border-[#00891D]" />
               </div>
             </div>
           </div>
@@ -269,8 +302,12 @@ export default function PaymentScreen() {
           </button>
           <button
             onClick={handlePayment}
-            disabled={loading}
-            className="w-2/3 py-3.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            disabled={isSubmitDisabled}
+            className={`w-2/3 py-3.5 rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 ${
+              isSubmitDisabled
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                : 'bg-[#00891D] hover:bg-[#007018] text-white cursor-pointer'
+            }`}
           >
             {loading ? 'Processing...' : 'Confirm Payment'}
           </button>
