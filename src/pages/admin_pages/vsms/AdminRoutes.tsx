@@ -70,7 +70,7 @@ export default function AdminRoutes() {
   const location = useLocation();
 
   const getInitialTab = () => {
-    if (urlTab && ['villages', 'routes', 'assignments', 'sales', 'collections'].includes(urlTab)) return urlTab;
+    if (urlTab && ['villages', 'routes', 'assignments', 'loading-rules', 'sales', 'collections'].includes(urlTab)) return urlTab;
     if (isAdmin || !currentUser?.customRoleId || !currentUser?.permissions?.ROUTE_TARGET_SECTIONS) return 'villages';
     const sections = currentUser.permissions.ROUTE_TARGET_SECTIONS;
     if (sections.includes('VILLAGES')) return 'villages';
