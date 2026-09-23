@@ -81,8 +81,17 @@ const ChangePassword = () => {
   });
 
   const resetPasswordMutation = useResetPassword(() => {
-    toast.success("Password changed successfully!");
-    navigate("/");
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("partnerToken");
+    localStorage.removeItem("partnerRefreshToken");
+    localStorage.removeItem("partnerUser");
+    localStorage.removeItem("permissions");
+    localStorage.removeItem("portalMode");
+    sessionStorage.clear();
+    toast.success("Password changed successfully! Please log in with your new password.");
+    navigate("/login", { replace: true });
   });
 
   const {
