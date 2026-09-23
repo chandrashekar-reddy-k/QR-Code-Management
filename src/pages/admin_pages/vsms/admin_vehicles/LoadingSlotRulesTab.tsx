@@ -4,7 +4,7 @@ import {
   Clock, ShieldCheck, CheckCircle2, AlertTriangle, Save, 
   RefreshCw, Plus, Trash2, Calendar, Eye, Info, Sparkles, Timer,
   Truck, ArrowRight, Zap, AlertCircle, Sun, Moon, ToggleLeft, ToggleRight,
-  Sliders, Check, Smartphone
+  Sliders, Check, Smartphone, Package
 } from 'lucide-react';
 import * as routeService from '../services/routeService';
 import toast from 'react-hot-toast';
@@ -15,6 +15,7 @@ interface ShiftRule {
   shiftName: string;
   loadingTime: string; // e.g. "07:00"
   cutoffMinutes: number; // e.g. 60
+  maxOrders?: number; // e.g. 50 orders limit per shift
   deliveryStartTime: string; // e.g. "07:30"
   deliveryEndTime: string; // e.g. "12:30"
   isActive: boolean;
@@ -28,10 +29,11 @@ const DEFAULT_RULES: ShiftRule[] = [
     shiftName: 'Morning Shift',
     loadingTime: '07:00',
     cutoffMinutes: 60,
+    maxOrders: 50,
     deliveryStartTime: '07:30',
     deliveryEndTime: '12:30',
     isActive: true,
-    notes: 'Vehicle loads at 07:00 AM. Customer orders cutoff at 06:00 AM.'
+    notes: 'Vehicle loads at 07:00 AM. Customer orders cutoff at 06:00 AM. Max 50 orders.'
   },
   {
     id: 'temp_afternoon',
@@ -39,10 +41,11 @@ const DEFAULT_RULES: ShiftRule[] = [
     shiftName: 'Evening Shift',
     loadingTime: '15:00',
     cutoffMinutes: 60,
+    maxOrders: 50,
     deliveryStartTime: '16:00',
     deliveryEndTime: '20:00',
     isActive: true,
-    notes: 'Vehicle loads at 03:00 PM. Customer orders cutoff at 02:00 PM.'
+    notes: 'Vehicle loads at 03:00 PM. Customer orders cutoff at 02:00 PM. Max 50 orders.'
   }
 ];
 
@@ -91,7 +94,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
     setSaving(true);
     try {
       await routeService.saveRouteLoadingRules(rules);
-      toast.success('Loading times and 1-hour cutoff rules saved successfully!');
+      toast.success('Loading times, cutoff rules, and order limits saved successfully!');
       fetchRules();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Failed to save rules');
@@ -109,6 +112,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
         shiftName: `Custom Slot ${prev.length + 1}`,
         loadingTime: '11:00',
         cutoffMinutes: 60,
+        maxOrders: 50,
         deliveryStartTime: '12:00',
         deliveryEndTime: '15:00',
         isActive: true,
@@ -196,7 +200,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="bg-emerald-500/20 text-emerald-300 text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full border border-emerald-400/40 flex items-center gap-1.5">
-                <Sparkles size={12} /> Shift Loading & Customer Cutoff Automation
+                <Sparkles size={12} /> Shift Loading, Order Limits & Customer Cutoff Automation
               </span>
               <span className="bg-white/10 text-white text-[11px] font-mono font-bold px-2 py-0.5 rounded-md border border-white/15">
                 Live Time: {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -204,10 +208,10 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
             </div>
             
             <h2 className="text-lg md:text-xl font-black tracking-tight text-white">
-              Vehicle Loading Schedule & 1-Hour Customer Cutoff Rules
+              Vehicle Loading Schedule, Order Capacities & 1-Hour Customer Cutoff Rules
             </h2>
             <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
-              Customers can book scheduled delivery up to <strong>1 hour before vehicle loading</strong>. Past the cutoff time, slots lock automatically for today and roll over to the next shift or tomorrow.
+              Customers can book scheduled delivery up to <strong>1 hour before vehicle loading</strong> and within the <strong>shift order limit capacity</strong>. Past cutoff or once max orders are booked, slots lock automatically.
             </p>
           </div>
 
@@ -279,10 +283,10 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
           <div>
             <h3 className="text-sm font-black text-gray-900 tracking-tight flex items-center gap-2">
               <Sliders size={16} className="text-emerald-600" />
-              Delivery Windows & Cutoff Timetable
+              Delivery Windows, Cutoff Timetable & Order Limits
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Edit vehicle loading time, order cutoff minutes, and customer delivery windows inline.
+              Edit vehicle loading time, order cutoff minutes, max orders per shift, and customer delivery windows inline.
             </p>
           </div>
 
@@ -299,6 +303,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                 <th className="py-3.5 px-4">Shift & Slot Name</th>
                 <th className="py-3.5 px-4">Vehicle Loading Time</th>
                 <th className="py-3.5 px-4">Order Cutoff Buffer</th>
+                <th className="py-3.5 px-4">Limit of Orders</th>
                 <th className="py-3.5 px-4">Customer Delivery Window</th>
                 <th className="py-3.5 px-4 text-center">Today's Booking Status</th>
                 <th className="py-3.5 px-4 text-center">Active</th>
@@ -386,7 +391,29 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                       </div>
                     </td>
 
-                    {/* 4. Customer Delivery Window */}
+                    {/* 4. Limit of Orders (Max Orders / Shift) */}
+                    <td className="py-4 px-4 align-middle">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 w-fit">
+                          <Package size={14} className="text-indigo-600 shrink-0" />
+                          <input
+                            type="number"
+                            min="1"
+                            max="1000"
+                            step="5"
+                            value={rule.maxOrders ?? 50}
+                            onChange={(e) => handleRuleChange(idx, 'maxOrders', Math.max(1, Number(e.target.value)))}
+                            className="w-14 bg-transparent text-xs font-black text-gray-900 outline-none text-center"
+                          />
+                          <span className="text-[11px] font-bold text-gray-400">orders</span>
+                        </div>
+                        <p className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md w-fit border border-indigo-100">
+                          Max: {rule.maxOrders ?? 50} orders / shift
+                        </p>
+                      </div>
+                    </td>
+
+                    {/* 5. Customer Delivery Window */}
                     <td className="py-4 px-4 align-middle">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-1 text-xs">
@@ -410,7 +437,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                       </div>
                     </td>
 
-                    {/* 5. Today's Booking Status */}
+                    {/* 6. Today's Booking Status */}
                     <td className="py-4 px-4 align-middle text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`inline-flex items-center gap-1.5 text-[11px] font-black uppercase px-2.5 py-1 rounded-full border ${status.badgeBg}`}>
@@ -423,7 +450,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                       </div>
                     </td>
 
-                    {/* 6. Active Toggle */}
+                    {/* 7. Active Toggle */}
                     <td className="py-4 px-4 align-middle text-center">
                       <button
                         type="button"
@@ -437,7 +464,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                       </button>
                     </td>
 
-                    {/* 7. Actions */}
+                    {/* 8. Actions */}
                     <td className="py-4 px-4 align-middle text-right">
                       {rules.length > 2 ? (
                         <button
@@ -520,7 +547,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
                         {r.shiftName} ({formatTime12h(r.deliveryStartTime)} – {formatTime12h(r.deliveryEndTime)})
                       </p>
                       <p className="text-[10px] font-medium text-gray-500">
-                        {status.subtext}
+                        {status.subtext} • Capacity: <strong>{r.maxOrders ?? 50} orders</strong>
                       </p>
                     </div>
                   </div>
@@ -546,7 +573,7 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
             </div>
             <div>
               <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">Scheduled Delivery Lifecycle</h4>
-              <p className="text-[11px] text-gray-400">Automatic cutoff and fulfillment stages</p>
+              <p className="text-[11px] text-gray-400">Automatic cutoff, order limit cap, and fulfillment stages</p>
             </div>
           </div>
 
@@ -554,8 +581,8 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
             <div className="flex items-start gap-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
               <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5">1</span>
               <div>
-                <p className="font-black text-gray-900">1-Hour Customer Ordering Buffer</p>
-                <p className="text-gray-500 text-[11px]">Customers can book until 1 hour prior to vehicle departure so warehouse staff can pack crates accurately.</p>
+                <p className="font-black text-gray-900">1-Hour Customer Ordering Buffer & Shift Order Limit</p>
+                <p className="text-gray-500 text-[11px]">Customers can book until 1 hour prior to vehicle departure and up to the shift's order limit (e.g. 50 orders) so warehouse staff can pack crates accurately without overloading delivery vans.</p>
               </div>
             </div>
 
@@ -580,3 +607,5 @@ export default function LoadingSlotRulesTab({ storeId }: { storeId?: string }) {
     </div>
   );
 }
+
+
