@@ -218,22 +218,11 @@ export default function AgentInventory() {
               <span className="col-span-2 text-right">VAR</span>
             </div>
 
-            {/* Product Rows (Live Backend Data with Fallback) */}
+            {/* Product Rows (Live Backend Data) */}
             <div className="space-y-3 pt-1">
-              {((selectedHistoryAudit.raw?.items && selectedHistoryAudit.raw.items.length > 0)
+              {(selectedHistoryAudit.raw?.items && selectedHistoryAudit.raw.items.length > 0
                 ? selectedHistoryAudit.raw.items
-                : (selectedHistoryAudit.items && selectedHistoryAudit.items.length > 0)
-                ? selectedHistoryAudit.items
-                : [
-                    { name: 'Santoor Sandal Soap', category: 'Personal care & Hygine', system: 0, audited: 0, var: 'Fixed', color: 'bg-rose-100' },
-                    { name: 'Lizol Floor Cleaner', category: 'Household Cleaning & Laundry', system: 0, audited: 0, var: 'Fixed', color: 'bg-blue-50' },
-                    { name: 'Pesarlu', category: 'Pulses', system: 2, audited: 2, var: 'Fixed', color: 'bg-gray-200' },
-                    { name: 'పెసరపప్పు Moong Dal', category: 'Pulses', system: 1, audited: 1, var: 'Fixed', color: 'bg-amber-100' },
-                    { name: 'సాంబార్ పొడి Sambarpodi', category: 'Spices & Masala', system: 1, audited: 1, var: 'Fixed', color: 'bg-orange-100' },
-                    { name: '3 Roses Dust', category: 'Tea , Coffee & more', system: 3, audited: 3, var: 'Fixed', color: 'bg-red-50' },
-                    { name: 'Jaggery', category: 'Sweetners', system: 5, audited: 5, var: 'Fixed', color: 'bg-amber-800/20' },
-                    { name: 'Crystal Salt', category: 'Spices & Masala', system: 0, audited: 0, var: 'Fixed', color: 'bg-slate-800' },
-                  ]
+                : selectedHistoryAudit.items || []
               ).map((item: any, idx: number) => {
                 const prodName = item.product?.name || item.name || 'Product';
                 const catName = item.product?.category?.name || item.product?.category || item.category || 'General';
@@ -260,6 +249,11 @@ export default function AgentInventory() {
                   </div>
                 );
               })}
+              {(!selectedHistoryAudit.raw?.items || selectedHistoryAudit.raw.items.length === 0) && (!selectedHistoryAudit.items || selectedHistoryAudit.items.length === 0) && (
+                <div className="py-6 text-center text-xs font-medium text-gray-400">
+                  No items recorded in this audit history entry.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -721,70 +715,77 @@ export default function AgentInventory() {
 
           {/* Return Product Cards */}
           <div className="space-y-3 pt-1">
-            {[
-              { id: '1', name: "Mom's Magic Cashew &", onVehicle: 0, price: 55 },
-              { id: '2', name: 'Mysore Sandal soap', onVehicle: 0, price: 207 },
-              { id: '3', name: 'Sambar Power', onVehicle: 0, price: 5 },
-              { id: '4', name: '3 Roses Dust', onVehicle: 3, price: 10 },
-            ].map((p) => {
-              const reqQty = returnItems[p.id] || 0;
-              const isSelected = reqQty > 0;
+            {inventory.length === 0 ? (
+              <div className="p-6 text-center text-xs font-semibold text-gray-400">
+                No items in vehicle inventory to return.
+              </div>
+            ) : (
+              inventory
+                .filter(item => (item.product?.name || item.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                .map((p) => {
+                  const id = p.product?.id || p.productId || p.id;
+                  const name = p.product?.name || p.name || 'Product';
+                  const onVehicle = Number(p.quantity ?? 0);
+                  const price = Number(p.product?.price ?? p.price ?? 0);
+                  const reqQty = returnItems[id] || 0;
+                  const isSelected = reqQty > 0;
 
-              return (
-                <div
-                  key={p.id}
-                  className="bg-white rounded-3xl p-3.5 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3"
-                >
-                  {/* Left Checkbox */}
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) => {
-                      setReturnItems((prev) => ({
-                        ...prev,
-                        [p.id]: e.target.checked ? (prev[p.id] || 1) : 0,
-                      }));
-                    }}
-                    className="w-4 h-4 rounded border-gray-300 text-[#E85D04] focus:ring-0 cursor-pointer shrink-0 accent-[#E85D04]"
-                  />
+                  return (
+                    <div
+                      key={id}
+                      className="bg-white rounded-3xl p-3.5 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3"
+                    >
+                      {/* Left Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          setReturnItems((prev) => ({
+                            ...prev,
+                            [id]: e.target.checked ? (prev[id] || 1) : 0,
+                          }));
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-[#E85D04] focus:ring-0 cursor-pointer shrink-0 accent-[#E85D04]"
+                      />
 
-                  {/* Thumbnail Image */}
-                  <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
-                    <Package size={20} className="text-gray-300" />
-                  </div>
+                      {/* Thumbnail Image */}
+                      <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                        <Package size={20} className="text-gray-300" />
+                      </div>
 
-                  {/* Product Details */}
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <h4 className="text-xs font-extrabold text-gray-900 truncate">{p.name}</h4>
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="text-[8px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">
-                        ON VEHICLE: {p.onVehicle}
-                      </span>
-                      <span className="text-[9px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md leading-none">
-                        ₹{p.price}
-                      </span>
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <h4 className="text-xs font-extrabold text-gray-900 truncate">{name}</h4>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="text-[8px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">
+                            ON VEHICLE: {onVehicle}
+                          </span>
+                          <span className="text-[9px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md leading-none">
+                            ₹{price}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Quantity Stepper */}
+                      <div className="flex items-center bg-white border border-gray-200 rounded-xl p-0.5 shrink-0">
+                        <button
+                          onClick={() => setReturnItems((prev) => ({ ...prev, [id]: Math.max(0, reqQty - 1) }))}
+                          className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
+                        >
+                          <Minus size={12} strokeWidth={2.5} />
+                        </button>
+                        <span className="text-xs font-black text-gray-900 px-2">{reqQty}</span>
+                        <button
+                          onClick={() => setReturnItems((prev) => ({ ...prev, [id]: Math.min(onVehicle || 999, reqQty + 1) }))}
+                          className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
+                        >
+                          <Plus size={12} strokeWidth={2.5} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Quantity Stepper */}
-                  <div className="flex items-center bg-white border border-gray-200 rounded-xl p-0.5 shrink-0">
-                    <button
-                      onClick={() => setReturnItems((prev) => ({ ...prev, [p.id]: Math.max(0, reqQty - 1) }))}
-                      className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
-                    >
-                      <Minus size={12} strokeWidth={2.5} />
-                    </button>
-                    <span className="text-xs font-black text-gray-900 px-2">{reqQty}</span>
-                    <button
-                      onClick={() => setReturnItems((prev) => ({ ...prev, [p.id]: reqQty + 1 }))}
-                      className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90"
-                    >
-                      <Plus size={12} strokeWidth={2.5} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })
+            )}
           </div>
         </div>
 
@@ -1137,7 +1138,7 @@ export default function AgentInventory() {
                 <div>
                   <p className="text-xs font-bold text-gray-400">Total Items</p>
                   <p className="text-xl font-black text-gray-900 mt-1">
-                    {totalItemsCount || 245}
+                    {totalItemsCount}
                   </p>
                 </div>
                 <div className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#E65100] flex items-center justify-center">
@@ -1150,7 +1151,7 @@ export default function AgentInventory() {
                 <div>
                   <p className="text-xs font-bold text-gray-400">Inventory Value</p>
                   <p className="text-xl font-black text-gray-900 mt-1">
-                    ₹{totalInventoryValue > 0 ? totalInventoryValue.toFixed(2) : '719.00'}
+                    ₹{totalInventoryValue.toFixed(2)}
                   </p>
                 </div>
                 <div className="w-9 h-9 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center">
@@ -1261,66 +1262,71 @@ export default function AgentInventory() {
             <h3 className="text-sm font-extrabold text-gray-900 tracking-tight pt-1">History</h3>
 
             <div className="space-y-3">
-              {(auditHistory.length > 0
-                ? auditHistory.map((audit) => ({
-                    id: audit.id,
-                    title: format(new Date(audit.createdAt), 'do MMMM yyyy'),
-                    sub: `${audit.user?.name || 'Admin User'} • ${format(new Date(audit.createdAt), 'hh:mm a')}`,
-                    type: audit.type === 'RETURN' ? 'Stock Return' : 'Stock Audit',
-                    isReturn: audit.type === 'RETURN',
-                    raw: audit,
-                  }))
-                : [
-                    { id: '1', title: '5th August 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
-                    { id: '2', title: '27th July 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Return', isReturn: true },
-                    { id: '3', title: '5th June 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
-                    { id: '4', title: '5th May 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
-                    { id: '5', title: '8th June 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
-                    { id: '6', title: '9th May 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
-                    { id: '7', title: '9th May 2026', sub: 'Admin User • 10:30 AM', type: 'Stock Audit', isReturn: false },
-                  ]
-              ).map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedHistoryAudit(item)}
-                  className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
-                >
-                  {/* Left Refresh Icon Badge */}
-                  <div
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                      item.isReturn
-                        ? 'bg-rose-100/60 text-rose-500'
-                        : 'bg-emerald-100/60 text-[#00891D]'
-                    }`}
-                  >
-                    <RotateCcw size={18} strokeWidth={2} />
-                  </div>
-
-                  {/* Title & Subtitle */}
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <h4 className="text-xs font-extrabold text-gray-900 truncate leading-tight">{item.title}</h4>
-                    <p className="text-[10px] font-medium text-gray-400">{item.sub}</p>
-                  </div>
-
-                  {/* Type Pill Badge & Chevron */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span
-                      className={`text-[10px] font-bold px-3.5 py-1 rounded-full ${
-                        item.isReturn
-                          ? 'bg-rose-50 text-rose-500'
-                          : 'bg-emerald-50 text-[#00891D]'
-                      }`}
-                    >
-                      {item.type}
-                    </span>
-                    <ChevronRight size={15} className="text-gray-300" />
-                  </div>
+              {auditHistory.length === 0 ? (
+                <div className="p-8 bg-white rounded-3xl border border-gray-100 text-center space-y-2">
+                  <History size={28} className="mx-auto text-gray-300" />
+                  <p className="text-xs font-black text-gray-800">No Audit History Found</p>
+                  <p className="text-[11px] font-medium text-gray-400">There are no stock audits or returns recorded for this vehicle yet.</p>
                 </div>
-              ))}
+              ) : (
+                auditHistory.map((audit) => {
+                  const title = audit.createdAt ? format(new Date(audit.createdAt), 'do MMMM yyyy') : 'Stock Audit';
+                  const sub = `${audit.user?.name || 'Admin User'} • ${audit.createdAt ? format(new Date(audit.createdAt), 'hh:mm a') : ''}`;
+                  const isReturn = audit.type === 'RETURN';
+                  const typeLabel = isReturn ? 'Stock Return' : 'Stock Audit';
+                  const item = {
+                    id: audit.id,
+                    title,
+                    sub,
+                    type: typeLabel,
+                    isReturn,
+                    raw: audit,
+                  };
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedHistoryAudit(item)}
+                      className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
+                    >
+                      {/* Left Refresh Icon Badge */}
+                      <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                          item.isReturn
+                            ? 'bg-rose-100/60 text-rose-500'
+                            : 'bg-emerald-100/60 text-[#00891D]'
+                        }`}
+                      >
+                        <RotateCcw size={18} strokeWidth={2} />
+                      </div>
+
+                      {/* Title & Subtitle */}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <h4 className="text-xs font-extrabold text-gray-900 truncate leading-tight">{item.title}</h4>
+                        <p className="text-[10px] font-medium text-gray-400">{item.sub}</p>
+                      </div>
+
+                      {/* Type Pill Badge & Chevron */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`text-[10px] font-bold px-3.5 py-1 rounded-full ${
+                            item.isReturn
+                              ? 'bg-rose-50 text-rose-500'
+                              : 'bg-emerald-50 text-[#00891D]'
+                          }`}
+                        >
+                          {item.type}
+                        </span>
+                        <ChevronRight size={15} className="text-gray-300" />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}
-        {activeTab === 'refills' ? (
+        {activeTab === 'refills' && (
           /* Requests View */
           <div className="space-y-3.5">
             {/* Search Input & + Raise Request Button Row */}
@@ -1358,8 +1364,19 @@ export default function AgentInventory() {
 
             {/* Requests List */}
             <div className="space-y-3">
-              {(refillHistory.length > 0
-                ? refillHistory.map((item) => {
+              {refillHistory.length === 0 ? (
+                <div className="p-8 bg-white rounded-3xl border border-gray-100 text-center space-y-2">
+                  <ClipboardList size={28} className="mx-auto text-gray-300" />
+                  <p className="text-xs font-black text-gray-800">No Requests Raised</p>
+                  <p className="text-[11px] font-medium text-gray-400">You have not submitted any stock or refill requests yet.</p>
+                </div>
+              ) : (
+                refillHistory
+                  .filter(item => {
+                    const titleStr = (item.title || item.type || '').toLowerCase();
+                    return titleStr.includes(searchQuery.toLowerCase());
+                  })
+                  .map((item) => {
                     const isExpense = item.type === 'EXPENSE' || item.title?.includes('Expense');
                     const isReturn = item.type === 'RETURN' || item.title?.includes('Return');
                     const isDamage = item.type === 'DAMAGE' || item.title?.includes('Damage');
@@ -1368,84 +1385,54 @@ export default function AgentInventory() {
                     const isReimbursed = item.status === 'REIMBURSED' || item.status === 'Reimbursed';
 
                     let title = item.title || (isExpense ? 'Expense Request' : isReturn ? 'Return Request' : isDamage ? 'Damage Report' : 'Refill Request');
-                    let desc = item.desc || `${item.items?.length || 12} Items • ₹${item.totalAmount || 245}`;
+                    let desc = item.desc || `${item.items?.length || 0} Items • ₹${item.totalAmount || 0}`;
                     let statusLabel = isReimbursed ? 'Reimbursed' : isPending ? 'Pending' : isRejected ? 'Rejected' : 'Approved';
 
-                    return {
+                    const req = {
                       id: item.id,
                       title,
                       desc,
-                      date: item.createdAt ? format(new Date(item.createdAt), 'dd MMM yyyy • hh:mm a') : '06 Aug 2024 • 10:30 AM',
+                      date: item.createdAt ? format(new Date(item.createdAt), 'dd MMM yyyy • hh:mm a') : '',
                       status: statusLabel,
                       iconType: isExpense ? 'tag' : isReturn ? 'undo' : isDamage ? 'alert' : isPending ? 'clock' : 'refresh',
+                      raw: item,
                     };
-                  })
-                : [
-                    { id: '1', title: 'Refill Request', iconType: 'refresh', desc: '12 Items • ₹245.00', date: '06 Aug 2024 • 10:30 AM', status: 'Approved' },
-                    { id: '2', title: 'Expense Request', iconType: 'tag', desc: 'Fuel • ₹245.00', date: '06 Aug 2024 • 10:30 AM', status: 'Reimbursed' },
-                    { id: '3', title: 'Refill Request', iconType: 'clock', desc: '8 Items • ₹168.00', date: '05 Aug 2024 • 04:15 PM', status: 'Pending' },
-                    { id: '4', title: 'Return Request', iconType: 'undo', desc: '5 Items • ₹96.00', date: '04 Aug 2024 • 11:20 AM', status: 'Approved' },
-                    { id: '5', title: 'Damage Report', iconType: 'alert', desc: '3 Items • ₹75.00', date: '03 Aug 2024 • 02:15 PM', status: 'Rejected' },
-                  ]
-              ).map((req) => {
-                const isApproved = req.status === 'Approved';
-                const isReimbursed = req.status === 'Reimbursed';
-                const isPending = req.status === 'Pending';
-                const isRejected = req.status === 'Rejected';
 
-                return (
-                  <div
-                    key={req.id}
-                    onClick={() => setSelectedRequest(req)}
-                    className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
-                  >
-                    {/* Left Icon Badge */}
-                    <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                        isPending
-                          ? 'bg-orange-100/60 text-[#EA580C]'
-                          : isRejected
-                          ? 'bg-rose-100/60 text-rose-500'
-                          : req.iconType === 'undo'
-                          ? 'bg-rose-100/60 text-rose-500'
-                          : 'bg-emerald-100/60 text-[#00891D]'
-                      }`}
-                    >
-                      {req.iconType === 'refresh' && <RotateCcw size={18} strokeWidth={2} />}
-                      {req.iconType === 'tag' && <Tag size={18} strokeWidth={2} />}
-                      {req.iconType === 'clock' && <RotateCcw size={18} strokeWidth={2} />}
-                      {req.iconType === 'undo' && <span className="text-base font-bold">↩</span>}
-                      {req.iconType === 'alert' && <AlertTriangle size={18} strokeWidth={2} />}
-                    </div>
-
-                    {/* Request Details */}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <h4 className="text-xs font-extrabold text-gray-900 truncate leading-tight">{req.title}</h4>
-                      <p className="text-[11px] font-semibold text-gray-500">{req.desc}</p>
-                      <p className="text-[10px] font-medium text-gray-400">{req.date}</p>
-                    </div>
-
-                    {/* Status Pill & Chevron */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={`text-[10px] font-bold px-3 py-1 rounded-full ${
-                          isApproved || isReimbursed
-                            ? 'bg-emerald-50 text-[#00891D]'
-                            : isPending
-                            ? 'bg-orange-50 text-[#EA580C]'
-                            : 'bg-rose-50 text-rose-500'
-                        }`}
+                    return (
+                      <div
+                        key={req.id}
+                        onClick={() => setSelectedRequest(req)}
+                        className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
                       >
-                        {req.status}
-                      </span>
-                      <ChevronRight size={15} className="text-gray-300" />
-                    </div>
-                  </div>
-                );
-              })}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#00891D] flex items-center justify-center shrink-0">
+                            <ClipboardList size={18} />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-black text-gray-900 truncate">{req.title}</h4>
+                            <p className="text-[10px] font-medium text-gray-400 mt-0.5">{req.desc}</p>
+                            {req.date && <p className="text-[9px] font-semibold text-gray-400 mt-0.5">{req.date}</p>}
+                          </div>
+                        </div>
+
+                        <span
+                          className={`text-[10px] font-extrabold px-3 py-1 rounded-full border shrink-0 ${
+                            isRejected
+                              ? 'text-red-500 bg-red-50 border-red-200'
+                              : isPending
+                                ? 'text-[#E85D04] bg-orange-50 border-orange-200'
+                                : 'text-[#00891D] bg-emerald-50 border-emerald-200'
+                          }`}
+                        >
+                          {req.status}
+                        </span>
+                      </div>
+                    );
+                  })
+              )}
             </div>
           </div>
-        ) : null}
+        )}
       </div>
 
       {/* Refill Request Screen / Modal */}

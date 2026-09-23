@@ -6,6 +6,7 @@ import {
   Box, ClipboardList, PlusCircle, ArrowRight, Truck, Target, Plus, Minus, FileCheck, CheckCircle2,
   Calendar, Layers, FileText, PhoneCall, Navigation, Check, CreditCard, Smartphone, Banknote
 } from 'lucide-react';
+import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 import * as routeService from '../services/routeService';
 import toast from 'react-hot-toast';
 
@@ -17,6 +18,10 @@ interface ProductSummary {
 }
 
 export default function ScheduledDeliveries() {
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || import.meta.env.VITE_GOOGLE_MAP_API_KEY || ''
+  });
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any>({ route: null, vehicle: null, deliveries: [], assignments: [], isAdmin: false });
@@ -32,6 +37,27 @@ export default function ScheduledDeliveries() {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [selectedMapStop, setSelectedMapStop] = useState<number>(1);
+
+  // Agent/Vehicle Location
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        (err) => {
+          console.warn('Geolocation failed or denied:', err);
+          // Default fallback to vehicle area (Hyderabad)
+          setUserLocation({ lat: 17.385044, lng: 78.486671 });
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      setUserLocation({ lat: 17.385044, lng: 78.486671 });
+    }
+  }, []);
 
   const fetchDeliveries = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
@@ -220,8 +246,8 @@ export default function ScheduledDeliveries() {
     const changeAmount = Math.max(0, numCashReceived - toCollectAmount);
 
     return (
-      <div className="max-w-[420px] mx-auto bg-[#FAFAFA] min-h-screen pb-28 pt-2">
-        <div className="px-4 space-y-4">
+      <div className="w-full max-w-md lg:max-w-xl mx-auto bg-[#FAFAFA] min-h-screen pb-28 pt-2 px-2 sm:px-4">
+        <div className="w-full space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2.5">
@@ -445,8 +471,8 @@ export default function ScheduledDeliveries() {
     const custPhone = order.customerPhone || order.customer?.mobile || order.customer?.phone || '9393479928';
 
     return (
-      <div className="max-w-[420px] mx-auto bg-[#FAFAFA] min-h-screen pb-28 pt-2">
-        <div className="px-4 space-y-4">
+      <div className="w-full max-w-md lg:max-w-xl mx-auto bg-[#FAFAFA] min-h-screen pb-28 pt-2 px-2 sm:px-4">
+        <div className="w-full space-y-4">
           {/* Header */}
           <div className="flex items-center gap-2.5 pt-1">
             <button 
@@ -640,8 +666,8 @@ export default function ScheduledDeliveries() {
   }
 
   return (
-    <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
-      <div className="max-w-[420px] mx-auto px-4 space-y-4">
+    <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA] w-full px-2 sm:px-4">
+      <div className="w-full max-w-md lg:max-w-xl mx-auto space-y-4">
         {/* Title & Subtitle */}
         <div className="pt-1 flex items-center justify-between">
           <div>
@@ -933,150 +959,157 @@ export default function ScheduledDeliveries() {
 
         {/* TAB 3: Map */}
         {activeTab === 'map' && (
-          <div className="relative rounded-3xl overflow-hidden border border-gray-200/80 shadow-2xs bg-[#EAEFF4] h-[480px]">
-            {/* Map Canvas Background (Simulated Interactive Vector Map with Road Grid) */}
-            <div className="absolute inset-0 opacity-90 pointer-events-none">
-              <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                {/* Background Grid Lines */}
-                <path d="M 0 80 L 400 80 M 0 160 L 400 160 M 0 240 L 400 240 M 0 320 L 400 320 M 0 400 L 400 400" stroke="#CBD5E1" strokeWidth="6" strokeLinecap="round" />
-                <path d="M 80 0 L 80 500 M 180 0 L 180 500 M 260 0 L 260 500 M 340 0 L 340 500" stroke="#CBD5E1" strokeWidth="6" strokeLinecap="round" />
-                <path d="M 20 50 L 380 450 M 380 50 L 20 450" stroke="#E2E8F0" strokeWidth="4" />
-                {/* Land Parcels */}
-                <rect x="230" y="90" width="60" height="40" rx="8" fill="#D1FAE5" opacity="0.6" />
-                <rect x="230" y="240" width="50" height="35" rx="8" fill="#D1FAE5" opacity="0.6" />
-                <rect x="40" y="220" width="45" height="30" rx="8" fill="#D1FAE5" opacity="0.6" />
-                <rect x="270" y="330" width="45" height="30" rx="8" fill="#D1FAE5" opacity="0.6" />
-                {/* Area Names */}
-                <text x="170" y="86" fill="#94A3B8" fontSize="10" fontWeight="bold">MIYAPUR</text>
-                <text x="175" y="226" fill="#94A3B8" fontSize="10" fontWeight="bold">KUKATPALLY</text>
-                <text x="255" y="238" fill="#94A3B8" fontSize="10" fontWeight="bold">MOOSAPET</text>
-                <text x="250" y="318" fill="#94A3B8" fontSize="10" fontWeight="bold">BACHUPALLY</text>
-                <text x="275" y="370" fill="#94A3B8" fontSize="10" fontWeight="bold">NIZAMPET</text>
-              </svg>
-            </div>
+          <div className="space-y-3">
+            {/* Live Map Box */}
+            <div className="relative rounded-3xl overflow-hidden border border-gray-200/80 shadow-2xs bg-[#EAEFF4] h-[480px]">
+              {isLoaded && window.google ? (
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={
+                    activeDeliveries.length > 0 && activeDeliveries[0].address?.location
+                      ? { lat: activeDeliveries[0].address.location.lat, lng: activeDeliveries[0].address.location.lng }
+                      : { lat: 17.385044, lng: 78.486671 } // Hyderabad center default
+                  }
+                  zoom={12}
+                  options={{
+                    disableDefaultUI: true,
+                    zoomControl: false,
+                  }}
+                >
+                  {/* Delivery Stop Markers from Real Database Orders */}
+                  {activeDeliveries.map((order: any, index: number) => {
+                    const stopNum = index + 1;
+                    const lat = order.address?.location?.lat || (17.385044 + index * 0.015);
+                    const lng = order.address?.location?.lng || (78.486671 + index * 0.012);
+                    return (
+                      <MarkerF
+                        key={order.id || index}
+                        position={{ lat, lng }}
+                        label={{
+                          text: String(stopNum),
+                          color: '#FFFFFF',
+                          fontWeight: 'bold',
+                          fontSize: '13px',
+                        }}
+                        onClick={() => setSelectedMapStop(stopNum)}
+                      />
+                    );
+                  })}
 
-            {/* Map Markers Overlay */}
-            <div className="absolute inset-0 pointer-events-auto">
-              {/* Delivery Pins (1 to 5) */}
-              <div 
-                onClick={() => setSelectedMapStop(1)}
-                className="absolute top-[200px] left-[150px] cursor-pointer transition-transform hover:scale-110 flex flex-col items-center"
-              >
-                <div className="w-8 h-8 rounded-full bg-[#00891D] text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md">
-                  1
+                  {/* Vehicle / User Current Location Marker (Truck Symbol) */}
+                  <MarkerF
+                    position={userLocation || { lat: 17.385044, lng: 78.486671 }}
+                    title="You (Vehicle Location)"
+                    icon={{
+                      url: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="%2300891D" stroke="%23FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>`,
+                      scaledSize: new window.google.maps.Size(44, 44),
+                    }}
+                  />
+                </GoogleMap>
+              ) : (
+                /* Interactive Vector Map with Real Order Pins */
+                <div className="relative w-full h-full">
+                  <div className="absolute inset-0 opacity-90 pointer-events-none">
+                    <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M 0 80 L 400 80 M 0 160 L 400 160 M 0 240 L 400 240 M 0 320 L 400 320 M 0 400 L 400 400" stroke="#CBD5E1" strokeWidth="6" strokeLinecap="round" />
+                      <path d="M 80 0 L 80 500 M 180 0 L 180 500 M 260 0 L 260 500 M 340 0 L 340 500" stroke="#CBD5E1" strokeWidth="6" strokeLinecap="round" />
+                      <path d="M 20 50 L 380 450 M 380 50 L 20 450" stroke="#E2E8F0" strokeWidth="4" />
+                      <rect x="230" y="90" width="60" height="40" rx="8" fill="#D1FAE5" opacity="0.6" />
+                      <rect x="230" y="240" width="50" height="35" rx="8" fill="#D1FAE5" opacity="0.6" />
+                      <rect x="40" y="220" width="45" height="30" rx="8" fill="#D1FAE5" opacity="0.6" />
+                      <rect x="270" y="330" width="45" height="30" rx="8" fill="#D1FAE5" opacity="0.6" />
+                    </svg>
+                  </div>
+
+                  {/* Real Database Order Pins on Map */}
+                  <div className="absolute inset-0 pointer-events-auto">
+                    {(activeDeliveries.length > 0 ? activeDeliveries : sampleOrders).map((order: any, idx: number) => {
+                      const stopNum = idx + 1;
+                      const topPos = 140 + (idx * 70);
+                      const leftPos = 120 + (idx * 45);
+
+                      return (
+                        <div
+                          key={order.id || idx}
+                          onClick={() => setSelectedMapStop(stopNum)}
+                          style={{ top: `${topPos}px`, left: `${leftPos}px` }}
+                          className="absolute cursor-pointer transition-transform hover:scale-110 flex flex-col items-center z-10"
+                        >
+                          <div className={`w-8 h-8 rounded-full ${selectedMapStop === stopNum ? 'bg-[#00891D] scale-110' : 'bg-emerald-700'} text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md`}>
+                            {stopNum}
+                          </div>
+                          <div className={`w-2.5 h-2.5 ${selectedMapStop === stopNum ? 'bg-[#00891D]' : 'bg-emerald-700'} rotate-45 -mt-1.5`} />
+                        </div>
+                      );
+                    })}
+
+                    {/* Vehicle Current Location Pin */}
+                    <div className="absolute top-[280px] left-[110px] flex flex-col items-center">
+                      <div className="w-12 h-12 rounded-full bg-[#00891D] text-white flex items-center justify-center border-4 border-emerald-200/80 shadow-lg animate-pulse">
+                        <Truck size={22} strokeWidth={2} />
+                      </div>
+                      <span className="text-[9px] font-extrabold text-white bg-[#00891D] px-2.5 py-0.5 rounded-full mt-1 shadow-sm">
+                        You
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-2.5 h-2.5 bg-[#00891D] rotate-45 -mt-1.5" />
-              </div>
+              )}
 
-              <div 
-                onClick={() => setSelectedMapStop(2)}
-                className="absolute top-[120px] left-[120px] cursor-pointer transition-transform hover:scale-110 flex flex-col items-center"
-              >
-                <div className="w-8 h-8 rounded-full bg-[#00891D] text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md">
-                  2
-                </div>
-                <div className="w-2.5 h-2.5 bg-[#00891D] rotate-45 -mt-1.5" />
-              </div>
-
-              <div 
-                onClick={() => setSelectedMapStop(3)}
-                className="absolute top-[210px] left-[260px] cursor-pointer transition-transform hover:scale-110 flex flex-col items-center"
-              >
-                <div className="w-8 h-8 rounded-full bg-[#00891D] text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md">
-                  3
-                </div>
-                <div className="w-2.5 h-2.5 bg-[#00891D] rotate-45 -mt-1.5" />
-              </div>
-
-              <div 
-                onClick={() => setSelectedMapStop(4)}
-                className="absolute top-[280px] left-[250px] cursor-pointer transition-transform hover:scale-110 flex flex-col items-center"
-              >
-                <div className="w-8 h-8 rounded-full bg-[#00891D] text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md">
-                  4
-                </div>
-                <div className="w-2.5 h-2.5 bg-[#00891D] rotate-45 -mt-1.5" />
-              </div>
-
-              <div 
-                onClick={() => setSelectedMapStop(5)}
-                className="absolute top-[310px] left-[275px] cursor-pointer transition-transform hover:scale-110 flex flex-col items-center"
-              >
-                <div className="w-8 h-8 rounded-full bg-[#00891D] text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md">
-                  5
-                </div>
-                <div className="w-2.5 h-2.5 bg-[#00891D] rotate-45 -mt-1.5" />
-              </div>
-
-              {/* Vehicle Current Location Pin */}
-              <div className="absolute top-[280px] left-[110px] flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full bg-[#00891D] text-white flex items-center justify-center border-4 border-emerald-200/80 shadow-lg animate-pulse">
-                  <Truck size={22} strokeWidth={2} />
-                </div>
-                <span className="text-[9px] font-extrabold text-white bg-[#00891D] px-2.5 py-0.5 rounded-full mt-1 shadow-sm">
-                  You
-                </span>
-              </div>
-            </div>
-
-            {/* Floating Top Right Map Controls */}
-            <div className="absolute top-3 right-3 z-20 space-y-2">
-              <button 
-                onClick={() => toast.success('Locating current vehicle position...')}
-                className="bg-white rounded-2xl p-2.5 shadow-md border border-gray-100 flex flex-col items-center justify-center gap-0.5 text-gray-700 hover:text-[#00891D] transition-colors cursor-pointer"
-              >
-                <Target size={18} />
-                <span className="text-[9px] font-bold">My Location</span>
-              </button>
-
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 flex flex-col overflow-hidden divide-y divide-gray-100">
-                <button className="p-2.5 text-gray-700 hover:text-[#00891D] transition-colors flex items-center justify-center cursor-pointer">
-                  <Plus size={16} />
+              {/* Floating Top Right Map Controls */}
+              <div className="absolute top-3 right-3 z-20 space-y-2">
+                <button 
+                  onClick={() => toast.success('Locating current vehicle position...')}
+                  className="bg-white rounded-2xl p-2.5 shadow-md border border-gray-100 flex flex-col items-center justify-center gap-0.5 text-gray-700 hover:text-[#00891D] transition-colors cursor-pointer"
+                >
+                  <Target size={18} />
+                  <span className="text-[9px] font-bold">My Location</span>
                 </button>
-                <button className="p-2.5 text-gray-700 hover:text-[#00891D] transition-colors flex items-center justify-center cursor-pointer">
-                  <Minus size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Floating Bottom Active Order Details Card */}
-            <div className="absolute bottom-3 left-3 right-3 z-20 bg-white rounded-3xl p-4 border border-gray-100 shadow-xl flex items-center justify-between gap-3">
-              {/* Left Stop Circle */}
-              <div className="w-10 h-10 rounded-2xl bg-[#E8F5E9] text-[#00891D] font-black text-sm flex items-center justify-center shrink-0">
-                0{selectedMapStop}
               </div>
 
-              {/* Customer Details */}
-              <div className="flex-1 min-w-0 space-y-0.5">
-                <h4 className="text-sm font-black text-gray-900 truncate">
-                  {selectedMapStop === 1 ? 'Ramesh Kumar' : selectedMapStop === 2 ? 'Rahul' : 'Aishwarya'}
-                </h4>
-                <p className="text-[11px] font-semibold text-gray-400 flex items-center gap-1">
-                  <MapPin size={12} className="text-gray-400" />
-                  <span>Kukatpally, Hyderabad</span>
-                </p>
-                <p className="text-xs font-black text-gray-900 mt-0.5">
-                  3 Items • ₹261
-                </p>
-              </div>
+              {/* Floating Bottom Active Order Details Card */}
+              {(() => {
+                const mapOrders = activeDeliveries.length > 0 ? activeDeliveries : sampleOrders;
+                const activeMapOrder = mapOrders[selectedMapStop - 1] || mapOrders[0];
+                if (!activeMapOrder) return null;
 
-              {/* View Order Action Button */}
-              <button
-                onClick={() => {
-                  setSelectedOrder({
-                    id: String(selectedMapStop),
-                    orderNumber: `VK-20260804-00001${selectedMapStop}`,
-                    customerName: selectedMapStop === 1 ? 'Ramesh Kumar' : 'Rahul',
-                    customerPhone: '9393479928',
-                    amount: 261,
-                    itemCount: 3,
-                    address: 'Kukatpally, Hyderabad, Telangana',
-                  });
-                }}
-                className="px-4 py-2.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-xl text-xs font-black shadow-2xs active:scale-95 transition-all shrink-0 cursor-pointer"
-              >
-                View Order
-              </button>
+                const custName = activeMapOrder.customer?.name || activeMapOrder.consumer?.name || activeMapOrder.customerName || 'Customer';
+                const itemsCount = activeMapOrder.items?.length ?? activeMapOrder.itemCount ?? 1;
+                const totalAmt = activeMapOrder.totalAmount ?? activeMapOrder.amount ?? 0;
+                const addressStr = typeof activeMapOrder.address === 'string'
+                  ? activeMapOrder.address
+                  : (activeMapOrder.address?.line1
+                    ? `${activeMapOrder.address.line1}, ${activeMapOrder.address.city || ''}`
+                    : 'Customer Address');
+
+                return (
+                  <div className="absolute bottom-3 left-3 right-3 z-20 bg-white rounded-3xl p-4 border border-gray-100 shadow-xl flex items-center justify-between gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-[#E8F5E9] text-[#00891D] font-black text-sm flex items-center justify-center shrink-0">
+                      0{selectedMapStop}
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <h4 className="text-sm font-black text-gray-900 truncate">
+                        {custName}
+                      </h4>
+                      <p className="text-[11px] font-semibold text-gray-400 flex items-center gap-1 truncate">
+                        <MapPin size={12} className="text-gray-400 shrink-0" />
+                        <span className="truncate">{addressStr}</span>
+                      </p>
+                      <p className="text-xs font-black text-gray-900 mt-0.5">
+                        {itemsCount} Items • ₹{totalAmt}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedOrder(activeMapOrder)}
+                      className="px-4 py-2.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-xl text-xs font-black shadow-2xs active:scale-95 transition-all shrink-0 cursor-pointer"
+                    >
+                      View Order
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
