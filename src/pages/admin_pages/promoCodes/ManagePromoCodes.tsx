@@ -384,14 +384,24 @@ const ManagePromoCodes = () => {
       key: "appicableOn",
       label: "APPLICABLE ON",
       sortable: true,
-      render: (promoCode: PromoCodeRow) => (
-        <div className="text-left">
-          <span className="text-xs sm:text-sm text-gray-800">
-            {promoCode.appicableOn ?? "-"}
-          </span>
-        </div>
-      ),
+      render: (promoCode: PromoCodeRow) => {
+        const isSpecific = String(promoCode.appicableOn || '').toUpperCase() === 'SPECIFIC_PRODUCTS' || ((promoCode as any).products?.length > 0);
+        return (
+          <div className="text-left">
+            {isSpecific ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                🏷️ Specific Items {(promoCode as any).products?.length ? `(${(promoCode as any).products.length})` : ''}
+              </span>
+            ) : (
+              <span className="text-xs sm:text-sm text-gray-800 capitalize">
+                {promoCode.appicableOn || "Global"}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
+
     {
       key: "approvalStatus",
       label: "APPROVAL STATUS",

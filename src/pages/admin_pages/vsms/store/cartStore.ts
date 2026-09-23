@@ -85,15 +85,38 @@ const calculateTotals = (items: CartItem[], deliverySlabs: DeliverySlab[] = [], 
   // Promotion Discount Calculation
   let promotionDiscount = 0;
   if (promotion) {
-    if (promotion.discountType === 'PERCENTAGE') {
-      promotionDiscount = (itemsTotal * promotion.discountValue) / 100;
-      if (promotion.maxDiscount && promotionDiscount > promotion.maxDiscount) {
-        promotionDiscount = promotion.maxDiscount;
+    if (promotion.calculatedDiscount !== undefined && promotion.calculatedDiscount !== null) {
+      // Direct calculated discount from validation API
+      promotionDiscount = Number(promotion.calculatedDiscount || 0);
+    } else {
+      // Check if promotion is product-specific
+      const isProductSpecific = promotion.isProductSpecific || (Array.isArray(promotion.appliedProducts) && promotion.appliedProducts.length > 0) || (Array.isArray(promotion.products) && promotion.products.length > 0);
+      let eligibleItemsTotal = itemsTotal;
+
+      if (isProductSpecific) {
+        const mappedProductIds = [
+          ...(promotion.appliedProducts || []).map((p: any) => p.id || p.productId),
+          ...(promotion.products || []).map((p: any) => p.id || p.productId),
+        ].filter(Boolean);
+
+        const matchingItems = items.filter(i => mappedProductIds.includes(i.productId));
+        eligibleItemsTotal = matchingItems.reduce((acc, i) => acc + (Number(i.price || 0) * i.quantity), 0);
       }
-    } else if (promotion.discountType === 'FLAT_AMOUNT') {
-      promotionDiscount = promotion.discountValue;
+
+      const discountType = String(promotion.discountType || promotion.type || '').toUpperCase();
+      const discountVal = Number(promotion.discountValue ?? promotion.discount ?? promotion.value ?? 0);
+
+      if (discountType === 'PERCENTAGE' || discountType === 'DISCOUNT') {
+        promotionDiscount = (eligibleItemsTotal * discountVal) / 100;
+        if (promotion.maxDiscount && promotionDiscount > promotion.maxDiscount) {
+          promotionDiscount = Number(promotion.maxDiscount);
+        }
+      } else {
+        promotionDiscount = Math.min(discountVal, eligibleItemsTotal);
+      }
     }
   }
+
 
   // GST Tax Calculation at Item Level
   let totalTaxableAmount = 0;

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Save } from "lucide-react";
+import { Save, Search, Check, X, Package } from "lucide-react";
 import {
   useCreatePromoCode,
   useGetPromoCodeById,
   useUpdatePromoCode,
 } from "../../../hooks/promoCodes";
+import { useGetAllProductList } from "../../../hooks/product";
 import { PromoCodeFormValues } from "../../../types/promoCode.types";
 import {
   FormSectionWithDots,
@@ -47,6 +48,9 @@ type PromoCodeEditItem = {
   endTime?: string;
   repeatUsage?: string;
   appicableOn?: string;
+  scope?: string;
+  products?: Array<{ id: string; name?: string; sku?: string; images?: string[]; price?: number }>;
+  productIds?: string[];
 };
 
 const AddPromoCode = () => {
@@ -74,12 +78,21 @@ const AddPromoCode = () => {
   const endDate = watch("endDate");
   const startTime = watch("startTime");
   const selectedDiscountType = watch("discountType");
+  const whereItApplies = watch("whereItApplies");
   const [maximumDiscountAmount, setMaximumDiscountAmount] = useState("0");
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
   const today = new Date().toISOString().split("T")[0];
   const isPending =
     createPromoCodeMutation.isPending ||
     updatePromoCodeMutation.isPending ||
     (isEditing && isPromoCodesLoading);
+
+  // Fetch products list for mapping
+  const { data: productsData, isLoading: isProductsLoading } = useGetAllProductList(1, 100, productSearchTerm);
+  const allProducts: any[] = useMemo(() => {
+    return productsData?.data?.data || productsData?.data?.products || productsData?.data || [];
+  }, [productsData]);
 
   const promoCodes = useMemo(() => {
     const item = (promoCodeResponse as { data?: PromoCodeEditItem } | undefined)
@@ -100,6 +113,8 @@ const AddPromoCode = () => {
       return;
     }
 
+    const isSpecific = String(promoCodeToEdit.scope || promoCodeToEdit.appicableOn || '').toUpperCase() === 'SPECIFIC_PRODUCTS';
+
     reset({
       codeName: promoCodeToEdit.promoCode || "",
       discountType:
@@ -113,8 +128,6 @@ const AddPromoCode = () => {
         "PERCENTAGE"
           ? String(promoCodeToEdit.percentageOff ?? "")
           : String(promoCodeToEdit.discount ?? ""),
-      // Keep max discount amount separate for percentage flow.
-      // For AMOUNT type this is intentionally "0".
       startDate: (promoCodeToEdit.startDate || "").split("T")[0]
         ? formatDateForInput((promoCodeToEdit.startDate || "").split("T")[0])
         : "",
@@ -127,11 +140,16 @@ const AddPromoCode = () => {
         String(promoCodeToEdit.repeatUsage || "").toUpperCase() === "MULTIPLE"
           ? "MULTIPLE"
           : "ONE",
-      whereItApplies:
-        String(promoCodeToEdit.appicableOn || "").toUpperCase() === "GLOBAL"
-          ? "global"
-          : "",
+      whereItApplies: isSpecific
+        ? "SPECIFIC_PRODUCTS"
+        : (String(promoCodeToEdit.appicableOn || "").toUpperCase() === "GLOBAL" ? "global" : ""),
     });
+
+    if (promoCodeToEdit.productIds && Array.isArray(promoCodeToEdit.productIds)) {
+      setSelectedProductIds(promoCodeToEdit.productIds.map(String));
+    } else if (promoCodeToEdit.products && Array.isArray(promoCodeToEdit.products)) {
+      setSelectedProductIds(promoCodeToEdit.products.map((p: any) => String(p.id || p.productId)));
+    }
 
     setMaximumDiscountAmount(
       String(
@@ -147,10 +165,24 @@ const AddPromoCode = () => {
     if (!isEditing) {
       reset(DEFAULT_VALUES);
       setMaximumDiscountAmount("0");
+      setSelectedProductIds([]);
     }
   }, [isEditing, reset]);
 
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
   const onSubmit = (values: PromoCodeFormValues) => {
+    if (values.whereItApplies === "SPECIFIC_PRODUCTS" && selectedProductIds.length === 0) {
+      alert("Please select at least one product for product-mapped promo code.");
+      return;
+    }
+
     const numericDiscount = Number(values.maximumDiscount) || 0;
     const numericMaxDiscountAmount = Number(maximumDiscountAmount) || 0;
     const selectedDiscountType: "AMOUNT" | "PERCENTAGE" =
@@ -169,7 +201,6 @@ const AddPromoCode = () => {
       startTime: values.startTime,
       endTime: values.endTime,
       endDate: `${values.endDate}T23:59:59.000Z`,
-      // noOfUsers: 0,
       minimumOrderAmount: Number(values.minimumOrderValue) || 0,
       discountType: selectedDiscountType,
       discount: selectedDiscountType === "AMOUNT" ? numericDiscount : null,
@@ -178,9 +209,14 @@ const AddPromoCode = () => {
       maxDiscountAmount:
         selectedDiscountType === "PERCENTAGE" ? numericMaxDiscountAmount : null,
       appicableOn:
-        values.whereItApplies === "global" ? "GLOBAL" : null,
+        values.whereItApplies === "SPECIFIC_PRODUCTS"
+          ? "SPECIFIC_PRODUCTS"
+          : values.whereItApplies === "global"
+          ? "GLOBAL"
+          : null,
+      scope: values.whereItApplies || "GLOBAL",
       repeatUsage: selectedRepeatUsage,
-      // image: "",
+      productIds: values.whereItApplies === "SPECIFIC_PRODUCTS" ? selectedProductIds : [],
     };
 
     if (isEditing) {
@@ -380,16 +416,110 @@ const AddPromoCode = () => {
                 <option value="MULTIPLE">Multiple</option>
               </SelectInput>
 
-              {/* Where it applies (optional) */}
+              {/* Where it applies */}
               <SelectInput
-                label="Where it applies (optional)"
+                label="Where it applies"
                 error={errors.whereItApplies?.message}
                 {...register("whereItApplies")}
               >
                 <option value="">Select</option>
-                <option value="global">Global</option>
+                <option value="global">Global (Entire Order)</option>
+                <option value="SPECIFIC_PRODUCTS">Specific Products (Product Offer)</option>
               </SelectInput>
             </div>
+
+            {/* Specific Products Selector */}
+            {whereItApplies === "SPECIFIC_PRODUCTS" && (
+              <div className="mt-4 p-4 border border-emerald-200 bg-emerald-50/30 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                    <Package size={15} className="text-emerald-700" />
+                    Map Eligible Products ({selectedProductIds.length} selected)
+                  </label>
+                  {selectedProductIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProductIds([])}
+                      className="text-[11px] font-semibold text-red-600 hover:underline"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+
+                {/* Search bar */}
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search products by name or SKU..."
+                    value={productSearchTerm}
+                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-gray-900 outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Selected Products Chips */}
+                {selectedProductIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {selectedProductIds.map((id) => {
+                      const prod = allProducts.find((p: any) => String(p.id) === String(id));
+                      const name = prod?.name || (typeof prod?.name === 'object' ? prod?.name?.name : id);
+                      return (
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-900 rounded-lg text-[11px] font-medium border border-emerald-300"
+                        >
+                          <span className="truncate max-w-[150px]">{name}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleProductSelection(id)}
+                            className="text-emerald-700 hover:text-red-600"
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Product List Grid */}
+                <div className="max-h-48 overflow-y-auto space-y-1.5 bg-white border border-gray-200 rounded-lg p-2">
+                  {isProductsLoading ? (
+                    <p className="text-xs text-gray-400 text-center py-4">Loading products...</p>
+                  ) : allProducts.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-4">No products found</p>
+                  ) : (
+                    allProducts.map((product: any) => {
+                      const isSelected = selectedProductIds.includes(String(product.id));
+                      const prodName = typeof product.name === 'object' && product.name !== null ? product.name.name : (product.name || 'Item');
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => toggleProductSelection(String(product.id))}
+                          className={`flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-emerald-50 border border-emerald-300 font-semibold text-emerald-950'
+                              : 'hover:bg-gray-50 text-gray-700 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 rounded flex items-center justify-center border ${
+                              isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-300'
+                            }`}>
+                              {isSelected && <Check size={11} strokeWidth={3} />}
+                            </div>
+                            <span className="truncate">{prodName}</span>
+                          </div>
+                          <span className="text-[11px] font-bold text-gray-500">₹{product.price || product.sellingPrice || 0}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </FormSectionWithDots>
 
           {/* Submit Buttons */}
@@ -418,3 +548,4 @@ const AddPromoCode = () => {
 };
 
 export default AddPromoCode;
+

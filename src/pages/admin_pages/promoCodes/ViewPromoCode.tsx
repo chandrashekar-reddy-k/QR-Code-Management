@@ -4,7 +4,9 @@ import { Ticket, Calendar, Users, DollarSign, Percent, Image as ImageIcon, Tag, 
 // import { promoCodesAPI } from '../../../lib/api';
 import { PromoCode } from '../../../types';
 import { formatDate, formatCurrency } from "../../../utils/formatters";
+import fetchData from '../../../helper';
 import { Badge } from '../../../components/ui';
+
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import BackButton from '../../../components/common/BackButton';
 
@@ -106,11 +108,26 @@ const ViewPromoCode = () => {
     const fetchPromoCode = async () => {
       try {
         setLoading(true);
-        // Using mock data for now - replace with API call when ready
-        // const data = await promoCodesAPI.getById(parseInt(id || '0'));
-        const foundPromoCode = mockPromoCodes.find((p) => p.id === parseInt(id || '0'));
-        if (foundPromoCode) {
-          setPromoCode(foundPromoCode);
+        const res = await fetchData(`promocodes/get/${id}`, "GET");
+        const p = res?.data || res;
+        if (p) {
+          setPromoCode({
+            id: p.id,
+            promoCode: p.code || p.promoCode,
+            message: p.title || p.description || p.message || '',
+            startDate: p.startDate,
+            endDate: p.expiryDate || p.endDate,
+            noOfUsers: p.maxTotalUses || p.noOfUsers || 0,
+            minimumOrderAmount: p.minOrderValue || p.minimumOrderAmount || 0,
+            discount: p.discount || p.value || 0,
+            discountType: String(p.type || p.discountType || 'amount').toLowerCase() === 'percentage' ? 'percentage' : 'amount',
+            image: p.image || '',
+            status: p.isActive || p.status === 'ACTIVE' ? 'active' : 'inactive',
+            validity: p.isActive ? 'Acceptable' : 'Inactive',
+            repeatUsage: p.repeatUsage || p.maxUsesPerUser || 'Multiple',
+            whereItApplies: p.scope || p.appicableOn || 'ALL',
+            products: p.products || [],
+          } as any);
         } else {
           alert('Promo code not found!');
           navigate('/promo-codes/manage');
@@ -128,6 +145,7 @@ const ViewPromoCode = () => {
       fetchPromoCode();
     }
   }, [id, navigate]);
+
 
   if (loading) {
     return (
@@ -256,14 +274,16 @@ const ViewPromoCode = () => {
             </div>
           </div>
 
-          {/* Validity and Repeat Usage */}
+          {/* Scope and Repeat Usage */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Clock size={16} className="text-blue-600" />
-                <label className="text-xs font-semibold text-gray-700 uppercase">Validity</label>
+                <label className="text-xs font-semibold text-gray-700 uppercase">Applies To</label>
               </div>
-              <p className="text-sm font-semibold text-gray-900">{promoCode.validity}</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {(promoCode as any).whereItApplies === "SPECIFIC_PRODUCTS" ? "Specific Products" : (promoCode as any).whereItApplies}
+              </p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -273,6 +293,32 @@ const ViewPromoCode = () => {
               <p className="text-sm font-semibold text-gray-900">{promoCode.repeatUsage || 'N/A'}</p>
             </div>
           </div>
+
+          {/* Mapped Products Section */}
+          {((promoCode as any).products?.length > 0 || (promoCode as any).whereItApplies === "SPECIFIC_PRODUCTS") && (
+            <div className="pt-2 pb-4 border-b border-gray-200">
+              <label className="text-xs font-semibold text-gray-700 uppercase mb-3 block">
+                Mapped Products ({(promoCode as any).products?.length || 0})
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {((promoCode as any).products || []).map((cp: any) => {
+                  const prod = cp.product || cp;
+                  return (
+                    <div key={prod.id} className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800 font-black shrink-0">
+                        🏷️
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-gray-900 truncate">{prod.name}</p>
+                        <p className="text-[10px] text-gray-500">₹{prod.price || 0}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
 
           {/* Image */}
           <div>
