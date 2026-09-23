@@ -8,11 +8,15 @@ import {
   Calendar,
   FileText,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  ArrowRight,
+  Sparkles
 } from "lucide-react";
-import { useGetReturnRequestById, useReceiveReturnItem } from "../../../hooks/returnRequest";
+import { useGetReturnRequestById, useReceiveReturnItem, useApproveReturnItem, useRejectReturnItem, useUpdateReturnPhase } from "../../../hooks/returnRequest";
 import { toast } from "react-toastify";
 import { ReturnRequest, ReturnRequestItem } from "../../../types";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
@@ -43,8 +47,11 @@ const KPICard = ({ title, value, icon: Icon, colorClass }: KPICardProps) => (
 const ViewReturnRequest = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: apiData, isLoading: loading, isError } = useGetReturnRequestById(id);
+  const { data: apiData, isLoading: loading, isError, refetch } = useGetReturnRequestById(id);
   const { mutate: receiveReturn, isPending: isReceiving } = useReceiveReturnItem(id);
+  const approveMutation = useApproveReturnItem(id);
+  const rejectMutation = useRejectReturnItem(id);
+  const updatePhaseMutation = useUpdateReturnPhase(id);
   
   const [request, setRequest] = useState<ReturnRequest | null>(null);
   const [qcData, setQcData] = useState<Record<string, { qcStatus: 'PASSED' | 'FAILED' | '', qcNotes: string }>>({});
@@ -67,7 +74,6 @@ const ViewReturnRequest = () => {
     if (request?.items) {
       const initialQcData: Record<string, { qcStatus: 'PASSED' | 'FAILED' | '', qcNotes: string }> = {};
       request.items.forEach((item: ReturnRequestItem) => {
-        // We only initialize empty QC data if the item doesn't have it yet and is approved for return
         if (!item.qcStatus && (item.status === 'APPROVED' || item.status === 'PARTIALLY_APPROVED')) {
           initialQcData[item.id] = { qcStatus: '', qcNotes: '' };
         }
@@ -77,7 +83,6 @@ const ViewReturnRequest = () => {
   }, [request]);
 
   const handleSubmitQC = () => {
-    // Validate that all items have a PASS/FAIL status selected
     const items = Object.entries(qcData).map(([orderItemId, data]) => ({
       orderItemId,
       ...data
@@ -96,28 +101,37 @@ const ViewReturnRequest = () => {
 
     receiveReturn({ items }, {
       onSuccess: () => {
-        setQcData({}); // Clear form on success
+        setQcData({});
       }
     });
+  };
+
+  const handlePhaseChange = (phase: string) => {
+    updatePhaseMutation.mutate(phase);
   };
 
   // Derived metrics
   const metrics = useMemo(() => {
     if (!request?.items) return null;
     let approved = 0, rejected = 0, pending = 0;
-    let refundAmount = 0;
+    let approvedRefundAmount = 0;
+    let totalRequestedAmount = 0;
 
     request.items.forEach((item: ReturnRequestItem) => {
       const status = item.status || 'pending';
+      const itemTotal = Number(item.totalPrice || 0);
+      totalRequestedAmount += itemTotal;
       if (status === 'APPROVED') {
         approved++;
-        refundAmount += item.totalPrice;
+        approvedRefundAmount += itemTotal;
       } else if (status === 'REJECTED') {
         rejected++;
       } else {
         pending++;
       }
     });
+
+    const refundAmount = approvedRefundAmount > 0 ? approvedRefundAmount : (Number(request.total) || totalRequestedAmount);
 
     return { approved, rejected, pending, refundAmount, total: request.items.length };
   }, [request]);
@@ -175,14 +189,40 @@ const ViewReturnRequest = () => {
              <Breadcrumbs />
            </div>
         </div>
-        <BackButton to="/return-requests" />
+        <div className="flex items-center gap-3 flex-wrap">
+          {(!request.status || request.status.toLowerCase() === 'pending' || request.status === 'REQUESTED') && (
+            <>
+              <button
+                onClick={async () => {
+                  try {
+                    await approveMutation.mutateAsync({ orderItemId: '' });
+                    refetch();
+                  } catch (err) {}
+                }}
+                disabled={approveMutation.isPending}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-all disabled:opacity-50"
+              >
+                <CheckCircle2 size={16} />
+                {approveMutation.isPending ? "Approving..." : "Accept & Approve Refund"}
+              </button>
+              <button
+                onClick={() => navigate(`/return-requests/edit/${request.id}`)}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-600 flex items-center gap-2 transition-all"
+              >
+                <Edit size={16} />
+                Review / Reject Items
+              </button>
+            </>
+          )}
+          <BackButton to="/return-requests" />
+        </div>
       </div>
 
       {/* Main Glass Container */}
       <div className="backdrop-blur-xl bg-white/70 dark:bg-slate-900/80 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/40 dark:border-slate-800 overflow-hidden">
         
         {/* Top Info Strip */}
-        <div className="bg-slate-50/50 dark:bg-slate-800/50 p-6 border-b border-slate-100 dark:border-slate-700/50 flex flex-wrap gap-8 items-center justify-between">
+        <div className="bg-slate-50/50 dark:bg-slate-800/50 p-6 border-b border-slate-100 dark:border-slate-700/50 flex flex-wrap gap-6 items-center justify-between">
            <div className="flex items-center gap-3">
              <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl text-indigo-600 dark:text-indigo-400">
                <Hash size={20} />
@@ -213,16 +253,50 @@ const ViewReturnRequest = () => {
              </div>
            </div>
 
-           <div className="flex flex-col items-end">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mb-1">Overall Status</p>
-              <Badge status={request.status} size="md" />
+           {/* Flow Stage Dropdown Selector */}
+           <div className="flex items-center gap-2 bg-indigo-50/90 dark:bg-indigo-950/40 p-2.5 rounded-2xl border border-indigo-200/80 dark:border-indigo-800 shadow-sm">
+             <div className="p-2 bg-indigo-600 text-white rounded-xl">
+               <Sparkles size={16} />
+             </div>
+             <div>
+               <label className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block">Stage / Flow Status</label>
+               <select
+                 value={
+                   isRejected ? 'REJECTED' :
+                   currentStep === 7 ? 'COMPLETED' :
+                   currentStep === 6 ? 'REFUND_PROCESSING' :
+                   currentStep === 5 ? 'RETURN_RECEIVED_AT_WAREHOUSE' :
+                   currentStep === 4 ? 'PICKUP_COMPLETED' :
+                   currentStep === 3 ? 'PICKUP_ASSIGNED' :
+                   currentStep === 2 ? 'APPROVED' : 'REQUESTED'
+                 }
+                 onChange={(e) => handlePhaseChange(e.target.value)}
+                 disabled={updatePhaseMutation.isPending}
+                 className="mt-0.5 text-xs font-bold text-indigo-950 dark:text-indigo-100 bg-white dark:bg-slate-800 border border-indigo-300 dark:border-indigo-600 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm"
+               >
+                 <option value="REQUESTED">1. Req. (Requested)</option>
+                 <option value="APPROVED">2. Approved (Partner Approved)</option>
+                 <option value="PICKUP_ASSIGNED">3. Assigned (Pickup Assigned)</option>
+                 <option value="PICKUP_COMPLETED">4. Picked (Picked Up)</option>
+                 <option value="RETURN_RECEIVED_AT_WAREHOUSE">5. Received (At Warehouse)</option>
+                 <option value="REFUND_PROCESSING">6. Refunding (Refund Processing)</option>
+                 <option value="COMPLETED">7. Done (Refund Completed)</option>
+                 <option value="REJECTED">✕ Rejected</option>
+               </select>
+             </div>
            </div>
         </div>
 
         <div className="p-6 sm:p-8">
            
-           {/* Return Lifecycle Timeline */}
+           {/* Return Lifecycle Timeline with Clickable Stages */}
            <div className="mb-10 px-4 hidden sm:block">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Lifecycle Progress (Click any step to transition)</p>
+                {updatePhaseMutation.isPending && (
+                  <span className="text-xs font-semibold text-indigo-600 animate-pulse">Updating stage...</span>
+                )}
+              </div>
               <div className="relative flex justify-between items-center w-full">
                  {/* Connecting line background */}
                  <div className="absolute top-4 left-0 w-full h-1 bg-slate-200 dark:bg-slate-700 -z-10 rounded-full" />
@@ -235,28 +309,35 @@ const ViewReturnRequest = () => {
                  )}
                  
                  {[
-                   { step: 1, label: 'Requested', short: 'Req.' },
-                   { step: 2, label: 'Partner Approved', short: 'Approved' },
-                   { step: 3, label: 'Pickup Assigned', short: 'Assigned' },
-                   { step: 4, label: 'Picked Up', short: 'Picked' },
-                   { step: 5, label: 'Warehouse Received', short: 'Received' },
-                   { step: 6, label: 'Refund Processing', short: 'Refunding' },
-                   { step: 7, label: 'Refund Completed', short: 'Done' }
+                   { step: 1, phase: 'REQUESTED', label: 'Requested', short: '1. Req.' },
+                   { step: 2, phase: 'APPROVED', label: 'Partner Approved', short: '2. Approved' },
+                   { step: 3, phase: 'PICKUP_ASSIGNED', label: 'Pickup Assigned', short: '3. Assigned' },
+                   { step: 4, phase: 'PICKUP_COMPLETED', label: 'Picked Up', short: '4. Picked' },
+                   { step: 5, phase: 'RETURN_RECEIVED_AT_WAREHOUSE', label: 'Warehouse Received', short: '5. Received' },
+                   { step: 6, phase: 'REFUND_PROCESSING', label: 'Refund Processing', short: '6. Refunding' },
+                   { step: 7, phase: 'COMPLETED', label: 'Refund Completed', short: '7. Done' }
                  ].map((s) => (
-                   <div key={s.step} className="flex flex-col items-center gap-1.5">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all duration-300
+                   <button 
+                     key={s.step}
+                     type="button"
+                     onClick={() => handlePhaseChange(s.phase)}
+                     disabled={updatePhaseMutation.isPending}
+                     className="flex flex-col items-center gap-1.5 group cursor-pointer transition-transform hover:scale-105 focus:outline-none"
+                     title={`Click to transition to Step ${s.step}: ${s.label}`}
+                   >
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all duration-300
                         ${isRejected && s.step <= 1
                           ? 'bg-rose-500 text-white border-2 border-rose-200'
                           : currentStep >= s.step 
-                            ? 'bg-indigo-600 text-white border-2 border-indigo-100 dark:border-indigo-900 scale-110' 
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-2 border-slate-200 dark:border-slate-700'}`}
+                            ? 'bg-indigo-600 text-white border-2 border-indigo-100 dark:border-indigo-900 scale-110 shadow-md shadow-indigo-500/30' 
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-2 border-slate-200 dark:border-slate-700 group-hover:border-indigo-400 group-hover:text-indigo-600'}`}
                       >
-                         {currentStep > s.step ? <CheckCircle size={14} /> : s.step}
+                         {currentStep > s.step ? <CheckCircle size={15} /> : s.step}
                       </div>
-                      <p className={`text-[10px] font-semibold text-center leading-tight max-w-[64px] ${currentStep >= s.step ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-400'}`}>
+                      <p className={`text-[11px] font-semibold text-center leading-tight max-w-[70px] ${currentStep >= s.step ? 'text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-400 group-hover:text-indigo-600'}`}>
                          {s.short}
                       </p>
-                   </div>
+                   </button>
                  ))}
               </div>
               {isRejected && (

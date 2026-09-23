@@ -141,4 +141,21 @@ export const getAgentClosureSummary = async () => {
     return response.data;
 };
 
+// ─── Shift Loading Times & Cutoff Rules ────────────────
+export const getRouteLoadingRules = async (storeId?: string) => {
+    const response = await api.get('/routes/loading-rules', { params: { storeId } });
+    return response.data;
+};
+
+export const saveRouteLoadingRules = async (rules: any[]) => {
+    const response = await api.post('/routes/loading-rules', { rules });
+    return response.data;
+};
+
+export const getAvailableDeliverySlots = async (date?: string) => {
+    const response = await api.get('/routes/available-slots', { params: { date } });
+    return response.data;
+};
+
+
 

@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Clock,
   CheckCircle,
   XCircle,
   TrendingDown,
   RefreshCw,
+  Eye,
+  ArrowRight
 } from "lucide-react";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import {
@@ -17,6 +20,7 @@ import { useGetPartnerRefundStats, useGetPartnerRefunds } from "../../../hooks/r
 import { formatCurrency, formatDate } from "../../../utils/formatters";
 
 const ManageRefunds = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"queue" | "history" | "failed">("queue");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -74,9 +78,21 @@ const ManageRefunds = () => {
   ];
 
   const queueColumns = [
-    { label: "Return ID", key: "id", render: (row: any) => row.id?.slice(0, 8) + '…' },
-    { label: "Order #", key: "orderId", render: (row: any) => row.order?.orderNumber || "N/A" },
-    { label: "Requested Amount", key: "requestedAmount", render: (row: any) => formatCurrency(row.metadata?.requestedAmount || row.requestedAmount || row.order?.totalAmount || 0) },
+    { label: "Return ID", key: "id", render: (row: any) => (
+      <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
+        #{row.id?.slice(0, 8)}…
+      </span>
+    )},
+    { label: "Order #", key: "orderId", render: (row: any) => (
+      <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+        {row.order?.orderNumber || row.orderId?.slice(0, 8) || "N/A"}
+      </span>
+    )},
+    { label: "Requested Amount", key: "requestedAmount", render: (row: any) => (
+      <span className="font-bold text-slate-900 dark:text-white">
+        {formatCurrency(row.metadata?.requestedAmount || row.requestedAmount || row.order?.totalAmount || 0)}
+      </span>
+    )},
     {
       label: "Phase",
       key: "status",
@@ -99,31 +115,78 @@ const ManageRefunds = () => {
         );
       }
     },
-    { label: "Action", key: "action", render: (row: any) => {
-        const phase = row.toPhase || '';
-        if (phase === 'RETURN_RECEIVED_AT_WAREHOUSE') {
-          return <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Ready for Refund</span>;
-        }
-        return <span className="text-xs font-medium text-gray-500 italic">Awaiting Warehouse Receipt</span>;
-      }
+    { label: "Action", key: "action", render: (row: any) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/return-requests/view/${row.id}`)}
+            className="p-1.5 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+            title="View Details"
+          >
+            <Eye size={15} />
+            <span>View</span>
+          </button>
+        </div>
+      )
     },
   ];
 
   const historyColumns = [
-    { label: "Refund ID", key: "id", render: (row: any) => row.id },
-    { label: "Order ID", key: "orderId", render: (row: any) => row.order?.orderNumber || "N/A" },
-    { label: "Amount", key: "amount", render: (row: any) => formatCurrency(row.amount || 0) },
-    { label: "Status", key: "status", render: (row: any) => <Badge status={row.status} /> },
+    { label: "Refund / Return ID", key: "id", render: (row: any) => (
+      <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
+        #{row.id?.slice(0, 8)}…
+      </span>
+    )},
+    { label: "Order #", key: "orderId", render: (row: any) => (
+      <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+        {row.order?.orderNumber || row.orderId?.slice(0, 8) || "N/A"}
+      </span>
+    )},
+    { label: "Amount", key: "amount", render: (row: any) => (
+      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+        {formatCurrency(row.amount || row.metadata?.requestedAmount || row.order?.totalAmount || 0)}
+      </span>
+    )},
+    { label: "Status", key: "status", render: (row: any) => <Badge status={row.status || "COMPLETED"} /> },
     { label: "Date", key: "createdAt", render: (row: any) => formatDate(row.createdAt) },
+    { label: "Action", key: "action", render: (row: any) => (
+        <button
+          onClick={() => navigate(`/return-requests/view/${row.id}`)}
+          className="p-1.5 text-slate-600 hover:text-slate-800 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+        >
+          <Eye size={15} />
+          <span>Details</span>
+        </button>
+      )
+    },
   ];
 
   const failedColumns = [
-    { label: "Refund ID", key: "id", render: (row: any) => row.id },
-    { label: "Order ID", key: "orderId", render: (row: any) => row.order?.orderNumber || "N/A" },
+    { label: "Refund / Return ID", key: "id", render: (row: any) => (
+      <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
+        #{row.id?.slice(0, 8)}…
+      </span>
+    )},
+    { label: "Order #", key: "orderId", render: (row: any) => (
+      <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+        {row.order?.orderNumber || row.orderId?.slice(0, 8) || "N/A"}
+      </span>
+    )},
     { label: "Amount", key: "amount", render: (row: any) => formatCurrency(row.amount || 0) },
-    { label: "Status", key: "status", render: (row: any) => <Badge status={row.status} /> },
-    { label: "Action", key: "action", render: () => (
-        <span className="text-xs font-medium text-red-500 italic">Admin Intervention Required</span>
+    { label: "Status", key: "status", render: (row: any) => <Badge status={row.status || "REJECTED"} /> },
+    { label: "Reason / Notes", key: "reason", render: (row: any) => (
+        <span className="text-xs text-rose-500 font-medium">
+          {row.reason || "Rejected by store/partner"}
+        </span>
+      )
+    },
+    { label: "Action", key: "action", render: (row: any) => (
+        <button
+          onClick={() => navigate(`/return-requests/view/${row.id}`)}
+          className="p-1.5 text-rose-600 hover:text-rose-800 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/40 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+        >
+          <Eye size={15} />
+          <span>View</span>
+        </button>
       )
     },
   ];

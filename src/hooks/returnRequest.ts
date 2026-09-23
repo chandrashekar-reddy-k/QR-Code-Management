@@ -164,3 +164,25 @@ export const useDeleteReturnRequest = () => {
   });
 };
 
+export const useUpdateReturnPhase = (id: string | undefined) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (phase: string) => {
+      if (!id) {
+        throw new Error("Return request ID is required");
+      }
+      const endpoint = `partner/return-requests/${id}/phase`;
+      return fetchData<{ status: boolean; response: string }>(endpoint, "PATCH", { phase });
+    },
+    onSuccess: (data) => {
+      toast.success(data?.response || "Return flow stage updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["returnRequest", id] });
+      queryClient.invalidateQueries({ queryKey: ["returnRequests"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update return stage");
+    },
+  });
+};
+

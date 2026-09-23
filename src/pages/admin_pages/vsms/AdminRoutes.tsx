@@ -40,6 +40,7 @@ import StoreSelector from './StoreSelector';
 import * as XLSX from 'xlsx';
 import { generateReportPDF } from './adminreports/ReportUtils';
 import RoutePerformanceDashboard from './components/RoutePerformanceDashboard';
+import LoadingSlotRulesTab from './admin_vehicles/LoadingSlotRulesTab';
 import { useRoutesQuery, useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 
 export default function AdminRoutes() {
@@ -81,7 +82,7 @@ export default function AdminRoutes() {
   const [activeTab, setActiveTab] = useState(getInitialTab);
 
   useEffect(() => {
-    if (urlTab && ['villages', 'routes', 'assignments', 'sales', 'collections'].includes(urlTab) && urlTab !== activeTab) {
+    if (urlTab && ['villages', 'routes', 'assignments', 'loading-rules', 'sales', 'collections'].includes(urlTab) && urlTab !== activeTab) {
       setActiveTab(urlTab);
     }
   }, [urlTab, location.pathname]);
@@ -582,7 +583,8 @@ export default function AdminRoutes() {
                 {[
                   { id: 'villages', label: 'Village', icon: MapPin, visible: canSection('VILLAGES') },
                   { id: 'routes', label: 'Routes', icon: Navigation, visible: canSection('ROUTES') },
-                  { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: canSection('ASSIGNMENTS') }
+                  { id: 'assignments', label: 'Assignments', icon: ClipboardList, visible: canSection('ASSIGNMENTS') },
+                  { id: 'loading-rules', label: 'Loading & Slot Timings', icon: Clock, visible: true }
                 ].filter(t => t.visible).map(tab => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -1781,6 +1783,11 @@ export default function AdminRoutes() {
           </>
           )}
         </div>
+      )}
+
+      {/* --- LOADING & SLOT TIMINGS RULES TAB --- */}
+      {location.pathname !== '/vsms/live-tracking' && activeTab === 'loading-rules' && (
+        <LoadingSlotRulesTab storeId={storeId} />
       )}
 
 

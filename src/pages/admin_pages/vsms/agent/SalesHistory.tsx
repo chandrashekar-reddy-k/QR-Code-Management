@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { format } from 'date-fns';
 
 export default function SalesHistory() {
   const [orders, setOrders] = useState([]);

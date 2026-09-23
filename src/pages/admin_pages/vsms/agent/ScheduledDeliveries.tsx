@@ -26,8 +26,9 @@ export default function ScheduledDeliveries() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [showSelectPayment, setShowSelectPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'udhar' | 'split'>('cash');
-  const [cashReceived, setCashReceived] = useState<string>('3000');
+  const [cashReceived, setCashReceived] = useState<string>('');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('all');
+  const [selectedShift, setSelectedShift] = useState<'ALL' | 'MORNING' | 'AFTERNOON'>('ALL');
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [selectedMapStop, setSelectedMapStop] = useState<number>(1);
@@ -96,9 +97,22 @@ export default function ScheduledDeliveries() {
     ? data.assignments?.find((a: any) => a.id === selectedAssignmentId) 
     : null;
 
-  const currentDeliveries = selectedAssignmentId === 'all'
+  const matchesShift = (order: any) => {
+    if (selectedShift === 'ALL') return true;
+    const slotStr = (order.deliverySlot || order.timeSlot || order.slot || order.deliveryTimeSlot || '').toLowerCase();
+    if (selectedShift === 'MORNING') {
+      return slotStr.includes('morning') || slotStr.includes('am') || slotStr.includes('07:') || slotStr.includes('08:') || slotStr.includes('09:') || slotStr.includes('10:') || slotStr.includes('11:') || slotStr.includes('12:');
+    }
+    if (selectedShift === 'AFTERNOON') {
+      return slotStr.includes('afternoon') || slotStr.includes('evening') || slotStr.includes('pm') || slotStr.includes('15:') || slotStr.includes('16:') || slotStr.includes('17:') || slotStr.includes('18:') || slotStr.includes('19:') || slotStr.includes('20:');
+    }
+    return true;
+  };
+
+  const currentDeliveries = (selectedAssignmentId === 'all'
     ? data.deliveries
-    : data.deliveries.filter((o: any) => o.routeId === currentAssignment?.route.id);
+    : data.deliveries.filter((o: any) => o.routeId === currentAssignment?.route.id)
+  ).filter(matchesShift);
 
   const activeDeliveries = currentDeliveries.filter((order: any) => 
     !completedStatuses.includes(order.status)
@@ -341,26 +355,47 @@ export default function ScheduledDeliveries() {
 
           {/* Payment Details Card */}
           <div className="bg-white rounded-3xl p-4 border border-gray-100 shadow-2xs space-y-3.5">
-            <h3 className="text-sm font-black text-gray-900">Payment Details</h3>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-900 block">Cash Received</label>
-              <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-2xs flex items-center gap-2">
-                <span className="text-sm font-black text-gray-400">₹</span>
-                <input
-                  type="number"
-                  value={cashReceived}
-                  onChange={(e) => setCashReceived(e.target.value)}
-                  className="w-full bg-transparent text-sm font-black text-gray-900 outline-none"
-                />
-              </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-gray-900">Payment Details</h3>
+              {paymentMethod === 'cash' && (
+                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                  Required
+                </span>
+              )}
             </div>
 
+            {paymentMethod === 'cash' && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-900 flex items-center justify-between">
+                  <span>Cash Received <span className="text-red-500">*</span></span>
+                  {cashReceived.trim() && numCashReceived < toCollectAmount && (
+                    <span className="text-[10px] font-bold text-red-500">
+                      Min ₹{toCollectAmount.toFixed(2)} required
+                    </span>
+                  )}
+                </label>
+                <div className={`bg-white border rounded-2xl px-4 py-3 shadow-2xs flex items-center gap-2 ${
+                  cashReceived.trim() && numCashReceived < toCollectAmount
+                    ? 'border-red-300'
+                    : 'border-gray-200 focus-within:border-[#00891D]'
+                }`}>
+                  <span className="text-sm font-black text-gray-400">₹</span>
+                  <input
+                    type="number"
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                    placeholder="Enter cash received"
+                    className="w-full bg-transparent text-sm font-black text-gray-900 outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-900 block">Change</label>
+              <label className="text-xs font-bold text-gray-900 block">Change Due</label>
               <div className="bg-gray-50/80 border border-gray-100 rounded-2xl px-4 py-3 flex items-center gap-2">
                 <span className="text-sm font-black text-gray-400">₹</span>
-                <span className="text-sm font-black text-gray-900">{changeAmount.toFixed(2)}</span>
+                <span className="text-sm font-black text-gray-900">{numCashReceived >= toCollectAmount ? changeAmount.toFixed(2) : '0.00'}</span>
               </div>
             </div>
           </div>
@@ -376,11 +411,24 @@ export default function ScheduledDeliveries() {
             </button>
             <button
               type="button"
+              disabled={paymentMethod === 'cash' && (!cashReceived.trim() || numCashReceived < toCollectAmount)}
               onClick={() => {
+                if (paymentMethod === 'cash') {
+                  if (!cashReceived.trim() || numCashReceived <= 0) {
+                    return toast.error('Please enter cash received');
+                  }
+                  if (numCashReceived < toCollectAmount) {
+                    return toast.error(`Cash received cannot be less than ₹${toCollectAmount.toFixed(2)}`);
+                  }
+                }
                 handleUpdateStatus(order.id, 'DELIVERED');
                 setShowSelectPayment(false);
               }}
-              className="flex-1 py-3.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-black shadow-2xs active:scale-98 transition-all cursor-pointer"
+              className={`flex-1 py-3.5 rounded-2xl text-xs font-black shadow-2xs active:scale-98 transition-all ${
+                paymentMethod === 'cash' && (!cashReceived.trim() || numCashReceived < toCollectAmount)
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                  : 'bg-[#00891D] hover:bg-[#007018] text-white cursor-pointer'
+              }`}
             >
               Confirm Payment
             </button>
@@ -595,11 +643,42 @@ export default function ScheduledDeliveries() {
     <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
       <div className="max-w-[420px] mx-auto px-4 space-y-4">
         {/* Title & Subtitle */}
-        <div className="pt-1">
-          <h1 className="text-xl font-black text-gray-900 tracking-tight leading-tight">Online Orders</h1>
-          <p className="text-xs font-bold text-gray-400 mt-0.5">
-            Today's Deliveries • 13 Aug 2026
-          </p>
+        <div className="pt-1 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-black text-gray-900 tracking-tight leading-tight">Online Orders</h1>
+            <p className="text-xs font-bold text-gray-400 mt-0.5">
+              Today's Deliveries • {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </p>
+          </div>
+          <button 
+            onClick={() => fetchDeliveries(true)}
+            disabled={refreshing}
+            className="p-2 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-emerald-600 transition-all cursor-pointer"
+            title="Refresh Deliveries"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin text-emerald-600' : ''} />
+          </button>
+        </div>
+
+        {/* Shift Filter Chips */}
+        <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-2xl border border-gray-200/80 shadow-2xs overflow-x-auto">
+          {[
+            { key: 'ALL', label: 'All Slots' },
+            { key: 'MORNING', label: '🌅 Morning (07:30 - 12:30)' },
+            { key: 'AFTERNOON', label: '🌇 Afternoon (16:00 - 20:00)' },
+          ].map((shift) => (
+            <button
+              key={shift.key}
+              onClick={() => setSelectedShift(shift.key as any)}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-black tracking-tight whitespace-nowrap transition-all cursor-pointer ${
+                selectedShift === shift.key
+                  ? 'bg-[#00891D] text-white shadow-xs'
+                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              {shift.label}
+            </button>
+          ))}
         </div>
 
         {/* 3-Tab Segmented Switcher */}
@@ -631,6 +710,23 @@ export default function ScheduledDeliveries() {
         {/* TAB 1: Load Items */}
         {activeTab === 'load' && (
           <>
+            {/* Vehicle Loading & Departure Window Alert */}
+            <div className="bg-gradient-to-r from-emerald-950 to-slate-900 text-white p-3.5 rounded-2xl border border-emerald-800/40 shadow-xs flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-400/30">
+                  <Truck size={17} />
+                </div>
+                <div>
+                  <p className="font-black text-[11px] text-emerald-300">
+                    {selectedShift === 'AFTERNOON' ? 'Afternoon Load: 03:00 PM' : selectedShift === 'MORNING' ? 'Morning Load: 07:00 AM' : 'Shift Loading: 07:00 AM & 03:00 PM'}
+                  </p>
+                  <p className="text-[10px] text-slate-300">
+                    {selectedShift === 'AFTERNOON' ? 'Delivery Window: 04:00 PM – 08:00 PM' : selectedShift === 'MORNING' ? 'Delivery Window: 07:30 AM – 12:30 PM' : 'Verify vehicle crate checklist before warehouse exit'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* 3 Summary Metric KPI Cards */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs grid grid-cols-3 divide-x divide-gray-100 text-center">
               {/* Orders */}

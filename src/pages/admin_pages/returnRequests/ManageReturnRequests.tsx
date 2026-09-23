@@ -10,10 +10,16 @@ import {
   Package,
   TrendingUp,
   Banknote,
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
 } from "lucide-react";
+import { toast } from "react-toastify";
+import fetchData from "../../../helper";
 import {
   useGetReturnRequests,
-  useDeleteReturnRequest
+  useDeleteReturnRequest,
+  useApproveReturnItem
 } from "../../../hooks/returnRequest";
 import { ReturnRequest } from "../../../types";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
@@ -411,48 +417,52 @@ const ManageReturnRequests = () => {
       key: "actions",
       label: "ACTIONS",
       sortable: false,
-      render: (request: ReturnRequest) => (
-        <div className="flex items-center justify-center gap-2">
-          <ViewIconButton
-            onClick={() => navigate(`/return-requests/view/${request.id}`)}
-            size={14}
-            tooltip="View"
-          />
-          <EditIconButton
-            onClick={() => navigate(`/return-requests/edit/${request.id}`)}
-            size={14}
-            tooltip="Edit"
-          />
-          <button
-            onClick={async () => {
-              try {
-                const res = await fetch(`/api/partner/returns/${request.id}/replacement-unavailable`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ orderId: request.orderId || request.id, reason: 'Physical stock missing in store' })
-                });
-                if (res.ok) {
-                  alert(`Replacement Unavailable Report submitted for Request #${request.id}. OMS Core notified.`);
-                  refetch();
-                } else {
-                  alert(`Report submitted for Request #${request.id}. OMS Core fallback active.`);
-                }
-              } catch {
-                alert(`Report submitted for Request #${request.id}. OMS Core fallback active.`);
-              }
-            }}
-            className="px-2 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded transition-colors"
-            title="Report physical replacement stock unavailable in store"
-          >
-            Flag Stock Missing
-          </button>
-          <DeleteIconButton
-            onClick={() => handleDeleteClick(request.id)}
-            size={14}
-            tooltip="Delete"
-          />
-        </div>
-      ),
+      render: (request: ReturnRequest) => {
+        const isPending = !request.status || request.status === "pending" || request.status === "REQUESTED";
+        return (
+          <div className="flex items-center justify-center gap-2">
+            {isPending ? (
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    const endpoint = `partner/return-requests/${request.id}/approve`;
+                    await fetchData(endpoint, "POST", {});
+                    toast.success(`Return approved & queued for refund!`);
+                    refetch();
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to approve return");
+                  }
+                }}
+                className="px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm rounded-lg flex items-center gap-1 transition-all"
+                title="Accept return and approve refund"
+              >
+                <CheckCircle2 size={13} />
+                Accept Refund
+              </button>
+            ) : (
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                Refund Queued
+              </span>
+            )}
+            <ViewIconButton
+              onClick={() => navigate(`/return-requests/view/${request.id}`)}
+              size={14}
+              tooltip="View"
+            />
+            <EditIconButton
+              onClick={() => navigate(`/return-requests/edit/${request.id}`)}
+              size={14}
+              tooltip="Edit & Review"
+            />
+            <DeleteIconButton
+              onClick={() => handleDeleteClick(request.id)}
+              size={14}
+              tooltip="Delete"
+            />
+          </div>
+        );
+      },
     },
   ];
 
