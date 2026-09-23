@@ -188,28 +188,64 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
 
         {/* Coupon Code Card */}
         <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
-          <div className="flex items-center gap-2">
-            <Tag size={15} className="text-gray-900" />
-            <h4 className="text-xs font-extrabold text-gray-900">Coupon Code</h4>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag size={15} className="text-gray-900" />
+              <h4 className="text-xs font-extrabold text-gray-900">Promo / Coupon Code</h4>
+            </div>
+            {appliedPromotion && (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Active
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Enter Coupon Code"
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-              className="flex-1 bg-white border border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
-            />
-            <button
-              onClick={handleApplyCoupon}
-              disabled={validating || !couponCode.trim()}
-              className="px-5 py-2.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
-            >
-              {validating ? 'Applying...' : 'Apply'}
-            </button>
-          </div>
+          {appliedPromotion ? (
+            <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-xs text-emerald-900 tracking-wider">
+                    {appliedPromotion.code}
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-white px-1.5 py-0.5 rounded shadow-2xs">
+                    {appliedPromotion.isProductSpecific ? '🏷️ Product Offer' : 'Order Discount'}
+                  </span>
+                </div>
+                <p className="text-[11px] font-medium text-emerald-800 mt-1">
+                  Saved ₹{appliedPromotion.calculatedDiscount || appliedPromotion.discount || 0}
+                  {appliedPromotion.appliedItems?.length > 0 && ` on ${appliedPromotion.appliedItems.length} matching item(s)`}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setAppliedPromotion(null);
+                  toast.success('Coupon removed');
+                }}
+                className="text-[10px] font-bold text-red-600 hover:text-red-700 bg-white border border-red-200 px-2.5 py-1 rounded-xl cursor-pointer"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Enter Promo Code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                className="flex-1 bg-white border border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
+              />
+              <button
+                onClick={handleApplyCoupon}
+                disabled={validating || !couponCode.trim()}
+                className="px-5 py-2.5 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {validating ? 'Applying...' : 'Apply'}
+              </button>
+            </div>
+          )}
         </div>
+
       </div>
 
       {/* Sticky Bottom Total & Proceed Button Bar */}
