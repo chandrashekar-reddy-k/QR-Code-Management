@@ -666,6 +666,7 @@ const PaymentScreen = lazy(() => import("../pages/admin_pages/vsms/agent/Payment
 const SuccessScreen = lazy(() => import("../pages/admin_pages/vsms/agent/SuccessScreen"));
 const OpeningCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/OpeningCashEntry"));
 const ClosingCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/ClosingCashEntry"));
+const AgentStockTransfer = lazy(() => import("../pages/admin_pages/vsms/agent/AgentStockTransfer"));
 
 
 // Route configuration interface
@@ -2141,6 +2142,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/agent-portal/closing-cash",
     component: () => <AgentPortalLayout><ClosingCashEntry /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/stock-transfer",
+    component: () => <AgentPortalLayout><AgentStockTransfer /></AgentPortalLayout>,
     requiresAuth: true,
   },
   {

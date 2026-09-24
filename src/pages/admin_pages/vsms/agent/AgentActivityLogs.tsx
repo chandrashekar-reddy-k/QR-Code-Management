@@ -65,33 +65,8 @@ export default function AgentActivityLogs() {
         setLogs(res.data.logs || []);
       }
     } catch (error) {
-      // Fallback mock activities
-      setLogs([
-        {
-          _id: '1',
-          action: 'ORDER_FULFILLED',
-          title: 'Sale Completed #13277 for ₹261',
-          description: 'Successfully delivered order to Ramesh Kumar',
-          createdAt: new Date().toISOString(),
-          module: 'SALES'
-        },
-        {
-          _id: '2',
-          action: 'ROUTE_STARTED',
-          title: 'Route Updated',
-          description: 'Optimized stops along Pargi Sector 2',
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          module: 'ROUTING'
-        },
-        {
-          _id: '3',
-          action: 'VEHICLE_ASSIGNED',
-          title: 'Driver Assigned',
-          description: 'Assigned to TATA ACE (AP 39 AB 1234)',
-          createdAt: new Date(Date.now() - 7200000).toISOString(),
-          module: 'FLEET'
-        }
-      ]);
+      console.error('Failed to load activity logs', error);
+      setLogs([]);
     } finally {
       setLoading(false);
     }

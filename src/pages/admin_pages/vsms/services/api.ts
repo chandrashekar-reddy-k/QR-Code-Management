@@ -19,10 +19,14 @@ api.interceptors.request.use((config) => {
   } else if (
     !url.startsWith('/vsms') && 
     !url.startsWith('vsms') && 
-    !url.startsWith('/agent') &&
-    !url.startsWith('agent') &&
+    !url.startsWith('/agent/') &&
+    url !== '/agent' &&
+    !url.startsWith('agent/') &&
+    url !== 'agent' &&
     !url.startsWith('/agent-routes') &&
     !url.startsWith('agent-routes') &&
+    !url.startsWith('/agent-transfers') &&
+    !url.startsWith('agent-transfers') &&
     !url.startsWith('/procurement') && 
     !url.startsWith('/staff') &&
     !url.startsWith('/inventorymanagement') &&
@@ -77,24 +81,20 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
-  updateProfile: (formData) => api.put('/auth/me', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  updateBusinessProfile: (formData) => api.put('/auth/business', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  updateProfile: (data) => api.put('/auth/me', data),
+  updateBusinessProfile: (data) => api.put('/auth/business', data),
   updatePassword: (data) => api.put('/auth/password', data),
-  uploadMyDocument: (formData) => api.post('/auth/me/documents', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  uploadMyDocument: (formData) => api.post('/auth/me/documents', formData),
 };
 
 export const productsAPI = {
   getAll: (params) => api.get('/products', { params }),
   getById: (id) => api.get(`/products/${id}`),
   getVehicleInventory: (id) => api.get(`/products/vehicle-inventory/${id}`),
+  getVehicleStock: (id = 'me') => api.get(`/products/vehicle-inventory/${id}`),
   getAuditHistory: (vehicleId) => api.get(`/products/audit-history/${vehicleId}`),
   requestRefill: (data) => api.post('/products/refill', data),
+  requestReturn: (data) => api.post('/products/return', data),
   getMyRefills: () => api.get('/inventory/my-refills'),
 };
 
@@ -158,6 +158,13 @@ export const attendanceAPI = {
 export const storeAPI = {
   create: (data) => api.post('/tenant/stores', data),
   getMyStores: () => api.get('/tenant/stores'),
+};
+
+export const agentTransferAPI = {
+  getActiveAgents: () => api.get('/agent-transfers/active-agents'),
+  createTransfer: (data: any) => api.post('/agent-transfers', data),
+  getTransfers: (params?: any) => api.get('/agent-transfers', { params }),
+  getTransferById: (id: string) => api.get(`/agent-transfers/${id}`),
 };
 
 export const getCashStatus = async () => {
