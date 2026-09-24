@@ -1155,34 +1155,36 @@ export default function AdminSales() {
   // Gatekeeper removed for Tenant Owners to allow "All Stores" sales view
 
   // Apply Store filter mathematically to sales
-  const listToRender = sales.filter(s => {
-    if (storeFilterId && s.storeId !== storeFilterId) return false;
+  const listToRender = useMemo(() => {
+    return sales.filter(s => {
+      if (storeFilterId && s.storeId !== storeFilterId) return false;
 
-    // Tab filtering
-    if (roleTab === 'Admins') {
-      const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'TENANT_OWNER'];
-      if (!adminRoles.includes(s.user?.role)) return false;
-    } else if (roleTab === 'Agent') {
-      if (s.user?.role !== 'SALES_AGENT') return false;
-    }
-    // Segmented Control Filter
-    if (saleType === 'POS' && s.vehicleId) return false;
-    if (saleType === 'AGENT' && !s.vehicleId) return false;
+      // Tab filtering
+      if (roleTab === 'Admins') {
+        const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'TENANT_OWNER'];
+        if (!adminRoles.includes(s.user?.role)) return false;
+      } else if (roleTab === 'Agent') {
+        if (s.user?.role !== 'SALES_AGENT') return false;
+      }
+      // Segmented Control Filter
+      if (saleType === 'POS' && s.vehicleId) return false;
+      if (saleType === 'AGENT' && !s.vehicleId) return false;
 
-    // Order Status Filter
-    if (orderStatusFilter && orderStatusFilter !== 'ALL') {
-      const statusUpper = (s.status || '').toUpperCase();
-      if (orderStatusFilter === 'COMPLETED' && statusUpper !== 'COMPLETED' && statusUpper !== 'DELIVERED') return false;
-      if (orderStatusFilter === 'PENDING' && statusUpper !== 'PENDING' && statusUpper !== 'CONFIRMED' && statusUpper !== 'PLACED') return false;
-      if (orderStatusFilter === 'CANCELLED' && statusUpper !== 'CANCELLED' && statusUpper !== 'CANCELED') return false;
-      if (orderStatusFilter === 'RETURNED' && statusUpper !== 'RETURNED') return false;
-    }
+      // Order Status Filter
+      if (orderStatusFilter && orderStatusFilter !== 'ALL') {
+        const statusUpper = (s.status || '').toUpperCase();
+        if (orderStatusFilter === 'COMPLETED' && statusUpper !== 'COMPLETED' && statusUpper !== 'DELIVERED') return false;
+        if (orderStatusFilter === 'PENDING' && statusUpper !== 'PENDING' && statusUpper !== 'CONFIRMED' && statusUpper !== 'PLACED') return false;
+        if (orderStatusFilter === 'CANCELLED' && statusUpper !== 'CANCELLED' && statusUpper !== 'CANCELED') return false;
+        if (orderStatusFilter === 'RETURNED' && statusUpper !== 'RETURNED') return false;
+      }
 
-    const query = searchQuery.toLowerCase();
-    const invoiceStr = s.orderNumber ? `vk-${s.orderNumber}` : `vk-${Date.now().toString().slice(-6)}`;
-    const customerName = s.customerName ? s.customerName.toLowerCase() : '';
-    return invoiceStr.includes(query) || (s.mobile && s.mobile.includes(searchQuery)) || customerName.includes(query);
-  });
+      const query = searchQuery.toLowerCase();
+      const invoiceStr = s.orderNumber ? `vk-${s.orderNumber}` : `vk-${Date.now().toString().slice(-6)}`;
+      const customerName = s.customerName ? s.customerName.toLowerCase() : '';
+      return invoiceStr.includes(query) || (s.mobile && s.mobile.includes(searchQuery)) || customerName.includes(query);
+    });
+  }, [sales, storeFilterId, roleTab, saleType, orderStatusFilter, searchQuery]);
 
   // Apply Column Sorting to Lists
   const sortedListToRender = useMemo(() => {
@@ -1258,6 +1260,23 @@ export default function AdminSales() {
       return customerSortDirection === 'asc' ? (aVal > bVal ? 1 : aVal < bVal ? -1 : 0) : (bVal > aVal ? 1 : bVal < aVal ? -1 : 0);
     });
   }, [customerList, customerSortField, customerSortDirection]);
+
+  if (loading && sales.length === 0 && !cachedSalesData) {
+    return (
+      <div className="space-y-6 animate-pulse p-6">
+        <div className="h-10 bg-gray-200/70 rounded-2xl w-1/4" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="h-24 bg-gray-100/80 rounded-2xl" />
+          ))}
+        </div>
+        <div className="h-14 bg-gray-100 rounded-2xl" />
+        <div className="h-96 bg-gray-100/60 rounded-3xl" />
+      </div>
+    );
+  }
+
+  // Gatekeeper removed for Tenant Owners to allow "All Stores" sales view
 
   const activeList = roleTab === 'Customer' ? sortedCustomerList : sortedListToRender;
   const totalPages = Math.ceil(activeList.length / ITEMS_PER_PAGE);

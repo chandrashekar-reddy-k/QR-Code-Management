@@ -159,7 +159,7 @@ export function useSalesQuery(
   return useQuery({
     queryKey: ['vsms', 'sales', storeKey, filterDate, customStartDate, customEndDate],
     queryFn: async () => {
-      const params: Record<string, any> = {};
+      const params: Record<string, any> = { limit: 50000 };
       if (storeFilterId) params.storeId = storeFilterId;
       const todayStr = new Date().toISOString().split('T')[0];
 
