@@ -4,7 +4,8 @@ import {
   Box, Map as MapIcon, RefreshCw, AlertCircle, Sparkles, MapPin, Target, Package, Trophy
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
+import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import adminAPI from '../../services/adminService';
 import { getAdminReconciliation } from '../../services/cashService';
 import { format } from 'date-fns';
@@ -41,10 +42,7 @@ export default function AdminDashboard() {
   const storeIdParam = searchParams.get('storeId');
   const [activeTab, setActiveTab] = useState('Overview');
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
-  });
+  const { isLoaded } = useGoogleMaps();
 
   const fetchData = async () => {
     try {

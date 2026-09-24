@@ -9,7 +9,8 @@ import {
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip 
 } from 'recharts';
-import { GoogleMap, useJsApiLoader, CircleF } from '@react-google-maps/api';
+import { GoogleMap, CircleF } from '@react-google-maps/api';
+import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import adminAPI from '../../services/adminService';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -78,10 +79,7 @@ export default function AdminDeliveryLogistics() {
   const [showAddSlab, setShowAddSlab] = useState(false);
   const [showAddSlot, setShowAddSlot] = useState(false);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  });
+  const { isLoaded } = useGoogleMaps();
 
   useEffect(() => {
     fetchSettings();

@@ -28,7 +28,8 @@ import {
   ShoppingBag,
   Coins
 } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, MarkerF, PolygonF, CircleF, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, PolygonF, CircleF, InfoWindow } from '@react-google-maps/api';
+import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import * as turf from '@turf/turf';
 import * as routeService from '../../services/routeService';
 import adminAPI from '../../services/adminService';
@@ -105,10 +106,7 @@ export default function AdminRoutes() {
   const [polygonPoints, setPolygonPoints] = useState([]);
   const [map, setMap] = useState(null);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_API_KEY
-  });
+  const { isLoaded } = useGoogleMaps();
 
   // Form States
   const [villageForm, setVillageForm] = useState({

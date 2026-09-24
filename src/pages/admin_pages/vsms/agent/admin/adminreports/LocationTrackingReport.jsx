@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navigation, MapPin, Loader2, Zap, Users, ShieldCheck, UserMinus, Monitor, RefreshCw, ChevronDown, History, ChevronRight } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, MarkerF, InfoWindow, Polyline, CircleF, MarkerClusterer } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, InfoWindow, Polyline, CircleF, MarkerClusterer } from '@react-google-maps/api';
+import { useGoogleMaps } from '../../../hooks/useGoogleMaps';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useSearchParams } from 'react-router-dom';
 import adminAPI from '../../../services/adminService';
@@ -45,10 +46,7 @@ export default function LocationTrackingReport() {
     const [lastSync, setLastSync] = useState(new Date());
     const storeId = searchParams.get('storeId');
 
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-    });
+    const { isLoaded } = useGoogleMaps();
 
     const fetchLiveLocations = async () => {
         try {

@@ -6,7 +6,8 @@ import {
   Box, ClipboardList, PlusCircle, ArrowRight, Truck, Target, Plus, Minus, FileCheck, CheckCircle2,
   Calendar, Layers, FileText, PhoneCall, Navigation, Check, CreditCard, Smartphone, Banknote
 } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
+import { GoogleMap, MarkerF } from '@react-google-maps/api';
+import { useGoogleMaps } from '../../../../hooks/useGoogleMaps';
 import * as routeService from '../services/routeService';
 import toast from 'react-hot-toast';
 
@@ -18,9 +19,7 @@ interface ProductSummary {
 }
 
 export default function ScheduledDeliveries() {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || import.meta.env.VITE_GOOGLE_MAP_API_KEY || ''
-  });
+  const { isLoaded } = useGoogleMaps();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
