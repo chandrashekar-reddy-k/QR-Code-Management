@@ -25,7 +25,7 @@ export default function ScheduledDeliveries() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any>({ route: null, vehicle: null, deliveries: [], assignments: [], isAdmin: false });
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'load' | 'orders' | 'map'>('load');
+  const [activeTab, setActiveTab] = useState<'orders' | 'history' | 'map'>('orders');
   const [showHistoryView, setShowHistoryView] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [showSelectPayment, setShowSelectPayment] = useState(false);
@@ -119,12 +119,13 @@ export default function ScheduledDeliveries() {
   const completedStatuses = ['DELIVERED', 'CANCELLED', 'FAILED', 'RETURNED'];
 
   const currentAssignment = selectedAssignmentId !== 'all' 
-    ? data.assignments?.find((a: any) => a.id === selectedAssignmentId) 
+    ? data?.assignments?.find((a: any) => a.id === selectedAssignmentId) 
     : null;
 
   const matchesShift = (order: any) => {
     if (selectedShift === 'ALL') return true;
     const slotStr = (order.deliverySlot || order.timeSlot || order.slot || order.deliveryTimeSlot || '').toLowerCase();
+    if (!slotStr) return true; // If no slot specified, show in all shifts
     if (selectedShift === 'MORNING') {
       return slotStr.includes('morning') || slotStr.includes('am') || slotStr.includes('07:') || slotStr.includes('08:') || slotStr.includes('09:') || slotStr.includes('10:') || slotStr.includes('11:') || slotStr.includes('12:');
     }
@@ -135,8 +136,8 @@ export default function ScheduledDeliveries() {
   };
 
   const currentDeliveries = (selectedAssignmentId === 'all'
-    ? data.deliveries
-    : data.deliveries.filter((o: any) => o.routeId === currentAssignment?.route.id)
+    ? (data?.deliveries || [])
+    : (data?.deliveries || []).filter((o: any) => o.routeId === currentAssignment?.route?.id)
   ).filter(matchesShift);
 
   const activeDeliveries = currentDeliveries.filter((order: any) => 
@@ -709,8 +710,8 @@ export default function ScheduledDeliveries() {
         {/* 3-Tab Segmented Switcher */}
         <div className="bg-white p-1.5 rounded-2xl border border-gray-200/80 shadow-2xs grid grid-cols-3 gap-1">
           {[
-            { key: 'load', label: 'Load Items', icon: Box },
             { key: 'orders', label: 'Orders', icon: ClipboardList },
+            { key: 'history', label: 'View History', icon: History },
             { key: 'map', label: 'Map', icon: MapPin },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -732,99 +733,7 @@ export default function ScheduledDeliveries() {
           })}
         </div>
 
-        {/* TAB 1: Load Items */}
-        {activeTab === 'load' && (
-          <>
-            {/* Vehicle Loading & Departure Window Alert */}
-            <div className="bg-gradient-to-r from-emerald-950 to-slate-900 text-white p-3.5 rounded-2xl border border-emerald-800/40 shadow-xs flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-400/30">
-                  <Truck size={17} />
-                </div>
-                <div>
-                  <p className="font-black text-[11px] text-emerald-300">
-                    {selectedShift === 'AFTERNOON' ? 'Afternoon Load: 03:00 PM' : selectedShift === 'MORNING' ? 'Morning Load: 07:00 AM' : 'Shift Loading: 07:00 AM & 03:00 PM'}
-                  </p>
-                  <p className="text-[10px] text-slate-300">
-                    {selectedShift === 'AFTERNOON' ? 'Delivery Window: 04:00 PM – 08:00 PM' : selectedShift === 'MORNING' ? 'Delivery Window: 07:30 AM – 12:30 PM' : 'Verify vehicle crate checklist before warehouse exit'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 3 Summary Metric KPI Cards */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs grid grid-cols-3 divide-x divide-gray-100 text-center">
-              {/* Orders */}
-              <div className="px-1 space-y-1">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center mx-auto mb-1.5">
-                  <ShoppingBag size={16} />
-                </div>
-                <p className="text-[10px] font-bold text-gray-400">Orders</p>
-                <p className="text-lg font-black text-gray-900">{totalOrdersCount}</p>
-              </div>
-
-              {/* Total Items */}
-              <div className="px-1 space-y-1">
-                <div className="w-8 h-8 rounded-xl bg-[#FFF3E0] text-[#E65100] flex items-center justify-center mx-auto mb-1.5">
-                  <Box size={16} />
-                </div>
-                <p className="text-[10px] font-bold text-gray-400">Total Items</p>
-                <p className="text-lg font-black text-gray-900">{totalItemsCount}</p>
-              </div>
-
-              {/* Order Value */}
-              <div className="px-1 space-y-1">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center mx-auto mb-1.5">
-                  <Wallet size={16} />
-                </div>
-                <p className="text-[10px] font-bold text-gray-400">Order Value</p>
-                <p className="text-lg font-black text-gray-900">₹{totalOrderValue.toLocaleString('en-IN')}</p>
-              </div>
-            </div>
-
-            {/* Items To Load Card */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-2xs overflow-hidden divide-y divide-gray-100/90">
-              {/* Card Header */}
-              <div className="p-4 flex items-center justify-between">
-                <h3 className="text-xs font-black text-gray-900 tracking-tight">Items To Load</h3>
-                <span className="text-xs font-black text-[#00891D]">{totalItemsCount} Items</span>
-              </div>
-
-              {/* Item Rows */}
-              {(itemsToLoad.length > 0 ? itemsToLoad : sampleLoadItems).map((item, idx) => {
-                const isChecked = !!checkedItems[item.productId];
-                const isAmber = idx % 2 === 1;
-
-                return (
-                  <div
-                    key={item.productId || idx}
-                    onClick={() => toggleItemCheck(item.productId)}
-                    className={`p-3.5 flex items-center justify-between gap-3 hover:bg-gray-50/50 transition-colors cursor-pointer ${
-                      isChecked ? 'opacity-50' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        isAmber ? 'bg-[#FFF3E0] text-[#E65100]' : 'bg-[#E8F5E9] text-[#00891D]'
-                      }`}>
-                        <Package size={17} />
-                      </div>
-                      <span className={`text-xs font-extrabold text-gray-900 ${isChecked ? 'line-through' : ''}`}>
-                        {item.productName}
-                      </span>
-                    </div>
-
-                    <span className="text-xs font-black text-gray-900">
-                      × {item.quantity}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {/* TAB 2: Orders */}
+        {/* TAB 1: Orders */}
         {activeTab === 'orders' && (
           <div className="space-y-3.5">
             {/* Search Input & Create Pre Order Button Row */}
@@ -953,6 +862,76 @@ export default function ScheduledDeliveries() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* TAB 2: View History */}
+        {activeTab === 'history' && (
+          <div className="space-y-3.5">
+            {/* Search Bar for History */}
+            <div className="bg-white rounded-2xl p-3 px-3.5 border border-gray-200/90 shadow-2xs flex items-center gap-2">
+              <Search size={16} className="text-gray-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search history orders..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+              />
+            </div>
+
+            {/* History List */}
+            {filteredHistory.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 shadow-2xs space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-1">
+                  <History size={24} />
+                </div>
+                <h4 className="text-sm font-black text-gray-800">No Delivery History Found</h4>
+                <p className="text-xs text-gray-400">Completed or cancelled orders will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredHistory.map((order: any, idx: number) => {
+                  const custName = order.customer?.name || order.consumer?.name || order.customerName || 'Customer';
+                  const orderNum = order.orderNumber || order.preOrderNumber || `VK-ORD-${idx + 1}`;
+                  const itemsCount = order.items?.length || order.itemCount || 1;
+                  const isDelivered = order.status === 'DELIVERED';
+
+                  return (
+                    <div
+                      key={order.id || idx}
+                      onClick={() => setSelectedOrder(order)}
+                      className="bg-white rounded-3xl p-4 border border-gray-100 shadow-2xs hover:shadow-xs transition-all cursor-pointer space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-gray-900">{orderNum}</span>
+                            <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                              isDelivered ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'
+                            }`}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <h4 className="text-xs font-bold text-gray-800 mt-1">{custName}</h4>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-black text-gray-900 block">₹{order.totalAmount || order.amount || 0}</span>
+                          <span className="text-[10px] font-bold text-emerald-600">PAID</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] font-bold text-gray-500 pt-2 border-t border-gray-100">
+                        <span>📦 {itemsCount} Items</span>
+                        <span className="text-emerald-700 flex items-center gap-1 font-extrabold">
+                          View Details <ChevronRight size={14} />
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
