@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Package, Loader2, Search, Plus, Minus, X, History, Calendar, User, Info, ChevronDown, ChevronUp, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, RotateCcw, AlertTriangle, ChevronRight, Wallet, Box, ClipboardList, Tag, PlusCircle } from 'lucide-react';
-import { productsAPI } from '../services/api';
+import { ArrowLeft, Package, Loader2, Search, Plus, Minus, X, History, Calendar, User, Info, ChevronDown, ChevronUp, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, RotateCcw, AlertTriangle, ChevronRight, Wallet, Box, ClipboardList, Tag, PlusCircle, Truck, Send } from 'lucide-react';
+import { productsAPI, agentTransferAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -18,6 +18,7 @@ const statusConfig = {
 };
 
 export default function AgentInventory() {
+  const navigate = useNavigate();
   const { user } = useUserStore();
   const [activeTab, setActiveTab] = useState<TabType>('stock');
   const [inventory, setInventory] = useState<any[]>([]);
@@ -57,7 +58,19 @@ export default function AgentInventory() {
   const [damageReason, setDamageReason] = useState('');
   const [damagePhotos, setDamagePhotos] = useState<any[]>([]);
 
-  const navigate = useNavigate();
+  // ── Stock Transfer State ────────────────────────────────────────────
+  const [showStockTransfer, setShowStockTransfer] = useState(false);
+  const [activeAgents, setActiveAgents] = useState<any[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
+  const [agentSearch, setAgentSearch] = useState('');
+  const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
+  const [transferItems, setTransferItems] = useState<Record<string, number>>({});
+  const [transferRemarks, setTransferRemarks] = useState('');
+  const [isSubmittingTransfer, setIsSubmittingTransfer] = useState(false);
+  const [myTransfers, setMyTransfers] = useState<any[]>([]);
+  const [loadingTransfers, setLoadingTransfers] = useState(false);
+  const [transferView, setTransferView] = useState<'form' | 'history'>('form');
+
   const { vehicleId: urlVehicleId } = useParams<{ vehicleId: string }>();
   const [vehicleId, setVehicleId] = useState<string | null>(urlVehicleId || null);
 
@@ -68,8 +81,8 @@ export default function AgentInventory() {
       try {
         const { getCoverageStatus } = await import('../services/routeService');
         const status = await getCoverageStatus();
-        if (status?.today?.vehicleNo || status?.vehicleNo || status?.assignedVehicle?.registrationNumber) {
-          setVehicleRegNo(status?.today?.vehicleNo || status?.vehicleNo || status?.assignedVehicle?.registrationNumber);
+        if (status?.today?.vehicleNo || status?.vehicleNo || status?.assignedVehicle?.vehicleNumber || status?.assignedVehicle?.registrationNumber || user?.assignedVehicle?.vehicleNumber) {
+          setVehicleRegNo(status?.today?.vehicleNo || status?.vehicleNo || status?.assignedVehicle?.vehicleNumber || status?.assignedVehicle?.registrationNumber || user?.assignedVehicle?.vehicleNumber);
         }
       } catch (e) {
         console.error('Failed to load vehicle registration status', e);
@@ -169,6 +182,25 @@ export default function AgentInventory() {
       toast.error('Failed to prepare refill');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReturnSubmit = async () => {
+    const items = Object.entries(returnItems)
+      .filter(([_, qty]) => qty > 0)
+      .map(([id, qty]) => ({ productId: id, quantity: qty }));
+    if (items.length === 0) return toast.error('Please add quantities to return stock');
+    try {
+      setIsSubmitting(true);
+      await productsAPI.requestReturn({ vehicleId, items, reason: returnReason, notes: returnNotes });
+      toast.success('Return processed and inventory updated in database!');
+      setShowReturnModal(false);
+      setReturnItems({});
+      fetchInventory();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to submit return request');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -553,6 +585,285 @@ export default function AgentInventory() {
     );
   }
 
+  // ── Stock Transfer Helpers ────────────────────────────────────
+  const loadActiveAgents = async () => {
+    if (activeAgents.length > 0) return;
+    setLoadingAgents(true);
+    try {
+      const res = await agentTransferAPI.getActiveAgents();
+      setActiveAgents(res.data?.data || res.data || []);
+    } catch {
+      toast.error('Could not load agents');
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
+  const loadMyTransfers = async () => {
+    setLoadingTransfers(true);
+    try {
+      const res = await agentTransferAPI.getTransfers({ myTransfers: 'true' });
+      setMyTransfers(Array.isArray(res.data) ? res.data : (res.data?.data || []));
+    } catch {
+      toast.error('Could not load transfers');
+    } finally {
+      setLoadingTransfers(false);
+    }
+  };
+
+  const handleStockTransferSubmit = async () => {
+    if (!selectedAgent) { toast.error('Please select a destination agent'); return; }
+    const items = Object.entries(transferItems)
+      .filter(([, qty]) => qty > 0)
+      .map(([productId, quantity]) => ({ productId, quantity }));
+    if (items.length === 0) { toast.error('Select at least one item to transfer'); return; }
+    setIsSubmittingTransfer(true);
+    try {
+      await agentTransferAPI.createTransfer({
+        toUserId: selectedAgent.id,
+        toVehicleId: selectedAgent.assignedVehicleId,
+        remarks: transferRemarks.trim() || undefined,
+        items,
+      });
+      toast.success('Transfer request sent! Awaiting partner approval.');
+      setShowStockTransfer(false);
+      setSelectedAgent(null);
+      setTransferItems({});
+      setTransferRemarks('');
+      setAgentSearch('');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to send transfer request');
+    } finally {
+      setIsSubmittingTransfer(false);
+    }
+  };
+
+  // ── STOCK TRANSFER SCREEN ───────────────────────────────────
+  if (showStockTransfer) {
+    const filteredAgents = activeAgents.filter(a =>
+      (a.name || '').toLowerCase().includes(agentSearch.toLowerCase()) ||
+      (a.assignedVehicle?.vehicleNumber || '').toLowerCase().includes(agentSearch.toLowerCase()) ||
+      (a.phone || '').includes(agentSearch)
+    );
+    const transferQtySelected = Object.values(transferItems).filter(q => q > 0).length;
+    const transferTotalQty = Object.values(transferItems).reduce((s, q) => s + q, 0);
+
+    return (
+      <div className="min-h-screen pb-36 pt-2 bg-[#FAFAFA]">
+        <div className="max-w-[420px] mx-auto px-4 space-y-5">
+
+          {/* Header */}
+          <div className="flex items-center gap-2.5 pt-1">
+            <button
+              onClick={() => { setShowStockTransfer(false); setAgentSearch(''); setSelectedAgent(null); setTransferItems({}); }}
+              className="p-1 -ml-1 text-gray-900 cursor-pointer"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} />
+            </button>
+            <div className="flex-1">
+              <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">Stock Transfer</h1>
+              <p className="text-[10px] font-medium text-gray-400">Transfer items to another field agent</p>
+            </div>
+            <button
+              onClick={() => {
+                const next = transferView === 'form' ? 'history' : 'form';
+                setTransferView(next);
+                if (next === 'history') loadMyTransfers();
+              }}
+              className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 cursor-pointer"
+            >
+              {transferView === 'form' ? 'My Transfers' : '+ New'}
+            </button>
+          </div>
+
+          {transferView === 'history' ? (
+            <div className="space-y-3">
+              {loadingTransfers ? (
+                <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-blue-500" /></div>
+              ) : myTransfers.length === 0 ? (
+                <div className="p-8 bg-white rounded-3xl border border-gray-100 text-center space-y-2">
+                  <Truck size={28} className="mx-auto text-gray-300" />
+                  <p className="text-xs font-black text-gray-800">No Transfers Yet</p>
+                  <p className="text-[11px] font-medium text-gray-400">Your transfer requests will appear here.</p>
+                </div>
+              ) : myTransfers.map((t: any) => {
+                const isApproved = t.status === 'APPROVED';
+                const isRejected = t.status === 'REJECTED';
+                return (
+                  <div key={t.id} className="bg-white rounded-3xl p-4 border border-gray-100 shadow-sm space-y-2.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+                          isApproved ? 'bg-emerald-50 text-emerald-600' : isRejected ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'
+                        }`}>
+                          <Truck size={18} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-extrabold text-gray-900 truncate">To: {t.toUser?.name || 'Agent'}</p>
+                          <p className="text-[10px] font-medium text-gray-400">{t.toVehicle?.vehicleNumber || ''}</p>
+                          <p className="text-[9px] font-semibold text-gray-400 mt-0.5">
+                            {t.createdAt ? format(new Date(t.createdAt), 'dd MMM yyyy • hh:mm a') : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border shrink-0 ${
+                        isApproved ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                        : isRejected ? 'text-red-500 bg-red-50 border-red-200'
+                        : 'text-amber-600 bg-amber-50 border-amber-200'
+                      }`}>{t.status}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(t.items || []).slice(0, 5).map((item: any, idx: number) => (
+                        <span key={idx} className="text-[10px] font-bold bg-gray-50 border border-gray-100 text-gray-600 px-2 py-0.5 rounded-lg">
+                          {item.product?.name || 'Item'} × {item.quantity}
+                        </span>
+                      ))}
+                      {(t.items || []).length > 5 && <span className="text-[10px] font-bold text-gray-400">+{(t.items || []).length - 5} more</span>}
+                    </div>
+                    {t.remarks && <p className="text-[10px] text-gray-400 italic">"{t.remarks}"</p>}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              {/* Step 1 */}
+              <div className="space-y-2">
+                <p className="text-xs font-black text-gray-900">1. Select Destination Agent</p>
+                <div className="bg-white rounded-2xl p-3 px-3.5 border border-gray-200 shadow-sm flex items-center gap-2.5">
+                  <Search size={15} className="text-gray-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search by name or vehicle number..."
+                    value={agentSearch}
+                    onChange={e => setAgentSearch(e.target.value)}
+                    onFocus={loadActiveAgents}
+                    className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+                  />
+                  {loadingAgents && <Loader2 size={14} className="animate-spin text-gray-400 shrink-0" />}
+                </div>
+
+                {selectedAgent && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-extrabold text-blue-800">{selectedAgent.name}</p>
+                      <p className="text-[10px] font-medium text-blue-600">{selectedAgent.assignedVehicle?.vehicleNumber || 'No Vehicle'} • {selectedAgent.phone}</p>
+                    </div>
+                    <button onClick={() => setSelectedAgent(null)} className="text-blue-500 hover:text-red-500 cursor-pointer"><X size={16} /></button>
+                  </div>
+                )}
+
+                {!selectedAgent && activeAgents.length > 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden max-h-52 overflow-y-auto divide-y divide-gray-100">
+                    {filteredAgents.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-gray-400 font-semibold">No agents found</div>
+                    ) : filteredAgents.map((agent: any) => (
+                      <button
+                        key={agent.id}
+                        onClick={() => { setSelectedAgent(agent); setAgentSearch(''); }}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50/50 transition-colors flex items-center gap-3"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 font-black text-sm">
+                          {(agent.name || 'A').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-extrabold text-gray-900 truncate">{agent.name}</p>
+                          <p className="text-[10px] font-medium text-gray-500">{agent.assignedVehicle?.vehicleNumber || 'No Vehicle'} • {agent.phone}</p>
+                        </div>
+                        <Truck size={12} className="text-gray-300 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Step 2 */}
+              <div className="space-y-2">
+                <p className="text-xs font-black text-gray-900">2. Select Items to Transfer</p>
+                {inventory.length === 0 ? (
+                  <div className="p-6 bg-white rounded-2xl border border-gray-100 text-center">
+                    <Package size={24} className="mx-auto text-gray-300 mb-1" />
+                    <p className="text-xs font-bold text-gray-500">No stock available to transfer</p>
+                  </div>
+                ) : inventory.map((item: any) => {
+                  const pid = item.productId || item.product?.id || item.id;
+                  const name = item.product?.name || item.name || 'Product';
+                  const available = Number(item.quantity ?? 0);
+                  const reqQty = transferItems[pid] || 0;
+                  const isSelected = reqQty > 0;
+                  return (
+                    <div key={pid} className={`bg-white rounded-2xl p-3 border shadow-sm flex items-center gap-3 ${
+                      isSelected ? 'border-blue-300 bg-blue-50/20' : 'border-gray-100'
+                    }`}>
+                      <div className="w-11 h-11 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                        {item.product?.images?.[0]
+                          ? <img src={item.product.images[0]} alt={name} className="w-full h-full object-cover" />
+                          : <Package size={18} className="text-gray-300" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-extrabold text-gray-900 truncate">{name}</p>
+                        <p className="text-[10px] font-semibold text-gray-400">Available: {available}</p>
+                      </div>
+                      <div className="flex items-center bg-white border border-gray-200 rounded-xl p-0.5 shrink-0">
+                        <button onClick={() => setTransferItems(prev => ({ ...prev, [pid]: Math.max(0, (prev[pid] || 0) - 1) }))}
+                          className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90 cursor-pointer">
+                          <Minus size={11} strokeWidth={2.5} />
+                        </button>
+                        <span className="text-xs font-black text-gray-900 px-2 min-w-[20px] text-center">{reqQty}</span>
+                        <button onClick={() => {
+                          if ((transferItems[pid] || 0) >= available) { toast.error('Cannot exceed available stock'); return; }
+                          setTransferItems(prev => ({ ...prev, [pid]: (prev[pid] || 0) + 1 }));
+                        }} className="w-7 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded active:scale-90 cursor-pointer">
+                          <Plus size={11} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Step 3 */}
+              <div className="space-y-1.5">
+                <p className="text-xs font-black text-gray-900">3. Remarks (optional)</p>
+                <div className="bg-white border border-gray-200 rounded-2xl p-3 shadow-sm">
+                  <textarea
+                    placeholder="Add a reason or note for this transfer..."
+                    value={transferRemarks}
+                    onChange={e => setTransferRemarks(e.target.value)}
+                    rows={2}
+                    className="w-full text-xs font-semibold text-gray-800 placeholder:text-gray-400 bg-transparent border-none outline-none resize-none"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Sticky Submit Footer */}
+        {transferView === 'form' && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-100 p-4 pb-7">
+            <div className="max-w-[420px] mx-auto flex items-center gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-black text-gray-900">{transferQtySelected} Items • {transferTotalQty} Units</p>
+                <p className="text-[10px] font-medium text-gray-400 truncate">
+                  {selectedAgent ? `→ ${selectedAgent.name}` : 'No agent selected'}
+                </p>
+              </div>
+              <button
+                onClick={handleStockTransferSubmit}
+                disabled={isSubmittingTransfer || !selectedAgent || transferQtySelected === 0}
+                className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isSubmittingTransfer ? <Loader2 className="animate-spin" size={15} /> : <Send size={13} />}
+                <span>{isSubmittingTransfer ? 'Sending...' : 'Send Transfer Request'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (showRaiseRequestType) {
     return (
       <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
@@ -575,7 +886,7 @@ export default function AgentInventory() {
             <h3 className="text-xs font-black text-gray-900 tracking-tight">Select Request Type</h3>
           </div>
 
-          {/* Request Types 4-Card List */}
+          {/* Request Types */}
           <div className="space-y-3">
             {[
               {
@@ -588,6 +899,19 @@ export default function AgentInventory() {
                   setShowRaiseRequestType(false);
                   fetchAllProductsForRefill();
                   setShowRefillModal(true);
+                }
+              },
+              {
+                id: 'transfer',
+                title: 'Stock Transfer',
+                desc: 'Transfer stock from your vehicle to another field agent',
+                icon: 'truck',
+                iconBg: 'bg-blue-50 text-blue-600',
+                onClick: () => {
+                  setShowRaiseRequestType(false);
+                  setTransferView('form');
+                  setShowStockTransfer(true);
+                  loadActiveAgents();
                 }
               },
               {
@@ -609,7 +933,7 @@ export default function AgentInventory() {
                 iconBg: 'bg-emerald-50 text-[#00891D]',
                 onClick: () => {
                   setShowRaiseRequestType(false);
-                  setShowExpenseModal(true);
+                  navigate('/vsms/agent-portal/create-expense');
                 }
               },
               {
@@ -620,7 +944,7 @@ export default function AgentInventory() {
                 iconBg: 'bg-rose-50 text-red-500',
                 onClick: () => {
                   setShowRaiseRequestType(false);
-                  setShowDamageModal(true);
+                  navigate('/vsms/agent-portal/report-damage');
                 }
               },
             ].map((card) => (
@@ -631,6 +955,7 @@ export default function AgentInventory() {
               >
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${card.iconBg}`}>
                   {card.icon === 'refresh' && <RefreshCw size={18} />}
+                  {card.icon === 'truck' && <Truck size={18} />}
                   {card.icon === 'undo' && <span className="text-base">↩</span>}
                   {card.icon === 'tag' && <span className="text-base">🏷</span>}
                   {card.icon === 'alert' && <AlertCircle size={18} />}
@@ -802,15 +1127,12 @@ export default function AgentInventory() {
             </div>
 
             <button
-              onClick={() => {
-                toast.success('Return request submitted successfully!');
-                setShowReturnModal(false);
-                setReturnItems({});
-              }}
-              className="flex-1 py-3.5 bg-[#E85D04] hover:bg-[#d45300] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              onClick={handleReturnSubmit}
+              disabled={isSubmitting}
+              className="flex-1 py-3.5 bg-[#E85D04] hover:bg-[#d45300] text-white rounded-2xl text-xs font-extrabold shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <span>✈</span>
-              <span>Submit Request</span>
+              {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <span>✈</span>}
+              <span>{isSubmitting ? 'Submitting...' : 'Submit Request'}</span>
             </button>
           </div>
         </div>
@@ -1088,13 +1410,16 @@ export default function AgentInventory() {
     { key: 'history', label: 'History', icon: History },
   ];
 
-  const totalItemsCount = inventory.reduce((acc, item) => acc + Number(item.quantity || 0), 0);
+  const uniqueProductIds = new Set(inventory.map(item => item.productId || item.product?.id || item.id).filter(Boolean));
+  const totalUniqueItems = uniqueProductIds.size || inventory.length;
+
+  const totalStockQuantity = inventory.reduce((acc, item) => acc + Number(item.quantity || 0), 0);
 
   const totalInventoryValue = inventory.reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.product?.price || 0)), 0);
 
   const displayInventory = filteredInventory;
 
-  const vehicleDisplayReg = vehicleRegNo || user?.assignedVehicleNumber || user?.vehicleNo || user?.assignedVehicle?.registrationNumber || (vehicleId && vehicleId !== 'me' ? vehicleId : 'TS09 AB 4521');
+  const vehicleDisplayReg = vehicleRegNo || user?.assignedVehicle?.vehicleNumber || user?.assignedVehicleNumber || user?.vehicleNo || user?.assignedVehicle?.registrationNumber || (vehicleId && vehicleId !== 'me' ? vehicleId : 'TS-09-AG-0001');
 
   return (
     <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
@@ -1131,32 +1456,45 @@ export default function AgentInventory() {
 
         {activeTab === 'stock' && (
           <>
-            {/* 2-Column Summary KPI Cards (Live Totals) */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Total Items */}
-              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-bold text-gray-400">Total Items</p>
-                  <p className="text-xl font-black text-gray-900 mt-1">
-                    {totalItemsCount}
-                  </p>
+            {/* 3-Column Summary KPI Cards (Live Totals) */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Total Items (Unique Items Count) */}
+              <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs flex flex-col justify-between">
+                <div className="flex items-start justify-between gap-1 mb-1">
+                  <span className="text-[11px] font-bold text-gray-400 leading-tight">Total Items</span>
+                  <div className="w-6 h-6 rounded-lg bg-[#FFF3E0] text-[#E65100] flex items-center justify-center shrink-0">
+                    <Package size={13} strokeWidth={2.2} />
+                  </div>
                 </div>
-                <div className="w-9 h-9 rounded-xl bg-[#FFF3E0] text-[#E65100] flex items-center justify-center">
-                  <Box size={18} strokeWidth={2} />
+                <p className="text-lg font-black text-gray-900 mt-1">
+                  {totalUniqueItems}
+                </p>
+              </div>
+
+              {/* Total Quantity (All Quantities Combined) */}
+              <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs flex flex-col justify-between">
+                <div className="flex items-start justify-between gap-1 mb-1">
+                  <span className="text-[11px] font-bold text-gray-400 leading-tight">Total Quantity</span>
+                  <div className="w-6 h-6 rounded-lg bg-[#E3F2FD] text-[#1976D2] flex items-center justify-center shrink-0">
+                    <Box size={13} strokeWidth={2.2} />
+                  </div>
                 </div>
+                <p className="text-lg font-black text-gray-900 mt-1">
+                  {totalStockQuantity}
+                </p>
               </div>
 
               {/* Inventory Value */}
-              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-bold text-gray-400">Inventory Value</p>
-                  <p className="text-xl font-black text-gray-900 mt-1">
-                    ₹{totalInventoryValue.toFixed(2)}
-                  </p>
+              <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs flex flex-col justify-between">
+                <div className="flex items-start justify-between gap-1 mb-1">
+                  <span className="text-[11px] font-bold text-gray-400 leading-tight">Inventory Value</span>
+                  <div className="w-6 h-6 rounded-lg bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0">
+                    <Wallet size={13} strokeWidth={2.2} />
+                  </div>
                 </div>
-                <div className="w-9 h-9 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center">
-                  <Wallet size={18} strokeWidth={2} />
-                </div>
+                <p className="text-lg font-black text-gray-900 mt-1 truncate">
+                  ₹{totalInventoryValue.toFixed(2)}
+                </p>
               </div>
             </div>
 

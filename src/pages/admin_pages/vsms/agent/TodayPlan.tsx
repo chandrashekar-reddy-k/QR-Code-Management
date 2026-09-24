@@ -264,7 +264,9 @@ export default function TodayPlan() {
   }
 
   const { today, tomorrow, tomorrowLabel, coverage, shifts: configShifts } = statusData;
-  const hasPlan = today && !today.message && !today.noVillage;
+  const hasMorningTask = Boolean(today?.morning && today.morning !== 'No Task' && today.morning.trim() !== '');
+  const hasEveningTask = Boolean(today?.evening && today.evening !== 'No Task' && today.evening.trim() !== '');
+  const hasPlan = hasMorningTask || hasEveningTask;
   const hasTomorrow = tomorrow && !tomorrow.message && !tomorrow.noVillage;
   const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
   const currentShift = (configShifts || []).find((s: any) => s && s.startTime && s.endTime && currentTime >= s.startTime && currentTime <= s.endTime) || (configShifts ? configShifts[0] : null);
@@ -285,7 +287,7 @@ export default function TodayPlan() {
             <div>
               <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">Today's Plan</h1>
               <p className="text-[11px] font-medium text-gray-400">
-                Thursday, 6 Aug 2025
+                {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             </div>
           </div>
@@ -307,7 +309,7 @@ export default function TodayPlan() {
               </div>
               <p className="text-[9px] font-semibold text-gray-400">Vehicle</p>
               <p className="text-[10px] font-extrabold text-gray-900 mt-0.5 truncate max-w-full">
-                TS09 AB 4521
+                {statusData?.vehicleNumber || '—'}
               </p>
             </div>
 
@@ -315,9 +317,9 @@ export default function TodayPlan() {
               <div className="text-emerald-600 mb-1">
                 <MapPin size={15} />
               </div>
-              <p className="text-[9px] font-semibold text-gray-400">Morning Shift</p>
+              <p className="text-[9px] font-semibold text-gray-400">Morning</p>
               <p className="text-[10px] font-extrabold text-gray-900 mt-0.5 truncate max-w-full">
-                Pargi
+                {hasMorningTask ? today.morning : '—'}
               </p>
             </div>
 
@@ -325,9 +327,9 @@ export default function TodayPlan() {
               <div className="text-emerald-600 mb-1">
                 <MapPin size={15} />
               </div>
-              <p className="text-[9px] font-semibold text-gray-400">Evening Shift</p>
+              <p className="text-[9px] font-semibold text-gray-400">Evening</p>
               <p className="text-[10px] font-extrabold text-gray-900 mt-0.5 truncate max-w-full">
-                Shankarpally
+                {hasEveningTask ? today.evening : '—'}
               </p>
             </div>
 
@@ -335,9 +337,9 @@ export default function TodayPlan() {
               <div className="text-emerald-600 mb-1">
                 <Store size={15} />
               </div>
-              <p className="text-[9px] font-semibold text-gray-400">Routes</p>
+              <p className="text-[9px] font-semibold text-gray-400">Villages</p>
               <p className="text-[10px] font-extrabold text-gray-900 mt-0.5 truncate max-w-full">
-                2 Assigned
+                {hasPlan ? `${[today?.morning, today?.evening].filter(v => v && v !== 'No Task').length} Assigned` : '—'}
               </p>
             </div>
           </div>
@@ -345,7 +347,9 @@ export default function TodayPlan() {
           {/* Quick status footer indicator inside assignment box */}
           <div className="bg-gray-50/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between mt-auto">
             <span className="text-[9px] font-bold text-gray-500">Route Status</span>
-            <span className="text-[9px] font-black text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded">Active Plan</span>
+            <span className={`text-[9px] font-black px-2 py-0.5 rounded ${hasPlan ? 'text-[#00891D] bg-emerald-50' : 'text-gray-500 bg-gray-100'}`}>
+              {hasPlan ? 'Active Plan' : 'Not Assigned'}
+            </span>
           </div>
         </div>
 
@@ -388,7 +392,7 @@ export default function TodayPlan() {
                 <MapPin size={14} />
                 <span className="text-[10px] font-bold text-gray-400">Assigned Village</span>
               </div>
-              <p className="text-xs font-extrabold text-gray-900 pl-5">{today?.morning || 'Pargi'}</p>
+              <p className="text-xs font-extrabold text-gray-900 pl-5">{hasMorningTask ? today.morning : 'Not Assigned'}</p>
             </div>
 
             <div className="p-3 bg-[#F9FAFB] rounded-2xl border border-gray-100/60">
@@ -396,7 +400,7 @@ export default function TodayPlan() {
                 <Store size={14} />
                 <span className="text-[10px] font-bold text-gray-400">Assigned Route</span>
               </div>
-              <p className="text-xs font-extrabold text-gray-900 pl-5">{today?.routeName || 'Route-03'}</p>
+              <p className="text-xs font-extrabold text-gray-900 pl-5">{hasMorningTask && today?.routeName ? today.routeName : 'Not Assigned'}</p>
             </div>
           </div>
 
@@ -427,6 +431,11 @@ export default function TodayPlan() {
               {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="fill-white" />}
               End Morning Shift
             </button>
+          ) : !hasMorningTask ? (
+            <div className="w-full bg-gray-100/80 text-gray-400 py-3.5 rounded-2xl font-bold text-xs shadow-none flex items-center justify-center gap-2 select-none">
+              <Play size={15} className="fill-gray-400 text-gray-400" />
+              No Morning Task Assigned
+            </div>
           ) : !coverage?.morningDone ? (
             <button
               onClick={() => handleStartShift(1)}
@@ -483,7 +492,7 @@ export default function TodayPlan() {
                 <MapPin size={14} />
                 <span className="text-[10px] font-bold text-gray-400">Assigned Village</span>
               </div>
-              <p className="text-xs font-extrabold text-gray-900 pl-5">{today?.evening || 'Shankarpally'}</p>
+              <p className="text-xs font-extrabold text-gray-900 pl-5">{hasEveningTask ? today.evening : 'Not Assigned'}</p>
             </div>
 
             <div className="p-3 bg-[#F9FAFB] rounded-2xl border border-gray-100/60">
@@ -491,7 +500,7 @@ export default function TodayPlan() {
                 <Store size={14} />
                 <span className="text-[10px] font-bold text-gray-400">Assigned Route</span>
               </div>
-              <p className="text-xs font-extrabold text-gray-900 pl-5">{today?.routeName || 'Route-05'}</p>
+              <p className="text-xs font-extrabold text-gray-900 pl-5">{hasEveningTask && today?.routeName ? today.routeName : 'Not Assigned'}</p>
             </div>
           </div>
 
@@ -522,6 +531,11 @@ export default function TodayPlan() {
               {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="fill-white" />}
               End Evening Shift
             </button>
+          ) : !hasEveningTask ? (
+            <div className="w-full bg-gray-100/80 text-gray-400 py-3.5 rounded-2xl font-bold text-xs shadow-none flex items-center justify-center gap-2 select-none">
+              <Play size={15} className="fill-gray-400 text-gray-400" />
+              No Evening Task Assigned
+            </div>
           ) : !coverage?.eveningDone ? (
             <button
               onClick={() => handleStartShift(2)}
@@ -543,86 +557,113 @@ export default function TodayPlan() {
           )}
         </div>
 
-        {/* This Week's Plan Card (Figma Specs: 354x225, r:12px, p:16px, gap:12px) */}
         <div className="w-full max-w-[354px] min-h-[225px] mx-auto bg-white rounded-[12px] p-4 border border-gray-100/90 shadow-sm flex flex-col justify-between gap-3 transition-all">
           <h4 className="text-xs font-black text-gray-900 tracking-tight">This Week's Plan</h4>
           <div className="flex items-stretch gap-2 overflow-x-auto pb-1 no-scrollbar text-center flex-1">
-            {[
-              { day: 'Mon', date: '4 Aug', village: 'Pargi', status: 'Completed' },
-              { day: 'Tue', date: '5 Aug', village: 'Chevella', status: 'Completed' },
-              { day: 'Wed', date: '6 Aug', village: 'Vikarabad', status: 'Completed' },
-              { day: 'Thu', date: '7 Aug', morning: 'Pargi', evening: 'Shankar...', isToday: true },
-              { day: 'Fri', date: '8 Aug', village: 'Moinabad', status: 'Upcoming' },
-              { day: 'Sat', date: '9 Aug', village: 'Shankarpally', status: 'Upcoming' },
-            ].map((d) => {
-              if (d.isToday) {
+            {(() => {
+              const daysOrder = [
+                { key: 'Monday', label: 'Mon' },
+                { key: 'Tuesday', label: 'Tue' },
+                { key: 'Wednesday', label: 'Wed' },
+                { key: 'Thursday', label: 'Thu' },
+                { key: 'Friday', label: 'Fri' },
+                { key: 'Saturday', label: 'Sat' },
+              ];
+
+              const now = new Date();
+              const currentDayIdx = now.getDay();
+              const mondayOffset = currentDayIdx === 0 ? -6 : 1 - currentDayIdx;
+              const monday = new Date(now);
+              monday.setDate(now.getDate() + mondayOffset);
+
+              const schedule = statusData?.schedule || statusData?.today?.schedule || {};
+              const todayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
+
+              return daysOrder.map((d, idx) => {
+                const dayDate = new Date(monday);
+                dayDate.setDate(monday.getDate() + idx);
+                const isToday = d.key === todayName;
+                const isPast = dayDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+                const daySchedule = schedule[d.key] || {};
+                const morning = daySchedule.morning || '';
+                const evening = daySchedule.evening || '';
+                const village = morning && evening
+                  ? `${morning} / ${evening}`
+                  : (morning || evening || 'No Task');
+
+                if (isToday) {
+                  return (
+                    <div
+                      key={d.key}
+                      className="w-[84px] shrink-0 p-2.5 rounded-[10px] border-2 border-[#00891D] bg-emerald-50/30 flex flex-col items-center justify-between gap-1 shadow-sm"
+                    >
+                      <div>
+                        <span className="text-[11px] font-black text-[#00891D] block leading-none">{d.label}</span>
+                        <span className="text-[9px] font-medium text-gray-400 block mt-0.5">
+                          {dayDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+
+                      <div className="w-full space-y-1 my-1">
+                        <div>
+                          <span className="text-[8px] font-medium text-gray-400 block">Morning</span>
+                          <span className="text-[9px] font-bold text-gray-800 bg-white/90 border border-gray-100 px-1 py-0.5 rounded block truncate">
+                            {morning || 'No Task'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-medium text-gray-400 block">Evening</span>
+                          <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-100 px-1 py-0.5 rounded block truncate">
+                            {evening || 'No Task'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-[9px] font-black text-white bg-[#00891D] px-2.5 py-0.5 rounded-full uppercase">
+                        Today
+                      </span>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
-                    key={d.day}
-                    className="w-[84px] shrink-0 p-2.5 rounded-[10px] border-2 border-[#00891D] bg-emerald-50/30 flex flex-col items-center justify-between gap-1 shadow-sm"
+                    key={d.key}
+                    className="w-[74px] shrink-0 p-2.5 rounded-[10px] border border-gray-100 bg-white flex flex-col items-center justify-between gap-1.5 shadow-none"
                   >
                     <div>
-                      <span className="text-[11px] font-black text-[#00891D] block leading-none">{d.day}</span>
-                      <span className="text-[9px] font-medium text-gray-400 block mt-0.5">{d.date}</span>
+                      <span className="text-[11px] font-black text-gray-900 block leading-none">{d.label}</span>
+                      <span className="text-[9px] font-medium text-gray-400 block mt-0.5">
+                        {dayDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </span>
                     </div>
 
-                    <div className="w-full space-y-1 my-1">
-                      <div>
-                        <span className="text-[8px] font-medium text-gray-400 block">Morning</span>
-                        <span className="text-[9px] font-bold text-gray-800 bg-white/90 border border-gray-100 px-1 py-0.5 rounded block truncate">
-                          {d.morning}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[8px] font-medium text-gray-400 block">Evening</span>
-                        <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-100 px-1 py-0.5 rounded block truncate">
-                          {d.evening}
-                        </span>
-                      </div>
-                    </div>
+                    <p className="text-[9px] font-bold text-gray-700 truncate w-full px-0.5">
+                      {village}
+                    </p>
 
-                    <span className="text-[9px] font-black text-white bg-[#00891D] px-2.5 py-0.5 rounded-full uppercase">
-                      Today
-                    </span>
+                    <div className="mt-auto">
+                      {isPast ? (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <div className="w-4 h-4 rounded-full border border-[#00891D] flex items-center justify-center text-[#00891D]">
+                            <CheckCircle2 size={12} className="text-[#00891D]" strokeWidth={2.5} />
+                          </div>
+                          <span className="text-[8px] font-bold text-[#00891D]">Completed</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <div className="w-4 h-4 rounded-full border border-blue-500 flex items-center justify-center text-blue-500">
+                            <Clock size={11} strokeWidth={2.5} />
+                          </div>
+                          <span className="text-[8px] font-bold text-blue-500">Upcoming</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
-              }
-
-              const isCompleted = d.status === 'Completed';
-              return (
-                <div
-                  key={d.day}
-                  className="w-[74px] shrink-0 p-2.5 rounded-[10px] border border-gray-100 bg-white flex flex-col items-center justify-between gap-1.5 shadow-none"
-                >
-                  <div>
-                    <span className="text-[11px] font-black text-gray-900 block leading-none">{d.day}</span>
-                    <span className="text-[9px] font-medium text-gray-400 block mt-0.5">{d.date}</span>
-                  </div>
-
-                  <p className="text-[9px] font-bold text-gray-700 truncate w-full px-0.5">
-                    {d.village}
-                  </p>
-
-                  <div className="mt-auto">
-                    {isCompleted ? (
-                      <div className="flex flex-col items-center gap-0.5">
-                        <div className="w-4 h-4 rounded-full border border-[#00891D] flex items-center justify-center text-[#00891D]">
-                          <CheckCircle2 size={12} className="text-[#00891D]" strokeWidth={2.5} />
-                        </div>
-                        <span className="text-[8px] font-bold text-[#00891D]">Completed</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-0.5">
-                        <div className="w-4 h-4 rounded-full border border-blue-500 flex items-center justify-center text-blue-500">
-                          <Clock size={11} strokeWidth={2.5} />
-                        </div>
-                        <span className="text-[8px] font-bold text-blue-500">Upcoming</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+              });
+            })()}
           </div>
         </div>
 
