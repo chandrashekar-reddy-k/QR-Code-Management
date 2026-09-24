@@ -28,7 +28,7 @@ jobs:
 
             # export PATH=$PATH:/home/ubuntu/n/bin
 
-            cd /var/www/villagkart/villagkart-partner-web
+            cd /home/ubuntu/partner_web
 
             echo "Updating repository..."
 
