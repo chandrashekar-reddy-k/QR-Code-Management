@@ -129,6 +129,8 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
         {/* 4. Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
           {(() => {
+            if (pickedItems === 0) return null;
+
             const packingStatus = (order.status || "").toLowerCase();
             const isInProgress = packingStatus === "packing";
             const isCompleted = packingStatus === "packed" || packingStatus === "ready" || packingStatus === "dispatched";
@@ -158,10 +160,22 @@ export function PickingComplete({ onNavigate, data }: PickingCompleteProps) {
           })()}
           <button
             onClick={() => onNavigate("picking-queue")}
-            className="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors bg-white dark:bg-gray-800 text-center shadow-sm"
+            className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-colors shadow-sm text-center ${
+              pickedItems === 0
+                ? "bg-[#00891D] hover:bg-[#006614] text-white font-bold py-3.5"
+                : "border border-gray-300 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 bg-white dark:bg-gray-800"
+            }`}
           >
             Back to Picking Queue
           </button>
+          {pickedItems === 0 && (
+            <button
+              onClick={() => onNavigate("dashboard")}
+              className="flex-1 py-3.5 px-4 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-700/50 transition-colors bg-white dark:bg-gray-800 text-center shadow-sm"
+            >
+              Back to Dashboard
+            </button>
+          )}
         </div>
       </div>
     </div>

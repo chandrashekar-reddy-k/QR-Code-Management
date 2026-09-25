@@ -341,7 +341,6 @@ export function OrderHistory({ onBack, onNavigate, initialStatus, isAdmin = fals
                   { value: "Active", label: "Active" },
                   { value: "Dispatched", label: "Dispatched" },
                   { value: "Rejected", label: "Rejected" },
-                  { value: "Returns", label: "Returns" },
                 ]}
               />
             </div>

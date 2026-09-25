@@ -127,18 +127,20 @@ const LoadingSection = ({
                 <td className="px-3 py-2.5 bg-emerald-50/5">
                   <div className="flex items-center justify-center gap-3">
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-bold text-emerald-700">{item.posStoreStock?.posStock || 0}</span>
+                      <span className="text-[10px] font-bold text-emerald-700">{item.warehouseStock ?? item.stock ?? 0}</span>
                       <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest leading-none mt-0.5">In Store</span>
                     </div>
                     <div className="w-px h-4 bg-emerald-100" />
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-bold text-amber-600">{item.loadedVehicleStock || 0}</span>
+                      <span className="text-[10px] font-bold text-amber-600">
+                        {selectedVehicleId ? (vehicleInventoryMap[item.id] || 0) : (item.loadedVehicleStock || 0)}
+                      </span>
                       <span className="text-[7px] font-bold text-amber-500 uppercase tracking-widest leading-none mt-0.5">In Vehicle</span>
                     </div>
                     <div className="w-px h-4 bg-emerald-100" />
                     <div className="flex flex-col items-center bg-white px-1.5 py-0.5 rounded-lg border border-emerald-100 shadow-sm">
                       <span className="text-[10px] font-bold text-blue-600">
-                        {Math.max(0, (item.vehicleStoreStock || 0) - (item.loadedVehicleStock || 0))}
+                        {item.vehicleStoreStock || 0}
                       </span>
                       <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">VSM</span>
                     </div>
@@ -146,21 +148,29 @@ const LoadingSection = ({
                 </td>
                 <td className="px-3 py-2.5 bg-emerald-50/5">
                   <div className="flex flex-col items-center gap-1">
-                    <input
-                      type="number"
-                      placeholder="0"
-                      min="0"
-                      onWheel={(e) => e.target.blur()}
-                      className={`w-16 bg-white border ${qty > Math.max(0, (item.vehicleStoreStock || 0) - (item.loadedVehicleStock || 0)) ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-200'} rounded-lg px-2 py-1 text-[11px] text-center font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-sm`}
-                      value={stockQuantities[item.id] || ''}
-                      onChange={(e) => {
-                        const val = Math.max(0, parseInt(e.target.value) || 0);
-                        handleQuantityChange(item.id, val);
-                      }}
-                    />
-                    {qty > Math.max(0, (item.vehicleStoreStock || 0) - (item.loadedVehicleStock || 0)) && (
-                      <span className="text-[7px] font-bold text-rose-600 uppercase animate-pulse">Low Stock</span>
-                    )}
+                    {(() => {
+                      const avail = item.vehicleStoreStock || 0;
+                      const isExcess = qty > avail && avail > 0;
+                      return (
+                        <>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            min="0"
+                            onWheel={(e) => e.target.blur()}
+                            className={`w-16 bg-white border ${isExcess ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-200'} rounded-lg px-2 py-1 text-[11px] text-center font-bold focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-sm`}
+                            value={stockQuantities[item.id] || ''}
+                            onChange={(e) => {
+                              const val = Math.max(0, parseInt(e.target.value) || 0);
+                              handleQuantityChange(item.id, val);
+                            }}
+                          />
+                          {isExcess && (
+                            <span className="text-[7px] font-bold text-rose-600 uppercase animate-pulse">Low Stock</span>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </td>
                 <td className="pr-4 py-2.5 text-right">

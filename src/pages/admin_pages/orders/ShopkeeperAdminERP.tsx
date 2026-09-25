@@ -211,7 +211,7 @@ export default function ShopkeeperAdminERP() {
     return (
       <div className="w-full">
         {screen === "order-processing" && (
-          <OrderProcessing orders={orders} onNavigate={navigate} />
+          <OrderProcessing orders={orders} loading={loading} onNavigate={navigate} />
         )}
         {screen === "order-details" && (
           <OrderDetails

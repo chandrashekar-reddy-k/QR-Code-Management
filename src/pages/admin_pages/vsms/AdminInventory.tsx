@@ -451,8 +451,10 @@ export default function AdminInventory() {
       const matchesCategory = opsCategory === 'ALL' || i.category?.name === opsCategory;
       const matchesSubCategory = opsSubCategory === 'ALL' || i.subCategory?.name === opsSubCategory;
 
-      // Show ALL vehicle-enabled products; sorting handles VSM > 0 at top
-      return isVehicleEnabled && matchesSearch && matchesCategory && matchesSubCategory;
+      const hasVsmStock = Number(i.vehicleStoreStock || 0) > 0;
+
+      // Show ONLY products present in Vehicle Stock Management (vehicleStoreStock > 0)
+      return isVehicleEnabled && hasVsmStock && matchesSearch && matchesCategory && matchesSubCategory;
     });
   }, [items, opsSearch, opsCategory, opsSubCategory]);
 
@@ -566,10 +568,10 @@ export default function AdminInventory() {
   }, [groupedRefills, viewingAgentId]);
 
   useEffect(() => {
-    if (selectedVehicleId && activeTab === 'return' && (subTab === 'return' || subTab === 'loading')) {
+    if (selectedVehicleId) {
       fetchVehicleInventory(selectedVehicleId);
     }
-  }, [selectedVehicleId, activeTab, subTab]);
+  }, [selectedVehicleId]);
 
   useEffect(() => {
     if (activeTab === 'return') {

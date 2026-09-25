@@ -90,6 +90,7 @@ interface ApiResponse {
 // Table order type for internal use
 interface TableOrder {
   id: string;
+  orderNumber: string;
   userId: number;
   userName: string;
   mobile: string;
@@ -417,6 +418,7 @@ const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {
 
       return {
         id: order.id,
+        orderNumber: order.orderNumber || order.id,
         userId: order.consumer?.id ? parseInt(order.consumer.id.slice(0, 8), 16) || 0 : 0,
         userName: order.consumer?.name || "N/A",
         mobile: order.consumer?.phone || "N/A",
@@ -447,9 +449,9 @@ const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {
 
       switch (sortField) {
         case "id":
-          // Compare as strings for UUID
-          aValue = a.id;
-          bValue = b.id;
+        case "orderNumber":
+          aValue = a.orderNumber;
+          bValue = b.orderNumber;
           break;
         case "userName":
           aValue = a.userName.toLowerCase();
@@ -655,16 +657,16 @@ const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {
       ),
     },
     {
-      key: "id",
-      label: "ID",
+      key: "orderNumber",
+      label: "ORDER NO",
       sortable: true,
       render: (order: TableOrder) => {
         const isNewOrder = order.status?.toUpperCase() === "PLACED" || order.status?.toUpperCase() === "NEW";
         return (
           <div className="text-center flex flex-col items-center justify-center gap-0.5">
             <div className="flex items-center gap-1">
-              <span className="text-xs sm:text-sm text-gray-800 font-medium">
-                {order.id.slice(0, 8)}
+              <span className="text-xs sm:text-sm text-gray-800 font-medium whitespace-nowrap">
+                {order.orderNumber}
               </span>
               {isNewOrder && <span className="text-orange-500 text-xs animate-bounce">🔔</span>}
             </div>

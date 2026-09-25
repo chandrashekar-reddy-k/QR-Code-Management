@@ -184,7 +184,7 @@ export const PackingApprovals: React.FC = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Filtered approvals list
   const filteredApprovals = useMemo(() => {
@@ -267,11 +267,11 @@ export const PackingApprovals: React.FC = () => {
   }, [filteredApprovals, selectedRequest]);
 
   const paginatedApprovals = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredApprovals.slice(start, start + pageSize);
-  }, [filteredApprovals, currentPage]);
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredApprovals.slice(start, start + rowsPerPage);
+  }, [filteredApprovals, currentPage, rowsPerPage]);
 
-  const totalPages = Math.ceil(filteredApprovals.length / pageSize);
+  const totalPages = Math.ceil(filteredApprovals.length / rowsPerPage);
 
   const handleApprove = async () => {
     if (!selectedRequest) return;
@@ -932,7 +932,7 @@ export const PackingApprovals: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedApprovals.map((req) => {
+                paginatedApprovals.map((req, index) => {
                   const woNo =
                     req.woDetails?.woNumber || req.relatedEntityName || req.id;
                   const prodName =
@@ -946,7 +946,7 @@ export const PackingApprovals: React.FC = () => {
 
                   return (
                     <tr
-                      key={req.id}
+                      key={`${req.id}-${index}`}
                       className="hover:bg-slate-50/80 dark:hover:bg-gray-700/30 transition-colors"
                     >
                       <td className="p-4 font-mono font-bold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
@@ -994,31 +994,46 @@ export const PackingApprovals: React.FC = () => {
           </table>
         </div>
 
-        {/* Table Pagination */}
-        <div className="p-4 border-t border-slate-100 dark:border-gray-700 flex justify-between items-center text-xs text-slate-500 dark:text-gray-400 bg-slate-50/50 dark:bg-gray-800 flex-wrap gap-2">
-          <span>
-            Showing{' '}
-            {filteredApprovals.length > 0
-              ? (currentPage - 1) * pageSize + 1
-              : 0}{' '}
-            to {Math.min(currentPage * pageSize, filteredApprovals.length)} of{' '}
-            {filteredApprovals.length} entries
-          </span>
+        {/* Pagination Footer */}
+        <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2">
+            <span>Rows per page:</span>
+            <select
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="p-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 dark:text-white focus:outline-none"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+            <span>
+              Showing {filteredApprovals.length > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0} -{' '}
+              {Math.min(currentPage * rowsPerPage, filteredApprovals.length)} of{' '}
+              {filteredApprovals.length} records
+            </span>
+          </div>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+              className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 disabled:opacity-50 transition-all cursor-pointer"
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="px-2.5 py-1 border border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-bold rounded">
-              {currentPage}
+            <span className="px-2 font-bold dark:text-white">
+              {currentPage} / {totalPages || 1}
             </span>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages || totalPages === 0}
-              className="p-1.5 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+              }
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 disabled:opacity-50 transition-all cursor-pointer"
             >
               <ChevronRight size={14} />
             </button>
