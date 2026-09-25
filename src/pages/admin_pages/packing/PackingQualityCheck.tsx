@@ -13,6 +13,8 @@ import {
   Package,
   RotateCcw,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   qualityCheckService,
@@ -166,11 +168,14 @@ export const PackingQualityCheck: React.FC = () => {
   // Filters
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterInspector, setFilterInspector] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   const [filterBatch, setFilterBatch] = useState('');
   const [filterWO, setFilterWO] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Modals
   const [selectedQC, setSelectedQC] = useState<QCRecord | null>(null);
@@ -303,7 +308,6 @@ export const PackingQualityCheck: React.FC = () => {
           : r.displayStatus === filterStatus
       );
     }
-    if (filterInspector) d = d.filter((r) => r.assignedTo === filterInspector);
     if (filterPriority) d = d.filter((r) => r.priority === filterPriority);
     if (filterBatch)
       d = d.filter((r) =>
@@ -331,13 +335,20 @@ export const PackingQualityCheck: React.FC = () => {
   }, [
     unifiedData,
     filterStatus,
-    filterInspector,
     filterPriority,
     filterBatch,
     filterWO,
     filterProduct,
     search,
   ]);
+
+  // Pagination logic
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredData.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredData, currentPage, rowsPerPage]);
+
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
   // Row-level Modal Task Assignment
   const openAssignModal = (wo: PendingQCWorkOrder) => {
@@ -441,7 +452,6 @@ export const PackingQualityCheck: React.FC = () => {
   const resetFilters = () => {
     setSearch('');
     setFilterStatus('');
-    setFilterInspector('');
     setFilterPriority('');
     setFilterBatch('');
     setFilterWO('');
@@ -586,21 +596,6 @@ export const PackingQualityCheck: React.FC = () => {
           <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />
 
           <select
-            value={filterInspector}
-            onChange={(e) => setFilterInspector(e.target.value)}
-            className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[140px] shrink-0"
-          >
-            <option value="" className="dark:bg-gray-800">All Inspectors</option>
-            {inspectors.map((u) => (
-              <option key={u.id} value={u.name} className="dark:bg-gray-800">
-                {u.name}
-              </option>
-            ))}
-          </select>
-
-          <div className="w-px h-6 bg-slate-200 dark:bg-gray-700 shrink-0" />
-
-          <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
             className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[120px] shrink-0"
@@ -680,9 +675,9 @@ export const PackingQualityCheck: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((row) => (
+                  paginatedData.map((row, index) => (
                     <tr
-                      key={row.id}
+                      key={`${row.id}-${index}`}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors"
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -766,9 +761,50 @@ export const PackingQualityCheck: React.FC = () => {
 
         {/* Footer */}
         {!loading && (
-          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500">
-            {filteredData.length} of {unifiedData.length} records &nbsp;·&nbsp;
-            {pendingWOs.length} pending&nbsp;·&nbsp;{completedQCs.length} completed
+          <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="p-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 dark:text-white focus:outline-none"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>
+                Showing {(currentPage - 1) * rowsPerPage + 1} -{' '}
+                {Math.min(currentPage * rowsPerPage, filteredData.length)} of{' '}
+                {filteredData.length} records &nbsp;·&nbsp;
+                {pendingWOs.length} pending&nbsp;·&nbsp;{completedQCs.length} completed
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="px-2 font-bold dark:text-white">
+                {currentPage} / {totalPages || 1}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
         )}
       </div>

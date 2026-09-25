@@ -1,6 +1,6 @@
 // Trigger re-evaluation comment
 import { useState, useEffect } from "react";
-import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ShoppingBag, Package, PackageCheck, User, History, CheckCircle } from "lucide-react";
 import { DashboardMobile as Dashboard } from "../components/shopkeeper/DashboardMobile";
 import { NewOrders } from "../components/shopkeeper/NewOrdersMobile";
 import { OrderDetails } from "../components/shopkeeper/OrderDetailsMobile";
@@ -371,7 +371,7 @@ export default function ShopkeeperERP() {
     }
 
     // Check if the destination is a primary tab in the sidebar
-    const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "orderhistory"].includes(dest);
+    const isTab = ["dashboard", "new-orders", "picking-queue", "ready-orders", "packing-queue", "profile", "orderhistory"].includes(dest);
     if (isTab) {
       reactNavigate(`/shopkeeper?tab=${dest}`);
       setScreen(dest as Screen);
@@ -393,7 +393,7 @@ export default function ShopkeeperERP() {
     const prev = history[history.length - 1];
     if (prev) {
       setHistory(h => h.slice(0, -1));
-      const isTab = ["dashboard", "new-orders", "picking-queue", "packing-queue", "profile", "orderhistory"].includes(prev);
+      const isTab = ["dashboard", "new-orders", "picking-queue", "ready-orders", "packing-queue", "profile", "orderhistory"].includes(prev);
       if (isTab) {
         reactNavigate(`/shopkeeper?tab=${prev}`);
         setScreen(prev as Screen);
@@ -509,6 +509,7 @@ export default function ShopkeeperERP() {
                 { id: "orderhistory", label: "Order History", icon: <History size={18} /> },
                 { id: "picking-queue", label: "Picking Queue", icon: <Package size={18} /> },
                 { id: "packing-queue", label: "Packing Queue", icon: <PackageCheck size={18} /> },
+                { id: "ready-orders", label: "Ready", icon: <CheckCircle size={18} /> },
                 { id: "profile", label: "Profile", icon: <User size={18} /> },
               ].filter(item => hasShopkeeperPermission(item.id)).map((item) => {
                 const isActive = screen === item.id || (
@@ -516,7 +517,9 @@ export default function ShopkeeperERP() {
                 ) || (
                     item.id === "picking-queue" && ["picking-screen", "barcode-verification", "picking-complete"].includes(screen)
                   ) || (
-                    item.id === "packing-queue" && ["packing-screen", "ready-orders", "handover-verification"].includes(screen)
+                    item.id === "ready-orders" && ["handover-verification"].includes(screen)
+                  ) || (
+                    item.id === "packing-queue" && ["packing-screen"].includes(screen)
                   );
                 return (
                   <button

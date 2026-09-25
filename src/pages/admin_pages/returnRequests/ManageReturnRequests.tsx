@@ -95,7 +95,7 @@ const ManageReturnRequests = () => {
       filtered = filtered.filter(
         (r) =>
           r.id.toString().includes(term) ||
-          r.userId.toString().includes(term) ||
+          (r.orderNumber && r.orderNumber.toLowerCase().includes(term)) ||
           r.name.toLowerCase().includes(term) ||
           r.productName.toLowerCase().includes(term) ||
           r.reason.toLowerCase().includes(term)
@@ -139,13 +139,9 @@ const ManageReturnRequests = () => {
         let bValue: string | number;
 
         switch (sortField) {
-          case "id":
-            aValue = a.id;
-            bValue = b.id;
-            break;
-          case "userId":
-            aValue = a.userId;
-            bValue = b.userId;
+          case "orderNumber":
+            aValue = a.orderNumber || a.id;
+            bValue = b.orderNumber || b.id;
             break;
           case "name":
             aValue = a.name.toLowerCase();
@@ -292,25 +288,13 @@ const ManageReturnRequests = () => {
   // Table columns
   const columns = [
     {
-      key: "id",
-      label: "ID",
+      key: "orderNumber",
+      label: "ORDER NO",
       sortable: true,
       render: (request: ReturnRequest) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 font-medium">
-            {request.id}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: "userId",
-      label: "U.ID",
-      sortable: true,
-      render: (request: ReturnRequest) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">
-            {request.userId}
+          <span className="text-xs sm:text-sm text-gray-800 font-medium whitespace-nowrap">
+            {request.orderNumber || request.id}
           </span>
         </div>
       ),

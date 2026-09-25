@@ -24,11 +24,13 @@ function LocationBadge({ location }: { location: string }) {
 }
 
 export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps) {
-  const [items, setItems] = useState<any[]>([]);
-  const currentIdx = items.findIndex(item => !item.is_picked && !item.is_rejected);
-  const currentItem = currentIdx >= 0 ? items[currentIdx] : null;
+  const initialItems = Array.isArray(order?.items) ? order.items : [];
+  const [items, setItems] = useState<any[]>(initialItems);
+  const safeItems = Array.isArray(items) ? items : [];
+  const currentIdx = safeItems.findIndex(item => !item.is_picked && !item.is_rejected);
+  const currentItem = currentIdx >= 0 ? safeItems[currentIdx] : null;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialItems.length === 0);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRejectReason, setSelectedRejectReason] = useState<string>("");
   const [rejectRemarks, setRejectRemarks] = useState<string>("");
@@ -110,7 +112,10 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
 
   useEffect(() => {
     if (!order?.id) return;
-    api.get(`/orders/${order.id}`).then(async res => {
+    if (!order?.items || order?.items.length === 0) {
+      setLoading(true);
+    }
+    api.get(`/orders/${order.id}`).then(res => {
       setItems(res.data.items || []);
 
       const activityVal = res.data.updated_at || res.data.updatedAt || order?.updated_at || order?.updatedAt;
@@ -118,16 +123,14 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
         setLastActivity(formatTimeOnly(activityVal));
       }
 
-      // If the order is still "accepted", mark it as "picking" to trigger picking_started_at
-      if (res.data.status === 'accepted') {
-        try {
-          await api.put(`/orders/${order.id}/status`, { status: 'picking' });
-        } catch (e) {
-          console.error('Failed to update status to picking', e);
-        }
-      }
-
       setLoading(false);
+
+      // If the order is still "accepted", mark it as "picking" asynchronously in background
+      if (res.data.status === 'accepted') {
+        api.put(`/orders/${order.id}/status`, { status: 'picking' }).catch(e => {
+          console.error('Failed to update status to picking', e);
+        });
+      }
     }).catch(err => {
       console.error(err);
       setLoading(false);
@@ -141,9 +144,13 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
       );
       setItems(newItems);
 
-      // 1. Wait for the API call to complete so backend updates the db and sets timestamps
-      await api.put(`/orders/${order.id}/items/${itemId}/pick`);
-      setLastActivity(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      // 1. Fire API call with fallback catch
+      try {
+        await api.put(`/orders/${order.id}/items/${itemId}/pick`);
+        setLastActivity(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } catch (err) {
+        console.warn("Failed to call pick API, falling back to local state:", err);
+      }
 
       // 2. Check if all items are now processed
       const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
@@ -161,7 +168,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error handling pick action:", err);
     }
   };
 
@@ -185,12 +192,16 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
       setItems(newItems);
       setShowRejectModal(false);
 
-      // 1. Wait for the API call to complete
-      await api.put(`/orders/${order.id}/items/${rejectingItem.id}/reject`, {
-        reason: selectedRejectReason,
-        remarks: rejectRemarks
-      });
-      setLastActivity(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      // 1. Fire API call with fallback catch
+      try {
+        await api.put(`/orders/${order.id}/items/${rejectingItem.id}/reject`, {
+          reason: selectedRejectReason,
+          remarks: rejectRemarks
+        });
+        setLastActivity(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } catch (err) {
+        console.warn("Failed to call reject API, falling back to local state:", err);
+      }
 
       // 2. Check if all items are now processed
       const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
@@ -208,7 +219,7 @@ export function PickingScreen({ onNavigate, onBack, order }: PickingScreenProps)
         }
       }
     } catch (err) {
-      console.warn("Failed to call reject API, falling back to local state:", err);
+      console.error("Error submitting rejection:", err);
     } finally {
       setSelectedRejectReason("");
       setRejectRemarks("");

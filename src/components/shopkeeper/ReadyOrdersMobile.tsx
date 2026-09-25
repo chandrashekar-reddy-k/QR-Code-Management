@@ -259,7 +259,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                 ) : (
                   <button
                     onClick={() => setSelectedOrderForRider(order)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl py-3 transition-opacity bg-blue-600"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 transition-colors bg-[#00891D] hover:bg-[#006614] shadow-sm"
                   >
                     <User size={16} color="white" />
                     <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Assign Rider</span>
@@ -320,12 +320,15 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                         : 'border-gray-200 dark:border-gray-700 hover:border-[#00891D] hover:bg-green-50/30'
                       }`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden shrink-0 border border-gray-200 dark:border-gray-700">
-                      {profilePic ? (
-                        <img src={profilePic} alt={agent.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <User size={20} className="text-gray-400" />
-                      )}
+                    <div className="relative shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700">
+                        {profilePic ? (
+                          <img src={profilePic} alt={agent.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={20} className="text-gray-400" />
+                        )}
+                      </div>
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#00891D] border-2 border-white dark:border-gray-800 rounded-full" title="Online" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">{agent.name}</div>

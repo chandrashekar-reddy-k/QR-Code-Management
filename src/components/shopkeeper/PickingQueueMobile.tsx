@@ -106,21 +106,46 @@ function PickingQueueSkeleton() {
 
 export function PickingQueueMobile({ onNavigate, onBack }: PickingQueueProps) {
   const [pickingOrders, setPickingOrders] = useState<any[]>([]);
-  const { orders: sharedOrders, loading } = useSharedOrders();
+  const { orders: sharedOrders, refreshOrders, loading } = useSharedOrders();
 
   useEffect(() => {
-    // Filter for accepted or picking statuses
+    refreshOrders?.();
+  }, []);
+
+  useEffect(() => {
+    // Filter for accepted or picking statuses, excluding orders where all items are processed
     const orders = sharedOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'accepted' || s === 'picking';
+      if (s === 'cancelled' || s === 'completed' || s === 'packing' || s === 'packed' || s === 'processing' || s === 'ready' || s === 'dispatched' || s === 'delivered') {
+        return false;
+      }
+      if (s !== 'accepted' && s !== 'picking') return false;
+
+      const itemsList = Array.isArray(o.items) ? o.items : [];
+      if (itemsList.length > 0) {
+        const unprocessed = itemsList.filter((i: any) => !i.is_picked && !i.isPicked && !i.is_rejected && !i.isRejected && !i.is_cancelled && !i.isCancelled);
+        if (unprocessed.length === 0) return false;
+      }
+
+      if (typeof o.item_count === 'number' && o.item_count > 0) {
+        const processedCount = (o.picked_count || 0) + (o.rejected_count || 0) + (o.cancelled_count || 0);
+        if (processedCount >= o.item_count) return false;
+      }
+
+      return true;
     });
-    
-    // Calculate mock items data if backend doesn't return full details in this endpoint yet
-    const processedOrders = orders.map((o: any) => ({
-      ...o,
-      items: o.item_count || 0,
-      picked: o.picked_count || 0
-    }));
+
+    const processedOrders = orders.map((o: any) => {
+      const itemsList = Array.isArray(o.items) ? o.items : [];
+      const pickedCount = o.picked_count ?? itemsList.filter((i: any) => i.is_picked || i.isPicked).length;
+      const itemCount = o.item_count ?? itemsList.length;
+
+      return {
+        ...o,
+        items: itemCount,
+        picked: pickedCount
+      };
+    });
     setPickingOrders(processedOrders);
   }, [sharedOrders]);
 

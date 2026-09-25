@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import api from "../api/axios";
+import toast from "react-hot-toast";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -461,11 +462,13 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
           await api.put(`/orders/${orderId}/status`, { status: "CONFIRMED" });
         }
       }
+      toast.success("Order accepted successfully!");
       setActiveOrder((prev) => (prev && prev.orderId === orderId ? { ...prev, status: "CONFIRMED" } : prev));
       refetchStats();
       stopAlarm();
     } catch (err) {
       console.error("[ALARM] Failed to accept order:", err);
+      toast.error("Failed to accept order");
     }
   }, [refetchStats, stopAlarm]);
 

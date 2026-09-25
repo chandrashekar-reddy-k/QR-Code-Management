@@ -120,8 +120,9 @@ export const masterDataService = {
   },
 
   // Products
-  async getProducts(): Promise<Product[]> {
-    const res = await apiClient.get<any>('/master-data/products?limit=1000');
+  async getProducts(extraParams?: string): Promise<Product[]> {
+    const qs = extraParams ? `&${extraParams}` : '';
+    const res = await apiClient.get<any>(`/master-data/products?limit=1000${qs}`);
     return extractList(res);
   },
   async createProduct(data: Partial<Product>): Promise<Product> {

@@ -58,7 +58,6 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
   const shouldShowShopkeeper = ["PARTNER", "STORE_MANAGER", "ADMIN"].includes(userRole);
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (initialStatus) {
-      if (!isAdmin && initialStatus.toUpperCase() === "DISPATCHED") return "Handed Over";
       return tabMap[initialStatus.toUpperCase()] ?? "All";
     }
     return "All";
@@ -102,9 +101,9 @@ export function OrderHistoryMobile({ onBack, onNavigate, initialStatus, isAdmin 
 
   const dynamicTabs = useMemo(() => {
     if (!isAdmin) {
-      return ["All", "New", "Picking", "Packing", "Ready", "Handed Over", "Ignored Orders", "Returns"];
+      return ["All", "New", "Picking", "Packing", "Ready", "Dispatched", "Ignored Orders"];
     }
-    return ["All", "New", "Picking", "Packing", "Ready", "Dispatched", "Rejected", "Returns"];
+    return ["All", "New", "Picking", "Packing", "Ready", "Dispatched", "Rejected"];
   }, [isAdmin]);
 
   const orders = useMemo(() => {
