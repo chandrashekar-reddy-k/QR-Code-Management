@@ -256,7 +256,7 @@ export const sidebarConfig: MenuSection[] = [
       },
       { path: '/vsms/pre-orders', label: 'Pre-Orders', icon: Package },
       { path: '/vsms/scheduled-deliveries', label: 'Scheduled Deliveries', icon: ShoppingBag },
-      { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
+      { path: '/vsms/sales', label: 'Vsms & Pos Sales', icon: Receipt },
       { path: '/inventory/monitoring/reservations', label: 'Reservations', icon: Clock },
     ],
   },

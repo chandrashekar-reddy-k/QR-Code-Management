@@ -407,9 +407,6 @@ export default function AdminInventory() {
         ? Boolean(i.isVehicle)
         : (hasChTag ? itemTags.includes('CH:VEHICLE') : (i.isVehicle !== false));
 
-      const storeStock = Number(i.stock !== undefined && i.stock !== null ? i.stock : (i.warehouseStock || 0));
-      const hasAvailableStock = storeStock > 0 || (i.vehicleStoreStock !== undefined && i.vehicleStoreStock > 0);
-
       const matchesSearch = !q ||
         (i.name && i.name.toLowerCase().includes(q)) ||
         (i.barcode && i.barcode.toLowerCase().includes(q)) ||
@@ -419,7 +416,8 @@ export default function AdminInventory() {
       const matchesCategory = opsCategory === 'ALL' || i.category?.name === opsCategory;
       const matchesSubCategory = opsSubCategory === 'ALL' || i.subCategory?.name === opsSubCategory;
 
-      return isVehicleEnabled && hasAvailableStock && matchesSearch && matchesCategory && matchesSubCategory;
+      // Show ALL vehicle-enabled products; sorting handles VSM > 0 at top
+      return isVehicleEnabled && matchesSearch && matchesCategory && matchesSubCategory;
     });
   }, [items, opsSearch, opsCategory, opsSubCategory]);
 
@@ -430,8 +428,24 @@ export default function AdminInventory() {
       if (i.isFree) free.push(i);
       else regular.push(i);
     });
-    return { regular, free };
-  }, [loadingFilteredItems]);
+
+    // Sort: items with VSM stock (vehicleStoreStock) > 0 appear first,
+    // then by store stock descending so agents always see actionable items at the top.
+    const sortFn = (a, b) => {
+      const aVsm = Number(a.vehicleStoreStock || 0);
+      const bVsm = Number(b.vehicleStoreStock || 0);
+      if (aVsm > 0 && bVsm === 0) return -1;
+      if (bVsm > 0 && aVsm === 0) return 1;
+      // Within same VSM group, sort by VSM count descending
+      if (aVsm !== bVsm) return bVsm - aVsm;
+      // Then by store stock descending
+      const aStock = Number(a.stock !== undefined && a.stock !== null ? a.stock : (a.warehouseStock || 0));
+      const bStock = Number(b.stock !== undefined && b.stock !== null ? b.stock : (b.warehouseStock || 0));
+      return bStock - aStock;
+    };
+
+    return { regular: regular.sort(sortFn), free: free.sort(sortFn) };
+  }, [loadingFilteredItems, vehicleInventoryMap]);
 
   const returnFilteredItems = React.useMemo(() => {
     const q = returnSearch.toLowerCase();
