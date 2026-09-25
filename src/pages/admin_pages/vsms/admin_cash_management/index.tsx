@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { 
   Search, Calendar, Eye, Plus, Loader2, X, Sun, Moon, ArrowLeft, 
   Smartphone, BookOpen, User, Coins, Package, Printer, Shield, 
-  CheckCircle2, Info, AlertTriangle, Clock, ArrowRight, Vault, Building2, Zap, ShoppingCart, Pencil, AlertCircle, Download, FileText, ChevronLeft
+  CheckCircle2, Info, AlertTriangle, Clock, ArrowRight, Vault, Building2, Zap, ShoppingCart, Pencil, AlertCircle, Download, FileText, ChevronLeft, Upload
 } from 'lucide-react';
 import { exportReportToExcel, generateReportPDF } from '../adminreports/ReportUtils';
 
@@ -46,6 +46,10 @@ import {
   ImagePreviewModal 
 } from './AgentModals';
 import AssignFloatView from './AssignFloatView';
+import DepositShiftCashReportView from './DepositShiftCashReportView';
+import CloseStoreSafeView from './CloseStoreSafeView';
+import BankDepositView from './BankDepositView';
+import SafeMovementView from './SafeMovementView';
 
 // Services
 import { 
@@ -59,7 +63,9 @@ import adminAPI from '../services/adminService';
 import { useUserStore } from '../store/userStore';
 
 export default function AdminCashManagementContent() {
-  const [activeTab, setActiveTab] = useState('reconciliation');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'reconciliation';
+  const setActiveTab = (tab: string) => setSearchParams(prev => { prev.set('tab', tab); return prev; });
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [summaries, setSummaries] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -76,8 +82,8 @@ export default function AdminCashManagementContent() {
   const user = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
   const refreshUserProfile = useUserStore(s => s.refreshUserProfile);
-  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+
 
   useEffect(() => {
     const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -167,7 +173,21 @@ export default function AdminCashManagementContent() {
 
   const denominationsList = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
-  const [headerTab, setHeaderTab] = useState('OPENING');
+  const sectionParam = searchParams.get('section');
+  const [headerTab, setHeaderTabState] = useState(sectionParam || 'Safe');
+
+  useEffect(() => {
+    if (sectionParam && sectionParam !== headerTab) {
+      setHeaderTabState(sectionParam);
+    }
+  }, [sectionParam]);
+
+  const setHeaderTab = (tab: string) => {
+    setHeaderTabState(tab);
+    setSearchParams(prev => { prev.set('section', tab); return prev; });
+  };
+
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
 
   const canViewCashSection = (sectionKey) => {
     if (isGlobalRole) return true;
@@ -183,10 +203,10 @@ export default function AdminCashManagementContent() {
   ].filter(tab => canViewCashSection(tab.section));
 
   const availableHeaderTabs = [
-    { key: 'OPENING', section: 'CASH_OPENING' },
-    { key: 'AGENT', section: 'AGENT_CASH' },
-    { key: 'SAFE', section: 'SAFE_CONTROL' },
-    { key: 'POS HISTORY', section: 'POS_HISTORY' }
+    { key: 'Agent', label: 'Agent', section: 'AGENT_CASH' },
+    { key: 'Safe', label: 'Safe', section: 'SAFE_CONTROL' },
+    { key: 'POS', label: 'POS', section: 'POS_HISTORY' },
+    { key: 'Online Orders', label: 'Online Orders', section: 'RECONCILIATION' }
   ].filter(tab => canViewCashSection(tab.section));
 
   const handleDenominationChange = (value, denom, type = 'assign') => {
@@ -335,7 +355,7 @@ export default function AdminCashManagementContent() {
     if (availableTabs.length > 0 && !availableTabs.some(t => t.key === activeTab)) {
       setActiveTab(availableTabs[0].key);
     }
-  }, [availableTabs, activeTab]);
+  }, [availableTabs]);
 
   useEffect(() => {
     if (availableHeaderTabs.length > 0 && !availableHeaderTabs.some(t => t.key === headerTab)) {
@@ -719,311 +739,174 @@ export default function AdminCashManagementContent() {
   return (
     <>
       {showDepositModal && canViewCashSection('SHIFT_DEPOSITS') ? (
-        <div className="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden flex flex-col shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300 min-h-[calc(100vh-6rem)] relative z-20">
-          <div className="bg-white border-b border-gray-100 sticky top-0 z-10 px-8 py-5 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center text-sky-600">
-                <Coins size={24} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Deposit Shift Cash Report</h2>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Review Agent Collections & Submit to Store Safe</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowDepositModal(false)}
-              className="px-6 py-3 bg-gray-100 hover:bg-rose-50 text-gray-600 hover:text-rose-600 rounded-xl transition-all shadow-sm flex items-center gap-2 font-black text-xs uppercase"
-            >
-              <X size={18} /> Close View
-            </button>
-          </div>
-
-          <div className="flex-1 p-8 w-full space-y-6 pb-32">
-            <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl w-fit mx-auto md:mx-0">
-              {[1, 2].map((s) => (
-                <button
-                  type="button" key={s}
-                  onClick={() => setDepositData({ ...depositData, shift: s })}
-                  className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${depositData.shift === s ? (s === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/20') : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'}`}
-                >
-                  {s === 1 ? <Sun size={16} /> : <Moon size={16} />}
-                  Shift {s}
-                </button>
-              ))}
-            </div>
-
-            {(() => {
-              const shift = depositData.shift || 1;
-              const shiftKey = `shift${shift}`;
-              const shiftAgents = summaries.filter(s => s.shiftDetails?.[shiftKey]?.opening);
-
-              if (shiftAgents.length === 0) return (
-                <div key={shift} className={`bg-white rounded-[2rem] border overflow-hidden shadow-sm p-12 text-center flex flex-col items-center justify-center border-dashed animate-in fade-in duration-300 ${shift === 1 ? 'border-amber-200' : 'border-indigo-200'}`}>
-                  {shift === 1 ? <Sun size={48} className="text-amber-200 mb-4" /> : <Moon size={48} className="text-indigo-200 mb-4" />}
-                  <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest">No Assignment for Shift {shift}</h3>
-                </div>
-              );
-
-              const isDeposited = isShiftDeposited(shift);
-              const hasCompletions = hasShiftCompletions(shift);
-              const totalCashCollected = shiftAgents.reduce((sum, s) => sum + (s.shiftDetails?.[shiftKey]?.closing?.actualCash || 0), 0);
-              const aggregatedDenominations = { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 };
-              shiftAgents.forEach(agentSum => {
-                const closingDenoms = agentSum.shiftDetails[shiftKey].closing?.denominations;
-                if (closingDenoms) Object.keys(closingDenoms).forEach(d => { aggregatedDenominations[d] += parseInt(closingDenoms[d]) || 0; });
-              });
-
-              return (
-                <div key={shift} className={`relative bg-white rounded-[2rem] border overflow-hidden shadow-sm animate-in fade-in duration-300 ${shift === 1 ? 'border-amber-100' : 'border-indigo-100'} ${isDeposited ? 'ring-4 ring-emerald-500/20' : ''}`}>
-                  {/* Finalized Watermark */}
-                  {isDeposited && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-[0.03] rotate-[-12deg]">
-                      <CheckCircle2 size={400} />
-                    </div>
-                  )}
-
-                  <div className={`px-6 py-5 flex items-center justify-between border-b ${shift === 1 ? 'bg-amber-50/50 border-amber-100' : 'bg-indigo-50/50 border-indigo-100'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${shift === 1 ? 'bg-amber-500' : 'bg-indigo-500'}`}>
-                        {shift === 1 ? <Sun size={20} /> : <Moon size={20} />}
-                      </div>
-                      <div className="flex flex-col">
-                        <h3 className={`text-lg font-black uppercase tracking-tight ${shift === 1 ? 'text-amber-900' : 'text-indigo-900'}`}>Shift {shift} Collection Report</h3>
-                        {isDeposited && (
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                        <CheckCircle2 size={12} className="text-emerald-500" />
-                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Finalized & Deposited to Safe</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {isDeposited && (
-                  <div className="bg-emerald-500 text-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg shadow-emerald-500/20 animate-bounce-short">
-                    <CheckCircle2 size={16} />
-                    <span className="text-xs font-black uppercase tracking-widest">Completed</span>
-                  </div>
-                )}
-                    {!isDeposited && isGlobalRole && (
-                      <div className="text-right">
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Shift Status</p>
-                        <p className={`text-[11px] font-black uppercase tracking-tight ${hasCompletions ? 'text-amber-600' : 'text-gray-400'}`}>
-                          {hasCompletions ? 'Awaiting Deposit' : 'In Progress'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-gray-100 pb-2">
-                          <th className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Agent Info</th>
-                          <th className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Cash Collected</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {shiftAgents.map((agentSum) => {
-                          const details = agentSum.shiftDetails[shiftKey];
-                          const agentName = agentSum.vehicle?.assignedUsers?.find(u => ['SALES_AGENT', 'DELIVERY_AGENT', 'VEHICLE_AGENT'].includes(u.role))?.name || 'Unknown Agent';
-                          return (
-                            <tr key={agentSum.id} className="hover:bg-gray-50/50">
-                              <td className="px-4 py-4">
-                                <p className="text-sm font-black text-gray-900">{agentName}</p>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase">{agentSum.vehicle?.vehicleNumber}</p>
-                              </td>
-                              <td className="px-4 py-4 text-right font-black">₹{(details.closing?.actualCash || 0).toFixed(2)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                      <tfoot>
-                        <tr className="bg-gray-50/50">
-                          <td className="px-4 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Collection</td>
-                          <td className="px-4 py-4 text-right font-black text-xl text-emerald-600">₹{totalCashCollected.toFixed(2)}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                    <div className="mt-8 flex justify-between gap-4">
-                      <button onClick={() => handlePrintShiftReport(shift, shiftAgents.map(a => ({ vehicle: a.vehicle?.vehicleNumber, agentName: a.vehicle?.assignedUsers?.find(u => ['SALES_AGENT', 'DELIVERY_AGENT', 'VEHICLE_AGENT'].includes(u.role))?.name || 'N/A', closing: a.shiftDetails[shiftKey].closing })), aggregatedDenominations, totalCashCollected)} className="px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border-2 border-emerald-100 hover:bg-emerald-100 transition-all flex items-center gap-2">
-                        <Printer size={18} /> Print Report
-                      </button>
-                      {!isDeposited && can('CASH', 'CREATE', 'SHIFT_DEPOSITS') && (
-                        <button onClick={() => handleInitiateDeposit(shift)} disabled={!hasCompletions || isSubmitting} className={`px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-xl transition-all ${shift === 1 ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20'} disabled:opacity-50`}>
-                          {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />} Approve & Submit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
+        <DepositShiftCashReportView
+          onClose={() => setShowDepositModal(false)}
+          onBack={() => setShowDepositModal(false)}
+          summaries={summaries}
+          date={date}
+          storeFilterId={storeFilterId}
+          isGlobalRole={isGlobalRole}
+          fetchSummaries={fetchSummaries}
+          fetchStoreRegister={fetchStoreRegister}
+        />
+      ) : showCloseStoreModal ? (
+        <CloseStoreSafeView
+          onClose={() => setShowCloseStoreModal(false)}
+          onBack={() => setShowCloseStoreModal(false)}
+          onSuccess={() => {
+            setShowCloseStoreModal(false);
+            fetchStoreRegister();
+          }}
+          storeRegisterData={storeRegisterData}
+          date={date}
+          storeFilterId={storeFilterId}
+        />
+      ) : showBankModal ? (
+        <BankDepositView
+          onClose={() => setShowBankModal(false)}
+          onBack={() => setShowBankModal(false)}
+          onSuccess={() => {
+            setShowBankModal(false);
+            fetchStoreRegister();
+          }}
+          date={date}
+          storeFilterId={storeFilterId}
+        />
+      ) : showSafeMovementModal ? (
+        <SafeMovementView
+          onClose={() => setShowSafeMovementModal(false)}
+          onBack={() => setShowSafeMovementModal(false)}
+          onSuccess={() => {
+            setShowSafeMovementModal(false);
+            fetchStoreRegister();
+          }}
+          storeRegisterData={storeRegisterData}
+          date={date}
+          storeFilterId={storeFilterId}
+        />
       ) : (
-        <div className="p-4 sm:p-10 max-w-[1600px] mx-auto space-y-10 animate-in fade-in duration-700 bg-gray-50/50 min-h-screen">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
-            <div className="flex items-center gap-5">
-              {false && searchParams.get('storeId') && stores.length > 1 && (
-                <button
-                  onClick={() => setSearchParams({})}
-                  className="p-4 bg-white border border-gray-100 rounded-2xl text-gray-400 hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-90"
-                  title="Back to All Branches"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-              )}
-              <div>
-                <div className="flex items-center gap-4 flex-wrap">
-                  <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-                    Cash Management
-                  </h1>
-                  {false && stores.length > 1 && (
-                    <select
-                      value={searchParams.get('storeId') || ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setSearchParams({ storeId: e.target.value });
-                        } else {
-                          setSearchParams({});
-                        }
-                      }}
-                      className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest pl-4 pr-10 py-2.5 rounded-2xl border-none outline-none appearance-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer shadow-sm ml-1"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23047857' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5.25 7.5L10 12.25L14.75 7.5'/%3e%3c/svg%3e")`,
-                        backgroundPosition: 'right 0.6rem center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundSize: '1.2rem'
-                      }}
-                    >
-                      <option value="">All Branches</option>
-                      {stores.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2">Daily Reconciliation & Safe Control</p>
-              </div>
+        <div className="p-4 sm:p-10 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-700 bg-gray-50/50 min-h-screen">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                Cash Management
+              </h1>
+              <p className="text-xs text-gray-500 font-medium mt-1">
+                {activeTab === 'reconciliation' ? 'Daily Reconciliation & Safe Control'
+                  : activeTab === 'live' ? 'Live Cash Status'
+                  : 'History & Audit Ledger'}
+              </p>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-2xl border border-gray-100 shadow-sm transition-all focus-within:ring-4 focus-within:ring-emerald-500/5">
-                <Calendar className="text-emerald-500" size={18} />
+            <div className="flex items-center gap-3">
+              {/* Calendar Date Picker beside Export */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('mainHeaderDatePicker');
+                    if (el) {
+                      if (el.showPicker) el.showPicker();
+                      else el.focus();
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-emerald-50/50 hover:border-emerald-300 shadow-xs transition-all cursor-pointer"
+                >
+                  <Calendar size={15} className="text-[#0e8345]" />
+                  <span>Showing for: <strong className="text-gray-900">{date ? format(new Date(date), 'dd MMM yyyy') : 'Today'}</strong></span>
+                  <ChevronLeft size={14} className="rotate-270 text-gray-400" />
+                </button>
                 <input 
-                  type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                  className="bg-transparent border-none p-0 py-2 text-sm font-black text-gray-700 outline-none cursor-pointer"
+                  id="mainHeaderDatePicker"
+                  type="date"
+                  value={date}
+                  onChange={(e) => e.target.value && setDate(e.target.value)}
+                  className="sr-only"
                 />
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Export dropdown */}
+              <div className="relative">
                 <button
-                  onClick={handleExportPDF}
-                  className="p-4 bg-white border border-gray-100 text-gray-400 hover:text-gray-900 rounded-2xl transition-all shadow-sm group"
-                  title="Export PDF"
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-xs transition-colors"
                 >
-                  <FileText size={18} className="transition-transform group-hover:scale-110" />
+                  <Upload size={15} className="text-gray-500" />
+                  <span>Export</span>
                 </button>
-                <button
-                  onClick={handlePrint}
-                  className="p-4 bg-white border border-gray-100 text-gray-400 hover:text-gray-900 rounded-2xl transition-all shadow-sm group"
-                  title="Print Report"
-                >
-                  <Printer size={18} className="transition-transform group-hover:scale-110" />
-                </button>
-                <button
-                  onClick={handleExportExcel}
-                  className="p-4 bg-white border border-gray-100 text-gray-400 hover:text-gray-900 rounded-2xl transition-all shadow-sm group"
-                  title="Export Excel"
-                >
-                  <Download size={18} className="transition-transform group-hover:scale-110" />
-                </button>
-                
-                {can('CASH', 'CREATE', 'FLOAT_ASSIGNMENT') && (
-                  <button 
-                    onClick={() => {
-                      if (!storeRegisterData?.storeRegister || storeRegisterData.storeRegister.status !== 'OPEN') {
-                        return setShowInitAlertModal(true);
-                      }
-                      setViewingAssignFloat(true);
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/10 active:scale-95 flex items-center gap-3 ml-2"
-                  >
-                    <Plus size={18} strokeWidth={3} />
-                    Assign Float
-                  </button>
+                {showExportDropdown && (
+                  <div className="absolute right-0 mt-1.5 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                    <button
+                      onClick={() => { setShowExportDropdown(false); handleExportPDF(); }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <FileText size={14} className="text-emerald-600" /> Export PDF
+                    </button>
+                    <button
+                      onClick={() => { setShowExportDropdown(false); handleExportExcel(); }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Download size={14} className="text-blue-600" /> Export Excel
+                    </button>
+                    <button
+                      onClick={() => { setShowExportDropdown(false); handlePrint(); }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Printer size={14} className="text-gray-600" /> Print Report
+                    </button>
+                  </div>
                 )}
               </div>
+
+              {/* + Assign Float button */}
+              {activeTab === 'reconciliation' && can('CASH', 'CREATE', 'FLOAT_ASSIGNMENT') && (
+                <button 
+                  onClick={() => {
+                    if (!storeRegisterData?.storeRegister || storeRegisterData.storeRegister.status !== 'OPEN') {
+                      return setShowInitAlertModal(true);
+                    }
+                    setViewingAssignFloat(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0e8345] hover:bg-[#0c6f3a] text-white rounded-lg text-xs font-bold shadow-xs transition-all active:scale-95"
+                >
+                  <Plus size={16} strokeWidth={2.5} />
+                  <span>Assign Float</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {canViewCashSection('SAFE_CONTROL') || canViewCashSection('SHIFT_DEPOSITS') || canViewCashSection('LIVE_CASH') || canViewCashSection('CASH_OPENING') || canViewCashSection('AGENT_CASH') || canViewCashSection('POS_HISTORY') ? (
-            <StoreSafeHeader 
-              storeRegisterData={storeRegisterData} summaries={summaries} user={user}
-              storeLoading={storeLoading} posHistory={posHistory}
-              handleExportPDF={handleExportPDF}
-              headerTab={headerTab} setHeaderTab={setHeaderTab}
-              availableHeaderTabs={availableHeaderTabs}
-              setShowOpenStoreModal={setShowOpenStoreModal} setShowDepositModal={setShowDepositModal}
-              setShowSafeMovementModal={setShowSafeMovementModal} setShowBankModal={setShowBankModal}
-              setShowCloseStoreModal={setShowCloseStoreModal} setShowEditStoreModal={setShowEditStoreModal}
-              setSafeMovementData={setSafeMovementData} setBankData={setBankData} setStoreDenomData={setStoreDenomData}
-              isShiftDeposited={isShiftDeposited} setActiveTab={setActiveTab}
-              setEditingDeposit={setEditingDeposit} setDepositData={setDepositData}
-              setShowEditDepositModal={setShowEditDepositModal} handleDeleteDeposit={handleDeleteDeposit} toast={toast}
-              can={can}
-              canViewCashSection={canViewCashSection}
-            />
-          ) : null}
+          {/* ── Store Cash Register & Safe Overview ────────────────────────────── */}
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {(canViewCashSection('SAFE_CONTROL') || canViewCashSection('SHIFT_DEPOSITS') || canViewCashSection('LIVE_CASH') || canViewCashSection('CASH_OPENING') || canViewCashSection('AGENT_CASH') || canViewCashSection('POS_HISTORY')) && (
+              <StoreSafeHeader 
+                storeRegisterData={storeRegisterData} summaries={summaries} user={user}
+                storeLoading={storeLoading} posHistory={posHistory}
+                handleExportPDF={handleExportPDF}
+                headerTab={headerTab} setHeaderTab={setHeaderTab}
+                availableHeaderTabs={availableHeaderTabs}
+                setShowOpenStoreModal={setShowOpenStoreModal} setShowDepositModal={setShowDepositModal}
+                setShowSafeMovementModal={setShowSafeMovementModal} setShowBankModal={setShowBankModal}
+                setShowCloseStoreModal={setShowCloseStoreModal} setShowEditStoreModal={setShowEditStoreModal}
+                setSafeMovementData={setSafeMovementData} setBankData={setBankData} setStoreDenomData={setStoreDenomData}
+                isShiftDeposited={isShiftDeposited} setActiveTab={setActiveTab}
+                setEditingDeposit={setEditingDeposit} setDepositData={setDepositData}
+                setShowEditDepositModal={setShowEditDepositModal} handleDeleteDeposit={handleDeleteDeposit} toast={toast}
+                can={can}
+                canViewCashSection={canViewCashSection}
+                date={date} setDate={setDate}
+                searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+              />
+            )}
 
-          {headerTab !== 'POS HISTORY' && availableTabs.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl w-fit border border-gray-100">
-                  {availableTabs.map(tab => (
-                    <button 
-                      key={tab.key} onClick={() => setActiveTab(tab.key)}
-                      className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.key ? 'bg-white text-emerald-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="relative w-full md:w-96 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
-                  <input 
-                    type="text" placeholder="Search vehicle or agent..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-6 py-4 bg-white border border-gray-100 rounded-[1.5rem] text-sm font-bold placeholder:text-gray-300 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all shadow-sm"
-                  />
-                </div>
-              </div>
-
-              {activeTab === 'reconciliation' && (
-                <DailyReconciliationTab 
-                  loading={loading} filteredSummaries={filteredSummaries} storeRegisterData={storeRegisterData}
-                  handleOpenView={setViewingSummary} handleOpenEdit={handleOpenEdit} setDeletingSummary={setDeletingSummary}
-                  setShowDeleteModal={setShowDeleteModal} can={can}
-                  setViewingAgentDenoms={setViewingAgentDenoms}
-                  posToday={posToday}
-                />
-              )}
-              {activeTab === 'live' && <LiveCashTab filteredSummaries={filteredSummaries} handleOpenView={setViewingSummary} />}
-              {activeTab === 'ledger' && (
-                <AuditLedgerTab 
-                  ledgerLoading={ledgerLoading} ledgerData={ledgerData} ledgerFilter={ledgerFilter} 
-                  setLedgerFilter={setLedgerFilter} date={date} setViewingOrder={setViewingOrder} setPreviewImage={setPreviewImage} 
-                />
-              )}
-            </div>
-          )}
+          </div>
         </div>
       )}
 
       {/* Modals */}
       <OpenStoreModal show={showOpenStoreModal} setShow={setShowOpenStoreModal} storeModalStep={storeModalStep} setStoreModalStep={setStoreModalStep} storeRegisterData={storeRegisterData} storeDenomData={storeDenomData} setStoreDenomData={setStoreDenomData} handleDenominationChange={handleDenominationChange} handleOpenStoreRegister={handleOpenStoreRegister} isSubmitting={isSubmitting} />
-      <CloseStoreModal show={showCloseStoreModal} setShow={setShowCloseStoreModal} storeRegisterData={storeRegisterData} storeDenomData={storeDenomData} setStoreDenomData={setStoreDenomData} handleDenominationChange={handleDenominationChange} handleCloseStoreRegister={handleCloseStoreRegister} isSubmitting={isSubmitting} />
       <InitializeSafeAlertModal show={showInitAlertModal} setShow={setShowInitAlertModal} onOpenSafe={() => setShowOpenStoreModal(true)} />
       <EditStoreModal show={showEditStoreModal} setShow={setShowEditStoreModal} storeDenomData={storeDenomData} handleDenominationChange={handleDenominationChange} handleUpdateStoreRegister={handleUpdateStoreRegister} isSubmitting={isSubmitting} />
-      <SafeMovementModal show={showSafeMovementModal} setShow={setShowSafeMovementModal} safeMovementData={safeMovementData} setSafeMovementData={setSafeMovementData} handleDenominationChange={handleDenominationChange} handleSafeMovement={handleSafeMovement} isSubmitting={isSubmitting} storeRegisterData={storeRegisterData} />
-      <BankDepositModal show={showBankModal} setShow={setShowBankModal} bankData={bankData} setBankData={setBankData} storeRegisterData={storeRegisterData} user={user} handleCreateBankDeposit={handleCreateBankDeposit} isSubmitting={isSubmitting} setPreviewImage={setPreviewImage} adminAPI={adminAPI} toast={toast} />
       <DepositConfirmModal show={showDepositConfirmModal} setShow={setShowDepositConfirmModal} depositConfirmData={depositConfirmData} handleConfirmDeposit={handleConfirmDeposit} isSubmitting={isSubmitting} />
       <EditReconciliationModal show={showEditModal} setShow={setShowEditModal} editData={editData} setEditData={setEditData} editingSummary={editingSummary} handleDenominationChange={handleDenominationChange} handleUpdateReconciliation={handleUpdateReconciliation} isSubmitting={isSubmitting} />
       <DeleteModal show={showDeleteModal} setShow={setShowDeleteModal} deletingSummary={deletingSummary} handleDelete={handleDeleteReconciliation} isDeleting={isDeleting} />

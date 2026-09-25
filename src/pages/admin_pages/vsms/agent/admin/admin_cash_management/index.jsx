@@ -57,7 +57,9 @@ import adminAPI from '../../../services/adminService';
 import { useUserStore } from '../../../store/userStore';
 
 export default function AdminCashManagementContent() {
-  const [activeTab, setActiveTab] = useState('reconciliation');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'reconciliation';
+  const setActiveTab = (tab) => setSearchParams(prev => { prev.set('tab', tab); return prev; });
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [summaries, setSummaries] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -72,7 +74,6 @@ export default function AdminCashManagementContent() {
 
   const user = useUserStore(s => s.user);
   const can = useUserStore(s => s.can);
-  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const isGlobalRole = user?.role === 'TENANT_OWNER' || user?.role === 'SUPER_ADMIN' || (user?.role === 'ADMIN' && !user?.customRoleId);
   const storeFilterId = searchParams.get('storeId') || (!isGlobalRole ? user?.storeId : null);
@@ -893,7 +894,7 @@ export default function AdminCashManagementContent() {
                   <Download size={18} className="transition-transform group-hover:scale-110" />
                 </button>
                 
-                {can('CASH', 'CREATE', 'FLOAT_ASSIGNMENT') && (
+                {activeTab === 'reconciliation' && can('CASH', 'CREATE', 'FLOAT_ASSIGNMENT') && (
                   <button 
                     onClick={() => {
                       if (!storeRegisterData?.storeRegister || storeRegisterData.storeRegister.status !== 'OPEN') return toast.error('Initialize Safe first');
@@ -909,62 +910,91 @@ export default function AdminCashManagementContent() {
             </div>
           </div>
 
-          {canViewCashSection('SAFE_CONTROL') || canViewCashSection('SHIFT_DEPOSITS') || canViewCashSection('LIVE_CASH') || canViewCashSection('CASH_OPENING') || canViewCashSection('AGENT_CASH') || canViewCashSection('POS_HISTORY') ? (
-            <StoreSafeHeader 
-              storeRegisterData={storeRegisterData} summaries={summaries} user={user}
-              storeLoading={storeLoading} posHistory={posHistory}
-              handleExportPDF={handleExportPDF}
-              headerTab={headerTab} setHeaderTab={setHeaderTab}
-              availableHeaderTabs={availableHeaderTabs}
-              setShowOpenStoreModal={setShowOpenStoreModal} setShowDepositModal={setShowDepositModal}
-              setShowSafeMovementModal={setShowSafeMovementModal} setShowBankModal={setShowBankModal}
-              setShowCloseStoreModal={setShowCloseStoreModal} setShowEditStoreModal={setShowEditStoreModal}
-              setSafeMovementData={setSafeMovementData} setBankData={setBankData} setStoreDenomData={setStoreDenomData}
-              isShiftDeposited={isShiftDeposited} setActiveTab={setActiveTab}
-              setEditingDeposit={setEditingDeposit} setDepositData={setDepositData}
-              setShowEditDepositModal={setShowEditDepositModal} handleDeleteDeposit={handleDeleteDeposit} toast={toast}
-              can={can}
-              canViewCashSection={canViewCashSection}
-            />
-          ) : null}
+          {/* ── Primary Sub-Module Navigation ─────────────────────────────── */}
+          {availableTabs.length > 0 && (
+            <div className="flex gap-1 border-b border-gray-200">
+              {availableTabs.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-8 py-4 text-[11px] font-black uppercase tracking-widest transition-all relative ${
+                    activeTab === tab.key
+                      ? 'text-emerald-600'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {tab.label}
+                  {activeTab === tab.key && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-full" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {headerTab !== 'POS HISTORY' && availableTabs.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex gap-2 bg-gray-100/50 p-1.5 rounded-2xl w-fit border border-gray-100">
-                  {availableTabs.map(tab => (
-                    <button 
-                      key={tab.key} onClick={() => setActiveTab(tab.key)}
-                      className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.key ? 'bg-white text-emerald-600 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="relative w-full md:w-96 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
-                  <input 
-                    type="text" placeholder="Search vehicle or agent..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-6 py-4 bg-white border border-gray-100 rounded-[1.5rem] text-sm font-bold placeholder:text-gray-300 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all shadow-sm"
+          {/* ── Daily Reconciliation Sub-Module ────────────────────────────── */}
+          {activeTab === 'reconciliation' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {(canViewCashSection('SAFE_CONTROL') || canViewCashSection('SHIFT_DEPOSITS') || canViewCashSection('LIVE_CASH') || canViewCashSection('CASH_OPENING') || canViewCashSection('AGENT_CASH') || canViewCashSection('POS_HISTORY')) && (
+                <StoreSafeHeader 
+                  storeRegisterData={storeRegisterData} summaries={summaries} user={user}
+                  storeLoading={storeLoading} posHistory={posHistory}
+                  handleExportPDF={handleExportPDF}
+                  headerTab={headerTab} setHeaderTab={setHeaderTab}
+                  availableHeaderTabs={availableHeaderTabs}
+                  setShowOpenStoreModal={setShowOpenStoreModal} setShowDepositModal={setShowDepositModal}
+                  setShowSafeMovementModal={setShowSafeMovementModal} setShowBankModal={setShowBankModal}
+                  setShowCloseStoreModal={setShowCloseStoreModal} setShowEditStoreModal={setShowEditStoreModal}
+                  setSafeMovementData={setSafeMovementData} setBankData={setBankData} setStoreDenomData={setStoreDenomData}
+                  isShiftDeposited={isShiftDeposited} setActiveTab={setActiveTab}
+                  setEditingDeposit={setEditingDeposit} setDepositData={setDepositData}
+                  setShowEditDepositModal={setShowEditDepositModal} handleDeleteDeposit={handleDeleteDeposit} toast={toast}
+                  can={can}
+                  canViewCashSection={canViewCashSection}
+                />
+              )}
+
+              {headerTab !== 'POS HISTORY' && (
+                <div className="space-y-6">
+                  <div className="relative w-full md:w-96 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                    <input 
+                      type="text" placeholder="Search vehicle or agent..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-12 pr-6 py-4 bg-white border border-gray-100 rounded-[1.5rem] text-sm font-bold placeholder:text-gray-300 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all shadow-sm"
+                    />
+                  </div>
+                  <DailyReconciliationTab 
+                    loading={loading} filteredSummaries={filteredSummaries} storeRegisterData={storeRegisterData}
+                    handleOpenView={setViewingSummary} handleOpenEdit={handleOpenEdit} setDeletingSummary={setDeletingSummary}
+                    setShowDeleteModal={setShowDeleteModal} can={can}
+                    setViewingAgentDenoms={setViewingAgentDenoms}
                   />
                 </div>
-              </div>
+              )}
+            </div>
+          )}
 
-              {activeTab === 'reconciliation' && (
-                <DailyReconciliationTab 
-                  loading={loading} filteredSummaries={filteredSummaries} storeRegisterData={storeRegisterData}
-                  handleOpenView={setViewingSummary} handleOpenEdit={handleOpenEdit} setDeletingSummary={setDeletingSummary}
-                  setShowDeleteModal={setShowDeleteModal} can={can}
-                  setViewingAgentDenoms={setViewingAgentDenoms}
+          {/* ── Live Cash Status Sub-Module ────────────────────────────────── */}
+          {activeTab === 'live' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="relative w-full md:w-96 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                <input 
+                  type="text" placeholder="Search vehicle or agent..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-6 py-4 bg-white border border-gray-100 rounded-[1.5rem] text-sm font-bold placeholder:text-gray-300 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all shadow-sm"
                 />
-              )}
-              {activeTab === 'live' && <LiveCashTab filteredSummaries={filteredSummaries} handleOpenView={setViewingSummary} />}
-              {activeTab === 'ledger' && (
-                <AuditLedgerTab 
-                  ledgerLoading={ledgerLoading} ledgerData={ledgerData} ledgerFilter={ledgerFilter} 
-                  setLedgerFilter={setLedgerFilter} date={date} setViewingOrder={setViewingOrder} setPreviewImage={setPreviewImage} 
-                />
-              )}
+              </div>
+              <LiveCashTab filteredSummaries={filteredSummaries} handleOpenView={setViewingSummary} />
+            </div>
+          )}
+
+          {/* ── History Sub-Module ─────────────────────────────────────────── */}
+          {activeTab === 'ledger' && (
+            <div className="animate-in fade-in duration-300">
+              <AuditLedgerTab 
+                ledgerLoading={ledgerLoading} ledgerData={ledgerData} ledgerFilter={ledgerFilter} 
+                setLedgerFilter={setLedgerFilter} date={date} setViewingOrder={setViewingOrder} setPreviewImage={setPreviewImage} 
+              />
             </div>
           )}
         </div>
@@ -972,7 +1002,6 @@ export default function AdminCashManagementContent() {
 
       {/* Modals */}
       <OpenStoreModal show={showOpenStoreModal} setShow={setShowOpenStoreModal} storeModalStep={storeModalStep} setStoreModalStep={setStoreModalStep} storeRegisterData={storeRegisterData} storeDenomData={storeDenomData} handleDenominationChange={handleDenominationChange} handleOpenStoreRegister={handleOpenStoreRegister} isSubmitting={isSubmitting} />
-      <CloseStoreModal show={showCloseStoreModal} setShow={setShowCloseStoreModal} storeRegisterData={storeRegisterData} storeDenomData={storeDenomData} setStoreDenomData={setStoreDenomData} handleDenominationChange={handleDenominationChange} handleCloseStoreRegister={handleCloseStoreRegister} isSubmitting={isSubmitting} />
       <EditStoreModal show={showEditStoreModal} setShow={setShowEditStoreModal} storeDenomData={storeDenomData} handleDenominationChange={handleDenominationChange} handleUpdateStoreRegister={handleUpdateStoreRegister} isSubmitting={isSubmitting} />
       <SafeMovementModal show={showSafeMovementModal} setShow={setShowSafeMovementModal} safeMovementData={safeMovementData} setSafeMovementData={setSafeMovementData} handleDenominationChange={handleDenominationChange} handleSafeMovement={handleSafeMovement} isSubmitting={isSubmitting} storeRegisterData={storeRegisterData} />
       <BankDepositModal show={showBankModal} setShow={setShowBankModal} bankData={bankData} setBankData={setBankData} storeRegisterData={storeRegisterData} user={user} handleCreateBankDeposit={handleCreateBankDeposit} isSubmitting={isSubmitting} setPreviewImage={setPreviewImage} adminAPI={adminAPI} toast={toast} />

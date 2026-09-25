@@ -632,6 +632,7 @@ const AdminDamage = lazy(() => import("../pages/admin_pages/vsms/AdminDamage"));
 const AdminRoutes = lazy(() => import("../pages/admin_pages/vsms/AdminRoutes"));
 const AdminInventory = lazy(() => import("../pages/admin_pages/vsms/AdminInventory"));
 const AdminCashManagement = lazy(() => import("../pages/admin_pages/vsms/AdminCashManagement"));
+const DailyReconciliationPage = lazy(() => import("../pages/admin_pages/vsms/admin_cash_management/DailyReconciliationPage"));
 const AdminPOS = lazy(() => import("../pages/admin_pages/vsms/AdminPOS"));
 const BarcodeManagement = lazy(() => import("../pages/admin_pages/vsms/BarcodeManagement"));
 const AdminSalesPage = lazy(() => import("../pages/admin_pages/vsms/AdminSales"));
@@ -2000,6 +2001,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/cash-management",
     component: AdminCashManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/cash-reconciliation",
+    component: DailyReconciliationPage,
     requiresAuth: true,
   },
   {
