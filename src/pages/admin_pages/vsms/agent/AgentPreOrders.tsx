@@ -14,7 +14,9 @@ import { useUserStore } from '../store/userStore';
 import { getTodayPlan } from '../services/routeService';
 import { productsAPI } from '../services/api';
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3004/api/v1' : '/api/v1';
+import { URL as configURL } from '../../../../config';
+
+const API_BASE = (import.meta.env.VITE_URL as string | undefined)?.trim().replace(/\/+$/, '') || configURL || '';
 
 const getAgentToken = () =>
   localStorage.getItem('token') ||

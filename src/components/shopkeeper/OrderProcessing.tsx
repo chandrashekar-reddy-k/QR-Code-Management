@@ -39,8 +39,18 @@ export function OrderProcessing({ orders = [], onNavigate }: OrderProcessingProp
 
   const fetchAgents = () => {
     api.get('/delivery-agents')
-      .then(res => setAgents(res.data))
-      .catch(err => console.error("Failed to load riders", err));
+      .then(res => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setAgents(res.data);
+        } else {
+          return api.get('/partner/orders/delivery-agents').then(r => setAgents(r.data || []));
+        }
+      })
+      .catch(() => {
+        api.get('/partner/orders/delivery-agents')
+          .then(r => setAgents(r.data || []))
+          .catch(err => console.error("Failed to load riders", err));
+      });
   };
 
   useEffect(() => {
@@ -917,11 +927,19 @@ export function OrderProcessing({ orders = [], onNavigate }: OrderProcessingProp
                           <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
                             {agent.name}
                           </span>
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
+                            agent.role === 'VEHICLE_AGENT'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                              : agent.role === 'VSMS_AGENT'
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                              : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                          }`}>
+                            {agent.role === 'VEHICLE_AGENT' ? 'Vehicle Agent' : agent.role === 'VSMS_AGENT' ? 'VSMS Agent' : 'Delivery Agent'}
+                          </span>
+                          <div className={`w-2 h-2 rounded-full ${agent.isOnline !== false ? 'bg-green-500' : 'bg-gray-400'}`} />
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
                           <span>{phone}</span>
-                          <span className="text-[10px]">•</span>
                         </div>
                       </div>
                     </div>
