@@ -939,7 +939,6 @@ export function OrderProcessing({ orders = [], loading = false, onNavigate }: Or
                         <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#00891D] border-2 border-white dark:border-gray-800 rounded-full" title="Online" />
                       </div>
                       <div>
-<<<<<<< HEAD
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
                             {agent.name}
@@ -955,11 +954,6 @@ export function OrderProcessing({ orders = [], loading = false, onNavigate }: Or
                           </span>
                           <div className={`w-2 h-2 rounded-full ${agent.isOnline !== false ? 'bg-green-500' : 'bg-gray-400'}`} />
                         </div>
-=======
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
-                          {agent.name}
-                        </span>
->>>>>>> nisha
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
                           <span>{phone}</span>
                         </div>
