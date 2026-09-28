@@ -107,8 +107,41 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
         procurementAPI.getPurchaseOrders({ status: 'APPROVED,ORDERED,DELIVERED', storeId: storeId || undefined }),
         procurementAPI.getGRNs({ status: 'APPROVED,PARTIAL', storeId: storeId || undefined })
       ]);
+      const rawProducts = (p.data || []).filter(x => x.isActive || x.status === 'APPROVED');
+      const flattenedProducts = [];
+      rawProducts.forEach(prod => {
+        // Add the base product
+        flattenedProducts.push({
+          ...prod,
+          id: prod.id,
+          productId: prod.id
+        });
+        // If the product has variants, add each variant as a discrete product item
+        if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+          prod.variants.forEach(variant => {
+            flattenedProducts.push({
+              ...prod,
+              id: variant.id || `${prod.id}_${variant.variantName}`,
+              productId: variant.id || `${prod.id}_${variant.variantName}`,
+              parentProductId: prod.id,
+              name: prod.name,
+              variantName: variant.variantName || variant.name || '',
+              isVariantItem: true,
+              price: variant.sellingPrice ?? variant.price ?? prod.price,
+              purchasePrice: variant.purchasePrice ?? variant.costPrice ?? variant.landingPrice ?? prod.purchasePrice ?? prod.price,
+              skuCode: variant.sku || variant.skuCode || prod.skuCode,
+              barcode: variant.barcode || prod.barcode,
+              unit: variant.unit || variant.unitType || prod.unit,
+              unitValue: variant.measurement || variant.unitValue || prod.unitValue,
+              measurement: variant.measurement || prod.measurement,
+              variants: [] // prevent nesting
+            });
+          });
+        }
+      });
+
       setVendors(v.data?.data || v.data || []);
-      setProducts(p.data.filter(x => x.isActive || x.status === 'APPROVED'));
+      setProducts(flattenedProducts);
       setCategories(c.data?.categories || c.data?.data?.categories || (Array.isArray(c.data) ? c.data : []));
       setUnits(Array.isArray(u.data) ? u.data : u.data?.units || u.data?.data?.units || []);
       setSubCategories(Array.isArray(sc.data) ? sc.data : sc.data?.subCategories || sc.data?.data?.subCategories || []);
@@ -872,46 +905,110 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                     className="w-full pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 outline-none transition-all placeholder:text-gray-300"
                   />
                   {showItemResults && itemSearch && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
                       {products
-                        .filter(p =>
-                          p.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
-                          (p.barcode && p.barcode.includes(itemSearch)) ||
-                          (p.skuCode && p.skuCode.toLowerCase().includes(itemSearch.toLowerCase()))
-                        )
+                        .filter(p => {
+                          const query = itemSearch.toLowerCase();
+                          const matchesName = p.name?.toLowerCase().includes(query);
+                          const matchesVariant = p.variantName?.toLowerCase().includes(query);
+                          const matchesSubVariants = p.variants?.some(v => v.variantName?.toLowerCase().includes(query) || v.name?.toLowerCase().includes(query));
+                          const matchesBarcode = p.barcode && p.barcode.includes(itemSearch);
+                          const matchesSku = p.skuCode && p.skuCode.toLowerCase().includes(query);
+                          return matchesName || matchesVariant || matchesSubVariants || matchesBarcode || matchesSku;
+                        })
                         .slice(0, 15)
                         .map(p => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onMouseDown={e => e.preventDefault()}
-                            onClick={() => {
-                              setSelectedProduct(p);
-                              setItemSearch(p.name);
-                              setSearchPrice(String(p.purchasePrice || p.price || 0));
-                              setSearchQty('1');
-                              setShowItemResults(false);
-                            }}
-                            className="w-full text-left px-3 py-2 text-[10px] hover:bg-emerald-50 flex items-center justify-between border-b border-gray-50 last:border-0 transition-colors"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <span className="font-black text-gray-900 block truncate">{p.name}</span>
-                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                <span className="text-[7px] font-bold text-gray-400">{p.barcode || p.skuCode || 'NO-SKU'}</span>
-                                <span className="text-[7px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">Store: {p.warehouseStock || p.currentStock || p.stock || 0}</span>
-                                <span className="text-[7px] font-black bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100">Veh: {p.vehicleStock || 0}</span>
-                                <span className="text-[7px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100">Total: {p.totalStock || (p.warehouseStock || 0) + (p.vehicleStock || 0)}</span>
+                          <div key={p.id} className="border-b border-gray-50 last:border-0">
+                            <button
+                              type="button"
+                              onMouseDown={e => e.preventDefault()}
+                              onClick={() => {
+                                setSelectedProduct(p);
+                                setItemSearch(p.name + (p.variantName ? ` (${p.variantName})` : ''));
+                                setSearchPrice(String(p.purchasePrice || p.price || 0));
+                                setSearchQty('1');
+                                setShowItemResults(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-[10px] hover:bg-emerald-50 flex items-center justify-between transition-colors"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-black text-gray-900 truncate">{p.name}</span>
+                                  {p.variantName && (
+                                    <span className="text-[7px] font-black uppercase tracking-wider bg-emerald-100/70 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-200">
+                                      {p.variantName}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                  <span className="text-[7px] font-bold text-gray-400">{p.barcode || p.skuCode || 'NO-SKU'}</span>
+                                  {(() => {
+                                    const uStr = typeof p.unit === 'object' ? (p.unit?.type || p.unit?.name || '') : (p.unit || '');
+                                    const cleanU = uStr.includes('-') && uStr.length > 20 ? '' : uStr;
+                                    const mVal = p.unitValue || p.measurement || '';
+                                    const tag = [mVal, cleanU].filter(Boolean).join(' ');
+                                    return tag ? <span className="text-[7px] font-extrabold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">{tag}</span> : null;
+                                  })()}
+                                  <span className="text-[7px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">Store: {p.warehouseStock || p.currentStock || p.stock || 0}</span>
+                                  <span className="text-[7px] font-black bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100">Veh: {p.vehicleStock || 0}</span>
+                                  <span className="text-[7px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100">Total: {p.totalStock || (p.warehouseStock || 0) + (p.vehicleStock || 0)}</span>
+                                </div>
                               </div>
-                            </div>
-                            <span className="text-xs font-black text-emerald-600 shrink-0 ml-2">₹{p.purchasePrice || p.price || 0}</span>
-                          </button>
+                              <span className="text-xs font-black text-emerald-600 shrink-0 ml-2">₹{p.purchasePrice || p.price || 0}</span>
+                            </button>
+
+                            {/* Sub Variants if available */}
+                            {Array.isArray(p.variants) && p.variants.length > 0 && (
+                              <div className="bg-slate-50/70 px-3 py-1.5 pl-6 border-t border-dashed border-slate-100 flex flex-wrap gap-1.5">
+                                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest self-center mr-1">Variants:</span>
+                                {p.variants.map((v, vIdx) => {
+                                  const vUStr = typeof v.unit === 'object' ? (v.unit?.type || v.unit?.name || '') : (v.unit || '');
+                                  const cleanVU = vUStr.includes('-') && vUStr.length > 20 ? '' : vUStr;
+                                  const vMVal = v.measurement || v.unitValue || '';
+                                  const vTag = [vMVal, cleanVU].filter(Boolean).join(' ');
+                                  return (
+                                    <button
+                                      key={v.id || vIdx}
+                                      type="button"
+                                      onMouseDown={e => e.preventDefault()}
+                                      onClick={() => {
+                                        const variantProduct = {
+                                          ...p,
+                                          variantName: v.variantName || v.name || p.variantName,
+                                          price: v.sellingPrice || v.price || p.price,
+                                          purchasePrice: v.purchasePrice || v.costPrice || p.purchasePrice,
+                                          skuCode: v.sku || v.skuCode || p.skuCode,
+                                          barcode: v.barcode || p.barcode,
+                                          unit: v.unit || p.unit,
+                                          unitValue: v.measurement || v.unitValue || p.unitValue,
+                                          measurement: v.measurement || p.measurement
+                                        };
+                                        setSelectedProduct(variantProduct);
+                                        setItemSearch(`${p.name} (${v.variantName || v.name}${vTag ? ` - ${vTag}` : ''})`);
+                                        setSearchPrice(String(variantProduct.purchasePrice || variantProduct.price || 0));
+                                        setSearchQty('1');
+                                        setShowItemResults(false);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-white hover:bg-emerald-100 border border-slate-200 hover:border-emerald-300 rounded text-[7px] font-bold text-slate-700 hover:text-emerald-800 transition-all shadow-xs"
+                                    >
+                                      <span>{v.variantName || v.name}{vTag ? ` (${vTag})` : ''}</span>
+                                      <span className="text-emerald-600 font-black">₹{v.purchasePrice || v.costPrice || v.sellingPrice || v.price || 0}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         ))
                       }
-                      {products.filter(p =>
-                        p.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
-                        (p.barcode && p.barcode.includes(itemSearch)) ||
-                        (p.skuCode && p.skuCode.toLowerCase().includes(itemSearch.toLowerCase()))
-                      ).length === 0 && (
+                      {products.filter(p => {
+                        const query = itemSearch.toLowerCase();
+                        return p.name?.toLowerCase().includes(query) ||
+                          p.variantName?.toLowerCase().includes(query) ||
+                          p.variants?.some(v => v.variantName?.toLowerCase().includes(query) || v.name?.toLowerCase().includes(query)) ||
+                          (p.barcode && p.barcode.includes(itemSearch)) ||
+                          (p.skuCode && p.skuCode.toLowerCase().includes(query));
+                      }).length === 0 && (
                         <div className="px-3 py-4 text-center text-[10px] font-black text-gray-400">No products found</div>
                       )}
                     </div>
@@ -952,6 +1049,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                     const newItem = {
                       productId: selectedProduct.id,
                       name: selectedProduct.name,
+                      variantName: selectedProduct.variantName || '',
                       skuCode: selectedProduct.skuCode || 'NO-SKU',
                       quantity: String(searchQty || 1),
                       maxQuantity: null,
@@ -974,7 +1072,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                     setSearchQty('1');
                     setSearchPrice('0');
                     setShowItemResults(false);
-                    toast.success(`Added: ${selectedProduct.name}`);
+                    toast.success(`Added: ${selectedProduct.name}${selectedProduct.variantName ? ` (${selectedProduct.variantName})` : ''}`);
                   }}
                   className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wide hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shrink-0"
                 >
@@ -1072,12 +1170,15 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                           const search = itemFilter.toLowerCase();
                           return !search ||
                             p.name.toLowerCase().includes(search) ||
+                            (item.variantName && item.variantName.toLowerCase().includes(search)) ||
+                            (p.variantName && p.variantName.toLowerCase().includes(search)) ||
                             (p.barcode && p.barcode.toLowerCase().includes(search)) ||
                             (p.skuCode && p.skuCode.toLowerCase().includes(search));
                         })
                         .map((item, filteredIdx) => {
                           const p = products.find(x => x.id === item.productId);
                           const originalIdx = item.originalIndex;
+                          const currentVariant = item.variantName || p?.variantName;
                           return (
                             <tr key={originalIdx} className="hover:bg-emerald-50/20 transition-colors group">
                               <td className="px-1 py-1.5">
@@ -1085,8 +1186,15 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                               </td>
                               <td className="px-2 py-1.5">
                                 <div className="flex flex-col min-w-0">
-                                  <span className="text-[9px] font-black text-gray-900 truncate uppercase tracking-tighter leading-tight">{p.name}</span>
-                                  <span className="text-[7px] font-bold text-gray-400">({p.barcode || p.skuCode || 'NO-SKU'})</span>
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="text-[9px] font-black text-gray-900 truncate uppercase tracking-tighter leading-tight">{p?.name || item.name}</span>
+                                    {currentVariant && (
+                                      <span className="text-[6.5px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded border border-emerald-200">
+                                        {currentVariant}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[7px] font-bold text-gray-400">({p?.barcode || p?.skuCode || item.skuCode || 'NO-SKU'})</span>
                                 </div>
                               </td>
                               <td className="px-1 py-1.5 text-center">

@@ -28,7 +28,8 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
   const filteredProducts = products.filter(p => {
     const nameMatch = p.name?.toLowerCase().includes(search.toLowerCase());
     const skuMatch = p.skuCode?.toLowerCase().includes(search.toLowerCase());
-    return nameMatch || skuMatch;
+    const variantMatch = p.variants?.some(v => (v.variantName || v.name)?.toLowerCase().includes(search.toLowerCase()));
+    return nameMatch || skuMatch || variantMatch;
   });
 
   return (
@@ -41,7 +42,17 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
         className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 text-xs font-bold text-gray-900 focus:ring-1 focus:ring-emerald-500 outline-none cursor-pointer flex justify-between items-center min-h-[38px] hover:bg-gray-100/50 transition-all"
       >
         <span className={selectedProduct ? 'text-gray-900' : 'text-gray-400 font-normal'}>
-          {selectedProduct ? `${selectedProduct.name} ${selectedProduct.skuCode ? `(${selectedProduct.skuCode})` : ''}` : placeholder}
+          {selectedProduct ? (
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span>{selectedProduct.name}</span>
+              {selectedProduct.variantName && (
+                <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase">
+                  {selectedProduct.variantName}
+                </span>
+              )}
+              {selectedProduct.skuCode && <span className="text-gray-400 font-normal text-[10px]">({selectedProduct.skuCode})</span>}
+            </span>
+          ) : placeholder}
         </span>
         <span className="text-gray-400 text-[10px]">▼</span>
       </div>
@@ -53,7 +64,7 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Select Product</span>
+              <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Select Product & Variant</span>
               <button 
                 onClick={() => setIsOpen(false)} 
                 className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
@@ -66,7 +77,7 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search product name or SKU..."
+                placeholder="Search product name, SKU or variant..."
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder:text-gray-400 font-bold"
                 autoFocus
               />
@@ -76,23 +87,53 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
                 <div className="text-xs font-bold text-gray-400 text-center py-8">No products found</div>
               ) : (
                 filteredProducts.map(p => (
-                  <div
-                    key={p.id}
-                    onClick={() => {
-                      onChange(p.id);
-                      setIsOpen(false);
-                    }}
-                    className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${
-                      selectedProductId === p.id 
-                        ? 'bg-emerald-50 text-emerald-700' 
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-gray-900 font-extrabold">{p.name}</span>
-                      {p.skuCode && <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">{p.skuCode}</span>}
+                  <div key={p.id} className="flex flex-col">
+                    <div
+                      onClick={() => {
+                        onChange(p.id);
+                        setIsOpen(false);
+                      }}
+                      className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${
+                        selectedProductId === p.id 
+                          ? 'bg-emerald-50 text-emerald-700' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-900 font-extrabold">{p.name}</span>
+                          {p.variantName && (
+                            <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase">
+                              {p.variantName}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {p.skuCode && <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{p.skuCode}</span>}
+                          {(p.purchasePrice || p.price) && <span className="text-[9px] text-emerald-600 font-black">₹{p.purchasePrice || p.price}</span>}
+                        </div>
+                      </div>
+                      {selectedProductId === p.id && <CheckCircle2 className="text-emerald-600" size={16} />}
                     </div>
-                    {selectedProductId === p.id && <CheckCircle2 className="text-emerald-600" size={16} />}
+
+                    {p.variants && p.variants.length > 0 && (
+                      <div className="pl-6 pr-2 py-1 bg-slate-50/50 rounded-lg my-1 flex flex-col gap-1 border-l-2 border-purple-400 ml-3">
+                        <span className="text-[8px] font-black uppercase tracking-wider text-purple-700">Variants:</span>
+                        {p.variants.map((v, vIdx) => (
+                          <div
+                            key={v.id || vIdx}
+                            onClick={() => {
+                              onChange(p.id);
+                              setIsOpen(false);
+                            }}
+                            className="flex items-center justify-between px-2 py-1 rounded text-[10px] font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-900 cursor-pointer"
+                          >
+                            <span>{v.variantName || v.name}</span>
+                            <span className="font-bold text-emerald-600">₹{v.price || v.sellingPrice || 0}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -155,13 +196,45 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       const grnsArray = grnData.data?.data || grnData.data || grnData || [];
       const vendorsArray = vendorData.data?.data || vendorData.data || vendorData || [];
       const usersArray = userData.data?.data || userData.data || userData || [];
-      const productsArray = productData.data?.data || productData.data || productData || [];
+      const rawProducts = productData.data?.data || productData.data || productData || [];
+      const flattenedProducts = [];
+      (Array.isArray(rawProducts) ? rawProducts : []).forEach(p => {
+        // Base product
+        flattenedProducts.push({
+          ...p,
+          productId: p.id,
+          id: p.id
+        });
+        // Discrete Variants
+        if (Array.isArray(p.variants) && p.variants.length > 0) {
+          p.variants.forEach(v => {
+            flattenedProducts.push({
+              ...p,
+              id: v.id || `${p.id}_${v.variantName}`,
+              productId: v.id || `${p.id}_${v.variantName}`,
+              parentProductId: p.id,
+              name: p.name,
+              variantName: v.variantName || v.name || '',
+              isVariantItem: true,
+              skuCode: v.sku || v.skuCode || p.skuCode || 'NO-SKU',
+              barcode: v.barcode || p.barcode || '',
+              unit: v.unit || v.unitType || p.unit,
+              unitValue: v.measurement || v.unitValue || p.unitValue,
+              measurement: v.measurement || p.measurement,
+              mrp: v.mrp || p.mrp || 0,
+              price: v.sellingPrice ?? v.price ?? p.price,
+              purchasePrice: v.purchasePrice ?? v.costPrice ?? v.landingPrice ?? p.purchasePrice ?? p.price,
+              variants: [] // prevent nesting
+            });
+          });
+        }
+      });
 
       setPOs(Array.isArray(posArray) ? posArray.filter(po => ['CREATED', 'APPROVED', 'ORDERED', 'PARTIAL'].includes(po.status)) : []);
       setGRNs(Array.isArray(grnsArray) ? grnsArray : []);
       setVendors(Array.isArray(vendorsArray) ? vendorsArray : []);
       setUsers(Array.isArray(usersArray) ? usersArray : []);
-      setProducts(Array.isArray(productsArray) ? productsArray : []);
+      setProducts(flattenedProducts);
     } catch (error) { 
       console.error('GRN load error:', error);
       toast.error('Failed to load data'); 
@@ -1072,9 +1145,16 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                         <tr key={item.productId} className="group">
                           <td className="px-3 py-6">
                             <div className="flex flex-col">
-                              <span className="text-sm font-black text-gray-900 tracking-tight">{item.name}</span>
-                              <span className="text-[10px] font-bold text-gray-400">SKU: {item.sku || 'N/A'}</span>
-                              <span className="text-[10px] font-bold text-gray-400">{item.weight || '1 kg'}</span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-sm font-black text-gray-900 tracking-tight">{item.name}</span>
+                                {(item.variantName || item.product?.variantName || item.productVariant?.variantName) && (
+                                  <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider">
+                                    {item.variantName || item.product?.variantName || item.productVariant?.variantName}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-bold text-gray-400">SKU: {item.sku || item.skuCode || 'N/A'}</span>
+                              <span className="text-[10px] font-bold text-gray-400">{item.weight || item.measurement || '1 kg'}</span>
                             </div>
                           </td>
                           <td className="px-3 py-6 text-center text-sm font-black text-gray-900">{item.orderedQty}</td>

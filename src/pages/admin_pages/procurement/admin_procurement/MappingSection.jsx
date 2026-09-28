@@ -41,7 +41,36 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
           adminAPI.getItems({ storeId: storeId || undefined })
         ]);
         setVendors(v.data?.data || v.data || []);
-        setProducts(p.data?.data || p.data || []);
+        
+        const rawProducts = p.data?.data || p.data || [];
+        const flattenedProducts = [];
+        (Array.isArray(rawProducts) ? rawProducts : []).forEach(prod => {
+          // Add the base product
+          flattenedProducts.push(prod);
+          // If the product has variants, add each variant as its own discrete product item
+          if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+            prod.variants.forEach(variant => {
+              flattenedProducts.push({
+                ...prod,
+                id: variant.id || `${prod.id}_${variant.variantName}`,
+                productId: variant.id || `${prod.id}_${variant.variantName}`,
+                parentProductId: prod.id,
+                name: prod.name,
+                variantName: variant.variantName || variant.name || '',
+                isVariantItem: true,
+                price: variant.sellingPrice ?? variant.price ?? prod.price,
+                purchasePrice: variant.purchasePrice ?? variant.costPrice ?? variant.landingPrice ?? prod.purchasePrice ?? prod.price,
+                skuCode: variant.sku || variant.skuCode || prod.skuCode,
+                barcode: variant.barcode || prod.barcode,
+                unit: variant.unit || variant.unitType || prod.unit,
+                unitValue: variant.measurement || variant.unitValue || prod.unitValue,
+                measurement: variant.measurement || prod.measurement,
+                variants: [] // prevent recursive expansion
+              });
+            });
+          }
+        });
+        setProducts(flattenedProducts);
       } catch { 
         toast.error('Failed to load initial data'); 
       } finally { 
@@ -273,7 +302,11 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-white pb-28">
               <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto">
                 {products
-                  .filter(p => p.name.toLowerCase().includes(pSearch.toLowerCase()))
+                  .filter(p => 
+                    p.name?.toLowerCase().includes(pSearch.toLowerCase()) || 
+                    p.variantName?.toLowerCase().includes(pSearch.toLowerCase()) ||
+                    p.skuCode?.toLowerCase().includes(pSearch.toLowerCase())
+                  )
                   .sort((a, b) => {
                     const isAMapped = !!mappedItems[a.id];
                     const isBMapped = !!mappedItems[b.id];
@@ -311,13 +344,50 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs font-black text-gray-900 tracking-tight">{p.name}</span>
+                              {p.variantName && (
+                                <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+                                  Variant: {p.variantName}
+                                </span>
+                              )}
                               {isMapped && itemData.isPreferred && (
                                 <span className="inline-flex items-center gap-0.5 bg-amber-50 border border-amber-200/50 px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-amber-600 tracking-wide">
                                   <Star size={8} fill="currentColor" /> Preferred Supplier
                                 </span>
                               )}
                             </div>
-                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">ID: {p.id.slice(-6).toUpperCase()}</span>
+                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">ID: {String(p.id).slice(-6).toUpperCase()}</span>
+                              {(() => {
+                                const unitStr = typeof p.unit === 'object' ? (p.unit?.type || p.unit?.name || '') : (p.unit || '');
+                                const cleanUnit = unitStr.includes('-') && unitStr.length > 20 ? '' : unitStr;
+                                const measurement = p.unitValue || p.measurement || (typeof p.weight === 'number' && p.weight > 0 ? p.weight : '');
+                                const label = [measurement, cleanUnit].filter(Boolean).join(' ');
+                                if (!label) return null;
+                                return (
+                                  <span className="text-[9px] text-slate-700 font-extrabold bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200/60">
+                                    {label}
+                                  </span>
+                                );
+                              })()}
+                              {p.variants && p.variants.length > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">
+                                    {p.variants.length} Variants Available:
+                                  </span>
+                                  {p.variants.map((v, vIdx) => {
+                                    const vUnitStr = typeof v.unit === 'object' ? (v.unit?.type || v.unit?.name || '') : (v.unit || '');
+                                    const cleanVUnit = vUnitStr.includes('-') && vUnitStr.length > 20 ? '' : vUnitStr;
+                                    const vMeasurement = v.measurement || v.unitValue || '';
+                                    const vVal = [vMeasurement, cleanVUnit].filter(Boolean).join(' ');
+                                    return (
+                                      <span key={v.id || vIdx} className="text-[8px] font-bold text-slate-600 bg-slate-50 border border-slate-200 px-1 py-0.5 rounded">
+                                        {v.variantName || v.name}{vVal ? ` - ${vVal}` : ''} (₹{v.price || v.sellingPrice || 0})
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
 
