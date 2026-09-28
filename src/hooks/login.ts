@@ -94,7 +94,11 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
 
       return attemptLogin("partner").then(async ({ res, data }) => {
         if (!res.ok) {
-          // If access was denied on partner portal, retry with vsms or no portal filter
+          // Retry for agent, vsms, and generic login
+          const retryAgent = await attemptLogin("agent");
+          if (retryAgent.res.ok) {
+            return formatLoginSuccess(retryAgent.data);
+          }
           const retryVsms = await attemptLogin("vsms");
           if (retryVsms.res.ok) {
             return formatLoginSuccess(retryVsms.data);
@@ -103,7 +107,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
           if (retryGeneric.res.ok) {
             return formatLoginSuccess(retryGeneric.data);
           }
-          throw new Error(data.message || retryVsms.data?.message || "Login failed");
+          throw new Error(data.message || retryAgent.data?.message || "Login failed");
         }
         return formatLoginSuccess(data);
       });

@@ -461,7 +461,7 @@ const DeliveryAgentOnboarding = () => {
     const fullName = `${fName} ${lName}`;
     const surname = lName;
     const fatherOrSpouseName = getRandomElement(fatherNames);
-    const email = `${fName.toLowerCase()}.${lName.toLowerCase()}${Math.floor(Math.random() * 1000)}@${getRandomElement(domains)}`;
+    const email = "";
     const password = "Password@123";
     
     const start = new Date();
@@ -1828,8 +1828,9 @@ const DeliveryAgentOnboarding = () => {
                 <TextInput
                   label="Email ID (Optional)"
                   type="email"
-                  placeholder="Enter email address"
+                  placeholder="Email ID not required"
                   value={s1.email}
+                  disabled
                   onChange={(e) => setS1({ ...s1, email: e.target.value })}
                   error={errors.email}
                 />
