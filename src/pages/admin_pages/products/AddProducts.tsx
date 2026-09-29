@@ -2593,13 +2593,20 @@ const AddProduct: React.FC<AddProductProps> = ({
       if (formData.inventoryType)
         payload.inventoryType = formData.inventoryType;
 
-      if (price > 0 || mrp > 0) {
-        payload.price = Math.round(price);
+      // API Schema field mapping:
+      // - price = Selling price (final selling price after discount)
+      // - mrp = Ceiling price / MRP
+      // - costPrice = Floor price / Landing price
+      const landingPrice = price; // Landing price from form (variant.mrp input)
+      const sellingPrice = finalPrice; // Selling price (auto-calculated from MRP - discount)
+
+      if (sellingPrice > 0 || mrp > 0) {
+        payload.price = Math.round(sellingPrice);
         payload.mrp = Math.round(mrp);
         payload.discountType = discountType;
         payload.discountValue = Number(validDiscount);
         payload.finalPrice = Number(finalPrice);
-        if (costPrice > 0) payload.costPrice = Number(costPrice);
+        if (landingPrice > 0) payload.costPrice = Number(landingPrice);
       }
       if (formData.tax) payload.taxRate = Number(parseFloat(formData.tax) || 0);
 
@@ -2809,6 +2816,9 @@ const AddProduct: React.FC<AddProductProps> = ({
                 : undefined,
             price: Number(payload.price ?? currentProduct?.price ?? 0),
             mrp: Number(payload.mrp ?? currentProduct?.mrp ?? 0),
+            costPrice: Number(
+              payload.costPrice ?? currentProduct?.costPrice ?? 0,
+            ),
             discountValue: Number(
               payload.discountValue ?? currentProduct?.discountValue ?? 0,
             ),
@@ -3056,8 +3066,9 @@ const AddProduct: React.FC<AddProductProps> = ({
         updatePayload.slug = slug.trim();
         updatePayload.description = formData.description ?? "";
         updatePayload.shortDescription = formData.shortDescription ?? "";
-        updatePayload.price = Number(price);
+        updatePayload.price = Number(sellingPrice);
         updatePayload.mrp = Number(mrp);
+        if (landingPrice > 0) updatePayload.costPrice = Number(landingPrice);
         updatePayload.discountType = discountType;
         updatePayload.discountValue = Number(validDiscount);
         updatePayload.finalPrice = Number(finalPrice);
