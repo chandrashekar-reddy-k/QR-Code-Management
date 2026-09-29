@@ -119,8 +119,10 @@ export default function AgentInventory() {
   const fetchAuditHistory = async () => {
     try {
       setLoading(true);
-      const { data } = await productsAPI.getAuditHistory(vehicleId);
-      setAuditHistory(data);
+      const res = await productsAPI.getAuditHistory(vehicleId);
+      const rawData = res?.data;
+      const list = Array.isArray(rawData) ? rawData : (Array.isArray(rawData?.data) ? rawData.data : []);
+      setAuditHistory(list);
     } catch { toast.error('Failed to load audit history'); }
     finally { setLoading(false); }
   };
@@ -137,11 +139,18 @@ export default function AgentInventory() {
   const fetchAllProductsForRefill = async () => {
     try {
       setLoading(true);
-      const { data } = await productsAPI.getAll({ showAll: true });
-      setAllProducts(data);
+      const res = await productsAPI.getAll({ all: 'true', bypassCache: 'true' });
+      const productList = Array.isArray(res?.data) ? res.data : (res?.data?.items || res?.data?.products || []);
+      if (productList.length > 0) {
+        setAllProducts(productList);
+      }
       setShowRefillModal(true);
-    } catch { toast.error('Failed to load products for refill'); }
-    finally { setLoading(false); }
+    } catch {
+      // Fallback to vehicle inventory so user always sees genuine products
+      setShowRefillModal(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefillSubmit = async () => {
@@ -153,7 +162,8 @@ export default function AgentInventory() {
       toast.success('Refill requested successfully!');
       setShowRefillModal(false);
       setRefillItems({});
-      if (activeTab === 'refills') fetchRefillHistory();
+      await fetchRefillHistory();
+      setActiveTab('refills');
     } catch { toast.error('Failed to submit refill request'); }
     finally { setLoading(false); }
   };
@@ -205,6 +215,11 @@ export default function AgentInventory() {
   };
 
   if (selectedHistoryAudit) {
+    const isReturn = selectedHistoryAudit.isReturn || selectedHistoryAudit.type === 'Stock Return' || selectedHistoryAudit.raw?.type === 'RETURN';
+    const isRefill = selectedHistoryAudit.isRefill || selectedHistoryAudit.type === 'Stock Refill' || selectedHistoryAudit.raw?.type === 'REFILL';
+    const actionLabel = isReturn ? 'Stock Return' : isRefill ? 'Stock Refill' : 'Stock Audit';
+    const notesText = selectedHistoryAudit.raw?.remark || selectedHistoryAudit.raw?.notes || selectedHistoryAudit.notes || selectedHistoryAudit.remark || (isReturn ? 'Stock returned to warehouse' : isRefill ? 'Refill Request Approved' : 'Morning Handover & Stock Audit');
+
     return (
       <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
         <div className="max-w-[420px] mx-auto px-4 space-y-4">
@@ -219,7 +234,7 @@ export default function AgentInventory() {
               </button>
               <div>
                 <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
-                  {selectedHistoryAudit.title || '5th August 2026'}
+                  {selectedHistoryAudit.title || (isReturn ? 'Stock Return' : isRefill ? 'Stock Refill' : 'Stock Audit')}
                 </h1>
                 <p className="text-[10px] font-medium text-gray-400 mt-0.5">
                   {selectedHistoryAudit.sub || 'Admin User • 10:30 AM'}
@@ -227,8 +242,14 @@ export default function AgentInventory() {
               </div>
             </div>
 
-            <span className="text-[10px] font-extrabold text-[#00891D] bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-              {selectedHistoryAudit.type || 'Stock Audit'}
+            <span
+              className={`text-[10px] font-extrabold px-3 py-1 rounded-full border ${
+                isReturn
+                  ? 'text-rose-600 bg-rose-50 border-rose-200'
+                  : 'text-[#00891D] bg-emerald-50 border-emerald-200'
+              }`}
+            >
+              {actionLabel}
             </span>
           </div>
 
@@ -236,18 +257,18 @@ export default function AgentInventory() {
           <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-1.5">
             <h4 className="text-xs font-black text-gray-900">Notes</h4>
             <p className="text-[11px] font-medium text-gray-500">
-              "{selectedHistoryAudit.raw?.notes || selectedHistoryAudit.notes || 'Handover audit to Abhiram'}"
+              "{notesText}"
             </p>
           </div>
 
-          {/* Adjusted Products Card / Table */}
+          {/* Adjusted / Returned / Refilled Products Card / Table */}
           <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
             {/* Table Column Headers */}
             <div className="grid grid-cols-12 text-[9px] font-black uppercase text-gray-900 px-1 pb-1 border-b border-gray-100 tracking-wider">
-              <span className="col-span-6">ADJUSTED PRODUCT</span>
-              <span className="col-span-2 text-center">SYSTEM</span>
-              <span className="col-span-2 text-center">AUDITED</span>
-              <span className="col-span-2 text-right">VAR</span>
+              <span className="col-span-6">{isReturn ? 'RETURNED ITEM' : isRefill ? 'REFILLED PRODUCT' : 'ADJUSTED PRODUCT'}</span>
+              <span className="col-span-2 text-center">{isReturn ? 'STOCK' : isRefill ? 'REQUESTED' : 'SYSTEM'}</span>
+              <span className="col-span-2 text-center">{isReturn ? 'RETURNED' : isRefill ? 'APPROVED' : 'AUDITED'}</span>
+              <span className="col-span-2 text-right">{isReturn ? 'STATUS' : isRefill ? 'PRICE' : 'VAR'}</span>
             </div>
 
             {/* Product Rows (Live Backend Data) */}
@@ -258,16 +279,24 @@ export default function AgentInventory() {
               ).map((item: any, idx: number) => {
                 const prodName = item.product?.name || item.name || 'Product';
                 const catName = item.product?.category?.name || item.product?.category || item.category || 'General';
-                const sysQty = item.systemQuantity ?? item.systemQty ?? item.system ?? 0;
-                const auditedQty = item.auditedQuantity ?? item.auditedQty ?? item.audited ?? 0;
-                const variance = item.variance ?? (auditedQty === sysQty ? 'Fixed' : (auditedQty - sysQty > 0 ? `+${auditedQty - sysQty}` : `${auditedQty - sysQty}`));
+                const sysQty = item.systemQuantity ?? item.requestedQuantity ?? item.systemQty ?? item.system ?? item.oldQuantity ?? 0;
+                const auditedQty = item.auditedQuantity ?? item.quantity ?? item.auditedQty ?? item.audited ?? item.newQuantity ?? (isReturn ? item.quantity : 0);
+                const variance = item.variance !== undefined
+                  ? (item.variance === 0 ? 'Fixed' : (item.variance > 0 ? `+${item.variance}` : `${item.variance}`))
+                  : (auditedQty === sysQty ? 'Fixed' : (auditedQty - sysQty > 0 ? `+${auditedQty - sysQty}` : `${auditedQty - sysQty}`));
+                const statusDisplay = isReturn ? 'Returned' : isRefill ? (item.product?.price ? `₹${item.product.price}` : 'Approved') : variance;
+                const img = item.product?.images?.[0] || item.product?.image || item.image;
                 const color = item.color || (idx % 2 === 0 ? 'bg-emerald-50' : 'bg-gray-50');
 
                 return (
-                  <div key={idx} className="grid grid-cols-12 items-center px-1 border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
+                  <div key={item.id || idx} className="grid grid-cols-12 items-center px-1 border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
                     <div className="col-span-6 flex items-center gap-2.5 min-w-0">
                       <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden`}>
-                        <Package size={16} className="text-gray-400" />
+                        {img ? (
+                          <img src={img} alt={prodName} className="w-full h-full object-cover" />
+                        ) : (
+                          <Package size={16} className="text-gray-400" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <h5 className="text-xs font-bold text-gray-900 truncate leading-tight">{prodName}</h5>
@@ -276,14 +305,14 @@ export default function AgentInventory() {
                     </div>
 
                     <span className="col-span-2 text-center text-xs font-bold text-gray-400">{sysQty}</span>
-                    <span className="col-span-2 text-center text-xs font-black text-gray-900">{auditedQty}</span>
-                    <span className="col-span-2 text-right text-[11px] font-bold text-gray-700">{variance}</span>
+                    <span className="col-span-2 text-center text-xs font-black text-gray-900">{isReturn ? item.quantity ?? auditedQty : auditedQty}</span>
+                    <span className={`col-span-2 text-right text-[11px] font-bold ${isReturn ? 'text-rose-500' : isRefill ? 'text-[#00891D]' : 'text-gray-700'}`}>{statusDisplay}</span>
                   </div>
                 );
               })}
               {(!selectedHistoryAudit.raw?.items || selectedHistoryAudit.raw.items.length === 0) && (!selectedHistoryAudit.items || selectedHistoryAudit.items.length === 0) && (
                 <div className="py-6 text-center text-xs font-medium text-gray-400">
-                  No items recorded in this audit history entry.
+                  No items recorded in this history entry.
                 </div>
               )}
             </div>
@@ -1347,38 +1376,63 @@ export default function AgentInventory() {
 
               {/* Items Card */}
               <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
-                <div className="flex items-center justify-between pb-1 border-b border-gray-100/60">
-                  <h3 className="text-xs font-black text-gray-900 tracking-tight">{itemsLabel}</h3>
-                  <span className="text-[10px] font-bold text-gray-400">14 Items</span>
-                </div>
-
-                {/* Table Header */}
-                <div className="grid grid-cols-12 text-[10px] font-extrabold text-gray-900 px-1 py-1">
-                  <span className="col-span-6">Item</span>
-                  <span className="col-span-3 text-center">{actionColHeader}</span>
-                  <span className="col-span-3 text-center">Approved</span>
-                </div>
-
-                {/* Item Rows */}
-                <div className="space-y-3 pt-1">
-                  {[
-                    { name: 'Rice 10 Kg', qty: 5, approved: 5 },
-                    { name: 'Oil 1 L', qty: 3, approved: 3 },
-                    { name: 'Pesalu 500g', qty: 4, approved: 4 },
-                    { name: 'Red Label Tea 100gm', qty: 2, approved: 2 },
-                  ].map((item, idx) => (
-                    <div key={idx} className="grid grid-cols-12 items-center px-1 border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
-                      <div className="col-span-6 flex items-center gap-2.5 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
-                          <Package size={16} className="text-gray-300" />
-                        </div>
-                        <span className="text-xs font-bold text-gray-900 truncate">{item.name}</span>
+                {(() => {
+                  const reqItems = selectedRequest.raw?.items || [];
+                  const totalItemsCount = reqItems.length;
+                  return (
+                    <>
+                      <div className="flex items-center justify-between pb-1 border-b border-gray-100/60">
+                        <h3 className="text-xs font-black text-gray-900 tracking-tight">{itemsLabel}</h3>
+                        <span className="text-[10px] font-bold text-gray-400">
+                          {totalItemsCount} {totalItemsCount === 1 ? 'Item' : 'Items'}
+                        </span>
                       </div>
-                      <span className="col-span-3 text-center text-xs font-bold text-gray-700">{item.qty}</span>
-                      <span className="col-span-3 text-center text-xs font-bold text-gray-700">{item.approved}</span>
-                    </div>
-                  ))}
-                </div>
+
+                      {/* Table Header */}
+                      <div className="grid grid-cols-12 text-[10px] font-extrabold text-gray-900 px-1 py-1">
+                        <span className="col-span-6">Item</span>
+                        <span className="col-span-3 text-center">{actionColHeader}</span>
+                        <span className="col-span-3 text-center">Approved</span>
+                      </div>
+
+                      {/* Dynamic Real Item Rows */}
+                      <div className="space-y-3 pt-1">
+                        {reqItems.length === 0 ? (
+                          <p className="text-xs text-gray-400 py-3 text-center">No item details recorded for this request.</p>
+                        ) : (
+                          reqItems.map((it: any, idx: number) => {
+                            const name = it.product?.name || it.productName || it.name || `Product #${it.productId?.slice(-4) || idx + 1}`;
+                            const reqQty = it.requestedQuantity ?? it.quantity ?? 0;
+                            const approvedQty = it.approvedQuantity ?? (selectedRequest.status === 'Approved' ? reqQty : 0);
+                            const img = it.product?.images?.[0] || it.product?.image;
+
+                            return (
+                              <div key={it.id || idx} className="grid grid-cols-12 items-center px-1 border-b border-gray-50 pb-2.5 last:border-b-0 last:pb-0">
+                                <div className="col-span-6 flex items-center gap-2.5 min-w-0">
+                                  <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+                                    {img ? (
+                                      <img src={img} alt={name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <Package size={16} className="text-gray-300" />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-xs font-bold text-gray-900 truncate block">{name}</span>
+                                    {it.product?.price ? (
+                                      <span className="text-[10px] text-gray-400">₹{it.product.price}</span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <span className="col-span-3 text-center text-xs font-bold text-gray-700">{reqQty}</span>
+                                <span className="col-span-3 text-center text-xs font-bold text-gray-700">{approvedQty}</span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </>
           )}
@@ -1387,7 +1441,7 @@ export default function AgentInventory() {
           <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-2">
             <h4 className="text-xs font-extrabold text-gray-900">Admin Remark</h4>
             <p className="text-[11px] font-medium text-gray-500">
-              {adminRemarkText}
+              {selectedRequest.raw?.adminRemark || selectedRequest.raw?.notes || (selectedRequest.status === 'Pending' ? 'Waiting for warehouse supervisor review.' : 'Processed by supervisor.')}
             </p>
           </div>
         </div>
@@ -1603,21 +1657,24 @@ export default function AgentInventory() {
               {auditHistory.length === 0 ? (
                 <div className="p-8 bg-white rounded-3xl border border-gray-100 text-center space-y-2">
                   <History size={28} className="mx-auto text-gray-300" />
-                  <p className="text-xs font-black text-gray-800">No Audit History Found</p>
-                  <p className="text-[11px] font-medium text-gray-400">There are no stock audits or returns recorded for this vehicle yet.</p>
+                  <p className="text-xs font-black text-gray-800">No History Found</p>
+                  <p className="text-[11px] font-medium text-gray-400">There are no stock refills, audits, or returns recorded for this vehicle yet.</p>
                 </div>
               ) : (
                 auditHistory.map((audit) => {
-                  const title = audit.createdAt ? format(new Date(audit.createdAt), 'do MMMM yyyy') : 'Stock Audit';
-                  const sub = `${audit.user?.name || 'Admin User'} • ${audit.createdAt ? format(new Date(audit.createdAt), 'hh:mm a') : ''}`;
                   const isReturn = audit.type === 'RETURN';
-                  const typeLabel = isReturn ? 'Stock Return' : 'Stock Audit';
+                  const isRefill = audit.type === 'REFILL';
+                  const title = audit.createdAt ? format(new Date(audit.createdAt), 'do MMMM yyyy') : (isReturn ? 'Stock Return' : isRefill ? 'Stock Refill' : 'Stock Audit');
+                  const userDisplayName = audit.user?.name || (isReturn ? 'Vehicle Agent' : isRefill ? 'Warehouse Supervisor' : 'Warehouse Staff');
+                  const sub = `${userDisplayName} • ${audit.createdAt ? format(new Date(audit.createdAt), 'hh:mm a') : ''}`;
+                  const typeLabel = isReturn ? 'Stock Return' : isRefill ? 'Stock Refill' : 'Stock Audit';
                   const item = {
                     id: audit.id,
                     title,
                     sub,
                     type: typeLabel,
                     isReturn,
+                    isRefill,
                     raw: audit,
                   };
 
@@ -1627,7 +1684,7 @@ export default function AgentInventory() {
                       onClick={() => setSelectedHistoryAudit(item)}
                       className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm flex items-center justify-between gap-3.5 hover:border-emerald-200 transition-all cursor-pointer"
                     >
-                      {/* Left Refresh Icon Badge */}
+                      {/* Left Icon Badge */}
                       <div
                         className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
                           item.isReturn
@@ -1635,7 +1692,11 @@ export default function AgentInventory() {
                             : 'bg-emerald-100/60 text-[#00891D]'
                         }`}
                       >
-                        <RotateCcw size={18} strokeWidth={2} />
+                        {item.isRefill ? (
+                          <CheckCircle2 size={18} strokeWidth={2} />
+                        ) : (
+                          <RotateCcw size={18} strokeWidth={2} />
+                        )}
                       </div>
 
                       {/* Title & Subtitle */}
@@ -1723,7 +1784,8 @@ export default function AgentInventory() {
                     const isReimbursed = item.status === 'REIMBURSED' || item.status === 'Reimbursed';
 
                     let title = item.title || (isExpense ? 'Expense Request' : isReturn ? 'Return Request' : isDamage ? 'Damage Report' : 'Refill Request');
-                    let desc = item.desc || `${item.items?.length || 0} Items • ₹${item.totalAmount || 0}`;
+                    const computedTotal = item.totalAmount ?? item.amount ?? (item.items || []).reduce((sum: number, it: any) => sum + (Number(it.quantity || 0) * Number(it.product?.price || 0)), 0);
+                    let desc = item.desc || `${item.items?.length || 0} Items • ₹${Number(computedTotal || 0).toLocaleString('en-IN')}`;
                     let statusLabel = isReimbursed ? 'Reimbursed' : isPending ? 'Pending' : isRejected ? 'Rejected' : 'Approved';
 
                     const req = {
@@ -1810,16 +1872,19 @@ export default function AgentInventory() {
 
             {/* Products List with Checkbox & Stepper */}
             <div className="space-y-3 pt-1">
-              {(allProducts.length > 0
-                ? allProducts.filter((p) => p.name?.toLowerCase().includes(refillSearchQuery.toLowerCase()))
-                : [
-                    { id: '1', name: "Mom's Magic Cashew &", current: 0, price: 55 },
-                    { id: '2', name: 'Mysore Sandal soap', current: 0, price: 207 },
-                    { id: '3', name: 'Sambar Power', current: 0, price: 5 },
-                    { id: '4', name: '3 Roses Dust', current: 3, price: 10 },
-                    { id: '5', name: 'Freedom Oil', current: 5, price: 130 },
-                  ]
-              ).map((p) => {
+              {(() => {
+                const availableCatalog = allProducts.length > 0
+                  ? allProducts
+                  : inventory.map(item => ({
+                      id: item.product?.id || item.productId,
+                      name: item.product?.name || item.name,
+                      current: item.quantity,
+                      price: item.product?.price || item.price || 0,
+                      image: item.product?.images?.[0] || item.image
+                    })).filter(p => p.id);
+
+                return availableCatalog.filter((p) => (p.name || '').toLowerCase().includes(refillSearchQuery.toLowerCase()));
+              })().map((p) => {
                 const reqQty = refillItems[p.id] || 0;
                 const isSelected = reqQty > 0;
                 const currentStock = p.current ?? (inventory.find((i) => i.productId === p.id)?.quantity || 0);

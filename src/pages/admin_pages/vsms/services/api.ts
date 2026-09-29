@@ -92,7 +92,7 @@ export const productsAPI = {
   getById: (id) => api.get(`/products/${id}`),
   getVehicleInventory: (id) => api.get(`/products/vehicle-inventory/${id}`),
   getVehicleStock: (id = 'me') => api.get(`/products/vehicle-inventory/${id}`),
-  getAuditHistory: (vehicleId) => api.get(`/products/audit-history/${vehicleId}`),
+  getAuditHistory: (vehicleId, params) => api.get(`/products/audit-history/${vehicleId || 'me'}`, { params: { _t: Date.now(), ...(params || {}) } }),
   requestRefill: (data) => api.post('/products/refill', data),
   requestReturn: (data) => api.post('/products/return', data),
   getMyRefills: () => api.get('/inventory/my-refills'),
