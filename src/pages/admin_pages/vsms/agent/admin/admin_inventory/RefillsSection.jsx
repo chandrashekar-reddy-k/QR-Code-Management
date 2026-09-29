@@ -212,60 +212,67 @@ const RefillsSection = ({
                   </div>
 
                   {/* Items List */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {req.items.map(item => {
-                      const prod = items.find(p => p.id === item.productId);
-                      let excessBadge = null;
-                      if (req.status === 'PENDING') {
-                        const vehicleInventory = allVehiclesStock[req.vehicleId] || [];
-                        const stockItem = vehicleInventory.find(i => i.productId === item.productId);
+                  {(!req.items || req.items.length === 0) ? (
+                    <div className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-500 flex items-center justify-between">
+                      <span>No detailed product line items recorded for this session</span>
+                      {req.amount ? <span className="font-bold text-indigo-600">Total: ₹{req.amount}</span> : null}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {req.items.map(item => {
+                        const prod = items.find(p => p.id === item.productId);
+                        const productName = item.product?.name || prod?.name || item.name || 'Refill Product';
+                        let excessBadge = null;
+                        if (req.status === 'PENDING') {
+                          const vehicleInventory = allVehiclesStock[req.vehicleId] || [];
+                          const stockItem = vehicleInventory.find(i => i.productId === item.productId);
 
-                        const targetCapacity = stockItem ? Math.max(stockItem.openingQuantity || 0, stockItem.quantity) : 0;
-                        const currentQty = stockItem ? stockItem.quantity : 0;
-                        const shortfall = targetCapacity - currentQty;
-                        
-                        const requestedQty = editedQuantities[item.id] ?? item.quantity;
-                        const excess = requestedQty - shortfall;
+                          const targetCapacity = stockItem ? Math.max(stockItem.openingQuantity || 0, stockItem.quantity) : 0;
+                          const currentQty = stockItem ? stockItem.quantity : 0;
+                          const shortfall = targetCapacity - currentQty;
+                          
+                          const requestedQty = editedQuantities[item.id] ?? item.quantity;
+                          const excess = requestedQty - shortfall;
 
-                        if (excess > 0) {
-                          excessBadge = (
-                            <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-lg shadow-lg shadow-rose-500/30 ring-2 ring-white flex items-center gap-1 z-10 animate-in zoom-in duration-300">
-                              <ArrowUpCircle size={10} strokeWidth={3} />
-                              +{excess}
-                            </div>
-                          );
+                          if (excess > 0) {
+                            excessBadge = (
+                              <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-lg shadow-lg shadow-rose-500/30 ring-2 ring-white flex items-center gap-1 z-10 animate-in zoom-in duration-300">
+                                <ArrowUpCircle size={10} strokeWidth={3} />
+                                +{excess}
+                              </div>
+                            );
+                          }
                         }
-                      }
 
-                      const isSelected = !unselectedRefillItems.includes(item.id);
-                      return (
-                        <div key={item.id} className={`bg-white p-3.5 rounded-[1.5rem] border transition-all duration-300 ${!isSelected ? 'border-gray-100 opacity-40 grayscale' : 'border-indigo-100 shadow-sm'}`}>
-                          {/* Integrated Top: Info + Toggle */}
-                          <div className="flex items-center gap-3 mb-2.5">
-                            {req.status === 'PENDING' && canApprove && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); toggleRefillItemSelection(item.id); }}
-                                className={`shrink-0 transition-all ${isSelected ? 'text-indigo-600' : 'text-gray-300'}`}
-                              >
-                                {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
-                              </button>
-                            )}
-                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-black shrink-0 ${req.status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-200' :
-                              req.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                'bg-emerald-50 text-emerald-600 border-emerald-200'
-                              }`}>
-                              <Package size={16} />
-                              {excessBadge}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-[13px] font-black text-gray-900 leading-none truncate block">{item.product?.name}</span>
-                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Store:</span>
-                                  <span className={`text-[9px] font-black ${(prod?.stock || 0) < (editedQuantities[item.id] ?? item.quantity) ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                    {prod?.stock || 0}
-                                  </span>
-                                </div>
+                        const isSelected = !unselectedRefillItems.includes(item.id);
+                        return (
+                          <div key={item.id} className={`bg-white p-3.5 rounded-[1.5rem] border transition-all duration-300 ${!isSelected ? 'border-gray-100 opacity-40 grayscale' : 'border-indigo-100 shadow-sm'}`}>
+                            {/* Integrated Top: Info + Toggle */}
+                            <div className="flex items-center gap-3 mb-2.5">
+                              {req.status === 'PENDING' && canApprove && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleRefillItemSelection(item.id); }}
+                                  className={`shrink-0 transition-all ${isSelected ? 'text-indigo-600' : 'text-gray-300'}`}
+                                >
+                                  {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                                </button>
+                              )}
+                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-black shrink-0 ${req.status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                                req.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                  'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                }`}>
+                                <Package size={16} />
+                                {excessBadge}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-[13px] font-black text-gray-900 leading-none truncate block">{productName}</span>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Store:</span>
+                                    <span className={`text-[9px] font-black ${(prod?.stock || 0) < (editedQuantities[item.id] ?? item.quantity) ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                      {prod?.stock || 0}
+                                    </span>
+                                  </div>
                                 {req.status === 'PENDING' && (
                                   <>
                                     <div className="flex items-center gap-1">
@@ -370,6 +377,7 @@ const RefillsSection = ({
                       );
                     })}
                   </div>
+                  )}
 
                   {/* Action Controls */}
                   {req.status === 'PENDING' && canApprove && (
