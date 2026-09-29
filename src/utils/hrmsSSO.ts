@@ -6,13 +6,15 @@
  * by attempting a silent token refresh before generating the SSO ticket.
  */
 
+import { URL as PARTNER_URL } from '../config';
+
 const IDENTITY_BASE = () =>
-  (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
+  (import.meta.env.VITE_IDENTITY_SERVICE_URL || '').replace(/\/+$/, '');
 
 const PARTNER_API_BASE = () =>
-  (import.meta.env.VITE_URL || 'http://localhost:3004/api/v1').replace(/\/+$/, '');
+  (import.meta.env.VITE_URL || PARTNER_URL || '').replace(/\/+$/, '');
 
-const HRMS_URL = () => import.meta.env.VITE_HRMS_URL || 'http://localhost:8088';
+const HRMS_URL = () => (import.meta.env.VITE_HRMS_URL || '').replace(/\/+$/, '');
 
 /** Reads the best available access token from localStorage */
 function getStoredToken(): string | null {

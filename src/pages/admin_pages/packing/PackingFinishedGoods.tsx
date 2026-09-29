@@ -13,6 +13,8 @@ import {
   Loader2,
   ChevronDown,
   ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { finishedGoodsService, FinishedGoodsRecord } from '../../../api/packing/finishedGoodsService';
 import { workOrderService, WorkOrder } from '../../../api/packing/workOrderService';
@@ -70,6 +72,10 @@ export const PackingFinishedGoods: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Post Modal state
   const [isPostOpen, setIsPostOpen] = useState(false);
@@ -136,7 +142,10 @@ export const PackingFinishedGoods: React.FC = () => {
         const qcRecords = qualityChecks.filter((q) => q.woId === wo.id && ['PASS', 'PARTIAL_PASS', 'Pass', 'Partial Pass'].includes(q.result));
         let totalApproved = qcRecords.reduce((sum, q) => sum + (q.checkedQty || 0), 0);
         if (qcRecords.length === 0) {
-          totalApproved = wo.requiredQty || 0;
+          totalApproved = wo.actualProduced || wo.requiredQty || 0;
+        }
+        if (wo.actualProduced && totalApproved > wo.actualProduced) {
+          totalApproved = wo.actualProduced;
         }
         const alreadyPostedFGs = postedFGs.filter(fg => fg.woId === wo.id);
         const woAlreadyPosted = alreadyPostedFGs.reduce((sum, fg) => sum + (fg.postedQty || 0), 0);
@@ -225,6 +234,14 @@ export const PackingFinishedGoods: React.FC = () => {
     return result;
   }, [unifiedData, search, statusFilter, sortField, sortDirection]);
 
+  // Pagination logic
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredData.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredData, currentPage, rowsPerPage]);
+
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+
   // Total KPIs
   const totalUnitsPosted = useMemo(
     () => postedFGs.reduce((acc, fg) => acc + (fg.postedQty || 0), 0),
@@ -249,7 +266,10 @@ export const PackingFinishedGoods: React.FC = () => {
       const qcRecords = qualityChecks.filter((q) => q.woId === wo.id && ['PASS', 'PARTIAL_PASS', 'Pass', 'Partial Pass'].includes(q.result));
       let totalApproved = qcRecords.reduce((sum, q) => sum + (q.checkedQty || 0), 0);
       if (qcRecords.length === 0) {
-        totalApproved = wo.requiredQty || 0;
+        totalApproved = wo.actualProduced || wo.requiredQty || 0;
+      }
+      if (wo.actualProduced && totalApproved > wo.actualProduced) {
+        totalApproved = wo.actualProduced;
       }
       
       const alreadyPostedFGs = postedFGs.filter(fg => fg.woId === wo.id);
@@ -257,7 +277,7 @@ export const PackingFinishedGoods: React.FC = () => {
       const maxQty = Math.max(0, totalApproved - alreadyPosted);
       
       setMaxPostedQty(maxQty);
-      setAllocations({ ready: 0 });
+      setAllocations({ ready: maxQty });
       setRawCost(3000);
       setPackagingCost(400);
       setEmployeeCost(250);
@@ -539,9 +559,9 @@ export const PackingFinishedGoods: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((row) => (
+                  paginatedData.map((row, index) => (
                     <tr
-                      key={row.id}
+                      key={`${row.id}-${index}`}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50/60 dark:hover:bg-gray-700/40 transition-colors"
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -621,6 +641,54 @@ export const PackingFinishedGoods: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Footer */}
+        {!loading && (
+          <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="p-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 dark:text-white focus:outline-none"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>
+                Showing {(currentPage - 1) * rowsPerPage + 1} -{' '}
+                {Math.min(currentPage * rowsPerPage, filteredData.length)} of{' '}
+                {filteredData.length} records
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="px-2 font-bold dark:text-white">
+                {currentPage} / {totalPages || 1}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="p-1.5 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -797,17 +865,13 @@ export const PackingFinishedGoods: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-100 dark:border-emerald-800 flex justify-between items-center">
+                    <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
                       Ready Inventory (Warehouse) Allocation
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-bold font-mono focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                      value={allocations.ready || ''}
-                      onChange={(e) => setAllocations(prev => ({ ...prev, ready: Number(e.target.value) }))}
-                    />
+                    </span>
+                    <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300 font-mono">
+                      {allocations.ready} units (Auto-allocated)
+                    </span>
                   </div>
                 </div>
               </div>

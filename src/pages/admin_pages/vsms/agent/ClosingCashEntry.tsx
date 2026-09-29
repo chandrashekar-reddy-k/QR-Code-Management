@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Loader2,
   ShoppingBag,
+  RefreshCw,
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { submitClosingCash, getCashStatus } from '../services/cashService';
@@ -40,10 +41,11 @@ export default function ClosingCashEntry() {
 
   const loadStatus = async () => {
     try {
+      setFetching(true);
       const data = await getCashStatus();
       setStatus(data);
     } catch (err) {
-      console.log('Using default cash reconciliation state');
+      console.error('Failed to load cash status:', err);
     } finally {
       setFetching(false);
     }
@@ -60,14 +62,21 @@ export default function ClosingCashEntry() {
   }, 0);
 
   const currentShift = activeShift === 1 ? status?.shifts?.shift1 : status?.shifts?.shift2;
-  const shiftOpening = currentShift?.openingCash || 100.0;
-  const shiftSales = currentShift?.cashSales || 0.0;
-  const shiftUpi = currentShift?.upiSales || 0.0;
-  const shiftCard = currentShift?.cardSales || 0.0;
-  const shiftExpenses = currentShift?.expenses || 0.0;
+  const isOpeningAssigned = Boolean(currentShift?.openingAssigned);
+  const shiftOpening = isOpeningAssigned ? Number(currentShift?.openingCash || 0) : 0;
+  const shiftSales = Number(currentShift?.cashSales || 0);
+  const shiftUpi = Number(currentShift?.upiSales || 0);
+  const shiftCard = Number(currentShift?.cardSales || 0);
+  const shiftExpenses = Number(currentShift?.expenses || 0);
   const expectedCash = shiftOpening + shiftSales - shiftExpenses;
+  const openingDenoms = currentShift?.openingDenominations || {};
+  const isClosingSubmitted = Boolean(currentShift?.closingSubmitted);
 
   const handleSubmit = async () => {
+    if (!isOpeningAssigned) {
+      toast.error(`Shift ${activeShift} cannot be closed because no opening float was assigned by the store manager yet.`);
+      return;
+    }
     setLoading(true);
     try {
       await submitClosingCash({
@@ -78,8 +87,9 @@ export default function ClosingCashEntry() {
         shift: activeShift,
       });
       toast.success(`Shift ${activeShift} reconciliation submitted successfully`);
+      loadStatus();
     } catch (err) {
-      toast.success(`Shift ${activeShift} cash reconciled!`);
+      toast.error(err?.response?.data?.message || err?.message || `Failed to submit Shift ${activeShift} cash reconciliation`);
     } finally {
       setLoading(false);
     }
@@ -89,16 +99,26 @@ export default function ClosingCashEntry() {
     <div className="min-h-screen pb-28 pt-2 bg-[#FAFAFA]">
       <div className="max-w-[420px] mx-auto px-4 space-y-4">
         {/* Header Bar */}
-        <div className="flex items-center gap-2.5 pt-1">
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} />
+            </button>
+            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
+              Cash Reconciliation
+            </h1>
+          </div>
           <button
-            onClick={() => navigate(-1)}
-            className="p-1 -ml-1 text-gray-900 transition-colors cursor-pointer"
+            onClick={loadStatus}
+            disabled={fetching}
+            className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+            title="Refresh from DB"
           >
-            <ArrowLeft size={18} strokeWidth={2.5} />
+            <RefreshCw size={16} className={fetching ? 'animate-spin text-[#00891D]' : ''} />
           </button>
-          <h1 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
-            Cash Reconciliation
-          </h1>
         </div>
 
         {/* 2-Shift Switcher Pill */}
@@ -206,66 +226,73 @@ export default function ClosingCashEntry() {
               <div>
                 <p className="text-xs font-bold text-gray-400">Assigned Float</p>
                 <h3 className="text-xl font-black text-gray-900 mt-0.5">
-                  ₹{activeShift === 2 ? '600.00' : Number(shiftOpening || 100).toFixed(2)}
+                  ₹{shiftOpening.toFixed(2)}
                 </h3>
               </div>
             </div>
 
             <div className="text-right">
-              <span className="text-[10px] font-extrabold text-[#00891D] bg-[#E8F5E9] px-2.5 py-0.5 rounded-full border border-emerald-100">
-                Assigned
-              </span>
+              {isOpeningAssigned ? (
+                <span className="text-[10px] font-extrabold text-[#00891D] bg-[#E8F5E9] px-2.5 py-0.5 rounded-full border border-emerald-100">
+                  Assigned
+                </span>
+              ) : (
+                <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                  Not Assigned
+                </span>
+              )}
               <p className="text-[10px] font-semibold text-gray-400 mt-1">
                 For Shift {activeShift}
               </p>
             </div>
           </div>
 
+          {!isOpeningAssigned && (
+            <div className="text-[11px] font-medium text-amber-700 bg-amber-50/80 border border-amber-200/60 rounded-xl px-3 py-2">
+              No opening cash float has been assigned for Shift {activeShift} in the database yet.
+            </div>
+          )}
+
+          {isClosingSubmitted && (
+            <div className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/60 rounded-xl px-3 py-2 flex items-center justify-between">
+              <span>Shift {activeShift} Closing Already Submitted</span>
+              <span className="font-extrabold text-xs">₹{Number(currentShift?.closingActual || 0).toFixed(2)}</span>
+            </div>
+          )}
+
           {/* Assigned Float Denominations */}
           <div className="space-y-2 pt-1 border-t border-gray-100">
-            <p className="text-xs font-bold text-gray-500">
-              Assigned Float Denominations
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-gray-500">
+                Assigned Float Denominations
+              </p>
+              {isOpeningAssigned && (
+                <span className="text-[10px] font-bold text-[#00891D]">
+                  Live from DB
+                </span>
+              )}
+            </div>
 
             <div className="grid grid-cols-5 gap-1.5">
-              {(activeShift === 2
-                ? [
-                    { denom: 500, count: 1, active: true },
-                    { denom: 200, count: 0 },
-                    { denom: 100, count: 1, active: true },
-                    { denom: 50, count: 0 },
-                    { denom: 20, count: 0 },
-                    { denom: 10, count: 0 },
-                    { denom: 5, count: 0 },
-                    { denom: 2, count: 0 },
-                    { denom: 1, count: 0 },
-                  ]
-                : [
-                    { denom: 500, count: 0 },
-                    { denom: 200, count: 0 },
-                    { denom: 100, count: 1, active: true },
-                    { denom: 50, count: 0 },
-                    { denom: 20, count: 0 },
-                    { denom: 10, count: 0 },
-                    { denom: 5, count: 0 },
-                    { denom: 2, count: 0 },
-                    { denom: 1, count: 0 },
-                  ]
-              ).map(({ denom, count, active }) => (
-                <div
-                  key={denom}
-                  className={`rounded-xl p-2 text-center border ${
-                    active
-                      ? 'border-[#00891D] bg-[#E8F5E9] text-[#00891D]'
-                      : 'border-gray-100 bg-gray-50/60 text-gray-700'
-                  }`}
-                >
-                  <p className="text-[11px] font-extrabold">₹{denom}</p>
-                  <p className="text-[10px] font-semibold text-gray-400 mt-0.5">
-                    × {count}
-                  </p>
-                </div>
-              ))}
+              {DENOMINATIONS.map((denom) => {
+                const count = Number(openingDenoms[denom] || openingDenoms[String(denom)] || 0);
+                const active = count > 0;
+                return (
+                  <div
+                    key={denom}
+                    className={`rounded-xl p-2 text-center border transition-all ${
+                      active
+                        ? 'border-[#00891D] bg-[#E8F5E9] text-[#00891D]'
+                        : 'border-gray-100 bg-gray-50/60 text-gray-700'
+                    }`}
+                  >
+                    <p className="text-[11px] font-extrabold">₹{denom}</p>
+                    <p className={`text-[10px] font-semibold mt-0.5 ${active ? 'text-[#00891D]' : 'text-gray-400'}`}>
+                      × {count}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

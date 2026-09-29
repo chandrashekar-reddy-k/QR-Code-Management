@@ -38,8 +38,8 @@ export const PackingExecutionDetails: React.FC = () => {
 
   const [actualProduced, setActualProduced] = useState<number>(0);
   const [actualRejected, setActualRejected] = useState<number>(0);
-  const [labelsApplied, setLabelsApplied] = useState<number>(0);
-  const [labelsRejected, setLabelsRejected] = useState<number>(0);
+  const [labelsApplied, setLabelsApplied] = useState<string>('');
+  const [labelsRejected, setLabelsRejected] = useState<string>('');
   const [pauseReason, setPauseReason] = useState<string>('');
   const [showPauseModal, setShowPauseModal] = useState(false);
 
@@ -62,7 +62,8 @@ export const PackingExecutionDetails: React.FC = () => {
         setSelectedWO(found);
         setActualProduced(found.actualProduced || 0);
         setActualRejected(found.actualRejected || 0);
-        setLabelsApplied(found.labelsApplied ?? found.actualProduced ?? 0);
+        const la = found.labelsApplied ?? found.actualProduced;
+        setLabelsApplied(la ? String(la) : '');
       }
     } catch (e) {
       console.error('Failed to fetch Work Order for details:', e);
@@ -109,8 +110,8 @@ export const PackingExecutionDetails: React.FC = () => {
 
   // Labeling logic
   const reqLabels = packedQty > 0 ? packedQty : reqQty;
-  const labelsRemaining = Math.max(0, reqLabels - labelsApplied - labelsRejected);
-  const labelingPct = Math.min(100, Math.round((labelsApplied / reqLabels) * 100) || 0);
+  const labelsRemaining = Math.max(0, reqLabels - Number(labelsApplied) - Number(labelsRejected));
+  const labelingPct = Math.min(100, Math.round((Number(labelsApplied) / reqLabels) * 100) || 0);
 
 
 
@@ -252,14 +253,14 @@ export const PackingExecutionDetails: React.FC = () => {
 
   const handleSaveLabelQuantities = async () => {
     const maxQty = actualProduced > 0 ? actualProduced : reqQty;
-    if (labelsApplied + labelsRejected > maxQty) {
+    if (Number(labelsApplied) + Number(labelsRejected) > maxQty) {
       showToast('Total labels cannot exceed packed quantity.', true);
       return;
     }
     try {
       setActionLoading(true);
       const updated = await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
-        labelsApplied,
+        labelsApplied: Number(labelsApplied),
       });
       setSelectedWO(updated);
       showToast('Label quantities updated successfully!');
@@ -274,16 +275,16 @@ export const PackingExecutionDetails: React.FC = () => {
 
   const handleCompleteLabeling = async () => {
     const maxQty = actualProduced > 0 ? actualProduced : reqQty;
-    if (labelsApplied + labelsRejected > maxQty) {
+    if (Number(labelsApplied) + Number(labelsRejected) > maxQty) {
       showToast('Total labels cannot exceed packed quantity.', true);
       return;
     }
     try {
       setActionLoading(true);
-      await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, { labelsApplied });
+      await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, { labelsApplied: Number(labelsApplied) });
       await barcodeService.completeTask({
         workOrderId: selectedWO.id,
-        appliedQuantity: labelsApplied,
+        appliedQuantity: Number(labelsApplied),
       });
       showToast('Labeling completed successfully!');
       fetchWO();
@@ -454,7 +455,7 @@ export const PackingExecutionDetails: React.FC = () => {
                 {isLabelingStage ? 'Labels Applied' : 'Packed Qty'}
               </span>
               <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300 font-mono">
-                {isLabelingStage ? labelsApplied : packedQty}
+                {isLabelingStage ? (labelsApplied || 0) : packedQty}
               </span>
             </div>
             <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-100 dark:border-amber-900">
@@ -470,7 +471,7 @@ export const PackingExecutionDetails: React.FC = () => {
                 {isLabelingStage ? 'Rejected Labels' : 'Rejected Qty'}
               </span>
               <span className="text-lg font-bold text-rose-700 dark:text-rose-300 font-mono">
-                {isLabelingStage ? labelsRejected : actualRejected}
+                {isLabelingStage ? (labelsRejected || 0) : actualRejected}
               </span>
             </div>
           </div>
@@ -672,7 +673,7 @@ export const PackingExecutionDetails: React.FC = () => {
                 type="number"
                 min="0"
                 value={labelsApplied}
-                onChange={(e) => setLabelsApplied(Number(e.target.value))}
+                onChange={(e) => setLabelsApplied(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
               />
             </div>
@@ -684,7 +685,7 @@ export const PackingExecutionDetails: React.FC = () => {
                 type="number"
                 min="0"
                 value={labelsRejected}
-                onChange={(e) => setLabelsRejected(Number(e.target.value))}
+                onChange={(e) => setLabelsRejected(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
               />
             </div>

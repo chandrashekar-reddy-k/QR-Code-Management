@@ -235,7 +235,15 @@ export function DashboardMobile({ onNavigate, isAdmin = false }: DashboardProps)
     }).length;
     const picking = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'accepted' || s === 'picking';
+      if (s === 'cancelled' || s === 'completed' || s === 'packing' || s === 'packed' || s === 'processing' || s === 'ready' || s === 'dispatched' || s === 'delivered') return false;
+      if (s !== 'accepted' && s !== 'picking') return false;
+
+      const itemsList = Array.isArray(o.items) ? o.items : [];
+      if (itemsList.length > 0) {
+        const unprocessed = itemsList.filter((i: any) => !i.is_picked && !i.isPicked && !i.is_rejected && !i.isRejected && !i.is_cancelled && !i.isCancelled);
+        if (unprocessed.length === 0) return false;
+      }
+      return true;
     }).length;
     const packing = allOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();

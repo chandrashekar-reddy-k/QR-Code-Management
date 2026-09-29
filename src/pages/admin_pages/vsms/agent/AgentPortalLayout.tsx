@@ -3,7 +3,7 @@ import { NavLink, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { 
   Home, MapPin, Package, Wallet, Clock, BarChart2, User, Activity, 
   FileText, Truck, AlertTriangle, Receipt, LogOut, Menu, X, Store,
-  ArrowDownToLine, ArrowUpFromLine, ShoppingBag, ShoppingCart, Hexagon
+  ArrowDownToLine, ArrowUpFromLine, ShoppingBag, ShoppingCart, Hexagon, ArrowRightLeft
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { attendanceAPI } from '../services/api';
@@ -23,6 +23,7 @@ const menuSections = [
       { path: '/vsms/agent-portal/scheduled-deliveries', label: "Scheduled Deliveries", icon: Package },
       { path: '/vsms/agent-portal/sales', label: "Sales POS", icon: BarChart2 },
       { path: '/vsms/agent-portal/inventory', label: "Vehicle & Stock", icon: Truck },
+      { path: '/vsms/agent-portal/stock-transfer', label: "Stock Transfer", icon: ArrowRightLeft },
     ]
   },
   {
@@ -58,15 +59,32 @@ interface AgentPortalLayoutProps {
   children?: React.ReactNode;
 }
 
+// Module-level cache to eliminate repeated "Checking Attendance..." full-screen loading on tab switches
+let cachedAttendanceChecked = false;
+let cachedHasPunchedIn = false;
+let lastAttendanceCheckTime = 0;
+
 export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [trackingOn, setTrackingOn] = useState(() => locationService.isTrackingActive());
   const { user, refreshUserProfile } = useUserStore() as any;
-  const [attendanceChecked, setAttendanceChecked] = useState(false);
-  const [hasPunchedIn, setHasPunchedIn] = useState(false);
-  const [checkingAttendance, setCheckingAttendance] = useState(true);
+
+  const getStoredPunchedIn = () => {
+    if (cachedHasPunchedIn) return true;
+    try {
+      return sessionStorage.getItem('vsms_agent_punched_in') === 'true';
+    } catch {
+      return false;
+    }
+  };
+
+  const initialPunched = getStoredPunchedIn();
+  const [hasPunchedIn, setHasPunchedIn] = useState<boolean>(initialPunched);
+  const [attendanceChecked, setAttendanceChecked] = useState<boolean>(() => cachedAttendanceChecked || initialPunched);
+  // Never show full-screen loader when switching between tabs if already checked or punched in
+  const [checkingAttendance, setCheckingAttendance] = useState<boolean>(() => !cachedAttendanceChecked && !initialPunched);
 
   const agentName = user?.name || localStorage.getItem('userName') || 'Agent';
 
@@ -80,17 +98,37 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
     // Check attendance for agent portal users
     const checkAttendance = async () => {
       if (!isAgent) {
+        cachedAttendanceChecked = true;
+        cachedHasPunchedIn = true;
         setAttendanceChecked(true);
         setHasPunchedIn(true);
         setCheckingAttendance(false);
         return;
       }
+
+      // If already verified recently (within 5 minutes), do not block or re-query
+      const now = Date.now();
+      if (cachedAttendanceChecked && now - lastAttendanceCheckTime < 5 * 60 * 1000) {
+        setCheckingAttendance(false);
+        return;
+      }
+
       try {
         const { data } = await attendanceAPI.getToday();
-        setHasPunchedIn(data?.punchedIn === true);
+        const punched = data?.punchedIn === true;
+        cachedHasPunchedIn = punched;
+        cachedAttendanceChecked = true;
+        lastAttendanceCheckTime = now;
+        try {
+          if (punched) {
+            sessionStorage.setItem('vsms_agent_punched_in', 'true');
+          } else {
+            sessionStorage.removeItem('vsms_agent_punched_in');
+          }
+        } catch {}
+        setHasPunchedIn(punched);
       } catch (err) {
         console.error('Failed to check attendance in AgentPortalLayout:', err);
-        setHasPunchedIn(false);
       } finally {
         setAttendanceChecked(true);
         setCheckingAttendance(false);
@@ -142,6 +180,10 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
         console.error('Failed to close HRMS window:', err);
       }
     }
+    cachedHasPunchedIn = false;
+    cachedAttendanceChecked = false;
+    lastAttendanceCheckTime = 0;
+    try { sessionStorage.removeItem('vsms_agent_punched_in'); } catch {}
     localStorage.removeItem('token');
     localStorage.removeItem('partnerToken');
     localStorage.removeItem('authToken');
@@ -328,6 +370,10 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
   );
 
   const handlePunchIn = () => {
+    cachedHasPunchedIn = true;
+    cachedAttendanceChecked = true;
+    lastAttendanceCheckTime = Date.now();
+    try { sessionStorage.setItem('vsms_agent_punched_in', 'true'); } catch {}
     setHasPunchedIn(true);
   };
 
@@ -514,6 +560,7 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
                 </>
               )}
             </NavLink>
+
 
             <NavLink
               to="/vsms/agent-portal/profile"

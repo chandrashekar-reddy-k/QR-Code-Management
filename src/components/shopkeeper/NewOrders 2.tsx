@@ -73,10 +73,12 @@ export function NewOrders({ onNavigate, onBack, isAdmin = false }: NewOrdersProp
     setSearchTerm("");
   };
 
-  // Filter orders (new, pending, placed, assigned statuses)
+  // Filter orders (new, pending, placed, assigned statuses that haven't been accepted yet)
   const orders = sharedOrders.filter((o: any) => {
     const s = o.status?.toLowerCase();
-    return s === 'new' || s === 'pending' || s === 'placed' || s === 'assigned' || s === 'confirmed';
+    const isNewStatus = s === 'new' || s === 'pending' || s === 'placed' || s === 'assigned' || s === 'confirmed';
+    const isNotAccepted = !o.shopkeeperAcceptedAt && !o.acceptedByShopkeeperAt && o.allocationStatus !== 'Accepted';
+    return isNewStatus && isNotAccepted;
   });
 
   const filteredOrders = orders.filter((order) => {

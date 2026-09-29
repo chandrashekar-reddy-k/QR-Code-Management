@@ -51,7 +51,23 @@ export function PickingQueue({ onNavigate, onBack, isAdmin = false }: PickingQue
   const pickingOrders = useMemo(() => {
     const filtered = sharedOrders.filter((o: any) => {
       const s = o.status?.toLowerCase();
-      return s === 'accepted' || s === 'picking';
+      if (s === 'cancelled' || s === 'completed' || s === 'packing' || s === 'packed' || s === 'processing' || s === 'ready' || s === 'dispatched' || s === 'delivered') {
+        return false;
+      }
+      if (s !== 'accepted' && s !== 'picking') return false;
+
+      const itemsList = Array.isArray(o.items) ? o.items : [];
+      if (itemsList.length > 0) {
+        const unprocessed = itemsList.filter((i: any) => !i.is_picked && !i.isPicked && !i.is_rejected && !i.isRejected && !i.is_cancelled && !i.isCancelled);
+        if (unprocessed.length === 0) return false;
+      }
+
+      if (typeof o.item_count === 'number' && o.item_count > 0) {
+        const processedCount = (o.picked_count || 0) + (o.rejected_count || 0) + (o.cancelled_count || 0);
+        if (processedCount >= o.item_count) return false;
+      }
+
+      return true;
     });
     return filtered.map((o: any) => ({
       ...o,

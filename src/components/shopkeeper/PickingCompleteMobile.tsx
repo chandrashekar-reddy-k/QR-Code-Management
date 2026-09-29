@@ -216,25 +216,37 @@ export function PickingCompleteMobile({ onNavigate, data }: PickingCompleteMobil
 
       {/* CTA Button */}
       <div className="w-full max-w-sm">
-        <button
-          onClick={() => onNavigate("packing-screen", data)}
-          className="w-full flex items-center justify-center gap-3 rounded-2xl py-4 shadow-lg"
-          style={{ backgroundColor: "#00891D" }}
-        >
-          <Package size={20} color="white" />
-          <span className="text-white" style={{ fontWeight: 700, fontSize: "16px" }}>
-            Move to Packing
-          </span>
-          <ArrowRight size={20} color="white" />
-        </button>
+        {pickedItems > 0 && (
+          <button
+            onClick={() => onNavigate("packing-screen", data)}
+            className="w-full flex items-center justify-center gap-3 rounded-2xl py-4 shadow-lg mb-3"
+            style={{ backgroundColor: "#00891D" }}
+          >
+            <Package size={20} color="white" />
+            <span className="text-white" style={{ fontWeight: 700, fontSize: "16px" }}>
+              Move to Packing
+            </span>
+            <ArrowRight size={20} color="white" />
+          </button>
+        )}
         <button
           onClick={() => onNavigate("picking-queue")}
-          className="w-full mt-3 flex items-center justify-center gap-2 rounded-2xl py-3 border border-gray-200 dark:border-gray-700"
+          className={`w-full flex items-center justify-center gap-2 rounded-2xl ${
+            pickedItems === 0
+              ? "py-4 bg-[#00891D] text-white font-bold text-base shadow-lg"
+              : "py-3 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-medium text-sm"
+          }`}
         >
-          <span className="text-gray-600 dark:text-gray-400" style={{ fontWeight: 500, fontSize: "14px" }}>
-            Back to Picking Queue
-          </span>
+          <span>Back to Picking Queue</span>
         </button>
+        {pickedItems === 0 && (
+          <button
+            onClick={() => onNavigate("dashboard")}
+            className="w-full mt-3 flex items-center justify-center gap-2 rounded-2xl py-3.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-sm shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <span>Back to Dashboard</span>
+          </button>
+        )}
       </div>
     </div>
   );

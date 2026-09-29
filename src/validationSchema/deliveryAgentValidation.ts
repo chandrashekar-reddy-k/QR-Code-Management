@@ -63,9 +63,22 @@ phone: yup
 
   email: yup
     .string()
-    .required("Email is required")
-    .email("Invalid email")
-    .trim(),
+    .nullable()
+    .notRequired()
+    .test("valid-email", "Invalid email format", (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val))
+    .transform((val) => (val ? val.trim() : val)),
+
+  password: yup
+    .string()
+    .nullable()
+    .notRequired()
+    .min(6, "Password must be at least 6 characters"),
+
+  confirmPassword: yup
+    .string()
+    .nullable()
+    .notRequired()
+    .oneOf([yup.ref("password")], "Passwords must match"),
 
   dob: yup
     .string()

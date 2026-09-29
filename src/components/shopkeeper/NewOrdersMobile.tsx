@@ -3,6 +3,7 @@ import { ArrowLeft, Clock, MapPin, Zap, ShoppingCart, Phone, AlertCircle, CheckC
 import api from "../../api/axios";
 import { ShopkeeperModal } from "./ShopkeeperModal";
 import { useSharedOrders } from "./SharedOrdersContext";
+import toast from "react-hot-toast";
 
 interface NewOrdersProps {
   onNavigate: (screen: string, data?: unknown) => void;
@@ -52,7 +53,12 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
 
   const { orders: sharedOrders, refreshOrders, loading } = useSharedOrders();
   const orders = sharedOrders
-    .filter((o: any) => o.status?.toLowerCase() === 'new' || o.status?.toLowerCase() === 'assigned' || o.status?.toLowerCase() === 'confirmed' || o.status?.toLowerCase() === 'placed')
+    .filter((o: any) => {
+      const s = (o.status || '').toLowerCase();
+      const isNewStatus = ['new', 'assigned', 'confirmed', 'placed', 'pending'].includes(s);
+      const isNotAccepted = !o.shopkeeperAcceptedAt && !o.acceptedByShopkeeperAt && o.allocationStatus !== 'Accepted';
+      return isNewStatus && isNotAccepted;
+    })
     .sort((a: any, b: any) => {
       const timeA = new Date(a.created_at || a.createdAt || a.orderDate || 0).getTime();
       const timeB = new Date(b.created_at || b.createdAt || b.orderDate || 0).getTime();
@@ -60,17 +66,26 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
       return String(b.id || b.order_number || "").localeCompare(String(a.id || a.order_number || ""));
     });
 
+  const [acceptingId, setAcceptingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+
   const handleAccept = async (orderId: number) => {
+    setAcceptingId(orderId);
     try {
-      await api.put(`/orders/${orderId}/accept`);
+      const res = await api.put(`/orders/${orderId}/accept`);
+      toast.success(res.data?.message || "Order accepted successfully!");
       await refreshOrders();
       onNavigate("picking-queue");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.response?.data?.error || "Failed to accept order");
+    } finally {
+      setAcceptingId(null);
     }
   };
 
   const handleReject = async (orderId: number) => {
+    setRejectingId(orderId);
     try {
       await api.put(`/orders/${orderId}/reject`);
       
@@ -89,6 +104,8 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
       await refreshOrders();
     } catch (err) {
       console.error(err);
+    } finally {
+      setRejectingId(null);
     }
   };
 
@@ -217,18 +234,32 @@ export function NewOrders({ onNavigate, onBack }: NewOrdersProps) {
                   <div className="flex gap-3">
                     <button
                       onClick={() => handleReject(order.id)}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border border-red-200 bg-red-50"
+                      disabled={acceptingId === order.id || rejectingId === order.id}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3 border border-red-200 bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      <XCircle size={16} color="#D32F2F" />
-                      <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>Ignore</span>
+                      {rejectingId === order.id ? (
+                        <Loader2 className="animate-spin text-red-600" size={16} />
+                      ) : (
+                        <XCircle size={16} color="#D32F2F" />
+                      )}
+                      <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>
+                        {rejectingId === order.id ? "Ignoring..." : "Ignore"}
+                      </span>
                     </button>
                     <button
                       onClick={() => handleAccept(order.id)}
-                      className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-3"
+                      disabled={acceptingId === order.id || rejectingId === order.id}
+                      className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       style={{ backgroundColor: "#00891D" }}
                     >
-                      <CheckCircle size={16} color="white" />
-                      <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Accept Order</span>
+                      {acceptingId === order.id ? (
+                        <Loader2 className="animate-spin text-white" size={16} />
+                      ) : (
+                        <CheckCircle size={16} color="white" />
+                      )}
+                      <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>
+                        {acceptingId === order.id ? "Accepting..." : "Accept Order"}
+                      </span>
                     </button>
                   </div>
                 </div>

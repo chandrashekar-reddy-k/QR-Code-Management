@@ -632,6 +632,7 @@ const AdminDamage = lazy(() => import("../pages/admin_pages/vsms/AdminDamage"));
 const AdminRoutes = lazy(() => import("../pages/admin_pages/vsms/AdminRoutes"));
 const AdminInventory = lazy(() => import("../pages/admin_pages/vsms/AdminInventory"));
 const AdminCashManagement = lazy(() => import("../pages/admin_pages/vsms/AdminCashManagement"));
+const DailyReconciliationPage = lazy(() => import("../pages/admin_pages/vsms/admin_cash_management/DailyReconciliationPage"));
 const AdminPOS = lazy(() => import("../pages/admin_pages/vsms/AdminPOS"));
 const BarcodeManagement = lazy(() => import("../pages/admin_pages/vsms/BarcodeManagement"));
 const AdminSalesPage = lazy(() => import("../pages/admin_pages/vsms/AdminSales"));
@@ -666,6 +667,7 @@ const PaymentScreen = lazy(() => import("../pages/admin_pages/vsms/agent/Payment
 const SuccessScreen = lazy(() => import("../pages/admin_pages/vsms/agent/SuccessScreen"));
 const OpeningCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/OpeningCashEntry"));
 const ClosingCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/ClosingCashEntry"));
+const AgentStockTransfer = lazy(() => import("../pages/admin_pages/vsms/agent/AgentStockTransfer"));
 
 
 // Route configuration interface
@@ -2002,6 +2004,11 @@ export const protectedRoutes: RouteConfig[] = [
     requiresAuth: true,
   },
   {
+    path: "/vsms/cash-reconciliation",
+    component: DailyReconciliationPage,
+    requiresAuth: true,
+  },
+  {
     path: "/vsms/pos",
     component: AdminPOS,
     requiresAuth: true,
@@ -2141,6 +2148,11 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/agent-portal/closing-cash",
     component: () => <AgentPortalLayout><ClosingCashEntry /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/stock-transfer",
+    component: () => <AgentPortalLayout><AgentStockTransfer /></AgentPortalLayout>,
     requiresAuth: true,
   },
   {

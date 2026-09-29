@@ -96,6 +96,7 @@ export const adminAPI = {
 
   // Agent Transfers
   getAgentTransfers: (params?: any) => api.get('/admin/agent-transfers', { params }),
+  getActiveAgents: () => api.get('/admin/agent-transfers/active-agents'),
   createAgentTransfer: (data?: any) => api.post('/admin/agent-transfers', data),
   getAgentTransferById: (id?: any) => api.get(`/admin/agent-transfers/${id}`),
   approveAgentTransfer: (id?: any, data?: any) => api.post(`/admin/agent-transfers/${id}/approve`, data),

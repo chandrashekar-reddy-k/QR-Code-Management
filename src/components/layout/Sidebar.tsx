@@ -431,6 +431,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isInventoryManagementOpen, setIsInventoryManagementOpen] = useState(
     location.pathname === '/vsms/stock-history'
   );
+  const [isCashManagementOpen, setIsCashManagementOpen] = useState(
+    location.pathname === '/vsms/cash-management'
+  );
 
   // ============================================
   // STATE MAPS - For dynamic state access
@@ -463,6 +466,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isRouteManagementOpen: setIsRouteManagementOpen,
       isVehicleManagementOpen: setIsVehicleManagementOpen,
       isInventoryManagementOpen: setIsInventoryManagementOpen,
+      isCashManagementOpen: setIsCashManagementOpen,
     }),
     []
   );
@@ -494,6 +498,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isRouteManagementOpen,
       isVehicleManagementOpen,
       isInventoryManagementOpen,
+      isCashManagementOpen,
     }),
     [
       isProductsOpen,
@@ -521,6 +526,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isRouteManagementOpen,
       isVehicleManagementOpen,
       isInventoryManagementOpen,
+      isCashManagementOpen,
     ]
   );
 
@@ -1006,9 +1012,14 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       if (path === "/") {
         return location.pathname === "/";
       }
+      // Handle paths with query strings (e.g., /vsms/cash-management?tab=reconciliation)
+      if (path.includes('?')) {
+        const [basePath, queryString] = path.split('?');
+        return location.pathname === basePath && location.search === '?' + queryString;
+      }
       return location.pathname.startsWith(path);
     },
-    [location.pathname]
+    [location.pathname, location.search]
   );
 
   // ============================================
@@ -1138,7 +1149,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         (section.stateKey === "isReportsOpen" &&
           location.pathname.startsWith("/reports")) ||
         (section.stateKey === "isSystemOpen" &&
-          location.pathname.startsWith("/system"));
+          location.pathname.startsWith("/system")) ||
+        (section.stateKey === "isCashManagementOpen" &&
+          (location.pathname === "/vsms/cash-management" || location.pathname.startsWith("/vsms/cash-reconciliation")));
 
       return (
         <div className="mt-1" key={section.stateKey}>

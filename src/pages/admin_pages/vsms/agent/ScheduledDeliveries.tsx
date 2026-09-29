@@ -25,7 +25,7 @@ export default function ScheduledDeliveries() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any>({ route: null, vehicle: null, deliveries: [], assignments: [], isAdmin: false });
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'load' | 'orders' | 'map'>('load');
+  const [activeTab, setActiveTab] = useState<'orders' | 'history' | 'map'>('orders');
   const [showHistoryView, setShowHistoryView] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [showSelectPayment, setShowSelectPayment] = useState(false);
@@ -119,12 +119,13 @@ export default function ScheduledDeliveries() {
   const completedStatuses = ['DELIVERED', 'CANCELLED', 'FAILED', 'RETURNED'];
 
   const currentAssignment = selectedAssignmentId !== 'all' 
-    ? data.assignments?.find((a: any) => a.id === selectedAssignmentId) 
+    ? data?.assignments?.find((a: any) => a.id === selectedAssignmentId) 
     : null;
 
   const matchesShift = (order: any) => {
     if (selectedShift === 'ALL') return true;
     const slotStr = (order.deliverySlot || order.timeSlot || order.slot || order.deliveryTimeSlot || '').toLowerCase();
+    if (!slotStr) return true; // If no slot specified, show in all shifts
     if (selectedShift === 'MORNING') {
       return slotStr.includes('morning') || slotStr.includes('am') || slotStr.includes('07:') || slotStr.includes('08:') || slotStr.includes('09:') || slotStr.includes('10:') || slotStr.includes('11:') || slotStr.includes('12:');
     }
@@ -135,8 +136,8 @@ export default function ScheduledDeliveries() {
   };
 
   const currentDeliveries = (selectedAssignmentId === 'all'
-    ? data.deliveries
-    : data.deliveries.filter((o: any) => o.routeId === currentAssignment?.route.id)
+    ? (data?.deliveries || [])
+    : (data?.deliveries || []).filter((o: any) => o.routeId === currentAssignment?.route?.id)
   ).filter(matchesShift);
 
   const activeDeliveries = currentDeliveries.filter((order: any) => 
@@ -194,48 +195,9 @@ export default function ScheduledDeliveries() {
   const filteredActive = filterList(activeDeliveries);
   const filteredHistory = filterList(historyDeliveries);
 
-  const sampleLoadItems = [
-    { productId: '1', productName: 'Rice 5kg', quantity: 4 },
-    { productId: '2', productName: 'Toor Dal 1kg', quantity: 8 },
-    { productId: '3', productName: 'Sunflower Oil 1L', quantity: 6 },
-    { productId: '4', productName: 'Sugar 1kg', quantity: 10 },
-    { productId: '5', productName: 'Biscuits', quantity: 10 },
-  ];
-
-  const sampleOrders = [
-    {
-      id: '1',
-      orderNumber: 'VK-20260804-000013',
-      deliveryType: 'Scheduled delivery',
-      paymentMode: 'COD',
-      timeSlot: '11:00 am',
-      customerName: 'Rahul',
-      customerPhone: '9393479928',
-      amount: 196,
-      itemCount: 2,
-      address: 'Indra Nagar Colony , Near Daffodils school , Parigi , Vikarabad , Telangana',
-    },
-    {
-      id: '2',
-      orderNumber: 'VK-20260804-000014',
-      deliveryType: 'Pre Order',
-      paymentMode: 'COD',
-      timeSlot: 'Today',
-      customerName: 'Aishwarya',
-      customerPhone: '9393479928',
-      amount: 344,
-      itemCount: 5,
-      address: 'Ramnagar , Near Balaji Temple, Adikmet , Hyderabad , Telangana',
-    },
-  ];
-
-  const totalOrdersCount = activeDeliveries.length > 0 ? activeDeliveries.length : 12;
-  const totalItemsCount = itemsToLoad.length > 0 
-    ? itemsToLoad.reduce((acc, item) => acc + item.quantity, 0)
-    : 38;
-  const totalOrderValue = activeDeliveries.length > 0 
-    ? activeDeliveries.reduce((acc, order) => acc + Number(order.totalAmount || 0), 0)
-    : 4860;
+  const totalOrdersCount = activeDeliveries.length;
+  const totalItemsCount = itemsToLoad.reduce((acc, item) => acc + item.quantity, 0);
+  const totalOrderValue = activeDeliveries.reduce((acc, order) => acc + Number(order.totalAmount || 0), 0);
 
   // SELECT PAYMENT SUBVIEW
   if (selectedOrder && showSelectPayment) {
@@ -709,8 +671,8 @@ export default function ScheduledDeliveries() {
         {/* 3-Tab Segmented Switcher */}
         <div className="bg-white p-1.5 rounded-2xl border border-gray-200/80 shadow-2xs grid grid-cols-3 gap-1">
           {[
-            { key: 'load', label: 'Load Items', icon: Box },
             { key: 'orders', label: 'Orders', icon: ClipboardList },
+            { key: 'history', label: 'View History', icon: History },
             { key: 'map', label: 'Map', icon: MapPin },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -732,99 +694,7 @@ export default function ScheduledDeliveries() {
           })}
         </div>
 
-        {/* TAB 1: Load Items */}
-        {activeTab === 'load' && (
-          <>
-            {/* Vehicle Loading & Departure Window Alert */}
-            <div className="bg-gradient-to-r from-emerald-950 to-slate-900 text-white p-3.5 rounded-2xl border border-emerald-800/40 shadow-xs flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-400/30">
-                  <Truck size={17} />
-                </div>
-                <div>
-                  <p className="font-black text-[11px] text-emerald-300">
-                    {selectedShift === 'AFTERNOON' ? 'Afternoon Load: 03:00 PM' : selectedShift === 'MORNING' ? 'Morning Load: 07:00 AM' : 'Shift Loading: 07:00 AM & 03:00 PM'}
-                  </p>
-                  <p className="text-[10px] text-slate-300">
-                    {selectedShift === 'AFTERNOON' ? 'Delivery Window: 04:00 PM – 08:00 PM' : selectedShift === 'MORNING' ? 'Delivery Window: 07:30 AM – 12:30 PM' : 'Verify vehicle crate checklist before warehouse exit'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 3 Summary Metric KPI Cards */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs grid grid-cols-3 divide-x divide-gray-100 text-center">
-              {/* Orders */}
-              <div className="px-1 space-y-1">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center mx-auto mb-1.5">
-                  <ShoppingBag size={16} />
-                </div>
-                <p className="text-[10px] font-bold text-gray-400">Orders</p>
-                <p className="text-lg font-black text-gray-900">{totalOrdersCount}</p>
-              </div>
-
-              {/* Total Items */}
-              <div className="px-1 space-y-1">
-                <div className="w-8 h-8 rounded-xl bg-[#FFF3E0] text-[#E65100] flex items-center justify-center mx-auto mb-1.5">
-                  <Box size={16} />
-                </div>
-                <p className="text-[10px] font-bold text-gray-400">Total Items</p>
-                <p className="text-lg font-black text-gray-900">{totalItemsCount}</p>
-              </div>
-
-              {/* Order Value */}
-              <div className="px-1 space-y-1">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center mx-auto mb-1.5">
-                  <Wallet size={16} />
-                </div>
-                <p className="text-[10px] font-bold text-gray-400">Order Value</p>
-                <p className="text-lg font-black text-gray-900">₹{totalOrderValue.toLocaleString('en-IN')}</p>
-              </div>
-            </div>
-
-            {/* Items To Load Card */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-2xs overflow-hidden divide-y divide-gray-100/90">
-              {/* Card Header */}
-              <div className="p-4 flex items-center justify-between">
-                <h3 className="text-xs font-black text-gray-900 tracking-tight">Items To Load</h3>
-                <span className="text-xs font-black text-[#00891D]">{totalItemsCount} Items</span>
-              </div>
-
-              {/* Item Rows */}
-              {(itemsToLoad.length > 0 ? itemsToLoad : sampleLoadItems).map((item, idx) => {
-                const isChecked = !!checkedItems[item.productId];
-                const isAmber = idx % 2 === 1;
-
-                return (
-                  <div
-                    key={item.productId || idx}
-                    onClick={() => toggleItemCheck(item.productId)}
-                    className={`p-3.5 flex items-center justify-between gap-3 hover:bg-gray-50/50 transition-colors cursor-pointer ${
-                      isChecked ? 'opacity-50' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        isAmber ? 'bg-[#FFF3E0] text-[#E65100]' : 'bg-[#E8F5E9] text-[#00891D]'
-                      }`}>
-                        <Package size={17} />
-                      </div>
-                      <span className={`text-xs font-extrabold text-gray-900 ${isChecked ? 'line-through' : ''}`}>
-                        {item.productName}
-                      </span>
-                    </div>
-
-                    <span className="text-xs font-black text-gray-900">
-                      × {item.quantity}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {/* TAB 2: Orders */}
+        {/* TAB 1: Orders */}
         {activeTab === 'orders' && (
           <div className="space-y-3.5">
             {/* Search Input & Create Pre Order Button Row */}
@@ -862,61 +732,73 @@ export default function ScheduledDeliveries() {
 
             {/* Orders List (Live DB Data with Dynamic Fields) */}
             <div className="space-y-3">
-              {((showHistoryView ? filteredHistory : filteredActive).length > 0
-                ? (showHistoryView ? filteredHistory : filteredActive)
-                : sampleOrders
-              ).map((order: any, idx: number) => {
-                const orderNo = order.orderNumber || order.orderId || `VK-20260804-0000${13 + idx}`;
-                const custName = order.customer?.name || order.consumer?.name || order.customerName || 'Rahul';
-                const custPhone = order.customer?.mobile || order.customer?.phone || order.customerPhone || '9393479928';
-                const amount = order.totalAmount ?? order.amount ?? 196;
-                const itemsCount = order.items?.length ?? order.itemCount ?? 2;
-                const addressStr = typeof order.address === 'string'
-                  ? order.address
-                  : (order.address?.line1 || order.shippingAddress?.addressLine1
-                    ? `${order.address?.line1 || order.shippingAddress?.addressLine1 || ''}, ${order.address?.city || order.shippingAddress?.city || ''}`
-                    : 'Indra Nagar Colony , Near Daffodils school , Parigi , Vikarabad , Telangana');
-                const isPreOrder = order.deliveryType === 'Pre Order' || order.isPreOrder || idx % 2 === 1;
-                const timeSlot = order.timeSlot || order.slot || (isPreOrder ? 'Today' : '11:00 am');
+              {(showHistoryView ? filteredHistory : filteredActive).length === 0 ? (
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-2xs p-8 text-center space-y-2">
+                  <ShoppingBag size={32} className="mx-auto text-gray-300" />
+                  <p className="text-xs font-black text-gray-800">
+                    {searchTerm ? 'No Matching Orders' : showHistoryView ? 'No Order History' : 'No Scheduled Orders'}
+                  </p>
+                  <p className="text-[11px] font-medium text-gray-400">
+                    {searchTerm
+                      ? `No orders matching "${searchTerm}"`
+                      : showHistoryView
+                      ? 'No completed or historical delivery orders found.'
+                      : 'There are no active online orders scheduled for delivery today.'}
+                  </p>
+                </div>
+              ) : (
+                (showHistoryView ? filteredHistory : filteredActive).map((order: any, idx: number) => {
+                  const orderNo = order.orderNumber || order.orderId || `VK-ORD-${order.id?.slice(0, 6)}`;
+                  const custName = order.customer?.name || order.consumer?.name || order.customerName || 'Customer';
+                  const custPhone = order.customer?.mobile || order.customer?.phone || order.consumer?.phone || 'N/A';
+                  const amount = order.totalAmount ?? order.amount ?? 0;
+                  const itemsCount = order.items?.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0) ?? order.items?.length ?? 1;
+                  const addressStr = typeof order.address === 'string'
+                    ? order.address
+                    : (order.address?.line1 || order.shippingAddress?.addressLine1
+                      ? `${order.address?.line1 || order.shippingAddress?.addressLine1 || ''}, ${order.address?.city || order.shippingAddress?.city || ''}`
+                      : 'Address not available');
+                  const isPreOrder = order.deliveryType === 'Pre Order' || order.isPreOrder;
+                  const timeSlot = order.deliverySlot || order.timeSlot || order.slot || (isPreOrder ? 'Today' : 'Standard');
 
-                return (
-                  <div
-                    key={order.id || idx}
-                    onClick={() => setSelectedOrder(order)}
-                    className="bg-white rounded-3xl p-4 border border-gray-100 shadow-2xs space-y-3.5 hover:border-emerald-200 transition-all cursor-pointer"
-                  >
-                    {/* Top Header Row */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {/* Checkmark Box Icon */}
-                        <div className="w-10 h-10 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0 mt-0.5">
-                          <FileCheck size={20} strokeWidth={2} />
-                        </div>
+                  return (
+                    <div
+                      key={order.id || idx}
+                      onClick={() => setSelectedOrder(order)}
+                      className="bg-white rounded-3xl p-4 border border-gray-100 shadow-2xs space-y-3.5 hover:border-emerald-200 transition-all cursor-pointer"
+                    >
+                      {/* Top Header Row */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          {/* Checkmark Box Icon */}
+                          <div className="w-10 h-10 rounded-2xl bg-[#E8F5E9] text-[#00891D] flex items-center justify-center shrink-0 mt-0.5">
+                            <FileCheck size={20} strokeWidth={2} />
+                          </div>
 
-                        {/* Order Number & Badges */}
-                        <div className="space-y-1.5 min-w-0">
-                          <h4 className="text-sm font-black text-gray-900 tracking-tight truncate">
-                            {orderNo}
-                          </h4>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">
-                              {isPreOrder ? 'Pre Order' : 'Scheduled delivery'}
-                            </span>
-                            <span className="text-[10px] font-extrabold text-[#E65100] bg-[#FFF3E0] px-2 py-0.5 rounded-md">
-                              {order.paymentMode || order.paymentStatus || 'COD'}
-                            </span>
-                            <span className="text-[10px] font-extrabold text-[#00891D] bg-[#E8F5E9] px-2 py-0.5 rounded-md">
-                              {timeSlot}
-                            </span>
+                          {/* Order Number & Badges */}
+                          <div className="space-y-1.5 min-w-0">
+                            <h4 className="text-sm font-black text-gray-900 tracking-tight truncate">
+                              {orderNo}
+                            </h4>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">
+                                {isPreOrder ? 'Pre Order' : 'Scheduled delivery'}
+                              </span>
+                              <span className="text-[10px] font-extrabold text-[#E65100] bg-[#FFF3E0] px-2 py-0.5 rounded-md">
+                                {order.paymentMode || order.paymentStatus || 'COD'}
+                              </span>
+                              <span className="text-[10px] font-extrabold text-[#00891D] bg-[#E8F5E9] px-2 py-0.5 rounded-md">
+                                {timeSlot}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Right Arrow Button */}
-                      <button className="w-8 h-8 rounded-xl bg-[#00891D] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                        <ArrowRight size={15} strokeWidth={2.5} />
-                      </button>
-                    </div>
+                        {/* Right Arrow Button */}
+                        <button className="w-8 h-8 rounded-xl bg-[#00891D] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <ArrowRight size={15} strokeWidth={2.5} />
+                        </button>
+                      </div>
 
                     {/* Inner Grey Customer & Amount Box */}
                     <div className="bg-[#F8FAFC] rounded-2xl p-3.5 border border-gray-100/60 flex items-center justify-between">
@@ -951,8 +833,78 @@ export default function ScheduledDeliveries() {
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
+          </div>
+        )}
+
+        {/* TAB 2: View History */}
+        {activeTab === 'history' && (
+          <div className="space-y-3.5">
+            {/* Search Bar for History */}
+            <div className="bg-white rounded-2xl p-3 px-3.5 border border-gray-200/90 shadow-2xs flex items-center gap-2">
+              <Search size={16} className="text-gray-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search history orders..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-transparent text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+              />
+            </div>
+
+            {/* History List */}
+            {filteredHistory.length === 0 ? (
+              <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 shadow-2xs space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-1">
+                  <History size={24} />
+                </div>
+                <h4 className="text-sm font-black text-gray-800">No Delivery History Found</h4>
+                <p className="text-xs text-gray-400">Completed or cancelled orders will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredHistory.map((order: any, idx: number) => {
+                  const custName = order.customer?.name || order.consumer?.name || order.customerName || 'Customer';
+                  const orderNum = order.orderNumber || order.preOrderNumber || `VK-ORD-${idx + 1}`;
+                  const itemsCount = order.items?.length || order.itemCount || 1;
+                  const isDelivered = order.status === 'DELIVERED';
+
+                  return (
+                    <div
+                      key={order.id || idx}
+                      onClick={() => setSelectedOrder(order)}
+                      className="bg-white rounded-3xl p-4 border border-gray-100 shadow-2xs hover:shadow-xs transition-all cursor-pointer space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-gray-900">{orderNum}</span>
+                            <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                              isDelivered ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'
+                            }`}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <h4 className="text-xs font-bold text-gray-800 mt-1">{custName}</h4>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-black text-gray-900 block">₹{order.totalAmount || order.amount || 0}</span>
+                          <span className="text-[10px] font-bold text-emerald-600">PAID</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] font-bold text-gray-500 pt-2 border-t border-gray-100">
+                        <span>📦 {itemsCount} Items</span>
+                        <span className="text-emerald-700 flex items-center gap-1 font-extrabold">
+                          View Details <ChevronRight size={14} />
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -1022,25 +974,35 @@ export default function ScheduledDeliveries() {
 
                   {/* Real Database Order Pins on Map */}
                   <div className="absolute inset-0 pointer-events-auto">
-                    {(activeDeliveries.length > 0 ? activeDeliveries : sampleOrders).map((order: any, idx: number) => {
-                      const stopNum = idx + 1;
-                      const topPos = 140 + (idx * 70);
-                      const leftPos = 120 + (idx * 45);
-
-                      return (
-                        <div
-                          key={order.id || idx}
-                          onClick={() => setSelectedMapStop(stopNum)}
-                          style={{ top: `${topPos}px`, left: `${leftPos}px` }}
-                          className="absolute cursor-pointer transition-transform hover:scale-110 flex flex-col items-center z-10"
-                        >
-                          <div className={`w-8 h-8 rounded-full ${selectedMapStop === stopNum ? 'bg-[#00891D] scale-110' : 'bg-emerald-700'} text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md`}>
-                            {stopNum}
-                          </div>
-                          <div className={`w-2.5 h-2.5 ${selectedMapStop === stopNum ? 'bg-[#00891D]' : 'bg-emerald-700'} rotate-45 -mt-1.5`} />
+                    {activeDeliveries.length === 0 ? (
+                      <div className="absolute inset-0 flex items-center justify-center p-6 text-center z-10 pointer-events-none">
+                        <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border border-gray-100 shadow-md max-w-xs space-y-1">
+                          <MapPin size={24} className="mx-auto text-gray-400" />
+                          <p className="text-xs font-black text-gray-800">No Delivery Stops</p>
+                          <p className="text-[11px] font-medium text-gray-400">No active scheduled orders to map for today.</p>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ) : (
+                      activeDeliveries.map((order: any, idx: number) => {
+                        const stopNum = idx + 1;
+                        const topPos = 140 + (idx * 70);
+                        const leftPos = 120 + (idx * 45);
+
+                        return (
+                          <div
+                            key={order.id || idx}
+                            onClick={() => setSelectedMapStop(stopNum)}
+                            style={{ top: `${topPos}px`, left: `${leftPos}px` }}
+                            className="absolute cursor-pointer transition-transform hover:scale-110 flex flex-col items-center z-10"
+                          >
+                            <div className={`w-8 h-8 rounded-full ${selectedMapStop === stopNum ? 'bg-[#00891D] scale-110' : 'bg-emerald-700'} text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md`}>
+                              {stopNum}
+                            </div>
+                            <div className={`w-2.5 h-2.5 ${selectedMapStop === stopNum ? 'bg-[#00891D]' : 'bg-emerald-700'} rotate-45 -mt-1.5`} />
+                          </div>
+                        );
+                      })
+                    )}
 
                     {/* Vehicle Current Location Pin */}
                     <div className="absolute top-[280px] left-[110px] flex flex-col items-center">
@@ -1068,8 +1030,8 @@ export default function ScheduledDeliveries() {
 
               {/* Floating Bottom Active Order Details Card */}
               {(() => {
-                const mapOrders = activeDeliveries.length > 0 ? activeDeliveries : sampleOrders;
-                const activeMapOrder = mapOrders[selectedMapStop - 1] || mapOrders[0];
+                if (activeDeliveries.length === 0) return null;
+                const activeMapOrder = activeDeliveries[selectedMapStop - 1] || activeDeliveries[0];
                 if (!activeMapOrder) return null;
 
                 const custName = activeMapOrder.customer?.name || activeMapOrder.consumer?.name || activeMapOrder.customerName || 'Customer';

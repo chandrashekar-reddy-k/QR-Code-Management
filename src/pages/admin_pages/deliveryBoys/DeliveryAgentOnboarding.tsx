@@ -18,6 +18,7 @@ import {
   PrimaryButton,
   Button,
   TextInput,
+  PasswordInput,
   SelectInput,
   FormSectionWithDots,
 } from "../../../components/ui";
@@ -435,6 +436,8 @@ const DeliveryAgentOnboarding = () => {
     phone: "",
     alternatePhone: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     dob: "",
     gender: "",
     maritalStatus: "",
@@ -451,7 +454,7 @@ const DeliveryAgentOnboarding = () => {
     const domains = ["gmail.com", "yahoo.com", "outlook.com", "villagkart.com"];
     const nationalities = ["Indian", "Nepalese", "Bhutanese"];
 
-    const getRandomElement = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+    const getRandomElement = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
     const fName = getRandomElement(firstNames);
     const lName = getRandomElement(lastNames);
@@ -459,6 +462,7 @@ const DeliveryAgentOnboarding = () => {
     const surname = lName;
     const fatherOrSpouseName = getRandomElement(fatherNames);
     const email = `${fName.toLowerCase()}.${lName.toLowerCase()}${Math.floor(Math.random() * 1000)}@${getRandomElement(domains)}`;
+    const password = "Password@123";
     
     const start = new Date();
     start.setFullYear(start.getFullYear() - 50);
@@ -480,6 +484,8 @@ const DeliveryAgentOnboarding = () => {
       surname,
       fatherOrSpouseName,
       email,
+      password,
+      confirmPassword: password,
       dob,
       gender,
       phone,
@@ -709,6 +715,8 @@ const DeliveryAgentOnboarding = () => {
       phone: String(source.phone || ""),
       alternatePhone: String(source.alternatePhone || ""),
       email: String(source.email || ""),
+      password: "",
+      confirmPassword: "",
       dob: toDateInputValue(source.dob),
       gender: String(source.gender || "MALE"),
       maritalStatus: String(source.maritalStatus || "SINGLE"),
@@ -883,6 +891,7 @@ const DeliveryAgentOnboarding = () => {
       fatherOrSpouseName: s1.fatherOrSpouseName.trim(),
       phone: s1.phone.trim(),
       email: s1.email.trim(),
+      ...(s1.password ? { password: s1.password } : {}),
       dob: s1.dob,
       gender: s1.gender,
       maritalStatus: s1.maritalStatus,
@@ -1281,6 +1290,14 @@ const DeliveryAgentOnboarding = () => {
   ) => {
     try {
       if (currentStep === 1) {
+        if (!isEditMode && (!s1.password || s1.password.trim().length < 6)) {
+          const errs: Record<string, string> = {};
+          if (!s1.password) errs.password = "Password is required";
+          else if (s1.password.trim().length < 6) errs.password = "Minimum 6 characters";
+          if (s1.confirmPassword !== s1.password) errs.confirmPassword = "Passwords must match";
+          if (shouldSetErrors) setErrors(errs);
+          return false;
+        }
         await step1Schema.validate(s1, { abortEarly: false });
       }
       if (currentStep === 2) {
@@ -1809,13 +1826,28 @@ const DeliveryAgentOnboarding = () => {
                   error={errors.fatherOrSpouseName}
                 />
                 <TextInput
-                  label="Email ID"
+                  label="Email ID (Optional)"
                   type="email"
                   placeholder="Enter email address"
                   value={s1.email}
                   onChange={(e) => setS1({ ...s1, email: e.target.value })}
-                  required
                   error={errors.email}
+                />
+                <PasswordInput
+                  label="Password"
+                  placeholder="Enter login password"
+                  value={s1.password || ""}
+                  onChange={(e) => setS1({ ...s1, password: e.target.value })}
+                  required={!isEditMode}
+                  error={errors.password}
+                />
+                <PasswordInput
+                  label="Confirm Password"
+                  placeholder="Confirm login password"
+                  value={s1.confirmPassword || ""}
+                  onChange={(e) => setS1({ ...s1, confirmPassword: e.target.value })}
+                  required={!isEditMode}
+                  error={errors.confirmPassword}
                 />
                 <div>
                   <TextInput

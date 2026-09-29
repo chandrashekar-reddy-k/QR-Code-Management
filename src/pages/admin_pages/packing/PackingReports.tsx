@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   Trash2,
   Info,
+  Search,
+  RotateCcw,
 } from 'lucide-react';
 
 const fmt = (d?: string) =>
@@ -69,28 +71,12 @@ export const PackingReports: React.FC = () => {
   };
 
   // Filters
-  const [filterDate, setFilterDate] = useState('');
-  const [filterProduct, setFilterProduct] = useState('All');
-  const [filterBatch, setFilterBatch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [filterEmployee, setFilterEmployee] = useState('All');
-  const [filterWorkOrder, setFilterWorkOrder] = useState('All');
-  const [filterSupervisor, setFilterSupervisor] = useState('All');
-  const [filterMachine, setFilterMachine] = useState('All');
-  const [filterLocation, setFilterLocation] = useState('All');
+  const [search, setSearch] = useState('');
 
   const resetFilters = () => {
-    setFilterDate('');
-    setFilterProduct('All');
-    setFilterBatch('');
     setFilterStatus('All');
-    setFilterCategory('All');
-    setFilterEmployee('All');
-    setFilterWorkOrder('All');
-    setFilterSupervisor('All');
-    setFilterMachine('All');
-    setFilterLocation('All');
+    setSearch('');
     setCurrentPage(1);
   };
 
@@ -118,31 +104,59 @@ export const PackingReports: React.FC = () => {
   const filteredFG = useMemo(
     () =>
       finishedGoods.filter((fg) => {
-        if (filterProduct !== 'All' && fg.product?.name !== filterProduct) return false;
-        if (filterBatch && fg.batchNumber !== filterBatch) return false;
-        if (filterDate && fg.createdAt && !fg.createdAt.startsWith(filterDate)) return false;
+        if (filterStatus !== 'All' && fg.status !== filterStatus) return false;
+        if (search) {
+          const s = search.toLowerCase();
+          const match = (
+            fg.product?.name?.toLowerCase().includes(s) ||
+            fg.batchNumber?.toLowerCase().includes(s) ||
+            fg.workOrder?.woNumber?.toLowerCase().includes(s) ||
+            fg.id?.toLowerCase().includes(s)
+          );
+          if (!match) return false;
+        }
         return true;
       }),
-    [finishedGoods, filterProduct, filterBatch, filterDate]
+    [finishedGoods, filterStatus, search]
   );
 
   const filteredRP = useMemo(
     () =>
       repackings.filter((rp) => {
-        if (filterProduct !== 'All' && rp.sourceWorkOrder?.product?.name !== filterProduct) return false;
+        if (filterStatus !== 'All' && rp.status !== filterStatus) return false;
+        if (search) {
+          const s = search.toLowerCase();
+          const match = (
+            rp.sourceWorkOrder?.product?.name?.toLowerCase().includes(s) ||
+            rp.batchNumber?.toLowerCase().includes(s) ||
+            rp.repackingNumber?.toLowerCase().includes(s) ||
+            rp.id?.toLowerCase().includes(s)
+          );
+          if (!match) return false;
+        }
         return true;
       }),
-    [repackings, filterProduct]
+    [repackings, filterStatus, search]
   );
 
   const rejectedQCs = useMemo(
     () =>
       qualityChecks.filter((qc) => {
         if (!['REJECT', 'REWORK', 'DISCARD'].includes(qc.result)) return false;
-        if (filterProduct !== 'All' && qc.workOrder?.product?.name !== filterProduct) return false;
+        if (filterStatus !== 'All' && qc.result !== filterStatus) return false;
+        if (search) {
+          const s = search.toLowerCase();
+          const match = (
+            qc.workOrder?.product?.name?.toLowerCase().includes(s) ||
+            qc.qcNumber?.toLowerCase().includes(s) ||
+            qc.workOrder?.woNumber?.toLowerCase().includes(s) ||
+            qc.id?.toLowerCase().includes(s)
+          );
+          if (!match) return false;
+        }
         return true;
       }),
-    [qualityChecks, filterProduct]
+    [qualityChecks, filterStatus, search]
   );
 
   const reportsList = [
@@ -720,205 +734,67 @@ export const PackingReports: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left pb-10 w-full">
-      {/* 10 Filters Toolbar */}
-      <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 text-slate-800 dark:text-white font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-gray-700">
-          <Filter size={14} className="text-[#00891D]" />
-          <span>REPORT QUERY FILTERS (10 DIMENSION OPTIONS)</span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              DATE
-            </label>
-            <input
-              type="date"
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-            />
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
+        {/* Filter controls */}
+        <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xs h-10 overflow-x-auto w-full xl:w-auto">
+          <div className="px-3 flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0">
+            <Filter size={16} />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              CATEGORY
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-            >
-              <option value="All">Select...</option>
-              <option value="Staples">Staples</option>
-              <option value="Festive">Festive</option>
-              <option value="Spices">Spices</option>
-              <option value="Dry Fruits">Dry Fruits</option>
-            </select>
-          </div>
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0" />
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              EMPLOYEE
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterEmployee}
-              onChange={(e) => setFilterEmployee(e.target.value)}
-            >
-              <option value="All">Select...</option>
-              <option value="Ramesh Kumar">Ramesh Kumar</option>
-              <option value="Sita Sharma">Sita Sharma</option>
-              <option value="Amit Patel">Amit Patel</option>
-            </select>
-          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[120px] shrink-0"
+          >
+            <option value="All" className="dark:bg-gray-800">All Status</option>
+            <option value="COMPLETED" className="dark:bg-gray-800">COMPLETED</option>
+            <option value="APPROVED" className="dark:bg-gray-800">APPROVED</option>
+            <option value="QC_PENDING" className="dark:bg-gray-800">QC_PENDING</option>
+            <option value="PACKING_STARTED" className="dark:bg-gray-800">PACKING_STARTED</option>
+          </select>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              PRODUCT
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterProduct}
-              onChange={(e) => setFilterProduct(e.target.value)}
-            >
-              <option value="All">Select...</option>
-              {productOptions.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0" />
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              BATCH
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterBatch}
-              onChange={(e) => setFilterBatch(e.target.value)}
-            >
-              <option value="">All Batches</option>
-              {batchOptions.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              WORK ORDER
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterWorkOrder}
-              onChange={(e) => setFilterWorkOrder(e.target.value)}
-            >
-              <option value="All">Select...</option>
-              {finishedGoods
-                .map((fg) => fg.workOrder?.woNumber)
-                .filter(Boolean)
-                .filter((v, i, a) => a.indexOf(v) === i)
-                .map((wo) => (
-                  <option key={wo} value={wo}>
-                    {wo}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              STATUS
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="All">Select...</option>
-              <option value="COMPLETED">COMPLETED</option>
-              <option value="APPROVED">APPROVED</option>
-              <option value="QC_PENDING">QC_PENDING</option>
-              <option value="PACKING_STARTED">PACKING_STARTED</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              SUPERVISOR
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterSupervisor}
-              onChange={(e) => setFilterSupervisor(e.target.value)}
-            >
-              <option value="All">Select...</option>
-              <option value="Suresh Kumar">Suresh Kumar</option>
-              <option value="Meena Sharma">Meena Sharma</option>
-              <option value="Rajesh Varma">Rajesh Varma</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              MACHINE
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterMachine}
-              onChange={(e) => setFilterMachine(e.target.value)}
-            >
-              <option value="All">Select...</option>
-              <option value="Packer-A1">Packer-A1</option>
-              <option value="Packer-A2">Packer-A2</option>
-              <option value="Sealer-B1">Sealer-B1</option>
-              <option value="Labeler-C1">Labeler-C1</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase">
-              LOCATION
-            </label>
-            <select
-              className="text-xs bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-              value={filterLocation}
-              onChange={(e) => setFilterLocation(e.target.value)}
-            >
-              <option value="All">Select...</option>
-              <option value="Hub #4">Hub #4</option>
-              <option value="Warehouse Racks">Warehouse Racks (Aisle D)</option>
-              <option value="Silo A-1">Silo A-1</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-gray-700">
           <button
             onClick={resetFilters}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-gray-300 hover:text-slate-800 border border-slate-200 dark:border-gray-700 hover:border-slate-300 bg-white dark:bg-gray-800 rounded-lg cursor-pointer transition-all"
+            className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors bg-transparent cursor-pointer shrink-0"
           >
-            Reset Filters
+            <RotateCcw size={14} />
+            Reset Filter
           </button>
-          <div className="flex items-center gap-2">
+        </div>
+
+        {/* Search bar & Exports */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto items-stretch">
+          <div className="relative flex-1 sm:w-72">
+            <Search className="absolute left-3 top-2.5 text-gray-400 dark:text-gray-500" size={18} />
+            <input
+              type="text"
+              placeholder="Search reports..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 h-10 border border-gray-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00891D]/20 focus:border-[#00891D] transition-all shadow-xs"
+            />
+          </div>
+          <div className="flex items-center gap-2 shrink-0 h-10">
             <button
               onClick={() => handleExport('Excel')}
-              className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-[#00891D] hover:bg-[#006b17] text-white px-4 h-full rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer flex-1"
             >
               <Download size={14} />
-              <span>Export Excel</span>
+              <span className="hidden sm:inline">Export Excel</span>
+              <span className="sm:hidden">Excel</span>
             </button>
             <button
               onClick={() => handleExport('PDF')}
-              className="flex items-center gap-1.5 bg-[#0F172A] hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-[#0F172A] hover:bg-slate-900 text-white px-4 h-full rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer flex-1"
             >
               <Download size={14} />
-              <span>Export PDF</span>
+              <span className="hidden sm:inline">Export PDF</span>
+              <span className="sm:hidden">PDF</span>
             </button>
           </div>
         </div>

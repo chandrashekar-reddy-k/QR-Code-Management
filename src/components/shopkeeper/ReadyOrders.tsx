@@ -475,22 +475,20 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      {profilePic ? (
-                        <img src={profilePic} alt={agent.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold uppercase text-lg">
-                          {agent.name ? agent.name.charAt(0) : "A"}
-                        </div>
-                      )}
+                      <div className="relative shrink-0">
+                        {profilePic ? (
+                          <img src={profilePic} alt={agent.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold uppercase text-lg">
+                            {agent.name ? agent.name.charAt(0) : "A"}
+                          </div>
+                        )}
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#00891D] border-2 border-white dark:border-gray-800 rounded-full" title="Online" />
+                      </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
-                            {agent.name}
-                          </span>
-                          <div
-                            className="w-2 h-2 rounded-full bg-green-500"
-                          />
-                        </div>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
+                          {agent.name}
+                        </span>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
                           <span>{phone}</span>
                           <span className="text-[10px]">•</span>

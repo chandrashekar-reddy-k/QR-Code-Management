@@ -12,7 +12,8 @@ import {
   ChevronRight,
   ChevronDown,
   QrCode,
-  Play
+  Play,
+  Loader2
 } from 'lucide-react';
 import { getSLAInfo } from '../../utils/slaHelper';
 import { SelectInput, SearchInput, Modal, Button } from '../ui';
@@ -20,10 +21,11 @@ import api from '../../api/axios';
 
 interface OrderProcessingProps {
   orders: any[];
+  loading?: boolean;
   onNavigate?: (screen: string, data?: any) => void;
 }
 
-export function OrderProcessing({ orders = [], onNavigate }: OrderProcessingProps) {
+export function OrderProcessing({ orders = [], loading = false, onNavigate }: OrderProcessingProps) {
   const [deliveryTypeFilter, setDeliveryTypeFilter] = useState('');
   const [stageFilter, setStageFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,8 +41,18 @@ export function OrderProcessing({ orders = [], onNavigate }: OrderProcessingProp
 
   const fetchAgents = () => {
     api.get('/delivery-agents')
-      .then(res => setAgents(res.data))
-      .catch(err => console.error("Failed to load riders", err));
+      .then(res => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setAgents(res.data);
+        } else {
+          return api.get('/partner/orders/delivery-agents').then(r => setAgents(r.data || []));
+        }
+      })
+      .catch(() => {
+        api.get('/partner/orders/delivery-agents')
+          .then(r => setAgents(r.data || []))
+          .catch(err => console.error("Failed to load riders", err));
+      });
   };
 
   useEffect(() => {
@@ -386,7 +398,18 @@ export function OrderProcessing({ orders = [], onNavigate }: OrderProcessingProp
               )}
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {displayedOrders.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="py-16 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <Loader2 className="animate-spin text-[#00891D]" size={36} />
+                      <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                        Loading orders...
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ) : displayedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-gray-500 dark:text-gray-400">
                     No orders found.
@@ -905,23 +928,40 @@ export function OrderProcessing({ orders = [], onNavigate }: OrderProcessingProp
                       }`}
                   >
                     <div className="flex items-center gap-3">
-                      {profilePic ? (
-                        <img src={profilePic} alt={agent.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold uppercase text-lg">
-                          {agent.name ? agent.name.charAt(0) : "A"}
-                        </div>
-                      )}
+                      <div className="relative shrink-0">
+                        {profilePic ? (
+                          <img src={profilePic} alt={agent.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold uppercase text-lg">
+                            {agent.name ? agent.name.charAt(0) : "A"}
+                          </div>
+                        )}
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#00891D] border-2 border-white dark:border-gray-800 rounded-full" title="Online" />
+                      </div>
                       <div>
+<<<<<<< HEAD
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
                             {agent.name}
                           </span>
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
+                            agent.role === 'VEHICLE_AGENT'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                              : agent.role === 'VSMS_AGENT'
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                              : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                          }`}>
+                            {agent.role === 'VEHICLE_AGENT' ? 'Vehicle Agent' : agent.role === 'VSMS_AGENT' ? 'VSMS Agent' : 'Delivery Agent'}
+                          </span>
+                          <div className={`w-2 h-2 rounded-full ${agent.isOnline !== false ? 'bg-green-500' : 'bg-gray-400'}`} />
                         </div>
+=======
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
+                          {agent.name}
+                        </span>
+>>>>>>> nisha
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
                           <span>{phone}</span>
-                          <span className="text-[10px]">•</span>
                         </div>
                       </div>
                     </div>
