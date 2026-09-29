@@ -507,6 +507,51 @@ const useUpdateProductStock = () => {
   });
 };
 
+const useResetAllProductsStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => fetchData("productmanagement/product/reset-stock", "POST"),
+    onSuccess: (data: any) => {
+      toast.success(data?.message || data?.response || "All product stocks and thresholds reset to 0");
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to reset products stock");
+    },
+  });
+};
+
+const useUndoResetProductsStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => fetchData("productmanagement/product/undo-reset-stock", "POST"),
+    onSuccess: (data: any) => {
+      toast.success(data?.message || data?.response || "Restored previous product stock levels");
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to undo stock reset");
+    },
+  });
+};
+
+const useAssignRandomProductsStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => fetchData("productmanagement/product/random-stock", "POST"),
+    onSuccess: (data: any) => {
+      toast.success(data?.message || data?.response || "Assigned random stock to all products");
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to assign random stock");
+    },
+  });
+};
+
 export {
   useGetAllProductList,
   useGetMasterProducts,
@@ -525,6 +570,9 @@ export {
   useUpdateProduct,
   useUpdateProductActive,
   useUpdateProductStock,
+  useResetAllProductsStock,
+  useUndoResetProductsStock,
+  useAssignRandomProductsStock,
   useDeleteProduct,
   useCreateVariant,
   useUpdateVariant,

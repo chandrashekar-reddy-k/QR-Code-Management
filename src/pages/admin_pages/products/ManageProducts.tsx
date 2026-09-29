@@ -15,6 +15,8 @@ import {
   Camera,
   Scan,
   X,
+  Undo2,
+  Dices,
 } from "lucide-react";
 import BarcodeScannerOverlay from "../../../components/BarcodeScannerOverlay";
 import {
@@ -38,6 +40,9 @@ import {
   useUpdateProductActive,
   useGetProductUnitTypesList,
   useGetUnitsMapForUnitTypes,
+  useResetAllProductsStock,
+  useUndoResetProductsStock,
+  useAssignRandomProductsStock,
 } from "../../../hooks/product";
 import {
   looksLikeOpaqueId,
@@ -232,6 +237,12 @@ const ManageProducts = () => {
     isOpen: boolean;
     id: string | null;
   }>({ isOpen: false, id: null });
+  const [resetStockConfirm, setResetStockConfirm] = useState(false);
+  const [undoResetConfirm, setUndoResetConfirm] = useState(false);
+  const [randomStockConfirm, setRandomStockConfirm] = useState(false);
+  const resetStockMutation = useResetAllProductsStock();
+  const undoResetStockMutation = useUndoResetProductsStock();
+  const randomStockMutation = useAssignRandomProductsStock();
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const queryPage = Number(queryParams.get("page"));
   const queryLimit = Number(queryParams.get("limit"));
@@ -999,6 +1010,33 @@ const ManageProducts = () => {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
+            onClick={() => setResetStockConfirm(true)}
+            className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-3.5 py-2 bg-rose-600 dark:bg-rose-700 hover:bg-rose-700 dark:hover:bg-rose-600 text-white rounded-lg shadow-sm hover:shadow transition-colors text-xs sm:text-sm font-semibold"
+            title="Reset stock quantity and low stock threshold to 0 for all products"
+          >
+            <RotateCcw size={14} className="sm:w-4 sm:h-4" />
+            <span>Reset All Stock to 0</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setRandomStockConfirm(true)}
+            className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-3.5 py-2 bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg shadow-sm hover:shadow transition-colors text-xs sm:text-sm font-semibold"
+            title="Assign random stock quantities (10 - 150) to all products"
+          >
+            <Dices size={14} className="sm:w-4 sm:h-4" />
+            <span>Random Stock</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setUndoResetConfirm(true)}
+            className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-3 py-2 bg-amber-600 dark:bg-amber-700 hover:bg-amber-700 dark:hover:bg-amber-600 text-white rounded-lg shadow-sm hover:shadow transition-colors text-xs sm:text-sm font-semibold"
+            title="Restore product stock levels to state prior to reset"
+          >
+            <Undo2 size={14} className="sm:w-4 sm:h-4" />
+            <span>Undo Reset</span>
+          </button>
+          <button
+            type="button"
             onClick={() => navigate("/products/barcode-mapping")}
             className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs sm:text-sm font-semibold"
           >
@@ -1440,6 +1478,54 @@ const ManageProducts = () => {
         confirmText="Delete"
         cancelText="Cancel"
         variant="danger"
+      />
+
+      {/* Reset Stock Confirmation Modal */}
+      <ConfirmModal
+        isOpen={resetStockConfirm}
+        onClose={() => setResetStockConfirm(false)}
+        onConfirm={() => {
+          resetStockMutation.mutate(undefined, {
+            onSettled: () => setResetStockConfirm(false),
+          });
+        }}
+        title="Reset All Product Stock to 0"
+        message="Are you sure you want to reset the Stock Quantity and Low Stock Alert Threshold to 0 for ALL products? (You can use 'Undo Reset' afterwards if needed)."
+        confirmText={resetStockMutation.isPending ? "Resetting..." : "Yes, Reset All to 0"}
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      {/* Undo Reset Stock Confirmation Modal */}
+      <ConfirmModal
+        isOpen={undoResetConfirm}
+        onClose={() => setUndoResetConfirm(false)}
+        onConfirm={() => {
+          undoResetStockMutation.mutate(undefined, {
+            onSettled: () => setUndoResetConfirm(false),
+          });
+        }}
+        title="Undo Reset Stock"
+        message="Are you sure you want to restore previous stock quantities and low stock thresholds for all products?"
+        confirmText={undoResetStockMutation.isPending ? "Restoring..." : "Yes, Restore Stock"}
+        cancelText="Cancel"
+        variant="primary"
+      />
+
+      {/* Random Stock Confirmation Modal */}
+      <ConfirmModal
+        isOpen={randomStockConfirm}
+        onClose={() => setRandomStockConfirm(false)}
+        onConfirm={() => {
+          randomStockMutation.mutate(undefined, {
+            onSettled: () => setRandomStockConfirm(false),
+          });
+        }}
+        title="Assign Random Stock to All Products"
+        message="Are you sure you want to assign random stock quantities (between 10 and 150) to ALL products? (You can use 'Undo Reset' to revert if needed)."
+        confirmText={randomStockMutation.isPending ? "Assigning..." : "Yes, Assign Random Stock"}
+        cancelText="Cancel"
+        variant="primary"
       />
 
       {/* Barcode Scanner Modal */}
