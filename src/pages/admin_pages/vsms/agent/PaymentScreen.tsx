@@ -83,44 +83,38 @@ export default function PaymentScreen() {
         return;
       }
 
-      // Step 1: Create order from cart
-      let order: any = null;
-      try {
-        const payload = {
-          mobile: customerMobile || '9876543210',
-          customerName: customerName || 'Walk-in Customer',
-          items: items.length > 0
-            ? items.map(i => ({ productId: i.productId || i.id, quantity: i.quantity || 1 }))
-            : [{ productId: 'mock-1', quantity: 1 }],
-          deliverySlot: deliverySlot || 'MORNING',
-          deliveryDate: deliveryDate || new Date().toISOString().split('T')[0],
-          couponCode: useCartStore.getState().appliedPromotion?.code
-        };
-
-        const res = await ordersAPI.createFromCart(payload);
-        order = res.data;
-      } catch (createErr: any) {
-        console.warn('API create-from-cart warning, proceeding with offline order flow:', createErr);
-        order = { id: `ORD-${Date.now().toString().slice(-6)}` };
+      if (items.length === 0) {
+        return toast.error('Your cart is empty. Please add products first.');
       }
 
-      // Step 2: Complete payment (only if genuinely created on server)
-      if (order?.id && !order.id.startsWith('ORD-')) {
-        try {
-          await ordersAPI.completePayment({
-            orderId: order.id,
-            paymentMode: selected,
-            cashAmount: selected === 'CASH_UPI' ? parseFloat(splitAmounts.cash) : undefined,
-            upiAmount: selected === 'CASH_UPI' ? parseFloat(splitAmounts.upi) : undefined,
-          });
-        } catch (payErr) {
-          console.warn('Complete payment API note:', payErr);
-        }
+      // Step 1: Create order from cart in database
+      const payload = {
+        mobile: customerMobile || '9876543210',
+        customerName: customerName || 'Walk-in Customer',
+        items: items.map(i => ({ productId: i.productId || i.id, quantity: i.quantity || 1 })),
+        deliverySlot: deliverySlot || 'MORNING',
+        deliveryDate: deliveryDate || new Date().toISOString().split('T')[0],
+        couponCode: useCartStore.getState().appliedPromotion?.code
+      };
+
+      const res = await ordersAPI.createFromCart(payload);
+      const order = res.data;
+
+      if (!order?.id) {
+        throw new Error('Server failed to create order in database');
       }
 
-      toast.success('Payment completed successfully!');
+      // Step 2: Complete payment in database
+      await ordersAPI.completePayment({
+        orderId: order.id,
+        paymentMode: selected,
+        cashAmount: selected === 'CASH_UPI' ? parseFloat(splitAmounts.cash) : undefined,
+        upiAmount: selected === 'CASH_UPI' ? parseFloat(splitAmounts.upi) : undefined,
+      });
+
+      toast.success('Sale and payment recorded in database!');
       clearCart();
-      navigate(`/vsms/agent-portal/success/${order?.id || 'ORD-13277'}`);
+      navigate(`/vsms/agent-portal/success/${order.id}`);
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message || 'Payment failed');
     } finally {

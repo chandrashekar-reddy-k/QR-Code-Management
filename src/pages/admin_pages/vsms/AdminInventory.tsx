@@ -16,6 +16,7 @@ import adminAPI from './services/adminService';
 import { procurementAPI } from './services/procurementService';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { io } from 'socket.io-client';
 import { useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 
 // Modular Components
@@ -302,6 +303,40 @@ export default function AdminInventory() {
 
   useEffect(() => {
     fetchData();
+
+    // Socket.io Realtime Listener for Live Vehicle & Store Stock
+    const socketBase = (import.meta.env.VITE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3004' : window.location.origin)).replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
+    const socketToken = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+    
+    let socket: any = null;
+    try {
+      socket = io(`${socketBase}/partner`, {
+        transports: ['websocket', 'polling'],
+        auth: { token: socketToken },
+        reconnection: true
+      });
+
+      const handleRealtimeUpdate = (payload: any) => {
+        console.log('[Realtime Stock Update] Socket event received:', payload);
+        fetchData(true); // Silent refresh
+      };
+
+      socket.on('stock:update', handleRealtimeUpdate);
+      socket.on('vehicle:stock_update', handleRealtimeUpdate);
+      socket.on('inventory:update', handleRealtimeUpdate);
+      socket.on('refill:update', handleRealtimeUpdate);
+      socket.on('audit:update', handleRealtimeUpdate);
+      socket.on('order:status_changed', handleRealtimeUpdate);
+      socket.on('location:update', handleRealtimeUpdate);
+    } catch (sErr) {
+      console.warn('[Realtime Stock Socket] Setup warning:', sErr);
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
   }, [storeFilterId, activeTab]);
 
   const fetchRegistry = async () => {
@@ -407,9 +442,6 @@ export default function AdminInventory() {
         ? Boolean(i.isVehicle)
         : (hasChTag ? itemTags.includes('CH:VEHICLE') : (i.isVehicle !== false));
 
-      const storeStock = Number(i.stock !== undefined && i.stock !== null ? i.stock : (i.warehouseStock || 0));
-      const hasAvailableStock = storeStock > 0 || (i.vehicleStoreStock !== undefined && i.vehicleStoreStock > 0);
-
       const matchesSearch = !q ||
         (i.name && i.name.toLowerCase().includes(q)) ||
         (i.barcode && i.barcode.toLowerCase().includes(q)) ||
@@ -419,7 +451,10 @@ export default function AdminInventory() {
       const matchesCategory = opsCategory === 'ALL' || i.category?.name === opsCategory;
       const matchesSubCategory = opsSubCategory === 'ALL' || i.subCategory?.name === opsSubCategory;
 
-      return isVehicleEnabled && hasAvailableStock && matchesSearch && matchesCategory && matchesSubCategory;
+      const hasVsmStock = Number(i.vehicleStoreStock || 0) > 0;
+
+      // Show ONLY products present in Vehicle Stock Management (vehicleStoreStock > 0)
+      return isVehicleEnabled && hasVsmStock && matchesSearch && matchesCategory && matchesSubCategory;
     });
   }, [items, opsSearch, opsCategory, opsSubCategory]);
 
@@ -430,8 +465,24 @@ export default function AdminInventory() {
       if (i.isFree) free.push(i);
       else regular.push(i);
     });
-    return { regular, free };
-  }, [loadingFilteredItems]);
+
+    // Sort: items with VSM stock (vehicleStoreStock) > 0 appear first,
+    // then by store stock descending so agents always see actionable items at the top.
+    const sortFn = (a, b) => {
+      const aVsm = Number(a.vehicleStoreStock || 0);
+      const bVsm = Number(b.vehicleStoreStock || 0);
+      if (aVsm > 0 && bVsm === 0) return -1;
+      if (bVsm > 0 && aVsm === 0) return 1;
+      // Within same VSM group, sort by VSM count descending
+      if (aVsm !== bVsm) return bVsm - aVsm;
+      // Then by store stock descending
+      const aStock = Number(a.stock !== undefined && a.stock !== null ? a.stock : (a.warehouseStock || 0));
+      const bStock = Number(b.stock !== undefined && b.stock !== null ? b.stock : (b.warehouseStock || 0));
+      return bStock - aStock;
+    };
+
+    return { regular: regular.sort(sortFn), free: free.sort(sortFn) };
+  }, [loadingFilteredItems, vehicleInventoryMap]);
 
   const returnFilteredItems = React.useMemo(() => {
     const q = returnSearch.toLowerCase();
@@ -517,10 +568,10 @@ export default function AdminInventory() {
   }, [groupedRefills, viewingAgentId]);
 
   useEffect(() => {
-    if (selectedVehicleId && activeTab === 'return' && (subTab === 'return' || subTab === 'loading')) {
+    if (selectedVehicleId) {
       fetchVehicleInventory(selectedVehicleId);
     }
-  }, [selectedVehicleId, activeTab, subTab]);
+  }, [selectedVehicleId]);
 
   useEffect(() => {
     if (activeTab === 'return') {
@@ -1825,7 +1876,7 @@ export default function AdminInventory() {
                     else if (activeTab === 'return') {
                       if (subTab === 'loading') label = 'Loading';
                       else if (subTab === 'return') label = 'Return';
-                      else if (subTab === 'tracking') label = 'Vehicle Stock';
+                      else if (subTab === 'tracking') label = 'Live Vehicle Stock';
                       else if (subTab === 'refills') label = 'Refills';
                       else if (subTab === 'audits') label = 'Audit History';
                       // Opening Stock tab removed from UI
@@ -1957,7 +2008,7 @@ export default function AdminInventory() {
                   { id: 'loading', label: 'Loading', icon: ArrowUpCircle },
                   { id: 'return', label: 'Return', icon: ArrowDownCircle },
                   { id: 'transfers', label: 'Agent Transfers', icon: ArrowRight },
-                  { id: 'tracking', label: 'Vehicle Stock', icon: Package },
+                  { id: 'tracking', label: 'Live Vehicle Stock', icon: Package },
                   { id: 'refills', label: 'Refills', icon: RefreshCw },
                   { id: 'audits', label: 'Audit History', icon: ClipboardList },
                 ].map(tab => {

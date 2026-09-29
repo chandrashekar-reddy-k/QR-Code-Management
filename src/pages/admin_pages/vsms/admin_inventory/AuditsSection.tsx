@@ -22,13 +22,13 @@ const AuditsSection = ({
 
     const exportAuditDetailToExcel = () => {
       const data = audit.items.map(item => ({
-        'Product Name': item.product?.name,
-        'Category': item.product?.category?.name || 'General',
-        'SKU Code': item.product?.skuCode,
+        'Product Name': item.product?.name || item.productName || 'Product (' + (item.productId?.slice(-6) || 'Item') + ')',
+        'Category': item.product?.category?.name || item.category || 'General',
+        'SKU Code': item.product?.skuCode || item.product?.sku || 'N/A',
         'System Quantity': item.oldQuantity,
         'Audited Quantity': item.newQuantity,
         'Variance': (item.newQuantity || 0) - (item.oldQuantity || 0),
-        'Unit': item.product?.unit?.name || 'pcs',
+        'Unit': item.product?.unit?.name || item.product?.unit || 'pcs',
         'Remark': audit.remark || 'N/A',
         'Audited By': audit.user?.name,
         'Vehicle': audit.vehicle?.vehicleNumber,
@@ -154,34 +154,97 @@ const AuditsSection = ({
             </div>
           </div>
 
+          {/* Summary Comparison KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            {(() => {
+              const totalBefore = audit.items.reduce((acc, i) => acc + (Number(i.oldQuantity) || 0), 0);
+              const totalAfter = audit.items.reduce((acc, i) => acc + (Number(i.newQuantity) || 0), 0);
+              const netVariance = totalAfter - totalBefore;
+              const surplusItems = audit.items.filter(i => (i.newQuantity || 0) > (i.oldQuantity || 0)).length;
+              const deficitItems = audit.items.filter(i => (i.newQuantity || 0) < (i.oldQuantity || 0)).length;
+              const matchedItems = audit.items.filter(i => (i.newQuantity || 0) === (i.oldQuantity || 0)).length;
+
+              return (
+                <>
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Before Audit (System)</span>
+                    <div className="text-xl font-extrabold text-slate-800">{totalBefore.toLocaleString()} <span className="text-xs font-medium text-slate-400">units</span></div>
+                  </div>
+                  <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl">
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest block mb-1">After Audit (Physical)</span>
+                    <div className="text-xl font-extrabold text-emerald-800">{totalAfter.toLocaleString()} <span className="text-xs font-medium text-emerald-500">units</span></div>
+                  </div>
+                  <div className={`p-4 border rounded-xl ${netVariance > 0 ? 'bg-emerald-50 border-emerald-200' : netVariance < 0 ? 'bg-rose-50 border-rose-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest block mb-1 ${netVariance > 0 ? 'text-emerald-700' : netVariance < 0 ? 'text-rose-700' : 'text-gray-500'}`}>Net Variance</span>
+                    <div className={`text-xl font-extrabold ${netVariance > 0 ? 'text-emerald-700' : netVariance < 0 ? 'text-rose-700' : 'text-gray-700'}`}>
+                      {netVariance > 0 ? `+${netVariance}` : netVariance} <span className="text-xs font-medium opacity-70">units</span>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Accuracy Breakdown</span>
+                    <div className="flex items-center gap-2 text-xs font-bold mt-1">
+                      <span className="text-emerald-600" title="Matched items">{matchedItems} Match</span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-emerald-600" title="Surplus items">+{surplusItems} Surplus</span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-rose-600" title="Deficit items">-{deficitItems} Short</span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-900/50/50">
-                  <th className="px-3 py-2 text-[8px] font-bold text-gray-400 uppercase tracking-widest">Product</th>
-                  <th className="px-3 py-2 text-[8px] font-bold text-gray-400 uppercase tracking-widest text-center">Sys</th>
-                  <th className="px-3 py-2 text-[8px] font-bold text-emerald-600 uppercase tracking-widest text-center">Aud</th>
-                  <th className="px-3 py-2 text-[8px] font-bold text-gray-400 uppercase tracking-widest text-right">Var</th>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Product Description</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center bg-slate-100/60">
+                    Before Audit <span className="block text-[8px] font-normal text-slate-400">(System Recorded)</span>
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-emerald-700 uppercase tracking-widest text-center bg-emerald-50/80">
+                    After Audit <span className="block text-[8px] font-normal text-emerald-600">(Physical Count)</span>
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-600 uppercase tracking-widest text-right">
+                    Variance <span className="block text-[8px] font-normal text-gray-400">(Difference)</span>
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-100">
                 {audit.items.map((item) => {
                   const diff = (item.newQuantity || 0) - (item.oldQuantity || 0);
+                  const prodName = item.product?.name || item.productName || 'Product (' + (item.productId?.slice(-6) || 'Item') + ')';
+                  const catName = item.product?.category?.name || item.category || 'General';
+                  const unitName = item.product?.unit?.name || item.product?.unit || 'pcs';
                   return (
-                    <tr key={item.id} className="hover:bg-emerald-50/10 transition-colors group">
-                      <td className="px-3 py-1.5">
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="px-4 py-2.5">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-gray-800 group-hover:text-emerald-600 transition-colors uppercase truncate max-w-[150px] leading-tight">{item.product?.name}</span>
-                          <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">{item.product?.category?.name || 'General'}</span>
+                          <span className="text-xs font-bold text-gray-900 group-hover:text-emerald-600 transition-colors uppercase leading-tight" title={prodName}>
+                            {prodName}
+                          </span>
+                          <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">{catName} • {unitName}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-1.5 text-[10px] font-bold text-gray-400 text-center">{item.oldQuantity}</td>
-                      <td className="px-3 py-1.5 text-[10px] font-bold text-emerald-600 text-center bg-emerald-50/5 font-mono">{item.newQuantity}</td>
-                      <td className="px-3 py-1.5 text-right">
-                        <span className={`inline-flex items-center justify-center min-w-[35px] px-1.5 py-0.5 rounded-lg text-[8px] font-bold border ${diff > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                          diff < 0 ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                            'bg-gray-50 dark:bg-gray-900/50 text-gray-400 border-gray-200'
-                          }`}>
+                      <td className="px-4 py-2.5 text-center bg-slate-50/50">
+                        <span className="inline-block px-3 py-1 bg-slate-100 text-slate-700 rounded-md font-mono text-xs font-bold border border-slate-200">
+                          {item.oldQuantity}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-center bg-emerald-50/20">
+                        <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 rounded-md font-mono text-xs font-extrabold border border-emerald-200 shadow-sm">
+                          {item.newQuantity}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={`inline-flex items-center justify-center min-w-[50px] px-2 py-1 rounded-lg text-xs font-bold border shadow-xs ${
+                          diff > 0
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : diff < 0
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-gray-50 text-gray-400 border-gray-200'
+                        }`}>
                           {diff > 0 ? `+${diff}` : diff === 0 ? '0' : diff}
                         </span>
                       </td>
@@ -352,42 +415,55 @@ const AuditsSection = ({
                     a.vehicle?.vehicleName?.toLowerCase().includes(auditSearch.toLowerCase()) ||
                     a.user?.name?.toLowerCase().includes(auditSearch.toLowerCase())
                   )
-                  .map((audit) => (
-                    <tr
-                      key={audit.id}
-                      onClick={() => setSelectedAuditId(audit.id)}
-                      className="hover:bg-emerald-50/30 transition-all cursor-pointer group"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white rounded-xl flex items-center justify-center transition-all shadow-inner">
-                            <Truck size={18} />
+                  .map((audit) => {
+                    const totalBefore = audit.items?.reduce((acc, i) => acc + (Number(i.oldQuantity) || 0), 0) || 0;
+                    const totalAfter = audit.items?.reduce((acc, i) => acc + (Number(i.newQuantity) || 0), 0) || 0;
+                    const netDiff = totalAfter - totalBefore;
+
+                    return (
+                      <tr
+                        key={audit.id}
+                        onClick={() => setSelectedAuditId(audit.id)}
+                        className="hover:bg-emerald-50/30 transition-all cursor-pointer group"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white rounded-xl flex items-center justify-center transition-all shadow-inner">
+                              <Truck size={18} />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-gray-900 dark:text-white group-hover:text-emerald-600 uppercase tracking-tight transition-colors">{audit.vehicle?.vehicleNumber}</span>
+                              <span className="text-[9px] text-gray-400 uppercase tracking-widest">{audit.vehicle?.vehicleName || 'Regular Load'}</span>
+                            </div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="text-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-1 rounded-lg border border-gray-200">{audit.user?.name}</span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
                           <div className="flex flex-col">
-                            <span className="text-gray-900 dark:text-white group-hover:text-emerald-600 uppercase tracking-tight transition-colors">{audit.vehicle?.vehicleNumber}</span>
-                            <span className="text-[9px] text-gray-400 uppercase tracking-widest">{audit.vehicle?.vehicleName || 'Regular Load'}</span>
+                            <span className="text-gray-800">{new Date(audit.createdAt).toLocaleDateString()}</span>
+                            <span className="text-[9px] text-gray-400 uppercase tracking-tighter">{new Date(audit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-1 rounded-lg border border-gray-200">{audit.user?.name}</span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex flex-col">
-                          <span className="text-gray-800">{new Date(audit.createdAt).toLocaleDateString()}</span>
-                          <span className="text-[9px] text-gray-400 uppercase tracking-tighter">{new Date(audit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right pr-6">
-                        <div className="flex items-center justify-end gap-3">
-                          <span className="text-gray-400 italic font-medium truncate max-w-[150px]">{audit.remark || 'N/A'}</span>
-                          <div className="p-2 bg-emerald-50 rounded-lg text-emerald-400 group-hover:translate-x-1 transition-all">
-                            <Truck className="rotate-180" size={12} strokeWidth={3} />
+                        </td>
+                        <td className="px-6 py-4 text-right pr-6">
+                          <div className="flex items-center justify-end gap-3">
+                            <div className="flex items-center gap-2 mr-2 text-[10px] font-bold">
+                              <span className="text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded" title="Before Audit Stock">Sys: {totalBefore}</span>
+                              <span className="text-emerald-600 font-mono bg-emerald-50 px-2 py-0.5 rounded" title="After Audit Physical Stock">Aud: {totalAfter}</span>
+                              <span className={`px-2 py-0.5 rounded font-mono ${netDiff > 0 ? 'bg-emerald-100 text-emerald-800' : netDiff < 0 ? 'bg-rose-100 text-rose-800' : 'bg-gray-100 text-gray-600'}`} title="Net Variance">
+                                {netDiff > 0 ? `+${netDiff}` : netDiff}
+                              </span>
+                            </div>
+                            <span className="text-gray-400 italic font-medium truncate max-w-[130px]">{audit.remark || 'N/A'}</span>
+                            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-400 group-hover:translate-x-1 transition-all">
+                              <Truck className="rotate-180" size={12} strokeWidth={3} />
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>

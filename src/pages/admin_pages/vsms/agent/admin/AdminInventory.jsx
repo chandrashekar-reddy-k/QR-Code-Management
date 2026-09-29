@@ -390,8 +390,8 @@ export default function AdminInventory() {
         (i.displayId && i.displayId.toLowerCase().includes(q));
       const matchesCategory = opsCategory === 'ALL' || i.category?.name === opsCategory;
       const matchesSubCategory = opsSubCategory === 'ALL' || i.subCategory?.name === opsSubCategory;
-      const hasStock = (i.stock || 0) > 0;
-      return matchesSearch && matchesCategory && matchesSubCategory && hasStock;
+      // Show ALL products; sorting handles VSM > 0 at top
+      return matchesSearch && matchesCategory && matchesSubCategory;
     });
   }, [items, opsSearch, opsCategory, opsSubCategory]);
 
@@ -402,8 +402,20 @@ export default function AdminInventory() {
       if (i.isFree) free.push(i);
       else regular.push(i);
     });
-    return { regular, free };
-  }, [loadingFilteredItems]);
+
+    const sortFn = (a, b) => {
+      const aVsm = Number(a.vehicleStoreStock || 0);
+      const bVsm = Number(b.vehicleStoreStock || 0);
+      if (aVsm > 0 && bVsm === 0) return -1;
+      if (bVsm > 0 && aVsm === 0) return 1;
+      if (aVsm !== bVsm) return bVsm - aVsm;
+      const aStock = Number(a.stock !== undefined && a.stock !== null ? a.stock : (a.warehouseStock || 0));
+      const bStock = Number(b.stock !== undefined && b.stock !== null ? b.stock : (b.warehouseStock || 0));
+      return bStock - aStock;
+    };
+
+    return { regular: regular.sort(sortFn), free: free.sort(sortFn) };
+  }, [loadingFilteredItems, vehicleInventoryMap]);
 
   const returnFilteredItems = React.useMemo(() => {
     const q = returnSearch.toLowerCase();

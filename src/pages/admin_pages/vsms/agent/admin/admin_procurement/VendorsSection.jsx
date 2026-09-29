@@ -172,8 +172,23 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
 
   const openLedger = async (vendorId) => {
     try {
-      const { data } = await procurementAPI.getVendorLedger(vendorId);
-      setLedgerData(data);
+      const res = await procurementAPI.getVendorLedger(vendorId);
+      const rawData = res.data?.data || res.data || {};
+      const currentVendor = (vendors || []).find(v => v.id === vendorId);
+      
+      let ledgerEntries = [];
+      let vendorObj = rawData.vendor || currentVendor;
+
+      if (Array.isArray(rawData)) {
+        ledgerEntries = rawData;
+      } else if (Array.isArray(rawData.ledger)) {
+        ledgerEntries = rawData.ledger;
+      }
+
+      setLedgerData({
+        vendor: vendorObj,
+        ledger: ledgerEntries
+      });
       setLedgerView(vendorId);
     } catch { 
       toast.error('Failed to load ledger'); 
@@ -963,12 +978,12 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
           <div className="bg-white w-full max-w-2xl rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-black text-gray-900">{ledgerData.vendor?.vendorName}</h3>
+                <h3 className="text-lg font-black text-gray-900">{ledgerData.vendor?.vendorName || 'Vendor Ledger'}</h3>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Vendor Ledger • Balance: <span className={ledgerData.vendor?.currentBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}>₹{Math.abs(ledgerData.vendor?.currentBalance || 0).toLocaleString()}</span></p>
               </div>
               <button onClick={() => { setLedgerView(null); setLedgerData(null); }} className="text-gray-400"><X size={20} /></button>
             </div>
-            {ledgerData.ledger?.length === 0 ? (
+            {(!ledgerData.ledger || ledgerData.ledger.length === 0) ? (
               <p className="text-center text-gray-400 py-8 font-bold text-sm">No ledger entries yet</p>
             ) : (
               <div className="bg-gray-50 rounded-2xl overflow-hidden">
@@ -983,9 +998,9 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {ledgerData.ledger.map(entry => (
-                      <tr key={entry.id} className="bg-white">
-                        <td className="px-4 py-2 text-[11px] font-bold text-gray-600">{format(new Date(entry.date), 'dd MMM yyyy')}</td>
+                    {(ledgerData.ledger || []).map(entry => (
+                      <tr key={entry.id || Math.random()} className="bg-white">
+                        <td className="px-4 py-2 text-[11px] font-bold text-gray-600">{entry.date || entry.createdAt ? format(new Date(entry.date || entry.createdAt), 'dd MMM yyyy') : '—'}</td>
                         <td className="px-4 py-2">
                           <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
                             entry.type === 'PURCHASE' ? 'bg-red-50 text-red-600' : entry.type === 'PAYMENT' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
@@ -993,7 +1008,7 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
                         </td>
                         <td className="px-4 py-2 text-right text-xs font-black text-rose-600">{entry.debit > 0 ? `₹${entry.debit.toLocaleString()}` : '—'}</td>
                         <td className="px-4 py-2 text-right text-xs font-black text-emerald-600">{entry.credit > 0 ? `₹${entry.credit.toLocaleString()}` : '—'}</td>
-                        <td className="px-4 py-2 text-right text-xs font-black text-gray-900">₹{Math.abs(entry.balance).toLocaleString()}</td>
+                        <td className="px-4 py-2 text-right text-xs font-black text-gray-900">₹{Math.abs(entry.balance || 0).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>

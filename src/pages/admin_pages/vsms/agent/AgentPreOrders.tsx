@@ -14,7 +14,9 @@ import { useUserStore } from '../store/userStore';
 import { getTodayPlan } from '../services/routeService';
 import { productsAPI } from '../services/api';
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3004/api/v1' : '/api/v1';
+import { URL as configURL } from '../../../../config';
+
+const API_BASE = (import.meta.env.VITE_URL as string | undefined)?.trim().replace(/\/+$/, '') || configURL || '';
 
 const getAgentToken = () =>
   localStorage.getItem('token') ||
@@ -29,14 +31,14 @@ api.interceptors.request.use(cfg => {
 });
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  RECEIVED:         { label: 'Received',         bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' },
-  CONFIRMED:        { label: 'Confirmed',        bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200' },
-  PACKED:           { label: 'Packed in Hub',    bg: 'bg-purple-50',  text: 'text-purple-700',  border: 'border-purple-200' },
-  LOADED:           { label: 'Loaded on Vehicle',bg: 'bg-cyan-50',    text: 'text-cyan-700',    border: 'border-cyan-200' },
-  OUT_FOR_DELIVERY: { label: 'Out for Delivery', bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200' },
-  DELIVERED:        { label: 'Delivered',        bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  CANCELLED:        { label: 'Cancelled',        bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200' },
-  RESCHEDULED:      { label: 'Rescheduled',      bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200' },
+  RECEIVED: { label: 'Received', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  CONFIRMED: { label: 'Confirmed', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  PACKED: { label: 'Packed in Hub', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  LOADED: { label: 'Loaded on Vehicle', bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+  OUT_FOR_DELIVERY: { label: 'Out for Delivery', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  DELIVERED: { label: 'Delivered', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  CANCELLED: { label: 'Cancelled', bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  RESCHEDULED: { label: 'Rescheduled', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
 };
 
 // view: 'list' | 'form' | 'detail' | 'complete'
@@ -188,7 +190,7 @@ export default function AgentPreOrders() {
             if (match.address) setDeliveryAddress(match.address);
             toast.success(`Found: ${match.name}`);
           }
-        }).catch(() => {});
+        }).catch(() => { });
     }
   }, [customerPhone]);
 
@@ -254,7 +256,7 @@ export default function AgentPreOrders() {
 
   const catalogSubtotal = useMemo(() =>
     selectedCatalogItems.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0)
-  , [selectedCatalogItems]);
+    , [selectedCatalogItems]);
 
   const calculatedTotal = catalogSubtotal;
 
@@ -831,11 +833,10 @@ export default function AgentPreOrders() {
                       key={cat}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 transition-all ${
-                        selectedCategory === cat
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 transition-all ${selectedCategory === cat
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
                     >
                       {cat}
                     </button>
@@ -865,11 +866,10 @@ export default function AgentPreOrders() {
                     <div
                       key={prod.id}
                       onClick={() => handleAddCatalogItem(prod)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
-                        inSelected
-                          ? 'bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-300/50'
-                          : 'bg-slate-50/80 border-slate-200/80 hover:border-emerald-300 hover:bg-white'
-                      }`}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${inSelected
+                        ? 'bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-300/50'
+                        : 'bg-slate-50/80 border-slate-200/80 hover:border-emerald-300 hover:bg-white'
+                        }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
                         <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 overflow-hidden flex items-center justify-center shrink-0">
@@ -943,24 +943,45 @@ export default function AgentPreOrders() {
             </div>
           </div>
 
-          {/* Advance Payment */}
+          {/* Payment Method & Advance */}
           <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Advance Payment (Optional)</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Payment Method / Advance Collection</p>
             <div className="grid grid-cols-3 gap-2 mb-3">
-              {(['NONE', 'CASH', 'UPI'] as const).map(mode => (
-                <button key={mode} type="button" onClick={() => setAdvanceMode(mode)}
-                  className={`py-2 rounded-xl text-xs font-bold border transition-all ${advanceMode === mode
-                    ? mode === 'NONE' ? 'bg-slate-600 text-white border-slate-600' : mode === 'CASH' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-slate-600 border-slate-200'}`}>
-                  {mode === 'NONE' ? 'No Advance' : mode === 'CASH' ? 'Cash Advance' : 'UPI Advance'}
+              {[
+                { id: 'NONE', label: 'COD (Pay on Delivery)', desc: '' },
+                { id: 'CASH', label: 'Cash Advance', desc: '' },
+                { id: 'UPI', label: 'Online / UPI Advance', desc: '' }
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setAdvanceMode(opt.id as any)}
+                  className={`py-2.5 px-2 rounded-xl text-xs font-bold border transition-all flex flex-col items-center justify-center text-center ${advanceMode === opt.id
+                    ? opt.id === 'NONE'
+                      ? 'bg-slate-700 text-white border-slate-700 shadow-sm'
+                      : opt.id === 'CASH'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                        : 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                >
+                  <span>{opt.label}</span>
+                  <span className={`text-[9px] mt-0.5 ${advanceMode === opt.id ? 'text-white/80' : 'text-slate-400 font-normal'}`}>
+                    {opt.desc}
+                  </span>
                 </button>
               ))}
             </div>
             {advanceMode !== 'NONE' && (
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 block mb-1">Advance Amount Collected (₹)</label>
+              <div className="mt-2 pt-2 border-t border-slate-100 animate-in fade-in duration-200">
+                <label className="text-[10px] font-bold text-slate-500 block mb-1">
+                  {advanceMode === 'CASH' ? 'Cash Advance Amount Collected (₹)' : 'Online / UPI Advance Amount (₹)'}
+                </label>
                 <input
-                  type="number" required min={1} placeholder="e.g. 500"
+                  type="number"
+                  required
+                  min={1}
+                  placeholder="e.g. 500"
                   value={advanceAmount}
                   onChange={(e) => setAdvanceAmount(e.target.value)}
                   className="w-full text-sm font-black px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"

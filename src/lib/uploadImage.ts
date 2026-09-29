@@ -9,12 +9,8 @@ export async function uploadImageFile(file: File): Promise<string> {
   formData.append("file", file);
 
   const token = localStorage.getItem("token");
-  const localApiUrl = window.location.origin.includes("localhost") 
-    ? "http://localhost:3004/api/v1" 
-    : "";
 
   const bases = [
-    localApiUrl,
     PARTNER_API_URL?.trim().replace(/\/$/, ""),
     URL_ADMIN?.trim().replace(/\/$/, "")
   ].filter(Boolean);

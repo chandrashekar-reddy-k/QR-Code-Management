@@ -177,6 +177,8 @@ export const initialStateCheckers = {
     pathname === "/vsms/fuel-maintenance" || pathname === "/vsms/damages",
   isInventoryManagementOpen: (pathname: string) =>
     pathname === "/vsms/stock-history",
+  isCashManagementOpen: (pathname: string) =>
+    pathname === "/vsms/cash-management" || pathname === "/vsms/cash-reconciliation" || pathname.startsWith("/vsms/cash-reconciliation"),
 };
 
 // Menu configuration
@@ -256,7 +258,7 @@ export const sidebarConfig: MenuSection[] = [
       },
       { path: '/vsms/pre-orders', label: 'Pre-Orders', icon: Package },
       { path: '/vsms/scheduled-deliveries', label: 'Scheduled Deliveries', icon: ShoppingBag },
-      { path: '/vsms/sales', label: 'Sales History', icon: Receipt },
+      { path: '/vsms/sales', label: 'Vsms & Pos Sales', icon: Receipt },
       { path: '/inventory/monitoring/reservations', label: 'Reservations', icon: Clock },
     ],
   },
@@ -523,11 +525,24 @@ export const sidebarConfig: MenuSection[] = [
   },
 
   {
-    type: "link",
+    type: "collapsible",
     permission: "Partner: Cash Management",
-    path: "/vsms/cash-management",
     label: "Cash Management",
     icon: Wallet,
+    stateKey: "isCashManagementOpen",
+    activeCheck: activeCheckers.isCashManagementOpen,
+    subItems: [
+      {
+        path: "/vsms/cash-management?section=Safe",
+        label: "Safe control",
+        icon: Shield,
+      },
+      {
+        path: "/vsms/cash-reconciliation",
+        label: "Daily reconciliation",
+        icon: ClipboardList,
+      },
+    ],
   },
 
   // Stock Management moved into Inventory Management

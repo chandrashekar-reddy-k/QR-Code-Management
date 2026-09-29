@@ -28,8 +28,18 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
 
   const fetchAgents = () => {
     api.get('/delivery-agents')
-      .then(res => setAgents(res.data))
-      .catch(err => console.error("Failed to load riders", err));
+      .then(res => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setAgents(res.data);
+        } else {
+          return api.get('/partner/orders/delivery-agents').then(r => setAgents(r.data || []));
+        }
+      })
+      .catch(() => {
+        api.get('/partner/orders/delivery-agents')
+          .then(r => setAgents(r.data || []))
+          .catch(err => console.error("Failed to load riders", err));
+      });
   };
 
   useEffect(() => {
@@ -225,11 +235,18 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
 
                 <div className="mb-3">
                   {hasRider && (
-                    <div className="flex items-center gap-2 p-2.5 bg-green-50 rounded-lg border border-green-100 mt-2">
-                      <User size={16} className="text-[#2E7D32]" />
-                      <span className="text-[#2E7D32]" style={{ fontSize: "13px", fontWeight: 600 }}>
-                        Rider Assigned: {agents.find(a => a.id === order.agentId)?.name || 'Unknown'}
-                      </span>
+                    <div className="flex flex-col gap-1 p-2.5 bg-green-50 rounded-lg border border-green-100 mt-2">
+                      <div className="flex items-center gap-2">
+                        <User size={16} className="text-[#2E7D32]" />
+                        <span className="text-[#2E7D32]" style={{ fontSize: "13px", fontWeight: 600 }}>
+                          Rider Assigned: {order.agent?.name || order.rider_name || agents.find(a => a.id === order.agentId)?.name || 'Assigned'}
+                        </span>
+                      </div>
+                      {(order.vehicle_number || order.vehicle?.registrationNumber || order.assignedVehicle?.registrationNumber) && (
+                        <div className="text-xs text-green-700 font-medium pl-6">
+                          Vehicle: <span className="font-bold">{order.vehicle_number || order.vehicle?.registrationNumber || order.assignedVehicle?.registrationNumber}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -259,7 +276,7 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                 ) : (
                   <button
                     onClick={() => setSelectedOrderForRider(order)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl py-3 transition-opacity bg-blue-600"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 transition-colors bg-[#00891D] hover:bg-[#006614] shadow-sm"
                   >
                     <User size={16} color="white" />
                     <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Assign Rider</span>
@@ -320,15 +337,29 @@ export function ReadyOrdersMobile({ onNavigate, onBack }: ReadyOrdersMobileProps
                         : 'border-gray-200 dark:border-gray-700 hover:border-[#00891D] hover:bg-green-50/30'
                       }`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden shrink-0 border border-gray-200 dark:border-gray-700">
-                      {profilePic ? (
-                        <img src={profilePic} alt={agent.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <User size={20} className="text-gray-400" />
-                      )}
+                    <div className="relative shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700">
+                        {profilePic ? (
+                          <img src={profilePic} alt={agent.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={20} className="text-gray-400" />
+                        )}
+                      </div>
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#00891D] border-2 border-white dark:border-gray-800 rounded-full" title="Online" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">{agent.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">{agent.name}</span>
+                        <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
+                          agent.role === 'VEHICLE_AGENT'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                            : agent.role === 'VSMS_AGENT'
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                        }`}>
+                          {agent.role === 'VEHICLE_AGENT' ? 'Vehicle Agent' : agent.role === 'VSMS_AGENT' ? 'VSMS Agent' : 'Delivery Agent'}
+                        </span>
+                      </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{phone}</div>
                     </div>
                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${selectedAgentId === agent.id

@@ -94,14 +94,20 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
 
       return attemptLogin("partner").then(async ({ res, data }) => {
         if (!res.ok) {
-          // If access was denied due to agent role, retry without portal restriction
-          if (res.status === 401 && data?.message?.includes("Delivery Agent")) {
-            const retry = await attemptLogin("vsms");
-            if (retry.res.ok) {
-              return formatLoginSuccess(retry.data);
-            }
+          // Retry for agent, vsms, and generic login
+          const retryAgent = await attemptLogin("agent");
+          if (retryAgent.res.ok) {
+            return formatLoginSuccess(retryAgent.data);
           }
-          throw new Error(data.message || "Login failed");
+          const retryVsms = await attemptLogin("vsms");
+          if (retryVsms.res.ok) {
+            return formatLoginSuccess(retryVsms.data);
+          }
+          const retryGeneric = await attemptLogin();
+          if (retryGeneric.res.ok) {
+            return formatLoginSuccess(retryGeneric.data);
+          }
+          throw new Error(data.message || retryAgent.data?.message || "Login failed");
         }
         return formatLoginSuccess(data);
       });

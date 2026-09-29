@@ -7,7 +7,7 @@ import { URL as configURL } from '../../../../config';
 const fetchMe = async () => {
   const token = localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
   if (!token) return null;
-  const baseURL = window.location.hostname === 'localhost' ? 'http://localhost:3004/api/v1' : (configURL || '');
+  const baseURL = (import.meta.env.VITE_URL as string | undefined)?.trim().replace(/\/+$/, '') || configURL || '';
   const cleanBaseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
   const { data } = await axios.get(`${cleanBaseURL}/vsms/auth/me`, {
     headers: { Authorization: `Bearer ${token}` }

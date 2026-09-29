@@ -24,8 +24,9 @@ function LocationBadge({ location }: { location: string }) {
 }
 
 export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreenMobileProps) {
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialItems = Array.isArray(order?.items) ? order.items : [];
+  const [items, setItems] = useState<any[]>(initialItems);
+  const [loading, setLoading] = useState(initialItems.length === 0);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRejectReason, setSelectedRejectReason] = useState<string>("");
   const [rejectRemarks, setRejectRemarks] = useState<string>("");
@@ -35,19 +36,20 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
 
   useEffect(() => {
     if (!order?.id) return;
-    api.get(`/orders/${order.id}`).then(async res => {
-      setItems(res.data.items || []);
-
-      // If the order is still "accepted", mark it as "picking" to trigger picking_started_at
-      if (res.data.status === 'accepted') {
-        try {
-          await api.put(`/orders/${order.id}/status`, { status: 'picking' });
-        } catch (e) {
-          console.error('Failed to update status to picking', e);
-        }
-      }
-
+    if (!Array.isArray(order?.items) || order.items.length === 0) {
+      setLoading(true);
+    }
+    api.get(`/orders/${order.id}`).then(res => {
+      const fetchedItems = Array.isArray(res.data?.items) ? res.data.items : [];
+      setItems(fetchedItems);
       setLoading(false);
+
+      // If the order is still "accepted", mark it as "picking" asynchronously in background
+      if (res.data?.status === 'accepted') {
+        api.put(`/orders/${order.id}/status`, { status: 'picking' }).catch(e => {
+          console.error('Failed to update status to picking', e);
+        });
+      }
     }).catch(err => {
       console.error(err);
       setLoading(false);
@@ -70,8 +72,12 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
       );
       setItems(newItems);
 
-      // 1. Wait for the API call to complete so backend updates the db and sets timestamps
-      await api.put(`/orders/${order.id}/items/${itemId}/pick`);
+      // 1. Fire API call with fallback catch
+      try {
+        await api.put(`/orders/${order.id}/items/${itemId}/pick`);
+      } catch (err) {
+        console.warn("Failed to call pick API, falling back to local state:", err);
+      }
 
       // 2. Check if all items are now processed
       const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
@@ -89,7 +95,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error handling pick action:", err);
     }
   };
 
@@ -113,11 +119,15 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
       setItems(newItems);
       setShowRejectModal(false);
 
-      // 1. Wait for the API call to complete
-      await api.put(`/orders/${order.id}/items/${rejectingItem.id}/reject`, {
-        reason: selectedRejectReason,
-        remarks: rejectRemarks
-      });
+      // 1. Fire API call with fallback catch
+      try {
+        await api.put(`/orders/${order.id}/items/${rejectingItem.id}/reject`, {
+          reason: selectedRejectReason,
+          remarks: rejectRemarks
+        });
+      } catch (err) {
+        console.warn("Failed to call reject API, falling back to local state:", err);
+      }
 
       // 2. Check if all items are now processed
       const allCompleted = newItems.every(i => i.is_picked || i.is_rejected);
@@ -135,7 +145,7 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
         }
       }
     } catch (err) {
-      console.warn("Failed to call reject API, falling back to local state:", err);
+      console.error("Error submitting rejection:", err);
     } finally {
       setSelectedRejectReason("");
       setRejectRemarks("");
@@ -152,11 +162,12 @@ export function PickingScreenMobile({ onNavigate, onBack, order }: PickingScreen
     );
   }
 
-  const completedItems = items.filter(i => i.is_picked || i.is_rejected);
+  const safeItems = Array.isArray(items) ? items : [];
+  const completedItems = safeItems.filter(i => i.is_picked || i.is_rejected);
   const totalCompleted = completedItems.length;
-  const currentIdx = items.findIndex(item => !item.is_picked && !item.is_rejected);
-  const currentItem = currentIdx >= 0 ? items[currentIdx] : null;
-  const percentCompleted = items.length ? Math.round((totalCompleted / items.length) * 100) : 0;
+  const currentIdx = safeItems.findIndex(item => !item.is_picked && !item.is_rejected);
+  const currentItem = currentIdx >= 0 ? safeItems[currentIdx] : null;
+  const percentCompleted = safeItems.length ? Math.round((totalCompleted / safeItems.length) * 100) : 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA] dark:bg-gray-900">

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNewOrderAlert } from "../../contexts/NewOrderAlertContext";
 import { Bell, ShoppingBag, X, Volume2, VolumeX, CheckCircle2, Settings } from "lucide-react";
 import { NotificationSettingsModal } from "./NotificationSettingsModal";
+import toast from "react-hot-toast";
 
 export function OmsNewOrderAlertOverlay() {
   const { activeOrder, countdown, isBuzzing, queueLength, todayStats, dismissAlert, audioEnabled, toggleAudio, acceptOrder } = useNewOrderAlert();
@@ -191,12 +192,14 @@ export function OmsNewOrderAlertOverlay() {
     setIsAccepting(true);
     try {
       await acceptOrder(activeOrder.orderId);
+      toast.success("Order accepted successfully!");
       setTimeout(() => {
         handleClose();
         setIsAccepting(false);
       }, 350);
     } catch {
       setIsAccepting(false);
+      toast.error("Failed to accept order");
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Clock, MapPin, CreditCard, Package, CheckCircle, XCircle, Phone, Zap, Loader2, User } from "lucide-react";
 import api from "../../api/axios";
+import toast from "react-hot-toast";
 
 interface OrderDetailsProps {
   onBack: () => void;
@@ -14,9 +15,11 @@ interface OrderDetailsProps {
 
 export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetailsProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [fullOrder, setFullOrder] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [fullOrder, setFullOrder] = useState<any>(order || null);
+  const [loading, setLoading] = useState<boolean>(!order || (!order.items && !order.item_count));
   const [error, setError] = useState<string | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   // Tick every minute so SLA elapsed/remaining updates automatically
   const [now, setNow] = useState(new Date());
 
@@ -58,14 +61,18 @@ export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetails
 
   useEffect(() => {
     if (order?.id) {
-      setLoading(true);
+      if (!order.items) {
+        setLoading(true);
+      }
       setError(null);
       api.get(`/orders/${order.id}`).then(res => {
         setFullOrder(res.data);
         setLoading(false);
       }).catch(err => {
         console.error(err);
-        setError("Failed to load order details. Please try again.");
+        if (!fullOrder && !order) {
+          setError("Failed to load order details. Please try again.");
+        }
         setLoading(false);
       });
     } else {
@@ -81,22 +88,32 @@ export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetails
   }, []);
 
   const handleAccept = async () => {
-    if (!fullOrder?.id) return;
+    if (!fullOrder?.id || isAccepting || isRejecting) return;
+    setIsAccepting(true);
     try {
-      await api.put(`/orders/${fullOrder.id}/accept`);
+      const res = await api.put(`/orders/${fullOrder.id}/accept`);
+      toast.success(res.data?.message || "Order accepted successfully!");
       onNavigate("picking-queue");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.response?.data?.error || "Failed to accept order");
+    } finally {
+      setIsAccepting(false);
     }
   };
 
   const handleReject = async () => {
-    if (!fullOrder?.id) return;
+    if (!fullOrder?.id || isAccepting || isRejecting) return;
+    setIsRejecting(true);
     try {
       await api.put(`/orders/${fullOrder.id}/reject`);
+      toast.success("Order rejected");
       onBack();
     } catch (err) {
       console.error(err);
+      toast.error("Failed to reject order");
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -464,33 +481,6 @@ export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetails
                       <span className="text-gray-700 dark:text-gray-300" style={{ fontWeight: 600, fontSize: "13px" }}>
                         ₹{item.price ?? item.totalPrice ?? item.product?.price}
                       </span>
-                      {!isCancelled && !['DELIVERED', 'CANCELLED', 'FAILED'].includes(fullOrder?.status as string) && (
-                        <button
-                          onClick={async () => {
-                            if (!window.confirm(`Mark "${item.name || item.product?.name || 'Item'}" out of stock? Customer will be refunded ₹${item.price ?? item.totalPrice ?? 0}.`)) return;
-                            try {
-                              setLoading(true);
-                              const res = await api.post(`/partner/orders/${fullOrder?.id}/items/${item.id}/mark-unavailable`, {
-                                reason: "Out of stock during picking"
-                              });
-                              if (res.data?.data?.order) {
-                                setFullOrder(res.data.data.order);
-                              } else {
-                                const refresh = await api.get(`/orders/${fullOrder?.id}`);
-                                setFullOrder(refresh.data);
-                              }
-                            } catch (err: unknown) {
-                              const errObj = err as { response?: { data?: { message?: string } } };
-                              alert(errObj?.response?.data?.message || "Failed to mark item unavailable");
-                            } finally {
-                              setLoading(false);
-                            }
-                          }}
-                          className="px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded text-[11px] font-medium hover:bg-red-100 transition-colors"
-                        >
-                          Out of Stock
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
@@ -534,18 +524,32 @@ export function OrderDetails({ onBack, onNavigate, order, socket }: OrderDetails
         <div className="bg-white border-t border-gray-100 p-4 flex gap-3 mt-auto dark:bg-gray-800 dark:border-gray-700">
           <button
             onClick={handleReject}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
+            disabled={isAccepting || isRejecting}
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <XCircle size={18} color="#D32F2F" />
-            <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>Ignore</span>
+            {isRejecting ? (
+              <Loader2 className="animate-spin text-red-600" size={18} />
+            ) : (
+              <XCircle size={18} color="#D32F2F" />
+            )}
+            <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>
+              {isRejecting ? "Ignoring..." : "Ignore"}
+            </span>
           </button>
           <button
             onClick={handleAccept}
-            className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-2.5 hover:bg-[#007016] transition-colors"
+            disabled={isAccepting || isRejecting}
+            className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-2.5 hover:bg-[#007016] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: "#00891D" }}
           >
-            <CheckCircle size={16} color="white" />
-            <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Accept Order</span>
+            {isAccepting ? (
+              <Loader2 className="animate-spin text-white" size={16} />
+            ) : (
+              <CheckCircle size={16} color="white" />
+            )}
+            <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>
+              {isAccepting ? "Accepting..." : "Accept Order"}
+            </span>
           </button>
         </div>
       )}

@@ -137,7 +137,6 @@ const VehicleStockSection = ({
     }
     const safeInventory = inventory || [];
     const filteredActiveStock = safeInventory.filter(i => {
-      if (!i.quantity || i.quantity <= 0) return false;
       const q = vehicleSearch.toLowerCase();
       return !q ||
         (i.product?.name?.toLowerCase() || "").includes(q) ||
@@ -343,8 +342,9 @@ const VehicleStockSection = ({
                     <table className="w-full text-left border-collapse table-fixed">
                       <thead>
                         <tr className="bg-gray-50 dark:bg-gray-900/50/50 text-[9px] font-bold uppercase tracking-widest text-gray-400">
-                          <th className="px-4 py-3 w-[35%]">Product Details</th>
+                          <th className="px-4 py-3 w-[30%]">Product Details</th>
                           <th className="px-3 py-3 text-center w-[15%]">System Qty</th>
+                          <th className="px-3 py-3 text-center w-[15%]">Status</th>
                           {isAuditMode && (
                             <>
                               <th className="px-3 py-3 text-center text-emerald-600 w-[15%]">Actual</th>
@@ -352,7 +352,7 @@ const VehicleStockSection = ({
                             </>
                           )}
                           {!isAuditMode && <th className="px-3 py-3 text-center w-[15%]">Rate</th>}
-                          <th className="pr-4 py-3 text-right w-[20%]">Net Value</th>
+                          <th className="pr-4 py-3 text-right w-[15%]">Net Value</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
@@ -372,30 +372,48 @@ const VehicleStockSection = ({
                           }
 
                           const price = parseFloat(item.product?.price || 0);
-                          const systemQty = item.quantity;
+                          const systemQty = Number(item.quantity || 0);
+                          const isOutOfStock = systemQty <= 0;
                           const displayAmount = systemQty * price;
 
                           return (
-                            <tr key={`track-table-pc-${item.id}`} className="hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group">
+                            <tr key={`track-table-pc-${item.id}`} className={`hover:bg-gray-50 dark:bg-gray-900/50/30 transition-colors group ${isOutOfStock ? 'bg-red-50/20' : ''}`}>
                               <td className="px-4 py-2">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 shadow-inner flex items-center justify-center no-print shrink-0">
-                                    {item.product?.isFree ? <Gift size={14} className="text-emerald-500" /> : <Package size={14} className="text-gray-400 group-hover:text-emerald-500" />}
+                                  <div className={`w-8 h-8 rounded-lg border shadow-inner flex items-center justify-center no-print shrink-0 ${
+                                    isOutOfStock 
+                                      ? 'bg-red-50 text-red-400 border-red-100' 
+                                      : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 text-gray-400 group-hover:text-emerald-500'
+                                  }`}>
+                                    {item.product?.isFree ? <Gift size={14} className="text-emerald-500" /> : <Package size={14} />}
                                   </div>
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[11px] font-bold text-gray-800 uppercase tracking-tight truncate">{item.product?.name || 'Unknown'}</span>
+                                    <span className={`text-[11px] font-bold uppercase tracking-tight truncate ${isOutOfStock ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                                      {item.product?.name || 'Unknown'}
+                                    </span>
                                     <span className="text-[8px] font-bold text-gray-400 uppercase">{item.product?.skuCode}</span>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-3 py-2 text-center">
-                                <span className="text-[10px] font-bold text-gray-400">{systemQty}</span>
+                                <span className={`text-[10px] font-bold ${isOutOfStock ? 'text-rose-600 font-extrabold' : 'text-gray-700'}`}>{systemQty}</span>
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                {isOutOfStock ? (
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200">
+                                    Out of Stock
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                    In Stock
+                                  </span>
+                                )}
                               </td>
                               <td className="px-3 py-2 text-center">
                                 <span className="text-[9px] font-bold text-gray-500">₹{price}</span>
                               </td>
                               <td className="pr-4 py-2 text-right">
-                                <span className="text-[10px] font-bold text-emerald-700">
+                                <span className={`text-[10px] font-bold ${isOutOfStock ? 'text-gray-400' : 'text-emerald-700'}`}>
                                   ₹{Math.round(displayAmount).toLocaleString('en-IN')}
                                 </span>
                               </td>

@@ -5,6 +5,8 @@ import api from "../../api/axios";
 import Breadcrumbs from "../common/Breadcrumbs";
 import { OrderDetails as MobileOrderDetails } from "./OrderDetailsMobile";
 
+import toast from "react-hot-toast";
+
 interface OrderDetailsProps {
   onBack: () => void;
   onNavigate: (screen: string, data?: any) => void;
@@ -20,6 +22,8 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false, socke
   }
   const [fullOrder, setFullOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Tick every minute so SLA elapsed/remaining updates automatically
   const [now, setNow] = useState(new Date());
@@ -95,22 +99,32 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false, socke
   }, [socket?.current, fullOrder?.id, queryClient]);
 
   const handleAccept = async () => {
-    if (!fullOrder?.id) return;
+    if (!fullOrder?.id || isAccepting || isRejecting) return;
+    setIsAccepting(true);
     try {
-      await api.put(`/orders/${fullOrder.id}/accept`);
+      const res = await api.put(`/orders/${fullOrder.id}/accept`);
+      toast.success(res.data?.message || "Order accepted successfully!");
       onNavigate("picking-queue");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.response?.data?.error || "Failed to accept order");
+    } finally {
+      setIsAccepting(false);
     }
   };
 
   const handleReject = async () => {
-    if (!fullOrder?.id) return;
+    if (!fullOrder?.id || isAccepting || isRejecting) return;
+    setIsRejecting(true);
     try {
       await api.put(`/orders/${fullOrder.id}/reject`);
+      toast.success("Order rejected");
       onBack();
     } catch (err) {
       console.error(err);
+      toast.error("Failed to reject order");
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -580,18 +594,32 @@ export function OrderDetails({ onBack, onNavigate, order, isAdmin = false, socke
         <div className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 p-4 flex gap-3 mt-auto">
           <button
             onClick={handleReject}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
+            disabled={isAccepting || isRejecting}
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <XCircle size={16} color="#D32F2F" />
-            <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>Ignore</span>
+            {isRejecting ? (
+              <Loader2 className="animate-spin text-red-600" size={16} />
+            ) : (
+              <XCircle size={16} color="#D32F2F" />
+            )}
+            <span style={{ color: "#D32F2F", fontWeight: 600, fontSize: "14px" }}>
+              {isRejecting ? "Ignoring..." : "Ignore"}
+            </span>
           </button>
           <button
             onClick={handleAccept}
-            className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-2.5 hover:bg-[#007016] transition-colors"
+            disabled={isAccepting || isRejecting}
+            className="flex-[2] flex items-center justify-center gap-2 rounded-xl py-2.5 hover:bg-[#007016] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: "#00891D" }}
           >
-            <CheckCircle size={16} color="white" />
-            <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>Accept Order</span>
+            {isAccepting ? (
+              <Loader2 className="animate-spin text-white" size={16} />
+            ) : (
+              <CheckCircle size={16} color="white" />
+            )}
+            <span className="text-white" style={{ fontWeight: 600, fontSize: "14px" }}>
+              {isAccepting ? "Accepting..." : "Accept Order"}
+            </span>
           </button>
         </div>
       )}

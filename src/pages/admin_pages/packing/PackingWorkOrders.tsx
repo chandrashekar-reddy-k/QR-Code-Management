@@ -158,7 +158,11 @@ export const PackingWorkOrders: React.FC = () => {
     showToast('Work orders list refreshed successfully!');
   };
 
-  const workOrders = apiWorkOrders;
+  const workOrders = useMemo(() => {
+    return [...apiWorkOrders].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  }, [apiWorkOrders]);
 
   const supervisors = useMemo(
     () =>
@@ -613,28 +617,10 @@ export const PackingWorkOrders: React.FC = () => {
             <option value="URGENT" className="dark:bg-gray-800">Urgent</option>
           </select>
 
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0" />
-
-          <select
-            value={filterSupervisor}
-            onChange={(e) => setFilterSupervisor(e.target.value)}
-            className="px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border-none focus:ring-0 outline-none cursor-pointer appearance-none min-w-[110px] shrink-0"
-          >
-            <option value="All" className="dark:bg-gray-800">Operator</option>
-            {supervisors.map((s) => (
-              <option key={s} value={s} className="dark:bg-gray-800">
-                {s}
-              </option>
-            ))}
-          </select>
-
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0" />
-
           <button
             onClick={() => {
               setFilterStatus('All');
               setFilterPriority('All');
-              setFilterSupervisor('All');
               setFilterDate('');
               setSearch('');
               setKpiFilter('all');
@@ -710,7 +696,7 @@ export const PackingWorkOrders: React.FC = () => {
       ) : viewMode === 'table' ? (
         // TABLE VIEW
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-xs">
-          <div className="overflow-hidden max-h-[60vh]">
+          <div className="overflow-x-auto">
             <table className="w-full table-fixed text-left text-xs border-collapse">
               <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
                 <tr className="text-gray-500 dark:text-gray-300 font-bold uppercase">
@@ -736,9 +722,9 @@ export const PackingWorkOrders: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  paginatedWOs.map((wo) => (
+                  paginatedWOs.map((wo, index) => (
                     <tr
-                      key={wo.id}
+                      key={`${wo.id}-${index}`}
                       className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors"
                     >
                       <td className="p-3 font-mono font-bold text-gray-700 dark:text-gray-200">
