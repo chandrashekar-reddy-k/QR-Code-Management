@@ -53,7 +53,7 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
               flattenedProducts.push({
                 ...prod,
                 id: variant.id || `${prod.id}_${variant.variantName}`,
-                productId: variant.id || `${prod.id}_${variant.variantName}`,
+                productId: variant.productId || (variant.id && !variant.id.includes('_') ? variant.id : prod.id),
                 parentProductId: prod.id,
                 name: prod.name,
                 variantName: variant.variantName || variant.name || '',
@@ -314,13 +314,13 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                     if (!isAMapped && isBMapped) return 1;
                     return a.name.localeCompare(b.name);
                   })
-                  .map(p => {
+                  .map((p, pIdx) => {
                   const isMapped = !!mappedItems[p.id];
                   const itemData = mappedItems[p.id];
 
                   return (
                     <div 
-                      key={p.id}
+                      key={p.id ? `${p.id}_${p.variantName || pIdx}` : pIdx}
                       className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
                         isMapped 
                           ? 'bg-slate-50/40 border-emerald-200 shadow-sm' 

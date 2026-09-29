@@ -19,8 +19,12 @@ import jsPDF from 'jspdf';
 import AddProduct from '../../products/AddProducts';
 
 const generateAutoSku = (name = '', unit = 'KG', category = '') => {
-  const letters = (name || category || 'ITEM').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase() || 'ITEM';
-  const cleanUnit = (unit || 'KG').replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase() || 'KG';
+  const nameStr = typeof name === 'string' ? name : (name ? String(name) : '');
+  const catStr = typeof category === 'string' ? category : (category ? String(category) : '');
+  const unitStr = typeof unit === 'string' ? unit : (unit ? String(unit) : '');
+  
+  const letters = (nameStr || catStr || 'ITEM').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase() || 'ITEM';
+  const cleanUnit = (unitStr || 'KG').replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase() || 'KG';
   const randNum = Math.floor(100 + Math.random() * 900);
   return `VK-${letters}-${cleanUnit}-${randNum}`;
 };
@@ -141,13 +145,14 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCr
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
-  const selectedProduct = products.find(p => (p.productId || p.id) === selectedProductId);
+  const selectedProduct = products.find(p => p.id === selectedProductId || (p.productId || p.id) === selectedProductId);
 
   const filteredProducts = products.filter(p => {
     const nameMatch = p.name?.toLowerCase().includes(search.toLowerCase());
     const skuMatch = p.skuCode?.toLowerCase().includes(search.toLowerCase());
-    const variantMatch = p.variants?.some(v => (v.variantName || v.name)?.toLowerCase().includes(search.toLowerCase()));
-    return nameMatch || skuMatch || variantMatch;
+    const variantMatch = (p.variantName || '')?.toLowerCase().includes(search.toLowerCase());
+    const subVariantMatch = p.variants?.some(v => (v.variantName || v.name)?.toLowerCase().includes(search.toLowerCase()));
+    return nameMatch || skuMatch || variantMatch || subVariantMatch;
   });
 
   return (
@@ -232,17 +237,20 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCr
                   )}
                 </div>
               ) : (
-                filteredProducts.map(p => {
-                  const pid = p.productId || p.id;
+                filteredProducts.map((p, pIdx) => {
+                  const itemKey = p.id || p.productId;
+                  const keyId = p.id ? `${p.id}_${p.variantName || pIdx}` : `prod_${itemKey}_${pIdx}`;
+                  const isSelected = selectedProductId && (p.id === selectedProductId || p.productId === selectedProductId);
+
                   return (
-                    <div key={pid} className="flex flex-col">
+                    <div key={keyId} className="flex flex-col">
                       <div
                         onClick={() => {
-                          onChange(pid);
+                          onChange(itemKey, p);
                           setIsOpen(false);
                         }}
                         className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${
-                          selectedProductId === pid 
+                          isSelected 
                             ? 'bg-emerald-50 text-emerald-700' 
                             : 'text-slate-700 hover:bg-slate-50'
                         }`}
@@ -261,26 +269,38 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCr
                             {(p.purchasePrice || p.price) && <span className="text-[9px] text-emerald-600 font-black">₹{p.purchasePrice || p.price}</span>}
                           </div>
                         </div>
-                        {selectedProductId === pid && <CheckCircle2 className="text-emerald-600" size={16} />}
+                        {isSelected && <CheckCircle2 className="text-emerald-600" size={16} />}
                       </div>
 
                       {/* Render product variants if present */}
                       {p.variants && p.variants.length > 0 && (
                         <div className="pl-6 pr-2 py-1 bg-slate-50/50 rounded-lg my-1 flex flex-col gap-1 border-l-2 border-purple-400 ml-3">
                           <span className="text-[8px] font-black uppercase tracking-wider text-purple-700">Variants:</span>
-                          {p.variants.map((v, vIdx) => (
-                            <div
-                              key={v.id || vIdx}
-                              onClick={() => {
-                                onChange(pid);
-                                setIsOpen(false);
-                              }}
-                              className="flex items-center justify-between px-2 py-1 rounded text-[10px] font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-900 cursor-pointer"
-                            >
-                              <span>{v.variantName || v.name}</span>
-                              <span className="font-bold text-emerald-600">₹{v.price || v.sellingPrice || 0}</span>
-                            </div>
-                          ))}
+                          {p.variants.map((v, vIdx) => {
+                            const subVariantObj = {
+                              ...p,
+                              id: v.id || `${p.id}_${v.variantName}`,
+                              productId: v.productId || p.id,
+                              variantName: v.variantName || v.name || '',
+                              skuCode: v.sku || v.skuCode || p.skuCode,
+                              purchasePrice: v.purchasePrice ?? v.costPrice ?? v.landingPrice ?? p.purchasePrice ?? p.price,
+                              rate: v.purchasePrice ?? v.costPrice ?? v.landingPrice ?? p.purchasePrice ?? p.price,
+                              price: v.sellingPrice ?? v.price ?? p.price
+                            };
+                            return (
+                              <div
+                                key={v.id || vIdx}
+                                onClick={() => {
+                                  onChange(subVariantObj.id, subVariantObj);
+                                  setIsOpen(false);
+                                }}
+                                className="flex items-center justify-between px-2 py-1 rounded text-[10px] font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-900 cursor-pointer"
+                              >
+                                <span>{v.variantName || v.name}</span>
+                                <span className="font-bold text-emerald-600">₹{subVariantObj.purchasePrice}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -391,7 +411,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
       tax: Number(createdProduct.tax ?? createdProduct.taxRate ?? 0),
       discount: Number(createdProduct.discount ?? 0),
       quantity: Number(createdProduct.quantity || 1),
-      unit: (createdProduct.unit || 'KG').toUpperCase()
+      unit: String(createdProduct.unit || 'KG').toUpperCase()
     };
 
     // Update mapped items and preloaded products
@@ -628,7 +648,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
             if (Array.isArray(p.variants) && p.variants.length > 0) {
               p.variants.forEach(v => {
                 flattened.push({
-                  productId: v.id || `${p.id}_${v.variantName}`,
+                  productId: v.productId || (v.id && !v.id.includes('_') ? v.id : p.id),
                   id: v.id || `${p.id}_${v.variantName}`,
                   parentProductId: p.id,
                   name: p.name,
@@ -709,7 +729,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
           if (Array.isArray(p.variants) && p.variants.length > 0) {
             p.variants.forEach(v => {
               flattened.push({
-                productId: v.id || `${p.id}_${v.variantName}`,
+                productId: v.productId || (v.id && !v.id.includes('_') ? v.id : p.id),
                 id: v.id || `${p.id}_${v.variantName}`,
                 parentProductId: p.id,
                 name: p.name,
@@ -838,7 +858,8 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
         if (matched) {
           updated[index].productId = matched.productId;
           updated[index].rate = matched.purchasePrice || 0;
-          updated[index].unit = matched.weight.replace(/[\d\s.]/g, '') || 'KG';
+          const weightStr = typeof matched.weight === 'string' ? matched.weight.replace(/[\d\s.]/g, '') : (typeof matched.unit === 'string' ? matched.unit : (matched.unit ? String(matched.unit) : 'KG'));
+          updated[index].unit = weightStr || 'KG';
         } else {
           updated[index].productId = '';
         }
@@ -2418,18 +2439,21 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                               <td className="px-3.5 py-3">
                                 <SearchableProductDropdown
                                   products={mappedItems}
-                                  selectedProductId={item.productId}
+                                  selectedProductId={item.selectedKey || item.productId}
                                   onCreateNew={() => {
                                     setActiveItemIndexForProduct(idx);
                                     setShowCreateProductModal(true);
                                   }}
-                                  onChange={productId => {
-                                    const matched = mappedItems.find(p => (p.productId || p.id) === productId);
+                                  onChange={(selectedKey, selectedObj) => {
+                                    const matched = selectedObj || mappedItems.find(p => p.id === selectedKey || (p.productId || p.id) === selectedKey);
+                                    const realProductId = matched?.productId || (matched?.id && !matched.id.includes('_') ? matched.id : selectedKey);
                                     setForm(f => {
                                       const updated = [...f.items];
                                       const matchedCat = matched ? (typeof matched.category === 'string' ? matched.category : (matched.category?.name || '')) : '';
                                       const matchedName = matched ? matched.name : '';
-                                      const matchedUnit = matched ? (matched.weight?.replace(/[\d\s.]/g, '') || matched.unit || 'KG').toUpperCase() : 'KG';
+                                      const rawWeightStr = typeof matched?.weight === 'string' ? matched.weight.replace(/[\d\s.]/g, '') : '';
+                                      const rawUnitStr = typeof matched?.unit === 'string' ? matched.unit : (typeof matched?.unit?.name === 'string' ? matched.unit.name : (matched?.unit ? String(matched.unit) : ''));
+                                      const matchedUnit = (rawWeightStr || rawUnitStr || 'KG').toUpperCase();
                                       const autoSku = matched?.skuCode && matched?.skuCode !== 'NO-SKU' 
                                         ? matched.skuCode 
                                         : generateAutoSku(matchedName, matchedUnit, matchedCat);
@@ -2437,8 +2461,10 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
 
                                       updated[idx] = {
                                         ...updated[idx],
-                                        productId: productId,
+                                        productId: realProductId,
+                                        selectedKey: matched?.id || selectedKey,
                                         name: matchedName,
+                                        variantName: matched?.variantName || '',
                                         skuCode: autoSku,
                                         barcode: matched?.barcode || updated[idx].barcode || '',
                                         image: matched?.image || matched?.imageUrl || updated[idx].image || '',
