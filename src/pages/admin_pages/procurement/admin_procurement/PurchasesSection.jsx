@@ -261,7 +261,10 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
     const newItem = {
       productId: product?.id || '',
       name: product?.name || '',
+      variantName: product?.variantName || '',
       skuCode: product?.skuCode || 'NO-SKU',
+      barcode: product?.barcode || '',
+      unit: product?.unit?.type || product?.unit || 'pcs',
       quantity: '1',
       unitCostBeforeDiscount: String(product?.purchasePrice || product?.price || '0'),
       discountPercent: '0',
@@ -302,16 +305,21 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
 
     // Map GRN items to Purchase Invoice items
     const mappedItems = eligibleItems.map(item => {
-      const prod = products.find(p => p.id === item.productId);
+      const prod = products.find(p => p.id === item.productId || p.productId === item.productId);
       const cost = item.product?.purchasePrice || prod?.purchasePrice || prod?.price || 0;
       // Auto-fetch Received Qty as the invoice quantity (max allowed)
       const qty = item.receivedQty || 1;
-      const taxRate = prod?.gst || 0;
+      const taxRate = prod?.gst || item.product?.gst || 0;
+      const variantName = item.variantName || item.product?.variantName || prod?.variantName || '';
+      const unitType = item.unit || item.product?.unit?.type || prod?.unit?.type || 'pcs';
 
       return {
         productId: item.productId,
-        name: prod?.name || item.product?.name || 'Unknown Product',
-        skuCode: prod?.skuCode || item.product?.skuCode || 'NO-SKU',
+        name: item.name || item.product?.name || prod?.name || 'Unknown Product',
+        variantName: variantName,
+        skuCode: item.skuCode || item.product?.skuCode || prod?.skuCode || 'NO-SKU',
+        barcode: item.barcode || item.product?.barcode || prod?.barcode || '',
+        unit: unitType,
         quantity: String(qty),
         maxQuantity: qty, // Store max allowed for frontend validation
         unitCostBeforeDiscount: String(cost),
@@ -322,7 +330,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
         taxPercent: String(taxRate),
         netCost: String(cost),
         profitMargin: '0',
-        unitSellingPrice: String(prod?.price || cost),
+        unitSellingPrice: String(item.product?.price || prod?.price || cost),
         mfgDate: item.mfgDate ? format(new Date(item.mfgDate), 'yyyy-MM-dd') : '',
         expDate: item.expiryDate ? format(new Date(item.expiryDate), 'yyyy-MM-dd') : '',
         total: String(qty * cost)
@@ -1051,6 +1059,8 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                       name: selectedProduct.name,
                       variantName: selectedProduct.variantName || '',
                       skuCode: selectedProduct.skuCode || 'NO-SKU',
+                      barcode: selectedProduct.barcode || '',
+                      unit: selectedProduct.unit?.type || selectedProduct.unit || 'pcs',
                       quantity: String(searchQty || 1),
                       maxQuantity: null,
                       unitCostBeforeDiscount: String(searchPrice || selectedProduct.purchasePrice || selectedProduct.price || 0),
@@ -1165,20 +1175,25 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                       {form.items
                         .map((item, index) => ({ ...item, originalIndex: index }))
                         .filter(item => {
-                          const p = products.find(x => x.id === item.productId);
-                          if (!p) return false;
+                          const p = products.find(x => x.id === item.productId || x.productId === item.productId);
                           const search = itemFilter.toLowerCase();
-                          return !search ||
-                            p.name.toLowerCase().includes(search) ||
-                            (item.variantName && item.variantName.toLowerCase().includes(search)) ||
-                            (p.variantName && p.variantName.toLowerCase().includes(search)) ||
-                            (p.barcode && p.barcode.toLowerCase().includes(search)) ||
-                            (p.skuCode && p.skuCode.toLowerCase().includes(search));
+                          if (!search) return true;
+                          const name = item.name || p?.name || '';
+                          const variant = item.variantName || p?.variantName || '';
+                          const barcode = item.barcode || p?.barcode || '';
+                          const sku = item.skuCode || p?.skuCode || '';
+                          return (
+                            name.toLowerCase().includes(search) ||
+                            variant.toLowerCase().includes(search) ||
+                            barcode.toLowerCase().includes(search) ||
+                            sku.toLowerCase().includes(search)
+                          );
                         })
                         .map((item, filteredIdx) => {
-                          const p = products.find(x => x.id === item.productId);
+                          const p = products.find(x => x.id === item.productId || x.productId === item.productId);
                           const originalIdx = item.originalIndex;
                           const currentVariant = item.variantName || p?.variantName;
+                          const unitLabel = item.unit || p?.unit?.type || 'pcs';
                           return (
                             <tr key={originalIdx} className="hover:bg-emerald-50/20 transition-colors group">
                               <td className="px-1 py-1.5">
@@ -1187,14 +1202,14 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                               <td className="px-2 py-1.5">
                                 <div className="flex flex-col min-w-0">
                                   <div className="flex items-center gap-1 flex-wrap">
-                                    <span className="text-[9px] font-black text-gray-900 truncate uppercase tracking-tighter leading-tight">{p?.name || item.name}</span>
+                                    <span className="text-[9px] font-black text-gray-900 truncate uppercase tracking-tighter leading-tight">{item.name || p?.name}</span>
                                     {currentVariant && (
                                       <span className="text-[6.5px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded border border-emerald-200">
                                         {currentVariant}
                                       </span>
                                     )}
                                   </div>
-                                  <span className="text-[7px] font-bold text-gray-400">({p?.barcode || p?.skuCode || item.skuCode || 'NO-SKU'})</span>
+                                  <span className="text-[7px] font-bold text-gray-400">({item.barcode || p?.barcode || item.skuCode || p?.skuCode || 'NO-SKU'})</span>
                                 </div>
                               </td>
                               <td className="px-1 py-1.5 text-center">
@@ -1204,7 +1219,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                                     value={item.quantity || ''}
                                     onChange={e => {
                                       const val = e.target.value;
-                                      if (val !== '' && parseFloat(val) > parseFloat(item.maxQuantity)) {
+                                      if (val !== '' && item.maxQuantity && parseFloat(val) > parseFloat(item.maxQuantity)) {
                                         toast.error(`Quantity cannot exceed GRN approved quantity (${item.maxQuantity})`);
                                         updateItem(originalIdx, 'quantity', String(item.maxQuantity));
                                       } else {
@@ -1213,7 +1228,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                                     }}
                                     className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-[8px] font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
                                   />
-                                  <span className="text-[6px] font-black text-gray-400 uppercase">{p.unit?.type || 'pcs'}</span>
+                                  <span className="text-[6px] font-black text-gray-400 uppercase">{unitLabel}</span>
                                 </div>
                               </td>
                               <td className="px-1 py-1.5 text-center">
