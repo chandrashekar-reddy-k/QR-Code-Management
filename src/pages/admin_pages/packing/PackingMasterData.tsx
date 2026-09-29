@@ -356,7 +356,7 @@ export const PackingMasterData: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
-            Product Master
+            Production Store Room
           </h2>
           <p className="text-sm text-slate-500 dark:text-gray-400">
             Manage foundational entities for the Packing ERP system.

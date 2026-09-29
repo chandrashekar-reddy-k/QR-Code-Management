@@ -230,26 +230,6 @@ const RefillsSection = ({
                     {req.items.map(item => {
                       const prod = items.find(p => p.id === item.productId);
                       let excessBadge = null;
-                      if (req.status === 'PENDING') {
-                        const vehicleInventory = allVehiclesStock[req.vehicleId] || [];
-                        const stockItem = vehicleInventory.find(i => i.productId === item.productId);
-
-                        const targetCapacity = stockItem ? Math.max(stockItem.openingQuantity || 0, stockItem.quantity) : 0;
-                        const currentQty = stockItem ? stockItem.quantity : 0;
-                        const shortfall = targetCapacity - currentQty;
-                        
-                        const requestedQty = editedQuantities[item.id] ?? item.quantity;
-                        const excess = requestedQty - shortfall;
-
-                        if (excess > 0) {
-                          excessBadge = (
-                            <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-lg shadow-lg shadow-rose-500/30 ring-2 ring-white flex items-center gap-1 z-10 animate-in zoom-in duration-300">
-                              <ArrowUpCircle size={10} strokeWidth={3} />
-                              +{excess}
-                            </div>
-                          );
-                        }
-                      }
 
                       const isSelected = !unselectedRefillItems.includes(item.id);
                       return (
@@ -275,57 +255,16 @@ const RefillsSection = ({
                               <span className="text-[13px] font-bold text-gray-900 dark:text-white leading-none truncate block">{item.product?.name}</span>
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                                 <div className="flex items-center gap-1">
-                                  <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Store:</span>
-                                  <span className={`text-[9px] font-bold ${(prod?.stock || 0) < (editedQuantities[item.id] ?? item.quantity) ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                    {prod?.stock || 0}
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">VSM:</span>
+                                  <span className={`text-[9px] font-bold ${(prod?.vehicleStoreStock || 0) < (editedQuantities[item.id] ?? item.quantity) ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                    {prod?.vehicleStoreStock || 0}
                                   </span>
                                 </div>
                                 {req.status === 'PENDING' && (
-                                  <>
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Assigned:</span>
-                                      <span className="text-[9px] font-bold text-slate-700 dark:text-gray-300">
-                                        {(() => {
-                                          const vInv = allVehiclesStock[req.vehicleId] || [];
-                                          const si = vInv.find(v => v.productId === item.productId);
-                                          return si ? (si.openingQuantity || 0) : 0;
-                                        })()}
-                                      </span>
-                                    </div>
                                     <div className="flex items-center gap-1">
                                       <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">In Vehicle:</span>
                                       <span className="text-[9px] font-bold text-emerald-600">{(allVehiclesStock[req.vehicleId]?.find(v => v.productId === item.productId)?.quantity || 0)}</span>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Shortfall:</span>
-                                      <span className="text-[9px] font-bold text-amber-600">
-                                        {(() => {
-                                          const vInv = allVehiclesStock[req.vehicleId] || [];
-                                          const si = vInv.find(v => v.productId === item.productId);
-                                          const tc = si ? Math.max(si.openingQuantity || 0, si.quantity) : 0;
-                                          const cq = si ? si.quantity : 0;
-                                          return Math.max(0, tc - cq);
-                                        })()}
-                                      </span>
-                                    </div>
-                                    {(() => {
-                                      const vInv = allVehiclesStock[req.vehicleId] || [];
-                                      const si = vInv.find(v => v.productId === item.productId);
-                                      const tc = si ? Math.max(si.openingQuantity || 0, si.quantity) : 0;
-                                      const cq = si ? si.quantity : 0;
-                                      const shortfall = Math.max(0, tc - cq);
-                                      const requested = editedQuantities[item.id] ?? item.quantity;
-                                      const excess = requested - shortfall;
-                                      if (excess > 0) {
-                                        return (
-                                          <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/30 px-1.5 py-0.5 rounded text-[9px] font-bold text-rose-600 dark:text-rose-400 animate-pulse">
-                                            <span>Exceeds: +{excess}</span>
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-                                  </>
                                 )}
                               </div>
                             </div>
@@ -366,8 +305,8 @@ const RefillsSection = ({
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleApproveSingleItem(req.id, item.id); }}
-                                    disabled={processingItems.has(item.id) || (editedQuantities[item.id] ?? item.quantity) > (prod?.stock || 0)}
-                                    className={`w-10 h-10 flex items-center justify-center rounded-xl ${(editedQuantities[item.id] ?? item.quantity) > (prod?.stock || 0) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'} disabled:opacity-50 transition-all`}
+                                    disabled={processingItems.has(item.id) || (editedQuantities[item.id] ?? item.quantity) > (prod?.vehicleStoreStock || 0)}
+                                    className={`w-10 h-10 flex items-center justify-center rounded-xl ${(editedQuantities[item.id] ?? item.quantity) > (prod?.vehicleStoreStock || 0) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'} disabled:opacity-50 transition-all`}
                                   >
                                     {processingItems.has(item.id) ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} strokeWidth={3} />}
                                   </button>
@@ -402,13 +341,13 @@ const RefillsSection = ({
                           if (unselectedRefillItems.includes(item.id)) return false;
                           const prod = items.find(p => p.id === item.productId);
                           const qty = editedQuantities[item.id] ?? item.quantity;
-                          return prod && qty > (prod.stock || 0);
+                          return prod && qty > (prod.vehicleStoreStock || 0);
                         })}
                         className={`w-full sm:w-auto px-10 py-4 sm:py-2.5 ${req.items.some(item => {
                           if (unselectedRefillItems.includes(item.id)) return false;
                           const prod = items.find(p => p.id === item.productId);
                           const qty = editedQuantities[item.id] ?? item.quantity;
-                          return prod && qty > (prod.stock || 0);
+                          return prod && qty > (prod.vehicleStoreStock || 0);
                         }) ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-500/20'} text-white font-bold text-[10px] uppercase tracking-widest rounded-lg active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2`}
                       >
                         {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Package size={16} />}
