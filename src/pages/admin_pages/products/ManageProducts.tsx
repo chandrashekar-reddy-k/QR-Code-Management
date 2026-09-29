@@ -283,7 +283,7 @@ const ManageProducts = () => {
   );
   const { mutate } = useDeleteProduct();
   const queryClient = useQueryClient();
-  
+
   const handleDeleteConfirm = async () => {
     if (deleteConfirm.id === null) return;
     const deletedId = deleteConfirm.id;
@@ -296,13 +296,13 @@ const ManageProducts = () => {
             delete next[deletedId];
             return next;
           });
-          
+
           // Clear and remove all product related query caches completely
           queryClient.removeQueries({ queryKey: ["product"] });
           queryClient.removeQueries({ queryKey: ["productById"] });
           queryClient.removeQueries({ queryKey: ["productListByProductId"] });
           queryClient.invalidateQueries({ queryKey: ["product"] });
-          
+
           // Trigger a hard refetch from the server
           refetch();
         }
@@ -586,12 +586,12 @@ const ManageProducts = () => {
       );
       const finalSelling = Number(
         variant.sellingPrice ??
-          variant.salePrice ??
-          variant.finalPrice ??
-          variant.landingPrice ??
-          variant.price ??
-          p.price ??
-          0
+        variant.salePrice ??
+        variant.finalPrice ??
+        variant.landingPrice ??
+        variant.price ??
+        p.price ??
+        0
       );
       return {
         id: (variant.id as number | string) ?? index + 1,
@@ -673,8 +673,8 @@ const ManageProducts = () => {
       const dispUnitType = productLabels.unitType || variantLabels.unitType;
       const resolvedSku = String(
         ((product as unknown) as Record<string, unknown>).sku ||
-          firstVariant?.sku ||
-          ""
+        firstVariant?.sku ||
+        ""
       );
       const transformedVariants: Variant[] = variantsToShow.map((v: any, index: number) => {
         const imgs = (Array.isArray(v.primaryImages) && v.primaryImages.length ? v.primaryImages : Array.isArray(v.images) && v.images?.length ? v.images : v.image ? [v.image] : v.primaryImage ? [v.primaryImage] : []) as string[];
@@ -685,12 +685,12 @@ const ManageProducts = () => {
         );
         const finalSelling = Number(
           v.sellingPrice ??
-            v.salePrice ??
-            v.finalPrice ??
-            v.landingPrice ??
-            v.price ??
-            product.price ??
-            0
+          v.salePrice ??
+          v.finalPrice ??
+          v.landingPrice ??
+          v.price ??
+          product.price ??
+          0
         );
         return {
           id: (v.id as number | string) ?? index + 1,
@@ -733,11 +733,11 @@ const ManageProducts = () => {
         price: Number(product.mrp ?? product.price ?? 0),
         discountedPrice: Number(
           product.finalPrice ??
-            product.salePrice ??
-            product.sellingPrice ??
-            product.landingPrice ??
-            product.price ??
-            0
+          product.salePrice ??
+          product.sellingPrice ??
+          product.landingPrice ??
+          product.price ??
+          0
         ),
         variantsCount,
         status: displayStatus,
@@ -1017,7 +1017,7 @@ const ManageProducts = () => {
             <RotateCcw size={14} className="sm:w-4 sm:h-4" />
             <span>Reset All Stock to 0</span>
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={() => setRandomStockConfirm(true)}
             className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-3.5 py-2 bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg shadow-sm hover:shadow transition-colors text-xs sm:text-sm font-semibold"
@@ -1034,7 +1034,7 @@ const ManageProducts = () => {
           >
             <Undo2 size={14} className="sm:w-4 sm:h-4" />
             <span>Undo Reset</span>
-          </button>
+          </button> */}
           <button
             type="button"
             onClick={() => navigate("/products/barcode-mapping")}
