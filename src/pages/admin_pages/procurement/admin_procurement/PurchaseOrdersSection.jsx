@@ -146,7 +146,8 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCr
   const filteredProducts = products.filter(p => {
     const nameMatch = p.name?.toLowerCase().includes(search.toLowerCase());
     const skuMatch = p.skuCode?.toLowerCase().includes(search.toLowerCase());
-    return nameMatch || skuMatch;
+    const variantMatch = p.variants?.some(v => (v.variantName || v.name)?.toLowerCase().includes(search.toLowerCase()));
+    return nameMatch || skuMatch || variantMatch;
   });
 
   return (
@@ -159,7 +160,17 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCr
         className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none cursor-pointer flex justify-between items-center min-h-[38px] hover:bg-slate-50/50 transition-all shadow-sm"
       >
         <span className={selectedProduct ? 'text-slate-800' : 'text-slate-400 font-normal'}>
-          {selectedProduct ? `${selectedProduct.name} ${selectedProduct.skuCode ? `(${selectedProduct.skuCode})` : ''}` : placeholder}
+          {selectedProduct ? (
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span>{selectedProduct.name}</span>
+              {selectedProduct.variantName && (
+                <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">
+                  {selectedProduct.variantName}
+                </span>
+              )}
+              {selectedProduct.skuCode && <span className="text-slate-400 font-normal text-[10px]">({selectedProduct.skuCode})</span>}
+            </span>
+          ) : placeholder}
         </span>
         <span className="text-slate-400 text-[10px]">▼</span>
       </div>
@@ -171,7 +182,7 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCr
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Select Product</span>
+              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Select Product & Variant</span>
               <div className="flex items-center gap-2">
                 {onCreateNew && (
                   <button
@@ -198,7 +209,7 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCr
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search product name or SKU..."
+                placeholder="Search product name, SKU or variant..."
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder:text-slate-400 font-bold"
                 autoFocus
               />
@@ -224,23 +235,54 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, onCr
                 filteredProducts.map(p => {
                   const pid = p.productId || p.id;
                   return (
-                    <div
-                      key={pid}
-                      onClick={() => {
-                        onChange(pid);
-                        setIsOpen(false);
-                      }}
-                      className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${
-                        selectedProductId === pid 
-                          ? 'bg-emerald-50 text-emerald-700' 
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-slate-900 font-extrabold">{p.name}</span>
-                        {p.skuCode && <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{p.skuCode}</span>}
+                    <div key={pid} className="flex flex-col">
+                      <div
+                        onClick={() => {
+                          onChange(pid);
+                          setIsOpen(false);
+                        }}
+                        className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${
+                          selectedProductId === pid 
+                            ? 'bg-emerald-50 text-emerald-700' 
+                            : 'text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-900 font-extrabold">{p.name}</span>
+                            {p.variantName && (
+                              <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">
+                                {p.variantName}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {p.skuCode && <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{p.skuCode}</span>}
+                            {(p.purchasePrice || p.price) && <span className="text-[9px] text-emerald-600 font-black">₹{p.purchasePrice || p.price}</span>}
+                          </div>
+                        </div>
+                        {selectedProductId === pid && <CheckCircle2 className="text-emerald-600" size={16} />}
                       </div>
-                      {selectedProductId === pid && <CheckCircle2 className="text-emerald-600" size={16} />}
+
+                      {/* Render product variants if present */}
+                      {p.variants && p.variants.length > 0 && (
+                        <div className="pl-6 pr-2 py-1 bg-slate-50/50 rounded-lg my-1 flex flex-col gap-1 border-l-2 border-purple-400 ml-3">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-purple-700">Variants:</span>
+                          {p.variants.map((v, vIdx) => (
+                            <div
+                              key={v.id || vIdx}
+                              onClick={() => {
+                                onChange(pid);
+                                setIsOpen(false);
+                              }}
+                              className="flex items-center justify-between px-2 py-1 rounded text-[10px] font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-900 cursor-pointer"
+                            >
+                              <span>{v.variantName || v.name}</span>
+                              <span className="font-bold text-emerald-600">₹{v.price || v.sellingPrice || 0}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -557,16 +599,62 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
             setPreloadedProducts(data);
             prods = data;
           }
-          setMappedItems(prods.map(p => ({
-            productId: p.id,
-            name: p.name,
-            skuCode: p.skuCode || 'NO-SKU',
-            category: p.category?.name || 'UNCATEGORIZED',
-            weight: p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : '',
-            purchasePrice: p.purchasePrice || p.price || 0,
-            quantity: 0,
-            rate: p.purchasePrice || p.price || 0
-          })));
+          const flattened = [];
+          (Array.isArray(prods) ? prods : []).forEach(p => {
+            // Base product
+            flattened.push({
+              productId: p.id,
+              id: p.id,
+              name: p.name,
+              variantName: p.variantName || '',
+              skuCode: p.skuCode || 'NO-SKU',
+              barcode: p.barcode || '',
+              category: p.category?.name || 'UNCATEGORIZED',
+              subCategory: p.subCategory?.name || p.subCategory || '',
+              brand: p.brand?.name || p.brand || 'Villagkart',
+              unitType: p.unitType || '',
+              pack: p.pack || '',
+              measurement: p.measurement || '',
+              weight: p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : (p.measurement || ''),
+              unit: p.unit?.type || p.unit?.name || p.unit || 'KG',
+              mrp: p.mrp || 0,
+              landingPrice: p.landingPrice || p.purchasePrice || 0,
+              sellingPrice: p.sellingPrice || p.price || 0,
+              purchasePrice: p.purchasePrice || p.price || 0,
+              quantity: 0,
+              rate: p.purchasePrice || p.price || 0
+            });
+            // Variants as individual items
+            if (Array.isArray(p.variants) && p.variants.length > 0) {
+              p.variants.forEach(v => {
+                flattened.push({
+                  productId: v.id || `${p.id}_${v.variantName}`,
+                  id: v.id || `${p.id}_${v.variantName}`,
+                  parentProductId: p.id,
+                  name: p.name,
+                  variantName: v.variantName || v.name || '',
+                  isVariantItem: true,
+                  skuCode: v.sku || v.skuCode || p.skuCode || 'NO-SKU',
+                  barcode: v.barcode || p.barcode || '',
+                  category: p.category?.name || 'UNCATEGORIZED',
+                  subCategory: p.subCategory?.name || p.subCategory || '',
+                  brand: p.brand?.name || p.brand || 'Villagkart',
+                  unitType: v.unitType || p.unitType || '',
+                  pack: v.pack || p.pack || '',
+                  measurement: v.measurement || p.measurement || '',
+                  weight: v.measurement || (p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : ''),
+                  unit: v.unit || v.unitType || p.unit?.type || p.unit?.name || p.unit || 'KG',
+                  mrp: v.mrp || p.mrp || 0,
+                  landingPrice: v.landingPrice || v.purchasePrice || p.landingPrice || 0,
+                  sellingPrice: v.sellingPrice || v.price || p.sellingPrice || p.price || 0,
+                  purchasePrice: v.purchasePrice || v.costPrice || v.landingPrice || p.purchasePrice || p.price || 0,
+                  quantity: 0,
+                  rate: v.purchasePrice || v.costPrice || v.landingPrice || p.purchasePrice || p.price || 0
+                });
+              });
+            }
+          });
+          setMappedItems(flattened);
         } else {
           setMappedItems([]);
         }
@@ -594,24 +682,73 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
           setPreloadedProducts(data);
           prods = data;
         }
-        setMappedItems(prods.map(p => ({
-          productId: p.id,
-          name: p.name,
-          skuCode: p.skuCode || 'NO-SKU',
-          category: p.category?.name || 'UNCATEGORIZED',
-          weight: p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : '',
-          purchasePrice: p.purchasePrice || p.price || 0,
-          quantity: 0,
-          rate: p.purchasePrice || p.price || 0
-        })));
+        const flattened = [];
+        (Array.isArray(prods) ? prods : []).forEach(p => {
+          flattened.push({
+            productId: p.id,
+            id: p.id,
+            name: p.name,
+            variantName: p.variantName || '',
+            skuCode: p.skuCode || 'NO-SKU',
+            barcode: p.barcode || '',
+            category: p.category?.name || 'UNCATEGORIZED',
+            subCategory: p.subCategory?.name || p.subCategory || '',
+            brand: p.brand?.name || p.brand || 'Villagkart',
+            unitType: p.unitType || '',
+            pack: p.pack || '',
+            measurement: p.measurement || '',
+            weight: p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : (p.measurement || ''),
+            unit: p.unit?.type || p.unit?.name || p.unit || 'KG',
+            mrp: p.mrp || 0,
+            landingPrice: p.landingPrice || p.purchasePrice || 0,
+            sellingPrice: p.sellingPrice || p.price || 0,
+            purchasePrice: p.purchasePrice || p.price || 0,
+            quantity: 0,
+            rate: p.purchasePrice || p.price || 0
+          });
+          if (Array.isArray(p.variants) && p.variants.length > 0) {
+            p.variants.forEach(v => {
+              flattened.push({
+                productId: v.id || `${p.id}_${v.variantName}`,
+                id: v.id || `${p.id}_${v.variantName}`,
+                parentProductId: p.id,
+                name: p.name,
+                variantName: v.variantName || v.name || '',
+                isVariantItem: true,
+                skuCode: v.sku || v.skuCode || p.skuCode || 'NO-SKU',
+                barcode: v.barcode || p.barcode || '',
+                category: p.category?.name || 'UNCATEGORIZED',
+                subCategory: p.subCategory?.name || p.subCategory || '',
+                brand: p.brand?.name || p.brand || 'Villagkart',
+                unitType: v.unitType || p.unitType || '',
+                pack: v.pack || p.pack || '',
+                measurement: v.measurement || p.measurement || '',
+                weight: v.measurement || (p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : ''),
+                unit: v.unit || v.unitType || p.unit?.type || p.unit?.name || p.unit || 'KG',
+                mrp: v.mrp || p.mrp || 0,
+                landingPrice: v.landingPrice || v.purchasePrice || p.landingPrice || 0,
+                sellingPrice: v.sellingPrice || v.price || p.sellingPrice || p.price || 0,
+                purchasePrice: v.purchasePrice || v.costPrice || v.landingPrice || p.purchasePrice || p.price || 0,
+                quantity: 0,
+                rate: v.purchasePrice || v.costPrice || v.landingPrice || p.purchasePrice || p.price || 0
+              });
+            });
+          }
+        });
+        setMappedItems(flattened);
       } else {
         const { data } = await procurementAPI.getVendorMappings(vendorId);
         const mappedArray = data?.data || data || [];
         setMappedItems(mappedArray.map(m => ({
           productId: m.product?.id || m.productId,
+          id: m.product?.id || m.productId,
           name: m.product?.name || 'Unknown Product',
+          variantName: m.product?.variantName || '',
           skuCode: m.product?.skuCode || 'NO-SKU',
+          barcode: m.product?.barcode || '',
           category: m.product?.category?.name || 'UNCATEGORIZED',
+          subCategory: m.product?.subCategory?.name || m.product?.subCategory || '',
+          brand: m.product?.brand?.name || m.product?.brand || 'Villagkart',
           weight: m.product?.unitValue ? `${m.product.unitValue} ${m.product.unit?.name || ''}`.trim() : '',
           purchasePrice: m.lastPurchaseRate > 0 ? m.lastPurchaseRate : (m.purchasePrice > 0 ? m.purchasePrice : (m.product?.purchasePrice || m.product?.price || 0)),
           quantity: 0,
@@ -1505,10 +1642,19 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                         <tbody className="divide-y divide-slate-100">
                           {viewingPO.items?.map((item) => (
                             <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-3.5 text-xs font-black text-slate-900 tracking-tight">{item.product?.name}</td>
-                              <td className="px-6 py-3.5 text-center text-xs font-medium text-slate-400">{item.product?.skuCode || 'N/A'}</td>
+                              <td className="px-6 py-3.5 text-xs font-black text-slate-900 tracking-tight">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span>{item.product?.name || item.name}</span>
+                                  {(item.product?.variantName || item.variantName || item.productVariant?.variantName) && (
+                                    <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider">
+                                      {item.product?.variantName || item.variantName || item.productVariant?.variantName}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-3.5 text-center text-xs font-medium text-slate-400">{item.product?.skuCode || item.skuCode || 'N/A'}</td>
                               <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-800">{item.quantity}</td>
-                              <td className="px-6 py-3.5 text-center text-xs font-semibold text-slate-500 uppercase">{item.product?.unit?.name || 'KG'}</td>
+                              <td className="px-6 py-3.5 text-center text-xs font-semibold text-slate-500 uppercase">{item.product?.unit?.name || item.unit || 'KG'}</td>
                               <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-700">₹{item.rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                               <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-600">{item.tax !== undefined ? item.tax : 0}%</td>
                               <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-600">{item.discount !== undefined ? item.discount : 0}%</td>
