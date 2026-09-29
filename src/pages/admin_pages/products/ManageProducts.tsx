@@ -1008,7 +1008,7 @@ const ManageProducts = () => {
           Manage Products
         </h1>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
+          {/* <button
             type="button"
             onClick={() => setResetStockConfirm(true)}
             className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center px-3.5 py-2 bg-rose-600 dark:bg-rose-700 hover:bg-rose-700 dark:hover:bg-rose-600 text-white rounded-lg shadow-sm hover:shadow transition-colors text-xs sm:text-sm font-semibold"
@@ -1016,7 +1016,7 @@ const ManageProducts = () => {
           >
             <RotateCcw size={14} className="sm:w-4 sm:h-4" />
             <span>Reset All Stock to 0</span>
-          </button>
+          </button> */}
           {/* <button
             type="button"
             onClick={() => setRandomStockConfirm(true)}
