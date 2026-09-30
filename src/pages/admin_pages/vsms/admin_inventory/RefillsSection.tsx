@@ -237,20 +237,23 @@ const RefillsSection = ({
                         const prod = items.find(p => p.id === item.productId);
                         const productName = item.product?.name || prod?.name || item.name || 'Refill Product';
                         let excessBadge = null;
+                        let excess = 0;
+                        let shortfall = 0;
+                        let currentQty = 0;
+                        const requestedQty = editedQuantities[item.id] ?? item.quantity;
+
                         if (req.status === 'PENDING') {
                           const vehicleInventory = allVehiclesStock[req.vehicleId] || [];
                           const stockItem = vehicleInventory.find(i => i.productId === item.productId);
 
                           const targetCapacity = stockItem ? Math.max(stockItem.openingQuantity || 0, stockItem.quantity) : 0;
-                          const currentQty = stockItem ? stockItem.quantity : 0;
-                          const shortfall = targetCapacity - currentQty;
-                          
-                          const requestedQty = editedQuantities[item.id] ?? item.quantity;
-                          const excess = requestedQty - shortfall;
+                          currentQty = stockItem ? stockItem.quantity : 0;
+                          shortfall = Math.max(0, targetCapacity - currentQty);
+                          excess = Math.max(0, requestedQty - shortfall);
 
                           if (excess > 0) {
                             excessBadge = (
-                              <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-lg shadow-lg shadow-rose-500/30 ring-2 ring-white flex items-center gap-1 z-10 animate-in zoom-in duration-300">
+                              <div className="absolute -top-2 -right-2 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-md ring-2 ring-white flex items-center gap-0.5 z-10 animate-in zoom-in duration-300">
                                 <ArrowUpCircle size={10} strokeWidth={3} />
                                 +{excess}
                               </div>
@@ -271,7 +274,7 @@ const RefillsSection = ({
                                   {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
                                 </button>
                               )}
-                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0 ${req.status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                              <div className={`relative w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0 ${req.status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                 req.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
                                   'bg-emerald-50 text-emerald-600 border-emerald-200'
                                 }`}>
@@ -280,18 +283,30 @@ const RefillsSection = ({
                               </div>
                               <div className="flex-1 min-w-0">
                                 <span className="text-[13px] font-bold text-gray-900 dark:text-white leading-none truncate block">{productName}</span>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-1.5">
                                   <div className="flex items-center gap-1">
                                     <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">VSM:</span>
-                                    <span className={`text-[9px] font-bold ${(prod?.vehicleStoreStock || 0) < (editedQuantities[item.id] ?? item.quantity) ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                    <span className={`text-[9px] font-bold ${(prod?.vehicleStoreStock || 0) < requestedQty ? 'text-rose-600 font-extrabold' : 'text-emerald-600'}`}>
                                       {prod?.vehicleStoreStock || 0}
                                     </span>
                                   </div>
                                 {req.status === 'PENDING' && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">In Vehicle:</span>
-                                      <span className="text-[9px] font-bold text-emerald-600">{(allVehiclesStock[req.vehicleId]?.find(v => v.productId === item.productId)?.quantity || 0)}</span>
-                                    </div>
+                                    <>
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">In Vehicle:</span>
+                                        <span className="text-[9px] font-bold text-emerald-600">{currentQty}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Shortfall:</span>
+                                        <span className="text-[9px] font-bold text-slate-600">{shortfall}</span>
+                                      </div>
+                                      {excess > 0 && (
+                                        <div className="flex items-center gap-1 bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200 shadow-sm animate-pulse">
+                                          <span className="text-[8px] font-extrabold uppercase tracking-widest">Exceeds:</span>
+                                          <span className="text-[10px] font-black text-rose-600">+{excess}</span>
+                                        </div>
+                                      )}
+                                    </>
                                 )}
                               </div>
                             </div>

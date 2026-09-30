@@ -1,14 +1,20 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Save, ChevronDown, ChevronUp, Search, PlusCircle, Upload, X } from "lucide-react";
 import {
   FormSectionWithDots,
   PrimaryButton,
   Button,
+  Modal,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
-import { useGetCategoriesAndSubCategories, useAddCategoriesAndSubCategories } from "../../../hooks/category";
+import { 
+  useGetCategoriesAndSubCategories, 
+  useAddCategoriesAndSubCategories,
+  useRequestNewSubCategory 
+} from "../../../hooks/category";
+import { uploadImageFile } from "../../../lib/uploadImage";
 
 interface SubCategory {
   id: string;
@@ -30,9 +36,21 @@ const RequestSubCategory = () => {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [search, setSearch] = useState("");
 
+  // Create new subcategory request state
+  const [showModal, setShowModal] = useState(false);
+  const [selectedParentCatId, setSelectedParentCatId] = useState("");
+  const [subCatName, setSubCatName] = useState("");
+  const [subCatDescription, setSubCatDescription] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   // Fetch categories and subcategories from database
   const { data: categoryData, isLoading } = useGetCategoriesAndSubCategories();
   const allCategories: Category[] = (categoryData as any)?.data || [];
+
+  const requestSubCatMutation = useRequestNewSubCategory();
+  const addCategoryMutation = useAddCategoriesAndSubCategories();
 
   // ---------------- HANDLERS ----------------
 
@@ -100,7 +118,57 @@ const RequestSubCategory = () => {
   const filteredSub = (subs: SubCategory[]) =>
     subs.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
-  const addCategoryMutation = useAddCategoriesAndSubCategories();
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleCreateSubCategoryRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedParentCatId) {
+      alert("Please select a parent category");
+      return;
+    }
+    if (!subCatName.trim()) {
+      alert("Please enter a subcategory name");
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      let uploadedImageUrl: string | undefined = undefined;
+      if (imageFile) {
+        uploadedImageUrl = await uploadImageFile(imageFile);
+      }
+
+      await requestSubCatMutation.mutateAsync({
+        categoryId: selectedParentCatId,
+        name: subCatName.trim(),
+        description: subCatDescription.trim() || undefined,
+        image: uploadedImageUrl,
+      });
+
+      // Reset form
+      setSubCatName("");
+      setSubCatDescription("");
+      setSelectedParentCatId("");
+      setImageFile(null);
+      setImagePreview(null);
+      setShowModal(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,6 +232,18 @@ const RequestSubCategory = () => {
       >
         <div className="max-w-4xl">
           <FormSectionWithDots title="Select Categories & Subcategories">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Select existing subcategories or request a new one for Admin approval:
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all"
+              >
+                <PlusCircle size={14} /> + Create New SubCategory Request
+              </button>
+            </div>
 
             {/* CATEGORY CHIPS */}
             <div className="flex flex-wrap gap-2 mb-2">
@@ -309,7 +389,7 @@ const RequestSubCategory = () => {
 
           {/* BUTTONS */}
           <div className="flex justify-end gap-3 mt-6">
-            <Button type="button" variant="ghost" onClick={() => navigate("/my-categories")} className="px-4 py-2 text-xs font-medium">
+            <Button type="button" variant="ghost" onClick={() => navigate("/my-sub-categories")} className="px-4 py-2 text-xs font-medium">
               Cancel
             </Button>
             <PrimaryButton type="submit" className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium">
@@ -319,6 +399,124 @@ const RequestSubCategory = () => {
           </div>
         </div>
       </form>
+
+      {/* CREATE NEW SUBCATEGORY REQUEST MODAL */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Create New SubCategory Request"
+        size="md"
+      >
+        <form onSubmit={handleCreateSubCategoryRequest} className="space-y-4 pt-2">
+          <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
+            Note: SubCategory requests require Admin approval before appearing in active lists.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Parent Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              required
+              value={selectedParentCatId}
+              onChange={(e) => setSelectedParentCatId(e.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            >
+              <option value="">Select Parent Category</option>
+              {allCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              SubCategory Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={subCatName}
+              onChange={(e) => setSubCatName(e.target.value)}
+              placeholder="e.g. Organic Green Tea"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              rows={2}
+              value={subCatDescription}
+              onChange={(e) => setSubCatDescription(e.target.value)}
+              placeholder="Brief subcategory details..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              SubCategory Image (Optional)
+            </label>
+            {imagePreview ? (
+              <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 group">
+                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full shadow hover:bg-red-700"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 transition-all">
+                <div className="flex flex-col items-center justify-center pt-2 pb-3">
+                  <Upload size={18} className="text-gray-400 mb-1" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                    Click to upload image
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowModal(false)}
+              className="px-4 py-2 text-xs font-medium"
+            >
+              Cancel
+            </Button>
+            <PrimaryButton
+              type="submit"
+              disabled={uploadingImage || requestSubCatMutation.isPending}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium"
+            >
+              <Save size={14} />
+              <span>
+                {uploadingImage
+                  ? "Uploading..."
+                  : requestSubCatMutation.isPending
+                  ? "Submitting..."
+                  : "Submit for Approval"}
+              </span>
+            </PrimaryButton>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
