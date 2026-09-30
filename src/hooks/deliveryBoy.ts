@@ -127,15 +127,37 @@ const useDeleteDeliveryBoy = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => fetchData(`delivery-agents/${id}`, "DELETE"),
+    mutationFn: (id: string) => fetchData(`partner/deliveryagents/delete/${id}`, "DELETE"),
 
     onSuccess: () => {
-      toast.success("Delivery boy deleted successfully");
+      toast.success("Delivery agent deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["deliveryBoy"] });
       queryClient.invalidateQueries({ queryKey: ["deliveryAgentsByWarehouse"] });
     },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to delete delivery agent");
+    }
   });
 };
+
+const useBulkDeleteDeliveryBoys = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      fetchData("partner/deliveryagents/bulk-delete", "POST", { ids }),
+
+    onSuccess: (data: any) => {
+      toast.success(data?.message || "Delivery agents deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["deliveryBoy"] });
+      queryClient.invalidateQueries({ queryKey: ["deliveryAgentsByWarehouse"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to delete selected delivery agents");
+    }
+  });
+};
+
 
 /** Lists all delivery agents globally (no warehouse filter). */
 const useGetDeliveryBoyRequests = (_page: number, _limit: number) => {
@@ -219,6 +241,7 @@ export {
   useGetDeliveryBoyDetailsById,
   useUpdateDeliveryBoy,
   useDeleteDeliveryBoy,
+  useBulkDeleteDeliveryBoys,
   useGetDeliveryBoyRequests,
   useGetDeliveryAgentsByWarehouse,
   useApproveDeliveryBoy,

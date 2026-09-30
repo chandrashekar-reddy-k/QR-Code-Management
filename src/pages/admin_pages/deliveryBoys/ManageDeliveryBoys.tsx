@@ -8,6 +8,7 @@ import {
   Filter,
   RotateCcw,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import {
   StatCard,
@@ -16,14 +17,18 @@ import {
   PrimaryButton,
   ViewIconButton,
   EditIconButton,
+  DeleteIconButton,
   DataTable,
   Pagination,
   Badge,
+  ConfirmModal,
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import {
   useGetDeliveryAgentsByWarehouse,
   useToggleDeliveryBoyStatus,
+  useDeleteDeliveryBoy,
+  useBulkDeleteDeliveryBoys,
 } from "../../../hooks/deliveryBoy";
 import { extractAgentsFromGetAllResponse } from "../../../utils/deliveryAgentsGetAll";
 
@@ -157,7 +162,15 @@ const ManageDeliveryBoys = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { mutate: toggleStatus, isPending } = useToggleDeliveryBoyStatus();
+  const { mutate: deleteAgent, isPending: isDeletingSingle } = useDeleteDeliveryBoy();
+  const { mutate: bulkDeleteAgents, isPending: isDeletingBulk } = useBulkDeleteDeliveryBoys();
+
   const [togglingId, setTogglingId] = useState<string | number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [showSingleDeleteModal, setShowSingleDeleteModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -175,6 +188,27 @@ const ManageDeliveryBoys = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(
     null,
   );
+
+  const handleDeleteSingle = () => {
+    if (!deleteTargetId) return;
+    deleteAgent(deleteTargetId, {
+      onSuccess: () => {
+        setShowSingleDeleteModal(false);
+        setDeleteTargetId(null);
+        setSelectedIds((prev) => prev.filter((id) => id !== deleteTargetId));
+      },
+    });
+  };
+
+  const handleDeleteBulk = () => {
+    if (selectedIds.length === 0) return;
+    bulkDeleteAgents(selectedIds, {
+      onSuccess: () => {
+        setShowBulkDeleteModal(false);
+        setSelectedIds([]);
+      },
+    });
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -403,6 +437,49 @@ const ManageDeliveryBoys = () => {
 
   // Table columns
   const columns = [
+    {
+      key: "select",
+      label: (
+        <input
+          type="checkbox"
+          checked={
+            paginatedAgents.length > 0 &&
+            paginatedAgents.every((a) => selectedIds.includes(String(a.id)))
+          }
+          onChange={(e) => {
+            if (e.target.checked) {
+              const currentIds = paginatedAgents.map((a) => String(a.id));
+              setSelectedIds((prev) => Array.from(new Set([...prev, ...currentIds])));
+            } else {
+              const currentIds = new Set(paginatedAgents.map((a) => String(a.id)));
+              setSelectedIds((prev) => prev.filter((id) => !currentIds.has(id)));
+            }
+          }}
+          className="rounded border-gray-300 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
+        />
+      ),
+      sortable: false,
+      render: (agent: ApiDeliveryAgent) => {
+        const idStr = String(agent.id);
+        const isChecked = selectedIds.includes(idStr);
+        return (
+          <div className="text-center" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setSelectedIds((prev) => [...prev, idStr]);
+                } else {
+                  setSelectedIds((prev) => prev.filter((id) => id !== idStr));
+                }
+              }}
+              className="rounded border-gray-300 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
+            />
+          </div>
+        );
+      },
+    },
     {
       key: "id",
       label: "ID",
@@ -675,6 +752,14 @@ const ManageDeliveryBoys = () => {
               size={12}
               tooltip="Edit"
             />
+            <DeleteIconButton
+              onClick={() => {
+                setDeleteTargetId(String(agent.id));
+                setShowSingleDeleteModal(true);
+              }}
+              size={12}
+              tooltip="Delete"
+            />
           </div>
         </div>
       ),
@@ -699,15 +784,25 @@ const ManageDeliveryBoys = () => {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
           Delivery Agents
         </h1>
-        <PrimaryButton
-          // onClick={() => navigate("/delivery-boys/create")}
-          onClick={() => navigate("/delivery-boys/create")}
-          size="sm"
-          className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center"
-        >
-          <Plus size={14} className="sm:w-4 sm:h-4" />
-          <span className="text-xs sm:text-sm">Add Agent</span>
-        </PrimaryButton>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors cursor-pointer"
+            >
+              <Trash2 size={15} />
+              <span>Delete Selected ({selectedIds.length})</span>
+            </button>
+          )}
+          <PrimaryButton
+            onClick={() => navigate("/delivery-boys/create")}
+            size="sm"
+            className="flex items-center gap-1.5 h-9 sm:h-10 w-full sm:w-auto justify-center"
+          >
+            <Plus size={14} className="sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm">Add Agent</span>
+          </PrimaryButton>
+        </div>
       </div>
 
       {/* Breadcrumbs */}
@@ -913,6 +1008,35 @@ const ManageDeliveryBoys = () => {
           </div>
         )}
       </div>
+
+      {/* Single Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={showSingleDeleteModal}
+        onClose={() => {
+          setShowSingleDeleteModal(false);
+          setDeleteTargetId(null);
+        }}
+        onConfirm={handleDeleteSingle}
+        title="Delete Delivery Agent"
+        message="Are you sure you want to permanently delete this delivery agent? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeletingSingle}
+      />
+
+      {/* Bulk Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleDeleteBulk}
+        title="Bulk Delete Delivery Agents"
+        message={`Are you sure you want to permanently delete ${selectedIds.length} selected delivery agent(s)? This action cannot be undone.`}
+        confirmText={`Delete ${selectedIds.length} Agent(s)`}
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeletingBulk}
+      />
     </div>
   );
 };
