@@ -528,27 +528,22 @@ const ManageDeliveryBoys = () => {
                   }}
                 />
               </div>
-              <div className="text-left min-w-0">
-                <div className="text-xs sm:text-sm text-gray-800 truncate">
-                  {agent.name || "N/A"}
-                </div>
-                <div className="text-[10px] sm:text-xs text-orange-600 dark:text-orange-500 truncate">
-                  {agent.phone || "N/A"}
-                </div>
-              </div>
+              <span className="font-semibold text-xs sm:text-sm text-gray-900 truncate">
+                {agent.name || "N/A"}
+              </span>
             </div>
           </div>
         );
       },
     },
     {
-      key: "email",
-      label: "EMAIL ID",
+      key: "phone",
+      label: "MOBILE NUMBER",
       sortable: true,
       render: (agent: ApiDeliveryAgent) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 break-words">
-            {agent.email || "N/A"}
+          <span className="text-xs sm:text-sm font-medium text-gray-800 whitespace-nowrap">
+            {agent.phone || "N/A"}
           </span>
         </div>
       ),
