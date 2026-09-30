@@ -86,8 +86,8 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
               {filteredProducts.length === 0 ? (
                 <div className="text-xs font-bold text-gray-400 text-center py-8">No products found</div>
               ) : (
-                filteredProducts.map(p => (
-                  <div key={p.id} className="flex flex-col">
+                filteredProducts.map((p, pIdx) => (
+                  <div key={p.id ? `${p.id}_${p.variantName || pIdx}` : pIdx} className="flex flex-col">
                     <div
                       onClick={() => {
                         onChange(p.id);
@@ -211,7 +211,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
             flattenedProducts.push({
               ...p,
               id: v.id || `${p.id}_${v.variantName}`,
-              productId: v.id || `${p.id}_${v.variantName}`,
+              productId: v.productId || p.id,
               parentProductId: p.id,
               name: p.name,
               variantName: v.variantName || v.name || '',

@@ -122,7 +122,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
             flattenedProducts.push({
               ...prod,
               id: variant.id || `${prod.id}_${variant.variantName}`,
-              productId: variant.id || `${prod.id}_${variant.variantName}`,
+              productId: variant.productId || (variant.id && !variant.id.includes('_') ? variant.id : prod.id),
               parentProductId: prod.id,
               name: prod.name,
               variantName: variant.variantName || variant.name || '',
@@ -925,8 +925,8 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                           return matchesName || matchesVariant || matchesSubVariants || matchesBarcode || matchesSku;
                         })
                         .slice(0, 15)
-                        .map(p => (
-                          <div key={p.id} className="border-b border-gray-50 last:border-0">
+                        .map((p, pIdx) => (
+                          <div key={p.id ? `${p.id}_${p.variantName || pIdx}` : pIdx} className="border-b border-gray-50 last:border-0">
                             <button
                               type="button"
                               onMouseDown={e => e.preventDefault()}
