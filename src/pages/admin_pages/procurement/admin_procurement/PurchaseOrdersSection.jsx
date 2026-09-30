@@ -648,7 +648,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
             if (Array.isArray(p.variants) && p.variants.length > 0) {
               p.variants.forEach(v => {
                 flattened.push({
-                  productId: v.productId || (v.id && !v.id.includes('_') ? v.id : p.id),
+                  productId: v.productId || p.id,
                   id: v.id || `${p.id}_${v.variantName}`,
                   parentProductId: p.id,
                   name: p.name,
@@ -729,7 +729,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
           if (Array.isArray(p.variants) && p.variants.length > 0) {
             p.variants.forEach(v => {
               flattened.push({
-                productId: v.productId || (v.id && !v.id.includes('_') ? v.id : p.id),
+                productId: v.productId || p.id,
                 id: v.id || `${p.id}_${v.variantName}`,
                 parentProductId: p.id,
                 name: p.name,

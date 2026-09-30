@@ -211,7 +211,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
             flattenedProducts.push({
               ...p,
               id: v.id || `${p.id}_${v.variantName}`,
-              productId: v.productId || (v.id && !v.id.includes('_') ? v.id : p.id),
+              productId: v.productId || p.id,
               parentProductId: p.id,
               name: p.name,
               variantName: v.variantName || v.name || '',
