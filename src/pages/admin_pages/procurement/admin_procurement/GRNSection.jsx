@@ -23,13 +23,14 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
-  const selectedProduct = products.find(p => p.id === selectedProductId);
+  const selectedProduct = products.find(p => p.id === selectedProductId || (p.productId && p.productId === selectedProductId));
 
   const filteredProducts = products.filter(p => {
     const nameMatch = p.name?.toLowerCase().includes(search.toLowerCase());
     const skuMatch = p.skuCode?.toLowerCase().includes(search.toLowerCase());
-    const variantMatch = p.variants?.some(v => (v.variantName || v.name)?.toLowerCase().includes(search.toLowerCase()));
-    return nameMatch || skuMatch || variantMatch;
+    const variantMatch = (p.variantName || '')?.toLowerCase().includes(search.toLowerCase());
+    const subVariantMatch = p.variants?.some(v => (v.variantName || v.name)?.toLowerCase().includes(search.toLowerCase()));
+    return nameMatch || skuMatch || variantMatch || subVariantMatch;
   });
 
   return (
@@ -86,56 +87,70 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
               {filteredProducts.length === 0 ? (
                 <div className="text-xs font-bold text-gray-400 text-center py-8">No products found</div>
               ) : (
-                filteredProducts.map((p, pIdx) => (
-                  <div key={p.id ? `${p.id}_${p.variantName || pIdx}` : pIdx} className="flex flex-col">
-                    <div
-                      onClick={() => {
-                        onChange(p.id);
-                        setIsOpen(false);
-                      }}
-                      className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${
-                        selectedProductId === p.id 
-                          ? 'bg-emerald-50 text-emerald-700' 
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-900 font-extrabold">{p.name}</span>
-                          {p.variantName && (
-                            <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase">
-                              {p.variantName}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {p.skuCode && <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{p.skuCode}</span>}
-                          {(p.purchasePrice || p.price) && <span className="text-[9px] text-emerald-600 font-black">₹{p.purchasePrice || p.price}</span>}
-                        </div>
-                      </div>
-                      {selectedProductId === p.id && <CheckCircle2 className="text-emerald-600" size={16} />}
-                    </div>
-
-                    {p.variants && p.variants.length > 0 && (
-                      <div className="pl-6 pr-2 py-1 bg-slate-50/50 rounded-lg my-1 flex flex-col gap-1 border-l-2 border-purple-400 ml-3">
-                        <span className="text-[8px] font-black uppercase tracking-wider text-purple-700">Variants:</span>
-                        {p.variants.map((v, vIdx) => (
-                          <div
-                            key={v.id || vIdx}
-                            onClick={() => {
-                              onChange(p.id);
-                              setIsOpen(false);
-                            }}
-                            className="flex items-center justify-between px-2 py-1 rounded text-[10px] font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-900 cursor-pointer"
-                          >
-                            <span>{v.variantName || v.name}</span>
-                            <span className="font-bold text-emerald-600">₹{v.price || v.sellingPrice || 0}</span>
+                filteredProducts.map((p, pIdx) => {
+                  const resolvedId = p.productId || p.id;
+                  const isSelected = selectedProductId === p.id || selectedProductId === resolvedId;
+                  return (
+                    <div key={p.id ? `${p.id}_${p.variantName || pIdx}` : pIdx} className="flex flex-col">
+                      <div
+                        onClick={() => {
+                          onChange(resolvedId, p);
+                          setIsOpen(false);
+                        }}
+                        className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${
+                          isSelected 
+                            ? 'bg-emerald-50 text-emerald-700' 
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-900 font-extrabold">{p.name}</span>
+                            {p.variantName && (
+                              <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase">
+                                {p.variantName}
+                              </span>
+                            )}
                           </div>
-                        ))}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {p.skuCode && <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{p.skuCode}</span>}
+                            {(p.purchasePrice || p.price) && <span className="text-[9px] text-emerald-600 font-black">₹{p.purchasePrice || p.price}</span>}
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 className="text-emerald-600" size={16} />}
                       </div>
-                    )}
-                  </div>
-                ))
+
+                      {p.variants && p.variants.length > 0 && (
+                        <div className="pl-6 pr-2 py-1 bg-slate-50/50 rounded-lg my-1 flex flex-col gap-1 border-l-2 border-purple-400 ml-3">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-purple-700">Variants:</span>
+                          {p.variants.map((v, vIdx) => {
+                            const variantTargetId = v.id || v.productId || p.productId || p.id;
+                            return (
+                              <div
+                                key={v.id || vIdx}
+                                onClick={() => {
+                                  onChange(variantTargetId, {
+                                    ...p,
+                                    ...v,
+                                    productId: variantTargetId,
+                                    id: variantTargetId,
+                                    name: p.name,
+                                    variantName: v.variantName || v.name
+                                  });
+                                  setIsOpen(false);
+                                }}
+                                className="flex items-center justify-between px-2 py-1 rounded text-[10px] font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-900 cursor-pointer"
+                              >
+                                <span>{v.variantName || v.name}</span>
+                                <span className="font-bold text-emerald-600">₹{v.price || v.sellingPrice || 0}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
@@ -208,10 +223,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
         // Discrete Variants
         if (Array.isArray(p.variants) && p.variants.length > 0) {
           p.variants.forEach(v => {
+            const variantTargetId = v.id || v.productId || p.id;
             flattenedProducts.push({
               ...p,
-              id: v.id || `${p.id}_${v.variantName}`,
-              productId: v.productId || p.id,
+              id: variantTargetId,
+              productId: variantTargetId,
               parentProductId: p.id,
               name: p.name,
               variantName: v.variantName || v.name || '',
@@ -459,6 +475,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
         isDirectGRN: true,
         items: items.map(i => ({
           productId: i.productId,
+          name: i.name || '',
           quantity: parseInt(i.qty),
           rate: parseFloat(i.price) || 0
         }))
@@ -733,14 +750,28 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
 
             {/* Items Card */}
             <div className="bg-white border border-gray-100 rounded-3xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Items</h3>
-                <button 
-                  onClick={() => setDirectItems(prev => [...prev, { id: Date.now(), name: '', qty: '', unit: 'KG', price: '', total: 0, damaged: '', expiry: '' }])}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all"
-                >
-                  + Add Item
-                </button>
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Items ({directItems.filter(i => i.productId).length})</h3>
+                <div className="flex items-center gap-2">
+                  {directItems.length > 1 && (
+                    <button 
+                      type="button"
+                      onClick={() => setDirectItems([{ id: Date.now(), productId: '', name: '', qty: '', unit: 'KG', price: '', total: 0, damaged: '', expiry: '' }])}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+                    >
+                      <Trash2 size={12} />
+                      Clear
+                    </button>
+                  )}
+                  <button 
+                    type="button"
+                    onClick={() => setDirectItems(prev => [...prev, { id: Date.now(), productId: '', name: '', qty: '', unit: 'KG', price: '', total: 0, damaged: '', expiry: '' }])}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-95 shadow-sm"
+                  >
+                    <Plus size={13} />
+                    Add Item
+                  </button>
+                </div>
               </div>
               <div className="overflow-x-auto custom-scrollbar w-full">
                 <table className="w-full text-left min-w-[800px]">
@@ -763,12 +794,19 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <SearchableProductDropdown
                             products={products}
                             selectedProductId={item.productId}
-                            onChange={productId => {
+                            onChange={(productId, selectedObj) => {
                               const updated = [...directItems];
-                              const prod = products.find(p => p.id === productId);
-                              updated[idx].productId = productId;
-                              updated[idx].name = prod ? prod.name : '';
-                              updated[idx].unit = prod && prod.unit ? prod.unit.name : 'KG';
+                              const prod = selectedObj || products.find(p => p.id === productId || (p.productId && p.productId === productId));
+                              if (prod) {
+                                updated[idx].productId = prod.productId || prod.id;
+                                updated[idx].name = prod.name || '';
+                                updated[idx].variantName = prod.variantName || '';
+                                updated[idx].unit = typeof prod.unit === 'string' ? prod.unit : (prod.unit?.name || 'KG');
+                                updated[idx].price = String(prod.purchasePrice ?? prod.price ?? updated[idx].price ?? '');
+                                updated[idx].total = (parseFloat(updated[idx].qty) || 0) * (parseFloat(updated[idx].price) || 0);
+                              } else {
+                                updated[idx].productId = productId;
+                              }
                               setDirectItems(updated);
                             }}
                           />
