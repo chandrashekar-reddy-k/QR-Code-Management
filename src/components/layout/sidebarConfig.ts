@@ -175,6 +175,8 @@ export const initialStateCheckers = {
     pathname === "/vsms/vehicles" || pathname === "/vsms/routes-coverage" || pathname === "/vsms/live-tracking",
   isVehicleManagementOpen: (pathname: string) =>
     pathname === "/vsms/fuel-maintenance" || pathname === "/vsms/damages",
+  isExpenseManagementOpen: (pathname: string) =>
+    pathname.startsWith("/expenses"),
   isInventoryManagementOpen: (pathname: string) =>
     pathname === "/vsms/stock-history",
   isCashManagementOpen: (pathname: string) =>
@@ -224,6 +226,34 @@ export const sidebarConfig: MenuSection[] = [
         icon: RefreshCw,
       },
       { path: "/vsms/damages", label: "Vehicle Damages", icon: AlertTriangle },
+    ],
+  },
+
+  // Expense Management
+  {
+    type: "collapsible",
+    permission: "Partner: Expense Management",
+    label: "Expense Management",
+    icon: Receipt,
+    stateKey: "isExpenseManagementOpen",
+    hasSubPermissions: true,
+    activeCheck: (pathname: string) => pathname.startsWith("/expenses"),
+    subItems: [
+      {
+        path: "/expenses?tab=monitoring",
+        label: "Expense Monitoring",
+        icon: Receipt,
+      },
+      {
+        path: "/expenses?tab=analytics",
+        label: "Expense Analytics",
+        icon: BarChart3,
+      },
+      {
+        path: "/expenses?tab=categories",
+        label: "Expense Categories",
+        icon: Tag,
+      },
     ],
   },
 

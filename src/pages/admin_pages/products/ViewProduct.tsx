@@ -1066,8 +1066,18 @@ const ViewProduct = () => {
   };
 
   const pricingCard = {
-    landingPrice: toDisplayValue(rawProduct?.price, rawProduct?.landingPrice, rawProduct?.costPrice),
-    originalPrice: toDisplayValue(rawProduct?.mrp, rawProduct?.originalPrice, rawProduct?.listPrice),
+    landingPrice: (() => {
+      const raw = toDisplayValue(rawProduct?.costPrice, rawProduct?.price, rawProduct?.landingPrice);
+      if (raw === 'N/A') return raw;
+      const n = parseFloat(raw);
+      return Number.isFinite(n) ? `₹${n.toFixed(2)}` : raw;
+    })(),
+    originalPrice: (() => {
+      const raw = toDisplayValue(rawProduct?.mrp, rawProduct?.originalPrice, rawProduct?.listPrice);
+      if (raw === 'N/A') return raw;
+      const n = parseFloat(raw);
+      return Number.isFinite(n) ? `₹${n.toFixed(2)}` : raw;
+    })(),
     tax: (() => {
       const raw = toDisplayValue(rawProduct?.taxRate, rawProduct?.tax);
       if (raw === 'N/A') return raw;

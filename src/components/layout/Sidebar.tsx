@@ -108,6 +108,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_vehicle_management_view')) return true;
     }
 
+    // Expense Management fallback
+    if (slugCode === 'expense_management' || slugCode === 'expenses') {
+      if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_expense_management_view') || permissions.includes('partner_expenses_view') || permissions.includes('partner_vehicle_management_view')) return true;
+    }
+
     // Cash Management fallback to VSMS Logistics
     if (slugCode === 'cash_management') {
       if (permissions.includes('partner_vsms_logistics_view') || permissions.includes('partner_vsms_view') || permissions.includes('partner_cash_management_view')) return true;
@@ -131,6 +136,11 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           permissions.includes('shopkeeper_erp_admin_view') ||
           permissions.includes('shopkeeper_erp_view') ||
           permissions.includes('shopkeeper_view')) return true;
+    }
+
+    // Expense Management fallback
+    if (slugCode === 'expense_management' || slugCode === 'expenses') {
+      return true;
     }
 
     // Packing ERP fallback
@@ -203,6 +213,10 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         candidates.push('partner_damages_view');
         candidates.push('partner_vsms_damages_view');
       }
+    }
+
+    if (parentPart === 'expense_management' || parentPart === 'expenses') {
+      return true;
     }
 
     if (parentPart === 'inventory_management') {
@@ -428,6 +442,9 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   const [isVehicleManagementOpen, setIsVehicleManagementOpen] = useState(
     location.pathname === '/vsms/fuel-maintenance' || location.pathname === '/vsms/damages'
   );
+  const [isExpenseManagementOpen, setIsExpenseManagementOpen] = useState(
+    location.pathname.startsWith('/expenses')
+  );
   const [isInventoryManagementOpen, setIsInventoryManagementOpen] = useState(
     location.pathname === '/vsms/stock-history'
   );
@@ -465,6 +482,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen: setIsAssetsOpen,
       isRouteManagementOpen: setIsRouteManagementOpen,
       isVehicleManagementOpen: setIsVehicleManagementOpen,
+      isExpenseManagementOpen: setIsExpenseManagementOpen,
       isInventoryManagementOpen: setIsInventoryManagementOpen,
       isCashManagementOpen: setIsCashManagementOpen,
     }),
@@ -497,6 +515,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
       isRouteManagementOpen,
       isVehicleManagementOpen,
+      isExpenseManagementOpen,
       isInventoryManagementOpen,
       isCashManagementOpen,
     }),
@@ -525,6 +544,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       isAssetsOpen,
       isRouteManagementOpen,
       isVehicleManagementOpen,
+      isExpenseManagementOpen,
       isInventoryManagementOpen,
       isCashManagementOpen,
     ]
@@ -1150,6 +1170,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
           location.pathname.startsWith("/reports")) ||
         (section.stateKey === "isSystemOpen" &&
           location.pathname.startsWith("/system")) ||
+        (section.stateKey === "isExpenseManagementOpen" &&
+          location.pathname.startsWith("/expenses")) ||
         (section.stateKey === "isCashManagementOpen" &&
           (location.pathname === "/vsms/cash-management" || location.pathname.startsWith("/vsms/cash-reconciliation")));
 

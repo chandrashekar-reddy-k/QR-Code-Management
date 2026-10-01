@@ -17,11 +17,15 @@ import {
   X,
   Undo2,
   Dices,
+  MoreVertical,
+  Loader2,
+  Save,
 } from "lucide-react";
 import BarcodeScannerOverlay from "../../../components/BarcodeScannerOverlay";
 import {
   SearchInput,
   ConfirmModal,
+  Modal,
   StatCard,
   ViewIconButton,
   EditIconButton,
@@ -29,6 +33,7 @@ import {
   Pagination,
   PrimaryButton,
   SelectInput,
+  TextInput,
 } from "../../../components/ui";
 import SortableTableHeader from "../../../components/ui/Table/SortableTableHeader";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
@@ -39,6 +44,7 @@ import {
   useGetProductCategoriesList,
   useUpdateProductActive,
   useGetProductUnitTypesList,
+  useGetUnitsByUnitType,
   useGetUnitsMapForUnitTypes,
   useResetAllProductsStock,
   useUndoResetProductsStock,
@@ -273,6 +279,47 @@ const ManageProducts = () => {
     return Number.isFinite(numeric) ? `₹${numeric.toFixed(2)}` : "₹0.00";
   };
   const [variantActiveOverrides, setVariantActiveOverrides] = useState<Record<string, boolean>>({});
+
+  // Quick Edit Modal State
+  const [quickEdit, setQuickEdit] = useState<{
+    isOpen: boolean;
+    isVariant: boolean;
+    productId: string;
+    variantId?: string;
+    parentProductId?: string;
+    title: string;
+    isLoading: boolean;
+    isSaving: boolean;
+    unitTypeId: string;
+    unit: string;
+    measurement: string;
+    costPrice: string;
+    mrp: string;
+    discountType: "RUPEES" | "PERCENTAGE";
+    discountValue: string;
+    stock: string;
+    threshold: string;
+    minOrderQty: string;
+    maxOrderQty: string;
+  }>({
+    isOpen: false,
+    isVariant: false,
+    productId: "",
+    title: "",
+    isLoading: false,
+    isSaving: false,
+    unitTypeId: "",
+    unit: "",
+    measurement: "",
+    costPrice: "",
+    mrp: "",
+    discountType: "RUPEES",
+    discountValue: "",
+    stock: "0",
+    threshold: "0",
+    minOrderQty: "1",
+    maxOrderQty: "5",
+  });
 
   const { data, isLoading, isError, error, refetch } = useGetAllProductList(
     currentPage,
@@ -557,6 +604,39 @@ const ManageProducts = () => {
   }, [products, unitTypeIdsFromExpandedDetail]);
 
   const unitsByTypeId = useGetUnitsMapForUnitTypes(unitTypeIdsForFetch);
+
+  // Dynamic Units for Quick Edit Modal
+  const { data: quickEditUnitsData } = useGetUnitsByUnitType(quickEdit.unitTypeId || null);
+  const quickEditUnitsOptions = useMemo(() => {
+    if (!quickEditUnitsData) return [];
+    const res = quickEditUnitsData as Record<string, unknown>;
+    const raw = (res?.data ?? res) as unknown;
+    if (Array.isArray(raw)) {
+      return raw.map((u: any) => ({
+        value: String(u.id || u.name),
+        label: String(u.name || u.shortCode || u.id),
+      }));
+    }
+    return [];
+  }, [quickEditUnitsData]);
+
+  // Real-time final selling price calculation for Quick Edit Modal
+  const quickCalculatedFinalPrice = useMemo(() => {
+    const numMrp = parseFloat(quickEdit.mrp) || 0;
+    const numCost = parseFloat(quickEdit.costPrice) || 0;
+    const numDiscount = parseFloat(quickEdit.discountValue) || 0;
+
+    let finalSellingPrice = numMrp;
+    if (quickEdit.discountType === "PERCENTAGE" && numDiscount > 0 && numDiscount < 100) {
+      finalSellingPrice = numMrp - (numMrp * numDiscount) / 100;
+    } else if (quickEdit.discountType === "RUPEES" && numDiscount > 0 && numDiscount < numMrp) {
+      finalSellingPrice = numMrp - numDiscount;
+    }
+    if (finalSellingPrice <= 0) {
+      finalSellingPrice = numMrp > 0 ? numMrp : numCost;
+    }
+    return String(Math.round(finalSellingPrice));
+  }, [quickEdit.mrp, quickEdit.costPrice, quickEdit.discountType, quickEdit.discountValue]);
 
   // Cache fetched product details when expanded (same as admin); must run after unitTypesOptions / unitsByTypeId exist
   useEffect(() => {
@@ -889,6 +969,215 @@ const ManageProducts = () => {
     params.set("page", String(currentPage));
     params.set("limit", String(itemsPerPage));
     navigate(`/products/manage/view/${product.id}?${params.toString()}`);
+  };
+
+  const handleOpenQuickEdit = async (
+    item: TableProduct | Variant,
+    isVariant = false,
+    parentProductId?: string,
+  ) => {
+    const itemId = String(item.id);
+    const resolvedParentId = parentProductId || (!isVariant ? itemId : "");
+    const title = isVariant
+      ? `Quick Edit: ${((item as Variant).variantName || (item as Variant).name || "Variant")}`
+      : `Quick Edit: ${(item as TableProduct).name || "Product"}`;
+
+    setQuickEdit({
+      isOpen: true,
+      isVariant,
+      productId: resolvedParentId,
+      variantId: isVariant ? itemId : undefined,
+      parentProductId: resolvedParentId,
+      title,
+      isLoading: true,
+      isSaving: false,
+      unitTypeId: "",
+      unit: "",
+      measurement: "",
+      costPrice: "",
+      mrp: "",
+      discountType: "RUPEES",
+      discountValue: "",
+      stock: "0",
+      threshold: "0",
+      minOrderQty: "1",
+      maxOrderQty: "5",
+    });
+
+    try {
+      if (isVariant && itemId) {
+        const res = await fetchData(`productmanagement/variant/${itemId}`, "GET");
+        const raw = (res as any)?.data ?? res;
+        const v = (raw as any)?.variant ?? raw;
+        if (v) {
+          const rawUnitType = v.unitTypeId || v.unitType || "";
+          const resolvedUnitTypeId =
+            unitTypesOptions.find(
+              (o) =>
+                o.value === rawUnitType ||
+                (o.label && o.label.toLowerCase() === String(rawUnitType).toLowerCase())
+            )?.value || (looksLikeOpaqueId(rawUnitType) ? rawUnitType : "");
+
+          const resolvedMrp = v.mrp != null ? String(v.mrp) : v.price != null ? String(v.price) : "";
+          const resolvedCost = v.landingPrice != null ? String(v.landingPrice) : v.costPrice != null ? String(v.costPrice) : "";
+          const discType = String(v.discountType || "").toUpperCase().includes("PERCENT")
+            ? "PERCENTAGE"
+            : "RUPEES";
+          const discVal = v.discountValue != null ? String(v.discountValue) : v.discount != null ? String(v.discount) : "";
+          const stockVal = v.stockQuantity != null ? String(v.stockQuantity) : v.stock != null ? String(v.stock) : "0";
+          const threshVal = v.lowStockThreshold != null ? String(v.lowStockThreshold) : v.threshold != null ? String(v.threshold) : "0";
+
+          setQuickEdit((prev) => ({
+            ...prev,
+            isLoading: false,
+            unitTypeId: resolvedUnitTypeId,
+            unit: String(v.unitId || v.unit || ""),
+            measurement: String(v.measurement ?? ""),
+            costPrice: resolvedCost,
+            mrp: resolvedMrp,
+            discountType: discType,
+            discountValue: discVal,
+            stock: stockVal,
+            threshold: threshVal,
+            minOrderQty: String(v.minOrderQty ?? v.minOrderQuantity ?? "1"),
+            maxOrderQty: String(v.maxOrderQty ?? v.maxOrderQuantity ?? "5"),
+          }));
+          return;
+        }
+      } else if (resolvedParentId) {
+        const res = await fetchData(`productmanagement/product/${resolvedParentId}`, "GET");
+        const raw = (res as any)?.data ?? res;
+        const p = (raw as any)?.product ?? raw;
+        if (p) {
+          const rawUnitType = p.unitTypeId || p.unitType || "";
+          const resolvedUnitTypeId =
+            unitTypesOptions.find(
+              (o) =>
+                o.value === rawUnitType ||
+                (o.label && o.label.toLowerCase() === String(rawUnitType).toLowerCase())
+            )?.value || (looksLikeOpaqueId(rawUnitType) ? rawUnitType : "");
+
+          const resolvedMrp = p.mrp != null ? String(p.mrp) : "";
+          const resolvedCost = p.costPrice != null ? String(p.costPrice) : p.price != null ? String(p.price) : "";
+          const discType = String(p.discountType || "").toUpperCase().includes("PERCENT")
+            ? "PERCENTAGE"
+            : "RUPEES";
+          const discVal = p.discountValue != null ? String(p.discountValue) : p.discount != null ? String(p.discount) : "";
+
+          setQuickEdit((prev) => ({
+            ...prev,
+            isLoading: false,
+            unitTypeId: resolvedUnitTypeId,
+            unit: String(p.unitId || p.unit || ""),
+            measurement: String(p.measurement ?? ""),
+            costPrice: resolvedCost,
+            mrp: resolvedMrp,
+            discountType: discType,
+            discountValue: discVal,
+            stock: String(p.stock ?? "0"),
+            threshold: String(p.threshold ?? "0"),
+            minOrderQty: String(p.minOrderQty ?? "1"),
+            maxOrderQty: String(p.maxOrderQty ?? "5"),
+          }));
+          return;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch full details for quick edit, falling back to row data:", e);
+    }
+
+    // Fallback if API fetch failed
+    setQuickEdit((prev) => ({
+      ...prev,
+      isLoading: false,
+      mrp: String((item as any).mrp ?? (item as any).price ?? ""),
+      costPrice: String((item as any).landingPrice ?? (item as any).costPrice ?? (item as any).price ?? ""),
+      unit: String((item as any).unit || ""),
+      unitTypeId: String((item as any).unitType || ""),
+      measurement: String((item as any).measurement || ""),
+      discountType: "RUPEES",
+      discountValue: "",
+      stock: "0",
+      threshold: "0",
+      minOrderQty: "1",
+      maxOrderQty: "5",
+    }));
+  };
+
+  const handleSaveQuickEdit = async () => {
+    const numMrp = parseFloat(quickEdit.mrp) || 0;
+    const numCost = parseFloat(quickEdit.costPrice) || 0;
+    const numDiscount = parseFloat(quickEdit.discountValue) || 0;
+
+    let finalSellingPrice = numMrp;
+    if (quickEdit.discountType === "PERCENTAGE" && numDiscount > 0 && numDiscount < 100) {
+      finalSellingPrice = numMrp - (numMrp * numDiscount) / 100;
+    } else if (quickEdit.discountType === "RUPEES" && numDiscount > 0 && numDiscount < numMrp) {
+      finalSellingPrice = numMrp - numDiscount;
+    }
+    if (finalSellingPrice <= 0) {
+      finalSellingPrice = numMrp > 0 ? numMrp : numCost;
+    }
+    finalSellingPrice = Math.round(finalSellingPrice);
+
+    setQuickEdit((prev) => ({ ...prev, isSaving: true }));
+
+    try {
+      if (quickEdit.isVariant && quickEdit.variantId) {
+        // Variant update payload
+        const payload: any = {
+          unitType: quickEdit.unitTypeId || undefined,
+          unit: quickEdit.unit || undefined,
+          measurement: quickEdit.measurement || undefined,
+          mrp: numMrp,
+          sellingPrice: finalSellingPrice,
+          landingPrice: numCost,
+          costPrice: numCost,
+          discountType: quickEdit.discountType,
+          discountValue: numDiscount,
+          stockQuantity: parseFloat(quickEdit.stock) || 0,
+          lowStockThreshold: parseFloat(quickEdit.threshold) || 0,
+          minOrderQty: parseFloat(quickEdit.minOrderQty) || 1,
+          maxOrderQty: parseFloat(quickEdit.maxOrderQty) || 5,
+        };
+
+        await fetchData(`productmanagement/variant/${quickEdit.variantId}`, "PUT", payload);
+        toast.success("Variant details updated successfully");
+      } else {
+        // Product update payload
+        const payload: any = {
+          unitType: quickEdit.unitTypeId || undefined,
+          unit: quickEdit.unit || undefined,
+          measurement: quickEdit.measurement || undefined,
+          costPrice: numCost,
+          mrp: numMrp,
+          price: finalSellingPrice,
+          finalPrice: finalSellingPrice,
+          discountType: quickEdit.discountType,
+          discountValue: numDiscount,
+          stock: parseFloat(quickEdit.stock) || 0,
+          threshold: parseFloat(quickEdit.threshold) || 0,
+          minOrderQty: parseFloat(quickEdit.minOrderQty) || 1,
+          maxOrderQty: parseFloat(quickEdit.maxOrderQty) || 5,
+        };
+
+        await fetchData(`productmanagement/product/${quickEdit.productId}`, "PUT", payload);
+        toast.success("Product details updated successfully");
+      }
+
+      // Clear cache and refetch list
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+      queryClient.invalidateQueries({ queryKey: ["productById"] });
+      queryClient.invalidateQueries({ queryKey: ["variantsByProduct"] });
+      queryClient.invalidateQueries({ queryKey: ["variantById"] });
+      refetch();
+
+      setQuickEdit((prev) => ({ ...prev, isOpen: false, isSaving: false }));
+    } catch (err: any) {
+      console.error("Error updating quick edit:", err);
+      toast.error(err?.data?.response || err?.message || "Failed to update product");
+      setQuickEdit((prev) => ({ ...prev, isSaving: false }));
+    }
   };
 
   const toggleRowExpansion = (productId: string, product?: TableProduct) => {
@@ -1308,6 +1597,14 @@ const ManageProducts = () => {
 
                         <td className="px-2 sm:px-4 py-3 sm:py-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenQuickEdit(product, false)}
+                              className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                              title="Quick Edit"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
                             <ViewIconButton onClick={() => handleView(product)} size={12} />
                             <EditIconButton onClick={() => handleEdit(product)} size={12} />
                             <DeleteButton onClick={() => _handleDeleteClick(product.id)} size={12} />
@@ -1390,6 +1687,14 @@ const ManageProducts = () => {
                                               </td>
                                               <td className={cellClass}>
                                                 <div className="flex items-center justify-center gap-1.5">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleOpenQuickEdit(variant, true, product.id)}
+                                                    className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                                                    title="Quick Edit"
+                                                  >
+                                                    <MoreVertical size={14} />
+                                                  </button>
                                                   <ViewIconButton onClick={() => navigate(`/products/manage/view/${product.id}/variant/${variant.id}`)} size={12} />
                                                   <EditIconButton onClick={() => navigate(`/products/create?editVariant=true&productId=${product.id}&variantId=${variant.id}`)} size={12} />
                                                 </div>
@@ -1527,6 +1832,232 @@ const ManageProducts = () => {
         cancelText="Cancel"
         variant="primary"
       />
+
+      {/* Quick Edit Modal */}
+      <Modal
+        isOpen={quickEdit.isOpen}
+        onClose={() => setQuickEdit((prev) => ({ ...prev, isOpen: false }))}
+        title={quickEdit.title}
+        size="lg"
+        closeOnBackdropClick={false}
+        closeOnEscape={false}
+      >
+        {quickEdit.isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
+            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Loading details...</span>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* 1. Units & Measurement */}
+            <div className="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 inline-flex items-center justify-center text-xs">1</span>
+                Units & Measurement
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <SelectInput
+                    label="Unit Type"
+                    required
+                    value={quickEdit.unitTypeId}
+                    onChange={(e) => {
+                      const newUnitType = e.target.value;
+                      setQuickEdit((prev) => ({
+                        ...prev,
+                        unitTypeId: newUnitType,
+                        unit: "", // reset unit when type changes
+                      }));
+                    }}
+                    options={[
+                      { value: "", label: "Select Unit Type" },
+                      ...unitTypesOptions,
+                    ]}
+                  />
+                </div>
+                <div>
+                  <SelectInput
+                    label="Unit"
+                    required
+                    value={quickEdit.unit}
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, unit: e.target.value }))
+                    }
+                    options={[
+                      { value: "", label: "Select Unit" },
+                      ...(quickEditUnitsOptions || []),
+                    ]}
+                  />
+                </div>
+                <div>
+                  <TextInput
+                    label="Measurement"
+                    value={quickEdit.measurement}
+                    placeholder="e.g. 100"
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, measurement: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Pricing */}
+            <div className="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 inline-flex items-center justify-center text-xs">2</span>
+                Pricing
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <TextInput
+                    label="Landing Price ( ₹ )"
+                    required
+                    type="number"
+                    value={quickEdit.costPrice}
+                    placeholder="0.00"
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, costPrice: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <TextInput
+                    label="Original Price / M.R.P ( ₹ )"
+                    required
+                    type="number"
+                    value={quickEdit.mrp}
+                    placeholder="0.00"
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, mrp: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <SelectInput
+                    label="Discount Type"
+                    value={quickEdit.discountType}
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({
+                        ...prev,
+                        discountType: e.target.value as "RUPEES" | "PERCENTAGE",
+                      }))
+                    }
+                    options={[
+                      { value: "RUPEES", label: "Rupees (₹)" },
+                      { value: "PERCENTAGE", label: "Percentage (%)" },
+                    ]}
+                  />
+                </div>
+                <div>
+                  <TextInput
+                    label={quickEdit.discountType === "PERCENTAGE" ? "Discount Percentage ( % )" : "Discount Amount ( ₹ )"}
+                    type="number"
+                    value={quickEdit.discountValue}
+                    placeholder="0"
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, discountValue: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="sm:col-span-2 lg:col-span-2">
+                  <TextInput
+                    label="Final Selling Price ( ₹ )"
+                    type="number"
+                    disabled
+                    value={quickCalculatedFinalPrice}
+                    className="bg-emerald-50/70 dark:bg-emerald-950/40 font-bold text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Inventory & Availability */}
+            <div className="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 inline-flex items-center justify-center text-xs">3</span>
+                Inventory & Availability
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <TextInput
+                    label="Stock Quantity"
+                    required
+                    type="number"
+                    value={quickEdit.stock}
+                    placeholder="0"
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, stock: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <TextInput
+                    label="Low Stock Alert Threshold"
+                    type="number"
+                    value={quickEdit.threshold}
+                    placeholder="0"
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, threshold: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <TextInput
+                    label="Minimum Order Quantity"
+                    type="number"
+                    value={quickEdit.minOrderQty}
+                    placeholder="1"
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, minOrderQty: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <TextInput
+                    label="Maximum Order Quantity"
+                    type="number"
+                    value={quickEdit.maxOrderQty}
+                    placeholder="5"
+                    onChange={(e) =>
+                      setQuickEdit((prev) => ({ ...prev, maxOrderQty: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setQuickEdit((prev) => ({ ...prev, isOpen: false }))}
+                disabled={quickEdit.isSaving}
+                className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <PrimaryButton
+                onClick={handleSaveQuickEdit}
+                disabled={quickEdit.isSaving}
+                className="flex items-center gap-2 px-5 py-2 text-xs sm:text-sm font-medium"
+              >
+                {quickEdit.isSaving ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </PrimaryButton>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Barcode Scanner Modal */}
       {isScannerOpen && (
