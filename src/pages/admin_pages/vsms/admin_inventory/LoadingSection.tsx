@@ -317,7 +317,16 @@ const LoadingSection = ({
                   fetchHistory();
                 }} 
                 disabled={isSubmitting || !selectedVehicleId || !Object.values(stockQuantities).some(q => (parseFloat(q) || 0) > 0) || hasInvalidQuantities} 
-                className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-md disabled:opacity-40 flex items-center gap-2"
+                className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                title={
+                  !selectedVehicleId 
+                    ? "Select a vehicle first" 
+                    : !Object.values(stockQuantities).some(q => (parseFloat(q) || 0) > 0) 
+                    ? "Enter quantity to load" 
+                    : hasInvalidQuantities 
+                    ? "Some entered quantities exceed available stock" 
+                    : "Complete vehicle load"
+                }
               >
                 {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpCircle size={14} />}
                 <span>Complete Load</span>

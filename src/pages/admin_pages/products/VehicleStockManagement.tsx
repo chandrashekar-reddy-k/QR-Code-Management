@@ -155,9 +155,6 @@ export default function VehicleStockManagement() {
 
           const productId = (p.productId as string) || String(p.id ?? '').slice(0, 8).toUpperCase();
           const img = p.image || (Array.isArray(p.images) ? p.images[0] : null);
-          // Total In-Van Stock: only count actual per-vehicle loaded quantities (NOT the channel reservation)
-          const vStock = Number(Array.isArray(p.vehicleStocks) ? p.vehicleStocks.reduce((a: number, c: any) => a + (c.quantity || 0), 0) : 0);
-
           // Sanitize clean unit label (strip UUIDs)
           let cleanUnit = p.unit || 'Unit';
           if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanUnit)) {
@@ -167,7 +164,13 @@ export default function VehicleStockManagement() {
             cleanUnit = 'Unit';
           }
 
-          const rawVs = Array.isArray(p.vehicleStocks) ? p.vehicleStocks : [];
+          // Read vehicle allocations from vehicleStockAssignments or legacy vehicleStocks
+          const rawVs = Array.isArray(p.vehicleStockAssignments) && p.vehicleStockAssignments.length > 0 
+            ? p.vehicleStockAssignments 
+            : (Array.isArray(p.vehicleStocks) ? p.vehicleStocks : []);
+
+          const vStock = Number(rawVs.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0));
+
           const assignedVehicles = rawVs
             .filter((vs: any) => Number(vs.quantity) > 0)
             .map((vs: any) => {
@@ -183,6 +186,15 @@ export default function VehicleStockManagement() {
               };
             });
 
+          // Resolve Vehicle Store Stock from ChannelInventory (POS_STORE) or vehicleStoreStock
+          let vStoreStock = 0;
+          if (Array.isArray(p.channelInventories)) {
+            const posRecord = p.channelInventories.find((ci: any) => ci.channel === 'POS_STORE');
+            if (posRecord) vStoreStock = Number(posRecord.quantity) || 0;
+          }
+          if (vStoreStock === 0 && p.vehicleStoreStock !== undefined) {
+            vStoreStock = Number(p.vehicleStoreStock) || 0;
+          }
 
           return {
             id: p.id,
@@ -199,7 +211,7 @@ export default function VehicleStockManagement() {
             sellingPrice: Number(p.sellingPrice ?? p.finalPrice ?? p.price ?? 0), // From Product master
             vsmPrice: Number(p.vsmPrice || p.sellingPrice || p.price || 0),
             totalCatalogStock: Number(p.stock ?? p.catalogStock ?? p.stageStocks?.CENTRAL ?? 0),
-            vehicleStoreStock: Number(p.vehicleStoreStock ?? p.stageStocks?.VEHICLE ?? p.vehicleStock ?? vStock ?? 0),
+            vehicleStoreStock: vStoreStock,
             vehicleStock: vStock,
             vehicleAssignedCount: assignedVehicles.length || (vStock > 0 ? 1 : 0),
             isVehicle,

@@ -206,7 +206,7 @@ function getStoredListState(): {
     return {
       sortField: sf === "productId" ? null : sf,
       sortDirection: (p.sortDirection as "asc" | "desc") ?? null,
-      searchTerm: (p.searchTerm as string) ?? "",
+      searchTerm: "", // Default to empty search term on fresh navigation so catalog is not locked to previous query
       categoryFilter: (p.categoryFilter as string) ?? "",
       statusFilter: (p.statusFilter as string) ?? "",
       currentPage: typeof p.currentPage === "number" && p.currentPage >= 1 ? p.currentPage : 1,
@@ -280,6 +280,8 @@ const ManageProducts = () => {
     searchTerm,
     undefined,
     statusFilter,
+    undefined,
+    categoryFilter || undefined
   );
   const { mutate } = useDeleteProduct();
   const queryClient = useQueryClient();
@@ -858,11 +860,15 @@ const ManageProducts = () => {
   ]);
 
   const handleResetFilters = () => {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch (e) {}
     setSearchTerm("");
     setBarcodeSearch("");
     setCategoryFilter("");
     setStatusFilter("");
     setCurrentPage(1);
+    refetch();
   };
 
   // API is already paginated by currentPage/itemsPerPage.
@@ -1450,12 +1456,12 @@ const ManageProducts = () => {
                   </select>
                 </div>
                 <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                  Showing {pagination.total > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{" "}
                   {Math.min(
                     currentPage * itemsPerPage,
-                    filteredAndSortedProducts.length
+                    pagination.total || filteredAndSortedProducts.length
                   )}{" "}
-                  of {filteredAndSortedProducts.length}
+                  of {pagination.total || filteredAndSortedProducts.length}
                 </span>
               </div>
               <Pagination
