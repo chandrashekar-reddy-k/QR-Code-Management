@@ -1424,7 +1424,7 @@ const AddProduct: React.FC<AddProductProps> = ({
             ),
             // Keep edit pricing aligned to product-level values shown in Pricing step.
             mrp: String(
-              product.price ?? first.landingPrice ?? first.price ?? "0",
+              product.costPrice ?? product.price ?? first.landingPrice ?? first.price ?? "0",
             ),
             price: String(product.mrp ?? first.mrp ?? first.price ?? "0"),
             discountType: String(
@@ -1511,8 +1511,8 @@ const AddProduct: React.FC<AddProductProps> = ({
           measurement: sanitizeNonNegativeDecimalInput(
             String(product.measurement || ""),
           ),
-          mrp: String(product.price || "0"),
-          price: String(product.mrp || "0"),
+          mrp: String(product.costPrice ?? product.price ?? "0"),
+          price: String(product.mrp ?? "0"),
           discountType:
             product.discountType?.toLowerCase() === "percentage" ||
               product.discountType === "PERCENTAGE"
@@ -1904,13 +1904,14 @@ const AddProduct: React.FC<AddProductProps> = ({
         };
         if (field === "type") updatedVariant.unit = "";
 
-        // Auto-calculate sale price when price, discount, or discountType changes
+        // Auto-calculate sale price when mrp (Landing Price), price (Original Price), discount, or discountType changes
         if (
+          field === "mrp" ||
           field === "price" ||
           field === "discount" ||
           field === "discountType"
         ) {
-          const price = parseFloat(updatedVariant.price) || 0;
+          const price = parseFloat(updatedVariant.price) || parseFloat(updatedVariant.mrp) || 0;
           const discount = parseFloat(updatedVariant.discount) || 0;
           const discountType = updatedVariant.discountType || "percentage";
 
@@ -1933,6 +1934,8 @@ const AddProduct: React.FC<AddProductProps> = ({
             }
 
             updatedVariant.salePrice = Math.round(price - discountAmount).toString();
+          } else if (price > 0) {
+            updatedVariant.salePrice = Math.round(price).toString();
           } else {
             updatedVariant.salePrice = "";
           }
