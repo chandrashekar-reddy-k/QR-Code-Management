@@ -1839,6 +1839,8 @@ const ManageProducts = () => {
         onClose={() => setQuickEdit((prev) => ({ ...prev, isOpen: false }))}
         title={quickEdit.title}
         size="lg"
+        closeOnBackdropClick={false}
+        closeOnEscape={false}
       >
         {quickEdit.isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
