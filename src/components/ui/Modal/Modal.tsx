@@ -8,6 +8,8 @@ export interface ModalProps {
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showCloseButton?: boolean;
+  closeOnBackdropClick?: boolean;
+  closeOnEscape?: boolean;
 }
 
 const Modal = ({
@@ -17,6 +19,8 @@ const Modal = ({
   children,
   size = 'md',
   showCloseButton = true,
+  closeOnBackdropClick = true,
+  closeOnEscape = true,
 }: ModalProps) => {
   useEffect(() => {
     if (isOpen) {
@@ -31,13 +35,13 @@ const Modal = ({
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isOpen && closeOnEscape) {
         onClose();
       }
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, closeOnEscape]);
 
   if (!isOpen) return null;
 
@@ -53,7 +57,7 @@ const Modal = ({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
+        onClick={closeOnBackdropClick ? onClose : undefined}
       />
       
       {/* Modal */}
