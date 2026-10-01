@@ -281,6 +281,32 @@ export const adminAPI = {
   createBundle: (data?: any) => api.post('/partner/bundles', data),
   updateBundle: (id?: any, data?: any) => api.put(`/partner/bundles/${id}`, data),
   deleteBundle: (id?: any) => api.delete(`/partner/bundles/${id}`),
+
+  // Procurement
+  getGRNs: async (params?: any) => {
+    try {
+      const grnRes = await api.get('/procurement/grns', { params });
+      const list = grnRes.data?.data || grnRes.data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        return grnRes;
+      }
+      const poRes = await api.get('/procurement/purchase-orders', { params });
+      const pos = Array.isArray(poRes.data) ? poRes.data : (poRes.data?.data || []);
+      const mappedPosAsGRNs = pos.map((po: any) => ({
+        id: po.id,
+        displayId: po.displayId || (po.poNumber ? `PO-#${po.poNumber}` : po.id.slice(0, 8)),
+        po: { vendor: po.vendor },
+        items: (po.items || []).map((item: any) => ({
+          productId: item.productId,
+          receivedQuantity: item.quantity
+        }))
+      }));
+      return { data: { data: mappedPosAsGRNs } };
+    } catch (err) {
+      console.error('adminService getGRNs error:', err);
+      return { data: { data: [] } };
+    }
+  },
 };
 
 export default adminAPI;

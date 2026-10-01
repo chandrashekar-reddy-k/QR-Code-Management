@@ -33,6 +33,9 @@ const ConfigureStock: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
+  const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
+  const [selectedGRNId, setSelectedGRNId] = useState<string>('ALL');
+
   const fetchItems = async () => {
     try {
       setLoading(true);
@@ -40,6 +43,7 @@ const ConfigureStock: React.FC = () => {
       if (res.data?.success) {
         const items = res.data.data.map((item: any) => ({
           id: item.id,
+          grnId: item.grnId || item.goodsReceiptId || '',
           name: item.product?.name || 'Unknown',
           sku: item.resolvedSku || item.product?.sku || item.product?.masterProduct?.sku || item.product?.barcode || 'N/A',
           category: item.resolvedCategory || item.product?.category?.name || item.product?.subCategory?.name || 'General',
@@ -57,8 +61,19 @@ const ConfigureStock: React.FC = () => {
     }
   };
 
+  const fetchGRNs = async () => {
+    try {
+      const res = await procurementService.getGRNs();
+      const list = res.data?.data || res.data || [];
+      setProcurementGRNs(list);
+    } catch (err) {
+      console.error('Failed to fetch GRNs', err);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    fetchGRNs();
   }, []);
 
   const handleConfigure = async (type: 'BRANDED' | 'NON-BRANDED') => {
@@ -101,6 +116,10 @@ const ConfigureStock: React.FC = () => {
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
 
+    if (selectedGRNId !== 'ALL') {
+      filtered = filtered.filter((item: any) => item.grnId === selectedGRNId);
+    }
+
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -126,7 +145,7 @@ const ConfigureStock: React.FC = () => {
     }
 
     return filtered;
-  }, [data, searchTerm, sortField, sortDirection]);
+  }, [data, searchTerm, selectedGRNId, sortField, sortDirection]);
 
   // Pagination
   const paginatedData = filteredAndSortedData.slice(
@@ -276,8 +295,37 @@ const ConfigureStock: React.FC = () => {
             </div>
           </div>
 
+          {/* Procurement GRN Filter */}
+          <div className="border-r border-gray-200 h-full flex items-center relative">
+            <select 
+              value={selectedGRNId}
+              onChange={(e) => {
+                setSelectedGRNId(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[200px] cursor-pointer"
+            >
+              <option value="ALL">All Procurements (GRN)</option>
+              {procurementGRNs.map((grn: any) => {
+                const label = `${grn.displayId || grn.grnNumber || grn.id.slice(0, 8)} ${grn.po?.vendor?.vendorName ? `— ${grn.po.vendor.vendorName}` : ''}`;
+                return (
+                  <option key={grn.id} value={grn.id}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+
           <button
-            onClick={() => {}}
+            onClick={() => {
+              setSelectedGRNId('ALL');
+              setSearchTerm('');
+              setCurrentPage(1);
+            }}
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <RotateCcw size={14} />

@@ -31,8 +31,27 @@ const ReserveStock: React.FC = () => {
   const [quantities, setQuantities] = useState<Record<string, { online: number; pos: number; vehicle: number }>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
+  const [selectedGRNId, setSelectedGRNId] = useState('ALL');
+  const [grnItemsMap, setGrnItemsMap] = useState<Record<string, string>>({});
+
   useEffect(() => {
     fetchReadyItems();
+    inventoryService.getProcurementGRNs().then((res: any) => {
+      const list = res.data?.data || res.data || [];
+      setProcurementGRNs(list);
+      const map: Record<string, string> = {};
+      list.forEach((grn: any) => {
+        if (grn.items && Array.isArray(grn.items)) {
+          grn.items.forEach((item: any) => {
+            if (item.productId) {
+              map[item.productId] = grn.id;
+            }
+          });
+        }
+      });
+      setGrnItemsMap(map);
+    }).catch(console.error);
   }, []);
 
   const fetchReadyItems = async () => {
@@ -94,17 +113,37 @@ const ReserveStock: React.FC = () => {
   };
 
   const handleQtyChange = (id: string, field: 'online' | 'pos' | 'vehicle', value: number) => {
+    const item = data.find(i => i.id === id);
+    const available = item ? parseInt(item.available) || 0 : 0;
+    const currentQty = quantities[id] || { online: 0, pos: 0, vehicle: 0 };
+    const newQty = { ...currentQty, [field]: Math.max(0, value) };
+    const totalAllocated = newQty.online + newQty.pos + newQty.vehicle;
+
+    if (totalAllocated > available) {
+      toast.error(`Low Stock Alert: Total allocated (${totalAllocated}) exceeds available stock (${available}) for ${item?.name || 'product'}`);
+    }
+
     setQuantities(prev => ({
       ...prev,
-      [id]: {
-        ...(prev[id] || { online: 0, pos: 0, vehicle: 0 }),
-        [field]: Math.max(0, value)
-      }
+      [id]: newQty
     }));
   };
 
   const saveSelectedAllocations = async () => {
     if (selectedItems.length === 0) return;
+
+    // Check for any low stock violations before saving
+    for (const itemId of selectedItems) {
+      const item = data.find(i => i.id === itemId);
+      const available = item ? parseInt(item.available) || 0 : 0;
+      const qty = quantities[itemId] || { online: 0, pos: 0, vehicle: 0 };
+      const totalAllocated = qty.online + qty.pos + qty.vehicle;
+      if (totalAllocated > available) {
+        toast.error(`Cannot save: Allocated quantity (${totalAllocated}) for "${item?.name}" exceeds available stock (${available})`);
+        return;
+      }
+    }
+
     setIsSaving(true);
     
     try {
@@ -135,6 +174,9 @@ const ReserveStock: React.FC = () => {
   // Filter and sort
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
+    if (selectedGRNId !== 'ALL') {
+      filtered = filtered.filter(item => grnItemsMap[item.id] === selectedGRNId);
+    }
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -156,7 +198,7 @@ const ReserveStock: React.FC = () => {
       });
     }
     return filtered;
-  }, [data, searchTerm, sortField, sortDirection]);
+  }, [data, selectedGRNId, grnItemsMap, searchTerm, sortField, sortDirection]);
 
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -184,26 +226,31 @@ const ReserveStock: React.FC = () => {
   };
 
   const QtyInput = ({ itemId, field }: { itemId: string; field: 'online' | 'pos' | 'vehicle' }) => {
+    const item = data.find(i => i.id === itemId);
+    const available = item ? parseInt(item.available) || 0 : 0;
     const qty = quantities[itemId] || { online: 0, pos: 0, vehicle: 0 };
+    const totalAllocated = qty.online + qty.pos + qty.vehicle;
+    const isExceeded = totalAllocated > available;
+
     return (
-      <div className="flex items-center border border-[#d2d6df] rounded-md overflow-hidden w-[100px] h-9 bg-white mx-auto">
+      <div className={`flex items-center border ${isExceeded ? 'border-red-500 bg-red-50 ring-2 ring-red-200' : 'border-[#d2d6df] bg-white'} rounded-md overflow-hidden w-[100px] h-9 mx-auto transition-all`}>
         <input
           type="number"
           min="0"
-          className="w-full text-center text-[13px] text-gray-700 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className={`w-full text-center text-[13px] font-bold focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${isExceeded ? 'text-red-700 bg-red-50' : 'text-gray-700 bg-white'}`}
           value={qty[field] || 0}
           onChange={e => handleQtyChange(itemId, field, parseInt(e.target.value) || 0)}
           style={{ MozAppearance: 'textfield' }}
         />
-        <div className="flex flex-col border-l border-[#d2d6df] h-full w-[26px] flex-shrink-0 bg-white">
+        <div className={`flex flex-col border-l ${isExceeded ? 'border-red-300 bg-red-100' : 'border-[#d2d6df] bg-white'} h-full w-[26px] flex-shrink-0`}>
           <button
-            className="flex-1 flex items-center justify-center text-[#7a869a] hover:bg-gray-50 transition-colors border-b border-[#d2d6df]"
+            className={`flex-1 flex items-center justify-center ${isExceeded ? 'text-red-600 hover:bg-red-200' : 'text-[#7a869a] hover:bg-gray-50'} transition-colors border-b ${isExceeded ? 'border-red-300' : 'border-[#d2d6df]'}`}
             onClick={() => handleQtyChange(itemId, field, (qty[field] || 0) + 1)}
           >
             <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 0L8 5H0L4 0Z" /></svg>
           </button>
           <button
-            className="flex-1 flex items-center justify-center text-[#7a869a] hover:bg-gray-50 transition-colors"
+            className={`flex-1 flex items-center justify-center ${isExceeded ? 'text-red-600 hover:bg-red-200' : 'text-[#7a869a] hover:bg-gray-50'} transition-colors`}
             onClick={() => handleQtyChange(itemId, field, (qty[field] || 0) - 1)}
           >
             <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 5L0 0H8L4 5Z" /></svg>
@@ -281,11 +328,29 @@ const ReserveStock: React.FC = () => {
       key: 'available',
       label: 'AVAILABLE QTY',
       sortable: false,
-      render: (item: ReserveStockItem) => (
-        <span className="px-3 py-1.5 rounded-full bg-[#eaf8f1] text-[#20b05e] text-xs font-semibold whitespace-nowrap">
-          Available: {item.available}
-        </span>
-      )
+      render: (item: ReserveStockItem) => {
+        const availableNum = parseInt(item.available) || 0;
+        const qty = quantities[item.id] || { online: 0, pos: 0, vehicle: 0 };
+        const totalAllocated = qty.online + qty.pos + qty.vehicle;
+        const isExceeded = totalAllocated > availableNum;
+
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <span className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+              isExceeded
+                ? 'bg-red-100 text-red-700 border border-red-300 font-bold animate-pulse'
+                : 'bg-[#eaf8f1] text-[#20b05e]'
+            }`}>
+              Available: {item.available}
+            </span>
+            {isExceeded && (
+              <span className="text-[10px] text-red-600 font-bold tracking-tight">
+                Exceeded by {totalAllocated - availableNum}!
+              </span>
+            )}
+          </div>
+        );
+      }
     }
   ];
 
@@ -309,9 +374,32 @@ const ReserveStock: React.FC = () => {
 
       {/* Filters and Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="flex items-center border border-gray-300 rounded-lg bg-white h-10 shadow-sm w-fit">
+        <div className="flex flex-wrap items-center border border-gray-300 rounded-lg bg-white h-10 shadow-sm w-fit">
           <div className="px-3.5 border-r border-gray-200 text-gray-600 flex items-center justify-center h-full">
             <Filter size={16} />
+          </div>
+          <div className="border-r border-gray-200 h-full flex items-center relative">
+            <select 
+              value={selectedGRNId}
+              onChange={(e) => {
+                setSelectedGRNId(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[180px] cursor-pointer"
+            >
+              <option value="ALL">All Procurements (GRN)</option>
+              {procurementGRNs.map((grn) => {
+                const label = `${grn.displayId || grn.grnNumber || grn.id.slice(0, 8)} ${grn.po?.vendor?.vendorName ? `— ${grn.po.vendor.vendorName}` : ''}`;
+                return (
+                  <option key={grn.id} value={grn.id}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
           </div>
           <div className="border-r border-gray-200 h-full flex items-center relative">
             <select className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[140px] cursor-pointer">
@@ -330,7 +418,7 @@ const ReserveStock: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+            onClick={() => { setSelectedGRNId('ALL'); setSearchTerm(''); setCurrentPage(1); }}
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <RotateCcw size={14} />

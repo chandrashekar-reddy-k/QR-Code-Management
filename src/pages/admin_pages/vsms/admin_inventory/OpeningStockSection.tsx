@@ -1,6 +1,6 @@
-// @ts-nocheck
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClipboardList, Search, Barcode, Package, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import adminAPI from '../services/adminService';
 
 const OpeningStockSection = ({
   items,
@@ -17,7 +17,32 @@ const OpeningStockSection = ({
   processingItems,
   can
 }) => {
+  const [procurementGRNs, setProcurementGRNs] = useState([]);
+  const [selectedGRNId, setSelectedGRNId] = useState('ALL');
+  const [grnItemsMap, setGrnItemsMap] = useState({});
+
+  useEffect(() => {
+    adminAPI.getGRNs?.().then((res) => {
+      const list = res.data?.data || res.data || [];
+      setProcurementGRNs(list);
+      const map = {};
+      list.forEach((grn) => {
+        if (grn.items && Array.isArray(grn.items)) {
+          grn.items.forEach((item) => {
+            if (item.productId) {
+              map[item.productId] = grn.id;
+            }
+          });
+        }
+      });
+      setGrnItemsMap(map);
+    }).catch(console.error);
+  }, []);
+
   const filteredOpeningItems = items.filter(item => {
+    if (selectedGRNId !== 'ALL' && grnItemsMap[item.id] !== selectedGRNId) {
+      return false;
+    }
     const search = openingSearch.toLowerCase();
     return item.name.toLowerCase().includes(search) ||
       (item.displayId && item.displayId.toLowerCase().includes(search)) ||
@@ -48,6 +73,26 @@ const OpeningStockSection = ({
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
+          {/* Procurement GRN Filter */}
+          <select 
+            value={selectedGRNId} 
+            onChange={(e) => {
+              setSelectedGRNId(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer min-w-[200px]"
+          >
+            <option value="ALL">All Procurements (GRN)</option>
+            {procurementGRNs.map((grn) => {
+              const label = `${grn.displayId || grn.grnNumber || grn.id.slice(0, 8)} ${grn.po?.vendor?.vendorName ? `— ${grn.po.vendor.vendorName}` : ''}`;
+              return (
+                <option key={grn.id} value={grn.id}>
+                  {label}
+                </option>
+              );
+            })}
+          </select>
+
           <div className="w-full sm:w-72 flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 border border-transparent rounded-lg focus-within:bg-white focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:border-emerald-500 transition-all px-4">
             <Search size={16} className="text-gray-400" />
             <input

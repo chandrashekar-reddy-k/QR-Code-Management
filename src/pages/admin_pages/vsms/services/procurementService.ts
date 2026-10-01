@@ -23,8 +23,30 @@ export const procurementAPI = {
   deletePurchaseOrder: (id) => api.delete(`/procurement/purchase-orders/${id}`),
   updatePOStatus: (id, data) => api.put(`/procurement/purchase-orders/${id}/status`, data),
 
-  // ─── GOODS RECEIPT NOTES ─────────────────────────────────────
-  getGRNs: (params?: any) => api.get('/procurement/grns', { params }),
+  getGRNs: async (params?: any) => {
+    try {
+      const grnRes = await api.get('/procurement/grns', { params });
+      const list = grnRes.data?.data || grnRes.data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        return grnRes;
+      }
+      const poRes = await api.get('/procurement/purchase-orders', { params });
+      const pos = Array.isArray(poRes.data) ? poRes.data : (poRes.data?.data || []);
+      const mappedPosAsGRNs = pos.map((po: any) => ({
+        id: po.id,
+        displayId: po.displayId || (po.poNumber ? `PO-#${po.poNumber}` : po.id.slice(0, 8)),
+        po: { vendor: po.vendor },
+        items: (po.items || []).map((item: any) => ({
+          productId: item.productId,
+          receivedQuantity: item.quantity
+        }))
+      }));
+      return { data: { data: mappedPosAsGRNs } };
+    } catch (err) {
+      console.error('getGRNs error:', err);
+      return { data: { data: [] } };
+    }
+  },
   getUnconfiguredGRNItems: () => api.get('/procurement/grns/unconfigured-items'),
   configureGRNItemsToRaw: (data: any) => api.post('/procurement/grns/configure-to-raw', data),
   createGRN: (data: any) => api.post('/procurement/grns', data),

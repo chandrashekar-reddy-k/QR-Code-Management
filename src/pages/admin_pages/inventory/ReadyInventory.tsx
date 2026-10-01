@@ -44,9 +44,40 @@ const ReadyInventory: React.FC = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const navigate = useNavigate();
 
+  const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
+  const [selectedGRNId, setSelectedGRNId] = useState<string>('ALL');
+  const [grnItemsMap, setGrnItemsMap] = useState<Record<string, any>>({});
+
   useEffect(() => {
     fetchInventory();
+    fetchGRNs();
   }, []);
+
+  const fetchGRNs = async () => {
+    try {
+      const res = await inventoryService.getProcurementGRNs();
+      const list = res.data?.data || res.data || [];
+      setProcurementGRNs(list);
+      const map: Record<string, any> = {};
+      list.forEach((grn: any) => {
+        if (grn.items && Array.isArray(grn.items)) {
+          grn.items.forEach((item: any) => {
+            if (item.productId) {
+              map[item.productId] = {
+                grnId: grn.id,
+                grnDisplayId: grn.displayId || grn.grnNumber || grn.id.slice(0, 8),
+                receivedQty: item.receivedQuantity || item.receivedQty || item.quantity || 0,
+                poDisplayId: grn.po?.displayId || grn.po?.poNumber || ''
+              };
+            }
+          });
+        }
+      });
+      setGrnItemsMap(map);
+    } catch (err) {
+      console.error('Error fetching procurement GRNs:', err);
+    }
+  };
 
   const fetchInventory = async () => {
     try {
@@ -94,6 +125,13 @@ const ReadyInventory: React.FC = () => {
 
     if (unitFilter !== 'ALL') {
       filtered = filtered.filter((item) => item.rawUnit === unitFilter);
+    }
+
+    if (selectedGRNId !== 'ALL') {
+      filtered = filtered.filter((item) => {
+        const grnMeta = grnItemsMap[item.id];
+        return grnMeta && grnMeta.grnId === selectedGRNId;
+      });
     }
 
     if (searchTerm) {
@@ -371,9 +409,35 @@ const ReadyInventory: React.FC = () => {
             </div>
           </div>
 
+          {/* Procurement GRN Filter */}
+          <div className="border-r border-gray-200 h-full flex items-center relative">
+            <select 
+              value={selectedGRNId}
+              onChange={(e) => {
+                setSelectedGRNId(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[200px] cursor-pointer"
+            >
+              <option value="ALL">All Procurements (GRN)</option>
+              {procurementGRNs.map((grn: any) => {
+                const label = `${grn.displayId || grn.grnNumber || grn.id.slice(0, 8)} ${grn.po?.vendor?.vendorName ? `— ${grn.po.vendor.vendorName}` : ''}`;
+                return (
+                  <option key={grn.id} value={grn.id}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+
           <button
             onClick={() => {
               setUnitFilter('ALL');
+              setSelectedGRNId('ALL');
               setSearchTerm('');
               setCurrentPage(1);
             }}
