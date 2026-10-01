@@ -194,10 +194,10 @@ export default function VehicleStockManagement() {
             sku: p.sku || firstVar.sku || 'N/A',
             barcode: p.barcode || p.posStoreStock?.barcode || '',
             price: Number(p.price || 0),
-            mrp: Number(p.mrp || 0),
-            landingPrice: Number(p.landingPrice || 0),
-            sellingPrice: Number(p.sellingPrice || 0),
-            vsmPrice: Number(p.vsmPrice || 0),
+            mrp: Number(p.mrp || 0), // From Product master
+            landingPrice: Number(p.landingPrice ?? p.costPrice ?? 0), // From Product master (costPrice)
+            sellingPrice: Number(p.sellingPrice ?? p.finalPrice ?? p.price ?? 0), // From Product master
+            vsmPrice: Number(p.vsmPrice || p.sellingPrice || p.price || 0),
             totalCatalogStock: Number(p.stock ?? p.catalogStock ?? p.stageStocks?.CENTRAL ?? 0),
             vehicleStoreStock: Number(p.vehicleStoreStock ?? p.stageStocks?.VEHICLE ?? p.vehicleStock ?? vStock ?? 0),
             vehicleStock: vStock,
