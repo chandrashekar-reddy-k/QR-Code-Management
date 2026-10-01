@@ -628,6 +628,7 @@ const Notifications = lazy(
 // VSMS Pages
 const AdminVehicles = lazy(() => import("../pages/admin_pages/vsms/AdminVehicles"));
 const AdminExpenses = lazy(() => import("../pages/admin_pages/vsms/AdminExpenses"));
+const ExpensesManagement = lazy(() => import("../pages/admin_pages/expenses/ExpensesManagement"));
 const AdminDamage = lazy(() => import("../pages/admin_pages/vsms/AdminDamage"));
 const AdminRoutes = lazy(() => import("../pages/admin_pages/vsms/AdminRoutes"));
 const AdminInventory = lazy(() => import("../pages/admin_pages/vsms/AdminInventory"));
@@ -1976,6 +1977,26 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/fuel-maintenance",
     component: AdminExpenses,
+    requiresAuth: true,
+  },
+  {
+    path: "/expenses",
+    component: ExpensesManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/expenses/monitoring",
+    component: ExpensesManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/expenses/analytics",
+    component: ExpensesManagement,
+    requiresAuth: true,
+  },
+  {
+    path: "/expenses/categories",
+    component: ExpensesManagement,
     requiresAuth: true,
   },
   {
