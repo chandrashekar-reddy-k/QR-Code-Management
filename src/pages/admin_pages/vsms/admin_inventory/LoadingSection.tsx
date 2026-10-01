@@ -506,6 +506,12 @@ const LoadingSection = ({
                 >
                   <ArrowUpCircle size={14} /> Load Stock
                 </button>
+                <button 
+                  onClick={() => fetchHistory()} 
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-200 shadow-sm cursor-pointer"
+                >
+                  <RefreshCw size={14} className={isFetchingHistory ? "animate-spin" : ""} /> Refresh
+                </button>
                 <button onClick={exportHistoryToExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><FileDown size={14} /> Export Excel</button>
                 <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 shadow-sm"><Printer size={14} /> Print History</button>
               </div>

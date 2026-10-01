@@ -254,9 +254,9 @@ export function useLoadHistoryQuery() {
         (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
     },
-    staleTime: 3 * 60 * 1000,  // 3 minutes fresh
+    staleTime: 10 * 1000,       // 10 seconds fresh
     gcTime: 30 * 60 * 1000,    // 30 minutes in memory
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
   });
 }
 
