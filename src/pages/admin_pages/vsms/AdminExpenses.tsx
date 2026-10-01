@@ -880,9 +880,7 @@ export default function AdminExpenses() {
                     {[
                         { id: 'trips', label: 'Trips', icon: MapPin },
                         { id: 'fuel', label: 'Fuel Logs', icon: Fuel },
-                        { id: 'maintenance', label: 'Maintenance', icon: Settings },
-                        { id: 'monitoring', label: 'Other Expenses', icon: Receipt },
-                        { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+                        { id: 'maintenance', label: 'Maintenance', icon: Settings }
                     ].map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
