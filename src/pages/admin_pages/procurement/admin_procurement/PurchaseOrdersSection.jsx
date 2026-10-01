@@ -1787,17 +1787,19 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
               </div>
               
               <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => {
-                    const poToEdit = viewingPO;
-                    setSelectedPO(null);
-                    setViewingPO(null);
-                    handleEdit(poToEdit);
-                  }}
-                  className="h-10 px-5 bg-amber-500 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
-                >
-                  <Edit3 size={14} strokeWidth={2.5} /> Edit PO
-                </button>
+                {viewingPO.status === 'CREATED' && (
+                  <button 
+                    onClick={() => {
+                      const poToEdit = viewingPO;
+                      setSelectedPO(null);
+                      setViewingPO(null);
+                      handleEdit(poToEdit);
+                    }}
+                    className="h-10 px-5 bg-amber-500 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+                  >
+                    <Edit3 size={14} strokeWidth={2.5} /> Edit PO
+                  </button>
+                )}
                 {viewingPO.status === 'CREATED' ? (
                   <>
                     <button 
@@ -1985,72 +1987,44 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                         </span>
                       </td>
                       <td className="py-4 px-6 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50/50 transition-all z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.03)]">
-                        <div className="flex items-center justify-end gap-3">
-                          <button
-                            onClick={() => handleEdit(po)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 text-amber-600 hover:text-white hover:bg-amber-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-50/50 transition-all shadow-sm active:scale-95"
-                            title="Edit Purchase Order"
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Edit PO: only allowed when status is CREATED */}
+                          {po.status === 'CREATED' && (
+                            <button
+                              onClick={() => handleEdit(po)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 text-amber-600 hover:text-white hover:bg-amber-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-50/50 transition-all shadow-sm active:scale-95"
+                              title="Edit Purchase Order"
+                            >
+                              <Edit3 size={12} strokeWidth={2.5} /> Edit
+                            </button>
+                          )}
+
+                          {/* View Details button */}
+                          <button 
+                            onClick={() => handleViewDetails(po)} 
+                            className="flex items-center gap-1 px-2.5 py-1.5 border border-emerald-200 text-emerald-600 hover:text-white hover:bg-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-50/50 transition-all shadow-sm active:scale-95"
+                            title={po.status === 'CREATED' ? 'Review & Approve PO' : 'View Details'}
                           >
-                            <Edit3 size={12} strokeWidth={2.5} /> Edit
+                            <Eye size={12} /> {po.status === 'CREATED' ? 'Review / Approve' : 'View'}
                           </button>
 
-                          {po.status === 'CREATED' ? (
-                            <>
-                              <button 
-                                onClick={() => handleViewDetails(po)} 
-                                className="flex items-center gap-1.5 px-3 py-1.5 border border-emerald-200 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-50/50 hover:bg-emerald-600 hover:text-white transition-all active:scale-95 shadow-sm"
-                                title="Approve PO"
-                              >
-                                <Check size={12} strokeWidth={3} /> Approve
-                              </button>
-                              <button 
-                                onClick={() => updateStatus(po.id, 'CANCELLED')} 
-                                className="flex items-center gap-1.5 px-3 py-1.5 border border-rose-200 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-50/50 hover:bg-rose-600 hover:text-white transition-all active:scale-95 shadow-sm"
-                                title="Cancel PO"
-                              >
-                                <X size={12} strokeWidth={3} /> Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button 
-                                onClick={() => handleViewDetails(po)} 
-                                className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white transition-all shadow-sm active:scale-95"
-                                title="View Details"
-                              >
-                                <Eye size={12} /> View
-                              </button>
-                              <button 
-                                onClick={() => downloadPO_PDF(po)} 
-                                className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white transition-all shadow-sm active:scale-95"
-                                title="Download PDF"
-                              >
-                                <Download size={12} /> Download
-                              </button>
-                            </>
-                          )}
-                          
-                          {!['CLOSED', 'CANCELLED'].includes(po.status) && (
-                            <div className="flex gap-1 pl-1.5 border-l border-gray-100">
-                              {po.status === 'CREATED' && (
-                                <button onClick={() => updateStatus(po.id, 'APPROVED')} className="p-1 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all" title="Approve">
-                                  <CheckCircle2 size={12} />
-                                </button>
-                              )}
-                              {po.status === 'APPROVED' && (
-                                <button onClick={() => updateStatus(po.id, 'ORDERED')} className="p-1 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-all" title="Mark Arrived">
-                                  <Truck size={12} />
-                                </button>
-                              )}
-                              {po.status === 'ORDERED' && (
-                                <button onClick={() => updateStatus(po.id, 'DELIVERED')} className="p-1 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-all" title="Mark Delivered">
-                                  <PackageCheck size={12} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                          
+                          {/* Download PDF button */}
+                          <button 
+                            onClick={() => downloadPO_PDF(po)} 
+                            className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-wider bg-white transition-all shadow-sm active:scale-95"
+                            title="Download PDF"
+                          >
+                            <Download size={12} /> PDF
+                          </button>
 
+                          {/* Delete PO button */}
+                          <button
+                            onClick={() => handleDeletePO(po.id)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 border border-rose-200 text-rose-600 hover:text-white hover:bg-rose-600 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-50/50 transition-all shadow-sm active:scale-95"
+                            title="Delete Purchase Order"
+                          >
+                            <Trash2 size={12} strokeWidth={2.5} /> Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
