@@ -303,14 +303,25 @@ const ViewPromoCode = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {((promoCode as any).products || []).map((cp: any) => {
                   const prod = cp.product || cp;
+                  const offerPrice = cp.offerPrice ?? prod.offerPrice;
+                  const basePrice = prod.price || prod.sellingPrice || 0;
                   return (
-                    <div key={prod.id} className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center gap-2.5">
+                    <div key={prod.id} className="bg-emerald-50/40 border border-emerald-200 rounded-xl p-3 flex items-center gap-2.5 shadow-xs">
                       <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800 font-black shrink-0">
                         🏷️
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold text-gray-900 truncate">{prod.name}</p>
-                        <p className="text-[10px] text-gray-500">₹{prod.price || 0}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-gray-400 line-through">Reg: ₹{basePrice}</span>
+                          {offerPrice !== undefined && offerPrice !== null ? (
+                            <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                              Offer: ₹{offerPrice}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-gray-600">₹{basePrice}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );

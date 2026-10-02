@@ -237,11 +237,14 @@ export function useLoadHistoryQuery() {
       const grouped: Record<string, any> = {};
       (res.data || []).forEach((item: any) => {
         const d = new Date(item.date);
+        // Group by vehicle + 5-minute time window
         const timeKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}-${Math.floor(d.getMinutes() / 5)}`;
         const key = `${item.vehicleId}_${timeKey}`;
         if (!grouped[key]) {
           grouped[key] = {
+            id: key,
             date: item.date,
+            vehicleId: item.vehicleId,
             vehicle: item.vehicle,
             user: item.user,
             items: []
@@ -254,9 +257,9 @@ export function useLoadHistoryQuery() {
         (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
     },
-    staleTime: 3 * 60 * 1000,  // 3 minutes fresh
-    gcTime: 30 * 60 * 1000,    // 30 minutes in memory
-    refetchOnWindowFocus: false,
+    staleTime: 0,               // Always fetch fresh — loading history must be real-time
+    gcTime: 5 * 60 * 1000,     // 5 minutes in memory
+    refetchOnWindowFocus: true, // Refetch when user returns to the tab
   });
 }
 
@@ -283,7 +286,9 @@ export function useVsmsCacheInvalidator() {
       return queryClient.invalidateQueries({ queryKey: ['vsms', 'collections'] });
     },
     invalidateInventory: () => {
-      return queryClient.invalidateQueries({ queryKey: ['vsms', 'load-history'] });
+      // Force-refetch load history immediately (bypass staleTime)
+      queryClient.invalidateQueries({ queryKey: ['vsms', 'load-history'] });
+      return queryClient.refetchQueries({ queryKey: ['vsms', 'load-history'] });
     },
     invalidateAllVsms: () => {
       return queryClient.invalidateQueries({ queryKey: ['vsms'] });

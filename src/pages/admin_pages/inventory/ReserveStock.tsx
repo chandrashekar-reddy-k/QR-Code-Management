@@ -59,16 +59,42 @@ const ReserveStock: React.FC = () => {
       const response = await inventoryService.getReadyInventory({ page: 1, limit: 100 });
       if (response.data?.data) {
         const unallocatedProducts = response.data.data.products.filter((item: any) => {
-          const totalStock = item.baseStock ?? item.stock ?? 0;
+          const totalStock = item.stock ?? item.baseStock ?? 0;
+          
+          let onlineStock = 0;
+          let posStock = 0;
+          if (Array.isArray(item.channelInventories)) {
+            const onlineRecord = item.channelInventories.find((ci: any) => ci.channel === 'ONLINE_APP');
+            const posRecord = item.channelInventories.find((ci: any) => ci.channel === 'POS_STORE');
+            if (onlineRecord) onlineStock = Number(onlineRecord.quantity) || 0;
+            if (posRecord) posStock = Number(posRecord.quantity) || 0;
+          } else {
+            onlineStock = item.onlineAppStock?.onlineStock ?? 0;
+            posStock = item.posStoreStock?.posStock ?? 0;
+          }
+
           const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
-          const allocated = (item.onlineAppStock?.onlineStock ?? 0) + (item.posStoreStock?.posStock ?? 0) + vStock;
+          const allocated = onlineStock + posStock + vStock;
           return totalStock > allocated;
         });
 
         const mapped: ReserveStockItem[] = unallocatedProducts.map((item: any) => {
-          const totalStock = item.baseStock ?? item.stock ?? 0;
+          const totalStock = item.stock ?? item.baseStock ?? 0;
+          
+          let onlineStock = 0;
+          let posStock = 0;
+          if (Array.isArray(item.channelInventories)) {
+            const onlineRecord = item.channelInventories.find((ci: any) => ci.channel === 'ONLINE_APP');
+            const posRecord = item.channelInventories.find((ci: any) => ci.channel === 'POS_STORE');
+            if (onlineRecord) onlineStock = Number(onlineRecord.quantity) || 0;
+            if (posRecord) posStock = Number(posRecord.quantity) || 0;
+          } else {
+            onlineStock = item.onlineAppStock?.onlineStock ?? 0;
+            posStock = item.posStoreStock?.posStock ?? 0;
+          }
+
           const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
-          const allocated = (item.onlineAppStock?.onlineStock ?? 0) + (item.posStoreStock?.posStock ?? 0) + vStock;
+          const allocated = onlineStock + posStock + vStock;
           const remaining = Math.max(0, totalStock - allocated);
 
           return {
@@ -132,14 +158,20 @@ const ReserveStock: React.FC = () => {
   const saveSelectedAllocations = async () => {
     if (selectedItems.length === 0) return;
 
-    // Check for any low stock violations before saving
+    // Validate allocations against available stock
     for (const itemId of selectedItems) {
-      const item = data.find(i => i.id === itemId);
-      const available = item ? parseInt(item.available) || 0 : 0;
+      const item = data.find(d => d.id === itemId);
       const qty = quantities[itemId] || { online: 0, pos: 0, vehicle: 0 };
-      const totalAllocated = qty.online + qty.pos + qty.vehicle;
-      if (totalAllocated > available) {
-        toast.error(`Cannot save: Allocated quantity (${totalAllocated}) for "${item?.name}" exceeds available stock (${available})`);
+      const totalWanted = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
+      const avail = Number(item?.available) || 0;
+
+      if (totalWanted <= 0) {
+        toast.error(`Please allocate at least 1 unit across channels for "${item?.name || 'selected item'}".`);
+        return;
+      }
+
+      if (totalWanted > avail) {
+        toast.error(`Cannot allocate ${totalWanted} units for "${item?.name || 'selected item'}". Exceeds available stock (${avail}).`);
         return;
       }
     }
@@ -163,9 +195,10 @@ const ReserveStock: React.FC = () => {
       setSelectedItems([]);
       
       toast.success(`Stock reserved successfully for ${selectedItems.length} item(s).`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save allocations:', err);
-      toast.error('Failed to save allocation. Please try again.');
+      const backendMessage = err?.response?.data?.message || err?.message || 'Failed to save allocation. Please try again.';
+      toast.error(backendMessage);
     } finally {
       setIsSaving(false);
     }
@@ -225,15 +258,17 @@ const ReserveStock: React.FC = () => {
     }
   };
 
-  const QtyInput = ({ itemId, field }: { itemId: string; field: 'online' | 'pos' | 'vehicle' }) => {
+  const QtyInput = ({ itemId, field, isOverAllocated }: { itemId: string; field: 'online' | 'pos' | 'vehicle'; isOverAllocated: boolean }) => {
     const item = data.find(i => i.id === itemId);
     const available = item ? parseInt(item.available) || 0 : 0;
     const qty = quantities[itemId] || { online: 0, pos: 0, vehicle: 0 };
     const totalAllocated = qty.online + qty.pos + qty.vehicle;
-    const isExceeded = totalAllocated > available;
+    const isExceeded = isOverAllocated || totalAllocated > available;
 
     return (
-      <div className={`flex items-center border ${isExceeded ? 'border-red-500 bg-red-50 ring-2 ring-red-200' : 'border-[#d2d6df] bg-white'} rounded-md overflow-hidden w-[100px] h-9 mx-auto transition-all`}>
+      <div className={`flex items-center border rounded-md overflow-hidden w-[100px] h-9 bg-white mx-auto transition-colors ${
+        isExceeded ? 'border-red-500 bg-red-50 ring-2 ring-red-200' : 'border-[#d2d6df]'
+      }`}>
         <input
           type="number"
           min="0"
@@ -285,18 +320,35 @@ const ReserveStock: React.FC = () => {
       key: 'name',
       label: 'STOCK NAME',
       sortable: false,
-      render: (item: ReserveStockItem) => (
-        <div className="flex items-center min-w-[160px]">
-          <div className="w-9 h-9 rounded-lg bg-[#fff5f2] flex-shrink-0 flex items-center justify-center mr-3 text-sm font-semibold text-orange-400 border border-orange-100">
-            {item.image}
+      render: (item: ReserveStockItem) => {
+        const availNum = Number(item.available) || 0;
+        const isLowStock = availNum > 0 && availNum <= 10;
+        const isOutOfStock = availNum <= 0;
+
+        return (
+          <div className="flex items-center min-w-[170px]">
+            <div className="w-9 h-9 rounded-lg bg-[#fff5f2] flex-shrink-0 flex items-center justify-center mr-3 text-sm font-semibold text-orange-400 border border-orange-100">
+              {item.image}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-[#0066cc] cursor-pointer hover:underline line-clamp-1">{item.name}</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs text-gray-400">SKU: {item.sku}</span>
+                {isOutOfStock ? (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
+                    OUT OF STOCK
+                  </span>
+                ) : isLowStock ? (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
+                    LOW STOCK ({availNum})
+                  </span>
+                ) : null}
+              </div>
+              <span className="text-xs text-gray-400">{item.unit}</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-[#0066cc] cursor-pointer hover:underline line-clamp-1">{item.name}</span>
-            <span className="text-xs text-gray-400 mt-0.5">SKU: {item.sku}</span>
-            <span className="text-xs text-gray-400">{item.unit}</span>
-          </div>
-        </div>
-      )
+        );
+      }
     },
     {
       key: 'price',
@@ -310,42 +362,65 @@ const ReserveStock: React.FC = () => {
       key: 'online',
       label: 'ONLINE ORDERS',
       sortable: false,
-      render: (item: ReserveStockItem) => <QtyInput itemId={item.id} field="online" />
+      render: (item: ReserveStockItem) => {
+        const qty = quantities[item.id] || { online: 0, pos: 0, vehicle: 0 };
+        const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
+        const avail = Number(item.available) || 0;
+        return <QtyInput itemId={item.id} field="online" isOverAllocated={total > avail} />;
+      }
     },
     {
       key: 'pos',
       label: 'POS SALES',
       sortable: false,
-      render: (item: ReserveStockItem) => <QtyInput itemId={item.id} field="pos" />
+      render: (item: ReserveStockItem) => {
+        const qty = quantities[item.id] || { online: 0, pos: 0, vehicle: 0 };
+        const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
+        const avail = Number(item.available) || 0;
+        return <QtyInput itemId={item.id} field="pos" isOverAllocated={total > avail} />;
+      }
     },
     {
       key: 'vehicle',
       label: 'VEHICLE SALES',
       sortable: false,
-      render: (item: ReserveStockItem) => <QtyInput itemId={item.id} field="vehicle" />
+      render: (item: ReserveStockItem) => {
+        const qty = quantities[item.id] || { online: 0, pos: 0, vehicle: 0 };
+        const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
+        const avail = Number(item.available) || 0;
+        return <QtyInput itemId={item.id} field="vehicle" isOverAllocated={total > avail} />;
+      }
     },
     {
       key: 'available',
       label: 'AVAILABLE QTY',
       sortable: false,
       render: (item: ReserveStockItem) => {
-        const availableNum = parseInt(item.available) || 0;
+        const avail = Number(item.available) || 0;
         const qty = quantities[item.id] || { online: 0, pos: 0, vehicle: 0 };
-        const totalAllocated = qty.online + qty.pos + qty.vehicle;
-        const isExceeded = totalAllocated > availableNum;
+        const totalAlloc = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
+        const isOver = totalAlloc > avail;
+        const isLow = avail > 0 && avail <= 10;
 
         return (
           <div className="flex flex-col items-center gap-1">
-            <span className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${
-              isExceeded
-                ? 'bg-red-100 text-red-700 border border-red-300 font-bold animate-pulse'
-                : 'bg-[#eaf8f1] text-[#20b05e]'
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap border ${
+              isOver 
+                ? 'bg-red-50 text-red-600 border-red-200 font-bold' 
+                : isLow 
+                ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                : 'bg-[#eaf8f1] text-[#20b05e] border-green-200'
             }`}>
               Available: {item.available}
             </span>
-            {isExceeded && (
-              <span className="text-[10px] text-red-600 font-bold tracking-tight">
-                Exceeded by {totalAllocated - availableNum}!
+            {isOver && (
+              <span className="text-[11px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded border border-red-200">
+                Exceeds by {totalAlloc - avail} ({totalAlloc}/{avail})
+              </span>
+            )}
+            {!isOver && totalAlloc > 0 && (
+              <span className="text-[11px] text-gray-500 font-medium">
+                Allocating: {totalAlloc} (Rem: {avail - totalAlloc})
               </span>
             )}
           </div>

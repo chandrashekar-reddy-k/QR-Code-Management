@@ -17,10 +17,11 @@ const useGetAllProductList = (
   /** GET `status` query: APPROVED, PENDING, REJECTED, TRUE, FALSE (omit when empty) */
   status?: string,
   warehouseId?: string,
+  categoryId?: string,
 ) => {
   const statusParam = status?.trim() ? status.trim().toUpperCase() : "";
   return useQuery({
-    queryKey: ["product", page, limit, search, isActive, statusParam, warehouseId],
+    queryKey: ["product", page, limit, search, isActive, statusParam, warehouseId, categoryId],
     queryFn: () => {
       const params = new URLSearchParams({
         search: search,
@@ -35,6 +36,9 @@ const useGetAllProductList = (
       }
       if (warehouseId) {
         params.set("warehouseId", warehouseId);
+      }
+      if (categoryId) {
+        params.set("categoryId", categoryId);
       }
       // When search looks like a product ID, send it so backend can filter by id / productId
       const isUuid = /^[0-9a-f-]{36}$/i.test(search.trim());

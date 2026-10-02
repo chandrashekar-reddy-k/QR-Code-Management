@@ -155,9 +155,6 @@ export default function VehicleStockManagement() {
 
           const productId = (p.productId as string) || String(p.id ?? '').slice(0, 8).toUpperCase();
           const img = p.image || (Array.isArray(p.images) ? p.images[0] : null);
-          // Total In-Van Stock: only count actual per-vehicle loaded quantities (NOT the channel reservation)
-          const vStock = Number(Array.isArray(p.vehicleStocks) ? p.vehicleStocks.reduce((a: number, c: any) => a + (c.quantity || 0), 0) : 0);
-
           // Sanitize clean unit label (strip UUIDs)
           let cleanUnit = p.unit || 'Unit';
           if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanUnit)) {
@@ -167,7 +164,16 @@ export default function VehicleStockManagement() {
             cleanUnit = 'Unit';
           }
 
-          const rawVs = Array.isArray(p.vehicleStocks) ? p.vehicleStocks : [];
+          // Read vehicle allocations from both vehicleStocks (loaded on physical vehicles) and vehicleStockAssignments
+          const vStocksArray = Array.isArray(p.vehicleStocks) ? p.vehicleStocks : [];
+          const vsaArray = Array.isArray(p.vehicleStockAssignments) ? p.vehicleStockAssignments : [];
+          const combinedVs = [...vStocksArray, ...vsaArray];
+
+          const vStock = Number(vStocksArray.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0)) ||
+                         Number(combinedVs.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0));
+
+          const rawVs = combinedVs;
+
           const assignedVehicles = rawVs
             .filter((vs: any) => Number(vs.quantity) > 0)
             .map((vs: any) => {
@@ -183,6 +189,15 @@ export default function VehicleStockManagement() {
               };
             });
 
+          // Resolve Vehicle Store Stock from ChannelInventory (POS_STORE) or vehicleStoreStock
+          let vStoreStock = 0;
+          if (Array.isArray(p.channelInventories)) {
+            const posRecord = p.channelInventories.find((ci: any) => ci.channel === 'POS_STORE');
+            if (posRecord) vStoreStock = Number(posRecord.quantity) || 0;
+          }
+          if (vStoreStock === 0 && p.vehicleStoreStock !== undefined) {
+            vStoreStock = Number(p.vehicleStoreStock) || 0;
+          }
 
           return {
             id: p.id,
@@ -194,12 +209,12 @@ export default function VehicleStockManagement() {
             sku: p.sku || firstVar.sku || 'N/A',
             barcode: p.barcode || p.posStoreStock?.barcode || '',
             price: Number(p.price || 0),
-            mrp: Number(p.mrp || 0),
-            landingPrice: Number(p.landingPrice || 0),
-            sellingPrice: Number(p.sellingPrice || 0),
-            vsmPrice: Number(p.vsmPrice || 0),
+            mrp: Number(p.mrp || 0), // From Product master
+            landingPrice: Number(p.landingPrice ?? p.costPrice ?? 0), // From Product master (costPrice)
+            sellingPrice: Number(p.sellingPrice ?? p.finalPrice ?? p.price ?? 0), // From Product master
+            vsmPrice: Number(p.vsmPrice || p.sellingPrice || p.price || 0),
             totalCatalogStock: Number(p.stock ?? p.catalogStock ?? p.stageStocks?.CENTRAL ?? 0),
-            vehicleStoreStock: Number(p.vehicleStoreStock ?? p.stageStocks?.VEHICLE ?? p.vehicleStock ?? vStock ?? 0),
+            vehicleStoreStock: vStoreStock,
             vehicleStock: vStock,
             vehicleAssignedCount: assignedVehicles.length || (vStock > 0 ? 1 : 0),
             isVehicle,
@@ -659,7 +674,6 @@ export default function VehicleStockManagement() {
                   <th className="py-3 px-4">Selling Price</th>
                   <th className="py-3 px-4">VSM Price</th>
                   <th className="py-3 px-4">Vehicle Store Stock</th>
-                  <th className="py-3 px-4">Total In-Van Stock</th>
                   <th className="py-3 px-4 text-center">Van Permission</th>
                   <th className="py-3 px-4 text-center">Actions</th>
                 </tr>
@@ -709,12 +723,6 @@ export default function VehicleStockManagement() {
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-gray-800 dark:text-gray-200">{item.vehicleStoreStock}</div>
                       <div className="text-[10px] text-gray-400">Reserved for Vehicle</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${item.vehicleStock > 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200' : 'bg-gray-100 dark:bg-gray-700/50 text-gray-500'}`}>
-                        <Truck size={12} />
-                        {item.vehicleStock} in Fleet
-                      </span>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <button
