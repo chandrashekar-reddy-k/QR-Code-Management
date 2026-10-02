@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { Truck, Search, Barcode, ArrowUpCircle, Gift, Package, ArrowLeft, Loader2, History, Clock, Printer, FileDown, FileText, RefreshCw, Check, X, Camera } from 'lucide-react';
+import { Truck, Search, Barcode, ArrowUpCircle, Gift, Package, PackageCheck, ArrowLeft, Loader2, History, Clock, Printer, FileDown, FileText, RefreshCw, Check, X, Camera } from 'lucide-react';
 import { StockItemRow } from './SharedComponents';
 import adminAPI from '.././services/adminService';
 import * as XLSX from 'xlsx';
@@ -41,32 +41,24 @@ const LoadingSection = ({
       const list = res.data?.data || res.data || [];
       setProcurementGRNs(list);
       const map = {};
-      const updates = {};
       list.forEach((grn) => {
         if (grn.items && Array.isArray(grn.items)) {
           grn.items.forEach((item) => {
             const pid = item.productId || item.product?.id || item.id;
             if (pid) {
-              map[pid] = grn.id;
-              const qty = item.receivedQuantity ?? item.quantity ?? 0;
-              if (qty > 0) {
-                updates[pid] = qty;
-              }
+              if (!map[pid]) map[pid] = [];
+              if (!map[pid].includes(grn.id)) map[pid].push(grn.id);
             }
           });
         }
       });
       setGrnItemsMap(map);
-      if (handleQuantityChange) {
-        Object.entries(updates).forEach(([pid, qty]) => {
-          handleQuantityChange(pid, qty);
-        });
-      }
     }).catch(console.error);
   }, []);
 
   const handleGRNChange = (grnId) => {
     setSelectedGRNId(grnId);
+    if (setCurrentPage) setCurrentPage(1);
     if (grnId === 'ALL') {
       return;
     }
@@ -79,6 +71,131 @@ const LoadingSection = ({
           handleQuantityChange(pId, qty);
         }
       });
+    }
+  };
+
+  const PRESET_PRODUCTS_LIST = [
+    { name: 'Surf Excel 88 gm', qty: 15 },
+    { name: 'Surf Excel', qty: 15 },
+    { name: 'Vim Bar 480gm', qty: 2 },
+    { name: 'Vim Bar Tub 240g', qty: 5 },
+    { name: 'Vim Bar 60gm', qty: 20 },
+    { name: 'Exo Dishwash Bar Pack of 4 90g', qty: 3 },
+    { name: 'Exo Round Ginger 250g', qty: 3 },
+    { name: 'Santoor Sandal & Turmeric Soap 10rs', qty: 9 },
+    { name: 'Santoor 4+1 PACK 125gm', qty: 15 },
+    { name: 'Margo Original PACK', qty: 1 },
+    { name: 'Cinthol Original 4 Pack', qty: 1 },
+    { name: 'Pears Soft & Fresh Soap', qty: 3 },
+    { name: 'Margo Original Neem Soap', qty: 5 },
+    { name: 'LIFEBUOY SOAP TOTAL 125 g', qty: 5 },
+    { name: 'Rexona Coconut & Olive Oil 100g', qty: 5 },
+    { name: 'Santoor Sandal & Turmeric 100gm', qty: 15 },
+    { name: 'Fiama Men Refreshing Pulse Gel Bar', qty: 1 },
+    { name: 'Fiama Patchouli & Macadamia Gel Bar', qty: 1 },
+    { name: 'Exo Bacto Scrub', qty: 12 },
+    { name: 'ASR Iodised Crystal Salt', qty: 10 },
+    { name: 'Tata Salt', qty: 5 },
+    { name: 'Suji Rava', qty: 10 },
+    { name: 'Three Mangoes Chilli Powder', qty: 3 },
+    { name: 'Madhuri Sambar Powder', qty: 2 },
+    { name: 'AHA Papad', qty: 10 },
+    { name: 'Aashirvaad Turmeric', qty: 10 },
+    { name: 'Agririch Black Pepper (Miriyalu )', qty: 10 },
+    { name: 'Agririch Lavangalu (Cloves)', qty: 10 },
+    { name: 'Dalchina Chakka', qty: 11 },
+    { name: 'Yalukalu', qty: 10 },
+    { name: "Mom's Magic Cashew & Almond PACK", qty: 2 },
+    { name: 'Continental Xtra Coffee', qty: 60 },
+    { name: 'Freedom Sunflower Oil Tin 15kg', qty: 1 },
+    { name: 'Ruchi Gold', qty: 1 },
+    { name: 'Colgate Active Salt 100gm', qty: 10 },
+    { name: 'Colgate Brush', qty: 18 },
+    { name: 'Closeup Red Hot Gel Toothpaste 150GM', qty: 5 },
+    { name: 'Mysore Sandal Soap Pack', qty: 5 },
+    { name: 'Mysore Sandal Soap 125GM', qty: 10 },
+    { name: 'Mysore Sandal Gold Soap', qty: 6 },
+    { name: 'All Out Mosquito Repellent Machine', qty: 1 },
+    { name: 'Harpic Power Plus 10X TC Cleaner 600ML', qty: 2 },
+    { name: 'Lizol Surface Cleaner Floral 625ml', qty: 3 },
+    { name: 'Lizol Surface Cleaner Citrus 200 ml', qty: 10 },
+    { name: 'Domex Ocean Fresh Disinfectant Toilet Cleaner', qty: 2 },
+    { name: 'Kissan Mixed Fruit Jam', qty: 5 },
+    { name: 'Kurnool Rice', qty: 2 },
+    { name: 'Kinley Soda Original', qty: 5 },
+    { name: 'Maaza 1.75 Ltr', qty: 5 },
+    { name: 'kindly soda original', qty: 29 },
+    { name: 'Sprite 250ml', qty: 16 },
+    { name: 'Fanta Orange', qty: 13 },
+    { name: 'Fanta Orange Soft Drink 250ML Case', qty: 1 },
+    { name: 'Amaravathi Sonamasoori Normal', qty: 2 },
+    { name: 'Bingo Tedhe Medhe Tomato Twist', qty: 15 },
+    { name: 'Bingo Tedhe Medhe Masala tadka', qty: 17 },
+    { name: 'Bingo Mad Angles Very Peri Peri', qty: 22 },
+    { name: 'Bingo Original Style', qty: 18 },
+    { name: 'Shiva Idli Rava', qty: 13 },
+    { name: 'Bambino Vermicelli', qty: 5 },
+    { name: 'Sabudana 500gm', qty: 5 },
+    { name: 'Fried Gram', qty: 5 },
+    { name: '(Fried Gram)500gm', qty: 3 },
+    { name: 'Idli Rava', qty: 9 },
+    { name: 'Toor Dal', qty: 10 },
+    { name: 'MD ANUSHRI ROSE', qty: 3 },
+    { name: 'MD ANUSHRI MOGRA', qty: 3 },
+    { name: 'Mangaldeep Sambhrani Cups', qty: 2 },
+    { name: 'Mangaldeep Sadhvi Agarbatti', qty: 6 },
+    { name: 'Cotton Pooja Wicks', qty: 35 },
+    { name: 'Pooja Gold Oil', qty: 5 },
+    { name: 'Yippee Noodles 6 pack 420gm', qty: 2 },
+    { name: 'Jelimals Space Runners Jellies', qty: 15 },
+    { name: 'Bingo xxx Hot & Spicy', qty: 15 },
+    { name: 'Bingo Sizzling Chilli', qty: 15 },
+    { name: 'Bingo Knockin Korean', qty: 13 },
+    { name: 'Bingo Mad Angles Achaari Masti', qty: 11 },
+    { name: 'Bingo Slayin Salt', qty: 16 },
+    { name: 'Yippee Noodles 4 Pack 280gm', qty: 2 },
+    { name: 'Yippee Magic Masala 50gm', qty: 10 },
+    { name: 'Sunfeast Dark Fantasy Choco Fills', qty: 2 },
+    { name: 'Sunfeast Dark Fantasy Choco Fills 10rs', qty: 17 },
+    { name: 'Bounce choco orange cream', qty: 5 },
+    { name: 'Sunfeast Marie Light biscuits 10rs', qty: 5 },
+    { name: 'Sunfeast Fantastik Choco Meltz', qty: 1 },
+    { name: 'Engage Man Rush Deodorant Spray', qty: 5 },
+    { name: 'Comfort Farbic', qty: 10 },
+    { name: 'Sunsilk Jasmine & Vetiver Shampoo Sachet', qty: 107 },
+    { name: 'Head & Shoulders Shampoo', qty: 135 },
+    { name: 'Gillette Guard Disposable Razor', qty: 10 },
+    { name: 'Pottu Minapappu', qty: 6 },
+    { name: 'Pulpy orange', qty: 5 },
+    { name: 'Thums Up', qty: 5 },
+    { name: 'Kurnool Groundnut Oil 1Ltr', qty: 1 },
+    { name: 'Bingo Killin Crean &Onion', qty: 15 },
+    { name: 'Maida', qty: 10 },
+    { name: 'All Out Ultra Single Refill', qty: 1 }
+  ];
+
+  const handleQuickLoadPreset = () => {
+    if (!handleQuantityChange) return;
+    let count = 0;
+    const allItems = [...(groupedLoadingItems?.regular || []), ...(groupedLoadingItems?.free || [])];
+
+    PRESET_PRODUCTS_LIST.forEach(preset => {
+      const cleanPreset = preset.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const matched = allItems.find(i => {
+        const cleanName = (i.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return cleanName === cleanPreset || (i.name || '').toLowerCase().includes(preset.name.toLowerCase());
+      });
+
+      if (matched) {
+        handleQuantityChange(matched.id, preset.qty);
+        count++;
+      }
+    });
+
+    if (count > 0) {
+      alert(`Quick loaded ${count} product quantities into the loading form!`);
+    } else {
+      alert('Loaded quantities for preset products!');
     }
   };
 
@@ -128,7 +245,10 @@ const LoadingSection = ({
 
   let allFiltered = [...groupedLoadingItems.regular, ...groupedLoadingItems.free];
   if (selectedGRNId !== 'ALL') {
-    allFiltered = allFiltered.filter(i => grnItemsMap[i.id] === selectedGRNId);
+    allFiltered = allFiltered.filter(i => {
+      const grnList = grnItemsMap[i.id];
+      return Array.isArray(grnList) ? grnList.includes(selectedGRNId) : grnList === selectedGRNId;
+    });
   }
   const totalPages = Math.ceil(allFiltered.length / itemsPerPage);
   const paginatedItemsFromAll = allFiltered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -272,8 +392,8 @@ const LoadingSection = ({
         <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden animate-in fade-in duration-300">
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 no-print">
             <div className="flex items-center gap-4">
-              <button 
-                onClick={() => setShowLoadModal(false)} 
+              <button
+                onClick={() => setShowLoadModal(false)}
                 className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 hover:bg-gray-100 transition-all border border-gray-200"
               >
                 <ArrowLeft size={18} />
@@ -285,8 +405,8 @@ const LoadingSection = ({
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
               {/* Procurement GRN Filter */}
-              <select 
-                value={selectedGRNId} 
+              <select
+                value={selectedGRNId}
                 onChange={(e) => handleGRNChange(e.target.value)}
                 className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer min-w-[200px]"
               >
@@ -301,17 +421,27 @@ const LoadingSection = ({
                 })}
               </select>
 
+              {/* <button
+                type="button"
+                onClick={handleQuickLoadPreset}
+                className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs font-bold whitespace-nowrap active:scale-95 cursor-pointer border border-emerald-500"
+                title="Quick load preset purchase quantities for all 88 items"
+              >
+                <PackageCheck size={15} />
+                <span>Quick Load Purchase Preset</span>
+              </button> */}
+
               <div className="relative flex-1 md:w-72">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Search name, ID, SKU, barcode..." 
-                  className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner" 
-                  value={opsSearch} 
-                  onChange={(e) => setOpsSearch(e.target.value)} 
+                <input
+                  type="text"
+                  placeholder="Search name, ID, SKU, barcode..."
+                  className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner"
+                  value={opsSearch}
+                  onChange={(e) => setOpsSearch(e.target.value)}
                 />
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={() => {
                   if (setShowScanner && setScannerTarget) {
@@ -320,7 +450,7 @@ const LoadingSection = ({
                   } else {
                     setIsScannerOpen(true);
                   }
-                }} 
+                }}
                 className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs font-semibold whitespace-nowrap active:scale-95 h-9 shrink-0 cursor-pointer"
                 title="Scan product barcode using camera"
               >
@@ -350,9 +480,9 @@ const LoadingSection = ({
                 <Truck size={18} className="text-emerald-600" />
                 <span className="text-xs font-bold uppercase tracking-wider">Select Target Vehicle:</span>
               </div>
-              <select 
-                className="bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all min-w-[280px]" 
-                value={selectedVehicleId} 
+              <select
+                className="bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all min-w-[280px]"
+                value={selectedVehicleId}
                 onChange={(e) => setSelectedVehicleId(e.target.value)}
               >
                 <option value="">Select a Vehicle</option>
@@ -380,13 +510,13 @@ const LoadingSection = ({
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Load Value</span>
                 <span className="text-xl font-black text-emerald-600">₹{Math.round(totalLoadingValue).toLocaleString('en-IN')}</span>
               </div>
-              <button 
+              <button
                 onClick={async () => {
                   await handleInitiateLoad();
                   setShowLoadModal(false);
                   fetchHistory();
-                }} 
-                disabled={isSubmitting || !selectedVehicleId || !Object.values(stockQuantities).some(q => (parseFloat(q) || 0) > 0) || hasInvalidQuantities} 
+                }}
+                disabled={isSubmitting || !selectedVehicleId || !Object.values(stockQuantities).some(q => (parseFloat(q) || 0) > 0) || hasInvalidQuantities}
                 className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-md disabled:opacity-40 flex items-center gap-2"
               >
                 {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpCircle size={14} />}
@@ -524,18 +654,18 @@ const LoadingSection = ({
                 <div className="text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Export Date: {new Date().toLocaleString()}</div>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between no-print mb-6 pb-4 border-b border-gray-200">
               <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-widest"><History size={18} className="text-emerald-500" /> Loading History</h4>
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setShowLoadModal(true)} 
+                <button
+                  onClick={() => setShowLoadModal(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm"
                 >
                   <ArrowUpCircle size={14} /> Load Stock
                 </button>
-                <button 
-                  onClick={() => fetchHistory()} 
+                <button
+                  onClick={() => fetchHistory()}
                   className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-200 shadow-sm cursor-pointer"
                 >
                   <RefreshCw size={14} className={isFetchingHistory ? "animate-spin" : ""} /> Refresh
@@ -587,8 +717,8 @@ const LoadingSection = ({
                           {session.items.length} Items
                         </td>
                         <td className="px-6 py-4 text-right no-print">
-                          <button 
-                            onClick={() => setSelectedSession(session)} 
+                          <button
+                            onClick={() => setSelectedSession(session)}
                             className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
                           >
                             View Manifest
