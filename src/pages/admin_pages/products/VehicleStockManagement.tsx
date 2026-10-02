@@ -164,12 +164,15 @@ export default function VehicleStockManagement() {
             cleanUnit = 'Unit';
           }
 
-          // Read vehicle allocations from vehicleStockAssignments or legacy vehicleStocks
-          const rawVs = Array.isArray(p.vehicleStockAssignments) && p.vehicleStockAssignments.length > 0 
-            ? p.vehicleStockAssignments 
-            : (Array.isArray(p.vehicleStocks) ? p.vehicleStocks : []);
+          // Read vehicle allocations from both vehicleStocks (loaded on physical vehicles) and vehicleStockAssignments
+          const vStocksArray = Array.isArray(p.vehicleStocks) ? p.vehicleStocks : [];
+          const vsaArray = Array.isArray(p.vehicleStockAssignments) ? p.vehicleStockAssignments : [];
+          const combinedVs = [...vStocksArray, ...vsaArray];
 
-          const vStock = Number(rawVs.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0));
+          const vStock = Number(vStocksArray.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0)) ||
+                         Number(combinedVs.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0));
+
+          const rawVs = combinedVs;
 
           const assignedVehicles = rawVs
             .filter((vs: any) => Number(vs.quantity) > 0)
@@ -671,7 +674,6 @@ export default function VehicleStockManagement() {
                   <th className="py-3 px-4">Selling Price</th>
                   <th className="py-3 px-4">VSM Price</th>
                   <th className="py-3 px-4">Vehicle Store Stock</th>
-                  <th className="py-3 px-4">Total In-Van Stock</th>
                   <th className="py-3 px-4 text-center">Van Permission</th>
                   <th className="py-3 px-4 text-center">Actions</th>
                 </tr>
@@ -721,12 +723,6 @@ export default function VehicleStockManagement() {
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-gray-800 dark:text-gray-200">{item.vehicleStoreStock}</div>
                       <div className="text-[10px] text-gray-400">Reserved for Vehicle</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${item.vehicleStock > 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200' : 'bg-gray-100 dark:bg-gray-700/50 text-gray-500'}`}>
-                        <Truck size={12} />
-                        {item.vehicleStock} in Fleet
-                      </span>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <button

@@ -136,12 +136,12 @@ const OpeningStockSection = ({
                   <td className="px-8 py-5 text-right">
                     {can && can('INVENTORY', 'UPDATE', 'MASTER') && (
                       <button
-                        onClick={() => handleUpdateStock(item.id, stockInputs[item.id], 'set')}
+                        onClick={() => handleUpdateStock(item.id, stockInputs[item.id], 'add')}
                         disabled={processingItems.has(item.id) || !stockInputs[item.id]}
                         className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-30 flex items-center gap-2 ml-auto"
                       >
                         {processingItems.has(item.id) ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} strokeWidth={3} />}
-                        Initialize
+                        Add Stock
                       </button>
                     )}
                   </td>
