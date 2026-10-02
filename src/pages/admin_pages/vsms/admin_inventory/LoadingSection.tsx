@@ -41,18 +41,46 @@ const LoadingSection = ({
       const list = res.data?.data || res.data || [];
       setProcurementGRNs(list);
       const map = {};
+      const updates = {};
       list.forEach((grn) => {
         if (grn.items && Array.isArray(grn.items)) {
           grn.items.forEach((item) => {
-            if (item.productId) {
-              map[item.productId] = grn.id;
+            const pid = item.productId || item.product?.id || item.id;
+            if (pid) {
+              map[pid] = grn.id;
+              const qty = item.receivedQuantity ?? item.quantity ?? 0;
+              if (qty > 0) {
+                updates[pid] = qty;
+              }
             }
           });
         }
       });
       setGrnItemsMap(map);
+      if (handleQuantityChange) {
+        Object.entries(updates).forEach(([pid, qty]) => {
+          handleQuantityChange(pid, qty);
+        });
+      }
     }).catch(console.error);
   }, []);
+
+  const handleGRNChange = (grnId) => {
+    setSelectedGRNId(grnId);
+    if (grnId === 'ALL') {
+      return;
+    }
+    const grn = procurementGRNs.find(g => g.id === grnId);
+    if (grn && grn.items && Array.isArray(grn.items)) {
+      grn.items.forEach(item => {
+        const pId = item.productId || item.product?.id || item.id;
+        const qty = item.receivedQuantity ?? item.quantity ?? 0;
+        if (pId && qty > 0 && handleQuantityChange) {
+          handleQuantityChange(pId, qty);
+        }
+      });
+    }
+  };
 
   const { data: cachedHistory, isLoading: isLoadingHistory, isFetching: isFetchingHistory, refetch: fetchHistory } = useLoadHistoryQuery();
   const historyData = cachedHistory || [];
@@ -259,7 +287,7 @@ const LoadingSection = ({
               {/* Procurement GRN Filter */}
               <select 
                 value={selectedGRNId} 
-                onChange={(e) => setSelectedGRNId(e.target.value)}
+                onChange={(e) => handleGRNChange(e.target.value)}
                 className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer min-w-[200px]"
               >
                 <option value="ALL">All Procurements (GRN)</option>

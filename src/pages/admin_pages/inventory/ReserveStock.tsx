@@ -41,16 +41,37 @@ const ReserveStock: React.FC = () => {
       const list = res.data?.data || res.data || [];
       setProcurementGRNs(list);
       const map: Record<string, string> = {};
+      const vehicleQtyUpdates: Record<string, number> = {};
+
       list.forEach((grn: any) => {
         if (grn.items && Array.isArray(grn.items)) {
           grn.items.forEach((item: any) => {
-            if (item.productId) {
-              map[item.productId] = grn.id;
+            const pId = item.productId || item.product?.id || item.id;
+            if (pId) {
+              map[pId] = grn.id;
+              const qty = item.receivedQuantity ?? item.quantity ?? 0;
+              if (qty > 0) {
+                vehicleQtyUpdates[pId] = qty;
+              }
             }
           });
         }
       });
       setGrnItemsMap(map);
+
+      if (Object.keys(vehicleQtyUpdates).length > 0) {
+        setQuantities(prev => {
+          const next = { ...prev };
+          Object.entries(vehicleQtyUpdates).forEach(([pId, qty]) => {
+            next[pId] = {
+              online: next[pId]?.online || 0,
+              pos: next[pId]?.pos || 0,
+              vehicle: qty
+            };
+          });
+          return next;
+        });
+      }
     }).catch(console.error);
   }, []);
 
@@ -98,10 +119,30 @@ const ReserveStock: React.FC = () => {
     }
   };
 
-  const toggleSelection = (id: string) => {
-    setSelectedItems(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
+  const handleGRNSelect = (grnId: string) => {
+    setSelectedGRNId(grnId);
+    setCurrentPage(1);
+
+    if (grnId === 'ALL') return;
+
+    const grn = procurementGRNs.find(g => g.id === grnId);
+    if (grn && grn.items && Array.isArray(grn.items)) {
+      setQuantities(prev => {
+        const next = { ...prev };
+        grn.items.forEach((item: any) => {
+          const pId = item.productId || item.product?.id || item.id;
+          const qty = item.receivedQuantity ?? item.quantity ?? 0;
+          if (pId && qty > 0) {
+            next[pId] = {
+              online: next[pId]?.online || 0,
+              pos: next[pId]?.pos || 0,
+              vehicle: qty
+            };
+          }
+        });
+        return next;
+      });
+    }
   };
 
   const toggleAll = () => {
@@ -381,10 +422,7 @@ const ReserveStock: React.FC = () => {
           <div className="border-r border-gray-200 h-full flex items-center relative">
             <select 
               value={selectedGRNId}
-              onChange={(e) => {
-                setSelectedGRNId(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => handleGRNSelect(e.target.value)}
               className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[180px] cursor-pointer"
             >
               <option value="ALL">All Procurements (GRN)</option>
