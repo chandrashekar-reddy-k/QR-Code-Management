@@ -161,7 +161,7 @@ export default function AdminInventory() {
   const [warehouseStock, setWarehouseStock] = useState([]);
   const [stockInputs, setStockInputs] = useState({}); // { productId: quantity }
 
-  const handleUpdateStock = async (productId, quantity, mode = 'set') => {
+  const handleUpdateStock = async (productId, quantity, mode = 'add') => {
     if (quantity === undefined || quantity === '' || isNaN(quantity) || parseInt(quantity) < 0) {
       toast.error('Please enter a valid positive quantity');
       return;
@@ -1064,7 +1064,23 @@ export default function AdminInventory() {
       setShowLoadConfirmModal(false);
       invalidateInventory();
       invalidateVehicles();
-      fetchData(true); // Refresh UI state silently immediately
+
+      // Wait for backend cache invalidation to complete, then refresh all data
+      setTimeout(async () => {
+        await fetchData(true); // Refresh items (VSM stock) + vehicles + vehicleStockMap silently
+
+        // Also explicitly refresh in-vehicle stock for the loaded vehicle
+        if (selectedVehicleId) {
+          try {
+            const vInvRes = await adminAPI.getVehicleInventory(selectedVehicleId);
+            const vInv = Array.isArray(vInvRes.data) ? vInvRes.data : (vInvRes.data?.data || []);
+            setVehicleInventory(vInv);
+          } catch (e) {
+            console.warn('[handleConfirmLoad] Failed to refresh vehicle inventory:', e.message);
+          }
+        }
+      }, 600);
+
     } catch (error) {
       console.error('❌ Load Error:', error);
       const msg = error.response?.data?.message || 'Failed to load stock';
@@ -1073,6 +1089,7 @@ export default function AdminInventory() {
       setIsSubmitting(false);
     }
   };
+
 
   const handleStockAction = async (type) => {
     if (!selectedVehicleId) return toast.error('Please select a vehicle');

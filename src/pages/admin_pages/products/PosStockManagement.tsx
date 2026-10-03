@@ -144,11 +144,11 @@ export default function PosStockManagement() {
             sku: p.sku || firstVar.sku || 'N/A',
             barcode: p.barcode || firstVar.barcode || p.gtin || '',
             price: Number(p.price || 0),
-            mrp: Number(p.mrp || 0),
-            landingPrice: Number(p.landingPrice || 0),
-            sellingPrice: Number(p.sellingPrice || 0),
-            posPrice: Number(p.posPrice ?? p.posStoreStock?.posPrice ?? p.posStoreStock?.price ?? 0),
-            stock: stageStock,
+            mrp: Number(p.mrp || 0), // From Product master
+            landingPrice: Number(p.landingPrice ?? p.costPrice ?? 0), // From Product master (costPrice)
+            sellingPrice: Number(p.sellingPrice ?? p.finalPrice ?? p.price ?? 0), // From Product master
+            posPrice: Number(p.posPrice ?? p.posStoreStock?.posPrice ?? p.posStoreStock?.price ?? p.price ?? 0), // From ChannelInventory
+            stock: stageStock, // Channel Available Qty from ChannelInventory
             isOnline,
             isPos,
             isVehicle,
@@ -158,7 +158,7 @@ export default function PosStockManagement() {
             updatedAt: p.updatedAt || new Date().toISOString(),
             shelfLocation: p.tags?.find((t: string) => t.startsWith('SHELF:'))?.split(':')[1] || '',
             taxRate: p.taxRate || 5,
-            baseStock: p.baseStock
+            baseStock: p.baseStock // Warehouse stock from Product table
           };
         });
 

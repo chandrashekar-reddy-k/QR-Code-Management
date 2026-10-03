@@ -515,9 +515,18 @@ const LoadingSection = ({
                   await handleInitiateLoad();
                   setShowLoadModal(false);
                   fetchHistory();
-                }}
-                disabled={isSubmitting || !selectedVehicleId || !Object.values(stockQuantities).some(q => (parseFloat(q) || 0) > 0) || hasInvalidQuantities}
-                className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-md disabled:opacity-40 flex items-center gap-2"
+                }} 
+                disabled={isSubmitting || !selectedVehicleId || !Object.values(stockQuantities).some(q => (parseFloat(q) || 0) > 0) || hasInvalidQuantities} 
+                className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-700 active:scale-95 transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                title={
+                  !selectedVehicleId 
+                    ? "Select a vehicle first" 
+                    : !Object.values(stockQuantities).some(q => (parseFloat(q) || 0) > 0) 
+                    ? "Enter quantity to load" 
+                    : hasInvalidQuantities 
+                    ? "Some entered quantities exceed available stock" 
+                    : "Complete vehicle load"
+                }
               >
                 {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpCircle size={14} />}
                 <span>Complete Load</span>
@@ -664,11 +673,14 @@ const LoadingSection = ({
                 >
                   <ArrowUpCircle size={14} /> Load Stock
                 </button>
-                <button
-                  onClick={() => fetchHistory()}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-200 shadow-sm cursor-pointer"
+                <button 
+                  onClick={() => fetchHistory()} 
+                  disabled={isFetchingHistory}
+                  className="flex items-center gap-2 px-3 py-2 bg-white text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-all border border-gray-200 shadow-sm disabled:opacity-50"
+                  title="Refresh loading history"
                 >
-                  <RefreshCw size={14} className={isFetchingHistory ? "animate-spin" : ""} /> Refresh
+                  <RefreshCw size={13} className={isFetchingHistory ? 'animate-spin text-emerald-500' : ''} />
+                  {isFetchingHistory ? 'Refreshing...' : 'Refresh'}
                 </button>
                 <button onClick={exportHistoryToExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><FileDown size={14} /> Export Excel</button>
                 <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/50 transition-all border border-gray-200 shadow-sm"><Printer size={14} /> Print History</button>
@@ -703,18 +715,26 @@ const LoadingSection = ({
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {historyData.map((session, idx) => (
-                      <tr key={`load-hist-tr-${idx}`} className="hover:bg-gray-50/40 dark:hover:bg-gray-700/20 transition-colors group">
+                      <tr key={`load-hist-tr-${session.id || idx}`} className="hover:bg-gray-50/40 dark:hover:bg-gray-700/20 transition-colors group">
                         <td className="px-6 py-4 text-xs text-gray-700">
                           {new Date(session.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                         </td>
-                        <td className="px-6 py-4 text-xs font-bold text-gray-900 dark:text-white uppercase">
-                          {session.vehicle?.vehicleNumber || 'Unspecified'}
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-900 dark:text-white uppercase">{session.vehicle?.vehicleNumber || 'Unspecified'}</span>
+                            {session.vehicle?.vehicleName && (
+                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{session.vehicle.vehicleName}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-xs text-gray-700">
                           {session.user?.name || 'System Admin'}
                         </td>
                         <td className="px-6 py-4 text-xs font-bold text-center text-emerald-600">
                           {session.items.length} Items
+                          <span className="block text-[9px] font-bold text-gray-400 normal-case">
+                            {session.items.reduce((acc, i) => acc + (i.quantity || 0), 0)} units
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-right no-print">
                           <button

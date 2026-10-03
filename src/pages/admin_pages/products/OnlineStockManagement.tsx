@@ -152,11 +152,11 @@ export default function OnlineStockManagement() {
             unitType: p.unitType || 'Unit',
             sku: p.sku || firstVar.sku || 'N/A',
             price: Number(p.price || 0),
-            mrp: Number(p.mrp || 0),
-            landingPrice: Number(p.landingPrice || 0),
-            sellingPrice: Number(p.sellingPrice || 0),
-            onlinePrice: Number(p.onlinePrice ?? p.onlineAppStock?.appPrice ?? p.onlineAppStock?.price ?? 0),
-            stock: stageStock,
+            mrp: Number(p.mrp || 0), // From Product master
+            landingPrice: Number((p.landingPrice && p.landingPrice > 0 ? p.landingPrice : null) ?? (p.costPrice && p.costPrice > 0 ? p.costPrice : null) ?? (firstVar?.landingPrice && firstVar?.landingPrice > 0 ? firstVar.landingPrice : null) ?? (firstVar?.costPrice && firstVar?.costPrice > 0 ? firstVar.costPrice : null) ?? (firstVar?.purchasePrice && firstVar?.purchasePrice > 0 ? firstVar.purchasePrice : null) ?? 0), // From Product master or variant
+            sellingPrice: Number(p.sellingPrice ?? p.finalPrice ?? p.price ?? 0), // From Product master
+            onlinePrice: Number(p.onlinePrice ?? p.onlineAppStock?.appPrice ?? p.onlineAppStock?.channelPrice ?? p.price ?? 0), // From ChannelInventory
+            stock: stageStock, // Channel Available Qty from ChannelInventory
             isOnline,
             isPos,
             isVehicle,
@@ -164,11 +164,11 @@ export default function OnlineStockManagement() {
             lifecycleStage: 'LIVE',
             stageNotes: p.stageNotes || '',
             updatedAt: p.updatedAt || new Date().toISOString(),
-            appVisibility: isOnline && (p.isActive !== false),
-            minOrderQty: p.minOrderQuantity || p.minOrderQty || 1,
-            maxOrderQty: p.maxOrderQuantity || p.maxOrderQty || 50,
+            appVisibility: isOnline && (p.isActive !== false), // App Visibility status from ChannelInventory
+            minOrderQty: p.onlineAppStock?.minOrderQty ?? p.minOrderQty ?? p.minOrderQuantity ?? 1, // From ChannelInventory
+            maxOrderQty: p.onlineAppStock?.maxOrderQty ?? p.maxOrderQty ?? p.maxOrderQuantity ?? 50, // From ChannelInventory
             badge: p.tags?.find((t: string) => t.startsWith('BADGE:'))?.split(':')[1] || (stageStock <= 5 ? 'Low Stock' : 'In Stock'),
-            baseStock: p.baseStock
+            baseStock: p.baseStock // Warehouse stock from Product table
           };
         });
 
@@ -246,6 +246,7 @@ export default function OnlineStockManagement() {
 
       toast.success(`Online configuration updated for ${editProduct.name}`);
       setIsEditModalOpen(false);
+      loadOnlineStock();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to update product details');
     } finally {
@@ -412,6 +413,7 @@ export default function OnlineStockManagement() {
 
       setSelectedProducts(new Set());
       setShowBulkPriceModal(false);
+      loadOnlineStock();
     } catch (err: any) {
       console.error('Failed to bulk update online prices:', err);
       toast.error(err?.message || 'Failed to update prices. Please try again.');

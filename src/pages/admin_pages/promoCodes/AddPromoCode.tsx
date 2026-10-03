@@ -81,6 +81,7 @@ const AddPromoCode = () => {
   const whereItApplies = watch("whereItApplies");
   const [maximumDiscountAmount, setMaximumDiscountAmount] = useState("0");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [productOffers, setProductOffers] = useState<Record<string, any>>({});
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const today = new Date().toISOString().split("T")[0];
   const isPending =
@@ -88,10 +89,20 @@ const AddPromoCode = () => {
     updatePromoCodeMutation.isPending ||
     (isEditing && isPromoCodesLoading);
 
-  // Fetch products list for mapping
-  const { data: productsData, isLoading: isProductsLoading } = useGetAllProductList(1, 100, productSearchTerm);
+  // Fetch products list for mapping (only Online App channel products)
+  const { data: productsData, isLoading: isProductsLoading } = useGetAllProductList(1, 1000, productSearchTerm);
   const allProducts: any[] = useMemo(() => {
-    return productsData?.data?.data || productsData?.data?.products || productsData?.data || [];
+    const raw = productsData?.data?.data || productsData?.data?.products || productsData?.data || [];
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((p: any) => {
+      const hasOnlineChannel = Array.isArray(p.channelInventories) && p.channelInventories.some((ci: any) => ci.channel === 'ONLINE_APP' && (ci.isActive || Number(ci.quantity) > 0));
+      const isPublished = p.onlineAppStock?.isPublished !== undefined
+        ? Boolean(p.onlineAppStock.isPublished)
+        : (p.isOnline === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE')) || hasOnlineChannel);
+      const hasOnlineStock = Number(p.onlineStock ?? p.onlineAppStock?.onlineStock ?? p.stageStocks?.LIVE) > 0;
+
+      return isPublished || hasOnlineStock;
+    });
   }, [productsData]);
 
   const promoCodes = useMemo(() => {
@@ -145,6 +156,19 @@ const AddPromoCode = () => {
         : (String(promoCodeToEdit.appicableOn || "").toUpperCase() === "GLOBAL" ? "global" : ""),
     });
 
+    if (promoCodeToEdit.mappedProductOffers) {
+      setProductOffers(promoCodeToEdit.mappedProductOffers);
+    } else if (promoCodeToEdit.products && Array.isArray(promoCodeToEdit.products)) {
+      const offers: Record<string, any> = {};
+      promoCodeToEdit.products.forEach((p: any) => {
+        const pid = String(p.id || p.productId);
+        if (p.offerPrice !== undefined && p.offerPrice !== null) {
+          offers[pid] = p.offerPrice;
+        }
+      });
+      setProductOffers(offers);
+    }
+
     if (promoCodeToEdit.productIds && Array.isArray(promoCodeToEdit.productIds)) {
       setSelectedProductIds(promoCodeToEdit.productIds.map(String));
     } else if (promoCodeToEdit.products && Array.isArray(promoCodeToEdit.products)) {
@@ -166,6 +190,7 @@ const AddPromoCode = () => {
       reset(DEFAULT_VALUES);
       setMaximumDiscountAmount("0");
       setSelectedProductIds([]);
+      setProductOffers({});
     }
   }, [isEditing, reset]);
 
@@ -217,6 +242,7 @@ const AddPromoCode = () => {
       scope: values.whereItApplies || "GLOBAL",
       repeatUsage: selectedRepeatUsage,
       productIds: values.whereItApplies === "SPECIFIC_PRODUCTS" ? selectedProductIds : [],
+      productOffers: values.whereItApplies === "SPECIFIC_PRODUCTS" ? productOffers : {},
     };
 
     if (isEditing) {
@@ -485,26 +511,30 @@ const AddPromoCode = () => {
                 )}
 
                 {/* Product List Grid */}
-                <div className="max-h-48 overflow-y-auto space-y-1.5 bg-white border border-gray-200 rounded-lg p-2">
+                <div className="max-h-60 overflow-y-auto space-y-1.5 bg-white border border-gray-200 rounded-lg p-2">
                   {isProductsLoading ? (
                     <p className="text-xs text-gray-400 text-center py-4">Loading products...</p>
                   ) : allProducts.length === 0 ? (
                     <p className="text-xs text-gray-400 text-center py-4">No products found</p>
                   ) : (
                     allProducts.map((product: any) => {
-                      const isSelected = selectedProductIds.includes(String(product.id));
+                      const pid = String(product.id);
+                      const isSelected = selectedProductIds.includes(pid);
                       const prodName = typeof product.name === 'object' && product.name !== null ? product.name.name : (product.name || 'Item');
+                      const basePrice = product.price || product.sellingPrice || 0;
                       return (
                         <div
                           key={product.id}
-                          onClick={() => toggleProductSelection(String(product.id))}
-                          className={`flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                          className={`flex items-center justify-between p-2 rounded-lg text-xs transition-colors ${
                             isSelected
-                              ? 'bg-emerald-50 border border-emerald-300 font-semibold text-emerald-950'
+                              ? 'bg-emerald-50/70 border border-emerald-300 font-semibold text-emerald-950'
                               : 'hover:bg-gray-50 text-gray-700 border border-transparent'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
+                          <div
+                            onClick={() => toggleProductSelection(pid)}
+                            className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"
+                          >
                             <div className={`w-4 h-4 rounded flex items-center justify-center border ${
                               isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-300'
                             }`}>
@@ -512,7 +542,28 @@ const AddPromoCode = () => {
                             </div>
                             <span className="truncate">{prodName}</span>
                           </div>
-                          <span className="text-[11px] font-bold text-gray-500">₹{product.price || product.sellingPrice || 0}</span>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-[11px] font-bold text-gray-400">Regular: ₹{basePrice}</span>
+                            {isSelected && (
+                              <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-emerald-300 shadow-xs">
+                                <span className="text-[10px] font-bold text-emerald-700 uppercase">Offer ₹:</span>
+                                <input
+                                  type="number"
+                                  placeholder={String(basePrice)}
+                                  value={productOffers[pid] ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setProductOffers(prev => ({
+                                      ...prev,
+                                      [pid]: val
+                                    }));
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-16 text-center text-xs font-bold text-emerald-800 bg-transparent outline-none border-b border-emerald-400 focus:border-emerald-600"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })
