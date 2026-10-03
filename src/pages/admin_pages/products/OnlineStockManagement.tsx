@@ -153,7 +153,7 @@ export default function OnlineStockManagement() {
             sku: p.sku || firstVar.sku || 'N/A',
             price: Number(p.price || 0),
             mrp: Number(p.mrp || 0), // From Product master
-            landingPrice: Number(p.landingPrice ?? p.costPrice ?? 0), // From Product master (costPrice)
+            landingPrice: Number((p.landingPrice && p.landingPrice > 0 ? p.landingPrice : null) ?? (p.costPrice && p.costPrice > 0 ? p.costPrice : null) ?? (firstVar?.landingPrice && firstVar?.landingPrice > 0 ? firstVar.landingPrice : null) ?? (firstVar?.costPrice && firstVar?.costPrice > 0 ? firstVar.costPrice : null) ?? (firstVar?.purchasePrice && firstVar?.purchasePrice > 0 ? firstVar.purchasePrice : null) ?? 0), // From Product master or variant
             sellingPrice: Number(p.sellingPrice ?? p.finalPrice ?? p.price ?? 0), // From Product master
             onlinePrice: Number(p.onlinePrice ?? p.onlineAppStock?.appPrice ?? p.onlineAppStock?.channelPrice ?? p.price ?? 0), // From ChannelInventory
             stock: stageStock, // Channel Available Qty from ChannelInventory
@@ -246,6 +246,7 @@ export default function OnlineStockManagement() {
 
       toast.success(`Online configuration updated for ${editProduct.name}`);
       setIsEditModalOpen(false);
+      loadOnlineStock();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to update product details');
     } finally {
@@ -412,6 +413,7 @@ export default function OnlineStockManagement() {
 
       setSelectedProducts(new Set());
       setShowBulkPriceModal(false);
+      loadOnlineStock();
     } catch (err: any) {
       console.error('Failed to bulk update online prices:', err);
       toast.error(err?.message || 'Failed to update prices. Please try again.');
