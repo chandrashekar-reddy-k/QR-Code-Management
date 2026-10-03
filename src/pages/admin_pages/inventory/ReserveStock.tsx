@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Filter, RotateCcw, ArrowLeft } from 'lucide-react';
+import { Filter, RotateCcw, ArrowLeft, PackageCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
@@ -40,23 +40,46 @@ const ReserveStock: React.FC = () => {
     inventoryService.getProcurementGRNs().then((res: any) => {
       const list = res.data?.data || res.data || [];
       setProcurementGRNs(list);
-      const map: Record<string, string> = {};
+      const map: Record<string, string[]> = {};
+      const vehicleQtyUpdates: Record<string, number> = {};
+
       list.forEach((grn: any) => {
         if (grn.items && Array.isArray(grn.items)) {
           grn.items.forEach((item: any) => {
-            if (item.productId) {
-              map[item.productId] = grn.id;
+            const pId = item.productId || item.product?.id || item.id;
+            if (pId) {
+              if (!map[pId]) map[pId] = [];
+              if (!map[pId].includes(grn.id)) map[pId].push(grn.id);
+
+              const qty = item.receivedQuantity ?? item.quantity ?? 0;
+              if (qty > 0) {
+                vehicleQtyUpdates[pId] = qty;
+              }
             }
           });
         }
       });
-      setGrnItemsMap(map);
+      setGrnItemsMap(map as any);
+
+      if (Object.keys(vehicleQtyUpdates).length > 0) {
+        setQuantities(prev => {
+          const next = { ...prev };
+          Object.entries(vehicleQtyUpdates).forEach(([pId, qty]) => {
+            next[pId] = {
+              online: next[pId]?.online || 0,
+              pos: next[pId]?.pos || 0,
+              vehicle: qty
+            };
+          });
+          return next;
+        });
+      }
     }).catch(console.error);
   }, []);
 
   const fetchReadyItems = async () => {
     try {
-      const response = await inventoryService.getReadyInventory({ page: 1, limit: 100 });
+      const response = await inventoryService.getReadyInventory({ page: 1, limit: 1000 });
       if (response.data?.data) {
         const unallocatedProducts = response.data.data.products.filter((item: any) => {
           const totalStock = item.stock ?? item.baseStock ?? 0;
@@ -103,14 +126,14 @@ const ReserveStock: React.FC = () => {
             sku: item.sku || '-',
             unit: item.unit || 'units',
             price: '₹' + (item.price || item.mrp || 0),
-            available: String(remaining),
+            available: String(remaining > 0 ? remaining : totalStock),
             image: item.name ? item.name.charAt(0).toUpperCase() : 'N',
           };
         });
         setData(mapped);
         // Pre-fill quantities from existing channel data
         const initialQty: Record<string, { online: number; pos: number; vehicle: number }> = {};
-        unallocatedProducts.forEach((item: any) => {
+        allProducts.forEach((item: any) => {
           initialQty[item.id] = {
             online: 0,
             pos: 0,
@@ -124,10 +147,163 @@ const ReserveStock: React.FC = () => {
     }
   };
 
-  const toggleSelection = (id: string) => {
-    setSelectedItems(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
+  const handleGRNSelect = (grnId: string) => {
+    setSelectedGRNId(grnId);
+    setCurrentPage(1);
+
+    if (grnId === 'ALL') return;
+
+    const grn = procurementGRNs.find(g => g.id === grnId);
+    if (grn && grn.items && Array.isArray(grn.items)) {
+      setQuantities(prev => {
+        const next = { ...prev };
+        grn.items.forEach((item: any) => {
+          const pId = item.productId || item.product?.id || item.id;
+          const qty = item.receivedQuantity ?? item.quantity ?? 0;
+          if (pId && qty > 0) {
+            next[pId] = {
+              online: next[pId]?.online || 0,
+              pos: next[pId]?.pos || 0,
+              vehicle: qty
+            };
+          }
+        });
+        return next;
+      });
+    }
+  };
+
+  const PRESET_PRODUCTS_LIST = [
+    { name: 'Surf Excel 88 gm', qty: 15 },
+    { name: 'Surf Excel', qty: 15 },
+    { name: 'Vim Bar 480gm', qty: 2 },
+    { name: 'Vim Bar Tub 240g', qty: 5 },
+    { name: 'Vim Bar 60gm', qty: 20 },
+    { name: 'Exo Dishwash Bar Pack of 4 90g', qty: 3 },
+    { name: 'Exo Round Ginger 250g', qty: 3 },
+    { name: 'Santoor Sandal & Turmeric Soap 10rs', qty: 9 },
+    { name: 'Santoor 4+1 PACK 125gm', qty: 15 },
+    { name: 'Margo Original PACK', qty: 1 },
+    { name: 'Cinthol Original 4 Pack', qty: 1 },
+    { name: 'Pears Soft & Fresh Soap', qty: 3 },
+    { name: 'Margo Original Neem Soap', qty: 5 },
+    { name: 'LIFEBUOY SOAP TOTAL 125 g', qty: 5 },
+    { name: 'Rexona Coconut & Olive Oil 100g', qty: 5 },
+    { name: 'Santoor Sandal & Turmeric 100gm', qty: 15 },
+    { name: 'Fiama Men Refreshing Pulse Gel Bar', qty: 1 },
+    { name: 'Fiama Patchouli & Macadamia Gel Bar', qty: 1 },
+    { name: 'Exo Bacto Scrub', qty: 12 },
+    { name: 'ASR Iodised Crystal Salt', qty: 10 },
+    { name: 'Tata Salt', qty: 5 },
+    { name: 'Suji Rava', qty: 10 },
+    { name: 'Three Mangoes Chilli Powder', qty: 3 },
+    { name: 'Madhuri Sambar Powder', qty: 2 },
+    { name: 'AHA Papad', qty: 10 },
+    { name: 'Aashirvaad Turmeric', qty: 10 },
+    { name: 'Agririch Black Pepper (Miriyalu )', qty: 10 },
+    { name: 'Agririch Lavangalu (Cloves)', qty: 10 },
+    { name: 'Dalchina Chakka', qty: 11 },
+    { name: 'Yalukalu', qty: 10 },
+    { name: "Mom's Magic Cashew & Almond PACK", qty: 2 },
+    { name: 'Continental Xtra Coffee', qty: 60 },
+    { name: 'Freedom Sunflower Oil Tin 15kg', qty: 1 },
+    { name: 'Ruchi Gold', qty: 1 },
+    { name: 'Colgate Active Salt 100gm', qty: 10 },
+    { name: 'Colgate Brush', qty: 18 },
+    { name: 'Closeup Red Hot Gel Toothpaste 150GM', qty: 5 },
+    { name: 'Mysore Sandal Soap Pack', qty: 5 },
+    { name: 'Mysore Sandal Soap 125GM', qty: 10 },
+    { name: 'Mysore Sandal Gold Soap', qty: 6 },
+    { name: 'All Out Mosquito Repellent Machine', qty: 1 },
+    { name: 'Harpic Power Plus 10X TC Cleaner 600ML', qty: 2 },
+    { name: 'Lizol Surface Cleaner Floral 625ml', qty: 3 },
+    { name: 'Lizol Surface Cleaner Citrus 200 ml', qty: 10 },
+    { name: 'Domex Ocean Fresh Disinfectant Toilet Cleaner', qty: 2 },
+    { name: 'Kissan Mixed Fruit Jam', qty: 5 },
+    { name: 'Kurnool Rice', qty: 2 },
+    { name: 'Kinley Soda Original', qty: 5 },
+    { name: 'Maaza 1.75 Ltr', qty: 5 },
+    { name: 'kindly soda original', qty: 29 },
+    { name: 'Sprite 250ml', qty: 16 },
+    { name: 'Fanta Orange', qty: 13 },
+    { name: 'Fanta Orange Soft Drink 250ML Case', qty: 1 },
+    { name: 'Amaravathi Sonamasoori Normal', qty: 2 },
+    { name: 'Bingo Tedhe Medhe Tomato Twist', qty: 15 },
+    { name: 'Bingo Tedhe Medhe Masala tadka', qty: 17 },
+    { name: 'Bingo Mad Angles Very Peri Peri', qty: 22 },
+    { name: 'Bingo Original Style', qty: 18 },
+    { name: 'Shiva Idli Rava', qty: 13 },
+    { name: 'Bambino Vermicelli', qty: 5 },
+    { name: 'Sabudana 500gm', qty: 5 },
+    { name: 'Fried Gram', qty: 5 },
+    { name: '(Fried Gram)500gm', qty: 3 },
+    { name: 'Idli Rava', qty: 9 },
+    { name: 'Toor Dal', qty: 10 },
+    { name: 'MD ANUSHRI ROSE', qty: 3 },
+    { name: 'MD ANUSHRI MOGRA', qty: 3 },
+    { name: 'Mangaldeep Sambhrani Cups', qty: 2 },
+    { name: 'Mangaldeep Sadhvi Agarbatti', qty: 6 },
+    { name: 'Cotton Pooja Wicks', qty: 35 },
+    { name: 'Pooja Gold Oil', qty: 5 },
+    { name: 'Yippee Noodles 6 pack 420gm', qty: 2 },
+    { name: 'Jelimals Space Runners Jellies', qty: 15 },
+    { name: 'Bingo xxx Hot & Spicy', qty: 15 },
+    { name: 'Bingo Sizzling Chilli', qty: 15 },
+    { name: 'Bingo Knockin Korean', qty: 13 },
+    { name: 'Bingo Mad Angles Achaari Masti', qty: 11 },
+    { name: 'Bingo Slayin Salt', qty: 16 },
+    { name: 'Yippee Noodles 4 Pack 280gm', qty: 2 },
+    { name: 'Yippee Magic Masala 50gm', qty: 10 },
+    { name: 'Sunfeast Dark Fantasy Choco Fills', qty: 2 },
+    { name: 'Sunfeast Dark Fantasy Choco Fills 10rs', qty: 17 },
+    { name: 'Bounce choco orange cream', qty: 5 },
+    { name: 'Sunfeast Marie Light biscuits 10rs', qty: 5 },
+    { name: 'Sunfeast Fantastik Choco Meltz', qty: 1 },
+    { name: 'Engage Man Rush Deodorant Spray', qty: 5 },
+    { name: 'Comfort Farbic', qty: 10 },
+    { name: 'Sunsilk Jasmine & Vetiver Shampoo Sachet', qty: 107 },
+    { name: 'Head & Shoulders Shampoo', qty: 135 },
+    { name: 'Gillette Guard Disposable Razor', qty: 10 },
+    { name: 'Pottu Minapappu', qty: 6 },
+    { name: 'Pulpy orange', qty: 5 },
+    { name: 'Thums Up', qty: 5 },
+    { name: 'Kurnool Groundnut Oil 1Ltr', qty: 1 },
+    { name: 'Bingo Killin Crean &Onion', qty: 15 },
+    { name: 'Maida', qty: 10 },
+    { name: 'All Out Ultra Single Refill', qty: 1 }
+  ];
+
+  const handleQuickLoadPreset = () => {
+    let count = 0;
+    const autoSelectedIds: string[] = [];
+
+    setQuantities(prev => {
+      const next = { ...prev };
+      PRESET_PRODUCTS_LIST.forEach(preset => {
+        const cleanPreset = preset.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const matched = data.find(i => {
+          const cleanName = (i.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanName === cleanPreset || (i.name || '').toLowerCase().includes(preset.name.toLowerCase());
+        });
+
+        if (matched) {
+          next[matched.id] = {
+            online: next[matched.id]?.online || 0,
+            pos: next[matched.id]?.pos || 0,
+            vehicle: preset.qty
+          };
+          autoSelectedIds.push(matched.id);
+          count++;
+        }
+      });
+      return next;
+    });
+
+    if (autoSelectedIds.length > 0) {
+      setSelectedItems(prev => Array.from(new Set([...prev, ...autoSelectedIds])));
+    }
+
+    toast.success(`Quick loaded preset quantities for ${count} items!`);
   };
 
   const toggleAll = () => {
@@ -136,6 +312,12 @@ const ReserveStock: React.FC = () => {
     } else {
       setSelectedItems(paginatedData.map(item => item.id));
     }
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedItems(prev =>
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+    );
   };
 
   const handleQtyChange = (id: string, field: 'online' | 'pos' | 'vehicle', value: number) => {
@@ -177,7 +359,7 @@ const ReserveStock: React.FC = () => {
     }
 
     setIsSaving(true);
-    
+
     try {
       await Promise.all(
         selectedItems.map(async (itemId) => {
@@ -189,11 +371,11 @@ const ReserveStock: React.FC = () => {
           });
         })
       );
-      
+
       // Refresh list to filter out fully allocated items automatically
       await fetchReadyItems();
       setSelectedItems([]);
-      
+
       toast.success(`Stock reserved successfully for ${selectedItems.length} item(s).`);
     } catch (err: any) {
       console.error('Failed to save allocations:', err);
@@ -208,7 +390,10 @@ const ReserveStock: React.FC = () => {
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
     if (selectedGRNId !== 'ALL') {
-      filtered = filtered.filter(item => grnItemsMap[item.id] === selectedGRNId);
+      filtered = filtered.filter(item => {
+        const grnList = grnItemsMap[item.id];
+        return Array.isArray(grnList) ? grnList.includes(selectedGRNId) : grnList === selectedGRNId;
+      });
     }
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -445,6 +630,15 @@ const ReserveStock: React.FC = () => {
             <p className="text-gray-500 text-sm hidden sm:block">Select a ready stock item and allocate quantities for each sales channel.</p>
           </div>
         </div>
+        {/* <button
+          type="button"
+          onClick={handleQuickLoadPreset}
+          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg shadow-sm hover:shadow transition-all text-xs font-bold uppercase tracking-wider active:scale-95 cursor-pointer border border-emerald-500 shrink-0"
+          title="Quick load preset purchase quantities for all 88 items"
+        >
+          <PackageCheck size={16} />
+          <span>Quick Load Purchase Preset (88 Items)</span>
+        </button> */}
       </div>
 
       {/* Filters and Search */}
@@ -454,12 +648,9 @@ const ReserveStock: React.FC = () => {
             <Filter size={16} />
           </div>
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select 
+            <select
               value={selectedGRNId}
-              onChange={(e) => {
-                setSelectedGRNId(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => handleGRNSelect(e.target.value)}
               className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[180px] cursor-pointer"
             >
               <option value="ALL">All Procurements (GRN)</option>
@@ -473,7 +664,7 @@ const ReserveStock: React.FC = () => {
               })}
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
           <div className="border-r border-gray-200 h-full flex items-center relative">
@@ -481,7 +672,7 @@ const ReserveStock: React.FC = () => {
               <option>All Categories</option>
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
           <div className="border-r border-gray-200 h-full flex items-center relative">
@@ -489,7 +680,7 @@ const ReserveStock: React.FC = () => {
               <option>Units</option>
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
           <button

@@ -13,6 +13,7 @@ import procurementService from '../vsms/services/procurementService';
 
 interface ConfigureStockItem {
   id: string;
+  grnId: string;
   name: string;
   sku: string;
   category: string;
@@ -20,6 +21,7 @@ interface ConfigureStockItem {
   unit: string;
   price: number;
   image: string;
+  isConfigured: boolean;
 }
 
 const ConfigureStock: React.FC = () => {
@@ -35,22 +37,24 @@ const ConfigureStock: React.FC = () => {
 
   const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
   const [selectedGRNId, setSelectedGRNId] = useState<string>('ALL');
+  const [configFilter, setConfigFilter] = useState<'ALL' | 'UNCONFIGURED' | 'CONFIGURED'>('ALL');
 
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const res = await procurementService.getUnconfiguredGRNItems();
+      const res = await procurementService.getUnconfiguredGRNItems({ includeConfigured: true });
       if (res.data?.success) {
         const items = res.data.data.map((item: any) => ({
           id: item.id,
-          grnId: item.grnId || item.goodsReceiptId || '',
+          grnId: item.grnId || item.goodsReceiptId || item.grn?.id || '',
           name: item.product?.name || 'Unknown',
           sku: item.resolvedSku || item.product?.sku || item.product?.masterProduct?.sku || item.product?.barcode || 'N/A',
           category: item.resolvedCategory || item.product?.category?.name || item.product?.subCategory?.name || 'General',
           quantity: item.receivedQty || 0,
           unit: item.resolvedUnit || item.product?.unit || 'Units',
           price: item.resolvedPurchasePrice ?? item.product?.price ?? 0,
-          image: item.product?.name?.[0]?.toUpperCase() || 'P'
+          image: item.product?.name?.[0]?.toUpperCase() || 'P',
+          isConfigured: Boolean(item.isConfigured)
         }));
         setData(items);
       }
@@ -120,6 +124,12 @@ const ConfigureStock: React.FC = () => {
       filtered = filtered.filter((item: any) => item.grnId === selectedGRNId);
     }
 
+    if (configFilter === 'UNCONFIGURED') {
+      filtered = filtered.filter((item) => !item.isConfigured);
+    } else if (configFilter === 'CONFIGURED') {
+      filtered = filtered.filter((item) => item.isConfigured);
+    }
+
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -145,7 +155,7 @@ const ConfigureStock: React.FC = () => {
     }
 
     return filtered;
-  }, [data, searchTerm, selectedGRNId, sortField, sortDirection]);
+  }, [data, searchTerm, selectedGRNId, configFilter, sortField, sortDirection]);
 
   // Pagination
   const paginatedData = filteredAndSortedData.slice(
@@ -251,6 +261,22 @@ const ConfigureStock: React.FC = () => {
       render: (item: ConfigureStockItem) => (
         <span className="text-sm text-gray-600">{item.price}</span>
       )
+    },
+    {
+      key: 'isConfigured',
+      label: 'STATUS',
+      sortable: true,
+      render: (item: ConfigureStockItem) => (
+        item.isConfigured ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+            Configured
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+            Pending Config
+          </span>
+        )
+      )
     }
   ];
 
@@ -279,16 +305,35 @@ const ConfigureStock: React.FC = () => {
 
       {/* Filters and Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="flex items-center border border-gray-300 rounded-lg bg-white h-10 shadow-sm w-fit">
+        <div className="flex items-center border border-gray-300 rounded-lg bg-white h-10 shadow-sm w-fit flex-wrap sm:flex-nowrap">
           <div className="px-3.5 border-r border-gray-200 text-gray-600 flex items-center justify-center h-full">
             <Filter size={16} />
           </div>
           
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[120px] cursor-pointer">
+            <select className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[100px] cursor-pointer">
               <option>Unit</option>
               <option>Packets</option>
               <option>kg</option>
+            </select>
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="border-r border-gray-200 h-full flex items-center relative">
+            <select 
+              value={configFilter}
+              onChange={(e) => {
+                setConfigFilter(e.target.value as any);
+                setCurrentPage(1);
+              }}
+              className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[160px] cursor-pointer"
+            >
+              <option value="ALL">All Items (Configured + Pending)</option>
+              <option value="UNCONFIGURED">Pending Config Only</option>
+              <option value="CONFIGURED">Configured Only</option>
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -323,6 +368,7 @@ const ConfigureStock: React.FC = () => {
           <button
             onClick={() => {
               setSelectedGRNId('ALL');
+              setConfigFilter('ALL');
               setSearchTerm('');
               setCurrentPage(1);
             }}

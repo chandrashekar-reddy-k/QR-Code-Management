@@ -3,7 +3,7 @@ import { Camera, X, Scan, AlertCircle } from 'lucide-react';
 import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
 import toast from 'react-hot-toast';
-
+// safg
 const BarcodeScannerOverlay = ({ onScan, onClose }) => {
   const [status, setStatus] = useState('Initializing scanner...');
   const [errorMsg, setErrorMsg] = useState('');
@@ -67,7 +67,7 @@ const BarcodeScannerOverlay = ({ onScan, onClose }) => {
         let videoInputDevices = [];
         try {
           videoInputDevices = await BrowserMultiFormatReader.listVideoInputDevices();
-        } catch (_) {}
+        } catch (_) { }
 
         let selectedDeviceId = null;
         if (videoInputDevices.length > 0) {

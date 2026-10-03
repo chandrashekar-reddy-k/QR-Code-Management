@@ -512,8 +512,10 @@ export default function AdminInventory() {
       if (numQty <= 0) return false;
       const prod = items.find(p => p.id === pid);
       if (!prod) return false;
-      const maxAllowed = prod.vehicleStoreStock !== undefined ? Number(prod.vehicleStoreStock) : (Number(prod.stock) || 0);
-      return maxAllowed > 0 ? numQty > maxAllowed : false;
+      const maxAllowed = prod.vehicleStoreStock !== undefined && prod.vehicleStoreStock !== null
+        ? Number(prod.vehicleStoreStock)
+        : Number(prod.stock ?? prod.warehouseStock ?? 0);
+      return numQty > maxAllowed;
     });
   }, [stockQuantities, items]);
 
