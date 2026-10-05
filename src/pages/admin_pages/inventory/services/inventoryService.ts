@@ -27,24 +27,40 @@ export const inventoryService = {
   },
   getProcurementGRNs: async () => {
     try {
-      const grnRes = await api.get('/procurement/grns');
-      const list = grnRes.data?.data || grnRes.data || [];
-      if (Array.isArray(list) && list.length > 0) {
-        return grnRes;
-      }
-      // Fallback to Purchase Orders if GRNs are empty
-      const poRes = await api.get('/procurement/purchase-orders');
-      const pos = Array.isArray(poRes.data) ? poRes.data : (poRes.data?.data || []);
-      const mappedPosAsGRNs = pos.map((po: any) => ({
-        id: po.id,
-        displayId: po.displayId || po.poNumber ? `PO-#${po.poNumber}` : po.id.slice(0, 8),
-        po: { vendor: po.vendor },
-        items: (po.items || []).map((item: any) => ({
-          productId: item.productId,
-          receivedQuantity: item.quantity
-        }))
-      }));
-      return { data: { data: mappedPosAsGRNs } };
+      const [grnRes, poRes] = await Promise.allSettled([
+        api.get('/procurement/grns'),
+        api.get('/procurement/purchase-orders')
+      ]);
+
+      const grnList = grnRes.status === 'fulfilled' ? (grnRes.value.data?.data || grnRes.value.data || []) : [];
+      const poList = poRes.status === 'fulfilled' ? (Array.isArray(poRes.value.data) ? poRes.value.data : (poRes.value.data?.data || [])) : [];
+
+      const poMap = new Map(poList.map((po: any) => [po.id, po]));
+
+      const mappedGRNs = grnList.map((grn: any) => {
+        const parentPo = grn.po || poMap.get(grn.poId);
+        const vendorName = grn.vendorName || parentPo?.vendor?.vendorName || parentPo?.vendorName || '';
+        return {
+          ...grn,
+          po: parentPo ? { ...parentPo, vendor: { vendorName: parentPo.vendor?.vendorName || vendorName } } : { vendor: { vendorName } }
+        };
+      });
+
+      // Also map standalone POs if GRNs aren't present for them
+      const grnPoIds = new Set(grnList.map((g: any) => g.poId).filter(Boolean));
+      const standalonePOs = poList
+        .filter((po: any) => !grnPoIds.has(po.id))
+        .map((po: any) => ({
+          id: po.id,
+          displayId: po.displayId || (po.poNumber ? `PO-#${po.poNumber}` : po.id.slice(0, 8)),
+          po: { vendor: po.vendor },
+          items: (po.items || []).map((item: any) => ({
+            productId: item.productId,
+            receivedQuantity: item.receivedQty || item.quantity || 0
+          }))
+        }));
+
+      return { data: { data: [...mappedGRNs, ...standalonePOs] } };
     } catch (err) {
       console.error('getProcurementGRNs error:', err);
       return { data: { data: [] } };

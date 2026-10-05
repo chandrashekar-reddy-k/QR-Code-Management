@@ -47,7 +47,7 @@ export const procurementAPI = {
       return { data: { data: [] } };
     }
   },
-  getUnconfiguredGRNItems: () => api.get('/procurement/grns/unconfigured-items'),
+  getUnconfiguredGRNItems: (params?: any) => api.get('/procurement/grns/unconfigured-items', { params }),
   configureGRNItemsToRaw: (data: any) => api.post('/procurement/grns/configure-to-raw', data),
   createGRN: (data: any) => api.post('/procurement/grns', data),
   updateGRN: (id: string, data: any) => api.put(`/procurement/grns/${id}`, data),
