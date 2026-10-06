@@ -22,7 +22,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
   const [approvalFilter, setApprovalFilter] = useState('');
   
   // Tab navigation for vendor form sections
-  const [activeFormTab, setActiveFormTab] = useState('general');
+  const [activeFormTab, setActiveFormTab] = useState('regulation');
 
   const initialForm = {
     hasGst: 'No',
@@ -128,11 +128,11 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
       }
       setShowForm(false);
       setEditVendor(null);
-      setActiveFormTab('general');
+      setActiveFormTab('regulation');
       setForm(initialForm);
       await loadVendors();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error saving vendor information');
+      toast.error(err.response?.data?.response || err.response?.data?.message || 'Error saving vendor information');
     }
   };
 
@@ -926,7 +926,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
               onClick={() => { 
                 setShowForm(true); 
                 setEditVendor(null); 
-                setActiveFormTab('general');
+                setActiveFormTab('regulation');
                 setForm(initialForm); 
               }}
               className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/10"
