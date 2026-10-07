@@ -80,8 +80,9 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
     setFormLoading(true);
     // We always refetch products to ensure latest prices/taxes are used
     try {
+      const extractList = (res) => Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : (Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res?.data?.data?.data) ? res.data.data.data : [])));
       const [v, p, c, u, sc, s, po, g] = await Promise.all([
-        procurementAPI.getVendors({ status: 'ACTIVE' }),
+        procurementAPI.getVendors(),
         adminAPI.getItems(),
         adminAPI.getCategories(),
         adminAPI.getUnits(),
@@ -90,7 +91,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
         procurementAPI.getPurchaseOrders({ status: 'APPROVED,ORDERED,DELIVERED' }),
         procurementAPI.getGRNs({ status: 'APPROVED,PARTIAL' })
       ]);
-      setVendors(v.data);
+      setVendors(extractList(v));
       setProducts(p.data.filter(x => x.status === 'ACTIVE'));
       setCategories(c.data?.categories || c.data?.data?.categories || (Array.isArray(c.data) ? c.data : []));
       setUnits(Array.isArray(u.data) ? u.data : u.data?.units || u.data?.data?.units || []);
@@ -102,10 +103,17 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
         const rates = s.data.data.taxRates.split(',').map(r => parseFloat(r.trim())).filter(r => !isNaN(r));
         setTaxSlabs(rates);
       }
+      setForm({ vendorId: '', grnId: '', invoiceNumber: generateInvoiceNumber(), invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] });
       setShowForm(true);
     } catch { toast.error('Failed to load data'); }
     finally { setFormLoading(false); }
   };
+
+  useEffect(() => {
+    if (showForm && vendors.length === 0 && !formLoading) {
+      openForm();
+    }
+  }, [showForm]);
 
   const handleOpenVendorModal = () => {
     setActiveVendorTab('general');
@@ -780,7 +788,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
 
               {can('PROCUREMENT', 'CREATE', 'PURCHASES') && (
                 <button
-                  onClick={() => { setForm({ vendorId: '', poId: '', invoiceNumber: '', invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] }); setShowForm(true); }}
+                  onClick={openForm}
                   disabled={formLoading}
                   className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/10 active:scale-95 disabled:opacity-70">
                   {formLoading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} strokeWidth={3} />}
