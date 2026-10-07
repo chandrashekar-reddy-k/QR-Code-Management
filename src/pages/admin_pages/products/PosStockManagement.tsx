@@ -47,6 +47,76 @@ export interface PosStockProduct {
   baseStock?: number;
 }
 
+const sanitizeUrl = (url: string | null | undefined): string | null => {
+  if (!url || typeof url !== 'string' || !url.trim()) return null;
+  let clean = url.trim();
+  clean = clean.replace('https://villagkart-media.s3.ap-south-1.amazonaws.com', 'https://dev-villagkart-media.s3.ap-south-1.amazonaws.com');
+  try {
+    return encodeURI(clean);
+  } catch {
+    return clean;
+  }
+};
+
+export const extractProductImage = (p: any): string | null => {
+  if (!p) return null;
+
+  if (typeof p.image === 'string' && p.image.trim()) return sanitizeUrl(p.image);
+  if (typeof p.mainImage === 'string' && p.mainImage.trim()) return sanitizeUrl(p.mainImage);
+
+  if (Array.isArray(p.images) && p.images.length > 0) {
+    const first = p.images[0];
+    if (typeof first === 'string' && first.trim()) return sanitizeUrl(first);
+    if (first && typeof first === 'object') {
+      const url = first.url || first.src || first.image || first.path;
+      if (typeof url === 'string' && url.trim()) return sanitizeUrl(url);
+    }
+  }
+
+  if (typeof p.images === 'string' && p.images.trim()) {
+    const trimmed = p.images.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const first = parsed[0];
+          if (typeof first === 'string' && first.trim()) return sanitizeUrl(first);
+          if (first && typeof first === 'object') {
+            const url = first.url || first.src || first.image || first.path;
+            if (typeof url === 'string' && url.trim()) return sanitizeUrl(url);
+          }
+        }
+      } catch {
+        // Ignored
+      }
+    } else if (trimmed.startsWith('http') || trimmed.startsWith('/') || trimmed.startsWith('data:')) {
+      return sanitizeUrl(trimmed);
+    }
+  }
+
+  if (p.product && typeof p.product === 'object' && p.product !== p) {
+    const nestedImg = extractProductImage(p.product);
+    if (nestedImg) return nestedImg;
+  }
+
+  if (Array.isArray(p.variants) && p.variants.length > 0) {
+    for (const v of p.variants) {
+      if (!v) continue;
+      if (typeof v.image === 'string' && v.image.trim()) return sanitizeUrl(v.image);
+      if (Array.isArray(v.primaryImages) && v.primaryImages.length > 0) {
+        const first = v.primaryImages[0];
+        if (typeof first === 'string' && first.trim()) return sanitizeUrl(first);
+      }
+      if (Array.isArray(v.images) && v.images.length > 0) {
+        const first = v.images[0];
+        if (typeof first === 'string' && first.trim()) return sanitizeUrl(first);
+      }
+    }
+  }
+
+  return null;
+};
+
 export default function PosStockManagement() {
   const [products, setProducts] = useState<PosStockProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -115,7 +185,7 @@ export default function PosStockManagement() {
           const variantsCount = variants.length;
 
           const productId = (p.productId as string) || String(p.id ?? '').slice(0, 8).toUpperCase();
-          const img = p.image || (Array.isArray(p.images) ? p.images[0] : null);
+          const img = extractProductImage(p);
           const stageStock = (p.posStock !== undefined && p.posStock !== null)
             ? Number(p.posStock)
             : (p.posStoreStock?.posStock !== undefined && p.posStoreStock?.posStock !== null
@@ -644,10 +714,24 @@ export default function PosStockManagement() {
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
                         {p.image ? (
-                          <img src={p.image} alt={p.name} className="w-10 h-10 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shrink-0" />
+                          <div className="relative shrink-0">
+                            <img 
+                              src={p.image} 
+                              alt={p.name} 
+                              className="w-10 h-10 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 shadow-xs" 
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                                const sibling = (e.target as HTMLElement).nextElementSibling;
+                                if (sibling) sibling.classList.remove('hidden');
+                              }}
+                            />
+                            <div className="hidden w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                              {(p.name || 'P').slice(0, 2).toUpperCase()}
+                            </div>
+                          </div>
                         ) : (
                           <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
-                            {p.name.slice(0, 2).toUpperCase()}
+                            {(p.name || 'P').slice(0, 2).toUpperCase()}
                           </div>
                         )}
                         <div>

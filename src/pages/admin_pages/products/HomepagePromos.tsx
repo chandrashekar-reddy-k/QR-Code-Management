@@ -47,8 +47,8 @@ export default function HomepagePromos() {
 
   const partnerWarehouseId = localStorage.getItem('partnerWarehouseId') || '';
 
-  // Load products list via the hook - filter to only active, approved products for this partner's warehouse
-  const { data: productsRes, isFetching } = useGetAllProductList(1, 1000, searchQuery, true, "APPROVED", partnerWarehouseId);
+  // Load products list via the hook - load products for this partner's warehouse
+  const { data: productsRes, isFetching } = useGetAllProductList(1, 1000, searchQuery, true, undefined, partnerWarehouseId);
   const rawProducts = (productsRes as any)?.data?.products ?? [];
 
   // Filter only products present in the Online (Customer App) channel (identical logic to /inventory/online)
@@ -69,13 +69,19 @@ export default function HomepagePromos() {
           ? Number(p.onlineAppStock.onlineStock)
           : (p.stageStocks?.LIVE !== undefined ? Number(p.stageStocks.LIVE) : (p.stock ?? 0)));
 
-      const effectivePrice = p.onlineAppStock?.onlinePrice ?? p.onlinePrice ?? p.sellingPrice ?? p.price ?? 0;
-      const effectiveMrp = p.mrp ?? p.price ?? effectivePrice;
+      const channelPrice = (p.onlinePrice !== undefined && p.onlinePrice !== null && p.onlinePrice > 0)
+        ? Number(p.onlinePrice)
+        : ((p.onlineAppStock?.appPrice ?? p.onlineAppStock?.channelPrice ?? p.onlineAppStock?.onlinePrice ?? p.channelPrice ?? p.sellingPrice ?? p.price) ?? 0);
+
+      const salePrice = (p.price !== undefined && p.price !== null) ? Number(p.price) : channelPrice;
+      const effectiveMrp = (p.mrp !== undefined && p.mrp !== null && p.mrp > 0) ? p.mrp : channelPrice;
 
       return {
         ...p,
         onlineStock,
-        onlinePrice: effectivePrice,
+        channelPrice,
+        onlinePrice: channelPrice,
+        price: salePrice,
         effectiveMrp
       };
     });
@@ -106,7 +112,7 @@ export default function HomepagePromos() {
     });
     toast.success(`${product.name} updated successfully.`);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { isFeatured: newVal });
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { isFeatured: newVal, allowBelowCost: true });
       invalidate();
     } catch (err) { console.error(err); toast.error('Failed to update featured status.'); invalidate(); }
   };
@@ -129,7 +135,7 @@ export default function HomepagePromos() {
     });
     toast.success(`${product.name} weekly status updated.`);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { tags: newTags });
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { tags: newTags, allowBelowCost: true });
       invalidate();
     } catch (err) { console.error(err); toast.error('Failed to update weekly status.'); invalidate(); }
   };
@@ -149,7 +155,7 @@ export default function HomepagePromos() {
     });
     toast.success(`Offer removed from ${product.name}.`);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { mrp: null, flashDealEnd: null });
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { mrp: null, offerPrice: null, flashDealEnd: null, allowBelowCost: true });
       invalidate();
     } catch (err) { console.error(err); toast.error('Failed to remove offer.'); invalidate(); }
   };
@@ -162,20 +168,23 @@ export default function HomepagePromos() {
         data: {
           ...old.data,
           products: old.data.products.map((p: any) =>
-            p.id === product.id ? { ...p, flashDealEnd: null } : p
+            p.id === product.id ? { ...p, flashDealEnd: null, flashPrice: null } : p
           ),
         },
       };
     });
     toast.success(`Flash deal removed from ${product.name}.`);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { flashDealEnd: null });
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { flashDealEnd: null, flashPrice: null, allowBelowCost: true });
       invalidate();
     } catch (err) { console.error(err); toast.error('Failed to remove flash deal.'); invalidate(); }
   };
 
   const handleRollbackOffer = async (product) => {
-    if (!product.mrp) { toast.error('No original price to roll back to.'); return; }
+    const currentTags = Array.isArray(product.tags) ? product.tags : [];
+    const newTags = currentTags.filter((t: string) => t !== 'offer');
+    const rollbackPrice = (product.mrp && Number(product.mrp) > 0) ? Number(product.mrp) : (product.channelPrice ?? product.price);
+
     queryClient.setQueriesData({ queryKey: ['product'] }, (old: any) => {
       if (!old?.data?.products) return old;
       return {
@@ -183,41 +192,51 @@ export default function HomepagePromos() {
         data: {
           ...old.data,
           products: old.data.products.map((p: any) =>
-            p.id === product.id ? { ...p, price: product.mrp, mrp: null, flashDealEnd: null } : p
+            p.id === product.id ? { ...p, price: rollbackPrice, mrp: null, offerPrice: null, flashDealEnd: null, discountType: null, tags: newTags } : p
           ),
         },
       };
     });
-    toast.success(`${product.name} rolled back to ₹${product.mrp}.`);
+    toast.success(`${product.name} offer rolled back successfully.`);
     try {
-      await fetchData(`productmanagement/product/${product.id}`, 'PUT', { price: product.mrp, mrp: null, flashDealEnd: null });
+      await fetchData(`productmanagement/product/${product.id}`, 'PUT', {
+        price: rollbackPrice,
+        mrp: null,
+        offerPrice: null,
+        flashDealEnd: null,
+        discountType: null,
+        tags: newTags,
+        allowBelowCost: true
+      });
       invalidate();
-    } catch (err) { console.error(err); toast.error('Rollback failed.'); invalidate(); }
+    } catch (err) {
+      console.error(err);
+      toast.error('Rollback failed.');
+      invalidate();
+    }
   };
 
   const handleRollbackAll = async () => {
-    const toRollback = filteredProducts.filter(p => p.mrp && p.mrp > p.price);
-    if (toRollback.length === 0) { toast('No products with saved original prices to roll back.'); return; }
+    if (filteredProducts.length === 0) { toast('No offer products to roll back.'); return; }
     setIsRollingBack(true);
-    toRollback.forEach(product => {
-      queryClient.setQueriesData({ queryKey: ['product'] }, (old: any) => {
-        if (!old?.data?.products) return old;
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            products: old.data.products.map((p: any) =>
-              p.id === product.id ? { ...p, price: product.mrp, mrp: null } : p
-            ),
-          },
-        };
-      });
-    });
     try {
       await Promise.all(
-        toRollback.map(p => fetchData(`productmanagement/product/${p.id}`, 'PUT', { price: p.mrp, mrp: null }))
+        filteredProducts.map(product => {
+          const currentTags = Array.isArray(product.tags) ? product.tags : [];
+          const newTags = currentTags.filter((t: string) => t !== 'offer');
+          const rollbackPrice = (product.mrp && Number(product.mrp) > 0) ? Number(product.mrp) : (product.channelPrice ?? product.price);
+          return fetchData(`productmanagement/product/${product.id}`, 'PUT', {
+            price: rollbackPrice,
+            mrp: null,
+            offerPrice: null,
+            flashDealEnd: null,
+            discountType: null,
+            tags: newTags,
+            allowBelowCost: true
+          });
+        })
       );
-      toast.success(`Rolled back ${toRollback.length} product${toRollback.length > 1 ? 's' : ''} to original prices.`);
+      toast.success(`Rolled back ${filteredProducts.length} offer product${filteredProducts.length > 1 ? 's' : ''}.`);
       invalidate();
     } catch (err) {
       console.error(err);
@@ -238,9 +257,13 @@ export default function HomepagePromos() {
         durationStr = Math.max(1, Math.round(remainingMs / (3600 * 1000))).toString();
       }
     }
+    const autoMrp = (product.mrp !== undefined && product.mrp !== null && product.mrp > 0)
+      ? product.mrp
+      : (product.effectiveMrp ?? product.channelPrice ?? product.price ?? '');
+    const currentPrice = product.price ?? product.channelPrice ?? product.onlinePrice;
     setPromoForm({
-      mrp: product.mrp ? product.mrp.toString() : '',
-      price: product.price ? product.price.toString() : '',
+      mrp: autoMrp ? autoMrp.toString() : '',
+      price: currentPrice ? currentPrice.toString() : '',
       isFeatured: product.isFeatured || false,
       flashDuration: durationStr
     });
@@ -280,14 +303,16 @@ export default function HomepagePromos() {
       }
     }
 
+    const currentTags = Array.isArray(product.tags) ? product.tags : [];
     let payload: Record<string, any>;
     if (activeTab === 'flash') {
-      payload = { price: priceFloat, flashDealEnd: flashDealEndVal };
+      payload = { price: priceFloat, flashPrice: priceFloat, flashDealEnd: flashDealEndVal, allowBelowCost: true };
       if (hasMrp) payload.mrp = mrpFloat;
     } else if (activeTab === 'offers') {
-      payload = { mrp: mrpFloat, price: priceFloat, isFeatured: promoForm.isFeatured, discountType: 'OFFER' };
+      const offerTags = Array.from(new Set([...currentTags, 'offer']));
+      payload = { mrp: mrpFloat, price: priceFloat, offerPrice: priceFloat, isFeatured: promoForm.isFeatured, discountType: 'OFFER', tags: offerTags, allowBelowCost: true };
     } else {
-      payload = { price: priceFloat, isFeatured: promoForm.isFeatured };
+      payload = { price: priceFloat, isFeatured: promoForm.isFeatured, allowBelowCost: true };
     }
 
     queryClient.setQueriesData({ queryKey: ['product'] }, (old: any) => {
@@ -308,9 +333,9 @@ export default function HomepagePromos() {
     try {
       await fetchData(`productmanagement/product/${product.id}`, 'PUT', payload);
       invalidate();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to save. Please try again.');
+      toast.error(err?.message || err?.data?.response || 'Failed to save. Please try again.');
       invalidate();
     }
   };
@@ -540,32 +565,17 @@ export default function HomepagePromos() {
 
                     {editingProduct === product.id ? (
                       <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
-                        {activeTab !== 'flash' && (
-                          <div className="w-24">
-                            <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">MRP (₹)</label>
-                            <input
-                              type="number"
-                              placeholder="MRP"
-                              value={promoForm.mrp}
-                              onWheel={e => e.target.blur()}
-                              onChange={e => setPromoForm({ ...promoForm, mrp: e.target.value })}
-                              className="w-full bg-gray-50 dark:bg-gray-95 border border-gray-200 dark:border-gray-800 px-2.5 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
-                            />
-                          </div>
-                        )}
-                        {activeTab === 'flash' && (
-                          <div className="w-24">
-                            <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">MRP (₹) opt.</label>
-                            <input
-                              type="number"
-                              placeholder="Optional"
-                              value={promoForm.mrp}
-                              onWheel={e => e.target.blur()}
-                              onChange={e => setPromoForm({ ...promoForm, mrp: e.target.value })}
-                              className="w-full bg-gray-50 dark:bg-gray-95 border border-gray-200 dark:border-gray-800 px-2.5 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
-                            />
-                          </div>
-                        )}
+                        <div className="w-24">
+                          <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">MRP (₹)</label>
+                          <input
+                            type="number"
+                            readOnly
+                            disabled
+                            placeholder="MRP"
+                            value={promoForm.mrp}
+                            className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 px-2.5 py-1.5 rounded-xl font-mono text-xs font-bold text-gray-500 cursor-not-allowed outline-none"
+                          />
+                        </div>
                         <div className="w-24">
                           <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">Sale Price (₹)</label>
                           <input
@@ -652,12 +662,6 @@ export default function HomepagePromos() {
                               >
                                 <RotateCcw size={11} /> Rollback
                               </button>
-                              <button
-                                onClick={() => handleRemoveOffer(product)}
-                                className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 rounded-xl text-xs font-bold transition-all"
-                              >
-                                Remove
-                              </button>
                             </div>
                           )}
                         </div>
@@ -710,7 +714,7 @@ export default function HomepagePromos() {
                           {product.name}
                           {isOutOfStock && <span className="ml-2 text-[9px] text-red-500 font-extrabold uppercase">(Out of Stock)</span>}
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">Online Price: ₹{effectivePrice} | Online Stock: {effectiveStock}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Channel Price: ₹{effectivePrice} | Online Stock: {effectiveStock}</div>
                       </div>
 
                       {isOutOfStock ? (
@@ -747,11 +751,11 @@ export default function HomepagePromos() {
                         <label className="text-[9px] font-black uppercase text-gray-400 block mb-0.5">MRP (₹)</label>
                         <input
                           type="number"
+                          readOnly
+                          disabled
                           placeholder="MRP"
                           value={promoForm.mrp}
-                          onWheel={e => (e.target as HTMLInputElement).blur()}
-                          onChange={e => setPromoForm({ ...promoForm, mrp: e.target.value })}
-                          className="w-full bg-gray-50 dark:bg-gray-955 border border-gray-200 dark:border-gray-800 px-2 py-1.5 rounded-xl font-mono text-xs font-bold outline-none"
+                          className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 px-2 py-1.5 rounded-xl font-mono text-xs font-bold text-gray-500 cursor-not-allowed outline-none"
                         />
                       </div>
                       <div className="w-20">

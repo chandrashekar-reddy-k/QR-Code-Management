@@ -89,10 +89,20 @@ const AddPromoCode = () => {
     updatePromoCodeMutation.isPending ||
     (isEditing && isPromoCodesLoading);
 
-  // Fetch products list for mapping
-  const { data: productsData, isLoading: isProductsLoading } = useGetAllProductList(1, 100, productSearchTerm);
+  // Fetch products list for mapping (only Online App channel products)
+  const { data: productsData, isLoading: isProductsLoading } = useGetAllProductList(1, 1000, productSearchTerm);
   const allProducts: any[] = useMemo(() => {
-    return productsData?.data?.data || productsData?.data?.products || productsData?.data || [];
+    const raw = productsData?.data?.data || productsData?.data?.products || productsData?.data || [];
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((p: any) => {
+      const hasOnlineChannel = Array.isArray(p.channelInventories) && p.channelInventories.some((ci: any) => ci.channel === 'ONLINE_APP' && (ci.isActive || Number(ci.quantity) > 0));
+      const isPublished = p.onlineAppStock?.isPublished !== undefined
+        ? Boolean(p.onlineAppStock.isPublished)
+        : (p.isOnline === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE')) || hasOnlineChannel);
+      const hasOnlineStock = Number(p.onlineStock ?? p.onlineAppStock?.onlineStock ?? p.stageStocks?.LIVE) > 0;
+
+      return isPublished || hasOnlineStock;
+    });
   }, [productsData]);
 
   const promoCodes = useMemo(() => {

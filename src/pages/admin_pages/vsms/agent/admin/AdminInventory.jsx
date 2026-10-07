@@ -441,8 +441,14 @@ export default function AdminInventory() {
 
   const hasInvalidQuantities = React.useMemo(() => {
     return Object.entries(stockQuantities).some(([pid, qty]) => {
+      const numQty = parseInt(qty) || 0;
+      if (numQty <= 0) return false;
       const prod = items.find(p => p.id === pid);
-      return prod && (parseInt(qty) || 0) > (prod.stock || 0);
+      if (!prod) return false;
+      const maxAllowed = prod.vehicleStoreStock !== undefined && prod.vehicleStoreStock !== null
+        ? Number(prod.vehicleStoreStock)
+        : Number(prod.stock ?? prod.warehouseStock ?? 0);
+      return numQty > maxAllowed;
     });
   }, [stockQuantities, items]);
 

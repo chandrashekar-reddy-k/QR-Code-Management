@@ -58,17 +58,20 @@ const ReadyInventory: React.FC = () => {
       const res = await inventoryService.getProcurementGRNs();
       const list = res.data?.data || res.data || [];
       setProcurementGRNs(list);
-      const map: Record<string, any> = {};
+      const map: Record<string, any[]> = {};
       list.forEach((grn: any) => {
         if (grn.items && Array.isArray(grn.items)) {
           grn.items.forEach((item: any) => {
             if (item.productId) {
-              map[item.productId] = {
+              if (!map[item.productId]) {
+                map[item.productId] = [];
+              }
+              map[item.productId].push({
                 grnId: grn.id,
                 grnDisplayId: grn.displayId || grn.grnNumber || grn.id.slice(0, 8),
                 receivedQty: item.receivedQuantity || item.receivedQty || item.quantity || 0,
                 poDisplayId: grn.po?.displayId || grn.po?.poNumber || ''
-              };
+              });
             }
           });
         }
@@ -81,7 +84,7 @@ const ReadyInventory: React.FC = () => {
 
   const fetchInventory = async () => {
     try {
-      const response = await inventoryService.getReadyInventory({ page: 1, limit: 100 });
+      const response = await inventoryService.getReadyInventory({ page: 1, limit: 2000 });
       if (response.data && response.data.data) {
         const mappedData = response.data.data.products.map((item: any) => {
           const totalStock = item.baseStock ?? item.stock ?? 0;
@@ -129,8 +132,8 @@ const ReadyInventory: React.FC = () => {
 
     if (selectedGRNId !== 'ALL') {
       filtered = filtered.filter((item) => {
-        const grnMeta = grnItemsMap[item.id];
-        return grnMeta && grnMeta.grnId === selectedGRNId;
+        const grnMetas = grnItemsMap[item.id];
+        return grnMetas && Array.isArray(grnMetas) && grnMetas.some((g: any) => g.grnId === selectedGRNId);
       });
     }
 
@@ -265,9 +268,21 @@ const ReadyInventory: React.FC = () => {
       key: 'readyQty',
       label: 'READY QTY',
       sortable: true,
-      render: (item: ReadyInventoryItem) => (
-        <span className="text-sm font-semibold text-gray-900">{item.readyQty}</span>
-      )
+      render: (item: ReadyInventoryItem) => {
+        const grnMetas = grnItemsMap[item.id] || [];
+        const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
+        const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-gray-900">{item.readyQty}</span>
+            {isGrnFiltered && (
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 w-fit">
+                GRN Received: {matchedGrn.receivedQty}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'online',
