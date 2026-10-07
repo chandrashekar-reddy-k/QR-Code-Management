@@ -1,12 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Search, Link2, CheckCircle2, ChevronRight, Package, Loader2,
+  Search, Link2, CheckCircle2, ChevronRight, ChevronDown, Package, Loader2,
   Star, Clock, ShieldCheck, Tag, Info, AlertCircle, Sparkles,
-  ToggleLeft, ToggleRight, X, ArrowLeft, ArrowUpRight, DollarSign, Calendar
+  ToggleLeft, ToggleRight, X, ArrowLeft, ArrowUpRight, DollarSign, Calendar,
+  CheckSquare, Square
 } from 'lucide-react';
 import { procurementAPI } from '../../../services/procurementService';
 import { adminAPI } from '../../../services/adminService';
 import toast from 'react-hot-toast';
+
+const ProductThumbnail = ({ p, isMapped }) => {
+  const [hasError, setHasError] = useState(false);
+  const prodImg = p.image || p.imageUrl || (Array.isArray(p.images) ? p.images[0] : (typeof p.images === 'string' ? p.images : null)) || p.thumbnail || p.photo;
+
+  return (
+    <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0 overflow-hidden ${
+      isMapped ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/20' : 'bg-gray-100 text-gray-400'
+    }`}>
+      {prodImg && !hasError ? (
+        <img 
+          src={prodImg} 
+          alt={p.name} 
+          className="w-full h-full object-cover rounded-xl"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <Package size={16} />
+      )}
+    </div>
+  );
+};
+
+const getCategoryName = (p) => {
+  if (!p) return 'General / Uncategorized';
+  if (typeof p.category === 'string' && p.category.trim() !== '') return p.category.trim();
+  if (p.category?.name && typeof p.category.name === 'string' && p.category.name.trim() !== '') return p.category.name.trim();
+  if (p.categoryName && typeof p.categoryName === 'string' && p.categoryName.trim() !== '') return p.categoryName.trim();
+  return 'General / Uncategorized';
+};
+
+const getProductUom = (p) => {
+  return 'PACK';
+};
 
 const MappingSection = ({ can, setHideMainHeader }) => {
   const [vendors, setVendors] = useState([]);
@@ -58,11 +93,16 @@ const MappingSection = ({ can, setHideMainHeader }) => {
       
       // Convert mapping array into a lookup object
       const mappingDict = {};
-      data.forEach(m => {
+      mappingArray.forEach(m => {
+        const prod = products.find(p => p.id === m.productId || p.productId === m.productId);
         mappingDict[m.productId] = {
           productId: m.productId,
-          vendorSku: m.vendorSku || '',
+          vendorSku: m.vendorSku || prod?.skuCode || prod?.sku || '',
+          uom: m.uom || 'PACK',
           purchasePrice: String(m.purchasePrice || 0),
+          mrp: String(m.mrp ?? m.moq ?? prod?.mrp ?? 0),
+          landingPrice: String(m.landingPrice ?? m.leadTime ?? prod?.landingPrice ?? prod?.purchasePrice ?? 0),
+          quantity: String(m.quantity ?? (m.taxPercent > 0 ? m.taxPercent : 1)),
           moq: String(m.moq || 1),
           leadTime: String(m.leadTime || 0),
           taxPercent: String(m.taxPercent || 0),
@@ -78,6 +118,7 @@ const MappingSection = ({ can, setHideMainHeader }) => {
   };
 
   const toggleProduct = (productId, standardPrice = 0) => {
+    const p = products.find(item => item.id === productId);
     setMappedItems(prev => {
       const next = { ...prev };
       if (next[productId]) {
@@ -85,8 +126,12 @@ const MappingSection = ({ can, setHideMainHeader }) => {
       } else {
         next[productId] = {
           productId,
-          vendorSku: '',
+          vendorSku: p?.skuCode || p?.sku || '',
+          uom: getProductUom(p),
           purchasePrice: String(standardPrice),
+          mrp: String(p?.mrp || 0),
+          landingPrice: String(p?.landingPrice || standardPrice || p?.purchasePrice || p?.price || 0),
+          quantity: '1',
           moq: '1',
           leadTime: '3',
           taxPercent: '0',
@@ -94,6 +139,118 @@ const MappingSection = ({ can, setHideMainHeader }) => {
           isPreferred: false,
           priceHistory: []
         };
+      }
+      return next;
+    });
+  };
+
+  const filteredProducts = products.filter(p => 
+    p.name?.toLowerCase().includes(pSearch.toLowerCase()) || 
+    p.variantName?.toLowerCase().includes(pSearch.toLowerCase()) ||
+    p.skuCode?.toLowerCase().includes(pSearch.toLowerCase())
+  );
+
+  const [collapsedCategories, setCollapsedCategories] = useState({});
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
+
+  const toggleCategoryCollapse = (catName) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [catName]: !prev[catName]
+    }));
+  };
+
+  const allCategories = useMemo(() => {
+    const cats = new Set();
+    products.forEach(p => cats.add(getCategoryName(p)));
+    return Array.from(cats).sort();
+  }, [products]);
+
+  const groupedProducts = useMemo(() => {
+    const groups = {};
+    filteredProducts.forEach(p => {
+      const catName = getCategoryName(p);
+      if (!groups[catName]) {
+        groups[catName] = [];
+      }
+      groups[catName].push(p);
+    });
+
+    Object.keys(groups).forEach(cat => {
+      groups[cat].sort((a, b) => {
+        const isAMapped = !!mappedItems[a.id];
+        const isBMapped = !!mappedItems[b.id];
+        if (isAMapped && !isBMapped) return -1;
+        if (!isAMapped && isBMapped) return 1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    });
+
+    return groups;
+  }, [filteredProducts, mappedItems]);
+
+  const handleToggleCategorySelectAll = (categoryProducts) => {
+    const areAllCatSelected = categoryProducts.length > 0 && categoryProducts.every(p => !!mappedItems[p.id]);
+    setMappedItems(prev => {
+      const next = { ...prev };
+      if (areAllCatSelected) {
+        categoryProducts.forEach(p => {
+          delete next[p.id];
+        });
+      } else {
+        categoryProducts.forEach(p => {
+          if (!next[p.id]) {
+            next[p.id] = {
+              productId: p.id,
+              vendorSku: p.skuCode || p.sku || '',
+              uom: getProductUom(p),
+              purchasePrice: String(p.purchasePrice || p.price || 0),
+              mrp: String(p.mrp || 0),
+              landingPrice: String(p.landingPrice || p.purchasePrice || p.price || 0),
+              quantity: '1',
+              moq: '1',
+              leadTime: '3',
+              taxPercent: '0',
+              lastPurchaseRate: '0',
+              isPreferred: false,
+              priceHistory: []
+            };
+          }
+        });
+      }
+      return next;
+    });
+  };
+
+  const areAllFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(p => !!mappedItems[p.id]);
+
+  const handleToggleSelectAll = () => {
+    setMappedItems(prev => {
+      const next = { ...prev };
+      if (areAllFilteredSelected) {
+        filteredProducts.forEach(p => {
+          delete next[p.id];
+        });
+      } else {
+        filteredProducts.forEach(p => {
+          if (!next[p.id]) {
+            next[p.id] = {
+              productId: p.id,
+              vendorSku: p.skuCode || p.sku || '',
+              uom: getProductUom(p),
+              purchasePrice: String(p.purchasePrice || p.price || 0),
+              mrp: String(p.mrp || 0),
+              landingPrice: String(p.landingPrice || p.purchasePrice || p.price || 0),
+              quantity: '1',
+              moq: '1',
+              leadTime: '3',
+              taxPercent: '0',
+              lastPurchaseRate: '0',
+              isPreferred: false,
+              priceHistory: []
+            };
+          }
+        });
       }
       return next;
     });
@@ -132,10 +289,14 @@ const MappingSection = ({ can, setHideMainHeader }) => {
     const payload = Object.values(mappedItems).map(item => ({
       productId: item.productId,
       vendorSku: item.vendorSku ? item.vendorSku.trim() : null,
+      uom: item.uom ? item.uom.trim() : null,
       purchasePrice: parseFloat(item.purchasePrice) || 0,
-      moq: parseInt(item.moq) || 1,
-      leadTime: parseInt(item.leadTime) || 0,
-      taxPercent: parseFloat(item.taxPercent) || 0,
+      mrp: parseFloat(item.mrp) || 0,
+      landingPrice: parseFloat(item.landingPrice) || 0,
+      quantity: parseInt(item.quantity) || 1,
+      moq: parseInt(item.mrp) || 1,
+      leadTime: parseFloat(item.landingPrice) || 0,
+      taxPercent: parseFloat(item.quantity) || 0,
       isPreferred: !!item.isPreferred
     }));
 
@@ -145,12 +306,12 @@ const MappingSection = ({ can, setHideMainHeader }) => {
         toast.error('Purchase Price cannot be negative.');
         return;
       }
-      if (item.moq < 1) {
-        toast.error('Minimum Order Quantity must be at least 1.');
+      if (item.mrp < 0) {
+        toast.error('MRP cannot be negative.');
         return;
       }
-      if (item.leadTime < 0) {
-        toast.error('Lead Time cannot be negative.');
+      if (item.landingPrice < 0) {
+        toast.error('Landing Price cannot be negative.');
         return;
       }
     }
@@ -230,7 +391,7 @@ const MappingSection = ({ can, setHideMainHeader }) => {
           <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 relative">
             
             {/* Header */}
-            <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+            <div className="p-5 border-b border-gray-50 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setSelectedVendor(null)}
@@ -246,7 +407,46 @@ const MappingSection = ({ can, setHideMainHeader }) => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Select / Deselect All Button */}
+                <button
+                  type="button"
+                  onClick={handleToggleSelectAll}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all shadow-sm active:scale-95 border ${
+                    areAllFilteredSelected
+                      ? 'bg-rose-50 text-rose-700 border-rose-200/80 hover:bg-rose-100'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100'
+                  }`}
+                >
+                  {areAllFilteredSelected ? (
+                    <>
+                      <Square size={13} className="text-rose-600" />
+                      <span>Deselect All</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare size={13} className="text-emerald-600" />
+                      <span>Select All</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Category Filter Dropdown */}
+                {allCategories.length > 0 && (
+                  <div className="relative">
+                    <select
+                      value={selectedCategoryFilter}
+                      onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                      className="bg-white border border-gray-200 text-gray-700 text-[11px] font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm cursor-pointer"
+                    >
+                      <option value="ALL">All Categories ({allCategories.length})</option>
+                      {allCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Stats indicators */}
                 <div className="hidden sm:flex items-center gap-1.5 bg-emerald-50 border border-emerald-100/50 px-3 py-1.5 rounded-xl">
                   <Sparkles size={12} className="text-emerald-600" />
@@ -255,7 +455,7 @@ const MappingSection = ({ can, setHideMainHeader }) => {
                   </span>
                 </div>
                 
-                <div className="relative group w-64">
+                <div className="relative group w-56">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors" size={12} />
                   <input 
                     type="text" 
@@ -268,181 +468,237 @@ const MappingSection = ({ can, setHideMainHeader }) => {
               </div>
             </div>
 
-            {/* Product List */}
-            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-white pb-28">
-              <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto">
-                {products
-                  .filter(p => p.name.toLowerCase().includes(pSearch.toLowerCase()))
-                  .sort((a, b) => {
-                    const isAMapped = !!mappedItems[a.id];
-                    const isBMapped = !!mappedItems[b.id];
-                    if (isAMapped && !isBMapped) return -1;
-                    if (!isAMapped && isBMapped) return 1;
-                    return a.name.localeCompare(b.name);
-                  })
-                  .map(p => {
-                  const isMapped = !!mappedItems[p.id];
-                  const itemData = mappedItems[p.id];
+            {/* Product List Grouped By Category */}
+            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-slate-50/40 pb-28">
+              <div className="flex flex-col gap-5 w-full max-w-6xl mx-auto">
+                {Object.keys(groupedProducts).length === 0 ? (
+                  <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
+                    <Package className="mx-auto text-gray-300 mb-2" size={32} />
+                    <p className="text-xs font-bold text-gray-500">No products found matching your search</p>
+                  </div>
+                ) : (
+                  Object.entries(groupedProducts)
+                    .filter(([catName]) => selectedCategoryFilter === 'ALL' || selectedCategoryFilter === catName)
+                    .map(([catName, categoryProducts]) => {
+                      const isCollapsed = !!collapsedCategories[catName];
+                      const mappedCatCount = categoryProducts.filter(p => !!mappedItems[p.id]).length;
+                      const isAllCatSelected = categoryProducts.length > 0 && mappedCatCount === categoryProducts.length;
 
-                  return (
-                    <div 
-                      key={p.id}
-                      className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
-                        isMapped 
-                          ? 'bg-slate-50/40 border-emerald-200 shadow-sm' 
-                          : 'bg-white border-gray-100 hover:border-gray-200'
-                      }`}
-                    >
-                      {/* Main row click to toggle mapping */}
-                      <div 
-                        onClick={() => toggleProduct(p.id, p.purchasePrice || p.price)}
-                        className={`flex items-center justify-between p-4 cursor-pointer select-none transition-all ${
-                          isMapped ? 'bg-slate-50/80 border-b border-slate-100' : 'hover:bg-slate-50/20'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all shrink-0 ${
-                            isMapped ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-400'
-                          }`}>
-                            <Package size={16} />
-                          </div>
-                          
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-black text-gray-900 tracking-tight">{p.name}</span>
-                              {isMapped && itemData.isPreferred && (
-                                <span className="inline-flex items-center gap-0.5 bg-amber-50 border border-amber-200/50 px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-amber-600 tracking-wide">
-                                  <Star size={8} fill="currentColor" /> Preferred Supplier
-                                </span>
-                              )}
+                      return (
+                        <div key={catName} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden transition-all">
+                          {/* Category Header Bar */}
+                          <div 
+                            className="px-5 py-3 bg-gradient-to-r from-emerald-50/70 via-slate-50/40 to-white border-b border-gray-100 flex items-center justify-between cursor-pointer select-none"
+                            onClick={() => toggleCategoryCollapse(catName)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <button 
+                                type="button" 
+                                className="p-1 rounded-lg text-emerald-700 hover:bg-emerald-100/50 transition-colors"
+                              >
+                                {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                              </button>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">{catName}</h3>
+                              </div>
+                              <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100/80 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
+                                {mappedCatCount} / {categoryProducts.length} Mapped
+                              </span>
                             </div>
-                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">ID: {p.id.slice(-6).toUpperCase()}</span>
+
+                            <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCategorySelectAll(categoryProducts)}
+                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black transition-all border shadow-2xs ${
+                                  isAllCatSelected
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                    : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+                                }`}
+                              >
+                                {isAllCatSelected ? 'Deselect Category' : 'Select Category'}
+                              </button>
+                            </div>
                           </div>
+
+                          {/* Category Items */}
+                          {!isCollapsed && (
+                            <div className="p-4 flex flex-col gap-3 bg-slate-50/30">
+                              {categoryProducts.map((p, pIdx) => {
+                                const isMapped = !!mappedItems[p.id];
+                                const itemData = mappedItems[p.id];
+
+                                return (
+                                  <div 
+                                    key={p.id ? `${p.id}_${p.variantName || pIdx}` : pIdx}
+                                    className={`rounded-xl border transition-all duration-300 overflow-hidden ${
+                                      isMapped 
+                                        ? 'bg-white border-emerald-300 shadow-sm ring-1 ring-emerald-500/10' 
+                                        : 'bg-white border-gray-200/80 hover:border-gray-300'
+                                    }`}
+                                  >
+                                    {/* Main row click to toggle mapping */}
+                                    <div 
+                                      onClick={() => toggleProduct(p.id, p.purchasePrice || p.price)}
+                                      className={`flex items-center justify-between p-4 cursor-pointer select-none transition-all ${
+                                        isMapped ? 'bg-slate-50/80 border-b border-slate-100' : 'hover:bg-slate-50/20'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <ProductThumbnail p={p} isMapped={isMapped} />
+                                        
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs font-black text-gray-900 tracking-tight">{p.name}</span>
+                                            {isMapped && itemData.isPreferred && (
+                                              <span className="inline-flex items-center gap-0.5 bg-amber-50 border border-amber-200/50 px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-amber-600 tracking-wide">
+                                                <Star size={8} fill="currentColor" /> Preferred Supplier
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">SKU: {String(p.id).slice(-6).toUpperCase()}</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-4 shrink-0">
+                                        <div className="flex flex-col items-end">
+                                          <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">Standard Price</span>
+                                          <span className="text-xs font-black text-slate-800">₹{p.purchasePrice || p.price}</span>
+                                        </div>
+                                        
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                          isMapped ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-200'
+                                        }`}>
+                                          {isMapped && <CheckCircle2 size={12} strokeWidth={3} />}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Detail inputs expanded if mapped */}
+                                    {isMapped && (
+                                      <div className="p-4 bg-white grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 animate-in slide-in-from-top-2 duration-300">
+                                        {/* Product SKU */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Product SKU</label>
+                                          <input 
+                                            type="text" 
+                                            value={(itemData.vendorSku && itemData.vendorSku !== 'NO-SKU') ? itemData.vendorSku : ((p.skuCode && p.skuCode !== 'NO-SKU') ? p.skuCode : ((p.sku && p.sku !== 'NO-SKU') ? p.sku : '-'))} 
+                                            readOnly
+                                            disabled
+                                            className="w-full bg-slate-100/70 text-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 cursor-not-allowed select-none"
+                                          />
+                                        </div>
+
+                                        {/* Quantity */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Quantity</label>
+                                          <input 
+                                            type="number" 
+                                            value={itemData.quantity ?? ''} 
+                                            onChange={e => handleFieldChange(p.id, 'quantity', e.target.value)}
+                                            className="w-full bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
+                                            placeholder="1"
+                                          />
+                                        </div>
+
+                                        {/* UOM */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">UOM</label>
+                                          <input 
+                                            type="text" 
+                                            value={itemData.uom ?? 'PACK'} 
+                                            onChange={e => handleFieldChange(p.id, 'uom', e.target.value)}
+                                            className="w-full bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all uppercase"
+                                            placeholder="e.g. KG, PACK"
+                                          />
+                                        </div>
+
+                                        {/* MRP */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">MRP (₹)</label>
+                                          <div className="relative">
+                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₹</span>
+                                            <input 
+                                              type="number" 
+                                              value={itemData.mrp ?? ''} 
+                                              onChange={e => handleFieldChange(p.id, 'mrp', e.target.value)}
+                                              className="w-full bg-slate-50/50 rounded-xl pl-6 pr-2 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
+                                              placeholder="0.00"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        {/* Landing Price */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Landing Price (₹)</label>
+                                          <div className="relative">
+                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₹</span>
+                                            <input 
+                                              type="number" 
+                                              value={itemData.landingPrice ?? ''} 
+                                              onChange={e => handleFieldChange(p.id, 'landingPrice', e.target.value)}
+                                              className="w-full bg-slate-50/50 rounded-xl pl-6 pr-2 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
+                                              placeholder="0.00"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        {/* Selling Price */}
+                                        <div className="space-y-1">
+                                          <div className="flex justify-between items-center">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Selling Price (₹)</label>
+                                            {itemData.priceHistory?.length > 0 && (
+                                              <button 
+                                                type="button" 
+                                                onClick={() => setHistoryModal(itemData)}
+                                                className="text-emerald-600 hover:text-emerald-700 transition-colors"
+                                                title="View Rate History Logs"
+                                              >
+                                                <Clock size={10} strokeWidth={3} />
+                                              </button>
+                                            )}
+                                          </div>
+                                          <div className="relative">
+                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₹</span>
+                                            <input 
+                                              type="number" 
+                                              value={itemData.purchasePrice} 
+                                              onChange={e => handleFieldChange(p.id, 'purchasePrice', e.target.value)}
+                                              className="w-full bg-slate-50/50 rounded-xl pl-6 pr-2 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
+                                              placeholder="0.00"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        {/* Preferred Vendor Switch */}
+                                        <div className="space-y-1 flex flex-col justify-end pb-1 items-start md:items-center">
+                                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 select-none cursor-pointer" onClick={() => handleTogglePreferred(p.id)}>
+                                            Preferred Supplier
+                                          </label>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleTogglePreferred(p.id)}
+                                            className="focus:outline-none transition-all active:scale-95 mt-1"
+                                          >
+                                            {itemData.isPreferred ? (
+                                              <ToggleRight size={26} className="text-amber-500 cursor-pointer" />
+                                            ) : (
+                                              <ToggleLeft size={26} className="text-gray-300 cursor-pointer" />
+                                            )}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-
-                        <div className="flex items-center gap-4 shrink-0">
-                          <div className="flex flex-col items-end">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">Standard Price</span>
-                            <span className="text-xs font-black text-slate-800">₹{p.purchasePrice || p.price}</span>
-                          </div>
-                          
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                            isMapped ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-200'
-                          }`}>
-                            {isMapped && <CheckCircle2 size={12} strokeWidth={3} />}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Detail inputs expanded if mapped */}
-                      {isMapped && (
-                        <div className="p-4 bg-white grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 animate-in slide-in-from-top-2 duration-300">
-                          {/* Vendor SKU */}
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Vendor SKU</label>
-                            <input 
-                              type="text" 
-                              value={itemData.vendorSku} 
-                              onChange={e => handleFieldChange(p.id, 'vendorSku', e.target.value)}
-                              className="w-full bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
-                              placeholder="e.g. SKU-123"
-                            />
-                          </div>
-
-                          {/* Purchase Price */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center">
-                              <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Purchase Price (₹)</label>
-                              {itemData.priceHistory?.length > 0 && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => setHistoryModal(itemData)}
-                                  className="text-emerald-600 hover:text-emerald-700 transition-colors"
-                                  title="View Rate History Logs"
-                                >
-                                  <Clock size={10} strokeWidth={3} />
-                                </button>
-                              )}
-                            </div>
-                            <div className="relative">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₹</span>
-                              <input 
-                                type="number" 
-                                value={itemData.purchasePrice} 
-                                onChange={e => handleFieldChange(p.id, 'purchasePrice', e.target.value)}
-                                className="w-full bg-slate-50/50 rounded-xl pl-6 pr-2 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
-                                placeholder="0.00"
-                              />
-                            </div>
-                          </div>
-
-                          {/* MOQ */}
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">MOQ (Units)</label>
-                            <input 
-                              type="number" 
-                              value={itemData.moq} 
-                              onChange={e => handleFieldChange(p.id, 'moq', e.target.value)}
-                              className="w-full bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
-                              placeholder="1"
-                            />
-                          </div>
-
-                          {/* Lead Time */}
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Lead Time (Days)</label>
-                            <input 
-                              type="number" 
-                              value={itemData.leadTime} 
-                              onChange={e => handleFieldChange(p.id, 'leadTime', e.target.value)}
-                              className="w-full bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
-                              placeholder="e.g. 3"
-                            />
-                          </div>
-
-                          {/* Tax % */}
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Tax %</label>
-                            <input 
-                              type="number" 
-                              value={itemData.taxPercent} 
-                              onChange={e => handleFieldChange(p.id, 'taxPercent', e.target.value)}
-                              className="w-full bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
-                              placeholder="0%"
-                            />
-                          </div>
-
-                          {/* Last Purchase Rate */}
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Last Pur. Rate</label>
-                            <div className="bg-slate-50 rounded-xl px-3 py-2 text-xs font-black text-slate-500 border border-slate-100 flex items-center justify-between">
-                              <span>₹{parseFloat(itemData.lastPurchaseRate) || '—'}</span>
-                              <ArrowUpRight size={12} className="text-gray-300" />
-                            </div>
-                          </div>
-
-                          {/* Preferred Vendor Switch */}
-                          <div className="space-y-1 flex flex-col justify-end pb-1 items-start md:items-center">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 select-none cursor-pointer" onClick={() => handleTogglePreferred(p.id)}>
-                              Preferred Supplier
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => handleTogglePreferred(p.id)}
-                              className="focus:outline-none transition-all active:scale-95 mt-1"
-                            >
-                              {itemData.isPreferred ? (
-                                <ToggleRight size={26} className="text-amber-500 cursor-pointer" />
-                              ) : (
-                                <ToggleLeft size={26} className="text-gray-300 cursor-pointer" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })
+                )}
               </div>
             </div>
 

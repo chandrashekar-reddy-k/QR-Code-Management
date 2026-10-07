@@ -110,7 +110,7 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
       });
       loadVendors();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error saving vendor information');
+      toast.error(err.response?.data?.response || err.response?.data?.message || 'Error saving vendor information');
     }
   };
 

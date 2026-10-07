@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Plus, Search, Loader2, ClipboardList, X, ArrowLeft, Edit3, Trash2, CheckCircle2,
   Truck, PackageCheck, FileText, Check, Eye, Download, Upload, Paperclip, Users, TrendingUp,
-  Sparkles, RefreshCw, Barcode, Camera, Image as ImageIcon
+  Sparkles, RefreshCw, Barcode, Camera, Image as ImageIcon, CheckSquare, Square
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useGetProductCategoriesList, useGetProductUnitTypesList, useGetUnitsMapForUnitTypes } from '../../../../hooks/product';
@@ -548,6 +548,47 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
   useEffect(() => { loadPOs(); }, [loadPOs]);
 
   useEffect(() => {
+    if (selectedPO?.vendorId) {
+      const loadMappingsForPO = async () => {
+        try {
+          const { data } = await procurementAPI.getVendorMappings(selectedPO.vendorId);
+          const mappedArray = data?.data || data || [];
+          if (Array.isArray(mappedArray) && mappedArray.length > 0) {
+            setMappedItems(mappedArray.map(m => {
+              const prod = m.product || {};
+              const unitStr = typeof prod.unit === 'object' ? (prod.unit?.type || prod.unit?.name || '') : (prod.unit || '');
+              const finalUom = m.uom || 'PACK';
+              return {
+                productId: prod.id || m.productId,
+                id: prod.id || m.productId,
+                name: prod.name || 'Unknown Product',
+                variantName: prod.variantName || '',
+                skuCode: m.vendorSku || prod.skuCode || prod.sku || 'NO-SKU',
+                barcode: prod.barcode || '',
+                category: prod.category?.name || (typeof prod.category === 'string' ? prod.category : 'UNCATEGORIZED'),
+                subCategory: prod.subCategory?.name || prod.subCategory || '',
+                brand: prod.brand?.name || prod.brand || 'Villagkart',
+                weight: finalUom,
+                unit: finalUom,
+                uom: finalUom,
+                mrp: parseFloat(m.mrp > 0 ? m.mrp : (m.moq > 0 ? m.moq : 0)),
+                landingPrice: parseFloat(m.landingPrice > 0 ? m.landingPrice : (m.leadTime > 0 ? m.leadTime : 0)),
+                sellingPrice: parseFloat(m.sellingPrice > 0 ? m.sellingPrice : (m.purchasePrice > 0 ? m.purchasePrice : 0)),
+                purchasePrice: parseFloat(m.purchasePrice > 0 ? m.purchasePrice : 0),
+                rate: parseFloat(m.landingPrice > 0 ? m.landingPrice : (m.leadTime > 0 ? m.leadTime : 0)),
+                quantity: parseInt(m.quantity ?? (m.taxPercent > 0 ? m.taxPercent : 1)) || 1
+              };
+            }));
+          }
+        } catch (err) {
+          console.error('Failed to load vendor mappings for selectedPO', err);
+        }
+      };
+      loadMappingsForPO();
+    }
+  }, [selectedPO?.vendorId]);
+
+  useEffect(() => {
     const preloadData = async () => {
       try {
         const [vendorsRes, productsRes] = await Promise.all([
@@ -634,8 +675,8 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
               unitType: p.unitType || '',
               pack: p.pack || '',
               measurement: p.measurement || '',
-              weight: p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : (p.measurement || ''),
-              unit: p.unit?.type || p.unit?.name || p.unit || 'KG',
+              weight: p.uom || 'PACK',
+              unit: p.uom || 'PACK',
               mrp: p.mrp || 0,
               landingPrice: p.landingPrice || p.purchasePrice || 0,
               sellingPrice: p.sellingPrice || p.price || 0,
@@ -661,8 +702,8 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                   unitType: v.unitType || p.unitType || '',
                   pack: v.pack || p.pack || '',
                   measurement: v.measurement || p.measurement || '',
-                  weight: v.measurement || (p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : ''),
-                  unit: v.unit || v.unitType || p.unit?.type || p.unit?.name || p.unit || 'KG',
+                  weight: v.uom || p.uom || 'PACK',
+                  unit: v.uom || p.uom || 'PACK',
                   mrp: v.mrp || p.mrp || 0,
                   landingPrice: v.landingPrice || v.purchasePrice || p.landingPrice || 0,
                   sellingPrice: v.sellingPrice || v.price || p.sellingPrice || p.price || 0,
@@ -716,8 +757,8 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
             unitType: p.unitType || '',
             pack: p.pack || '',
             measurement: p.measurement || '',
-            weight: p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : (p.measurement || ''),
-            unit: p.unit?.type || p.unit?.name || p.unit || 'KG',
+            weight: p.uom || 'PACK',
+            unit: p.uom || 'PACK',
             mrp: p.mrp || 0,
             landingPrice: p.landingPrice || p.purchasePrice || 0,
             sellingPrice: p.sellingPrice || p.price || 0,
@@ -742,8 +783,8 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                 unitType: v.unitType || p.unitType || '',
                 pack: v.pack || p.pack || '',
                 measurement: v.measurement || p.measurement || '',
-                weight: v.measurement || (p.unitValue ? `${p.unitValue} ${p.unit?.name || ''}`.trim() : ''),
-                unit: v.unit || v.unitType || p.unit?.type || p.unit?.name || p.unit || 'KG',
+                weight: v.uom || p.uom || 'PACK',
+                unit: v.uom || p.uom || 'PACK',
                 mrp: v.mrp || p.mrp || 0,
                 landingPrice: v.landingPrice || v.purchasePrice || p.landingPrice || 0,
                 sellingPrice: v.sellingPrice || v.price || p.sellingPrice || p.price || 0,
@@ -758,23 +799,42 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
       } else {
         const { data } = await procurementAPI.getVendorMappings(vendorId);
         const mappedArray = data?.data || data || [];
-        setMappedItems(mappedArray.map(m => ({
-          productId: m.product?.id || m.productId,
-          id: m.product?.id || m.productId,
-          name: m.product?.name || 'Unknown Product',
-          variantName: m.product?.variantName || '',
-          skuCode: m.product?.skuCode || 'NO-SKU',
-          barcode: m.product?.barcode || '',
-          category: m.product?.category?.name || 'UNCATEGORIZED',
-          subCategory: m.product?.subCategory?.name || m.product?.subCategory || '',
-          brand: m.product?.brand?.name || m.product?.brand || 'Villagkart',
-          weight: m.product?.unitValue ? `${m.product.unitValue} ${m.product.unit?.name || ''}`.trim() : '',
-          purchasePrice: m.lastPurchaseRate > 0 ? m.lastPurchaseRate : (m.purchasePrice > 0 ? m.purchasePrice : (m.product?.purchasePrice || m.product?.price || 0)),
-          quantity: 0,
-          rate: m.lastPurchaseRate > 0 ? m.lastPurchaseRate : (m.purchasePrice > 0 ? m.purchasePrice : (m.product?.purchasePrice || m.product?.price || 0))
-        })));
+        setMappedItems(mappedArray.map(m => {
+          const prod = m.product || {};
+          const unitStr = typeof prod.unit === 'object' ? (prod.unit?.type || prod.unit?.name || '') : (prod.unit || '');
+          const finalUom = m.uom || 'PACK';
+
+          const mappedMrp = parseFloat(m.mrp > 0 ? m.mrp : (m.moq > 0 ? m.moq : (prod.mrp > 0 ? prod.mrp : (prod.price || 0))));
+          const mappedLandingPrice = parseFloat(m.landingPrice > 0 ? m.landingPrice : (m.leadTime > 0 ? m.leadTime : (prod.landingPrice > 0 ? prod.landingPrice : (prod.purchasePrice || 0))));
+          const mappedSellingPrice = parseFloat(m.sellingPrice > 0 ? m.sellingPrice : (m.purchasePrice > 0 ? m.purchasePrice : (prod.sellingPrice > 0 ? prod.sellingPrice : (prod.price || 0))));
+          const mappedRate = parseFloat(m.landingPrice > 0 ? m.landingPrice : (m.leadTime > 0 ? m.leadTime : (m.purchasePrice > 0 ? m.purchasePrice : (prod.purchasePrice || prod.price || 0))));
+          const mappedQuantity = parseInt(m.quantity ?? (m.taxPercent > 0 ? m.taxPercent : 1)) || 1;
+
+          return {
+            productId: prod.id || m.productId,
+            id: prod.id || m.productId,
+            name: prod.name || 'Unknown Product',
+            variantName: prod.variantName || '',
+            skuCode: m.vendorSku || prod.skuCode || prod.sku || 'NO-SKU',
+            barcode: prod.barcode || '',
+            category: prod.category?.name || (typeof prod.category === 'string' ? prod.category : 'UNCATEGORIZED'),
+            subCategory: prod.subCategory?.name || prod.subCategory || '',
+            brand: prod.brand?.name || prod.brand || 'Villagkart',
+            weight: finalUom,
+            unit: finalUom,
+            uom: finalUom,
+            mrp: mappedMrp,
+            landingPrice: mappedLandingPrice,
+            sellingPrice: mappedSellingPrice,
+            purchasePrice: mappedRate,
+            rate: mappedRate,
+            tax: parseFloat(m.tax || 0),
+            discount: parseFloat(m.discount || 0),
+            quantity: mappedQuantity
+          };
+        }));
       }
-    } catch { toast.error(poType === 'DIRECT' ? 'Failed to load products' : 'Failed to load mapped items'); }
+    } catch (err) { console.error('onVendorSelect Error:', err); toast.error(poType === 'DIRECT' ? 'Failed to load products' : 'Failed to load mapped items'); }
   };
 
   const toggleItem = (productId) => {
@@ -782,7 +842,71 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
       const exists = f.items.find(i => i.productId === productId);
       if (exists) return { ...f, items: f.items.filter(i => i.productId !== productId) };
       const item = mappedItems.find(m => m.productId === productId);
-      return { ...f, items: [...f.items, { productId, quantity: 1, rate: item?.purchasePrice || 0, tax: 0, discount: 0 }] };
+      return { ...f, items: [...f.items, { productId, quantity: item?.quantity || 1, rate: item?.landingPrice || item?.purchasePrice || 0, uom: item?.uom || 'PACK', mrp: item?.mrp || 0, landingPrice: item?.landingPrice || 0, sellingPrice: item?.sellingPrice || 0, tax: 0, discount: 0 }] };
+    });
+  };
+
+  const handleToggleCategorySelectAll = (categoryItems) => {
+    setForm(f => {
+      const isAllSelected = categoryItems.length > 0 && categoryItems.every(item => f.items.some(fi => fi.productId === item.productId));
+      if (isAllSelected) {
+        const catProductIds = new Set(categoryItems.map(item => item.productId));
+        return {
+          ...f,
+          items: f.items.filter(fi => !catProductIds.has(fi.productId))
+        };
+      } else {
+        const existingIds = new Set(f.items.map(fi => fi.productId));
+        const newItems = categoryItems
+          .filter(item => !existingIds.has(item.productId))
+          .map(item => ({
+            productId: item.productId, quantity: item.quantity || 1, rate: item.landingPrice || item.purchasePrice || 0, landingPrice: item.landingPrice || 0, sellingPrice: item.sellingPrice || 0, mrp: item.mrp || 0, uom: item.uom || 'PACK',
+            tax: 0,
+            discount: 0
+          }));
+        return {
+          ...f,
+          items: [...f.items, ...newItems]
+        };
+      }
+    });
+  };
+
+  const filteredMappedItems = useMemo(() => {
+    return mappedItems.filter(item => 
+      !itemSearch || 
+      item.name?.toLowerCase().includes(itemSearch.toLowerCase()) ||
+      item.skuCode?.toLowerCase().includes(itemSearch.toLowerCase())
+    );
+  }, [mappedItems, itemSearch]);
+
+  const areAllFilteredItemsSelected = useMemo(() => {
+    return filteredMappedItems.length > 0 && 
+      filteredMappedItems.every(item => form.items.some(fi => fi.productId === item.productId));
+  }, [filteredMappedItems, form.items]);
+
+  const handleToggleGlobalSelectAll = () => {
+    setForm(f => {
+      if (areAllFilteredItemsSelected) {
+        const filteredIds = new Set(filteredMappedItems.map(item => item.productId));
+        return {
+          ...f,
+          items: f.items.filter(fi => !filteredIds.has(fi.productId))
+        };
+      } else {
+        const existingIds = new Set(f.items.map(item => item.productId));
+        const newItems = filteredMappedItems
+          .filter(item => !existingIds.has(item.productId))
+          .map(item => ({
+            productId: item.productId, quantity: item.quantity || 1, rate: item.landingPrice || item.purchasePrice || 0, landingPrice: item.landingPrice || 0, sellingPrice: item.sellingPrice || 0, mrp: item.mrp || 0, uom: item.uom || 'PACK',
+            tax: 0,
+            discount: 0
+          }));
+        return {
+          ...f,
+          items: [...f.items, ...newItems]
+        };
+      }
     });
   };
 
@@ -1021,7 +1145,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
         name: item.product?.name || 'Product',
         skuCode: item.product?.skuCode || 'NO-SKU',
         category: item.product?.category?.name || 'UNCATEGORIZED',
-        weight: item.product?.unitValue ? `${item.product.unitValue} ${item.product.unit?.name || ''}`.trim() : '',
+        weight: item.uom || 'PACK',
         purchasePrice: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product?.purchasePrice || item.product?.price || 0)),
         quantity: 0,
         rate: item.lastPurchaseRate > 0 ? item.lastPurchaseRate : (item.purchasePrice > 0 ? item.purchasePrice : (item.product?.purchasePrice || item.product?.price || 0))
@@ -1036,7 +1160,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
               name: poItem.product?.name || 'Product',
               skuCode: poItem.product?.skuCode || 'NO-SKU',
               category: poItem.product?.category?.name || 'UNCATEGORIZED',
-              weight: poItem.product?.unitValue ? `${poItem.product.unitValue} ${poItem.product.unit?.name || ''}`.trim() : '',
+              weight: poItem.uom || 'PACK',
               purchasePrice: poItem.rate || poItem.product?.purchasePrice || 0,
               quantity: poItem.quantity,
               rate: poItem.rate
@@ -1171,7 +1295,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
         poDate: form.poDate,
         expectedDelivery: form.expectedDelivery || null,
         remarks: form.remarks,
-        items: form.items.map(i => ({ productId: i.productId, quantity: parseInt(i.quantity), rate: parseFloat(i.rate), tax: parseFloat(i.tax || 0), discount: parseFloat(i.discount || 0) })),
+        items: form.items.map(i => ({ productId: i.productId, quantity: parseInt(i.quantity), rate: parseFloat(i.landingPrice || i.rate || 0), mrp: parseFloat(i.mrp || 0), landingPrice: parseFloat(i.landingPrice || i.rate || 0), sellingPrice: parseFloat(i.sellingPrice || 0), tax: parseFloat(i.tax || 0), discount: parseFloat(i.discount || 0) })),
         poType: poType,
         taxDiscount: form.taxDiscount,
         attachments: uploadedUrls
@@ -1499,12 +1623,6 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                         </p>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Tax & Discounts</span>
-                        <p className="text-sm font-black text-slate-700">
-                          {viewingPO.taxDiscount || 'Enter tax/discount %'}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Vendor</span>
                         <p className="text-sm font-black text-slate-800">
                           {viewingPO.vendor?.vendorName}
@@ -1536,23 +1654,51 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                       <table className="w-full text-left">
                         <thead>
                           <tr className="bg-slate-50/50 border-b border-slate-100">
-                            <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider">Item Name</th>
                             <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider text-center">SKU</th>
-                            <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider text-center">Purchase Rate</th>
+                            <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider">Product Name</th>
                             <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider text-center">Quantity</th>
-                            <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider text-right">Valuation</th>
+                            <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider text-center">MRP</th>
+                            <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider text-center">Landing Price</th>
+                            <th className="px-6 py-3.5 text-xs font-black text-slate-600 uppercase tracking-wider text-center">Selling Price</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {viewingPO.items?.map((item) => (
-                            <tr key={item.id} className="hover:bg-slate-50/20 transition-all duration-150">
-                              <td className="px-6 py-4 text-sm font-black text-slate-800 tracking-tight">{item.product?.name}</td>
-                              <td className="px-6 py-4 text-center text-xs font-bold text-slate-400">{item.product?.skuCode || 'N/A'}</td>
-                              <td className="px-6 py-4 text-center text-sm font-black text-slate-700">₹{item.rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                              <td className="px-6 py-4 text-center text-sm font-bold text-slate-800">{item.quantity} {item.product?.unit?.name || 'KG'}</td>
-                              <td className="px-6 py-4 text-right text-sm font-black text-slate-900">₹{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                            </tr>
-                          ))}
+                          {viewingPO.items?.map((item) => {
+                            const targetProd = (preloadedProducts || []).find(p => 
+                              (p.id && (p.id === item.productId || p.id === item.product?.id || p.id === item.product_id)) ||
+                              (p.name && (item.product?.name || item.name) && p.name.trim().toLowerCase() === (item.product?.name || item.name).trim().toLowerCase())
+                            );
+
+                            const rawSku = 
+                              (item.product?.skuCode && item.product.skuCode !== 'NO-SKU') ? item.product.skuCode :
+                              (item.product?.sku && item.product.sku !== 'NO-SKU') ? item.product.sku :
+                              (item.skuCode && item.skuCode !== 'NO-SKU') ? item.skuCode :
+                              (item.sku && item.sku !== 'NO-SKU') ? item.sku :
+                              (item.vendorSku && item.vendorSku !== 'NO-SKU') ? item.vendorSku :
+                              (targetProd?.skuCode && targetProd.skuCode !== 'NO-SKU') ? targetProd.skuCode :
+                              (targetProd?.sku && targetProd.sku !== 'NO-SKU') ? targetProd.sku :
+                              (targetProd?.vendorSku && targetProd.vendorSku !== 'NO-SKU') ? targetProd.vendorSku :
+                              null;
+
+                            const skuDisplay = (!rawSku || rawSku === 'NO-SKU' || rawSku === 'N/A' || rawSku.trim() === '') ? '-' : rawSku;
+                            const mapItem = (mappedItems || []).find(m => (m.productId || m.id) === (item.productId || item.product?.id));
+                            const mrp = item.mrp > 0 ? item.mrp : (mapItem?.mrp > 0 ? mapItem.mrp : (mapItem?.moq > 0 ? mapItem.moq : (item.product?.mrp > 0 ? item.product.mrp : (item.product?.price > 0 ? item.product.price : (targetProd?.mrp > 0 ? targetProd.mrp : (targetProd?.price || 0))))));
+                            const landingPrice = item.landingPrice > 0 ? item.landingPrice : (mapItem?.landingPrice > 0 ? mapItem.landingPrice : (mapItem?.leadTime > 0 ? mapItem.leadTime : (item.rate > 0 ? item.rate : (item.product?.landingPrice > 0 ? item.product.landingPrice : (item.product?.purchasePrice > 0 ? item.product.purchasePrice : (targetProd?.landingPrice || targetProd?.purchasePrice || 0))))));
+                            const sellingPrice = item.sellingPrice > 0 ? item.sellingPrice : (mapItem?.sellingPrice > 0 ? mapItem.sellingPrice : (mapItem?.purchasePrice > 0 ? mapItem.purchasePrice : (item.product?.sellingPrice > 0 ? item.product.sellingPrice : (item.product?.price > 0 ? item.product.price : (targetProd?.sellingPrice > 0 ? targetProd.sellingPrice : (targetProd?.price || 0))))));
+                            const qty = item.quantity ?? 1;
+                            const unit = item.uom || mapItem?.uom || 'PACK';
+
+                            return (
+                              <tr key={item.id || item.productId} className="hover:bg-slate-50/20 transition-all duration-150">
+                                <td className="px-6 py-4 text-center text-xs font-bold text-slate-400">{skuDisplay}</td>
+                                <td className="px-6 py-4 text-sm font-black text-slate-800 tracking-tight">{item.product?.name || item.name}</td>
+                                <td className="px-6 py-4 text-center text-sm font-bold text-slate-800">{qty} {unit}</td>
+                                <td className="px-6 py-4 text-center text-sm font-bold text-slate-700">₹{Number(mrp).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-6 py-4 text-center text-sm font-black text-slate-700">₹{Number(landingPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-6 py-4 text-center text-sm font-bold text-slate-700">₹{Number(sellingPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1739,72 +1885,66 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Tax & Discounts Card */}
-                    <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <TrendingUp size={16} className="text-emerald-650" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Tax & Discounts</h3>
-                      </div>
-                      <div className="space-y-2">
-                        {viewingPO.taxDiscount && (
-                          <div className="flex justify-between text-xs">
-                            <span className="font-medium text-slate-450">Terms / Notes:</span>
-                            <span className="font-bold text-slate-800">{viewingPO.taxDiscount}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between text-xs">
-                          <span className="font-medium text-slate-450">Tax Amount (GST):</span>
-                          <span className="font-bold text-emerald-650">
-                            ₹{(viewingPO.items?.reduce((sum, i) => {
-                              const base = i.quantity * i.rate;
-                              const disc = base * ((i.discount || 0) / 100);
-                              return sum + ((base - disc) * ((i.tax || 0) / 100));
-                            }, 0) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="font-medium text-slate-455">Discount Amount:</span>
-                          <span className="font-bold text-rose-650">
-                            ₹{(viewingPO.items?.reduce((sum, i) => sum + ((i.quantity * i.rate) * ((i.discount || 0) / 100)), 0) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 gap-6">
+                  {/* Notes Card */}
+                  <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm space-y-4">
+                    <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                      <Paperclip size={16} className="text-emerald-650" />
+                      <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Notes</h3>
                     </div>
-
-                    {/* Notes Card */}
-                    <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <Paperclip size={16} className="text-emerald-650" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Notes</h3>
-                      </div>
-                      <p className="text-xs font-medium text-slate-650 leading-relaxed italic">
-                        "{viewingPO.remarks || 'Verified organic supplier.'}"
-                      </p>
-                    </div>
+                    <p className="text-xs font-medium text-slate-650 leading-relaxed italic">
+                      "{viewingPO.remarks || 'Verified organic supplier.'}"
+                    </p>
                   </div>
+                </div>
 
-                  {/* Purchase Items Breakdown Table */}
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-455 pl-1">Purchase Items</h3>
-                    <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                          <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100 whitespace-nowrap">
-                              <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-left">Procurement Item</th>
-                              <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">SKU</th>
-                              <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">Quantity</th>
-                              <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">Unit</th>
-                              <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">Purchase Rate</th>
-                              <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">Tax (%)</th>
-                              <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">Discount (%)</th>
-                              <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-right">Total Value</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {viewingPO.items?.map((item) => (
-                              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                {/* Purchase Items Breakdown Table */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-455 pl-1">Purchase Items</h3>
+                  <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="bg-slate-50/50 border-b border-slate-100 whitespace-nowrap">
+                            <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">SKU</th>
+                            <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-left">Procurement Item</th>
+                            <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">Quantity</th>
+                            <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">MRP</th>
+                            <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">Landing Price</th>
+                            <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-center">Selling Price</th>
+                            <th className="px-6 py-3 text-[9px] font-black text-slate-455 uppercase tracking-widest text-right">Total Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {viewingPO.items?.map((item) => {
+                            const targetProd = (preloadedProducts || []).find(p => 
+                              (p.id && (p.id === item.productId || p.id === item.product?.id || p.id === item.product_id)) ||
+                              (p.name && (item.product?.name || item.name) && p.name.trim().toLowerCase() === (item.product?.name || item.name).trim().toLowerCase())
+                            );
+
+                            const rawSku = 
+                              (item.product?.skuCode && item.product.skuCode !== 'NO-SKU') ? item.product.skuCode :
+                              (item.product?.sku && item.product.sku !== 'NO-SKU') ? item.product.sku :
+                              (item.skuCode && item.skuCode !== 'NO-SKU') ? item.skuCode :
+                              (item.sku && item.sku !== 'NO-SKU') ? item.sku :
+                              (item.vendorSku && item.vendorSku !== 'NO-SKU') ? item.vendorSku :
+                              (targetProd?.skuCode && targetProd.skuCode !== 'NO-SKU') ? targetProd.skuCode :
+                              (targetProd?.sku && targetProd.sku !== 'NO-SKU') ? targetProd.sku :
+                              (targetProd?.vendorSku && targetProd.vendorSku !== 'NO-SKU') ? targetProd.vendorSku :
+                              null;
+
+                            const skuDisplay = (!rawSku || rawSku === 'NO-SKU' || rawSku === 'N/A' || rawSku.trim() === '') ? '-' : rawSku;
+                            const mapItem = (mappedItems || []).find(m => (m.productId || m.id) === (item.productId || item.product?.id));
+                            const mrp = item.mrp > 0 ? item.mrp : (mapItem?.mrp > 0 ? mapItem.mrp : (mapItem?.moq > 0 ? mapItem.moq : (item.product?.mrp > 0 ? item.product.mrp : (item.product?.price > 0 ? item.product.price : (targetProd?.mrp > 0 ? targetProd.mrp : (targetProd?.price || 0))))));
+                            const landingPrice = item.landingPrice > 0 ? item.landingPrice : (mapItem?.landingPrice > 0 ? mapItem.landingPrice : (mapItem?.leadTime > 0 ? mapItem.leadTime : (item.rate > 0 ? item.rate : (item.product?.landingPrice > 0 ? item.product.landingPrice : (item.product?.purchasePrice > 0 ? item.product.purchasePrice : (targetProd?.landingPrice || targetProd?.purchasePrice || 0))))));
+                            const sellingPrice = item.sellingPrice > 0 ? item.sellingPrice : (mapItem?.sellingPrice > 0 ? mapItem.sellingPrice : (mapItem?.purchasePrice > 0 ? mapItem.purchasePrice : (item.product?.sellingPrice > 0 ? item.product.sellingPrice : (item.product?.price > 0 ? item.product.price : (targetProd?.sellingPrice > 0 ? targetProd.sellingPrice : (targetProd?.price || 0))))));
+                            const qty = item.quantity ?? 1;
+                            const unit = item.uom || mapItem?.uom || 'PACK';
+                            const totalValuation = item.total ?? ((landingPrice || 0) * qty);
+
+                            return (
+                              <tr key={item.id || item.productId} className="hover:bg-slate-50/50 transition-colors">
+                                <td className="px-6 py-3.5 text-center text-xs font-medium text-slate-400">{skuDisplay}</td>
                                 <td className="px-6 py-3.5 text-xs font-black text-slate-900 tracking-tight">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span>{item.product?.name || item.name}</span>
@@ -1815,58 +1955,41 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-6 py-3.5 text-center text-xs font-medium text-slate-400">{item.product?.skuCode || item.skuCode || 'N/A'}</td>
-                                <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-800">{item.quantity}</td>
-                                <td className="px-6 py-3.5 text-center text-xs font-semibold text-slate-500 uppercase">{item.product?.unit?.name || item.unit || 'KG'}</td>
-                                <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-700">₹{item.rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-600">{item.tax !== undefined ? item.tax : 0}%</td>
-                                <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-600">{item.discount !== undefined ? item.discount : 0}%</td>
-                                <td className="px-6 py-3.5 text-right text-xs font-black text-slate-900">₹{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-800">{qty} {unit}</td>
+                                <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-700">₹{Number(mrp).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-700">₹{Number(landingPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-6 py-3.5 text-center text-xs font-bold text-slate-700">₹{Number(sellingPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-6 py-3.5 text-right text-xs font-black text-slate-900">₹{Number(totalValuation).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
 
-                      {/* Items Totals Breakdown Summary Sheet */}
-                      <div className="bg-slate-50 border-t border-slate-200/60 p-6 grid grid-cols-2 md:grid-cols-5 gap-y-4 gap-x-6 text-xs font-semibold text-slate-655">
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Items</span>
-                          <span className="text-sm font-black text-slate-900">
-                            {viewingPO.items?.length || 0}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Quantity</span>
-                          <span className="text-sm font-black text-slate-900">
-                            {viewingPO.items?.reduce((sum, i) => sum + i.quantity, 0) || 0}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Tax Amount</span>
-                          <span className="text-sm font-black text-slate-900">
-                            ₹{(viewingPO.items?.reduce((sum, i) => {
-                              const base = i.quantity * i.rate;
-                              const disc = base * ((i.discount || 0) / 100);
-                              return sum + ((base - disc) * ((i.tax || 0) / 100));
-                            }, 0) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Discount Amount</span>
-                          <span className="text-sm font-black text-slate-900">
-                            ₹{(viewingPO.items?.reduce((sum, i) => sum + ((i.quantity * i.rate) * ((i.discount || 0) / 100)), 0) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="space-y-1 col-span-2 md:col-span-1 border-t md:border-t-0 md:border-l border-slate-200/80 pt-3 md:pt-0 md:pl-6 text-right md:text-left">
-                          <span className="text-[9px] font-bold text-emerald-650 uppercase tracking-widest block">Final Purchase Value</span>
-                          <span className="text-sm font-black text-emerald-650 tracking-tighter">
-                            ₹{viewingPO.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
+                    {/* Items Totals Breakdown Summary Sheet */}
+                    <div className="bg-slate-50 border-t border-slate-200/60 p-6 grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 text-xs font-semibold text-slate-655">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Items</span>
+                        <span className="text-sm font-black text-slate-900">
+                          {viewingPO.items?.length || 0}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Quantity</span>
+                        <span className="text-sm font-black text-slate-900">
+                          {viewingPO.items?.reduce((sum, i) => sum + i.quantity, 0) || 0}
+                        </span>
+                      </div>
+                      <div className="space-y-1 col-span-2 md:col-span-1 border-t md:border-t-0 md:border-l border-slate-200/80 pt-3 md:pt-0 md:pl-6 text-right md:text-left">
+                        <span className="text-[9px] font-bold text-emerald-650 uppercase tracking-widest block">Final Purchase Value</span>
+                        <span className="text-sm font-black text-emerald-650 tracking-tighter">
+                          ₹{viewingPO.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
                       </div>
                     </div>
                   </div>
+                </div>
 
                   {/* Attachments Section */}
                   <div className="space-y-3">
@@ -2083,7 +2206,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
           ) : (
             <div className="flex-1 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-0">
               <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 w-full">
-              <table className="w-max min-w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100 whitespace-nowrap">
                     <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">PO Number</th>
@@ -2091,7 +2214,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                     <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Order Date</th>
                     <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Total Value</th>
                     <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Status</th>
-                    <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider text-right sticky right-0 bg-[#f8fafc] z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.05)] whitespace-nowrap">Actions</th>
+                    <th className="py-4 px-6 text-xs font-black text-gray-400 uppercase tracking-wider text-right sticky right-0 bg-[#f8fafc] z-20 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.05)] whitespace-nowrap min-w-[280px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -2127,7 +2250,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                           {statusLabel[po.status] || po.status}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50/50 transition-all z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.03)]">
+                      <td className="py-4 px-6 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50 transition-all z-20 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.05)] min-w-[280px]">
                         <div className="flex items-center justify-end gap-2">
                           {/* Edit PO: only allowed when status is CREATED */}
                           {po.status === 'CREATED' && (
@@ -2299,21 +2422,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                         {vendors.map(v => <option key={v.id} value={v.id}>{v.vendorName}</option>)}
                       </select>
                     </div>
-                  )}
-
-                  {/* Tax & Discounts */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Tax & Discounts</label>
-                    <input
-                      type="text"
-                      value={form.taxDiscount || ''}
-                      onChange={e => setForm({ ...form, taxDiscount: e.target.value })}
-                      placeholder="Enter tax/discount %"
-                      className="w-full bg-white rounded-lg px-4 py-2.5 text-sm text-slate-800 border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-sm"
-                    />
-                  </div>
-
-                  {/* Expected Delivery Date */}
+                  )}{/* Expected Delivery Date */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700">Expected Delivery Date</label>
                     <input type="date" value={form.expectedDelivery} onChange={e => setForm({ ...form, expectedDelivery: e.target.value })}
@@ -2507,8 +2616,6 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-32">Purchase Rate</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">Landing Price</th>
                           <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-28">Selling Price</th>
-                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Tax (%)</th>
-                          <th className="px-2.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-24">Discount (%)</th>
                           <th className="px-3.5 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-right w-32">Total Value</th>
                           <th className="px-2 py-3 text-xs font-black text-slate-700 uppercase tracking-wider text-center w-12"></th>
                         </tr>
@@ -2888,30 +2995,6 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                 </div>
                               </td>
 
-                              {/* Tax (%) */}
-                              <td className="px-2.5 py-3 text-center">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={item.tax || 0}
-                                  onChange={e => handleDirectItemChange(idx, 'tax', parseFloat(e.target.value) || 0)}
-                                  className="w-full bg-white rounded-lg px-2 py-2 text-xs text-slate-850 font-bold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
-                                />
-                              </td>
-
-                              {/* Discount (%) */}
-                              <td className="px-2.5 py-3 text-center">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={item.discount || 0}
-                                  onChange={e => handleDirectItemChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                                  className="w-full bg-white rounded-lg px-2 py-2 text-xs text-slate-850 font-bold border border-slate-200 focus:border-emerald-500 text-center outline-none transition-all shadow-sm"
-                                />
-                              </td>
-
                               {/* Total Value */}
                               <td className="px-3.5 py-3 text-right font-black text-slate-900 text-sm whitespace-nowrap">
                                 ₹{(() => {
@@ -2953,28 +3036,46 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
               ) : (
                 /* Order Components Section (Requisition PO) */
                 <div className="bg-white rounded-xl border border-slate-200/60 p-6 md:p-8 space-y-6 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
                     <h2 className="text-base font-bold text-slate-900">Order Components</h2>
-                    <div className="relative w-72">
-                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        placeholder="Filter items by name or SKU..."
-                        value={itemSearch}
-                        onChange={e => setItemSearch(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-850"
-                      />
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={handleToggleGlobalSelectAll}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all shadow-sm active:scale-95 border ${
+                          areAllFilteredItemsSelected
+                            ? 'bg-rose-50 text-rose-700 border-rose-200/80 hover:bg-rose-100'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100'
+                        }`}
+                      >
+                        {areAllFilteredItemsSelected ? (
+                          <>
+                            <Square size={13} className="text-rose-600" />
+                            <span>Deselect All</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckSquare size={13} className="text-emerald-600" />
+                            <span>Select All</span>
+                          </>
+                        )}
+                      </button>
+                      <div className="relative w-72">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input 
+                          placeholder="Filter items by name or SKU..."
+                          value={itemSearch}
+                          onChange={e => setItemSearch(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-850"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Grouped Items List */}
                   <div className="space-y-4">
                     {Object.entries(
-                      mappedItems
-                        .filter(item =>
-                          !itemSearch ||
-                          item.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
-                          item.skuCode.toLowerCase().includes(itemSearch.toLowerCase())
-                        )
+                      filteredMappedItems
                         .reduce((acc, item) => {
                           if (!acc[item.category]) acc[item.category] = [];
                           acc[item.category].push(item);
@@ -2984,11 +3085,12 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                       const categoryItems = items.filter(i =>
                         form.items.find(fi => fi.productId === i.productId)
                       );
+                      const isCategoryAllSelected = items.length > 0 && items.every(i => form.items.some(fi => fi.productId === i.productId));
                       const catQty = categoryItems.reduce((s, i) => s + (parseInt(form.items.find(fi => fi.productId === i.productId)?.quantity || 0)), 0);
                       const catTotal = categoryItems.reduce((s, i) => {
                         const fi = form.items.find(f => f.productId === i.productId);
                         const qty = parseFloat(fi?.quantity || 0);
-                        const rate = parseFloat(fi?.rate || 0);
+                        const rate = parseFloat(fi?.landingPrice > 0 ? fi.landingPrice : (i.landingPrice > 0 ? i.landingPrice : (fi?.rate > 0 ? fi.rate : 0)));
                         const discount = parseFloat(fi?.discount || 0);
                         const tax = parseFloat(fi?.tax || 0);
                         const baseVal = qty * rate;
@@ -3001,10 +3103,24 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                         <div key={category} className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                           <div className="bg-emerald-50/50 px-8 py-2 flex items-center justify-between border-b border-emerald-100/30">
                             <div className="flex items-center gap-4">
-                              <div className="w-5 h-5 rounded bg-emerald-600 flex items-center justify-center">
-                                <CheckCircle2 size={12} className="text-white" />
-                              </div>
-                              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-900">{category}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCategorySelectAll(items)}
+                                className={`w-5 h-5 rounded flex items-center justify-center transition-all cursor-pointer shadow-sm ${
+                                  isCategoryAllSelected 
+                                    ? 'bg-emerald-600 text-white' 
+                                    : 'bg-white border border-emerald-300 text-transparent hover:border-emerald-600'
+                                }`}
+                                title={isCategoryAllSelected ? "Deselect category" : "Select all in category"}
+                              >
+                                <CheckCircle2 size={12} className={isCategoryAllSelected ? 'text-white' : 'text-emerald-600 opacity-40'} />
+                              </button>
+                              <span 
+                                onClick={() => handleToggleCategorySelectAll(items)}
+                                className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-900 cursor-pointer select-none hover:text-emerald-700"
+                              >
+                                {category}
+                              </span>
                             </div>
                             <div className="flex items-center gap-10">
                               <div className="text-right">
@@ -3022,12 +3138,23 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                             <table className="w-full">
                               <thead>
                                 <tr className="border-b border-gray-50/50 bg-gray-50/30">
-                                  <th className="px-8 py-2 text-left text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Procurement Item</th>
-                                  <th className="px-8 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Purchase Rate</th>
-                                  <th className="px-8 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Inventory Qty</th>
-                                  <th className="px-8 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Tax (%)</th>
-                                  <th className="px-8 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Discount (%)</th>
-                                  <th className="px-8 py-2 text-right text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Valuation</th>
+                                  <th className="px-8 py-2 text-left text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                                    <div className="flex items-center gap-6">
+                                      <input 
+                                        type="checkbox" 
+                                        checked={isCategoryAllSelected}
+                                        onChange={() => handleToggleCategorySelectAll(items)}
+                                        className="w-5 h-5 rounded-lg border-gray-200 text-emerald-600 focus:ring-emerald-500/20 transition-all cursor-pointer shadow-sm" 
+                                        title="Select / Deselect all items in this category"
+                                      />
+                                      <span>Procurement Item</span>
+                                    </div>
+                                  </th>
+                                  <th className="px-4 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Quantity</th>
+                                  <th className="px-4 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">UOM</th>
+                                  <th className="px-4 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">MRP</th>
+                                  <th className="px-4 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Landing Price</th>
+                                  <th className="px-4 py-2 text-center text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Selling Price</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-50/50">
@@ -3035,8 +3162,8 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                   const inForm = form.items.find(i => i.productId === item.productId);
                                   return (
                                     <tr key={item.productId} className={`transition-all duration-300 ${inForm ? 'bg-emerald-50/5' : 'bg-transparent hover:bg-gray-50/30'}`}>
-                                      <td className="px-8 py-1.5">
-                                        <div className="flex items-center gap-6">
+                                      <td className="px-6 py-1.5">
+                                        <div className="flex items-center gap-4">
                                           <div className="relative group/cb">
                                             <input
                                               type="checkbox"
@@ -3046,96 +3173,38 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                             />
                                           </div>
                                           <div>
-                                            <div className="flex items-center gap-3">
-                                              <span className="text-sm font-black text-gray-900 tracking-tight">{item.name}</span>
-                                              {item.weight && <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md uppercase tracking-widest">{item.weight}</span>}
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xs font-black text-gray-900 tracking-tight">{item.name}</span>
+                                              {item.variantName && (
+                                                <span className="text-[8px] font-extrabold bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded uppercase border border-purple-100">
+                                                  {item.variantName}
+                                                </span>
+                                              )}
                                             </div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">ID: {item.skuCode}</span>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">SKU: {item.skuCode}</span>
                                             </div>
                                           </div>
                                         </div>
                                       </td>
-                                      <td className="px-8 py-1.5 text-center">
-                                        <div className={`inline-flex items-center px-3 py-1 bg-white border border-gray-100 rounded-xl shadow-sm transition-all ${inForm ? 'ring-2 ring-emerald-500/10 border-emerald-100' : 'opacity-40 grayscale pointer-events-none'}`}>
-                                          <span className="text-[10px] font-black text-gray-400 mr-1.5">₹</span>
-                                          <input
-                                            type="number"
-                                            value={inForm ? inForm.rate : item.purchasePrice}
-                                            onChange={e => updateItemField(item.productId, 'rate', e.target.value)}
-                                            disabled={!inForm}
-                                            className="bg-transparent border-none p-0 text-sm font-black text-gray-700 w-16 text-center focus:ring-0 focus:outline-none"
-                                          />
-                                        </div>
+                                      <td className="px-3 py-1.5 text-center">
+                                        <span className="text-xs font-bold text-slate-700">{inForm ? inForm.quantity : (item.quantity || 1)}</span>
                                       </td>
-                                      <td className="px-8 py-1.5 text-center">
-                                        <div className={`inline-flex items-center gap-3 px-2 py-1 bg-white border border-gray-100 rounded-xl shadow-sm transition-all ${inForm ? 'ring-2 ring-emerald-500/10 border-emerald-100' : 'opacity-40 grayscale pointer-events-none'}`}>
-                                          <button
-                                            type="button"
-                                            onClick={() => updateItemField(item.productId, 'quantity', Math.max(1, (parseInt(inForm?.quantity || 1) - 1)))}
-                                            disabled={!inForm}
-                                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-100 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-90"
-                                          >
-                                            <span className="text-lg font-light">-</span>
-                                          </button>
-                                          <input
-                                            type="number"
-                                            value={inForm ? inForm.quantity : 0}
-                                            onChange={e => updateItemField(item.productId, 'quantity', e.target.value)}
-                                            disabled={!inForm}
-                                            className="bg-transparent border-none p-0 text-sm font-black text-gray-700 w-10 text-center focus:ring-0 focus:outline-none"
-                                          />
-                                          <button
-                                            type="button"
-                                            onClick={() => updateItemField(item.productId, 'quantity', (parseInt(inForm?.quantity || 0) + 1))}
-                                            disabled={!inForm}
-                                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-100 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-90"
-                                          >
-                                            <span className="text-lg font-light">+</span>
-                                          </button>
-                                        </div>
-                                      </td>
-                                      <td className="px-8 py-1.5 text-center">
-                                        <div className={`inline-flex items-center px-3 py-1 bg-white border border-gray-100 rounded-xl shadow-sm transition-all ${inForm ? 'ring-2 ring-emerald-500/10 border-emerald-100' : 'opacity-40 grayscale pointer-events-none'}`}>
-                                          <input
-                                            type="number"
-                                            value={inForm ? (inForm.tax !== undefined ? inForm.tax : 0) : 0}
-                                            onChange={e => updateItemField(item.productId, 'tax', e.target.value)}
-                                            disabled={!inForm}
-                                            placeholder="0"
-                                            className="bg-transparent border-none p-0 text-sm font-black text-gray-700 w-12 text-center focus:ring-0 focus:outline-none"
-                                          />
-                                          <span className="text-[10px] font-black text-gray-400 ml-1">%</span>
-                                        </div>
-                                      </td>
-                                      <td className="px-8 py-1.5 text-center">
-                                        <div className={`inline-flex items-center px-3 py-1 bg-white border border-gray-100 rounded-xl shadow-sm transition-all ${inForm ? 'ring-2 ring-emerald-500/10 border-emerald-100' : 'opacity-40 grayscale pointer-events-none'}`}>
-                                          <input
-                                            type="number"
-                                            value={inForm ? (inForm.discount !== undefined ? inForm.discount : 0) : 0}
-                                            onChange={e => updateItemField(item.productId, 'discount', e.target.value)}
-                                            disabled={!inForm}
-                                            placeholder="0"
-                                            className="bg-transparent border-none p-0 text-sm font-black text-gray-700 w-12 text-center focus:ring-0 focus:outline-none"
-                                          />
-                                          <span className="text-[10px] font-black text-gray-400 ml-1">%</span>
-                                        </div>
-                                      </td>
-                                      <td className="px-8 py-1.5 text-right">
-                                        <span className="text-base font-black text-gray-900 tracking-tighter">
-                                          ₹{(() => {
-                                            const qty = parseFloat(inForm?.quantity || 0);
-                                            const rate = parseFloat(inForm?.rate || 0);
-                                            const discount = parseFloat(inForm?.discount || 0);
-                                            const tax = parseFloat(inForm?.tax || 0);
-                                            const baseVal = qty * rate;
-                                            const discVal = baseVal * (discount / 100);
-                                            const taxVal = (baseVal - discVal) * (tax / 100);
-                                            const totalVal = baseVal - discVal + taxVal;
-                                            return totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                          })()}
+                                      <td className="px-3 py-1.5 text-center">
+                                        <span className="text-[10px] font-extrabold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60 uppercase">
+                                          {item.uom || 'PACK'}
                                         </span>
                                       </td>
+                                      <td className="px-3 py-1.5 text-center">
+                                        <span className="text-xs font-bold text-slate-700">₹{Number(inForm ? (inForm.mrp !== undefined ? inForm.mrp : (item.mrp || 0)) : (item.mrp || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </td>
+                                      <td className="px-3 py-1.5 text-center">
+                                        <span className="text-xs font-bold text-slate-700">₹{Number(inForm ? (inForm.landingPrice !== undefined ? inForm.landingPrice : (item.landingPrice || 0)) : (item.landingPrice || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </td>
+                                      <td className="px-3 py-1.5 text-center">
+                                        <span className="text-xs font-bold text-slate-700">₹{Number(inForm ? (inForm.sellingPrice !== undefined ? inForm.sellingPrice : (item.sellingPrice || 0)) : (item.sellingPrice || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </td>
+
                                     </tr>
                                   );
                                 })}
