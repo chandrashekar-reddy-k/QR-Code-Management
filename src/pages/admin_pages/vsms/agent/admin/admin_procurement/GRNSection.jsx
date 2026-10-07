@@ -144,19 +144,25 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [poData, grnData, vendorData, userData, productData] = await Promise.all([
+      const [poRes, grnRes, vendorRes, userRes, productRes] = await Promise.allSettled([
         procurementAPI.getPurchaseOrders({ storeId }),
         procurementAPI.getGRNs({ storeId }),
         procurementAPI.getVendors({ storeId }),
         adminAPI.getUsers({ storeId }),
         productsAPI.getAll({ storeId })
       ]);
-      setPOs((poData.data || poData).filter(po => po.status === 'APPROVED' || po.status === 'ORDERED' || po.status === 'PARTIAL'));
-      setGRNs(grnData.data || grnData);
-      setVendors(vendorData.data || vendorData);
-      setUsers(userData.data || userData);
-      setProducts(productData.data || productData);
-    } catch { toast.error('Failed to load data'); }
+      const poData = poRes.status === 'fulfilled' ? poRes.value : {};
+      const grnData = grnRes.status === 'fulfilled' ? grnRes.value : {};
+      const vendorData = vendorRes.status === 'fulfilled' ? vendorRes.value : {};
+      const userData = userRes.status === 'fulfilled' ? userRes.value : {};
+      const productData = productRes.status === 'fulfilled' ? productRes.value : {};
+      const posArr = poData.data?.data || poData.data || poData || [];
+      setPOs(Array.isArray(posArr) ? posArr.filter(po => ['CREATED', 'APPROVED', 'ORDERED', 'PARTIAL'].includes(po.status)) : []);
+      setGRNs(grnData.data?.data || grnData.data || grnData || []);
+      setVendors(vendorData.data?.data || vendorData.data || vendorData || []);
+      setUsers(userData.data?.data || userData.data || userData || []);
+      setProducts(productData.data?.data || productData.data || productData || []);
+    } catch { // Suppress global toast on partial failure }
     finally { setLoading(false); }
   }, [storeId]);
 
@@ -188,18 +194,26 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       const { data } = await procurementAPI.getPurchaseOrderById(poId);
       setSelectedPO(poId);
       setPODetail({ ...data, remarks: '' });
-      setGRNItems(data.items.map(item => ({
-        productId: item.productId,
-        name: item.product?.name,
-        sku: item.product?.skuCode,
-        weight: item.product?.unitValue ? `${item.product.unitValue} ${item.product.unit?.name || 'kg'}` : '1 kg',
-        orderedQty: item.quantity,
-        alreadyReceived: item.receivedQty || 0,
-        balance: item.quantity - (item.receivedQty || 0),
-        receivedQty: item.quantity - (item.receivedQty || 0),
-        damagedQty: 0,
-        expiryStatus: 'SAFE'
-      })));
+      setGRNItems((data.items || []).map(item => {
+        const targetProd = products.find(p => p.id === item.productId || p.productId === item.productId || p.id === item.product?.id);
+        const sku = targetProd?.skuCode || targetProd?.sku || item.skuCode || item.sku || item.product?.skuCode || item.product?.sku || item.vendorSku || '';
+        const uom = item.uom || targetProd?.uom || '';
+        const variantName = item.variantName || item.product?.variantName || item.productVariant?.variantName || targetProd?.variantName || '';
+
+        return {
+          productId: item.productId,
+          name: item.name || item.productName || item.product?.name || targetProd?.name || 'Item',
+          variantName: variantName,
+          sku: sku,
+          weight: uom,
+          orderedQty: item.quantity,
+          alreadyReceived: item.receivedQty || 0,
+          balance: item.quantity - (item.receivedQty || 0),
+          receivedQty: String(item.quantity - (item.receivedQty || 0)),
+          damagedQty: '0',
+          expiryStatus: 'SAFE'
+        };
+      }));
       setView('create-po');
     } catch { toast.error('Failed to load PO details'); }
   };
@@ -1023,8 +1037,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <td className="px-3 py-6">
                             <div className="flex flex-col">
                               <span className="text-sm font-black text-gray-900 tracking-tight">{item.name}</span>
-                              <span className="text-[10px] font-bold text-gray-400">SKU: {item.sku || 'N/A'}</span>
-                              <span className="text-[10px] font-bold text-gray-400">{item.weight || '1 kg'}</span>
+                              <span className="text-[10px] font-bold text-gray-400">SKU: {item.sku || item.skuCode || item.product?.skuCode || 'N/A'}</span>
+                              {item.weight ? <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.weight}</span> : null}
                             </div>
                           </td>
                           <td className="px-3 py-6 text-center text-sm font-black text-gray-900">{item.orderedQty}</td>
@@ -1449,8 +1463,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                         <td className="px-8 py-8">
                           <div className="space-y-1">
                             <p className="font-bold text-gray-900">{item.product?.name}</p>
-                            <p className="text-xs text-gray-400 font-medium uppercase tracking-tighter">SKU: {item.product?.skuCode || 'N/A'}</p>
-                            <p className="text-[11px] text-gray-400 font-medium">{item.product?.unitValue || '1'} kg</p>
+                            <p className="text-xs text-gray-400 font-medium uppercase tracking-tighter">SKU: {item.product?.skuCode || item.product?.sku || item.sku || 'N/A'}</p>
+                            {item.uom ? (
+                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.uom}</span>
+                            ) : null}
                           </div>
                         </td>
                         <td className="px-4 py-8 text-center font-bold text-gray-900">{item.orderedQty}</td>

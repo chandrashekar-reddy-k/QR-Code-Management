@@ -80,8 +80,9 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
     setFormLoading(true);
     // We always refetch products to ensure latest prices/taxes are used
     try {
+      const extractList = (res) => Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : (Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res?.data?.data?.data) ? res.data.data.data : [])));
       const [v, p, c, u, sc, s, po, g] = await Promise.all([
-        procurementAPI.getVendors({ status: 'ACTIVE' }),
+        procurementAPI.getVendors(),
         adminAPI.getItems(),
         adminAPI.getCategories(),
         adminAPI.getUnits(),
@@ -90,7 +91,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
         procurementAPI.getPurchaseOrders({ status: 'APPROVED,ORDERED,DELIVERED' }),
         procurementAPI.getGRNs({ status: 'APPROVED,PARTIAL' })
       ]);
-      setVendors(v.data);
+      setVendors(extractList(v));
       setProducts(p.data.filter(x => x.status === 'ACTIVE'));
       setCategories(c.data?.categories || c.data?.data?.categories || (Array.isArray(c.data) ? c.data : []));
       setUnits(Array.isArray(u.data) ? u.data : u.data?.units || u.data?.data?.units || []);
@@ -102,10 +103,17 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
         const rates = s.data.data.taxRates.split(',').map(r => parseFloat(r.trim())).filter(r => !isNaN(r));
         setTaxSlabs(rates);
       }
+      setForm({ vendorId: '', grnId: '', invoiceNumber: generateInvoiceNumber(), invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] });
       setShowForm(true);
     } catch { toast.error('Failed to load data'); }
     finally { setFormLoading(false); }
   };
+
+  useEffect(() => {
+    if (showForm && vendors.length === 0 && !formLoading) {
+      openForm();
+    }
+  }, [showForm]);
 
   const handleOpenVendorModal = () => {
     setActiveVendorTab('general');
@@ -251,6 +259,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
     const mappedItems = approvedItems.map(item => {
       const prod = products.find(p => p.id === item.productId);
       const cost = item.product?.purchasePrice || prod?.purchasePrice || prod?.price || 0;
+      const mrpVal = item.mrp || item.product?.mrp || prod?.mrp || prod?.price || 0;
       // Auto-fetch Received Qty as the invoice quantity (max allowed)
       const qty = item.receivedQty || 1;
       const taxRate = prod?.gst || 0;
@@ -261,6 +270,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
         skuCode: prod?.skuCode || item.product?.skuCode || 'NO-SKU',
         quantity: String(qty),
         maxQuantity: qty, // Store max allowed for frontend validation
+        mrp: String(mrpVal),
         unitCostBeforeDiscount: String(cost),
         discountPercent: '0',
         unitCostBeforeTax: String(cost),
@@ -397,46 +407,149 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
   const handleEdit = async (purchase) => {
     setActionLoading({ id: purchase.id, type: 'edit' });
     try {
-      await openForm();
-      const { data } = await procurementAPI.getPurchaseById(purchase.id);
-      // Look up GRN to find max quantities (React state for grns might not be synchronously available here)
-      // So we default maxQuantity to current quantity below.
+      // 1. Load reference data first so dropdowns and product details are available
+      const [vRes, pRes, cRes, uRes, scRes, sRes, poRes, gRes] = await Promise.all([
+        procurementAPI.getVendors({ status: 'ACTIVE', storeId: storeId || undefined }),
+        adminAPI.getItems({ storeId: storeId || undefined }),
+        adminAPI.getCategories(),
+        adminAPI.getUnits(),
+        adminAPI.getSubCategories(),
+        adminAPI.getSettings(),
+        procurementAPI.getPurchaseOrders({ status: 'APPROVED,ORDERED,DELIVERED', storeId: storeId || undefined }),
+        procurementAPI.getGRNs({ status: 'APPROVED,PARTIAL', storeId: storeId || undefined })
+      ]);
 
+      const loadedVendors = vRes.data?.data || vRes.data || [];
+      const rawProducts = (pRes.data || []).filter(x => x.isActive || x.status === 'APPROVED');
+      const loadedProducts = [];
+      rawProducts.forEach(prod => {
+        loadedProducts.push({ ...prod, id: prod.id, productId: prod.id });
+        if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+          prod.variants.forEach(variant => {
+            loadedProducts.push({
+              ...prod,
+              id: variant.id || `${prod.id}_${variant.variantName}`,
+              productId: variant.productId || (variant.id && !variant.id.includes('_') ? variant.id : prod.id),
+              parentProductId: prod.id,
+              name: prod.name,
+              variantName: variant.variantName || variant.name || '',
+              isVariantItem: true,
+              price: variant.sellingPrice ?? variant.price ?? prod.price,
+              purchasePrice: variant.purchasePrice ?? variant.costPrice ?? variant.landingPrice ?? prod.purchasePrice ?? prod.price,
+              skuCode: variant.sku || variant.skuCode || prod.skuCode,
+              barcode: variant.barcode || prod.barcode,
+              unit: variant.unit || variant.unitType || prod.unit,
+              unitValue: variant.measurement || variant.unitValue || prod.unitValue,
+              measurement: variant.measurement || prod.measurement,
+              variants: []
+            });
+          });
+        }
+      });
+
+      const loadedCategories = cRes.data?.categories || cRes.data?.data?.categories || (Array.isArray(cRes.data) ? cRes.data : []);
+      const loadedUnits = Array.isArray(uRes.data) ? uRes.data : uRes.data?.units || uRes.data?.data?.units || [];
+      const loadedSubCats = Array.isArray(scRes.data) ? scRes.data : scRes.data?.subCategories || scRes.data?.data?.subCategories || [];
+      const loadedPOs = poRes.data || [];
+      const loadedGrns = gRes.data?.data || gRes.data || gRes || [];
+
+      setVendors(loadedVendors);
+      setProducts(loadedProducts);
+      setCategories(loadedCategories);
+      setUnits(loadedUnits);
+      setSubCategories(loadedSubCats);
+      setPurchaseOrders(loadedPOs);
+      setGrns(loadedGrns);
+
+      if (sRes.data?.success && sRes.data?.data?.taxRates) {
+        const rates = sRes.data.data.taxRates.split(',').map(r => parseFloat(r.trim())).filter(r => !isNaN(r));
+        setTaxSlabs(rates);
+      }
+
+      // 2. Fetch target purchase invoice details
+      const res = await procurementAPI.getPurchaseById(purchase.id);
+      const data = res.data?.data || res.data || purchase;
+
+      let vMappings = [];
+      if (data.vendorId) {
+        try {
+          const vMapRes = await procurementAPI.getVendorMappings(data.vendorId);
+          vMappings = Array.isArray(vMapRes.data?.data) ? vMapRes.data.data : (Array.isArray(vMapRes.data) ? vMapRes.data : []);
+        } catch (e) {
+          console.warn('Vendor mappings fetch warning:', e);
+        }
+      }
+
+      const rawItems = Array.isArray(data.items) ? data.items : [];
+      const invoiceDateFormatted = data.invoiceDate 
+        ? String(data.invoiceDate).split('T')[0] 
+        : format(new Date(), 'yyyy-MM-dd');
+
+      const mappedItems = rawItems.map(i => {
+        const cost = parseFloat(i.unitCostBeforeDiscount) || parseFloat(i.price) || 0;
+        const taxRate = parseFloat(i.taxPercent) || 0;
+        const prod = (loadedProducts || []).find(p => p.id === i.productId || p.productId === i.productId);
+        const m = (vMappings || []).find(x => 
+          String(x.vendorId) === String(data.vendorId) && 
+          (String(x.productId) === String(i.productId) || String(x.product?.id) === String(i.productId))
+        );
+
+        const mappedMrp = (i.mrp !== undefined && i.mrp !== null && i.mrp !== '' && parseFloat(i.mrp) > 0)
+          ? i.mrp
+          : (m?.mrp || m?.price || i.product?.mrp || prod?.mrp || prod?.price || 0);
+
+        const mappedLandingPrice = (i.unitCostBeforeDiscount !== undefined && parseFloat(i.unitCostBeforeDiscount) > 0)
+          ? i.unitCostBeforeDiscount
+          : (i.price > 0 ? i.price : (m?.landingPrice || i.product?.purchasePrice || prod?.landingPrice || prod?.purchasePrice || cost));
+
+        const mappedSellingPrice = (i.unitSellingPrice !== undefined && parseFloat(i.unitSellingPrice) > 0)
+          ? i.unitSellingPrice
+          : (m?.sellingPrice || i.product?.price || prod?.sellingPrice || prod?.price || cost);
+
+        const mappedUom = m?.uom || i.uom || 'PACK';
+
+        const baseItem = {
+          productId: i.productId,
+          name: i.product?.name || prod?.name || 'Unknown',
+          variantName: i.variantName || i.product?.variantName || prod?.variantName || '',
+          skuCode: i.product?.skuCode || prod?.skuCode || i.skuCode || 'NO-SKU',
+          barcode: i.product?.barcode || prod?.barcode || i.barcode || '',
+          unit: mappedUom,
+          uom: mappedUom,
+          quantity: String(i.quantity || 1),
+          maxQuantity: i.quantity || 1,
+          mrp: String(mappedMrp || 0),
+          unitCostBeforeDiscount: String(mappedLandingPrice || 0),
+          discountPercent: String(i.discountPercent || 0),
+          unitCostBeforeTax: String(i.unitCostBeforeTax || mappedLandingPrice || 0),
+          subtotalBeforeTax: String(i.subtotalBeforeTax || (i.quantity * mappedLandingPrice)),
+          taxType: i.taxType || (taxRate > 0 ? 'GST' : 'NONE'),
+          taxPercent: String(taxRate),
+          netCost: String(i.netCost || mappedLandingPrice || 0),
+          profitMargin: String(i.profitMargin || 0),
+          unitSellingPrice: String(mappedSellingPrice || 0),
+          mfgDate: (i.mfgDate || i.mfg_date || i.mfg) ? String(i.mfgDate || i.mfg_date || i.mfg).split('T')[0] : '',
+          expDate: (i.expDate || i.expiryDate || i.exp_date || i.exp) ? String(i.expDate || i.expiryDate || i.exp_date || i.exp).split('T')[0] : '',
+          total: String(i.total || (i.quantity * mappedLandingPrice))
+        };
+        return calculateItemValues(baseItem);
+      });
 
       setForm({
         id: data.id,
         vendorId: data.vendorId || '',
         grnId: data.grnId || '',
         invoiceNumber: data.invoiceNumber || '',
-        invoiceDate: format(new Date(data.invoiceDate), 'yyyy-MM-dd'),
+        invoiceDate: invoiceDateFormatted,
         transportCharges: String(data.transportCharges || 0),
         otherCharges: String(data.otherCharges || 0),
-        items: data.items.map(i => {
-          const cost = parseFloat(i.unitCostBeforeDiscount) || i.price || 0;
-          const taxRate = parseFloat(i.taxPercent) || 0;
-          const baseItem = {
-            productId: i.productId,
-            name: i.product?.name || 'Unknown',
-            skuCode: i.product?.skuCode || 'NO-SKU',
-            quantity: String(i.quantity),
-            maxQuantity: i.quantity, // Default to current quantity if we don't have the GRN details
-            unitCostBeforeDiscount: String(cost),
-            discountPercent: String(i.discountPercent || 0),
-            unitCostBeforeTax: String(i.unitCostBeforeTax || cost),
-            subtotalBeforeTax: String(i.subtotalBeforeTax || (i.quantity * cost)),
-            taxType: i.taxType || (taxRate > 0 ? 'GST' : 'NONE'),
-            taxPercent: String(taxRate),
-            netCost: String(i.netCost || cost),
-            profitMargin: String(i.profitMargin || 0),
-            unitSellingPrice: String(i.unitSellingPrice || i.product?.price || cost),
-            mfgDate: i.mfgDate ? format(new Date(i.mfgDate), 'yyyy-MM-dd') : '',
-            expDate: i.expDate ? format(new Date(i.expDate), 'yyyy-MM-dd') : '',
-            total: String(i.total || (i.quantity * i.price))
-          };
-          return calculateItemValues(baseItem);
-        })
+        items: mappedItems
       });
+
       setShowForm(true);
+    } catch (err) {
+      console.error('handleEdit error:', err);
+      toast.error(err.response?.data?.message || err.message || 'Error loading purchase invoice for edit');
     } finally {
       setActionLoading({ id: null, type: null });
     }
@@ -675,7 +788,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
 
               {can('PROCUREMENT', 'CREATE', 'PURCHASES') && (
                 <button
-                  onClick={() => { setForm({ vendorId: '', poId: '', invoiceNumber: '', invoiceDate: format(new Date(), 'yyyy-MM-dd'), transportCharges: '0', otherCharges: '0', items: [] }); openForm(); }}
+                  onClick={openForm}
                   disabled={formLoading}
                   className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/10 active:scale-95 disabled:opacity-70">
                   {formLoading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} strokeWidth={3} />}
@@ -717,7 +830,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                           <div className="flex flex-col gap-0.5">
                             <span className="text-[11px] font-black text-gray-900 leading-none">#{p.invoiceNumber}</span>
                             {p.displayId && <span className="text-[8px] font-black text-emerald-600 uppercase tracking-tighter leading-none">{p.displayId}</span>}
-                            {p.po && <span className="text-[7px] font-black text-blue-500 uppercase tracking-tighter mt-0.5">PO: {p.po.displayId || p.po.displayId}</span>}
+                            
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -788,12 +901,9 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
             <h3 className="text-xl font-black text-gray-900">{form.id ? 'Edit Purchase Invoice' : 'New Purchase Invoice'}</h3>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Vendor *</label>
-                  <button type="button" onClick={handleOpenVendorModal} className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded flex items-center gap-1 hover:bg-emerald-100"><Plus size={10} /> Add New</button>
-                </div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Vendor *</label>
                 <select value={form.vendorId} onChange={e => setForm({ ...form, vendorId: e.target.value })} required
                   className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                   <option value="">Select Vendor</option>
@@ -819,21 +929,9 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                 <input required placeholder="Vendor's Invoice Number" value={form.invoiceNumber} onChange={e => setForm({ ...form, invoiceNumber: e.target.value })}
                   className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Invoice Date</label>
                 <input type="date" value={form.invoiceDate} onChange={e => setForm({ ...form, invoiceDate: e.target.value })}
-                  className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Transport ₹</label>
-                <input type="number" value={form.transportCharges} onChange={e => setForm({ ...form, transportCharges: e.target.value })}
-                  className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1">Other ₹</label>
-                <input type="number" value={form.otherCharges} onChange={e => setForm({ ...form, otherCharges: e.target.value })}
                   className="w-full bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold border-none focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
               </div>
             </div>
@@ -842,152 +940,10 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <div className="flex flex-col">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 pl-1">Line Items</label>
-                  <p className="text-xs text-gray-500 font-bold mt-1 pl-1">Items are auto-fetched from the linked GRN. You can also add products manually.</p>
+                  <p className="text-xs text-gray-500 font-bold mt-1 pl-1">Items are auto-fetched from the linked GRN.</p>
                 </div>
               </div>
-              {/* Manual Product Search Row */}
-              <div className="flex flex-wrap items-center gap-2 p-3 bg-emerald-50/40 border border-emerald-100 rounded-2xl">
-                {/* Barcode Scan Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowScanner(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wide hover:bg-emerald-700 transition-all shadow-sm active:scale-95 shrink-0"
-                  title="Scan Barcode"
-                >
-                  <ScanBarcode size={13} strokeWidth={2.5} />
-                  Scan
-                </button>
-
-                {/* Product Search */}
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={11} />
-                  <input
-                    type="text"
-                    placeholder="Search product by name or barcode..."
-                    value={itemSearch}
-                    onChange={e => {
-                      setItemSearch(e.target.value);
-                      setShowItemResults(true);
-                      if (!e.target.value) {
-                        setSelectedProduct(null);
-                        setSearchPrice('0');
-                      } else {
-                        setSelectedProduct(null);
-                      }
-                    }}
-                    onFocus={() => itemSearch && setShowItemResults(true)}
-                    className="w-full pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 outline-none transition-all placeholder:text-gray-300"
-                  />
-                  {showItemResults && itemSearch && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
-                      {products
-                        .filter(p =>
-                          p.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
-                          (p.barcode && p.barcode.includes(itemSearch)) ||
-                          (p.skuCode && p.skuCode.toLowerCase().includes(itemSearch.toLowerCase()))
-                        )
-                        .slice(0, 15)
-                        .map(p => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onMouseDown={e => e.preventDefault()}
-                            onClick={() => {
-                              setSelectedProduct(p);
-                              setItemSearch(p.name);
-                              setSearchPrice(String(p.purchasePrice || p.price || 0));
-                              setSearchQty('1');
-                              setShowItemResults(false);
-                            }}
-                            className="w-full text-left px-3 py-2 text-[10px] hover:bg-emerald-50 flex items-center justify-between border-b border-gray-50 last:border-0 transition-colors"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <span className="font-black text-gray-900 block truncate">{p.name}</span>
-                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                <span className="text-[7px] font-bold text-gray-400">{p.barcode || p.skuCode || 'NO-SKU'}</span>
-                                <span className="text-[7px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">Store: {p.warehouseStock || p.currentStock || p.stock || 0}</span>
-                                <span className="text-[7px] font-black bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100">Veh: {p.vehicleStock || 0}</span>
-                                <span className="text-[7px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100">Total: {p.totalStock || (p.warehouseStock || 0) + (p.vehicleStock || 0)}</span>
-                              </div>
-                            </div>
-                            <span className="text-xs font-black text-emerald-600 shrink-0 ml-2">₹{p.purchasePrice || p.price || 0}</span>
-                          </button>
-                        ))
-                      }
-                      {products.filter(p =>
-                        p.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
-                        (p.barcode && p.barcode.includes(itemSearch)) ||
-                        (p.skuCode && p.skuCode.toLowerCase().includes(itemSearch.toLowerCase()))
-                      ).length === 0 && (
-                        <div className="px-3 py-4 text-center text-[10px] font-black text-gray-400">No products found</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Qty Input */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-[9px] font-black text-gray-400 uppercase">Qty</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={searchQty}
-                    onChange={e => setSearchQty(e.target.value)}
-                    className="w-14 bg-white border border-gray-200 rounded-lg px-2 py-2 text-[10px] font-black text-center focus:ring-2 focus:ring-emerald-500 outline-none"
-                  />
-                </div>
-
-                {/* Price Input */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-[9px] font-black text-gray-400 uppercase">₹</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={searchPrice}
-                    onChange={e => setSearchPrice(e.target.value)}
-                    className="w-20 bg-white border border-gray-200 rounded-lg px-2 py-2 text-[10px] font-black text-center focus:ring-2 focus:ring-emerald-500 outline-none"
-                    placeholder="Price"
-                  />
-                </div>
-
-                {/* Add Button */}
-                <button
-                  type="button"
-                  disabled={!selectedProduct}
-                  onClick={() => {
-                    if (!selectedProduct) return;
-                    const newItem = {
-                      productId: selectedProduct.id,
-                      name: selectedProduct.name,
-                      skuCode: selectedProduct.skuCode || 'NO-SKU',
-                      quantity: String(searchQty || 1),
-                      maxQuantity: null,
-                      unitCostBeforeDiscount: String(searchPrice || selectedProduct.purchasePrice || selectedProduct.price || 0),
-                      discountPercent: '0',
-                      unitCostBeforeTax: String(searchPrice || selectedProduct.purchasePrice || selectedProduct.price || 0),
-                      subtotalBeforeTax: '0',
-                      taxType: (selectedProduct.gst && selectedProduct.gst > 0) ? 'GST' : 'NONE',
-                      taxPercent: String(selectedProduct.gst || '0'),
-                      netCost: String(searchPrice || selectedProduct.purchasePrice || selectedProduct.price || 0),
-                      profitMargin: '0',
-                      unitSellingPrice: String(selectedProduct.price || 0),
-                      mfgDate: '',
-                      expDate: '',
-                      total: '0'
-                    };
-                    setForm(prev => ({ ...prev, items: [...prev.items, calculateItemValues(newItem)] }));
-                    setItemSearch('');
-                    setSelectedProduct(null);
-                    setSearchQty('1');
-                    setSearchPrice('0');
-                    setShowItemResults(false);
-                    toast.success(`Added: ${selectedProduct.name}`);
-                  }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wide hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shrink-0"
-                >
-                  <Plus size={11} strokeWidth={3} /> Add
-                </button>
-              </div>
+              
               <div className="flex items-center justify-between p-4 bg-gray-50/50 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
@@ -1010,38 +966,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    id="excel-upload"
-                    className="hidden"
-                    accept=".xlsx, .xls"
-                    onChange={handleExcelUpload}
-                  />
-                  <label
-                    htmlFor="excel-upload"
-                    className="text-[9px] font-black text-amber-600 flex items-center gap-1.5 bg-amber-50/50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-all cursor-pointer border border-amber-100"
-                  >
-                    <FileUp size={10} strokeWidth={3} /> Bulk
-                  </label>
-
-                  <input
-                    type="file"
-                    id="zip-upload"
-                    className="hidden"
-                    accept=".zip, .rar, .7z, .xlsx, .xls, .csv"
-                    onChange={handleExcelUpload}
-                  />
-                  <label
-                    htmlFor="zip-upload"
-                    className="text-[9px] font-black text-purple-600 flex items-center gap-1.5 bg-purple-50/50 px-3 py-1.5 rounded-lg hover:bg-purple-100 transition-all cursor-pointer border border-purple-100"
-                  >
-                    <FileArchive size={10} strokeWidth={3} /> Zip Import
-                  </label>
-                  <button type="button" onClick={() => setShowQuickProduct(true)} className="text-[9px] font-black text-blue-600 flex items-center gap-1.5 bg-blue-50/50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-all">
-                    <Plus size={10} strokeWidth={3} /> New
-                  </button>
-                </div>
+                
               </div>
               <div className="bg-white rounded-b-3xl border-t border-gray-100 overflow-x-auto custom-scrollbar" onClick={() => setShowItemResults(false)}>
                 {form.items.length === 0 ? (
@@ -1050,163 +975,120 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No items added yet</p>
                   </div>
                 ) : (
-                  <table className="w-full table-auto border-collapse">
+                  <table className="w-full text-left border-collapse min-w-[850px]">
                     <thead>
-                      <tr className="bg-emerald-600 border-b border-emerald-700">
-                        <th className="px-1 py-2 text-left text-[7px] font-black uppercase tracking-tighter text-emerald-50">#</th>
-                        <th className="px-2 py-2 text-left text-[7px] font-black uppercase tracking-tighter text-emerald-50 min-w-[100px]">Product Name</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Qty</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Cost (BD)</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Disc %</th>
-                        {/* <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Cost (BT)</th> */}
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Sub (BT)</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Tax</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Tax Amt</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Net Cost</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Line Total</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Margin %</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">Selling Price</th>
-                        <th className="px-1 py-2 text-center text-[7px] font-black uppercase tracking-tighter text-emerald-50">MFG/EXP Date</th>
-                        <th className="px-1 py-2 text-right text-[7px] font-black uppercase tracking-tighter text-emerald-50"><Trash2 size={12} className="ml-auto" /></th>
+                      <tr className="bg-slate-50 border-b border-gray-200/80">
+                        <th className="px-3 py-2.5 text-center text-[9px] font-black uppercase tracking-wider text-gray-500 w-8">#</th>
+                        <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[220px]">Product</th>
+                        <th className="px-3 py-2.5 text-right text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[70px]">Qty</th>
+                        <th className="px-3 py-2.5 text-center text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[65px]">UOM</th>
+                        <th className="px-3 py-2.5 text-right text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[90px]">MRP</th>
+                        <th className="px-3 py-2.5 text-right text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[105px]">Landing Price</th>
+                        <th className="px-3 py-2.5 text-right text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[85px]">Margin %</th>
+                        <th className="px-3 py-2.5 text-right text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[105px]">Selling Price</th>
+                        <th className="px-3 py-2.5 text-center text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[120px]">Mfg. Date</th>
+                        <th className="px-3 py-2.5 text-center text-[9px] font-black uppercase tracking-wider text-gray-500 min-w-[120px]">Expiry Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-100">
                       {form.items
                         .map((item, index) => ({ ...item, originalIndex: index }))
                         .filter(item => {
-                          const p = products.find(x => x.id === item.productId);
-                          if (!p) return false;
+                          const p = products.find(x => x.id === item.productId || x.productId === item.productId);
                           const search = itemFilter.toLowerCase();
-                          return !search ||
-                            p.name.toLowerCase().includes(search) ||
-                            (p.barcode && p.barcode.toLowerCase().includes(search)) ||
-                            (p.skuCode && p.skuCode.toLowerCase().includes(search));
+                          if (!search) return true;
+                          const name = item.name || p?.name || '';
+                          const variant = item.variantName || p?.variantName || '';
+                          const barcode = item.barcode || p?.barcode || '';
+                          const sku = item.skuCode || p?.skuCode || '';
+                          return (
+                            name.toLowerCase().includes(search) ||
+                            variant.toLowerCase().includes(search) ||
+                            barcode.toLowerCase().includes(search) ||
+                            sku.toLowerCase().includes(search)
+                          );
                         })
                         .map((item, filteredIdx) => {
-                          const p = products.find(x => x.id === item.productId);
+                          const p = products.find(x => x.id === item.productId || x.productId === item.productId);
                           const originalIdx = item.originalIndex;
+                          const currentVariant = item.variantName || p?.variantName;
+                          const unitLabel = item.uom || 'PACK';
                           return (
-                            <tr key={originalIdx} className="hover:bg-emerald-50/20 transition-colors group">
-                              <td className="px-1 py-1.5">
-                                <span className="text-[8px] font-black text-gray-300">{originalIdx + 1}</span>
+                            <tr key={originalIdx} className="hover:bg-slate-50/80 transition-colors group">
+                              <td className="px-3 py-3 text-center">
+                                <span className="text-[10px] font-black text-gray-400">{originalIdx + 1}</span>
                               </td>
-                              <td className="px-2 py-1.5">
+                              <td className="px-4 py-3">
                                 <div className="flex flex-col min-w-0">
-                                  <span className="text-[9px] font-black text-gray-900 truncate uppercase tracking-tighter leading-tight">{p.name}</span>
-                                  <span className="text-[7px] font-bold text-gray-400">({p.barcode || p.skuCode || 'NO-SKU'})</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[11px] font-black text-gray-900 uppercase tracking-tight leading-tight">{item.name || p?.name}</span>
+                                    {currentVariant && (
+                                      <span className="text-[8px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100/60">
+                                        {currentVariant}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[9px] font-semibold text-gray-400 mt-0.5">({p?.skuCode || p?.sku || item.skuCode || item.sku || item.product?.skuCode || item.barcode || p?.barcode || 'NO-SKU'})</span>
                                 </div>
                               </td>
-                              <td className="px-1 py-1.5 text-center">
-                                <div className="flex flex-col items-center">
-                                  <input
-                                    type="number"
-                                    value={item.quantity || ''}
-                                    onChange={e => {
-                                      const val = e.target.value;
-                                      if (val !== '' && parseFloat(val) > parseFloat(item.maxQuantity)) {
-                                        toast.error(`Quantity cannot exceed GRN approved quantity (${item.maxQuantity})`);
-                                        updateItem(originalIdx, 'quantity', String(item.maxQuantity));
-                                      } else {
-                                        updateItem(originalIdx, 'quantity', val);
-                                      }
-                                    }}
-                                    className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-[8px] font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
-                                  />
-                                  <span className="text-[6px] font-black text-gray-400 uppercase">{p.unit?.type || 'pcs'}</span>
-                                </div>
-                              </td>
-                              <td className="px-1 py-1.5 text-center">
+                              <td className="px-3 py-3 text-right">
                                 <input
-                                  type="number"
-                                  value={item.unitCostBeforeDiscount || ''}
-                                  onChange={e => updateItem(originalIdx, 'unitCostBeforeDiscount', e.target.value)}
-                                  className="w-14 bg-white border border-gray-200 rounded px-1 py-0.5 text-[8px] font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
+                                  type="text"
+                                  readOnly
+                                  value={item.quantity || '0'}
+                                  className="w-16 bg-slate-100/70 border border-slate-200/50 rounded-lg px-2 py-1 text-[10px] font-black text-right text-slate-700 cursor-not-allowed focus:outline-none ml-auto"
                                 />
                               </td>
-                              <td className="px-1 py-1.5 text-center">
-                                <div className="flex flex-col items-center">
-                                  <input
-                                    type="number"
-                                    value={item.discountPercent || ''}
-                                    onChange={e => updateItem(originalIdx, 'discountPercent', e.target.value)}
-                                    className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 text-[8px] font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
-                                  />
-                                  <span className="text-[6px] font-black text-gray-400 uppercase">%</span>
-                                </div>
+                              <td className="px-3 py-3 text-center">
+                                <span className="inline-block bg-slate-100/80 text-slate-600 font-black text-[9px] px-2 py-0.5 rounded uppercase tracking-wider border border-slate-200/60">
+                                  {unitLabel || 'PCS'}
+                                </span>
                               </td>
-                              {/* <td className="px-1 py-1.5 text-center">
+
+                              <td className="px-3 py-3 text-right">
                                 <input
-                                  type="number"
-                                  value={item.unitCostBeforeTax || ''}
-                                  onChange={e => updateItem(originalIdx, 'unitCostBeforeTax', e.target.value)}
-                                  className="w-14 bg-white border border-gray-200 rounded px-1 py-0.5 text-[8px] font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
+                                  type="text"
+                                  readOnly
+                                  value={item.mrp !== undefined && item.mrp !== '' ? `₹${parseFloat(item.mrp || 0).toFixed(2)}` : '₹0.00'}
+                                  className="w-20 bg-slate-100/70 border border-slate-200/50 rounded-lg px-2 py-1 text-[10px] font-black text-right text-slate-700 cursor-not-allowed focus:outline-none ml-auto"
                                 />
-                              </td> */}
-                              <td className="px-1 py-1.5 text-center">
-                                <span className="text-[8px] font-black text-gray-700">{parseFloat(item.subtotalBeforeTax).toLocaleString()}</span>
                               </td>
-                              <td className="px-1 py-1.5 text-center">
-                                <div className="flex items-center gap-0.5 justify-center">
-                                  <select
-                                    value={item.taxType === 'NONE' ? 'NONE_0' : `GST_${item.taxPercent}`}
-                                    onChange={e => {
-                                      const [type, percent] = e.target.value.split('_');
-                                      updateItem(originalIdx, { taxType: type, taxPercent: percent });
-                                    }}
-                                    className="w-full bg-white border border-gray-200 rounded px-0.5 py-0.5 text-[7px] font-black focus:ring-1 focus:ring-emerald-500 outline-none"
-                                  >
-                                    <option value="NONE_0">Nor (0%)</option>
-                                    {taxSlabs.filter(s => s > 0).map(slab => (
-                                      <option key={slab} value={`GST_${slab}`}>GST {slab}%</option>
-                                    ))}
-                                  </select>
-                                </div>
+                              <td className="px-3 py-3 text-right">
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={(item.unitCostBeforeDiscount || item.landingPrice) ? `₹${parseFloat(item.unitCostBeforeDiscount || item.landingPrice || 0).toFixed(2)}` : '₹0.00'}
+                                  className="w-20 bg-slate-100/70 border border-slate-200/50 rounded-lg px-2 py-1 text-[10px] font-black text-right text-slate-700 cursor-not-allowed focus:outline-none ml-auto"
+                                />
                               </td>
-                              <td className="px-1 py-1.5 text-center">
-                                <span className="text-[8px] font-black text-rose-600">{parseFloat(item.taxAmount || 0).toLocaleString()}</span>
-                              </td>
-                              <td className="px-1 py-1.5 text-center">
-                                <span className="text-[8px] font-black text-gray-700">{parseFloat(item.netCost).toLocaleString()}</span>
-                              </td>
-                              <td className="px-1 py-1.5 text-center">
-                                <span className="text-[8px] font-black text-gray-900 font-mono">{parseFloat(item.total).toLocaleString()}</span>
-                              </td>
-                              <td className="px-1 py-1.5 text-center">
-                                <span className={`text-[8px] font-black ${parseFloat(item.profitMargin) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                              <td className="px-3 py-3 text-right">
+                                <span className={`inline-flex items-center justify-end px-2 py-0.5 rounded-md text-[10px] font-black ${parseFloat(item.profitMargin) >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100/60' : 'bg-rose-50 text-rose-700 border border-rose-100/60'}`}>
                                   {item.profitMargin}%
                                 </span>
                               </td>
-                              <td className="px-1 py-1.5 text-center">
+                              <td className="px-3 py-3 text-right">
                                 <input
-                                  type="number"
-                                  value={item.unitSellingPrice || ''}
-                                  onChange={e => updateItem(originalIdx, 'unitSellingPrice', e.target.value)}
-                                  className="w-14 bg-white border border-gray-200 rounded px-1 py-0.5 text-[8px] font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
+                                  type="text"
+                                  readOnly
+                                  value={item.unitSellingPrice ? `₹${parseFloat(item.unitSellingPrice || 0).toFixed(2)}` : '₹0.00'}
+                                  className="w-20 bg-slate-100/70 border border-slate-200/50 rounded-lg px-2 py-1 text-[10px] font-black text-right text-slate-700 cursor-not-allowed focus:outline-none ml-auto"
                                 />
                               </td>
-                              <td className="px-1 py-1.5 text-center">
-                                <div className="flex flex-col gap-0.5">
-                                  <input
-                                    type="date"
-                                    value={item.expDate || ''}
-                                    onChange={e => updateItem(originalIdx, 'expDate', e.target.value)}
-                                    className="bg-white border border-gray-200 rounded px-0.5 py-0.5 text-[7px] font-black focus:ring-1 focus:ring-emerald-500 outline-none"
-                                  />
-                                  <input
-                                    type="date"
-                                    value={item.mfgDate || ''}
-                                    onChange={e => updateItem(originalIdx, 'mfgDate', e.target.value)}
-                                    className="bg-white border border-gray-200 rounded px-0.5 py-0.5 text-[7px] font-black focus:ring-1 focus:ring-emerald-500 outline-none"
-                                  />
-                                </div>
+                              <td className="px-3 py-3 text-center">
+                                <input
+                                  type="date"
+                                  value={item.mfgDate || ''}
+                                  onChange={e => updateItem(originalIdx, 'mfgDate', e.target.value)}
+                                  className="w-full bg-white border border-gray-200 rounded-lg px-1.5 py-1 text-[9px] font-black text-center focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                />
                               </td>
-                              <td className="px-1 py-1.5 text-right">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); removeItem(originalIdx); }}
-                                  className="p-1 text-gray-300 hover:text-rose-500 transition-all"
-                                >
-                                  <X size={12} strokeWidth={3} />
-                                </button>
+                              <td className="px-3 py-3 text-center">
+                                <input
+                                  type="date"
+                                  value={item.expDate || ''}
+                                  onChange={e => updateItem(originalIdx, 'expDate', e.target.value)}
+                                  className="w-full bg-white border border-gray-200 rounded-lg px-1.5 py-1 text-[9px] font-black text-center focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                />
                               </td>
                             </tr>
                           );
@@ -1227,446 +1109,6 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                 form.id ? 'Update Purchase Invoice' : 'Create Purchase Invoice'
               )}
             </button>
-          </form>
-        </div>
-      )}
-
-      {/* Quick Vendor Modal (Wizard UI) */}
-      {showQuickVendor && (
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500 flex flex-col">
-          {/* Header */}
-          <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
-            <div className="flex items-center gap-4">
-              <button 
-                type="button"
-                onClick={() => { setShowQuickVendor(false); }}
-                className="p-2.5 hover:bg-white rounded-xl transition-all text-gray-400 hover:text-emerald-600 shadow-sm border border-transparent hover:border-emerald-100"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <div>
-                <h3 className="text-xl font-black text-gray-900 tracking-tight">Onboard New Vendor</h3>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Registering a new supply chain partner</p>
-              </div>
-            </div>
-            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-inner">
-              <Users size={24} />
-            </div>
-          </div>
-
-          {/* Tab Navigation Menu */}
-          <div className="px-6 pt-4 border-b border-gray-100/80 bg-slate-50/40 flex gap-2 overflow-x-auto scrollbar-none">
-            {[
-              { id: 'general', label: '1. General Details', icon: User },
-              { id: 'commercial', label: '2. Commercials', icon: DollarSign },
-              { id: 'regulation', label: '3. Regulation & Tax', icon: ShieldCheck },
-              { id: 'settlement', label: '4. Bank Details', icon: Building2 }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeVendorTab === tab.id;
-              const isIncomplete = isVendorTabIncomplete(tab.id);
-
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveVendorTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-wider transition-all border-b-2 outline-none whitespace-nowrap ${
-                    isActive 
-                      ? 'border-emerald-600 text-emerald-600 bg-white shadow-sm shadow-emerald-50/30' 
-                      : 'border-transparent text-gray-400 hover:text-slate-600 bg-transparent'
-                  }`}
-                >
-                  <Icon size={12} className={isActive ? 'text-emerald-600' : 'text-gray-300'} />
-                  <span>{tab.label}</span>
-                  {isIncomplete && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Form Body */}
-          <form onSubmit={handleQuickVendor} className="p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-between">
-            <div className="space-y-6 max-w-5xl mx-auto w-full">
-              {/* SECTION 1: General Info */}
-              {activeVendorTab === 'general' && (
-                <div className="bg-slate-50/40 rounded-2xl p-5 border border-slate-100 space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                    <User size={16} className="text-emerald-600" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">General & Contact Details</h4>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Business Name *</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <Users size={16} />
-                        </div>
-                        <input 
-                          required 
-                          value={quickVendorForm.vendorName} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, vendorName: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none animate-in" 
-                          placeholder="Enter business entity name..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Primary Contact No. *</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <Phone size={16} />
-                        </div>
-                        <input 
-                          required 
-                          value={quickVendorForm.mobile} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, mobile: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none animate-in" 
-                          placeholder="Enter 10-digit mobile number..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">POC Name</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <User size={16} />
-                        </div>
-                        <input 
-                          value={quickVendorForm.contactPerson} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, contactPerson: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none animate-in" 
-                          placeholder="Enter point of contact name..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Official Email ID</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <Mail size={16} />
-                        </div>
-                        <input 
-                          type="email"
-                          value={quickVendorForm.email} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, email: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none animate-in" 
-                          placeholder="name@business.com"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Vendor Category *</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <Tag size={16} />
-                        </div>
-                        <select 
-                          required
-                          value={quickVendorForm.vendorCategory} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, vendorCategory: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer animate-in"
-                        >
-                          <option value="RAW_MATERIAL">Raw Materials</option>
-                          <option value="PACKAGING">Packaging Materials</option>
-                          <option value="FINISHED_GOODS">Finished Goods</option>
-                          <option value="LOGISTICS">Logistics & Freight</option>
-                          <option value="SERVICES">Consulting / Services</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Business Address</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <MapPin size={16} />
-                        </div>
-                        <input 
-                          value={quickVendorForm.address} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, address: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none animate-in" 
-                          placeholder="Enter official street address..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SECTION 2: Commercial Terms */}
-              {activeVendorTab === 'commercial' && (
-                <div className="bg-slate-50/40 rounded-2xl p-5 border border-slate-100 space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                    <DollarSign size={16} className="text-emerald-600" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Commercial & Credit Terms</h4>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Credit Cycle Days</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <Clock size={16} />
-                        </div>
-                        <input 
-                          type="number" 
-                          value={quickVendorForm.creditDays} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, creditDays: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                          placeholder="30"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Credit Limit (₹)</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <DollarSign size={16} />
-                        </div>
-                        <input 
-                          type="number" 
-                          value={quickVendorForm.creditLimit} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, creditLimit: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                          placeholder="50000"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Payment terms *</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <FileText size={16} />
-                        </div>
-                        <select 
-                          required
-                          value={quickVendorForm.paymentTerms} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, paymentTerms: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
-                        >
-                          <option value="Net 30">Net 30 Days</option>
-                          <option value="Net 15">Net 15 Days</option>
-                          <option value="COD">Cash on Delivery (COD)</option>
-                          <option value="Advance">100% Advance Payment</option>
-                          <option value="Due on Receipt">Due on Receipt</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Min. Order Qty (MOQ)</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <Tag size={16} />
-                        </div>
-                        <input 
-                          type="number" 
-                          value={quickVendorForm.minOrderQty} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, minOrderQty: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                          placeholder="1"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group md:col-span-4">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Opening Account Balance (₹)</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <DollarSign size={16} />
-                        </div>
-                        <input 
-                          type="number" 
-                          value={quickVendorForm.openingBalance} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, openingBalance: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SECTION 3: Regulation & Tax */}
-              {activeVendorTab === 'regulation' && (
-                <div className="bg-slate-50/40 rounded-2xl p-5 border border-slate-100 space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                    <ShieldCheck size={16} className="text-emerald-600" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Regulation & Taxation Compliance</h4>
-                  </div>
-
-                  <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100/80 shadow-sm min-w-[200px]">
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-700">Taxable Supplier</span>
-                      <button
-                        type="button"
-                        onClick={() => setQuickVendorForm({ ...quickVendorForm, isTaxable: !quickVendorForm.isTaxable })}
-                        className="focus:outline-none"
-                      >
-                        {quickVendorForm.isTaxable ? (
-                          <ToggleRight size={32} className="text-emerald-600" />
-                        ) : (
-                          <ToggleLeft size={32} className="text-gray-300" />
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="flex-1 space-y-2 group w-full">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
-                        GST Identification Number {quickVendorForm.isTaxable && <span className="text-rose-500 font-black">* (Mandatory)</span>}
-                      </label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <ShieldAlert size={16} />
-                        </div>
-                        <input 
-                          value={quickVendorForm.gstNumber} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, gstNumber: e.target.value.toUpperCase() })}
-                          maxLength={15}
-                          className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border transition-all outline-none ${
-                            quickVendorForm.isTaxable && !quickVendorForm.gstNumber
-                              ? 'border-rose-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/5'
-                              : 'border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5'
-                          }`}
-                          placeholder="Enter 15-character GSTIN (e.g. 29GGGGG1314R1Z5)..."
-                        />
-                      </div>
-                      {quickVendorForm.isTaxable && !quickVendorForm.gstNumber && (
-                        <p className="text-[9px] font-black text-rose-500 uppercase tracking-wider pl-1 flex items-center gap-1">
-                          <ShieldAlert size={10} /> Valid GST Identification Number is strictly required for taxable suppliers.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SECTION 4: Bank Details */}
-              {activeVendorTab === 'settlement' && (
-                <div className="bg-slate-50/40 rounded-2xl p-5 border border-slate-100 space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                    <Building2 size={16} className="text-emerald-600" />
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Settlement & Bank Accounts</h4>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Bank Name</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <Building2 size={16} />
-                        </div>
-                        <input 
-                          value={quickVendorForm.bankName} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, bankName: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                          placeholder="e.g. State Bank of India..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Account Number</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <CreditCard size={16} />
-                        </div>
-                        <input 
-                          value={quickVendorForm.accountNumber} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, accountNumber: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                          placeholder="Enter bank account number..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">IFSC Code</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <Hash size={16} />
-                        </div>
-                        <input 
-                          value={quickVendorForm.ifscCode} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, ifscCode: e.target.value.toUpperCase() })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                          placeholder="e.g. SBIN0001234..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 group">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Bank Branch</label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
-                          <MapPin size={16} />
-                        </div>
-                        <input 
-                          value={quickVendorForm.bankBranch} 
-                          onChange={e => setQuickVendorForm({ ...quickVendorForm, bankBranch: e.target.value })}
-                          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                          placeholder="e.g. Bangalore MG Road..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Wizard Form Controls */}
-            <div className="pt-6 border-t border-gray-50 flex items-center justify-between gap-3 max-w-5xl mx-auto w-full">
-              {/* Left Action - Previous / Cancel */}
-              <div className="flex gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => setShowQuickVendor(false)}
-                  className="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
-                >
-                  Cancel
-                </button>
-                {activeVendorTab !== 'general' && (
-                  <button
-                    type="button"
-                    onClick={prevVendorTab}
-                    className="flex items-center gap-1.5 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all"
-                  >
-                    <ChevronLeft size={12} strokeWidth={3} /> Back
-                  </button>
-                )}
-              </div>
-
-              {/* Right Action - Next / Submit */}
-              <div>
-                {activeVendorTab !== 'settlement' ? (
-                  <button
-                    type="button"
-                    onClick={nextVendorTab}
-                    className="flex items-center gap-1.5 px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all"
-                  >
-                    Next Section <ChevronRight size={12} strokeWidth={3} />
-                  </button>
-                ) : (
-                  <button 
-                    type="submit"
-                    className="flex items-center gap-1.5 px-12 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all"
-                  >
-                    Confirm & Register
-                  </button>
-                )}
-              </div>
-            </div>
           </form>
         </div>
       )}
