@@ -1871,14 +1871,32 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                       </div>
                     </div>
 
-                <div className="grid grid-cols-1 gap-6">
+                    {/* Terms & Conditions Card */}
+                    <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm space-y-4 flex flex-col justify-between">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                          <FileText size={16} className="text-emerald-650" />
+                          <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Terms & Conditions</h3>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-500 leading-relaxed">
+                          Payment within 15 days. Organic certification required.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
                   {/* Notes Card */}
                   <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm space-y-4">
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
                       <Paperclip size={16} className="text-emerald-650" />
                       <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Notes</h3>
                     </div>
+                    <p className="text-xs font-medium text-slate-650 leading-relaxed italic">
+                      "{viewingPO.remarks || 'Verified organic supplier.'}"
+                    </p>
                   </div>
+                </div>
 
                 {/* Purchase Items Breakdown Table */}
                 <div className="space-y-3">
@@ -1971,6 +1989,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                       </div>
                     </div>
                   </div>
+                </div>
 
                   {/* Attachments Section */}
                   <div className="space-y-3">
