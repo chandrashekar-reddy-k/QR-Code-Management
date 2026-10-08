@@ -49,50 +49,53 @@ const ReadyInventory: React.FC = () => {
   const [grnItemsMap, setGrnItemsMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    fetchInventory();
-    fetchGRNs();
+    loadData();
   }, []);
 
-  const fetchGRNs = async () => {
+  const loadData = async () => {
     try {
-      const res = await inventoryService.getProcurementGRNs();
-      const list = res.data?.data || res.data || [];
-      setProcurementGRNs(list);
-      const map: Record<string, any[]> = {};
-      list.forEach((grn: any) => {
-        if (grn.items && Array.isArray(grn.items)) {
-          grn.items.forEach((item: any) => {
-            if (item.productId) {
-              if (!map[item.productId]) {
-                map[item.productId] = [];
+      // 1. Fetch GRNs
+      let map: Record<string, any[]> = {};
+      try {
+        const res = await inventoryService.getProcurementGRNs();
+        const list = res.data?.data || res.data || [];
+        setProcurementGRNs(list);
+        list.forEach((grn: any) => {
+          if (grn.items && Array.isArray(grn.items)) {
+            grn.items.forEach((item: any) => {
+              const pid = item.productId || item.product?.id;
+              if (pid) {
+                if (!map[pid]) map[pid] = [];
+                map[pid].push({
+                  grnId: grn.id,
+                  grnDisplayId: grn.displayId || grn.grnNumber || grn.id.slice(0, 8),
+                  receivedQty: item.receivedQuantity || item.receivedQty || item.quantity || 0,
+                  poDisplayId: grn.po?.displayId || grn.po?.poNumber || ''
+                });
               }
-              map[item.productId].push({
-                grnId: grn.id,
-                grnDisplayId: grn.displayId || grn.grnNumber || grn.id.slice(0, 8),
-                receivedQty: item.receivedQuantity || item.receivedQty || item.quantity || 0,
-                poDisplayId: grn.po?.displayId || grn.po?.poNumber || ''
-              });
-            }
-          });
-        }
-      });
-      setGrnItemsMap(map);
-    } catch (err) {
-      console.error('Error fetching procurement GRNs:', err);
-    }
-  };
+            });
+          }
+        });
+        setGrnItemsMap(map);
+      } catch (err) {
+        console.error('Error fetching procurement GRNs:', err);
+      }
 
-  const fetchInventory = async () => {
-    try {
+      // 2. Fetch Ready Inventory
       const response = await inventoryService.getReadyInventory({ page: 1, limit: 2000 });
       if (response.data && response.data.data) {
         const mappedData = response.data.data.products.map((item: any) => {
-          const totalStock = item.baseStock ?? item.stock ?? 0;
+          const totalStock = Number(item.baseStock ?? item.stock ?? 0);
+          const grnList = map[item.id] || [];
+          const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
+          const effectiveReadyQty = totalProcuredQty > 0 ? totalProcuredQty : totalStock;
+
           // Channels start at 0 — user allocates manually
-          const onlineQty = item.onlineAppStock?.onlineStock ?? 0;
-          const posQty = item.posStoreStock?.posStock ?? 0;
-          const vehicleQty = item.vehicleStoreStock ?? item.vehicleStock ?? 0;
-          const remainingQty = totalStock - onlineQty - posQty - vehicleQty;
+          const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
+          const posQty = Number(item.posStoreStock?.posStock ?? 0);
+          const vehicleQty = Number(item.vehicleStoreStock ?? item.vehicleStock ?? 0);
+          const remainingQty = effectiveReadyQty - onlineQty - posQty - vehicleQty;
+
           return {
             id: item.id,
             name: item.name,
@@ -100,7 +103,9 @@ const ReadyInventory: React.FC = () => {
             barcode: item.barcode || item.posStoreStock?.barcode || '',
             category: item.category?.name || 'N/A',
             units: item.unit || 'Units',
-            readyQty: String(totalStock),
+            readyQty: String(effectiveReadyQty),
+            stock: totalStock,
+            procuredQty: totalProcuredQty,
             online: String(onlineQty),
             pos: String(posQty),
             vehicle: String(vehicleQty),
@@ -268,13 +273,19 @@ const ReadyInventory: React.FC = () => {
       key: 'readyQty',
       label: 'READY QTY',
       sortable: true,
-      render: (item: ReadyInventoryItem) => {
+      render: (item: any) => {
         const grnMetas = grnItemsMap[item.id] || [];
         const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
         const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
+        const displayQty = isGrnFiltered ? matchedGrn.receivedQty : (item.procuredQty > 0 ? item.procuredQty : item.readyQty);
         return (
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-gray-900">{item.readyQty}</span>
+            <span className="text-sm font-bold text-gray-900">{displayQty}</span>
+            {item.procuredQty > 0 && item.stock !== undefined && (
+              <span className="text-[10px] text-gray-400 mt-0.5">
+                Total Stock: {item.stock}
+              </span>
+            )}
             {isGrnFiltered && (
               <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 w-fit">
                 GRN Received: {matchedGrn.receivedQty}

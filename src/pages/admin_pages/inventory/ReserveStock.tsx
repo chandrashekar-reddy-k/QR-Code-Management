@@ -16,8 +16,68 @@ interface ReserveStockItem {
   unit: string;
   price: string;
   available: string;
+  stock: number;
+  procuredQty: number;
   image: string;
 }
+
+interface QtyCellProps {
+  itemId: string;
+  field: 'online' | 'pos' | 'vehicle';
+  value: number;
+  available: number;
+  totalAllocated: number;
+  onChange: (itemId: string, field: 'online' | 'pos' | 'vehicle', value: number) => void;
+  onBlurValidate: (itemId: string) => void;
+}
+
+const QtyCell: React.FC<QtyCellProps> = React.memo(({
+  itemId,
+  field,
+  value,
+  available,
+  totalAllocated,
+  onChange,
+  onBlurValidate
+}) => {
+  // Keep local string state to allow natural typing of multi-digit numbers like 10, 25, 100 without losing cursor
+  const [localVal, setLocalVal] = useState<string>(value > 0 ? String(value) : '');
+
+  useEffect(() => {
+    setLocalVal(value > 0 ? String(value) : '');
+  }, [value]);
+
+  const isExceeded = totalAllocated > available;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    // Allow empty string or digits only
+    if (raw === '' || /^\d+$/.test(raw)) {
+      setLocalVal(raw);
+      const numeric = raw === '' ? 0 : parseInt(raw, 10);
+      onChange(itemId, field, isNaN(numeric) ? 0 : numeric);
+    }
+  };
+
+  return (
+    <div className="w-[84px] mx-auto">
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        className={`w-full h-9 px-2 text-center text-[13px] font-semibold border rounded-lg focus:outline-none transition-all ${
+          isExceeded
+            ? 'border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200'
+            : 'border-gray-300 bg-white text-gray-800 hover:border-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100'
+        }`}
+        value={localVal}
+        placeholder="0"
+        onChange={handleChange}
+        onBlur={() => onBlurValidate(itemId)}
+      />
+    </div>
+  );
+});
 
 const ReserveStock: React.FC = () => {
   const navigate = useNavigate();
@@ -33,57 +93,60 @@ const ReserveStock: React.FC = () => {
 
   const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
   const [selectedGRNId, setSelectedGRNId] = useState('ALL');
-  const [grnItemsMap, setGrnItemsMap] = useState<Record<string, string>>({});
+  const [grnItemsMap, setGrnItemsMap] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
-    fetchReadyItems();
-    inventoryService.getProcurementGRNs().then((res: any) => {
-      const list = res.data?.data || res.data || [];
-      setProcurementGRNs(list);
-      const map: Record<string, string[]> = {};
-      const vehicleQtyUpdates: Record<string, number> = {};
-
-      list.forEach((grn: any) => {
-        if (grn.items && Array.isArray(grn.items)) {
-          grn.items.forEach((item: any) => {
-            const pId = item.productId || item.product?.id || item.id;
-            if (pId) {
-              if (!map[pId]) map[pId] = [];
-              if (!map[pId].includes(grn.id)) map[pId].push(grn.id);
-
-              const qty = item.receivedQuantity ?? item.quantity ?? 0;
-              if (qty > 0) {
-                vehicleQtyUpdates[pId] = qty;
-              }
-            }
-          });
-        }
-      });
-      setGrnItemsMap(map as any);
-
-      if (Object.keys(vehicleQtyUpdates).length > 0) {
-        setQuantities(prev => {
-          const next = { ...prev };
-          Object.entries(vehicleQtyUpdates).forEach(([pId, qty]) => {
-            next[pId] = {
-              online: next[pId]?.online || 0,
-              pos: next[pId]?.pos || 0,
-              vehicle: qty
-            };
-          });
-          return next;
-        });
-      }
-    }).catch(console.error);
+    loadData();
   }, []);
 
-  const fetchReadyItems = async () => {
+  const loadData = async () => {
     try {
+      // 1. Fetch Procurement GRNs and map received quantities
+      let map: Record<string, any[]> = {};
+      const vehicleQtyUpdates: Record<string, number> = {};
+
+      try {
+        const res = await inventoryService.getProcurementGRNs();
+        const list = res.data?.data || res.data || [];
+        setProcurementGRNs(list);
+
+        list.forEach((grn: any) => {
+          if (grn.items && Array.isArray(grn.items)) {
+            grn.items.forEach((item: any) => {
+              const pId = item.productId || item.product?.id || item.id;
+              if (pId) {
+                if (!map[pId]) map[pId] = [];
+                const receivedQty = Number(item.receivedQuantity ?? item.receivedQty ?? item.quantity ?? 0);
+                map[pId].push({
+                  grnId: grn.id,
+                  grnDisplayId: grn.displayId || grn.grnNumber || grn.id.slice(0, 8),
+                  receivedQty,
+                  poDisplayId: grn.po?.displayId || grn.po?.poNumber || ''
+                });
+
+                if (receivedQty > 0) {
+                  vehicleQtyUpdates[pId] = (vehicleQtyUpdates[pId] || 0) + receivedQty;
+                }
+              }
+            });
+          }
+        });
+        setGrnItemsMap(map);
+      } catch (grnErr) {
+        console.error('Error fetching procurement GRNs:', grnErr);
+      }
+
+      // 2. Fetch Ready Inventory
       const response = await inventoryService.getReadyInventory({ page: 1, limit: 1000 });
       if (response.data?.data) {
-        const unallocatedProducts = response.data.data.products.filter((item: any) => {
-          const totalStock = item.stock ?? item.baseStock ?? 0;
-          
+        const products = response.data.data.products || [];
+
+        const unallocatedProducts = products.filter((item: any) => {
+          const totalStock = Number(item.stock ?? item.baseStock ?? 0);
+          const grnList = map[item.id] || [];
+          const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
+          const baseQty = totalProcuredQty > 0 ? totalProcuredQty : totalStock;
+
           let onlineStock = 0;
           let posStock = 0;
           if (Array.isArray(item.channelInventories)) {
@@ -98,12 +161,17 @@ const ReserveStock: React.FC = () => {
 
           const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
           const allocated = onlineStock + posStock + vStock;
-          return totalStock > allocated;
+
+          // Keep in Reserve list if there is remaining unallocated stock
+          return baseQty > allocated;
         });
 
         const mapped: ReserveStockItem[] = unallocatedProducts.map((item: any) => {
-          const totalStock = item.stock ?? item.baseStock ?? 0;
-          
+          const totalStock = Number(item.stock ?? item.baseStock ?? 0);
+          const grnList = map[item.id] || [];
+          const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
+          const effectiveBaseQty = totalProcuredQty > 0 ? totalProcuredQty : totalStock;
+
           let onlineStock = 0;
           let posStock = 0;
           if (Array.isArray(item.channelInventories)) {
@@ -118,7 +186,7 @@ const ReserveStock: React.FC = () => {
 
           const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
           const allocated = onlineStock + posStock + vStock;
-          const remaining = Math.max(0, totalStock - allocated);
+          const remaining = Math.max(0, effectiveBaseQty - allocated);
 
           return {
             id: item.id,
@@ -126,14 +194,18 @@ const ReserveStock: React.FC = () => {
             sku: item.sku || '-',
             unit: item.unit || 'units',
             price: '₹' + (item.price || item.mrp || 0),
-            available: String(remaining > 0 ? remaining : totalStock),
+            available: String(remaining > 0 ? remaining : effectiveBaseQty),
+            stock: totalStock,
+            procuredQty: totalProcuredQty,
             image: item.name ? item.name.charAt(0).toUpperCase() : 'N',
           };
         });
+
         setData(mapped);
-        // Pre-fill quantities from existing channel data
+
+        // Pre-fill quantities from vehicle suggestions or default to 0
         const initialQty: Record<string, { online: number; pos: number; vehicle: number }> = {};
-        allProducts.forEach((item: any) => {
+        unallocatedProducts.forEach((item: any) => {
           initialQty[item.id] = {
             online: 0,
             pos: 0,
@@ -146,6 +218,8 @@ const ReserveStock: React.FC = () => {
       console.error('Error fetching ready inventory:', error);
     }
   };
+
+  const fetchReadyItems = loadData;
 
   const handleGRNSelect = (grnId: string) => {
     setSelectedGRNId(grnId);
@@ -320,22 +394,28 @@ const ReserveStock: React.FC = () => {
     );
   };
 
-  const handleQtyChange = (id: string, field: 'online' | 'pos' | 'vehicle', value: number) => {
-    const item = data.find(i => i.id === id);
-    const available = item ? parseInt(item.available) || 0 : 0;
-    const currentQty = quantities[id] || { online: 0, pos: 0, vehicle: 0 };
-    const newQty = { ...currentQty, [field]: Math.max(0, value) };
-    const totalAllocated = newQty.online + newQty.pos + newQty.vehicle;
+  const handleQtyChange = React.useCallback((id: string, field: 'online' | 'pos' | 'vehicle', value: number) => {
+    setQuantities(prev => {
+      const current = prev[id] || { online: 0, pos: 0, vehicle: 0 };
+      return {
+        ...prev,
+        [id]: {
+          ...current,
+          [field]: Math.max(0, value)
+        }
+      };
+    });
+  }, []);
 
+  const handleBlurValidation = React.useCallback((itemId: string) => {
+    const item = data.find(i => i.id === itemId);
+    const available = item ? parseInt(item.available) || 0 : 0;
+    const currentQty = quantities[itemId] || { online: 0, pos: 0, vehicle: 0 };
+    const totalAllocated = currentQty.online + currentQty.pos + currentQty.vehicle;
     if (totalAllocated > available) {
       toast.error(`Low Stock Alert: Total allocated (${totalAllocated}) exceeds available stock (${available}) for ${item?.name || 'product'}`);
     }
-
-    setQuantities(prev => ({
-      ...prev,
-      [id]: newQty
-    }));
-  };
+  }, [data, quantities]);
 
   const saveSelectedAllocations = async () => {
     if (selectedItems.length === 0) return;
@@ -391,8 +471,8 @@ const ReserveStock: React.FC = () => {
     let filtered = data;
     if (selectedGRNId !== 'ALL') {
       filtered = filtered.filter(item => {
-        const grnList = grnItemsMap[item.id];
-        return Array.isArray(grnList) ? grnList.includes(selectedGRNId) : grnList === selectedGRNId;
+        const grnList = grnItemsMap[item.id] || [];
+        return grnList.some((g: any) => g.grnId === selectedGRNId);
       });
     }
     if (searchTerm) {
@@ -441,43 +521,6 @@ const ReserveStock: React.FC = () => {
       setSortField(field);
       setSortDirection('asc');
     }
-  };
-
-  const QtyInput = ({ itemId, field, isOverAllocated }: { itemId: string; field: 'online' | 'pos' | 'vehicle'; isOverAllocated: boolean }) => {
-    const item = data.find(i => i.id === itemId);
-    const available = item ? parseInt(item.available) || 0 : 0;
-    const qty = quantities[itemId] || { online: 0, pos: 0, vehicle: 0 };
-    const totalAllocated = qty.online + qty.pos + qty.vehicle;
-    const isExceeded = isOverAllocated || totalAllocated > available;
-
-    return (
-      <div className={`flex items-center border rounded-md overflow-hidden w-[100px] h-9 bg-white mx-auto transition-colors ${
-        isExceeded ? 'border-red-500 bg-red-50 ring-2 ring-red-200' : 'border-[#d2d6df]'
-      }`}>
-        <input
-          type="number"
-          min="0"
-          className={`w-full text-center text-[13px] font-bold focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${isExceeded ? 'text-red-700 bg-red-50' : 'text-gray-700 bg-white'}`}
-          value={qty[field] || 0}
-          onChange={e => handleQtyChange(itemId, field, parseInt(e.target.value) || 0)}
-          style={{ MozAppearance: 'textfield' }}
-        />
-        <div className={`flex flex-col border-l ${isExceeded ? 'border-red-300 bg-red-100' : 'border-[#d2d6df] bg-white'} h-full w-[26px] flex-shrink-0`}>
-          <button
-            className={`flex-1 flex items-center justify-center ${isExceeded ? 'text-red-600 hover:bg-red-200' : 'text-[#7a869a] hover:bg-gray-50'} transition-colors border-b ${isExceeded ? 'border-red-300' : 'border-[#d2d6df]'}`}
-            onClick={() => handleQtyChange(itemId, field, (qty[field] || 0) + 1)}
-          >
-            <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 0L8 5H0L4 0Z" /></svg>
-          </button>
-          <button
-            className={`flex-1 flex items-center justify-center ${isExceeded ? 'text-red-600 hover:bg-red-200' : 'text-[#7a869a] hover:bg-gray-50'} transition-colors`}
-            onClick={() => handleQtyChange(itemId, field, (qty[field] || 0) - 1)}
-          >
-            <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 5L0 0H8L4 5Z" /></svg>
-          </button>
-        </div>
-      </div>
-    );
   };
 
   const columns = [
@@ -551,7 +594,17 @@ const ReserveStock: React.FC = () => {
         const qty = quantities[item.id] || { online: 0, pos: 0, vehicle: 0 };
         const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
         const avail = Number(item.available) || 0;
-        return <QtyInput itemId={item.id} field="online" isOverAllocated={total > avail} />;
+        return (
+          <QtyCell
+            itemId={item.id}
+            field="online"
+            value={qty.online || 0}
+            available={avail}
+            totalAllocated={total}
+            onChange={handleQtyChange}
+            onBlurValidate={handleBlurValidation}
+          />
+        );
       }
     },
     {
@@ -562,7 +615,17 @@ const ReserveStock: React.FC = () => {
         const qty = quantities[item.id] || { online: 0, pos: 0, vehicle: 0 };
         const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
         const avail = Number(item.available) || 0;
-        return <QtyInput itemId={item.id} field="pos" isOverAllocated={total > avail} />;
+        return (
+          <QtyCell
+            itemId={item.id}
+            field="pos"
+            value={qty.pos || 0}
+            available={avail}
+            totalAllocated={total}
+            onChange={handleQtyChange}
+            onBlurValidate={handleBlurValidation}
+          />
+        );
       }
     },
     {
@@ -573,7 +636,17 @@ const ReserveStock: React.FC = () => {
         const qty = quantities[item.id] || { online: 0, pos: 0, vehicle: 0 };
         const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
         const avail = Number(item.available) || 0;
-        return <QtyInput itemId={item.id} field="vehicle" isOverAllocated={total > avail} />;
+        return (
+          <QtyCell
+            itemId={item.id}
+            field="vehicle"
+            value={qty.vehicle || 0}
+            available={avail}
+            totalAllocated={total}
+            onChange={handleQtyChange}
+            onBlurValidate={handleBlurValidation}
+          />
+        );
       }
     },
     {
@@ -587,6 +660,9 @@ const ReserveStock: React.FC = () => {
         const isOver = totalAlloc > avail;
         const isLow = avail > 0 && avail <= 10;
 
+        const grnMetas = grnItemsMap[item.id] || [];
+        const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId);
+
         return (
           <div className="flex flex-col items-center gap-1">
             <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap border ${
@@ -598,6 +674,16 @@ const ReserveStock: React.FC = () => {
             }`}>
               Available: {item.available}
             </span>
+            {item.procuredQty > 0 && item.stock !== undefined && item.stock !== item.procuredQty && (
+              <span className="text-[10px] text-gray-400">
+                Total Stock: {item.stock}
+              </span>
+            )}
+            {matchedGrn && (
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                GRN Recv: {matchedGrn.receivedQty}
+              </span>
+            )}
             {isOver && (
               <span className="text-[11px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded border border-red-200">
                 Exceeds by {totalAlloc - avail} ({totalAlloc}/{avail})
