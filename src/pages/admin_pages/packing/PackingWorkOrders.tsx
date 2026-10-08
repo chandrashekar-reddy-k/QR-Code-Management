@@ -5,16 +5,15 @@ import {
   WoPriority,
   WorkOrder,
 } from '../../../api/packing/workOrderService';
-import { masterDataService, Recipe } from '../../../api/packing/masterDataService';
+import { masterDataService } from '../../../api/packing/masterDataService';
 import { authService, User } from '../../../api/packing/authService';
+import { CreateWorkOrderFlow } from './CreateWorkOrderFlow';
 import {
   Plus,
   Search,
-  Calendar,
   X,
   Check,
   Clipboard,
-  RefreshCw,
   LayoutGrid,
   Table as TableIcon,
   Edit,
@@ -24,12 +23,7 @@ import {
   RotateCcw,
   Eye,
   Loader2,
-  ClipboardList,
-  FileEdit,
-  Clock,
-  CheckCircle2,
-  Package,
-  Shield,
+  Trash2,
   CheckCircle,
 } from 'lucide-react';
 
@@ -57,14 +51,66 @@ interface TimelineStep {
   desc: string;
 }
 
+const resolveProductUnit = (product: any): string => {
+  if (!product) return 'Units';
+  let rawUnit =
+    product.uom?.abbreviation ||
+    product.uom?.name ||
+    (typeof product.unit === 'object'
+      ? product.unit?.name || product.unit?.type
+      : product.unit);
+  if (
+    !rawUnit ||
+    /^[0-9a-f-]{36}$/i.test(String(rawUnit).trim()) ||
+    /^\d+$/.test(String(rawUnit).trim()) ||
+    String(rawUnit).length > 20
+  ) {
+    const textToSearch = `${product.sku || ''} ${product.variantName || ''} ${product.name || ''}`.toUpperCase();
+    if (textToSearch.includes('KG') || textToSearch.includes('KILOGRAM')) {
+      return 'kg';
+    } else if (
+      textToSearch.includes('GRAM') ||
+      textToSearch.includes(' GM') ||
+      textToSearch.includes(' G')
+    ) {
+      return 'gm';
+    } else if (
+      textToSearch.includes('ML') ||
+      textToSearch.includes('MILLILITRE')
+    ) {
+      return 'ml';
+    } else if (
+      textToSearch.includes('LITRE') ||
+      textToSearch.includes(' LTR') ||
+      textToSearch.includes(' L')
+    ) {
+      return 'L';
+    } else if (
+      textToSearch.includes('PACKET') ||
+      textToSearch.includes('PCS') ||
+      textToSearch.includes('PIECE')
+    ) {
+      return 'pcs';
+    }
+    return product.unitName || product.uom || 'Units';
+  }
+  return String(rawUnit);
+};
+
 export const PackingWorkOrders: React.FC = () => {
   const [apiWorkOrders, setApiWorkOrders] = useState<WorkOrder[]>([]);
   const [apiWorkOrdersLoading, setApiWorkOrdersLoading] = useState(true);
 
   const [apiOperators, setApiOperators] = useState<User[]>([]);
-  const [apiRecipes, setApiRecipes] = useState<Recipe[]>([]);
-  const [apiRecipesLoading, setApiRecipesLoading] = useState(false);
-  const [apiRecipesError, setApiRecipesError] = useState('');
+  const [apiRecipes, setApiRecipes] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Keep recipes in sync for creation flows
+    if (apiRecipes.length > 0) {
+      // recipes active
+    }
+  }, [apiRecipes]);
+
 
   // View mode state
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
@@ -73,7 +119,6 @@ export const PackingWorkOrders: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
-  const [filterSupervisor, setFilterSupervisor] = useState('All');
   const [filterDate, setFilterDate] = useState('');
 
   // Selected KPI Filter
@@ -87,15 +132,13 @@ export const PackingWorkOrders: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Modals state
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState<WorkOrder | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
+  const [deleteConfirmWO, setDeleteConfirmWO] = useState<WorkOrder | null>(null);
 
-  // Create Form states
-  const [formRecipeId, setFormRecipeId] = useState('');
-  const [formQty, setFormQty] = useState(100);
-  const [formPriority, setFormPriority] = useState<WoPriority>('MEDIUM');
-  const [formOperatorName, setFormOperatorName] = useState<string>('');
-  const [formExpectedCompletion, setFormExpectedCompletion] = useState('');
+  // Inline edit state
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
   // Edit Form states
   const [editQty, setEditQty] = useState(100);
@@ -133,17 +176,14 @@ export const PackingWorkOrders: React.FC = () => {
   };
 
   const fetchRecipes = async () => {
-    setApiRecipesLoading(true);
-    setApiRecipesError('');
     try {
       const data = await masterDataService.getRecipes();
       setApiRecipes(data || []);
+      if (data && data.length > 0) {
+        // Recipes loaded for work order creation
+      }
     } catch (err: any) {
-      setApiRecipesError(
-        err.response?.data?.message || 'Failed to load recipes from server.'
-      );
-    } finally {
-      setApiRecipesLoading(false);
+      console.error('Failed to load recipes:', err);
     }
   };
 
@@ -153,42 +193,12 @@ export const PackingWorkOrders: React.FC = () => {
     fetchRecipes();
   }, []);
 
-  const handleRefresh = () => {
-    fetchWorkOrders();
-    showToast('Work orders list refreshed successfully!');
-  };
 
   const workOrders = useMemo(() => {
     return [...apiWorkOrders].sort(
       (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
     );
   }, [apiWorkOrders]);
-
-  const supervisors = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          workOrders.map(
-            (wo) => wo.operator?.name || wo.supervisor?.name || wo.supervisorId
-          )
-        )
-      ).filter(Boolean),
-    [workOrders]
-  );
-
-  // Derived summaries for KPI Cards
-  const summary = useMemo(() => {
-    return {
-      total: workOrders.length,
-      draft: workOrders.filter((w) => w.status === 'DRAFT').length,
-      pending: workOrders.filter((w) => w.status === 'PENDING').length,
-      approved: workOrders.filter((w) => w.status === 'APPROVED').length,
-      packingStarted: workOrders.filter((w) => w.status === 'PACKING_STARTED')
-        .length,
-      qcPending: workOrders.filter((w) => w.status === 'QC_PENDING').length,
-      completed: workOrders.filter((w) => w.status === 'COMPLETED').length,
-    };
-  }, [workOrders]);
 
   // Filter application
   const filteredWOs = useMemo(() => {
@@ -203,9 +213,6 @@ export const PackingWorkOrders: React.FC = () => {
       const matchesStatus = filterStatus === 'All' || wo.status === filterStatus;
       const matchesPriority =
         filterPriority === 'All' || wo.priority === filterPriority;
-      const matchesSupervisor =
-        filterSupervisor === 'All' ||
-        (wo.operator?.name || wo.supervisor?.name || '') === filterSupervisor;
       const woDatePrefix = wo.expectedDate ? wo.expectedDate.substring(0, 10) : '';
       const matchesDate = !filterDate || woDatePrefix === filterDate;
 
@@ -222,7 +229,6 @@ export const PackingWorkOrders: React.FC = () => {
         matchesSearch &&
         matchesStatus &&
         matchesPriority &&
-        matchesSupervisor &&
         matchesDate &&
         matchesKpi
       );
@@ -232,7 +238,6 @@ export const PackingWorkOrders: React.FC = () => {
     search,
     filterStatus,
     filterPriority,
-    filterSupervisor,
     filterDate,
     kpiFilter,
   ]);
@@ -244,8 +249,6 @@ export const PackingWorkOrders: React.FC = () => {
   }, [filteredWOs, currentPage, rowsPerPage]);
 
   const totalPages = Math.ceil(filteredWOs.length / rowsPerPage);
-
-  const selectedRecipe = apiRecipes.find((r) => r.id === formRecipeId);
 
   // Status colors utility
   const getStatusColor = (status: WorkOrder['status']) => {
@@ -289,48 +292,172 @@ export const PackingWorkOrders: React.FC = () => {
         return 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800';
       case 'MEDIUM':
         return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
-      case 'LOW':
-        return 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-600';
+      default:
+        return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
     }
   };
+  // Helper to render product column with Primary Product + Counter Badge & Product Names Hover Popover
+  const renderProductColumn = (wo: any) => {
+    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
 
-  // Create Form Handler
-  const handleCreateWO = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formRecipeId) return;
+    if (items && items.length > 1) {
+      const primaryName = items[0].product || 'Product 1';
+      const extraCount = items.length - 1;
 
-    const recipe = apiRecipes.find((r) => r.id === formRecipeId);
-    if (!recipe) return;
+      return (
+        <div className="relative group inline-flex items-center gap-1.5 max-w-[200px]">
+          <span className="font-semibold text-gray-900 dark:text-white truncate cursor-default max-w-[130px]" title={primaryName}>
+            {primaryName}
+          </span>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 shrink-0 cursor-default">
+            +{extraCount} more
+          </span>
 
-    try {
-      await workOrderService.createWorkOrder({
-        productId: recipe.outputProductId,
-        recipeId: formRecipeId,
-        requiredQty: Number(formQty),
-        priority: formPriority,
-        expectedDate: formExpectedCompletion
-          ? new Date(formExpectedCompletion).toISOString()
-          : undefined,
-        operatorId: formOperatorName || undefined,
-      });
-      setIsCreateOpen(false);
-      showToast('Work order created successfully as DRAFT.');
-      fetchWorkOrders();
-      setFormRecipeId('');
-      setFormQty(100);
-      setFormPriority('MEDIUM');
-      setFormOperatorName('');
-      setFormExpectedCompletion('');
-    } catch (err: any) {
-      showToast(
-        err.response?.data?.message || err.message || 'Error creating Work Order'
+          {/* Floating Hover Popover listing ONLY product names */}
+          <div className="absolute left-0 top-full mt-1.5 hidden group-hover:block z-50 min-w-[220px] max-w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-3 space-y-2 text-xs font-sans animate-in fade-in zoom-in-95 duration-150">
+            <div className="font-bold text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-wider border-b border-gray-100 dark:border-gray-700 pb-1.5">
+              Source Products ({items.length})
+            </div>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {items.map((item: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-gray-900 dark:text-white">
+                  <span className="text-gray-400 font-mono text-[11px] shrink-0">{idx + 1}.</span>
+                  <span>{item.product}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       );
     }
+
+    const singleName = wo?.product?.name || items?.[0]?.product || '-';
+    return (
+      <span className="font-semibold text-gray-900 dark:text-white truncate block max-w-[180px]" title={singleName}>
+        {singleName}
+      </span>
+    );
+  };
+
+  const isUuidString = (str?: string) => {
+    if (!str) return false;
+    const s = String(str).trim();
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) || s.length > 20;
+  };
+
+  const getWOUnit = (wo: any) => {
+    const uomObj = wo?.product?.uom;
+    if (uomObj && typeof uomObj === 'object') {
+      if (uomObj.abbreviation && !isUuidString(uomObj.abbreviation)) return String(uomObj.abbreviation).trim().toUpperCase();
+      if (uomObj.name && !isUuidString(uomObj.name)) return String(uomObj.name).trim().toUpperCase();
+    }
+    const sourceUom = wo?.sourceItems?.[0]?.uom;
+    if (sourceUom && !isUuidString(sourceUom)) return String(sourceUom).trim().toUpperCase();
+
+    const prodUnit = wo?.product?.unit;
+    if (prodUnit && !isUuidString(prodUnit)) return String(prodUnit).trim().toUpperCase();
+
+    return 'KG';
+  };
+
+  // Utility to format work order required quantity based on output allocations and UOMs
+  const formatRequiredQty = (wo: any) => {
+    if (!wo) return '0 KG';
+    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+      const map: Record<string, number> = {};
+      wo.outputAllocations.forEach((alloc: any) => {
+        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
+        const fallbackUnit = getWOUnit(wo);
+        let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
+        if (isUuidString(unit)) unit = fallbackUnit;
+        const qty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
+        map[unit] = (map[unit] || 0) + qty;
+      });
+      const entries = Object.entries(map);
+      if (entries.length > 0) {
+        return entries.map(([uom, qty]) => `${parseFloat(qty.toFixed(3))} ${uom}`).join(', ');
+      }
+    }
+    return `${parseFloat(Number(wo.requiredQty || 0).toFixed(3))} ${getWOUnit(wo)}`;
+  };
+
+  const renderSkuColumn = (wo: any) => {
+    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
+
+    if (items && items.length > 1) {
+      const primarySku = items[0].sku || items[0].itemCode || wo?.product?.sku || 'SKU-1';
+      const extraCount = items.length - 1;
+
+      return (
+        <div className="relative group inline-flex items-center gap-1.5 max-w-[160px]">
+          <span className="font-mono font-bold text-gray-700 dark:text-gray-200 truncate cursor-default max-w-[100px]" title={primarySku}>
+            {primarySku}
+          </span>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 shrink-0 cursor-default">
+            +{extraCount}
+          </span>
+
+          <div className="absolute left-0 top-full mt-1.5 hidden group-hover:block z-50 min-w-[200px] max-w-[300px] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-3 space-y-2 text-xs font-sans animate-in fade-in zoom-in-95 duration-150">
+            <div className="font-bold text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-wider border-b border-gray-100 dark:border-gray-700 pb-1.5">
+              Source SKUs ({items.length})
+            </div>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {items.map((item: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-2 text-xs font-mono font-bold text-gray-900 dark:text-white">
+                  <span className="text-gray-400 text-[11px] shrink-0">{idx + 1}.</span>
+                  <span>{item.sku || item.itemCode || 'SKU-' + (idx + 1)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const singleSku = wo?.product?.sku || items?.[0]?.sku || items?.[0]?.itemCode || wo?.sku || wo?.recipe?.code || '—';
+    return (
+      <span className="font-mono font-bold text-gray-700 dark:text-gray-200 truncate block max-w-[140px]" title={singleSku}>
+        {singleSku}
+      </span>
+    );
+  };
+
+  // Utility to format actual produced quantity per UOM
+  const formatActualProduced = (wo: any) => {
+    if (!wo) return '0 KG';
+    const actual = wo.actualProduced || 0;
+
+    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+      const map: Record<string, number> = {};
+      const totalReq = wo.requiredQty || 1;
+
+      wo.outputAllocations.forEach((alloc: any) => {
+        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
+        const fallbackUnit = getWOUnit(wo);
+        let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
+        if (isUuidString(unit)) unit = fallbackUnit;
+
+        const targetQty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
+        const packedQty = alloc.packedUnits !== undefined && alloc.packedUnits !== null
+          ? Number(alloc.packedUnits) * (alloc.packSizeKg || 1)
+          : (alloc.packedQty !== undefined && alloc.packedQty !== null ? Number(alloc.packedQty) : Math.round((actual * (targetQty / totalReq)) * 100) / 100);
+
+        map[unit] = (map[unit] || 0) + (packedQty || 0);
+      });
+
+      const entries = Object.entries(map);
+      if (entries.length > 0) {
+        return entries.map(([uom, qty]) => `${parseFloat(qty.toFixed(3))} ${uom}`).join(', ');
+      }
+    }
+
+    const unit = getWOUnit(wo);
+    return `${parseFloat(Number(actual).toFixed(3))} ${unit}`;
   };
 
   // Edit WO Handler
   const handleOpenEdit = (wo: WorkOrder) => {
-    setIsEditOpen(wo);
+    setSelectedWO(wo);
     setEditQty(wo.requiredQty);
     setEditPriority(wo.priority);
     setEditSupervisor(wo.operatorId || wo.operator?.id || '');
@@ -339,13 +466,16 @@ export const PackingWorkOrders: React.FC = () => {
         ? new Date(wo.expectedDate).toISOString().substring(0, 10)
         : ''
     );
+    setIsEditing(true);
   };
 
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isEditOpen) return;
+  const handleSaveEdit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedWO) return;
+    const editingId = selectedWO.id;
+    setIsSavingEdit(true);
     try {
-      await workOrderService.updateWorkOrder(isEditOpen.id, {
+      await workOrderService.updateWorkOrder(editingId, {
         requiredQty: editQty,
         priority: editPriority,
         operatorId: editSupervisor || undefined,
@@ -353,12 +483,23 @@ export const PackingWorkOrders: React.FC = () => {
           ? new Date(editExpectedCompletion).toISOString()
           : undefined,
       });
-      setIsEditOpen(null);
+      setIsEditing(false);
       showToast('Work order updated successfully.');
-      fetchWorkOrders();
+      const res = await workOrderService.getWorkOrders();
+      const updatedList = res.data || [];
+      setApiWorkOrders(updatedList);
+      const updatedWo = updatedList.find((w: any) => w.id === editingId);
+      if (updatedWo) setSelectedWO(updatedWo);
     } catch (err: any) {
       showToast(err.response?.data?.message || err.message || 'Error updating Work Order');
+    } finally {
+      setIsSavingEdit(false);
     }
+  };
+
+  // Delete Draft Handler
+  const handleDeleteDraft = (wo: WorkOrder) => {
+    setDeleteConfirmWO(wo);
   };
 
   // Workflow transition helper
@@ -422,11 +563,10 @@ export const PackingWorkOrders: React.FC = () => {
       {
         status: 'DRAFT',
         label: 'Work Order Drafted',
-        desc: `Created on ${
-          selectedWO.createdAt
-            ? new Date(selectedWO.createdAt).toLocaleDateString()
-            : 'N/A'
-        }.`,
+        desc: `Created on ${selectedWO.createdAt
+          ? new Date(selectedWO.createdAt).toLocaleDateString()
+          : 'N/A'
+          }.`,
       },
       {
         status: 'PENDING',
@@ -463,6 +603,534 @@ export const PackingWorkOrders: React.FC = () => {
     ];
   }, [selectedWO]);
 
+  if (isCreateOpen) {
+    return (
+      <CreateWorkOrderFlow
+        onClose={() => {
+          setIsCreateOpen(false);
+          fetchWorkOrders();
+        }}
+        onSuccess={() => {
+          showToast('Work order created successfully.');
+        }}
+      />
+    );
+  }
+
+  if (selectedWO) {
+    const currentWO = selectedWO as WorkOrder;
+    return (
+      <div className="space-y-6 text-left font-sans select-none pb-12">
+        {/* Toast popup */}
+        {toastMessage && (
+          <div className="fixed bottom-5 right-5 z-55 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-2.5 rounded-lg text-xs font-semibold shadow-lg">
+            {toastMessage}
+          </div>
+        )}
+
+        {/* TOP BAR / BACK NAVIGATION */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 dark:border-gray-700 pb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedWO(null)}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+              <span>Back</span>
+            </button>
+            <div>
+              <span className="text-[10px] font-mono font-bold text-[#00891D] uppercase tracking-wider block">
+                {currentWO.woNumber}
+              </span>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Work Order Details
+              </h2>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <>
+                <button
+                  type="button"
+                  disabled={isSavingEdit}
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-xs font-bold cursor-pointer transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingEdit}
+                  onClick={() => handleSaveEdit()}
+                  className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#007518] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </>
+            ) : (
+              <>
+                {['DRAFT', 'PENDING'].includes(currentWO.status) && (
+                  <button
+                    onClick={() => handleOpenEdit(currentWO)}
+                    className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Edit size={14} />
+                    <span>Edit</span>
+                  </button>
+                )}
+
+                {['DRAFT', 'PENDING'].includes(currentWO.status) && (
+                  <button
+                    onClick={() => {
+                      handleDeleteDraft(currentWO);
+                    }}
+                    className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={14} />
+                    <span>Delete</span>
+                  </button>
+                )}
+
+                {currentWO.status === 'DRAFT' && (
+                  <button
+                    onClick={() => {
+                      workOrderService
+                        .updateWorkOrderStatus(currentWO.id, 'PENDING')
+                        .then(() => {
+                          showToast('Work order submitted for approval.');
+                          setSelectedWO(null);
+                          fetchWorkOrders();
+                        })
+                        .catch(console.error);
+                    }}
+                    className="flex items-center gap-1.5 bg-[#00891D] hover:bg-[#007518] text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Check size={14} />
+                    <span>Submit for Approval</span>
+                  </button>
+                )}
+
+                {currentWO.status === 'PENDING' && (
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-3.5 py-2 rounded-lg">
+                    Pending Approval in Approvals Module
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* MAIN DETAILS GRID: 2 COLUMNS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT: WORK ORDER METADATA CARD */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs p-6 space-y-6">
+              <div className="flex justify-between items-center border-b border-gray-150 dark:border-gray-700 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    General Information
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Product specification, target batch size, and assignment metadata
+                  </p>
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${getStatusColor(
+                    currentWO.status
+                  )}`}
+                >
+                  {currentWO.status ? currentWO.status.replace(/_/g, ' ') : ''}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
+                    Work Order Number
+                  </span>
+                  <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
+                    {currentWO.woNumber}
+                  </span>
+                </div>
+
+                <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
+                    Priority Level
+                  </span>
+                  {isEditing ? (
+                    <select
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                      value={editPriority}
+                      onChange={(e) => setEditPriority(e.target.value as WoPriority)}
+                    >
+                      <option value="LOW">Low</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HIGH">High</option>
+                      <option value="URGENT">Urgent</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded text-xs font-bold border ${getPriorityStyle(
+                        currentWO.priority
+                      )}`}
+                    >
+                      {currentWO.priority}
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700 sm:col-span-2">
+                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
+                    Source Products ({Array.isArray((currentWO as any).sourceItems) ? (currentWO as any).sourceItems.length : 1})
+                  </span>
+                  {Array.isArray((currentWO as any).sourceItems) && (currentWO as any).sourceItems.length > 0 ? (
+                    <div className="space-y-1.5 mt-1">
+                      {(currentWO as any).sourceItems.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 p-2 rounded-md border border-gray-100 dark:border-gray-700">
+                          <span className="font-bold text-gray-900 dark:text-white">{item.product}</span>
+                          <span className="font-mono text-gray-500 dark:text-gray-400 text-[11px]">
+                            Batch: <strong className="text-gray-700 dark:text-gray-300">{item.batch}</strong> ({item.availableQty} {item.uom})
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="font-bold text-sm text-gray-900 dark:text-white">
+                      {currentWO.product?.name || '-'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
+                    Required Quantity
+                  </span>
+                  {isEditing && (!Array.isArray((currentWO as any).outputAllocations) || (currentWO as any).outputAllocations.length === 0) ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={1}
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                        value={editQty}
+                        onChange={(e) => setEditQty(Number(e.target.value))}
+                      />
+                      <span className="font-bold text-gray-500 text-xs">{resolveProductUnit(currentWO.product)}</span>
+                    </div>
+                  ) : (
+                    <span className="font-bold text-sm text-gray-900 dark:text-white">
+                      {formatRequiredQty(currentWO)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
+                    Actual Produced
+                  </span>
+                  <span className="font-bold text-sm text-gray-900 dark:text-white">
+                    {formatActualProduced(currentWO)}
+                  </span>
+                </div>
+
+                <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
+                    Assigned Staff
+                  </span>
+                  {isEditing ? (
+                    <select
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                      value={editSupervisor}
+                      onChange={(e) => setEditSupervisor(e.target.value)}
+                    >
+                      <option value="">Select staff member...</option>
+                      {apiOperators.map((op) => (
+                        <option key={op.id} value={op.id}>
+                          {op.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="font-bold text-sm text-gray-900 dark:text-white">
+                      {currentWO.operator?.name || 'Unassigned'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
+                    Expected Completion
+                  </span>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00891D]"
+                      value={editExpectedCompletion}
+                      onChange={(e) => setEditExpectedCompletion(e.target.value)}
+                    />
+                  ) : (
+                    <span className="font-bold text-sm text-gray-900 dark:text-white">
+                      {currentWO.expectedDate
+                        ? new Date(String(currentWO.expectedDate)).toLocaleDateString()
+                        : '-'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {Array.isArray((currentWO as any).outputAllocations) && (currentWO as any).outputAllocations.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs overflow-hidden">
+                <div className="p-4 border-b border-gray-150 dark:border-gray-700">
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Target Output Plan
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-gray-700/50 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 border-b border-gray-150 dark:border-gray-700">
+                        <th className="py-2.5 px-4">TARGET SKU</th>
+                        <th className="py-2.5 px-4">PACK SIZE</th>
+                        <th className="py-2.5 px-4 text-center">PLANNED UNITS</th>
+                        <th className="py-2.5 px-4 text-right">TOTAL REQ QUANTITY</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-medium">
+                      {(currentWO as any).outputAllocations.map((alloc: any, idx: number) => {
+                        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
+                        const fallbackUnit = getWOUnit(currentWO);
+                        let allocUom = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
+                        if (!allocUom || isUuidString(allocUom)) allocUom = fallbackUnit;
+
+                        const val = typeof alloc.totalQtyKg === 'number' || !isNaN(Number(alloc.totalQtyKg))
+                          ? parseFloat(Number(alloc.totalQtyKg).toFixed(4))
+                          : (alloc.totalQtyKg || 0);
+
+                        return (
+                          <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/20">
+                            <td className="py-2.5 px-4 font-bold text-gray-900 dark:text-white">
+                              {alloc.skuName}
+                            </td>
+                            <td className="py-2.5 px-4 text-gray-600 dark:text-gray-300">
+                              {alloc.packSizeText}
+                            </td>
+                            <td className="py-2.5 px-4 text-center font-bold text-gray-800 dark:text-gray-200">
+                              {alloc.plannedUnits}
+                            </td>
+                            <td className="py-2.5 px-4 text-right font-bold text-gray-900 dark:text-white font-mono">
+                              {val} {allocUom}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* INVENTORY ALLOCATION DETAILS (WHEN COMPLETED) */}
+            {(currentWO.status === 'COMPLETED' || (currentWO.status as string) === 'FINISHED_GOODS' || (Array.isArray((currentWO as any).finishedGoods) && (currentWO as any).finishedGoods.length > 0)) && (
+              <div className="bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-800/60 rounded-xl shadow-xs p-6 space-y-4">
+                <div className="flex justify-between items-center border-b border-gray-150 dark:border-gray-700 pb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="text-[#00891D]" size={18} />
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                      Inventory Allocation Details
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 uppercase tracking-wider">
+                    Synced to Inventory
+                  </span>
+                </div>
+
+                {Array.isArray((currentWO as any).finishedGoods) && (currentWO as any).finishedGoods.length > 0 ? (
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-emerald-50/50 dark:bg-emerald-950/30 text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 border-b border-gray-200 dark:border-gray-700">
+                          <th className="py-2.5 px-3.5">FG NUMBER</th>
+                          <th className="py-2.5 px-3.5">PRODUCT / DESTINATION</th>
+                          <th className="py-2.5 px-3.5 text-center">POSTED QTY</th>
+                          <th className="py-2.5 px-3.5">BATCH NUMBER</th>
+                          <th className="py-2.5 px-3.5 text-right">STATUS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-medium">
+                        {(currentWO as any).finishedGoods.map((fg: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/30">
+                            <td className="py-2.5 px-3.5 font-mono font-bold text-gray-900 dark:text-white">
+                              {fg.fgNumber || `FG-${idx + 1}`}
+                            </td>
+                            <td className="py-2.5 px-3.5 font-semibold text-gray-800 dark:text-gray-200">
+                              {fg.destination || 'Ready Inventory'}
+                            </td>
+                            <td className="py-2.5 px-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                              {fg.postedQty} units
+                            </td>
+                            <td className="py-2.5 px-3.5 font-mono text-gray-600 dark:text-gray-300">
+                              {fg.batchNumber || currentWO.batchNumber || '—'}
+                            </td>
+                            <td className="py-2.5 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                              Completed
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : Array.isArray((currentWO as any).outputAllocations) && (currentWO as any).outputAllocations.length > 0 ? (
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-emerald-50/50 dark:bg-emerald-950/30 text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 border-b border-gray-200 dark:border-gray-700">
+                          <th className="py-2.5 px-3.5">TARGET PRODUCT / SKU</th>
+                          <th className="py-2.5 px-3.5">PACK SIZE</th>
+                          <th className="py-2.5 px-3.5 text-center">ALLOCATED QTY</th>
+                          <th className="py-2.5 px-3.5">DESTINATION STORE</th>
+                          <th className="py-2.5 px-3.5 text-right">STATUS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-medium">
+                        {(currentWO as any).outputAllocations.map((alloc: any, idx: number) => {
+                          const postedQty = alloc.packedUnits ?? alloc.packedQty ?? alloc.plannedUnits ?? 0;
+                          return (
+                            <tr key={idx} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/30">
+                              <td className="py-2.5 px-3.5 font-bold text-gray-900 dark:text-white">
+                                {alloc.skuName || alloc.productName || currentWO.product?.name || '—'}
+                              </td>
+                              <td className="py-2.5 px-3.5 text-gray-600 dark:text-gray-300">
+                                <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-[11px] font-semibold">
+                                  {alloc.packSizeText || (alloc.packSizeKg ? `${alloc.packSizeKg} KG` : '—')}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                                {postedQty} units
+                              </td>
+                              <td className="py-2.5 px-3.5 text-gray-700 dark:text-gray-300 font-medium">
+                                Ready Inventory (Central Warehouse)
+                              </td>
+                              <td className="py-2.5 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                                Allocated
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div className="p-3 bg-emerald-50/40 dark:bg-emerald-950/30 rounded-lg border border-emerald-150 dark:border-emerald-800">
+                      <span className="block text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase">Product Name</span>
+                      <span className="font-bold text-gray-900 dark:text-white text-sm">{currentWO.product?.name || '—'}</span>
+                    </div>
+                    <div className="p-3 bg-emerald-50/40 dark:bg-emerald-950/30 rounded-lg border border-emerald-150 dark:border-emerald-800">
+                      <span className="block text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase">Total Allocated</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm font-mono">{currentWO.actualProduced || currentWO.requiredQty || 0} units</span>
+                    </div>
+                    <div className="p-3 bg-emerald-50/40 dark:bg-emerald-950/30 rounded-lg border border-emerald-150 dark:border-emerald-800">
+                      <span className="block text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase">Destination</span>
+                      <span className="font-bold text-gray-900 dark:text-white text-sm">Ready Inventory (Warehouse)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT: WORK ORDER TIMELINE CARD */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs p-6 space-y-4">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide border-b border-gray-150 dark:border-gray-700 pb-3">
+                Work Order Progress Timeline
+              </h3>
+
+              <div className="p-4 bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 rounded-xl space-y-5 relative before:absolute before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-200 dark:before:bg-gray-600">
+                {timelineSteps.map((step, idx) => {
+                  const getTimelineLevel = (s: string): number => {
+                    switch (s) {
+                      case 'DRAFT':
+                        return 0;
+                      case 'PENDING':
+                      case 'PENDING_APPROVAL':
+                        return 1;
+                      case 'APPROVED':
+                        return 2;
+                      case 'MATERIAL_ISSUED':
+                        return 3;
+                      case 'PACKING_STARTED':
+                      case 'PACKING_IN_PROGRESS':
+                        return 4;
+                      case 'PACKING_COMPLETED':
+                      case 'LABELS_PRINTED':
+                      case 'QC_PENDING':
+                        return 5;
+                      case 'QC_PASSED':
+                      case 'FINISHED_GOODS':
+                      case 'COMPLETED':
+                        return 6;
+                      default:
+                        return 0;
+                    }
+                  };
+                  const woLevel = getTimelineLevel(currentWO.status);
+                  const stepLevel = getTimelineLevel(step.status);
+                  const isActive = woLevel === stepLevel;
+                  const isPast = woLevel >= stepLevel;
+
+                  return (
+                    <div key={idx} className="flex gap-3 relative z-10 text-xs">
+                      <div
+                        className={`w-4 h-4 rounded-full flex items-center justify-center text-white border-2 border-white dark:border-gray-800 shrink-0 ${isActive
+                          ? 'bg-[#00891D] ring-2 ring-[#00891D]/20'
+                          : isPast
+                            ? 'bg-[#00891D]'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                          }`}
+                      >
+                        {isPast ? (
+                          <Check size={8} />
+                        ) : (
+                          <span className="text-[7px]">{idx + 1}</span>
+                        )}
+                      </div>
+                      <div>
+                        <span
+                          className={`font-bold block ${isActive
+                            ? 'text-[#00891D] dark:text-green-400'
+                            : 'text-gray-700 dark:text-gray-300'
+                            }`}
+                        >
+                          {step.label}
+                        </span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-400 block mt-0.5">
+                          {step.desc}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 text-left font-sans select-none pb-12">
       {/* Toast popup */}
@@ -475,7 +1143,7 @@ export const PackingWorkOrders: React.FC = () => {
       {/* HEADER SECTION */}
       <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Clipboard className="text-[#00891D]" size={20} />
             <span>Packing Work Orders</span>
           </h1>
@@ -491,94 +1159,7 @@ export const PackingWorkOrders: React.FC = () => {
             <Plus size={16} />
             <span>Create Work Order</span>
           </button>
-          <button
-            onClick={handleRefresh}
-            className="p-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 cursor-pointer"
-            title="Refresh List"
-          >
-            <RefreshCw size={15} />
-          </button>
         </div>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
-        {[
-          {
-            key: 'all',
-            title: 'Total Work Orders',
-            count: summary.total,
-            icon: ClipboardList,
-            color: 'text-gray-500',
-          },
-          {
-            key: 'draft',
-            title: 'DRAFT',
-            count: summary.draft,
-            icon: FileEdit,
-            color: 'text-gray-400',
-          },
-          {
-            key: 'pending',
-            title: 'PENDING',
-            count: summary.pending,
-            icon: Clock,
-            color: 'text-amber-500',
-          },
-          {
-            key: 'approved',
-            title: 'APPROVED',
-            count: summary.approved,
-            icon: CheckCircle2,
-            color: 'text-blue-500',
-          },
-          {
-            key: 'packing_started',
-            title: 'PACKING STARTED',
-            count: summary.packingStarted,
-            icon: Package,
-            color: 'text-indigo-500',
-          },
-          {
-            key: 'qc_pending',
-            title: 'QC PENDING',
-            count: summary.qcPending,
-            icon: Shield,
-            color: 'text-orange-500',
-          },
-          {
-            key: 'completed',
-            title: 'COMPLETED',
-            count: summary.completed,
-            icon: CheckCircle,
-            color: 'text-emerald-500',
-          },
-        ].map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.key}
-              onClick={() =>
-                setKpiFilter((prev) => (prev === card.key ? 'all' : card.key))
-              }
-              className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                kpiFilter === card.key
-                  ? 'border-[#00891D] bg-green-50/30 dark:bg-green-900/20 ring-1 ring-[#00891D]'
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate block">
-                  {card.title}
-                </span>
-                <Icon size={14} className={card.color} />
-              </div>
-              <span className="text-lg font-bold text-gray-900 dark:text-white block">
-                {card.count}
-              </span>
-            </div>
-          );
-        })}
       </div>
 
       {/* SEARCH & FILTERS SECTION */}
@@ -648,22 +1229,20 @@ export const PackingWorkOrders: React.FC = () => {
           <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg p-1 bg-gray-50 dark:bg-gray-800 h-[38px] w-full sm:w-auto">
             <button
               onClick={() => setViewMode('table')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1 rounded text-xs font-semibold cursor-pointer ${
-                viewMode === 'table'
-                  ? 'bg-white dark:bg-gray-700 shadow-xs text-[#00891D] dark:text-green-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1 rounded text-xs font-semibold cursor-pointer ${viewMode === 'table'
+                ? 'bg-white dark:bg-gray-700 shadow-xs text-[#00891D] dark:text-green-400'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
             >
               <TableIcon size={14} />
               <span className="hidden sm:inline">Table</span>
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1 rounded text-xs font-semibold cursor-pointer ${
-                viewMode === 'kanban'
-                  ? 'bg-white dark:bg-gray-700 shadow-xs text-[#00891D] dark:text-green-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1 rounded text-xs font-semibold cursor-pointer ${viewMode === 'kanban'
+                ? 'bg-white dark:bg-gray-700 shadow-xs text-[#00891D] dark:text-green-400'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
             >
               <LayoutGrid size={14} />
               <span className="hidden sm:inline">Kanban</span>
@@ -673,7 +1252,21 @@ export const PackingWorkOrders: React.FC = () => {
       </div>
 
       {/* DATA VIEWS CONTAINER */}
-      {filteredWOs.length === 0 ? (
+      {apiWorkOrdersLoading ? (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-16 text-center space-y-4">
+          <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto text-[#00891D]">
+            <Loader2 className="animate-spin" size={24} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+              Loading Work Orders...
+            </h3>
+            <p className="text-xs text-gray-400">
+              Please wait while we fetch the latest packing work order data.
+            </p>
+          </div>
+        </div>
+      ) : filteredWOs.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-16 text-center space-y-4">
           <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto text-gray-400">
             <Clipboard size={22} />
@@ -696,19 +1289,19 @@ export const PackingWorkOrders: React.FC = () => {
       ) : viewMode === 'table' ? (
         // TABLE VIEW
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed text-left text-xs border-collapse">
+          <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
-                <tr className="text-gray-500 dark:text-gray-300 font-bold uppercase">
-                  <th className="p-3">Work Order No</th>
-                  <th className="p-3">Product</th>
-                  <th className="p-3">Product BOM</th>
-                  <th className="p-3 text-right">Required Quantity</th>
-                  <th className="p-3">Operator</th>
-                  <th className="p-3">Priority</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Expected Completion</th>
-                  <th className="p-3 text-right">Actions</th>
+                <tr className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  <th className="py-2.5 px-2.5 whitespace-nowrap">WO No</th>
+                  <th className="py-2.5 px-2.5 whitespace-nowrap">SKU</th>
+                  <th className="py-2.5 px-2.5">Product</th>
+                  <th className="py-2.5 px-2.5 text-right whitespace-nowrap">Required Qty</th>
+                  <th className="py-2.5 px-2.5 text-right whitespace-nowrap">Packed Qty</th>
+                  <th className="py-2.5 px-2.5 whitespace-nowrap">Assigned Staff</th>
+                  <th className="py-2.5 px-2.5">Priority</th>
+                  <th className="py-2.5 px-2.5">Status</th>
+                  <th className="py-2.5 px-2.5 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -727,22 +1320,25 @@ export const PackingWorkOrders: React.FC = () => {
                       key={`${wo.id}-${index}`}
                       className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors"
                     >
-                      <td className="p-3 font-mono font-bold text-gray-700 dark:text-gray-200">
+                      <td className="py-2.5 px-2.5 font-mono font-bold text-gray-700 dark:text-gray-200 whitespace-nowrap">
                         {wo.woNumber || wo.id}
                       </td>
-                      <td className="p-3 font-semibold text-gray-900 dark:text-white truncate max-w-[200px]">
-                        {wo.product?.name || '-'}
+                      <td className="py-2.5 px-2.5 whitespace-nowrap">
+                        {renderSkuColumn(wo)}
                       </td>
-                      <td className="p-3 text-gray-600 dark:text-gray-300 font-medium">
-                        {wo.recipe?.code || wo.recipeId || '-'}
+                      <td className="py-2.5 px-2.5">
+                        {renderProductColumn(wo)}
                       </td>
-                      <td className="p-3 text-right font-bold text-gray-900 dark:text-white">
-                        {wo.requiredQty}
+                      <td className="py-2.5 px-2.5 text-right font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                        {formatRequiredQty(wo)}
                       </td>
-                      <td className="p-3 text-gray-600 dark:text-gray-300 font-medium">
+                      <td className="py-2.5 px-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                        {formatActualProduced(wo)}
+                      </td>
+                      <td className="py-2.5 px-2.5 text-gray-600 dark:text-gray-300 font-medium">
                         {wo.operator?.name || 'Unassigned'}
                       </td>
-                      <td className="p-3">
+                      <td className="py-2.5 px-2.5">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${getPriorityStyle(
                             wo.priority
@@ -751,7 +1347,7 @@ export const PackingWorkOrders: React.FC = () => {
                           {wo.priority}
                         </span>
                       </td>
-                      <td className="p-3">
+                      <td className="py-2.5 px-2.5">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-normal whitespace-nowrap ${getStatusColor(
                             wo.status
@@ -760,13 +1356,20 @@ export const PackingWorkOrders: React.FC = () => {
                           {wo.status ? wo.status.replace(/_/g, ' ') : ''}
                         </span>
                       </td>
-                      <td className="p-3 text-gray-600 dark:text-gray-300 font-mono">
-                        {wo.expectedDate
-                          ? new Date(wo.expectedDate).toLocaleDateString()
-                          : '-'}
-                      </td>
-                      <td className="p-3 text-right">
+                      <td className="py-2.5 px-2.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {['DRAFT', 'PENDING'].includes(wo.status) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDraft(wo);
+                              }}
+                              className="text-rose-600 hover:text-rose-800 transition-colors p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer inline-flex items-center justify-center"
+                              title="Delete Work Order"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                           <button
                             onClick={() => setSelectedWO(wo)}
                             className="text-gray-400 hover:text-[#00891D] transition-colors p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer inline-flex items-center justify-center"
@@ -861,26 +1464,35 @@ export const PackingWorkOrders: React.FC = () => {
                         onClick={() => setSelectedWO(wo)}
                         className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xs hover:border-[#00891D] hover:shadow-sm transition-all cursor-grab active:cursor-grabbing flex flex-col gap-2 relative text-left"
                       >
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-center">
                           <span className="font-mono text-[9px] font-bold text-gray-400 dark:text-gray-400">
                             {wo.woNumber || wo.id}
                           </span>
-                          <span
-                            className={`text-[9px] px-1.5 py-0.5 rounded font-semibold border ${getPriorityStyle(
-                              wo.priority
-                            )}`}
-                          >
-                            {wo.priority}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {['DRAFT', 'PENDING'].includes(wo.status) && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteDraft(wo);
+                                }}
+                                className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/30 p-1 rounded cursor-pointer transition-colors"
+                                title="Delete Work Order"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded font-semibold border ${getPriorityStyle(
+                                wo.priority
+                              )}`}
+                            >
+                              {wo.priority}
+                            </span>
+                          </div>
                         </div>
 
                         <div className="text-xs">
-                          <h4 className="font-bold text-gray-900 dark:text-white line-clamp-1">
-                            {wo.product?.name || '-'}
-                          </h4>
-                          <span className="text-[9px] text-gray-400 dark:text-gray-400 block font-medium mt-0.5">
-                            Product BOM: {wo.recipe?.code || wo.recipeId}
-                          </span>
+                          {renderProductColumn(wo)}
                         </div>
 
                         <div className="text-[10px] text-gray-500 dark:text-gray-400 space-y-0.5 pt-1 border-t border-gray-100 dark:border-gray-700">
@@ -921,520 +1533,94 @@ export const PackingWorkOrders: React.FC = () => {
         </div>
       )}
 
-      {/* DETAIL DRAWER */}
-      {selectedWO && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs flex justify-end z-50">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-md h-screen overflow-y-auto p-6 shadow-2xl flex flex-col justify-between">
-            <div className="space-y-6 text-left">
-              <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-3">
-                <div>
-                  <span className="text-[9px] font-mono font-bold text-[#00891D] uppercase tracking-widest">
-                    {selectedWO.woNumber}
-                  </span>
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                    Work Order Details
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setSelectedWO(null)}
-                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
+
+
+      {/* CREATE PACKING WORK ORDER MODAL / OVERLAY */}
+      {isCreateOpen && (
+        <CreateWorkOrderFlow onClose={() => setIsCreateOpen(false)} />
+      )}
+
+
+
+      {/* CUSTOM DELETE CONFIRMATION MODAL */}
+      {deleteConfirmWO && (
+        <div
+          className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !isDeleting && setDeleteConfirmWO(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              disabled={isDeleting}
+              onClick={() => setDeleteConfirmWO(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-100 dark:border-rose-800/50 flex-shrink-0">
+                <Trash2 size={24} />
               </div>
-
-              {/* Work Order Information Grid */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-150 dark:divide-gray-700 overflow-hidden bg-white dark:bg-gray-800 text-xs">
-                <div className="flex justify-between p-2.5">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Work Order No
+              <div className="space-y-1.5 pr-6">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Delete Work Order
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
+                  Are you sure you want to delete work order{' '}
+                  <span className="font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                    {deleteConfirmWO?.woNumber || deleteConfirmWO?.id}
                   </span>
-                  <span className="font-bold text-gray-900 dark:text-white">
-                    {selectedWO.woNumber}
-                  </span>
-                </div>
-                <div className="flex justify-between p-2.5">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Product
-                  </span>
-                  <span className="font-bold text-gray-900 dark:text-white text-right max-w-[220px]">
-                    {selectedWO.product?.name || '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between p-2.5">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Product BOM
-                  </span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    {selectedWO.recipe?.code || selectedWO.recipeId}
-                  </span>
-                </div>
-                <div className="flex justify-between p-2.5">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Required Quantity
-                  </span>
-                  <span className="font-bold text-gray-900 dark:text-white">
-                    {selectedWO.requiredQty} {selectedWO.product?.unit || 'Units'}
-                  </span>
-                </div>
-                <div className="flex justify-between p-2.5">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Operator
-                  </span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    {selectedWO.operator?.name || 'Unassigned'}
-                  </span>
-                </div>
-                <div className="flex justify-between p-2.5">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Priority
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getPriorityStyle(
-                      selectedWO.priority
-                    )}`}
-                  >
-                    {selectedWO.priority}
-                  </span>
-                </div>
-                <div className="flex justify-between p-2.5">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Status
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${getStatusColor(
-                      selectedWO.status
-                    )}`}
-                  >
-                    {selectedWO.status ? selectedWO.status.replace(/_/g, ' ') : ''}
-                  </span>
-                </div>
-                <div className="flex justify-between p-2.5">
-                  <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    Expected Completion
-                  </span>
-                  <span className="font-bold text-gray-900 dark:text-white">
-                    {selectedWO.expectedDate
-                      ? new Date(selectedWO.expectedDate).toLocaleDateString()
-                      : '-'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Timeline Section */}
-              <div className="space-y-3 pt-2">
-                <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Work Order Timeline
-                </h4>
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4 relative before:absolute before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-200 dark:before:bg-gray-600">
-                  {timelineSteps.map((step, idx) => {
-                    const getTimelineLevel = (s: string): number => {
-                      switch (s) {
-                        case 'DRAFT':
-                          return 0;
-                        case 'PENDING':
-                        case 'PENDING_APPROVAL':
-                          return 1;
-                        case 'APPROVED':
-                          return 2;
-                        case 'MATERIAL_ISSUED':
-                          return 3;
-                        case 'PACKING_STARTED':
-                        case 'PACKING_IN_PROGRESS':
-                          return 4;
-                        case 'PACKING_COMPLETED':
-                        case 'LABELS_PRINTED':
-                        case 'QC_PENDING':
-                          return 5;
-                        case 'QC_PASSED':
-                        case 'FINISHED_GOODS':
-                        case 'COMPLETED':
-                          return 6;
-                        default:
-                          return 0;
-                      }
-                    };
-                    const woLevel = getTimelineLevel(selectedWO.status);
-                    const stepLevel = getTimelineLevel(step.status);
-                    const isActive = woLevel === stepLevel;
-                    const isPast = woLevel >= stepLevel;
-
-                    return (
-                      <div key={idx} className="flex gap-3 relative z-10 text-xs">
-                        <div
-                          className={`w-4 h-4 rounded-full flex items-center justify-center text-white border-2 border-white dark:border-gray-800 ${
-                            isActive
-                              ? 'bg-[#00891D] ring-2 ring-[#00891D]/20'
-                              : isPast
-                              ? 'bg-[#00891D]'
-                              : 'bg-gray-300 dark:bg-gray-600'
-                          }`}
-                        >
-                          {isPast ? (
-                            <Check size={8} />
-                          ) : (
-                            <span className="text-[7px]">{idx + 1}</span>
-                          )}
-                        </div>
-                        <div>
-                          <span
-                            className={`font-bold block ${
-                              isActive
-                                ? 'text-[#00891D] dark:text-green-400'
-                                : 'text-gray-700 dark:text-gray-300'
-                            }`}
-                          >
-                            {step.label}
-                          </span>
-                          <span className="text-[10px] text-gray-400 dark:text-gray-400 block mt-0.5">
-                            {step.desc}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                  ? This action cannot be undone.
+                </p>
               </div>
             </div>
 
-            {/* Bottom Actions in Drawer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-4 -mx-6 -mb-6 rounded-b-lg">
-              <div className="flex gap-2">
-                {['DRAFT', 'PENDING'].includes(selectedWO.status) && (
-                  <button
-                    onClick={() => {
-                      handleOpenEdit(selectedWO);
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-gray-700">
+              <button
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmWO(null)}
+                className="px-4 py-2.5 bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={isDeleting}
+                onClick={async () => {
+                  if (!deleteConfirmWO) return;
+                  const targetWo = deleteConfirmWO;
+                  setIsDeleting(true);
+                  try {
+                    await workOrderService.deleteWorkOrder(targetWo.id);
+                    showToast(`Work order ${targetWo.woNumber || targetWo.id} deleted successfully.`);
+                    if ((selectedWO as any)?.id === targetWo.id) {
                       setSelectedWO(null);
-                    }}
-                    className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg font-bold cursor-pointer text-xs mr-2"
-                  >
-                    Edit
-                  </button>
-                )}
-
-                {selectedWO.status === 'DRAFT' && (
+                    }
+                    setDeleteConfirmWO(null);
+                    fetchWorkOrders();
+                  } catch (err: any) {
+                    showToast(err.response?.data?.message || err.message || 'Error deleting Work Order');
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 shadow-xs active:scale-98"
+              >
+                {isDeleting ? (
                   <>
-                    <button
-                      onClick={() => {
-                        workOrderService
-                          .updateWorkOrderStatus(selectedWO.id, 'PENDING')
-                          .then(() => {
-                            showToast('Work order submitted for approval.');
-                            setSelectedWO(null);
-                            fetchWorkOrders();
-                          })
-                          .catch(console.error);
-                      }}
-                      className="bg-[#00891D] hover:bg-[#007518] text-white px-3 py-1.5 rounded-lg font-semibold cursor-pointer text-xs"
-                    >
-                      Submit for Approval
-                    </button>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={15} />
+                    <span>Delete Work Order</span>
                   </>
                 )}
-
-                {selectedWO.status === 'PENDING' && (
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-3 py-1 rounded-lg">
-                    Pending Approval in Approvals Module
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => setSelectedWO(null)}
-                className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer"
-              >
-                Close Details
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* CREATE WORK ORDER MODAL */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex justify-center items-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md max-h-[90vh] overflow-y-auto flex flex-col">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-900 text-white rounded-t-xl">
-              <h3 className="text-sm font-bold flex items-center gap-1.5">
-                <Calendar size={16} />
-                <span>Create Packing Work Order</span>
-              </h3>
-              <button
-                onClick={() => setIsCreateOpen(false)}
-                className="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-white cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleCreateWO}
-              className="p-5 space-y-4 flex-1 text-left text-xs"
-            >
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 flex justify-between items-center">
-                  <span>Select Product BOM *</span>
-                  <button
-                    type="button"
-                    onClick={fetchRecipes}
-                    className="text-[#00891D] dark:text-green-400 hover:underline"
-                    disabled={apiRecipesLoading}
-                  >
-                    {apiRecipesLoading ? 'Loading...' : 'Refresh BOMs'}
-                  </button>
-                </label>
-                {apiRecipesError ? (
-                  <div className="text-red-600 text-xs py-2">{apiRecipesError}</div>
-                ) : apiRecipes.length === 0 && !apiRecipesLoading ? (
-                  <div className="text-gray-500 dark:text-gray-400 text-xs py-2">
-                    No eligible BOMs available. Create one in Product BOM first.
-                  </div>
-                ) : (
-                  <select
-                    required
-                    className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg bg-white focus:ring-1 focus:ring-[#00891D] focus:outline-none"
-                    value={formRecipeId}
-                    onChange={(e) => setFormRecipeId(e.target.value)}
-                  >
-                    <option value="" className="dark:bg-gray-800">
-                      {apiRecipesLoading
-                        ? 'Loading BOMs...'
-                        : '-- Choose Product BOM Configuration --'}
-                    </option>
-                    {apiRecipes
-                      .filter((r) => r.isActive !== false)
-                      .map((r) => (
-                        <option key={r.id} value={r.id} className="dark:bg-gray-800">
-                          {r.code} - {r.name}
-                        </option>
-                      ))}
-                  </select>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                    Required Quantity *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                    value={formQty}
-                    onChange={(e) => setFormQty(Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                    Priority *
-                  </label>
-                  <select
-                    className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none"
-                    value={formPriority}
-                    onChange={(e) =>
-                      setFormPriority(e.target.value as WoPriority)
-                    }
-                  >
-                    <option value="LOW" className="dark:bg-gray-800">Low</option>
-                    <option value="MEDIUM" className="dark:bg-gray-800">Medium</option>
-                    <option value="HIGH" className="dark:bg-gray-800">High</option>
-                    <option value="URGENT" className="dark:bg-gray-800">Urgent</option>
-                  </select>
-                </div>
-              </div>
-
-              {selectedRecipe && (
-                <div className="bg-gray-50 dark:bg-gray-700/40 p-3 rounded-lg border border-gray-200 dark:border-gray-700 space-y-1 text-[11px]">
-                  <span className="text-[9px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider block mb-1">
-                    BOM Raw Materials & Packaging Requirements
-                  </span>
-                  {selectedRecipe.items?.map((item, idx) => {
-                    const reqQty =
-                      (item.requiredQty / (selectedRecipe.outputQty || 1)) * formQty;
-                    return (
-                      <div
-                        key={idx}
-                        className="flex justify-between text-gray-600 dark:text-gray-300 font-medium"
-                      >
-                        <span>
-                          {item.inputProduct?.name || item.inputProductId}
-                        </span>
-                        <span className="font-bold text-gray-800 dark:text-gray-200">
-                          {reqQty.toFixed(1)} {item.inputProduct?.unit || ''}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                  Expected Completion *
-                </label>
-                <input
-                  type="date"
-                  required
-                  className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none"
-                  value={formExpectedCompletion}
-                  onChange={(e) => setFormExpectedCompletion(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                  Assigned Operator
-                </label>
-                <select
-                  className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none"
-                  value={formOperatorName}
-                  onChange={(e) => setFormOperatorName(e.target.value)}
-                >
-                  <option value="" className="dark:bg-gray-800">Select an operator...</option>
-                  {apiOperators.map((op) => (
-                    <option key={op.id} value={op.id} className="dark:bg-gray-800">
-                      {op.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end gap-2 bg-gray-50 dark:bg-gray-800 p-3 -mx-5 -mb-5 rounded-b-xl">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-bold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-[#00891D] hover:bg-[#007518] text-white rounded-lg font-bold shadow-xs cursor-pointer"
-                >
-                  Save Draft
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT WORK ORDER MODAL */}
-      {isEditOpen && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-xs flex justify-center items-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md max-h-[90vh] overflow-y-auto flex flex-col">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-900 text-white rounded-t-xl">
-              <h3 className="text-sm font-bold flex items-center gap-1.5">
-                <Edit size={16} />
-                <span>Edit Work Order {isEditOpen.woNumber}</span>
-              </h3>
-              <button
-                onClick={() => setIsEditOpen(null)}
-                className="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-white cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleSaveEdit}
-              className="p-5 space-y-4 flex-1 text-left text-xs"
-            >
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                  Product Configuration
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  className="w-full p-2 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 rounded-lg"
-                  value={`${isEditOpen.product?.name || ''} (${
-                    isEditOpen.recipe?.code || isEditOpen.recipeId
-                  })`}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                    Required Quantity *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00891D]"
-                    value={editQty}
-                    onChange={(e) => setEditQty(Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                    Priority *
-                  </label>
-                  <select
-                    className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none"
-                    value={editPriority}
-                    onChange={(e) =>
-                      setEditPriority(e.target.value as WoPriority)
-                    }
-                  >
-                    <option value="LOW" className="dark:bg-gray-800">Low</option>
-                    <option value="MEDIUM" className="dark:bg-gray-800">Medium</option>
-                    <option value="HIGH" className="dark:bg-gray-800">High</option>
-                    <option value="URGENT" className="dark:bg-gray-800">Urgent</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                  Expected Completion *
-                </label>
-                <input
-                  type="date"
-                  required
-                  className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none"
-                  value={editExpectedCompletion}
-                  onChange={(e) => setEditExpectedCompletion(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">
-                  Operator
-                </label>
-                <select
-                  className="w-full p-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg focus:outline-none"
-                  value={editSupervisor}
-                  onChange={(e) => setEditSupervisor(e.target.value)}
-                >
-                  <option value="" className="dark:bg-gray-800">Select an operator...</option>
-                  {apiOperators.map((op) => (
-                    <option key={op.id} value={op.id} className="dark:bg-gray-800">
-                      {op.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end gap-2 bg-gray-50 dark:bg-gray-800 p-3 -mx-5 -mb-5 rounded-b-xl">
-                <button
-                  type="button"
-                  onClick={() => setIsEditOpen(null)}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-bold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-[#00891D] hover:bg-[#007518] text-white rounded-lg font-bold shadow-xs cursor-pointer"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

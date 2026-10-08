@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Filter, RotateCcw, ArrowLeft, PackageCheck } from 'lucide-react';
+import { Filter, RotateCcw, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
@@ -142,10 +142,13 @@ const ReserveStock: React.FC = () => {
         const products = response.data.data.products || [];
 
         const unallocatedProducts = products.filter((item: any) => {
-          const totalStock = Number(item.stock ?? item.baseStock ?? 0);
+          const fgPosted = item.finishedGoods?.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0) || 0;
+          const baseStockVal = Number(item.stock ?? item.baseStock ?? 0);
+          const baseStock = item.inventoryType === 'READY' ? baseStockVal : (fgPosted > 0 ? fgPosted : baseStockVal);
+
           const grnList = map[item.id] || [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
-          const baseQty = totalProcuredQty > 0 ? totalProcuredQty : totalStock;
+          const baseQty = totalProcuredQty > 0 ? totalProcuredQty : baseStock;
 
           let onlineStock = 0;
           let posStock = 0;
@@ -167,7 +170,10 @@ const ReserveStock: React.FC = () => {
         });
 
         const mapped: ReserveStockItem[] = unallocatedProducts.map((item: any) => {
-          const totalStock = Number(item.stock ?? item.baseStock ?? 0);
+          const fgPosted = item.finishedGoods?.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0) || 0;
+          const baseStockVal = Number(item.stock ?? item.baseStock ?? 0);
+          const totalStock = item.inventoryType === 'READY' ? baseStockVal : (fgPosted > 0 ? fgPosted : baseStockVal);
+
           const grnList = map[item.id] || [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
           const effectiveBaseQty = totalProcuredQty > 0 ? totalProcuredQty : totalStock;
@@ -347,6 +353,7 @@ const ReserveStock: React.FC = () => {
     { name: 'All Out Ultra Single Refill', qty: 1 }
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleQuickLoadPreset = () => {
     let count = 0;
     const autoSelectedIds: string[] = [];

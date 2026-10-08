@@ -85,10 +85,13 @@ const ReadyInventory: React.FC = () => {
       const response = await inventoryService.getReadyInventory({ page: 1, limit: 2000 });
       if (response.data && response.data.data) {
         const mappedData = response.data.data.products.map((item: any) => {
-          const totalStock = Number(item.baseStock ?? item.stock ?? 0);
+          const fgPosted = item.finishedGoods?.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0) || 0;
+          const baseStockVal = Number(item.baseStock ?? item.stock ?? 0);
+          const baseQty = item.inventoryType === 'READY' ? baseStockVal : (fgPosted > 0 ? fgPosted : baseStockVal);
+
           const grnList = map[item.id] || [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
-          const effectiveReadyQty = totalProcuredQty > 0 ? totalProcuredQty : totalStock;
+          const effectiveReadyQty = totalProcuredQty > 0 ? totalProcuredQty : baseQty;
 
           // Channels start at 0 — user allocates manually
           const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
@@ -102,15 +105,15 @@ const ReadyInventory: React.FC = () => {
             sku: item.sku || '-',
             barcode: item.barcode || item.posStoreStock?.barcode || '',
             category: item.category?.name || 'N/A',
-            units: item.unit || 'Units',
+            units: item.inventoryType === 'RAW' ? 'Units' : (item.unit || 'Units'),
             readyQty: String(effectiveReadyQty),
-            stock: totalStock,
+            stock: baseQty,
             procuredQty: totalProcuredQty,
             online: String(onlineQty),
             pos: String(posQty),
             vehicle: String(vehicleQty),
             remainingQty: String(Math.max(0, remainingQty)),
-            rawUnit: item.unit || 'Units',
+            rawUnit: item.inventoryType === 'RAW' ? 'Units' : (item.unit || 'Units'),
             image: item.name ? item.name.charAt(0).toUpperCase() : 'N'
           };
         });

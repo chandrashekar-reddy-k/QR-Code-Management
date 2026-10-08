@@ -175,7 +175,7 @@ export function Returns({ onBack }: ReturnsProps) {
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Returns Management</h1>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight leading-none mb-2">Returns Management</h1>
           <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400">
             {counts.pending > 0 ? `${counts.pending} pending review` : "No pending returns"}
           </p>
@@ -313,15 +313,15 @@ export function Returns({ onBack }: ReturnsProps) {
           <div className="w-full overflow-x-auto">
             <table className="w-full border-collapse table-auto text-left text-sm">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 h-10">
-                  <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Return ID</th>
-                  <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Order Number</th>
-                  <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Customer</th>
-                  <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Reason</th>
-                  <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Requested At</th>
-                  <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs text-center">Status</th>
-                  <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs text-center">SLA Status</th>
-                  <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs text-right">Actions</th>
+                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 h-10 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  <th className="px-4 py-2 text-left">Return ID</th>
+                  <th className="px-4 py-2 text-left">Order Number</th>
+                  <th className="px-4 py-2 text-left">Customer</th>
+                  <th className="px-4 py-2 text-left">Reason</th>
+                  <th className="px-4 py-2 text-left">Requested At</th>
+                  <th className="px-4 py-2 text-center">Status</th>
+                  <th className="px-4 py-2 text-center">SLA Status</th>
+                  <th className="px-4 py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-150 dark:divide-gray-700">

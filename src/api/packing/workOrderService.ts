@@ -40,6 +40,7 @@ export interface WorkOrder {
   operatorId?: string;
   labelsPrinted?: number;
   labelsApplied?: number;
+  labelsRejected?: number;
   expectedDate?: string;
   startedAt?: string;
   completedAt?: string;
@@ -53,6 +54,12 @@ export interface WorkOrder {
   recipe?: Recipe;
   supervisor?: { id: string; name: string };
   operator?: { id: string; name: string };
+
+  // Multi-product support
+  sourceItems?: any[];
+  outputAllocations?: any[];
+  items?: any[];
+  products?: any[];
 }
 
 export interface MaterialIssueRecord {
@@ -84,7 +91,17 @@ export const workOrderService = {
     return res.data.data;
   },
 
-  async createWorkOrder(data: { productId: string; recipeId: string; requiredQty: number; priority: WoPriority; expectedDate?: string; operatorId?: string }): Promise<WorkOrder> {
+  async createWorkOrder(data: {
+    productId: string;
+    recipeId?: string;
+    requiredQty: number;
+    priority?: WoPriority;
+    status?: WoStatus;
+    remarks?: string;
+    expectedDate?: string;
+    operatorId?: string;
+    [key: string]: any;
+  }): Promise<WorkOrder> {
     const res = await apiClient.post<{ success: boolean; data: WorkOrder }>('/work-orders', data);
     return res.data.data;
   },
@@ -126,6 +143,11 @@ export const workOrderService = {
 
   async completePacking(id: string): Promise<WorkOrder> {
     const res = await apiClient.post<{ success: boolean; data: WorkOrder }>(`/work-orders/${id}/complete`);
+    return res.data.data;
+  },
+
+  async deleteWorkOrder(id: string): Promise<WorkOrder> {
+    const res = await apiClient.delete<{ success: boolean; data: WorkOrder }>(`/work-orders/${id}`);
     return res.data.data;
   }
 };

@@ -141,7 +141,7 @@ export function SelfPickup({ onBack, onNavigate }: SelfPickupProps) {
       {/* Page Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Self Pickup</h1>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight leading-none mb-2">Self Pickup</h1>
           <p className="text-[14px] text-[#9EA3AE] dark:text-gray-400">{orders.length} orders awaiting customer pickup</p>
         </div>
         <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
@@ -305,7 +305,7 @@ export function SelfPickup({ onBack, onNavigate }: SelfPickupProps) {
             <div className="w-full overflow-x-hidden">
               <table className="w-full border-collapse table-auto text-left text-sm">
                 <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 h-10">
+                  <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 h-10 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                     <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Order Number</th>
                     <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Customer</th>
                     <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs text-center">Counter</th>

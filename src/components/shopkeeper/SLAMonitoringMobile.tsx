@@ -7,6 +7,7 @@ import api from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
 
 interface SLAMonitoringProps {
+  orders?: any[];
   onBack: () => void;
 }
 

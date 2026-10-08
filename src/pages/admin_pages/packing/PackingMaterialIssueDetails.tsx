@@ -9,9 +9,8 @@ import {
   X,
   Scan,
   RefreshCw,
-  CornerUpLeft,
-  ArrowLeftRight,
   ArrowLeft,
+  UserCheck,
 } from 'lucide-react';
 
 interface MaterialItem {
@@ -25,6 +24,52 @@ interface MaterialItem {
   issueQty: number;
   status: 'AVAILABLE' | 'INSUFFICIENT' | 'OUT_OF_STOCK' | 'INVENTORY_UNAVAILABLE';
 }
+
+const resolveProductUnit = (product: any): string => {
+  if (!product) return 'Units';
+  let rawUnit =
+    product.uom?.abbreviation ||
+    product.uom?.name ||
+    (typeof product.unit === 'object'
+      ? product.unit?.name || product.unit?.type
+      : product.unit);
+  if (
+    !rawUnit ||
+    /^[0-9a-f-]{36}$/i.test(String(rawUnit).trim()) ||
+    /^\d+$/.test(String(rawUnit).trim()) ||
+    String(rawUnit).length > 20
+  ) {
+    const textToSearch = `${product.sku || ''} ${product.variantName || ''} ${product.name || ''}`.toUpperCase();
+    if (textToSearch.includes('KG') || textToSearch.includes('KILOGRAM')) {
+      return 'kg';
+    } else if (
+      textToSearch.includes('GRAM') ||
+      textToSearch.includes(' GM') ||
+      textToSearch.includes(' G')
+    ) {
+      return 'gm';
+    } else if (
+      textToSearch.includes('ML') ||
+      textToSearch.includes('MILLILITRE')
+    ) {
+      return 'ml';
+    } else if (
+      textToSearch.includes('LITRE') ||
+      textToSearch.includes(' LTR') ||
+      textToSearch.includes(' L')
+    ) {
+      return 'L';
+    } else if (
+      textToSearch.includes('PACKET') ||
+      textToSearch.includes('PCS') ||
+      textToSearch.includes('PIECE')
+    ) {
+      return 'pcs';
+    }
+    return product.unitName || product.uom || 'Units';
+  }
+  return String(rawUnit);
+};
 
 export const PackingMaterialIssueDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -68,49 +113,166 @@ export const PackingMaterialIssueDetails: React.FC = () => {
     fetchWO();
   }, [id]);
 
+  // Helper to render product column with Primary Product + Counter Badge & Hover Popover for multi-product orders
+  const renderProductColumn = (wo: any) => {
+    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
+
+    if (items && items.length > 1) {
+      const primaryName = items[0].product || 'Product 1';
+      const extraCount = items.length - 1;
+
+      return (
+        <div className="relative group inline-flex items-center gap-1.5 max-w-[200px]">
+          <span className="font-semibold text-slate-800 dark:text-white truncate cursor-default max-w-[120px]" title={primaryName}>
+            {primaryName}
+          </span>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 shrink-0 cursor-default">
+            +{extraCount} more
+          </span>
+
+          <div className="absolute left-0 top-full mt-1.5 hidden group-hover:block z-50 min-w-[220px] max-w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xl p-3 space-y-2 text-xs font-sans animate-in fade-in zoom-in-95 duration-150">
+            <div className="font-bold text-slate-400 dark:text-gray-400 text-[10px] uppercase tracking-wider border-b border-slate-100 dark:border-gray-700 pb-1.5">
+              Source Products ({items.length})
+            </div>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {items.map((item: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-slate-900 dark:text-white">
+                  <span className="text-slate-400 font-mono text-[11px] shrink-0">{idx + 1}.</span>
+                  <span>{item.product}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const singleName = wo?.product?.name || items?.[0]?.product || 'Product';
+    return (
+      <span className="font-bold text-slate-800 dark:text-white truncate block max-w-[130px]" title={singleName}>
+        {singleName}
+      </span>
+    );
+  };
+
+  const formatRequiredQty = (wo: any) => {
+    if (!wo) return '0 KG';
+    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+      const map: Record<string, number> = {};
+      wo.outputAllocations.forEach((alloc: any) => {
+        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
+        const fallbackUnit = (wo.sourceItems?.[0]?.uom || resolveProductUnit(wo.product) || 'KG').toUpperCase();
+        const unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
+        const qty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
+        map[unit] = (map[unit] || 0) + qty;
+      });
+      const entries = Object.entries(map);
+      if (entries.length > 0) {
+        return entries.map(([uom, qty]) => `${parseFloat(Number(qty).toFixed(4))} ${uom}`).join(', ');
+      }
+    }
+    return `${parseFloat(Number(wo.requiredQty || 0).toFixed(4))} ${resolveProductUnit(wo.product)}`;
+  };
+
   useEffect(() => {
-    if (!selectedWO || !selectedWO.recipe) return;
-    const recipe = selectedWO.recipe;
+    if (!selectedWO) return;
 
-    if (batchNo === '') setBatchNo(selectedWO.batchNumber || `BATCH-${selectedWO.woNumber}-1`);
+    if (batchNo === '') {
+      setBatchNo(selectedWO.batchNumber || `BATCH-${selectedWO.woNumber}`);
+    }
 
-    const targetYield = recipe.outputQty && recipe.outputQty > 0 ? recipe.outputQty : 1;
-    const woQty = selectedWO.requiredQty || 100;
-    const ratio = woQty / targetYield;
+    const sourceItems = (selectedWO as any).sourceItems;
+    const outputAllocations = (selectedWO as any).outputAllocations;
 
-    const items: MaterialItem[] = (recipe.items || []).map((item, idx) => {
-      const reqQty = Math.round(item.requiredQty * ratio * 100) / 100;
-      const inputProd = item.inputProduct;
-      const uom = inputProd?.unit || '';
-      const type = inputProd?.type || (item.isPackaging ? 'PACKAGING' : 'RAW_MATERIAL');
+    if (Array.isArray(sourceItems) && sourceItems.length > 0) {
+      const items: MaterialItem[] = sourceItems.map((item: any, idx: number) => {
+        let itemReqQty = selectedWO.requiredQty || 10;
+        if (Array.isArray(outputAllocations) && outputAllocations.length > 0) {
+          const matchedByProd = outputAllocations.filter(
+            (a: any) =>
+              (a.sourceProductName && a.sourceProductName.trim().toLowerCase() === item.product?.trim().toLowerCase()) ||
+              (a.sourceProductId && a.sourceProductId === item.id)
+          );
+          if (matchedByProd.length > 0) {
+            itemReqQty = matchedByProd.reduce(
+              (acc: number, a: any) =>
+                acc + (Number(a.totalQtyKg) || (Number(a.plannedUnits) || 0) * (a.packSizeKg || 1)),
+              0
+            );
+          } else {
+            const itemUom = (item.uom || 'KG').toUpperCase();
+            const matchedByUom = outputAllocations.filter((a: any) => {
+              const parts = a.packSizeText ? a.packSizeText.trim().split(' ') : [];
+              const unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : 'KG';
+              return unit === itemUom;
+            });
+            if (matchedByUom.length > 0) {
+              const totalUomQty = matchedByUom.reduce(
+                (acc: number, a: any) =>
+                  acc + (Number(a.totalQtyKg) || (Number(a.plannedUnits) || 0) * (a.packSizeKg || 1)),
+                0
+              );
+              const uomItems = sourceItems.filter(
+                (s: any) => (s.uom || 'KG').toUpperCase() === itemUom
+              );
+              itemReqQty = Math.round((totalUomQty / uomItems.length) * 100) / 100;
+            }
+          }
+        }
 
-      // Check stock
-      const stockQty = inputProd?.productionStock?.inProductionQty ?? (inputProd as any)?.stockQty ?? (inputProd as any)?.currentStock ?? (inputProd as any)?.stock ?? 0;
+        const stockQty = Number(item.availableQty) ?? (item.productObj as any)?.availableStock ?? 100;
+        const shortage = Math.max(0, itemReqQty - stockQty);
+
+        let status: MaterialItem['status'] = 'AVAILABLE';
+        if (stockQty === 0) {
+          status = 'OUT_OF_STOCK';
+        } else if (shortage > 0) {
+          status = 'INSUFFICIENT';
+        }
+
+        return {
+          id: item.id || `mat-${idx}`,
+          itemCode: item.sku || `SKU-${idx + 1}`,
+          materialName: item.product || 'Raw Material',
+          type: item.type || 'RAW_MATERIAL',
+          reqQty: itemReqQty,
+          uom: item.uom || 'KG',
+          stockQty: stockQty,
+          issueQty: itemReqQty,
+          status,
+        };
+      });
+
+      setMaterialsToIssue(items);
+    } else {
+      const reqQty = selectedWO.requiredQty || 10;
+      const prod = selectedWO.product;
+      const stockQty = (prod as any)?.availableStock ?? (prod as any)?.stock ?? 100;
       const shortage = Math.max(0, reqQty - stockQty);
 
       let status: MaterialItem['status'] = 'AVAILABLE';
-      if (stockQty === undefined || stockQty === null) {
-        status = 'INVENTORY_UNAVAILABLE';
-      } else if (stockQty === 0) {
+      if (stockQty === 0) {
         status = 'OUT_OF_STOCK';
       } else if (shortage > 0) {
         status = 'INSUFFICIENT';
       }
 
-      return {
-        id: item.inputProductId || `material-${idx}`,
-        itemCode: inputProd?.sku || `SKU-${idx + 1}`,
-        materialName: inputProd?.name || 'Input Material',
-        type,
-        reqQty,
-        uom,
-        stockQty,
-        issueQty: reqQty,
-        status,
-      };
-    });
+      const items: MaterialItem[] = [
+        {
+          id: prod?.id || selectedWO.productId || 'mat-1',
+          itemCode: prod?.sku || `SKU-${selectedWO.woNumber}`,
+          materialName: prod?.name || 'Raw Material',
+          type: prod?.type || 'RAW_MATERIAL',
+          reqQty: reqQty,
+          uom: resolveProductUnit(prod),
+          stockQty: stockQty,
+          issueQty: reqQty,
+          status,
+        },
+      ];
 
-    setMaterialsToIssue(items);
+      setMaterialsToIssue(items);
+    }
   }, [selectedWO]);
 
   const handleMaterialQtyChange = (matId: string, value: string) => {
@@ -141,18 +303,6 @@ export const PackingMaterialIssueDetails: React.FC = () => {
       (m) => m.status === 'AVAILABLE' && m.stockQty >= m.issueQty && m.issueQty > 0
     );
 
-  const handleRefreshStock = async () => {
-    try {
-      setIsSubmitting(true);
-      await fetchWO();
-      setIssueSuccess('Inventory stock levels refreshed!');
-      setTimeout(() => setIssueSuccess(null), 2500);
-    } catch (err) {
-      console.error(err);
-    } fontally: {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleIssueMaterials = async () => {
     if (!selectedWO) return;
@@ -182,7 +332,7 @@ export const PackingMaterialIssueDetails: React.FC = () => {
       );
       setTimeout(() => {
         setIssueSuccess(null);
-        navigate('/packing-erp/material-issue');
+        navigate('/packing-erp/dashboard');
       }, 2000);
     } catch (error: any) {
       console.error('Failed to issue materials:', error);
@@ -218,7 +368,7 @@ export const PackingMaterialIssueDetails: React.FC = () => {
           Work Order Not Found
         </h3>
         <button
-          onClick={() => navigate('/packing-erp/material-issue')}
+          onClick={() => navigate('/packing-erp/dashboard')}
           className="mt-4 px-4 py-2 bg-[#00891D] text-white rounded-lg text-sm font-semibold"
         >
           Go Back
@@ -226,11 +376,6 @@ export const PackingMaterialIssueDetails: React.FC = () => {
       </div>
     );
   }
-
-  const rawCount =
-    selectedWO.recipe?.items?.filter((i) => !i.isPackaging).length || 0;
-  const pkgCount =
-    selectedWO.recipe?.items?.filter((i) => i.isPackaging).length || 0;
 
   return (
     <div className="space-y-6 text-left pb-10">
@@ -242,13 +387,13 @@ export const PackingMaterialIssueDetails: React.FC = () => {
           </h2>
           <p
             className="text-sm text-slate-500 dark:text-gray-400 mt-1 cursor-pointer hover:underline"
-            onClick={() => navigate('/packing-erp/material-issue')}
+            onClick={() => navigate('/packing-erp/dashboard')}
           >
-            Material Issue Queue &gt; {selectedWO.woNumber}
+            Dashboard &gt; {selectedWO.woNumber}
           </p>
         </div>
         <button
-          onClick={() => navigate('/packing-erp/material-issue')}
+          onClick={() => navigate('/packing-erp/dashboard')}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-700 text-slate-600 dark:text-gray-300 transition-colors cursor-pointer"
         >
           <ArrowLeft size={16} />
@@ -274,11 +419,11 @@ export const PackingMaterialIssueDetails: React.FC = () => {
       <div className="flex flex-col space-y-6">
         {/* Top Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Work Order Context */}
+          {/* Work Order Details */}
           <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs">
             <h3 className="text-sm font-bold text-slate-800 dark:text-gray-200 mb-4 flex items-center gap-2">
               <Package size={16} className="text-[#00891D]" />
-              Work Order Context
+              Work Order Details
             </h3>
             <div className="grid grid-cols-2 gap-y-4 gap-x-2">
               <div>
@@ -293,16 +438,16 @@ export const PackingMaterialIssueDetails: React.FC = () => {
                 <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
                   Output Product
                 </span>
-                <span className="text-slate-800 dark:text-white font-bold block mt-0.5 truncate max-w-[130px]">
-                  {selectedWO.product?.name || selectedWO.productId}
-                </span>
+                <div className="mt-0.5">
+                  {renderProductColumn(selectedWO)}
+                </div>
               </div>
               <div>
                 <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
                   Required Qty
                 </span>
                 <span className="text-slate-800 dark:text-white font-bold font-mono block mt-0.5">
-                  {selectedWO.requiredQty} {selectedWO.product?.unit || 'Units'}
+                  {formatRequiredQty(selectedWO)}
                 </span>
               </div>
               <div>
@@ -318,57 +463,62 @@ export const PackingMaterialIssueDetails: React.FC = () => {
             </div>
           </div>
 
-          {/* Product BOM Context */}
+          {/* Batch & Assignment Info */}
           <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs">
             <h3 className="text-sm font-bold text-slate-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <RefreshCw size={16} className="text-blue-500" />
-              Product BOM Context
+              <UserCheck size={16} className="text-blue-500" />
+              Batch & Assignment
             </h3>
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2">
               <div>
                 <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
-                  Active BOM
+                  Batch Number
                 </span>
-                <span className="text-slate-800 dark:text-white font-bold block mt-0.5">
-                  {selectedWO.recipe?.code || selectedWO.recipeId} -{' '}
-                  {selectedWO.recipe?.name}
+                <span className="text-slate-800 dark:text-white font-bold font-mono block mt-0.5">
+                  {selectedWO.batchNumber || selectedWO.woNumber}
                 </span>
               </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-gray-700 grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
-                    Raw Materials
-                  </span>
-                  <span className="text-slate-700 dark:text-gray-300 font-bold block mt-0.5">
-                    {rawCount} items
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
-                    Packaging
-                  </span>
-                  <span className="text-slate-700 dark:text-gray-300 font-bold block mt-0.5">
-                    {pkgCount} items
-                  </span>
-                </div>
+              <div>
+                <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
+                  Priority
+                </span>
+                <span className="text-amber-600 dark:text-amber-400 font-bold block mt-0.5">
+                  {selectedWO.priority || 'MEDIUM'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
+                  Supervisor
+                </span>
+                <span className="text-slate-800 dark:text-gray-200 font-bold block mt-0.5 truncate">
+                  {selectedWO.supervisor?.name || 'Supervisor'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
+                  Operator
+                </span>
+                <span className="text-slate-800 dark:text-gray-200 font-bold block mt-0.5 truncate">
+                  {selectedWO.operator?.name || 'Unassigned'}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Stock Feasibility Banner */}
+          {/* Issue Readiness Banner */}
           <div className="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs flex flex-col justify-center">
             <div className="flex items-start gap-4">
               <div
                 className={`p-3 rounded-full ${
-                  hasNoMaterials
-                    ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
+                  selectedWO.status === 'MATERIAL_ISSUED' || (selectedWO.status as string) === 'RAW_MATERIALS_ISSUED'
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                     : allAvailable
                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                     : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
                 }`}
               >
-                {hasNoMaterials ? (
-                  <X size={24} />
+                {selectedWO.status === 'MATERIAL_ISSUED' || (selectedWO.status as string) === 'RAW_MATERIALS_ISSUED' ? (
+                  <CheckCircle size={24} />
                 ) : allAvailable ? (
                   <CheckCircle size={24} />
                 ) : (
@@ -378,25 +528,25 @@ export const PackingMaterialIssueDetails: React.FC = () => {
               <div>
                 <h3
                   className={`text-base font-bold ${
-                    hasNoMaterials
-                      ? 'text-rose-700 dark:text-rose-400'
+                    selectedWO.status === 'MATERIAL_ISSUED' || (selectedWO.status as string) === 'RAW_MATERIALS_ISSUED'
+                      ? 'text-blue-700 dark:text-blue-400'
                       : allAvailable
                       ? 'text-emerald-700 dark:text-emerald-400'
                       : 'text-amber-700 dark:text-amber-400'
                   }`}
                 >
-                  {hasNoMaterials
-                    ? 'No BOM Materials Defined'
+                  {selectedWO.status === 'MATERIAL_ISSUED' || (selectedWO.status as string) === 'RAW_MATERIALS_ISSUED'
+                    ? 'Materials Issued'
                     : allAvailable
-                    ? 'All Materials Available'
+                    ? 'Ready for Issue'
                     : 'Shortage Detected'}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
-                  {hasNoMaterials
-                    ? 'Please configure raw materials and packaging in Product BOM.'
+                  {selectedWO.status === 'MATERIAL_ISSUED' || (selectedWO.status as string) === 'RAW_MATERIALS_ISSUED'
+                    ? 'Inventory materials have been dispatched to the packing line.'
                     : allAvailable
                     ? 'Sufficient inventory is available for material issuance.'
-                    : 'Some required materials fall below the requested quantity.'}
+                    : 'Required materials fall below available stock.'}
                 </p>
               </div>
             </div>
@@ -424,17 +574,6 @@ export const PackingMaterialIssueDetails: React.FC = () => {
                   className="pl-8 pr-3 py-1.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs focus:ring-1 focus:ring-[#00891D] w-44 dark:bg-gray-900 dark:text-white"
                 />
               </div>
-              <button
-                onClick={handleRefreshStock}
-                disabled={isSubmitting}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                <RefreshCw
-                  size={12}
-                  className={isSubmitting ? 'animate-spin' : ''}
-                />
-                <span>Refresh Stock</span>
-              </button>
             </div>
           </div>
 
@@ -476,7 +615,7 @@ export const PackingMaterialIssueDetails: React.FC = () => {
             <table className="w-full text-xs text-left border-collapse min-w-[700px]">
               <thead className="bg-slate-50 dark:bg-gray-700/50 text-slate-500 dark:text-gray-400 uppercase text-[10px] border-b border-slate-200 dark:border-gray-700 font-bold">
                 <tr>
-                  <th className="px-4 py-3">Item Code</th>
+                  <th className="px-4 py-3">SKU</th>
                   <th className="px-4 py-3">Material Name</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3 text-center">Req Qty</th>
@@ -549,37 +688,11 @@ export const PackingMaterialIssueDetails: React.FC = () => {
                     </tr>
                   );
                 })}
-                {hasNoMaterials && (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-4 py-8 text-center text-slate-500 dark:text-gray-400 font-medium"
-                    >
-                      No BOM Materials Defined.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
 
-          <div className="p-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-700 flex justify-between items-center flex-wrap gap-3">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 rounded-lg text-xs font-semibold hover:bg-white dark:hover:bg-gray-700 transition-colors cursor-pointer"
-              >
-                <CornerUpLeft size={14} />
-                <span>Return Material</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 rounded-lg text-xs font-semibold hover:bg-white dark:hover:bg-gray-700 transition-colors cursor-pointer"
-              >
-                <ArrowLeftRight size={14} />
-                <span>Transfer</span>
-              </button>
-            </div>
+          <div className="p-4 bg-slate-50 dark:bg-gray-800/50 border-t border-slate-200 dark:border-gray-700 flex justify-end items-center flex-wrap gap-3">
 
             <button
               onClick={handleIssueMaterials}
@@ -596,7 +709,7 @@ export const PackingMaterialIssueDetails: React.FC = () => {
                 <Package size={14} />
               )}
               <span>
-                {selectedWO.status === 'MATERIAL_ISSUED'
+                {selectedWO.status === 'MATERIAL_ISSUED' || (selectedWO.status as string) === 'RAW_MATERIALS_ISSUED'
                   ? 'Re-issue Materials'
                   : 'Issue Materials'}
               </span>

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, RotateCcw, Send, Plus, X, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+// @ts-ignore
 import BarcodeScannerOverlay from '../../../components/BarcodeScannerOverlay';
 import {
   DataTable,
@@ -281,17 +282,6 @@ const RawInventory: React.FC = () => {
       )
     },
     {
-      key: 'units',
-      label: 'UNITS',
-      sortable: false,
-      render: (item: RawInventoryItem) => (
-        <div className="text-sm text-gray-500">
-          <span className="block">{item.units.split(' ')[0]} {item.units.split(' ')[1]}</span>
-          {item.units.includes('(') && <span className="block">{item.units.split(' ').slice(2).join(' ')}</span>}
-        </div>
-      )
-    },
-    {
       key: 'type',
       label: 'TYPE',
       sortable: true,
@@ -333,6 +323,17 @@ const RawInventory: React.FC = () => {
           </div>
         );
       }
+    },
+    {
+      key: 'units',
+      label: 'UNITS',
+      sortable: false,
+      render: (item: RawInventoryItem) => (
+        <div className="text-sm text-gray-500">
+          <span className="block">{item.units.split(' ')[0]} {item.units.split(' ')[1]}</span>
+          {item.units.includes('(') && <span className="block">{item.units.split(' ').slice(2).join(' ')}</span>}
+        </div>
+      )
     },
     {
       key: 'price',
@@ -557,7 +558,7 @@ const RawInventory: React.FC = () => {
 
       {isScannerOpen && (
         <BarcodeScannerOverlay
-          onScan={(code) => {
+          onScan={(code: string | any) => {
             const cleanCode = String(code || '').trim();
             if (cleanCode) {
               setSearchTerm(cleanCode);

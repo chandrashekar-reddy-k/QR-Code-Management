@@ -207,7 +207,7 @@ export function OrderProcessing({ orders = [], loading = false, onNavigate }: Or
     <div className="w-full h-full min-h-screen bg-gray-50 dark:bg-gray-900 p-8 font-sans">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-[28px] font-bold text-gray-900 dark:text-white leading-tight mb-2">Order Processing</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-1">Order Processing</h1>
         <p className="text-gray-500 dark:text-gray-400 text-[15px]">Track and manage all order processing operations.</p>
       </div>
 
@@ -353,7 +353,7 @@ export function OrderProcessing({ orders = [], loading = false, onNavigate }: Or
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 z-10">
               {activeTab === 'ready' ? (
-                <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-black dark:text-gray-100 font-bold text-[13px] uppercase tracking-wider h-12">
+                <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide h-12">
                   <th className="px-4 py-3 text-left">ORDER NUMBER</th>
                   <th className="px-4 py-3 text-left">SHOPKEEPER</th>
                   <th className="px-4 py-3 text-left">DELIVERY TYPE</th>
@@ -364,7 +364,7 @@ export function OrderProcessing({ orders = [], loading = false, onNavigate }: Or
                   <th className="px-4 py-3 text-right">ACTIONS</th>
                 </tr>
               ) : activeTab === 'packing' ? (
-                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[56px] text-left text-[13px] font-bold text-black dark:text-gray-100 uppercase tracking-wider">
+                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[56px] text-left text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                   <th className="px-3 py-3">Order Number</th>
                   <th className="px-3 py-3">Assigned Shopkeeper</th>
                   <th className="text-center px-3 py-3">Packing Tray</th>
@@ -374,7 +374,7 @@ export function OrderProcessing({ orders = [], loading = false, onNavigate }: Or
                   <th style={{ width: "165px", minWidth: "165px" }} className="text-center px-3 py-3">Actions</th>
                 </tr>
               ) : activeTab === 'picking' ? (
-                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[56px] text-left text-[13px] font-bold text-black dark:text-gray-100 uppercase tracking-wider">
+                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[56px] text-left text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                   <th className="px-3 py-3">Order Number</th>
                   <th className="px-3 py-3">Delivery Type</th>
                   <th className="px-3 py-3">Assigned Shopkeeper</th>
@@ -384,16 +384,16 @@ export function OrderProcessing({ orders = [], loading = false, onNavigate }: Or
                   <th style={{ width: "220px", minWidth: "220px" }} className="text-center px-3 py-3">Actions</th>
                 </tr>
               ) : (
-                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">ORDER NO</th>
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">CUSTOMER</th>
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">DELIVERY TYPE</th>
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">CURRENT STAGE</th>
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">TRAY</th>
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">RIDER</th>
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">SLA</th>
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">ORDER TIME</th>
-                  <th className="font-bold text-[13px] text-gray-900 dark:text-gray-100 py-3 px-4 text-left">ACTION</th>
+                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  <th className="py-3 px-4 text-left">ORDER NO</th>
+                  <th className="py-3 px-4 text-left">CUSTOMER</th>
+                  <th className="py-3 px-4 text-left">DELIVERY TYPE</th>
+                  <th className="py-3 px-4 text-left">CURRENT STAGE</th>
+                  <th className="py-3 px-4 text-left">TRAY</th>
+                  <th className="py-3 px-4 text-left">RIDER</th>
+                  <th className="py-3 px-4 text-left">SLA</th>
+                  <th className="py-3 px-4 text-left">ORDER TIME</th>
+                  <th className="py-3 px-4 text-left">ACTION</th>
                 </tr>
               )}
             </thead>
