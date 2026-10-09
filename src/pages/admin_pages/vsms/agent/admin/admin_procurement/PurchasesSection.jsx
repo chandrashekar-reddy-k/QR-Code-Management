@@ -255,11 +255,21 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
       return;
     }
 
+    // Build a map of PO items from the linked PO if available
+    const poItemsMap = new Map();
+    if (grn.po && Array.isArray(grn.po.items)) {
+      grn.po.items.forEach(pi => {
+        poItemsMap.set(pi.productId, pi);
+      });
+    }
+
     // Map GRN items to Purchase Invoice items
     const mappedItems = approvedItems.map(item => {
       const prod = products.find(p => p.id === item.productId);
-      const cost = item.product?.purchasePrice || prod?.purchasePrice || prod?.price || 0;
-      const mrpVal = item.mrp || item.product?.mrp || prod?.mrp || prod?.price || 0;
+      const poItem = poItemsMap.get(item.productId);
+      const cost = poItem?.landingPrice > 0 ? poItem.landingPrice : (poItem?.rate > 0 ? poItem.rate : (item.product?.purchasePrice || prod?.purchasePrice || prod?.price || 0));
+      const mrpVal = poItem?.mrp > 0 ? poItem.mrp : (item.mrp || item.product?.mrp || prod?.mrp || prod?.price || 0);
+      const sellingVal = poItem?.sellingPrice > 0 ? poItem.sellingPrice : (item.product?.price || prod?.price || cost);
       // Auto-fetch Received Qty as the invoice quantity (max allowed)
       const qty = item.receivedQty || 1;
       const taxRate = prod?.gst || 0;
@@ -278,11 +288,11 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
         taxType: taxRate > 0 ? 'GST' : 'NONE',
         taxPercent: String(taxRate),
         netCost: String(cost),
-        profitMargin: '0',
-        unitSellingPrice: String(prod?.price || cost),
+        profitMargin: cost > 0 ? (((sellingVal - cost) / cost) * 100).toFixed(2) : '0',
+        unitSellingPrice: String(sellingVal),
         mfgDate: item.mfgDate ? format(new Date(item.mfgDate), 'yyyy-MM-dd') : '',
         expDate: item.expiryDate ? format(new Date(item.expiryDate), 'yyyy-MM-dd') : '',
-        total: String(qty * cost)
+        total: poItem?.total !== undefined && poItem.total !== null ? String(poItem.total) : String(qty * cost)
       };
     });
 
