@@ -142,6 +142,7 @@ const ViewSelfPickupOrder = () => {
   const [statusUpdateOpen, setStatusUpdateOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "">("");
   const [packedItems, setPackedItems] = useState<Record<string, boolean>>({});
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
 
@@ -295,8 +296,6 @@ const getSelfPickupNextStatus = (status: OrderStatus): OrderStatus | null => {
       </div>
     );
   }
-
-  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   const handleDownloadInvoice = async () => {
     if (!order) return;
