@@ -911,10 +911,37 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
   };
 
   const updateItemField = (productId, field, value) => {
-    setForm(f => ({
-      ...f,
-      items: f.items.map(i => i.productId === productId ? { ...i, [field]: value } : i)
-    }));
+    setForm(f => {
+      const exists = f.items.find(i => i.productId === productId);
+      if (!exists) {
+        const item = mappedItems.find(m => m.productId === productId);
+        const newItem = {
+          productId,
+          quantity: item?.quantity || 1,
+          rate: item?.landingPrice || item?.purchasePrice || 0,
+          landingPrice: item?.landingPrice || 0,
+          sellingPrice: item?.sellingPrice || 0,
+          mrp: item?.mrp || 0,
+          uom: item?.uom || 'PACK',
+          tax: 0,
+          discount: 0,
+          [field]: value
+        };
+        if (field === 'landingPrice') newItem.rate = value;
+        return { ...f, items: [...f.items, newItem] };
+      }
+      return {
+        ...f,
+        items: f.items.map(i => {
+          if (i.productId !== productId) return i;
+          const updated = { ...i, [field]: value };
+          if (field === 'landingPrice') {
+            updated.rate = value;
+          }
+          return updated;
+        })
+      };
+    });
   };
 
   // const PRESET_PRODUCTS_LIST = [
@@ -1193,10 +1220,14 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
           productId: i.productId,
           name: i.product?.name || (mapped.find(m => m.productId === i.productId)?.name || ''),
           quantity: i.quantity,
-          rate: i.rate,
+          rate: i.landingPrice > 0 ? i.landingPrice : (i.rate || 0),
+          landingPrice: i.landingPrice > 0 ? i.landingPrice : (i.rate || 0),
+          sellingPrice: i.sellingPrice || 0,
+          mrp: i.mrp || 0,
+          uom: i.uom || i.product?.unit || 'PACK',
           tax: i.tax || 0,
           discount: i.discount || 0,
-          unit: i.product?.unitValue ? (i.product?.unit?.name || 'KG') : 'KG'
+          unit: i.uom || (i.product?.unitValue ? (i.product?.unit?.name || 'KG') : 'KG')
         }))
       });
       setSelectedPO(null);
@@ -1295,7 +1326,17 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
         poDate: form.poDate,
         expectedDelivery: form.expectedDelivery || null,
         remarks: form.remarks,
-        items: form.items.map(i => ({ productId: i.productId, quantity: parseInt(i.quantity), rate: parseFloat(i.landingPrice || i.rate || 0), mrp: parseFloat(i.mrp || 0), landingPrice: parseFloat(i.landingPrice || i.rate || 0), sellingPrice: parseFloat(i.sellingPrice || 0), tax: parseFloat(i.tax || 0), discount: parseFloat(i.discount || 0) })),
+        items: form.items.map(i => ({
+          productId: i.productId,
+          quantity: parseInt(i.quantity) || 1,
+          rate: parseFloat(i.landingPrice || i.rate || 0),
+          mrp: parseFloat(i.mrp || 0),
+          landingPrice: parseFloat(i.landingPrice || i.rate || 0),
+          sellingPrice: parseFloat(i.sellingPrice || 0),
+          uom: i.uom || i.unit || 'PACK',
+          tax: parseFloat(i.tax || 0),
+          discount: parseFloat(i.discount || 0)
+        })),
         poType: poType,
         taxDiscount: form.taxDiscount,
         attachments: uploadedUrls
@@ -3188,23 +3229,77 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                                         </div>
                                       </td>
                                       <td className="px-3 py-1.5 text-center">
-                                        <span className="text-xs font-bold text-slate-700">{inForm ? inForm.quantity : (item.quantity || 1)}</span>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          value={inForm ? inForm.quantity : (item.quantity || 1)}
+                                          onChange={(e) => updateItemField(item.productId, 'quantity', parseInt(e.target.value) || 1)}
+                                          className="w-20 px-2 py-1 text-center font-bold text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800"
+                                        />
                                       </td>
                                       <td className="px-3 py-1.5 text-center">
-                                        <span className="text-[10px] font-extrabold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60 uppercase">
-                                          {item.uom || 'PACK'}
-                                        </span>
+                                        <select
+                                          value={inForm ? (inForm.uom || inForm.unit || item.uom || 'PACK') : (item.uom || 'PACK')}
+                                          onChange={(e) => {
+                                            updateItemField(item.productId, 'uom', e.target.value);
+                                            updateItemField(item.productId, 'unit', e.target.value);
+                                          }}
+                                          className="px-2 py-1 text-[11px] font-extrabold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none uppercase cursor-pointer"
+                                        >
+                                          <option value="PACK">PACK</option>
+                                          <option value="PCS">PCS</option>
+                                          <option value="KG">KG</option>
+                                          <option value="BOX">BOX</option>
+                                          <option value="LTR">LTR</option>
+                                          <option value="GRAMS">GRAMS</option>
+                                          <option value="BUNDLE">BUNDLE</option>
+                                          <option value="TIN">TIN</option>
+                                          <option value="CAN">CAN</option>
+                                        </select>
                                       </td>
                                       <td className="px-3 py-1.5 text-center">
-                                        <span className="text-xs font-bold text-slate-700">₹{Number(inForm ? (inForm.mrp !== undefined ? inForm.mrp : (item.mrp || 0)) : (item.mrp || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                        <div className="relative inline-block w-24">
+                                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={inForm ? (inForm.mrp !== undefined ? inForm.mrp : (item.mrp || 0)) : (item.mrp || 0)}
+                                            onChange={(e) => updateItemField(item.productId, 'mrp', parseFloat(e.target.value) || 0)}
+                                            className="w-full pl-5 pr-2 py-1 text-right font-bold text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800"
+                                          />
+                                        </div>
                                       </td>
                                       <td className="px-3 py-1.5 text-center">
-                                        <span className="text-xs font-bold text-slate-700">₹{Number(inForm ? (inForm.landingPrice !== undefined ? inForm.landingPrice : (item.landingPrice || 0)) : (item.landingPrice || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                        <div className="relative inline-block w-24">
+                                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={inForm ? (inForm.landingPrice !== undefined ? inForm.landingPrice : (item.landingPrice || 0)) : (item.landingPrice || 0)}
+                                            onChange={(e) => {
+                                              const val = parseFloat(e.target.value) || 0;
+                                              updateItemField(item.productId, 'landingPrice', val);
+                                              updateItemField(item.productId, 'rate', val);
+                                            }}
+                                            className="w-full pl-5 pr-2 py-1 text-right font-bold text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-emerald-700"
+                                          />
+                                        </div>
                                       </td>
                                       <td className="px-3 py-1.5 text-center">
-                                        <span className="text-xs font-bold text-slate-700">₹{Number(inForm ? (inForm.sellingPrice !== undefined ? inForm.sellingPrice : (item.sellingPrice || 0)) : (item.sellingPrice || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                        <div className="relative inline-block w-24">
+                                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={inForm ? (inForm.sellingPrice !== undefined ? inForm.sellingPrice : (item.sellingPrice || 0)) : (item.sellingPrice || 0)}
+                                            onChange={(e) => updateItemField(item.productId, 'sellingPrice', parseFloat(e.target.value) || 0)}
+                                            className="w-full pl-5 pr-2 py-1 text-right font-bold text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800"
+                                          />
+                                        </div>
                                       </td>
-
                                     </tr>
                                   );
                                 })}
