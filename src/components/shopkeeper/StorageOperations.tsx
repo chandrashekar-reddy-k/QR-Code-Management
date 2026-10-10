@@ -584,14 +584,14 @@ export function StorageOperations() {
             <button onClick={() => setIsAssigningProduct(false)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors">
               <ArrowLeft size={24} className="text-gray-700 dark:text-gray-300" />
             </button>
-            <h1 className="text-[28px] font-bold text-[#111827] dark:text-gray-100 leading-none">Assign Products</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight leading-none">Assign Products</h1>
           </div>
         ) : (
           <>
             {/* Header section */}
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none mb-2">Storage Operations</h1>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight leading-none mb-2">Storage Operations</h1>
                 <p className="text-[13px] text-gray-500">View and manage product storage locations (Rack &rarr; Shelf &rarr; Tray)</p>
               </div>
             </div>
@@ -1298,7 +1298,7 @@ export function StorageOperations() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
-                          <tr className="bg-[#F8F9FA] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-[11px] font-extrabold text-gray-900 dark:text-gray-200 tracking-wider">
+                          <tr className="bg-[#F8F9FA] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                             <th className="py-4 px-6 uppercase">Product</th>
                             <th className="py-4 px-4 uppercase">Code</th>
                             <th className="py-4 px-4 uppercase">Rack</th>

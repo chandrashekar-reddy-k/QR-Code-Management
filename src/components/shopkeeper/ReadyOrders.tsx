@@ -165,7 +165,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
               <ChevronRight size={12} />
               <span className="font-medium text-[#00891D]">Ready for Dispatch</span>
             </nav>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Ready for Dispatch</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Ready for Dispatch</h1>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Orders packed, assigned, and ready for rider handover</p>
           </div>
 
@@ -294,7 +294,7 @@ export function ReadyOrders({ onNavigate, onBack }: ReadyOrdersProps) {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse table-auto text-left text-sm">
                 <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-semibold text-xs uppercase tracking-wider h-12">
+                  <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide h-12">
                     <th className="px-4 py-3">Order Number</th>
                     {shouldShowShopkeeper && <th className="px-4 py-3">Shopkeeper</th>}
                     <th className="px-4 py-3">Delivery Type</th>

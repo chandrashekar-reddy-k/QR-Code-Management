@@ -277,7 +277,7 @@ export const PackingRepacking: React.FC = () => {
       {/* Header */}
       <div className="mb-4 mt-3 flex justify-between items-center sm:items-end flex-col sm:flex-row gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Repacking & Rework</h1>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">Repacking & Rework</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Home &gt; <span className="text-orange-600 dark:text-orange-400 font-semibold">Repacking</span>
           </p>
@@ -391,7 +391,7 @@ export const PackingRepacking: React.FC = () => {
                   ].map((h) => (
                     <th
                       key={h}
-                      className={`px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap ${
+                      className={`px-4 py-3 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide whitespace-nowrap ${
                         h === 'ACTION' || h === 'RECOVERED' || h === 'WASTE' ? 'text-right' : 'text-left'
                       }`}
                     >

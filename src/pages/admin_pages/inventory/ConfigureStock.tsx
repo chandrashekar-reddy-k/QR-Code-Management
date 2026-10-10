@@ -8,7 +8,6 @@ import {
   Button,
   Pagination
 } from '../../../components/ui';
-import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import procurementService from '../vsms/services/procurementService';
 
 interface ConfigureStockItem {
@@ -27,7 +26,7 @@ interface ConfigureStockItem {
 const ConfigureStock: React.FC = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<ConfigureStockItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -44,18 +43,24 @@ const ConfigureStock: React.FC = () => {
       setLoading(true);
       const res = await procurementService.getUnconfiguredGRNItems({ includeConfigured: true });
       if (res.data?.success) {
-        const items = res.data.data.map((item: any) => ({
-          id: item.id,
-          grnId: item.grnId || item.goodsReceiptId || item.grn?.id || '',
-          name: item.product?.name || 'Unknown',
-          sku: item.resolvedSku || item.product?.sku || item.product?.masterProduct?.sku || item.product?.barcode || 'N/A',
-          category: item.resolvedCategory || item.product?.category?.name || item.product?.subCategory?.name || 'General',
-          quantity: item.receivedQty || 0,
-          unit: item.resolvedUnit || item.product?.unit || 'Units',
-          price: item.resolvedPurchasePrice ?? item.product?.price ?? 0,
-          image: item.product?.name?.[0]?.toUpperCase() || 'P',
-          isConfigured: Boolean(item.isConfigured)
-        }));
+        const items = res.data.data.map((item: any) => {
+          const prodImage = (Array.isArray(item.product?.images) && item.product.images.length > 0)
+            ? item.product.images[0]
+            : (typeof item.product?.images === 'string' ? item.product.images : '') || item.product?.image || item.product?.masterProduct?.images?.[0] || item.product?.masterProduct?.image || '';
+
+          return {
+            id: item.id,
+            grnId: item.grnId || item.goodsReceiptId || item.grn?.id || '',
+            name: item.product?.name || 'Unknown',
+            sku: item.resolvedSku || item.product?.sku || item.product?.masterProduct?.sku || item.product?.barcode || 'N/A',
+            category: item.resolvedCategory || item.product?.category?.name || item.product?.subCategory?.name || 'General',
+            quantity: item.receivedQty || 0,
+            unit: item.resolvedUnit || item.product?.unit || 'Units',
+            price: item.resolvedPurchasePrice ?? item.product?.price ?? 0,
+            image: prodImage,
+            isConfigured: Boolean(item.isConfigured)
+          };
+        });
         setData(items);
       }
     } catch (error) {
@@ -103,7 +108,7 @@ const ConfigureStock: React.FC = () => {
   };
 
   const toggleSelection = (id: string) => {
-    setSelectedItems(prev => 
+    setSelectedItems(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -144,9 +149,9 @@ const ConfigureStock: React.FC = () => {
       filtered = [...filtered].sort((a, b) => {
         const aValue = a[sortField as keyof ConfigureStockItem];
         const bValue = b[sortField as keyof ConfigureStockItem];
-        
+
         if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return sortDirection === 'asc' 
+          return sortDirection === 'asc'
             ? aValue.localeCompare(bValue)
             : bValue.localeCompare(aValue);
         }
@@ -189,8 +194,8 @@ const ConfigureStock: React.FC = () => {
     {
       key: 'checkbox',
       label: (
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
           checked={selectedItems.length === paginatedData.length && paginatedData.length > 0}
           onChange={toggleAll}
@@ -200,8 +205,8 @@ const ConfigureStock: React.FC = () => {
       render: (item: ConfigureStockItem) => {
         const isSelected = selectedItems.includes(item.id);
         return (
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
             checked={isSelected}
             onChange={() => toggleSelection(item.id)}
@@ -215,8 +220,28 @@ const ConfigureStock: React.FC = () => {
       sortable: true,
       render: (item: ConfigureStockItem) => (
         <div className="flex items-center">
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center mr-3 text-lg">
-            {item.image}
+          <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center mr-3 overflow-hidden shrink-0 p-1">
+            {item.image ? (
+              <img 
+                src={item.image} 
+                alt={item.name} 
+                className="w-full h-full object-contain" 
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  if (target.parentElement) {
+                    const fallback = target.parentElement.querySelector('.fallback-letter') as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }
+                }}
+              />
+            ) : null}
+            <span 
+              className="fallback-letter text-xs font-bold text-gray-600" 
+              style={{ display: item.image ? 'none' : 'flex' }}
+            >
+              {item.name ? item.name[0].toUpperCase() : 'P'}
+            </span>
           </div>
           <span className="text-sm font-medium text-gray-700">{item.name}</span>
         </div>
@@ -243,7 +268,7 @@ const ConfigureStock: React.FC = () => {
       label: 'QUANTITY',
       sortable: true,
       render: (item: ConfigureStockItem) => (
-        <span className="text-sm text-gray-600">{item.quantity}</span>
+        <div className="text-center text-sm text-gray-600">{item.quantity}</div>
       )
     },
     {
@@ -251,7 +276,7 @@ const ConfigureStock: React.FC = () => {
       label: 'UNIT',
       sortable: true,
       render: (item: ConfigureStockItem) => (
-        <span className="text-sm text-gray-500">{item.unit}</span>
+        <div className="text-center text-sm text-gray-500">{item.unit}</div>
       )
     },
     {
@@ -259,7 +284,7 @@ const ConfigureStock: React.FC = () => {
       label: 'PURCHASE PRICE (₹)',
       sortable: true,
       render: (item: ConfigureStockItem) => (
-        <span className="text-sm text-gray-600">{item.price}</span>
+        <div className="text-center text-sm text-gray-600 font-medium">₹{item.price}</div>
       )
     },
     {
@@ -285,7 +310,7 @@ const ConfigureStock: React.FC = () => {
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-start">
-          <button 
+          <button
             onClick={() => navigate('/inventory/raw')}
             className="mr-3 mt-1.5 text-gray-500 hover:text-gray-700 transition-colors"
           >
@@ -298,32 +323,16 @@ const ConfigureStock: React.FC = () => {
         </div>
       </div>
 
-      {/* Breadcrumbs */}
-      <div className="mb-4">
-        <Breadcrumbs />
-      </div>
-
       {/* Filters and Search */}
       <div className="mt-2 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
         <div className="flex items-center border border-gray-300 rounded-lg bg-white h-10 shadow-sm w-fit flex-wrap sm:flex-nowrap">
           <div className="px-3.5 border-r border-gray-200 text-gray-600 flex items-center justify-center h-full">
             <Filter size={16} />
           </div>
-          
-          <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[100px] cursor-pointer">
-              <option>Unit</option>
-              <option>Packets</option>
-              <option>kg</option>
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
-          </div>
 
           {/* Status Filter */}
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select 
+            <select
               value={configFilter}
               onChange={(e) => {
                 setConfigFilter(e.target.value as any);
@@ -331,18 +340,18 @@ const ConfigureStock: React.FC = () => {
               }}
               className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[160px] cursor-pointer"
             >
-              <option value="ALL">All Items (Configured + Pending)</option>
-              <option value="UNCONFIGURED">Pending Config Only</option>
-              <option value="CONFIGURED">Configured Only</option>
+              <option value="ALL">Status</option>
+              <option value="UNCONFIGURED">Pending Config</option>
+              <option value="CONFIGURED">Configured</option>
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
 
           {/* Procurement GRN Filter */}
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select 
+            <select
               value={selectedGRNId}
               onChange={(e) => {
                 setSelectedGRNId(e.target.value);
@@ -361,7 +370,7 @@ const ConfigureStock: React.FC = () => {
               })}
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
 
@@ -375,10 +384,10 @@ const ConfigureStock: React.FC = () => {
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <RotateCcw size={14} />
-            <span>Reset Filter</span>
+            <span>Reset</span>
           </button>
         </div>
-        
+
         <div className="w-full lg:w-auto lg:min-w-[320px] lg:flex-shrink-0">
           <SearchInput
             placeholder="Search...."
@@ -415,8 +424,8 @@ const ConfigureStock: React.FC = () => {
               <span className="text-gray-500 ml-1">items selected</span>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 disabled={loading}
                 onClick={() => handleConfigure('NON-BRANDED')}
                 className="bg-[#ea580c] hover:bg-orange-700 text-white border-none flex items-center gap-2 px-5 py-2"
@@ -424,8 +433,8 @@ const ConfigureStock: React.FC = () => {
                 <Package size={16} />
                 Mark as Unbranded
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 disabled={loading}
                 onClick={() => handleConfigure('BRANDED')}
                 className="bg-[#0f9d58] hover:bg-green-700 text-white border-none flex items-center gap-2 px-5 py-2"
@@ -448,12 +457,14 @@ const ConfigureStock: React.FC = () => {
                         setItemsPerPage(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 bg-white text-gray-900"
+                      className="w-16 sm:w-20 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 bg-white text-gray-900"
                     >
                       <option value="10">10</option>
                       <option value="25">25</option>
                       <option value="50">50</option>
                       <option value="100">100</option>
+                      <option value="500">500</option>
+                      <option value="1000">1000</option>
                     </select>
                   </div>
                   <span className="text-gray-600 whitespace-nowrap">

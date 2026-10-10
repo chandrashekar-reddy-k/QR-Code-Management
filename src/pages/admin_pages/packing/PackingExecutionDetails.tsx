@@ -42,6 +42,7 @@ export const PackingExecutionDetails: React.FC = () => {
   const [labelsRejected, setLabelsRejected] = useState<string>('');
   const [pauseReason, setPauseReason] = useState<string>('');
   const [showPauseModal, setShowPauseModal] = useState(false);
+  const [allocInputs, setAllocInputs] = useState<any[]>([]);
 
   const showToast = (msg: string, isError = false) => {
     if (isError) setErrorMsg(msg);
@@ -50,6 +51,136 @@ export const PackingExecutionDetails: React.FC = () => {
       setSuccessMsg(null);
       setErrorMsg(null);
     }, 3500);
+  };
+
+  // Helper to render product column with Primary Product + Counter Badge & Hover Popover for multi-product orders
+  const renderProductColumn = (wo: any) => {
+    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
+
+    if (items && items.length > 1) {
+      const primaryName = items[0].product || 'Product 1';
+      const extraCount = items.length - 1;
+
+      return (
+        <div className="relative group inline-flex items-center gap-1.5 max-w-[200px]">
+          <span className="font-semibold text-slate-800 dark:text-white truncate cursor-default max-w-[120px]" title={primaryName}>
+            {primaryName}
+          </span>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 shrink-0 cursor-default">
+            +{extraCount} more
+          </span>
+
+          <div className="absolute left-0 top-full mt-1.5 hidden group-hover:block z-50 min-w-[220px] max-w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xl p-3 space-y-2 text-xs font-sans animate-in fade-in zoom-in-95 duration-150">
+            <div className="font-bold text-slate-400 dark:text-gray-400 text-[10px] uppercase tracking-wider border-b border-slate-100 dark:border-gray-700 pb-1.5">
+              Source Products ({items.length})
+            </div>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {items.map((item: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-slate-900 dark:text-white">
+                  <span className="text-slate-400 font-mono text-[11px] shrink-0">{idx + 1}.</span>
+                  <span>{item.product}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const singleName = wo?.product?.name || items?.[0]?.product || '-';
+    return (
+      <span className="font-bold text-slate-800 dark:text-white truncate block max-w-[130px]" title={singleName}>
+        {singleName}
+      </span>
+    );
+  };
+
+  const formatRequiredQty = (wo: any) => {
+    if (!wo) return '0';
+    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+      const map: Record<string, number> = {};
+      wo.outputAllocations.forEach((alloc: any) => {
+        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
+        const fallbackUnit = (wo.sourceItems?.[0]?.uom || 'KG').toUpperCase();
+        const unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
+        const qty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
+        map[unit] = (map[unit] || 0) + qty;
+      });
+      const entries = Object.entries(map);
+      if (entries.length > 0) {
+        return entries.map(([uom, qty]) => `${qty} ${uom}`).join(', ');
+      }
+    }
+    return `${wo.requiredQty || 0}`;
+  };
+
+  const handleAllocPackedChange = (idx: number, value: string) => {
+    const num = value === '' ? 0 : Math.max(0, parseInt(value) || 0);
+    setAllocInputs((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], packedUnits: num };
+      const newProduced = updated.reduce(
+        (sum, a) => sum + (Number(a.packedUnits) || 0) * (a.packSizeKg || 1),
+        0
+      );
+      setActualProduced(newProduced);
+      return updated;
+    });
+  };
+
+  const handleAllocRejectedChange = (idx: number, value: string) => {
+    const num = value === '' ? 0 : Math.max(0, parseInt(value) || 0);
+    setAllocInputs((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], rejectedUnits: num };
+      const newRejected = updated.reduce(
+        (sum, a) => sum + (Number(a.rejectedUnits) || 0) * (a.packSizeKg || 1),
+        0
+      );
+      setActualRejected(newRejected);
+      return updated;
+    });
+  };
+
+const getReqForSKU = (alloc: any) => {
+  if (!alloc) return 0;
+  if (alloc.packedUnits !== '' && alloc.packedUnits !== null && alloc.packedUnits !== undefined) {
+    const val = Number(alloc.packedUnits);
+    if (!isNaN(val) && val > 0) return val;
+  }
+  const plUnits = Number(alloc.plannedUnits);
+  if (!isNaN(plUnits) && plUnits > 0) return plUnits;
+  return 0;
+};
+
+  const handleAllocLabelsAppliedChange = (idx: number, value: string) => {
+    const num = value === '' ? 0 : Math.max(0, parseInt(value) || 0);
+    setAllocInputs((prev) => {
+      const updated = [...prev];
+      const reqForSKU = getReqForSKU(updated[idx]);
+      const clampedNum = Math.min(num, reqForSKU);
+      updated[idx] = { ...updated[idx], labelsApplied: clampedNum };
+      const newTotalApplied = updated.reduce(
+        (sum, a) => sum + (Number(a.labelsApplied) || 0),
+        0
+      );
+      setLabelsApplied(String(newTotalApplied));
+      return updated;
+    });
+  };
+
+  const handleAllocLabelsRejectedChange = (idx: number, value: string) => {
+    const num = value === '' ? 0 : Math.max(0, parseInt(value) || 0);
+    setAllocInputs((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], labelsRejected: num };
+      const newTotalRejected = updated.reduce(
+        (sum, a) => sum + (Number(a.labelsRejected) || 0),
+        0
+      );
+      setLabelsRejected(String(newTotalRejected));
+      return updated;
+    });
   };
 
   const fetchWO = async () => {
@@ -62,8 +193,42 @@ export const PackingExecutionDetails: React.FC = () => {
         setSelectedWO(found);
         setActualProduced(found.actualProduced || 0);
         setActualRejected(found.actualRejected || 0);
-        const la = found.labelsApplied ?? found.actualProduced;
-        setLabelsApplied(la ? String(la) : '');
+
+        let allocs: any[] = [];
+        if (Array.isArray((found as any).outputAllocations) && (found as any).outputAllocations.length > 0) {
+          allocs = (found as any).outputAllocations;
+        } else if (Array.isArray((found as any).sourceItems) && (found as any).sourceItems.length > 0) {
+          allocs = (found as any).sourceItems.map((item: any) => ({
+            skuName: item.product || item.skuName || item.skuCode || 'Item SKU',
+            packSizeText: `${item.quantity || 1} ${item.uom || 'KG'}`,
+            packSizeKg: item.packSizeKg || 1,
+            plannedUnits: item.quantity || 1,
+            packedUnits: item.packedUnits !== undefined && item.packedUnits !== null ? item.packedUnits : '',
+            rejectedUnits: item.rejectedUnits ?? 0,
+            labelsApplied: item.labelsApplied !== undefined && item.labelsApplied !== null ? item.labelsApplied : '',
+            labelsRejected: item.labelsRejected ?? 0,
+          }));
+        }
+
+        const initialAllocInputs = allocs.map((a: any) => ({
+          ...a,
+          packedUnits: a.packedUnits !== undefined && a.packedUnits !== null ? a.packedUnits : '',
+          rejectedUnits: a.rejectedUnits ?? 0,
+          labelsApplied: a.labelsApplied !== undefined && a.labelsApplied !== null ? a.labelsApplied : '',
+          labelsRejected: a.labelsRejected ?? 0,
+        }));
+        setAllocInputs(initialAllocInputs);
+
+        if (initialAllocInputs.length > 0) {
+          const totApplied = initialAllocInputs.reduce((sum: number, a: any) => sum + (Number(a.labelsApplied) || 0), 0);
+          const totRejected = initialAllocInputs.reduce((sum: number, a: any) => sum + (Number(a.labelsRejected) || 0), 0);
+          setLabelsApplied(String(totApplied));
+          setLabelsRejected(String(totRejected));
+        } else {
+          const la = found.labelsApplied ?? found.actualProduced;
+          setLabelsApplied(la ? String(la) : '');
+          setLabelsRejected(found.labelsRejected ? String(found.labelsRejected) : '0');
+        }
       }
     } catch (e) {
       console.error('Failed to fetch Work Order for details:', e);
@@ -91,7 +256,7 @@ export const PackingExecutionDetails: React.FC = () => {
         <Package className="text-slate-300 dark:text-gray-600 mb-4" size={48} />
         <h3 className="text-lg font-bold text-slate-700 dark:text-gray-300">Work Order Not Found</h3>
         <button
-          onClick={() => navigate('/packing-erp/packing-execution')}
+          onClick={() => navigate('/packing-erp/dashboard')}
           className="mt-4 px-4 py-2 bg-[#00891D] text-white rounded-lg text-sm font-semibold"
         >
           Go Back
@@ -109,7 +274,9 @@ export const PackingExecutionDetails: React.FC = () => {
   const packingPct = Math.min(100, Math.round((packedQty / reqQty) * 100));
 
   // Labeling logic
-  const reqLabels = packedQty > 0 ? packedQty : reqQty;
+  const reqLabels = allocInputs.length > 0
+    ? allocInputs.reduce((sum, a) => sum + getReqForSKU(a), 0)
+    : (packedQty > 0 ? packedQty : reqQty);
   const labelsRemaining = Math.max(0, reqLabels - Number(labelsApplied) - Number(labelsRejected));
   const labelingPct = Math.min(100, Math.round((Number(labelsApplied) / reqLabels) * 100) || 0);
 
@@ -208,7 +375,7 @@ export const PackingExecutionDetails: React.FC = () => {
       setSelectedWO(updated);
       showToast(`Work Order ${updated.woNumber} packing completed!`);
       setTimeout(() => {
-        navigate('/packing-erp/packing-execution');
+        navigate('/packing-erp/dashboard');
       }, 2000);
     } catch (err: any) {
       console.error(err);
@@ -252,15 +419,17 @@ export const PackingExecutionDetails: React.FC = () => {
   };
 
   const handleSaveLabelQuantities = async () => {
-    const maxQty = actualProduced > 0 ? actualProduced : reqQty;
+    const maxQty = reqLabels;
     if (Number(labelsApplied) + Number(labelsRejected) > maxQty) {
-      showToast('Total labels cannot exceed packed quantity.', true);
+      showToast('Total labels cannot exceed required quantity.', true);
       return;
     }
     try {
       setActionLoading(true);
       const updated = await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
         labelsApplied: Number(labelsApplied),
+        labelsRejected: Number(labelsRejected),
+        outputAllocations: allocInputs.length > 0 ? allocInputs : undefined,
       });
       setSelectedWO(updated);
       showToast('Label quantities updated successfully!');
@@ -274,14 +443,18 @@ export const PackingExecutionDetails: React.FC = () => {
   };
 
   const handleCompleteLabeling = async () => {
-    const maxQty = actualProduced > 0 ? actualProduced : reqQty;
+    const maxQty = reqLabels;
     if (Number(labelsApplied) + Number(labelsRejected) > maxQty) {
-      showToast('Total labels cannot exceed packed quantity.', true);
+      showToast('Total labels cannot exceed required quantity.', true);
       return;
     }
     try {
       setActionLoading(true);
-      await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, { labelsApplied: Number(labelsApplied) });
+      await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
+        labelsApplied: Number(labelsApplied),
+        labelsRejected: Number(labelsRejected),
+        outputAllocations: allocInputs.length > 0 ? allocInputs : undefined,
+      });
       await barcodeService.completeTask({
         workOrderId: selectedWO.id,
         appliedQuantity: Number(labelsApplied),
@@ -320,13 +493,13 @@ export const PackingExecutionDetails: React.FC = () => {
           </h2>
           <p
             className="text-sm text-slate-500 dark:text-gray-400 mt-1 cursor-pointer hover:underline"
-            onClick={() => navigate('/packing-erp/packing-execution')}
+            onClick={() => navigate('/packing-erp/dashboard')}
           >
-            Packing Execution Queue &gt; {selectedWO.woNumber}
+            Dashboard &gt; {selectedWO.woNumber}
           </p>
         </div>
         <button
-          onClick={() => navigate('/packing-erp/packing-execution')}
+          onClick={() => navigate('/packing-erp/dashboard')}
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-700 text-slate-600 dark:text-gray-300 transition-colors cursor-pointer"
         >
           <ArrowLeft size={16} />
@@ -335,11 +508,13 @@ export const PackingExecutionDetails: React.FC = () => {
       </div>
 
       {/* Packing Stage Tracker */}
-      <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs">
-        <h3 className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-          Packing Execution Stage Tracker
-        </h3>
-        <div className="grid grid-cols-4 gap-2 relative">
+      <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3 shadow-xs">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+            Packing Execution Stage Tracker
+          </h3>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
           {STAGES.map((stage, idx) => {
             const uiStatus = selectedWO.status === 'PACKING_STARTED' && (selectedWO.actualProduced || 0) > 0 
                 ? 'PACKING_IN_PROGRESS' 
@@ -353,7 +528,7 @@ export const PackingExecutionDetails: React.FC = () => {
             return (
               <div
                 key={stage.key}
-                className={`p-3 rounded-lg border flex flex-col items-center justify-center text-center transition-all ${
+                className={`py-1.5 px-2 rounded-lg border flex items-center justify-center gap-1.5 text-center transition-all ${
                   isDone
                     ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
                     : isCurrent
@@ -361,14 +536,14 @@ export const PackingExecutionDetails: React.FC = () => {
                     : 'bg-slate-50 dark:bg-gray-900 border-slate-200 dark:border-gray-700 text-slate-400 dark:text-gray-500'
                 }`}
               >
-                <div className="mb-1">
+                <div className="shrink-0">
                   {isDone ? (
-                    <CheckCircle size={18} className="text-emerald-600 dark:text-emerald-400" />
+                    <CheckCircle size={12} className="text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <span className="text-xs font-mono font-bold">{idx + 1}</span>
+                    <span className="text-[10px] font-mono font-bold">{idx + 1}</span>
                   )}
                 </div>
-                <span className="text-xs font-semibold">{stage.label}</span>
+                <span className="text-[10px] font-semibold truncate">{stage.label}</span>
               </div>
             );
           })}
@@ -396,24 +571,16 @@ export const PackingExecutionDetails: React.FC = () => {
               <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
                 Output Product
               </span>
-              <span className="text-slate-800 dark:text-white font-bold block mt-0.5 truncate">
-                {selectedWO.product?.name || '-'}
-              </span>
+              <div className="mt-0.5">
+                {renderProductColumn(selectedWO)}
+              </div>
             </div>
             <div>
               <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
                 SKU
               </span>
               <span className="text-slate-800 dark:text-white font-mono font-semibold block mt-0.5">
-                {selectedWO.product?.sku || 'N/A'}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
-                Product BOM
-              </span>
-              <span className="text-slate-800 dark:text-white font-mono font-semibold block mt-0.5">
-                {selectedWO.recipe?.code || selectedWO.recipeId}
+                {selectedWO.product?.sku || (Array.isArray((selectedWO as any).sourceItems) && (selectedWO as any).sourceItems[0]?.sku) || 'N/A'}
               </span>
             </div>
             <div>
@@ -429,7 +596,7 @@ export const PackingExecutionDetails: React.FC = () => {
                 Assigned Operator
               </span>
               <span className="text-slate-800 dark:text-white font-semibold block mt-0.5 truncate">
-                {selectedWO.operator?.name || selectedWO.supervisor?.name || 'Unassigned'}
+                {selectedWO.operator?.name || 'Unassigned'}
               </span>
             </div>
           </div>
@@ -446,8 +613,8 @@ export const PackingExecutionDetails: React.FC = () => {
               <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
                 {isLabelingStage ? 'Required Labels' : 'Required Qty'}
               </span>
-              <span className="text-lg font-bold text-slate-800 dark:text-white font-mono">
-                {isLabelingStage ? reqLabels : reqQty}
+              <span className="text-sm font-bold text-slate-800 dark:text-white font-mono">
+                {isLabelingStage ? reqLabels : formatRequiredQty(selectedWO)}
               </span>
             </div>
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-100 dark:border-emerald-900">
@@ -613,37 +780,118 @@ export const PackingExecutionDetails: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
-                Packed Quantity (Good Packs) *
-              </label>
-              <input
-                type="number"
-                min="0"
-                max={reqQty}
-                value={actualProduced}
-                onChange={(e) => {
-                  let val = Number(e.target.value);
-                  if (val > reqQty) val = reqQty;
-                  setActualProduced(val);
-                }}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-              />
+          {allocInputs.length > 0 ? (
+            <div className="space-y-4">
+              <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-gray-700/50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
+                      <th className="py-2.5 px-3">TARGET SKU</th>
+                      <th className="py-2.5 px-3">PACK SIZE</th>
+                      <th className="py-2.5 px-3 text-center">PLANNED UNITS</th>
+                      <th className="py-2.5 px-3 text-center">PACKED UNITS (GOOD)</th>
+                      <th className="py-2.5 px-3 text-center">REJECTED UNITS</th>
+                      <th className="py-2.5 px-3 text-right">TOTAL PACKED QTY</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
+                    {allocInputs.map((alloc: any, idx: number) => {
+                      const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
+                      const unit = parts.length > 1 ? parts.slice(1).join(' ') : 'KG';
+                      const totalPackedKg = (Number(alloc.packedUnits) || 0) * (alloc.packSizeKg || 1);
+
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-gray-700/30">
+                          <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
+                            {alloc.skuName}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 dark:text-gray-300 font-semibold">
+                            {alloc.packSizeText}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold text-slate-800 dark:text-gray-200">
+                            {alloc.plannedUnits}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max={alloc.plannedUnits}
+                              value={alloc.packedUnits === undefined || alloc.packedUnits === null ? '' : alloc.packedUnits}
+                              onChange={(e) => handleAllocPackedChange(idx, e.target.value)}
+                              className="w-24 p-1.5 text-center border border-slate-200 dark:border-gray-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-emerald-600 dark:bg-gray-900 dark:text-white"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              value={alloc.rejectedUnits === 0 ? '' : alloc.rejectedUnits}
+                              onChange={(e) => handleAllocRejectedChange(idx, e.target.value)}
+                              className="w-24 p-1.5 text-center border border-slate-200 dark:border-gray-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-rose-600 dark:bg-gray-900 dark:text-white"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {totalPackedKg} {unit}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex flex-wrap justify-between items-center p-3 bg-slate-50 dark:bg-gray-700/40 rounded-lg border border-slate-200 dark:border-gray-700 text-xs font-bold">
+                <span className="text-slate-600 dark:text-gray-300">Total Floor Output Summary:</span>
+                <div className="flex gap-6 font-mono text-xs">
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase block">Total Packed Qty</span>
+                    <strong className="text-emerald-600 dark:text-emerald-400">{actualProduced}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase block">Total Rejected Qty</span>
+                    <strong className="text-rose-600 dark:text-rose-400">{actualRejected}</strong>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
-                Rejected / Defective Quantity
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={actualRejected}
-                onChange={(e) => setActualRejected(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
-              />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
+                  Packed Quantity (Good Packs) *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max={reqQty}
+                  placeholder="Enter packed quantity..."
+                  value={actualProduced === 0 ? '' : actualProduced}
+                  onChange={(e) => {
+                    let val = e.target.value === '' ? 0 : Number(e.target.value);
+                    if (val > reqQty) val = reqQty;
+                    setActualProduced(val);
+                  }}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
+                  Rejected / Defective Quantity
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={actualRejected === 0 ? '' : actualRejected}
+                  onChange={(e) => {
+                    let val = e.target.value === '' ? 0 : Number(e.target.value);
+                    setActualRejected(val);
+                  }}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -664,32 +912,112 @@ export const PackingExecutionDetails: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
-                Labels Applied Quantity *
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={labelsApplied}
-                onChange={(e) => setLabelsApplied(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-              />
+          {allocInputs.length > 0 ? (
+            <div className="space-y-4">
+              <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-gray-700/50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
+                      <th className="py-2.5 px-3">TARGET SKU</th>
+                      <th className="py-2.5 px-3">PACK SIZE</th>
+                      <th className="py-2.5 px-3 text-center">REQUIRED LABELS</th>
+                      <th className="py-2.5 px-3 text-center">LABELS APPLIED</th>
+                      <th className="py-2.5 px-3 text-center">REJECTED LABELS</th>
+                      <th className="py-2.5 px-3 text-right">REMAINING LABELS</th>
+                    </tr>
+                  </thead>                  <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
+                    {allocInputs.map((alloc: any, idx: number) => {
+                      const reqForSKU = getReqForSKU(alloc);
+                      const applied = alloc.labelsApplied ?? 0;
+                      const rejected = alloc.labelsRejected ?? 0;
+                      const rem = Math.max(0, reqForSKU - applied - rejected);
+
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-gray-700/30">
+                          <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
+                            {alloc.skuName}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 dark:text-gray-300 font-semibold">
+                            {alloc.packSizeText}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold text-slate-800 dark:text-gray-200">
+                            {reqForSKU}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max={reqForSKU}
+                              value={applied === 0 ? '' : applied}
+                              onChange={(e) => handleAllocLabelsAppliedChange(idx, e.target.value)}
+                              className="w-24 p-1.5 text-center border border-slate-200 dark:border-gray-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-blue-600 dark:bg-gray-900 dark:text-white"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              value={rejected === 0 ? '' : rejected}
+                              onChange={(e) => handleAllocLabelsRejectedChange(idx, e.target.value)}
+                              className="w-24 p-1.5 text-center border border-slate-200 dark:border-gray-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-rose-600 dark:bg-gray-900 dark:text-white"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                            {rem}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex flex-wrap justify-between items-center p-3 bg-slate-50 dark:bg-gray-700/40 rounded-lg border border-slate-200 dark:border-gray-700 text-xs font-bold">
+                <span className="text-slate-600 dark:text-gray-300">Total Labeling Summary:</span>
+                <div className="flex gap-6 font-mono text-xs">
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase block">Total Labels Applied</span>
+                    <strong className="text-blue-600 dark:text-blue-400">{labelsApplied || 0}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase block">Total Rejected Labels</span>
+                    <strong className="text-rose-600 dark:text-rose-400">{labelsRejected || 0}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase block">Total Remaining</span>
+                    <strong className="text-amber-600 dark:text-amber-400">{labelsRemaining}</strong>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
-                Rejected / Defective Labels Quantity
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={labelsRejected}
-                onChange={(e) => setLabelsRejected(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
-              />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
+                  Labels Applied Quantity *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={labelsApplied}
+                  onChange={(e) => setLabelsApplied(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-gray-300 mb-1">
+                  Rejected / Defective Labels Quantity
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={labelsRejected}
+                  onChange={(e) => setLabelsRejected(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-mono font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

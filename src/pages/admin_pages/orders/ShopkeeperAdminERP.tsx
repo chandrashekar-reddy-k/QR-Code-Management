@@ -260,6 +260,7 @@ export default function ShopkeeperAdminERP() {
         {screen === "returns" && <Returns onBack={goBack} />}
         {screen === "sla-monitoring" && (
           <SLAMonitoring
+            orders={orders}
             onBack={goBack}
             onNavigate={navigate}
             canConfigureSla={true}
