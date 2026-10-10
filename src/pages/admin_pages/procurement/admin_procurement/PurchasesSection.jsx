@@ -324,28 +324,37 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
       return;
     }
 
+    // Build a map of PO items from the linked PO if available
+    const poItemsMap = new Map();
+    if (grn.po && Array.isArray(grn.po.items)) {
+      grn.po.items.forEach(pi => {
+        poItemsMap.set(pi.productId, pi);
+      });
+    }
+
     const mappedItems = eligibleItems.map(item => {
       const prod = products.find(p => p.id === item.productId || p.productId === item.productId || p.id === item.product?.id);
       const m = (Array.isArray(vendorMappings) ? vendorMappings : []).find(vItem =>
         vItem.productId === item.productId || vItem.product?.id === item.productId || vItem.productId === prod?.id
       );
+      const poItem = poItemsMap.get(item.productId);
 
       const mappedMrp = parseFloat(
-        m?.mrp > 0 ? m.mrp : (m?.moq > 0 ? m.moq : (item.mrp > 0 ? item.mrp : (item.product?.mrp > 0 ? item.product.mrp : (prod?.mrp > 0 ? prod.mrp : (prod?.price || 0)))))
+        poItem?.mrp > 0 ? poItem.mrp : (m?.mrp > 0 ? m.mrp : (m?.moq > 0 ? m.moq : (item.mrp > 0 ? item.mrp : (item.product?.mrp > 0 ? item.product.mrp : (prod?.mrp > 0 ? prod.mrp : (prod?.price || 0))))))
       );
 
       const mappedLandingPrice = parseFloat(
-        m?.landingPrice > 0 ? m.landingPrice : (m?.leadTime > 0 ? m.leadTime : (item.product?.purchasePrice > 0 ? item.product.purchasePrice : (prod?.landingPrice > 0 ? prod.landingPrice : (prod?.purchasePrice || 0))))
+        poItem?.landingPrice > 0 ? poItem.landingPrice : (poItem?.rate > 0 ? poItem.rate : (m?.landingPrice > 0 ? m.landingPrice : (m?.leadTime > 0 ? m.leadTime : (item.product?.purchasePrice > 0 ? item.product.purchasePrice : (prod?.landingPrice > 0 ? prod.landingPrice : (prod?.purchasePrice || 0))))))
       );
 
       const mappedSellingPrice = parseFloat(
-        m?.sellingPrice > 0 ? m.sellingPrice : (m?.purchasePrice > 0 ? m.purchasePrice : (item.product?.price > 0 ? item.product.price : (prod?.sellingPrice > 0 ? prod.sellingPrice : (prod?.price || 0))))
+        poItem?.sellingPrice > 0 ? poItem.sellingPrice : (m?.sellingPrice > 0 ? m.sellingPrice : (m?.purchasePrice > 0 ? m.purchasePrice : (item.product?.price > 0 ? item.product.price : (prod?.sellingPrice > 0 ? prod.sellingPrice : (prod?.price || 0)))))
       );
 
       const qty = item.receivedQty || 1;
       const taxRate = prod?.gst || item.product?.gst || 0;
       const variantName = item.variantName || item.product?.variantName || prod?.variantName || '';
-      const mappedUom = m?.uom || item.uom || 'PACK';
+      const mappedUom = poItem?.uom || m?.uom || item.uom || 'PACK';
       const sku = m?.vendorSku || item.skuCode || item.sku || item.product?.skuCode || item.product?.sku || prod?.skuCode || prod?.sku || '';
 
       const margin = mappedLandingPrice > 0 ? (((mappedSellingPrice - mappedLandingPrice) / mappedLandingPrice) * 100).toFixed(2) : '0';
@@ -372,7 +381,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
         unitSellingPrice: String(mappedSellingPrice),
         mfgDate: item.mfgDate ? format(new Date(item.mfgDate), 'yyyy-MM-dd') : '',
         expDate: item.expiryDate ? format(new Date(item.expiryDate), 'yyyy-MM-dd') : '',
-        total: String(qty * mappedLandingPrice)
+        total: poItem?.total !== undefined && poItem.total !== null ? String(poItem.total) : String(qty * mappedLandingPrice)
       };
     });
 

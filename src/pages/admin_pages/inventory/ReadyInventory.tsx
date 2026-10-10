@@ -281,11 +281,6 @@ const ReadyInventory: React.FC = () => {
         return (
           <div className="flex flex-col">
             <span className="text-sm font-bold text-gray-900">{displayQty}</span>
-            {item.procuredQty > 0 && item.stock !== undefined && (
-              <span className="text-[10px] text-gray-400 mt-0.5">
-                Total Stock: {item.stock}
-              </span>
-            )}
             {isGrnFiltered && (
               <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 w-fit">
                 GRN Received: {matchedGrn.receivedQty}
