@@ -158,7 +158,23 @@ export const PackingWorkOrders: React.FC = () => {
     setApiWorkOrdersLoading(true);
     try {
       const res = await workOrderService.getWorkOrders();
-      setApiWorkOrders(res.data || []);
+      const rawList = res.data || [];
+      const parsedList = rawList.map((wo: any) => {
+        let sourceItems = wo.sourceItems;
+        if (typeof sourceItems === 'string') {
+          try { sourceItems = JSON.parse(sourceItems); } catch (e) { sourceItems = null; }
+        }
+        let outputAllocations = wo.outputAllocations;
+        if (typeof outputAllocations === 'string') {
+          try { outputAllocations = JSON.parse(outputAllocations); } catch (e) { outputAllocations = null; }
+        }
+        return {
+          ...wo,
+          sourceItems: Array.isArray(sourceItems) ? sourceItems : null,
+          outputAllocations: Array.isArray(outputAllocations) ? outputAllocations : null,
+        };
+      });
+      setApiWorkOrders(parsedList);
     } catch (e) {
       console.error('Failed to fetch work orders:', e);
     } finally {
@@ -296,11 +312,27 @@ export const PackingWorkOrders: React.FC = () => {
         return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
     }
   };
+  const getSourceItemsArray = (wo: any): any[] => {
+    let items = wo?.sourceItems;
+    if (typeof items === 'string') {
+      try { items = JSON.parse(items); } catch (e) {}
+    }
+    return Array.isArray(items) ? items : [];
+  };
+
+  const getOutputAllocationsArray = (wo: any): any[] => {
+    let allocs = wo?.outputAllocations;
+    if (typeof allocs === 'string') {
+      try { allocs = JSON.parse(allocs); } catch (e) {}
+    }
+    return Array.isArray(allocs) ? allocs : [];
+  };
+
   // Helper to render product column with Primary Product + Counter Badge & Product Names Hover Popover
   const renderProductColumn = (wo: any) => {
-    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
+    const items = getSourceItemsArray(wo);
 
-    if (items && items.length > 1) {
+    if (items.length > 1) {
       const primaryName = items[0].product || 'Product 1';
       const extraCount = items.length - 1;
 
@@ -331,7 +363,7 @@ export const PackingWorkOrders: React.FC = () => {
       );
     }
 
-    const singleName = wo?.product?.name || items?.[0]?.product || '-';
+    const singleName = wo?.product?.name || items[0]?.product || '-';
     return (
       <span className="font-semibold text-gray-900 dark:text-white truncate block max-w-[180px]" title={singleName}>
         {singleName}
@@ -351,7 +383,8 @@ export const PackingWorkOrders: React.FC = () => {
       if (uomObj.abbreviation && !isUuidString(uomObj.abbreviation)) return String(uomObj.abbreviation).trim().toUpperCase();
       if (uomObj.name && !isUuidString(uomObj.name)) return String(uomObj.name).trim().toUpperCase();
     }
-    const sourceUom = wo?.sourceItems?.[0]?.uom;
+    const items = getSourceItemsArray(wo);
+    const sourceUom = items[0]?.uom;
     if (sourceUom && !isUuidString(sourceUom)) return String(sourceUom).trim().toUpperCase();
 
     const prodUnit = wo?.product?.unit;
@@ -363,9 +396,10 @@ export const PackingWorkOrders: React.FC = () => {
   // Utility to format work order required quantity based on output allocations and UOMs
   const formatRequiredQty = (wo: any) => {
     if (!wo) return '0 KG';
-    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+    const outputAllocations = getOutputAllocationsArray(wo);
+    if (outputAllocations.length > 0) {
       const map: Record<string, number> = {};
-      wo.outputAllocations.forEach((alloc: any) => {
+      outputAllocations.forEach((alloc: any) => {
         const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
         const fallbackUnit = getWOUnit(wo);
         let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
@@ -382,9 +416,9 @@ export const PackingWorkOrders: React.FC = () => {
   };
 
   const renderSkuColumn = (wo: any) => {
-    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
+    const items = getSourceItemsArray(wo);
 
-    if (items && items.length > 1) {
+    if (items.length > 1) {
       const primarySku = items[0].sku || items[0].itemCode || wo?.product?.sku || 'SKU-1';
       const extraCount = items.length - 1;
 
@@ -414,7 +448,7 @@ export const PackingWorkOrders: React.FC = () => {
       );
     }
 
-    const singleSku = wo?.product?.sku || items?.[0]?.sku || items?.[0]?.itemCode || wo?.sku || wo?.recipe?.code || '—';
+    const singleSku = wo?.product?.sku || items[0]?.sku || items[0]?.itemCode || wo?.sku || wo?.recipe?.code || '—';
     return (
       <span className="font-mono font-bold text-gray-700 dark:text-gray-200 truncate block max-w-[140px]" title={singleSku}>
         {singleSku}
@@ -426,12 +460,13 @@ export const PackingWorkOrders: React.FC = () => {
   const formatActualProduced = (wo: any) => {
     if (!wo) return '0 KG';
     const actual = wo.actualProduced || 0;
+    const outputAllocations = getOutputAllocationsArray(wo);
 
-    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+    if (outputAllocations.length > 0) {
       const map: Record<string, number> = {};
       const totalReq = wo.requiredQty || 1;
 
-      wo.outputAllocations.forEach((alloc: any) => {
+      outputAllocations.forEach((alloc: any) => {
         const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
         const fallbackUnit = getWOUnit(wo);
         let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
@@ -792,32 +827,39 @@ export const PackingWorkOrders: React.FC = () => {
                 </div>
 
                 <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700 sm:col-span-2">
-                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
-                    Source Products ({Array.isArray((currentWO as any).sourceItems) ? (currentWO as any).sourceItems.length : 1})
-                  </span>
-                  {Array.isArray((currentWO as any).sourceItems) && (currentWO as any).sourceItems.length > 0 ? (
-                    <div className="space-y-1.5 mt-1">
-                      {(currentWO as any).sourceItems.map((item: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 p-2 rounded-md border border-gray-100 dark:border-gray-700">
-                          <span className="font-bold text-gray-900 dark:text-white">{item.product}</span>
-                          <span className="font-mono text-gray-500 dark:text-gray-400 text-[11px]">
-                            Batch: <strong className="text-gray-700 dark:text-gray-300">{item.batch}</strong> ({item.availableQty} {item.uom})
+                  {(() => {
+                    const detailSourceItems = getSourceItemsArray(currentWO);
+                    return (
+                      <>
+                        <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
+                          Source Products ({detailSourceItems.length > 0 ? detailSourceItems.length : 1})
+                        </span>
+                        {detailSourceItems.length > 0 ? (
+                          <div className="space-y-1.5 mt-1">
+                            {detailSourceItems.map((item: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 p-2 rounded-md border border-gray-100 dark:border-gray-700">
+                                <span className="font-bold text-gray-900 dark:text-white">{item.product}</span>
+                                <span className="font-mono text-gray-500 dark:text-gray-400 text-[11px]">
+                                  Batch: <strong className="text-gray-700 dark:text-gray-300">{item.batch}</strong> ({item.availableQty} {item.uom})
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="font-bold text-sm text-gray-900 dark:text-white">
+                            {currentWO.product?.name || '-'}
                           </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="font-bold text-sm text-gray-900 dark:text-white">
-                      {currentWO.product?.name || '-'}
-                    </span>
-                  )}
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
                   <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
                     Required Quantity
                   </span>
-                  {isEditing && (!Array.isArray((currentWO as any).outputAllocations) || (currentWO as any).outputAllocations.length === 0) ? (
+                  {isEditing && (getOutputAllocationsArray(currentWO).length === 0) ? (
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -890,7 +932,7 @@ export const PackingWorkOrders: React.FC = () => {
               </div>
             </div>
 
-            {Array.isArray((currentWO as any).outputAllocations) && (currentWO as any).outputAllocations.length > 0 && (
+            {getOutputAllocationsArray(currentWO).length > 0 && (
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs overflow-hidden">
                 <div className="p-4 border-b border-gray-150 dark:border-gray-700">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white">
@@ -908,7 +950,7 @@ export const PackingWorkOrders: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-medium">
-                      {(currentWO as any).outputAllocations.map((alloc: any, idx: number) => {
+                      {getOutputAllocationsArray(currentWO).map((alloc: any, idx: number) => {
                         const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
                         const fallbackUnit = getWOUnit(currentWO);
                         let allocUom = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
@@ -991,7 +1033,7 @@ export const PackingWorkOrders: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
-                ) : Array.isArray((currentWO as any).outputAllocations) && (currentWO as any).outputAllocations.length > 0 ? (
+                ) : getOutputAllocationsArray(currentWO).length > 0 ? (
                   <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
                     <table className="w-full text-left text-xs">
                       <thead>
@@ -1004,7 +1046,7 @@ export const PackingWorkOrders: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-medium">
-                        {(currentWO as any).outputAllocations.map((alloc: any, idx: number) => {
+                        {getOutputAllocationsArray(currentWO).map((alloc: any, idx: number) => {
                           const postedQty = alloc.packedUnits ?? alloc.packedQty ?? alloc.plannedUnits ?? 0;
                           return (
                             <tr key={idx} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/30">

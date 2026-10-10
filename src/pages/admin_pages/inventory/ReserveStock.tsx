@@ -8,9 +8,11 @@ import {
   Pagination
 } from '../../../components/ui';
 import { inventoryService } from './services/inventoryService';
+import procurementService from '../vsms/services/procurementService';
 
 interface ReserveStockItem {
   id: string;
+  productId?: string;
   name: string;
   sku: string;
   unit: string;
@@ -90,6 +92,7 @@ const ReserveStock: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, { online: number; pos: number; vehicle: number }>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
   const [selectedGRNId, setSelectedGRNId] = useState('ALL');
@@ -100,27 +103,53 @@ const ReserveStock: React.FC = () => {
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      // 1. Fetch Procurement GRNs and map received quantities
+      // 1. Fetch Procurement GRNs & Unconfigured items for unit resolution
       let map: Record<string, any[]> = {};
+      let resolvedUnitMap: Record<string, string> = {};
+      let resolvedPriceMap: Record<string, number> = {};
       const vehicleQtyUpdates: Record<string, number> = {};
 
       try {
-        const res = await inventoryService.getProcurementGRNs();
-        const list = res.data?.data || res.data || [];
+        const [grnRes, unconfiguredRes] = await Promise.allSettled([
+          inventoryService.getProcurementGRNs(),
+          procurementService.getUnconfiguredGRNItems({ includeConfigured: true })
+        ]);
+
+        const list = grnRes.status === 'fulfilled' ? (grnRes.value.data?.data || grnRes.value.data || grnRes.value || []) : [];
         setProcurementGRNs(list);
 
         list.forEach((grn: any) => {
           if (grn.items && Array.isArray(grn.items)) {
+            let poMetaItems: any[] = [];
+            if (grn.po?.remarks && typeof grn.po.remarks === 'string' && grn.po.remarks.includes('[PO_METADATA]:')) {
+              try {
+                const metaStr = grn.po.remarks.split('[PO_METADATA]:')[1];
+                const parsed = JSON.parse(metaStr);
+                poMetaItems = Array.isArray(parsed) ? parsed : (parsed.items || []);
+              } catch (e) {}
+            }
+
             grn.items.forEach((item: any) => {
               const pId = item.productId || item.product?.id || item.id;
               if (pId) {
                 if (!map[pId]) map[pId] = [];
+                const poItem = grn.po?.items?.find((pi: any) => pi.productId === item.productId || pi.productId === pId);
+                const metaItem = poMetaItems.find((m: any) => m.productId === item.productId || m.productId === pId);
+
+                const configuredSellingPrice = Number(
+                  metaItem?.sellingPrice ?? metaItem?.mrp ??
+                  item.sellingPrice ?? item.mrp ??
+                  poItem?.sellingPrice ?? poItem?.mrp ?? 0
+                );
+
                 const receivedQty = Number(item.receivedQuantity ?? item.receivedQty ?? item.quantity ?? 0);
                 map[pId].push({
                   grnId: grn.id,
                   grnDisplayId: grn.displayId || grn.grnNumber || grn.id.slice(0, 8),
                   receivedQty,
+                  sellingPrice: configuredSellingPrice,
                   poDisplayId: grn.po?.displayId || grn.po?.poNumber || ''
                 });
 
@@ -132,6 +161,34 @@ const ReserveStock: React.FC = () => {
           }
         });
         setGrnItemsMap(map);
+
+        if (unconfiguredRes.status === 'fulfilled') {
+          const unconfData = unconfiguredRes.value.data?.data || unconfiguredRes.value.data || unconfiguredRes.value || [];
+          if (Array.isArray(unconfData) && unconfData.length > 0) {
+            unconfData.forEach((uItem: any) => {
+              const baseProdId = uItem.product?.id || uItem.product?.productId;
+              const rawProdId = uItem.productId;
+              const unitVal = uItem.resolvedUnit;
+              const sPrice = Number(uItem.sellingPrice ?? uItem.mrp ?? 0);
+              const targetIds = new Set<string>();
+              if (baseProdId) targetIds.add(baseProdId);
+              if (rawProdId) {
+                targetIds.add(rawProdId);
+                if (typeof rawProdId === 'string' && rawProdId.includes('_')) {
+                  targetIds.add(rawProdId.split('_')[0]);
+                }
+              }
+              targetIds.forEach(pid => {
+                if (!resolvedUnitMap[pid] || (unitVal && unitVal !== 'Units' && (resolvedUnitMap[pid] === 'Grams' || resolvedUnitMap[pid] === 'Units'))) {
+                  if (unitVal) resolvedUnitMap[pid] = unitVal;
+                }
+                if (sPrice > 0 && !resolvedPriceMap[pid]) {
+                  resolvedPriceMap[pid] = sPrice;
+                }
+              });
+            });
+          }
+        }
       } catch (grnErr) {
         console.error('Error fetching procurement GRNs:', grnErr);
       }
@@ -140,15 +197,12 @@ const ReserveStock: React.FC = () => {
       const response = await inventoryService.getReadyInventory({ page: 1, limit: 1000 });
       if (response.data?.data) {
         const products = response.data.data.products || [];
+        const mapped: ReserveStockItem[] = [];
+        const initialQty: Record<string, { online: number; pos: number; vehicle: number }> = {};
 
-        const unallocatedProducts = products.filter((item: any) => {
-          const fgPosted = item.finishedGoods?.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0) || 0;
-          const baseStockVal = Number(item.stock ?? item.baseStock ?? 0);
-          const baseStock = item.inventoryType === 'READY' ? baseStockVal : (fgPosted > 0 ? fgPosted : baseStockVal);
-
+        products.forEach((item: any) => {
           const grnList = map[item.id] || [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
-          const baseQty = totalProcuredQty > 0 ? totalProcuredQty : baseStock;
 
           let onlineStock = 0;
           let posStock = 0;
@@ -161,67 +215,125 @@ const ReserveStock: React.FC = () => {
             onlineStock = item.onlineAppStock?.onlineStock ?? 0;
             posStock = item.posStoreStock?.posStock ?? 0;
           }
-
           const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
           const allocated = onlineStock + posStock + vStock;
 
-          // Keep in Reserve list if there is remaining unallocated stock
-          return baseQty > allocated;
-        });
+          const baseId = item.id ? item.id.split('_')[0] : item.id;
+          const displayUnit = resolvedUnitMap[baseId] || resolvedUnitMap[item.id] || item.unit || 'units';
 
-        const mapped: ReserveStockItem[] = unallocatedProducts.map((item: any) => {
-          const fgPosted = item.finishedGoods?.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0) || 0;
-          const baseStockVal = Number(item.stock ?? item.baseStock ?? 0);
-          const totalStock = item.inventoryType === 'READY' ? baseStockVal : (fgPosted > 0 ? fgPosted : baseStockVal);
+          const prodImage = (Array.isArray(item.images) && item.images.length > 0)
+            ? item.images[0]
+            : (typeof item.images === 'string' ? item.images : '') || item.image || item.masterProduct?.images?.[0] || item.masterProduct?.image || '';
 
-          const grnList = map[item.id] || [];
-          const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
-          const effectiveBaseQty = totalProcuredQty > 0 ? totalProcuredQty : totalStock;
+          const grnItemWithSellingPrice = grnList.find((g: any) => g.sellingPrice && g.sellingPrice > 0);
+          const resolvedSellingPrice = grnItemWithSellingPrice?.sellingPrice || resolvedPriceMap[item.id] || resolvedPriceMap[baseId] || 0;
+          const formattedPrice = resolvedSellingPrice > 0 ? '₹' + resolvedSellingPrice : '—';
 
-          let onlineStock = 0;
-          let posStock = 0;
-          if (Array.isArray(item.channelInventories)) {
-            const onlineRecord = item.channelInventories.find((ci: any) => ci.channel === 'ONLINE_APP');
-            const posRecord = item.channelInventories.find((ci: any) => ci.channel === 'POS_STORE');
-            if (onlineRecord) onlineStock = Number(onlineRecord.quantity) || 0;
-            if (posRecord) posStock = Number(posRecord.quantity) || 0;
+          const fgList = Array.isArray(item.finishedGoods) ? item.finishedGoods : [];
+          const variantMap: Record<string, any> = {};
+
+          fgList.forEach((fg: any) => {
+            let allocs = fg.costPayload?.outputAllocations;
+            if (typeof allocs === 'string') {
+              try { allocs = JSON.parse(allocs); } catch (e) {}
+            }
+            if (Array.isArray(allocs) && allocs.length > 0) {
+              allocs.forEach((alloc: any) => {
+                const allocProdId = alloc.sourceProductId || alloc.productId;
+                if (!allocProdId || allocProdId === item.id || allocProdId === baseId) {
+                  const vKey = alloc.skuName || alloc.productName || item.name;
+                  const prodName = alloc.sourceProductName || item.name || 'Product';
+                  if (!variantMap[vKey]) {
+                    const rawSku = alloc.variantSku || alloc.sku || alloc.skuCode;
+                    const isUuid = typeof rawSku === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawSku.trim());
+                    const isAutoSku = typeof rawSku === 'string' && rawSku.startsWith('SKU-');
+                    const cleanSku = (rawSku && String(rawSku).trim() && !isUuid && !isAutoSku) ? String(rawSku).trim() : null;
+
+                    const generatedSku = cleanSku || (() => {
+                      const prefix = (item.name || 'PROD').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase();
+                      const pack = (alloc.packSizeText || '').replace(/\s+/g, '-').toUpperCase();
+                      return pack ? `${prefix}-${pack}` : `${prefix}-VAR`;
+                    })();
+
+                    variantMap[vKey] = {
+                      id: `${item.id}_${vKey.replace(/[^a-zA-Z0-9]/g, '_')}`,
+                      name: prodName,
+                      sku: generatedSku,
+                      unit: alloc.packSizeText ? 'Units' : displayUnit,
+                      readyQty: 0,
+                    };
+                  }
+                  variantMap[vKey].readyQty += Number(alloc.plannedUnits) || Number(fg.postedQty) || 0;
+                }
+              });
+            }
+          });
+
+          const variantItems = Object.values(variantMap);
+          if (variantItems.length > 0) {
+            variantItems.forEach((vItem: any) => {
+              const remaining = Math.max(0, vItem.readyQty - allocated);
+              const availableQty = remaining > 0 ? remaining : vItem.readyQty;
+
+              mapped.push({
+                id: vItem.id,
+                productId: item.id,
+                name: vItem.name,
+                sku: vItem.sku,
+                unit: vItem.unit,
+                price: formattedPrice,
+                available: String(availableQty),
+                stock: vItem.readyQty,
+                procuredQty: totalProcuredQty,
+                image: prodImage,
+              });
+
+              const sugVehicle = vehicleQtyUpdates[item.id] || 0;
+              initialQty[vItem.id] = {
+                online: 0,
+                pos: 0,
+                vehicle: 0
+              };
+            });
           } else {
-            onlineStock = item.onlineAppStock?.onlineStock ?? 0;
-            posStock = item.posStoreStock?.posStock ?? 0;
+            const fgPosted = fgList.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0);
+            const effectiveBaseQty = totalProcuredQty > 0 ? totalProcuredQty : fgPosted;
+            const remaining = Math.max(0, effectiveBaseQty - allocated);
+            const availableQty = remaining > 0 ? remaining : effectiveBaseQty;
+
+            const rawSku = item.sku;
+            const isUuid = typeof rawSku === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawSku.trim());
+            const isAutoSku = typeof rawSku === 'string' && rawSku.startsWith('SKU-');
+            const displaySku = (rawSku && String(rawSku).trim() && !isUuid && !isAutoSku) ? String(rawSku).trim() : '—';
+
+            mapped.push({
+              id: item.id,
+              productId: item.id,
+              name: item.name,
+              sku: displaySku,
+              unit: displayUnit,
+              price: formattedPrice,
+              available: String(availableQty),
+              stock: effectiveBaseQty,
+              procuredQty: totalProcuredQty,
+              image: prodImage,
+            });
+
+            initialQty[item.id] = {
+              online: 0,
+              pos: 0,
+              vehicle: 0
+            };
           }
-
-          const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
-          const allocated = onlineStock + posStock + vStock;
-          const remaining = Math.max(0, effectiveBaseQty - allocated);
-
-          return {
-            id: item.id,
-            name: item.name,
-            sku: item.sku || '-',
-            unit: item.unit || 'units',
-            price: '₹' + (item.price || item.mrp || 0),
-            available: String(remaining > 0 ? remaining : effectiveBaseQty),
-            stock: totalStock,
-            procuredQty: totalProcuredQty,
-            image: item.name ? item.name.charAt(0).toUpperCase() : 'N',
-          };
         });
 
         setData(mapped);
-
-        // Pre-fill quantities from vehicle suggestions or default to 0
-        const initialQty: Record<string, { online: number; pos: number; vehicle: number }> = {};
-        unallocatedProducts.forEach((item: any) => {
-          initialQty[item.id] = {
-            online: 0,
-            pos: 0,
-            vehicle: 0,
-          };
-        });
         setQuantities(initialQty);
       }
     } catch (error) {
       console.error('Error fetching ready inventory:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -253,139 +365,10 @@ const ReserveStock: React.FC = () => {
     }
   };
 
-  const PRESET_PRODUCTS_LIST = [
-    { name: 'Surf Excel 88 gm', qty: 15 },
-    { name: 'Surf Excel', qty: 15 },
-    { name: 'Vim Bar 480gm', qty: 2 },
-    { name: 'Vim Bar Tub 240g', qty: 5 },
-    { name: 'Vim Bar 60gm', qty: 20 },
-    { name: 'Exo Dishwash Bar Pack of 4 90g', qty: 3 },
-    { name: 'Exo Round Ginger 250g', qty: 3 },
-    { name: 'Santoor Sandal & Turmeric Soap 10rs', qty: 9 },
-    { name: 'Santoor 4+1 PACK 125gm', qty: 15 },
-    { name: 'Margo Original PACK', qty: 1 },
-    { name: 'Cinthol Original 4 Pack', qty: 1 },
-    { name: 'Pears Soft & Fresh Soap', qty: 3 },
-    { name: 'Margo Original Neem Soap', qty: 5 },
-    { name: 'LIFEBUOY SOAP TOTAL 125 g', qty: 5 },
-    { name: 'Rexona Coconut & Olive Oil 100g', qty: 5 },
-    { name: 'Santoor Sandal & Turmeric 100gm', qty: 15 },
-    { name: 'Fiama Men Refreshing Pulse Gel Bar', qty: 1 },
-    { name: 'Fiama Patchouli & Macadamia Gel Bar', qty: 1 },
-    { name: 'Exo Bacto Scrub', qty: 12 },
-    { name: 'ASR Iodised Crystal Salt', qty: 10 },
-    { name: 'Tata Salt', qty: 5 },
-    { name: 'Suji Rava', qty: 10 },
-    { name: 'Three Mangoes Chilli Powder', qty: 3 },
-    { name: 'Madhuri Sambar Powder', qty: 2 },
-    { name: 'AHA Papad', qty: 10 },
-    { name: 'Aashirvaad Turmeric', qty: 10 },
-    { name: 'Agririch Black Pepper (Miriyalu )', qty: 10 },
-    { name: 'Agririch Lavangalu (Cloves)', qty: 10 },
-    { name: 'Dalchina Chakka', qty: 11 },
-    { name: 'Yalukalu', qty: 10 },
-    { name: "Mom's Magic Cashew & Almond PACK", qty: 2 },
-    { name: 'Continental Xtra Coffee', qty: 60 },
-    { name: 'Freedom Sunflower Oil Tin 15kg', qty: 1 },
-    { name: 'Ruchi Gold', qty: 1 },
-    { name: 'Colgate Active Salt 100gm', qty: 10 },
-    { name: 'Colgate Brush', qty: 18 },
-    { name: 'Closeup Red Hot Gel Toothpaste 150GM', qty: 5 },
-    { name: 'Mysore Sandal Soap Pack', qty: 5 },
-    { name: 'Mysore Sandal Soap 125GM', qty: 10 },
-    { name: 'Mysore Sandal Gold Soap', qty: 6 },
-    { name: 'All Out Mosquito Repellent Machine', qty: 1 },
-    { name: 'Harpic Power Plus 10X TC Cleaner 600ML', qty: 2 },
-    { name: 'Lizol Surface Cleaner Floral 625ml', qty: 3 },
-    { name: 'Lizol Surface Cleaner Citrus 200 ml', qty: 10 },
-    { name: 'Domex Ocean Fresh Disinfectant Toilet Cleaner', qty: 2 },
-    { name: 'Kissan Mixed Fruit Jam', qty: 5 },
-    { name: 'Kurnool Rice', qty: 2 },
-    { name: 'Kinley Soda Original', qty: 5 },
-    { name: 'Maaza 1.75 Ltr', qty: 5 },
-    { name: 'kindly soda original', qty: 29 },
-    { name: 'Sprite 250ml', qty: 16 },
-    { name: 'Fanta Orange', qty: 13 },
-    { name: 'Fanta Orange Soft Drink 250ML Case', qty: 1 },
-    { name: 'Amaravathi Sonamasoori Normal', qty: 2 },
-    { name: 'Bingo Tedhe Medhe Tomato Twist', qty: 15 },
-    { name: 'Bingo Tedhe Medhe Masala tadka', qty: 17 },
-    { name: 'Bingo Mad Angles Very Peri Peri', qty: 22 },
-    { name: 'Bingo Original Style', qty: 18 },
-    { name: 'Shiva Idli Rava', qty: 13 },
-    { name: 'Bambino Vermicelli', qty: 5 },
-    { name: 'Sabudana 500gm', qty: 5 },
-    { name: 'Fried Gram', qty: 5 },
-    { name: '(Fried Gram)500gm', qty: 3 },
-    { name: 'Idli Rava', qty: 9 },
-    { name: 'Toor Dal', qty: 10 },
-    { name: 'MD ANUSHRI ROSE', qty: 3 },
-    { name: 'MD ANUSHRI MOGRA', qty: 3 },
-    { name: 'Mangaldeep Sambhrani Cups', qty: 2 },
-    { name: 'Mangaldeep Sadhvi Agarbatti', qty: 6 },
-    { name: 'Cotton Pooja Wicks', qty: 35 },
-    { name: 'Pooja Gold Oil', qty: 5 },
-    { name: 'Yippee Noodles 6 pack 420gm', qty: 2 },
-    { name: 'Jelimals Space Runners Jellies', qty: 15 },
-    { name: 'Bingo xxx Hot & Spicy', qty: 15 },
-    { name: 'Bingo Sizzling Chilli', qty: 15 },
-    { name: 'Bingo Knockin Korean', qty: 13 },
-    { name: 'Bingo Mad Angles Achaari Masti', qty: 11 },
-    { name: 'Bingo Slayin Salt', qty: 16 },
-    { name: 'Yippee Noodles 4 Pack 280gm', qty: 2 },
-    { name: 'Yippee Magic Masala 50gm', qty: 10 },
-    { name: 'Sunfeast Dark Fantasy Choco Fills', qty: 2 },
-    { name: 'Sunfeast Dark Fantasy Choco Fills 10rs', qty: 17 },
-    { name: 'Bounce choco orange cream', qty: 5 },
-    { name: 'Sunfeast Marie Light biscuits 10rs', qty: 5 },
-    { name: 'Sunfeast Fantastik Choco Meltz', qty: 1 },
-    { name: 'Engage Man Rush Deodorant Spray', qty: 5 },
-    { name: 'Comfort Farbic', qty: 10 },
-    { name: 'Sunsilk Jasmine & Vetiver Shampoo Sachet', qty: 107 },
-    { name: 'Head & Shoulders Shampoo', qty: 135 },
-    { name: 'Gillette Guard Disposable Razor', qty: 10 },
-    { name: 'Pottu Minapappu', qty: 6 },
-    { name: 'Pulpy orange', qty: 5 },
-    { name: 'Thums Up', qty: 5 },
-    { name: 'Kurnool Groundnut Oil 1Ltr', qty: 1 },
-    { name: 'Bingo Killin Crean &Onion', qty: 15 },
-    { name: 'Maida', qty: 10 },
-    { name: 'All Out Ultra Single Refill', qty: 1 }
-  ];
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleQuickLoadPreset = () => {
-    let count = 0;
-    const autoSelectedIds: string[] = [];
 
-    setQuantities(prev => {
-      const next = { ...prev };
-      PRESET_PRODUCTS_LIST.forEach(preset => {
-        const cleanPreset = preset.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const matched = data.find(i => {
-          const cleanName = (i.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-          return cleanName === cleanPreset || (i.name || '').toLowerCase().includes(preset.name.toLowerCase());
-        });
 
-        if (matched) {
-          next[matched.id] = {
-            online: next[matched.id]?.online || 0,
-            pos: next[matched.id]?.pos || 0,
-            vehicle: preset.qty
-          };
-          autoSelectedIds.push(matched.id);
-          count++;
-        }
-      });
-      return next;
-    });
 
-    if (autoSelectedIds.length > 0) {
-      setSelectedItems(prev => Array.from(new Set([...prev, ...autoSelectedIds])));
-    }
-
-    toast.success(`Quick loaded preset quantities for ${count} items!`);
-  };
 
   const toggleAll = () => {
     if (selectedItems.length === paginatedData.length && paginatedData.length > 0) {
@@ -451,7 +434,10 @@ const ReserveStock: React.FC = () => {
       await Promise.all(
         selectedItems.map(async (itemId) => {
           const qty = quantities[itemId] || { online: 0, pos: 0, vehicle: 0 };
-          await inventoryService.saveChannelAllocation(itemId, {
+          const targetItem = data.find((d) => d.id === itemId);
+          const cleanProductId = targetItem?.productId || (typeof itemId === 'string' && itemId.includes('_') ? itemId.split('_')[0] : itemId);
+
+          await inventoryService.saveChannelAllocation(cleanProductId, {
             onlineQty: qty.online,
             posQty: qty.pos,
             vehicleQty: qty.vehicle,
@@ -562,8 +548,28 @@ const ReserveStock: React.FC = () => {
 
         return (
           <div className="flex items-center min-w-[170px]">
-            <div className="w-9 h-9 rounded-lg bg-[#fff5f2] flex-shrink-0 flex items-center justify-center mr-3 text-sm font-semibold text-orange-400 border border-orange-100">
-              {item.image}
+            <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center mr-3 overflow-hidden shrink-0 p-1">
+              {item.image ? (
+                <img 
+                  src={item.image} 
+                  alt={item.name} 
+                  className="w-full h-full object-contain" 
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    if (target.parentElement) {
+                      const fallback = target.parentElement.querySelector('.fallback-letter') as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }
+                  }}
+                />
+              ) : null}
+              <span 
+                className="fallback-letter text-xs font-bold text-gray-600" 
+                style={{ display: item.image ? 'none' : 'flex' }}
+              >
+                {item.name ? item.name[0].toUpperCase() : 'P'}
+              </span>
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-[#0066cc] cursor-pointer hover:underline line-clamp-1">{item.name}</span>
@@ -579,7 +585,6 @@ const ReserveStock: React.FC = () => {
                   </span>
                 ) : null}
               </div>
-              <span className="text-xs text-gray-400">{item.unit}</span>
             </div>
           </div>
         );
@@ -589,9 +594,16 @@ const ReserveStock: React.FC = () => {
       key: 'price',
       label: 'SELLING PRICE',
       sortable: false,
-      render: (item: ReserveStockItem) => (
-        <span className="text-sm font-medium text-gray-700">{item.price}</span>
-      )
+      render: (item: ReserveStockItem) => {
+        const baseId = item.id ? item.id.split('_')[0] : item.id;
+        const grnMetas = grnItemsMap[item.id] || grnItemsMap[baseId] || [];
+        const matchedGrn = selectedGRNId !== 'ALL' ? grnMetas.find((g: any) => g.grnId === selectedGRNId) : null;
+        const displayPrice = (matchedGrn && matchedGrn.sellingPrice > 0) ? '₹' + matchedGrn.sellingPrice : item.price;
+
+        return (
+          <span className="text-sm font-medium text-gray-700">{displayPrice}</span>
+        );
+      }
     },
     {
       key: 'online',
@@ -681,11 +693,7 @@ const ReserveStock: React.FC = () => {
             }`}>
               Available: {item.available}
             </span>
-            {item.procuredQty > 0 && item.stock !== undefined && item.stock !== item.procuredQty && (
-              <span className="text-[10px] text-gray-400">
-                Total Stock: {item.stock}
-              </span>
-            )}
+
             {matchedGrn && (
               <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                 GRN Recv: {matchedGrn.receivedQty}
@@ -760,22 +768,8 @@ const ReserveStock: React.FC = () => {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
-          <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[140px] cursor-pointer">
-              <option>All Categories</option>
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-            </div>
-          </div>
-          <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[100px] cursor-pointer">
-              <option>Units</option>
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-            </div>
-          </div>
+
+
           <button
             onClick={() => { setSelectedGRNId('ALL'); setSearchTerm(''); setCurrentPage(1); }}
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
@@ -804,7 +798,7 @@ const ReserveStock: React.FC = () => {
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={handleSort}
-            loading={false}
+            loading={loading}
             keyExtractor={item => item.id}
             emptyMessage="No items in Reserve Stock. Mark items from Raw Inventory first."
           />
@@ -824,6 +818,8 @@ const ReserveStock: React.FC = () => {
                   <option value="25">25</option>
                   <option value="50">50</option>
                   <option value="100">100</option>
+                  <option value="500">500</option>
+                  <option value="1000">1000</option>
                 </select>
                 <span className="text-gray-600 whitespace-nowrap">
                   Showing{' '}

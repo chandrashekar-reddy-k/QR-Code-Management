@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Trash2, PackageSearch, Loader2 } from 'lucide-react';
 import { masterDataService } from '../../../api/packing/masterDataService';
 import { workOrderService, WoPriority } from '../../../api/packing/workOrderService';
+import { inventoryService } from '../inventory/services/inventoryService';
+import procurementService from '../vsms/services/procurementService';
 
 export interface SourceInventoryRow {
   id: string;
@@ -125,9 +127,78 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
     const fetchEligibleInventory = async () => {
       setIsLoadingProducts(true);
       try {
+        let grnMap: Record<string, number> = {};
+        let resolvedUnitMap: Record<string, string> = {};
+
+        try {
+          const [grnRes, unconfiguredRes] = await Promise.allSettled([
+            inventoryService.getProcurementGRNs(),
+            procurementService.getUnconfiguredGRNItems({ includeConfigured: true })
+          ]);
+
+          const list = grnRes.status === 'fulfilled' ? (grnRes.value.data?.data || grnRes.value.data || grnRes.value || []) : [];
+          list.forEach((grn: any) => {
+            if (grn.items && Array.isArray(grn.items)) {
+              grn.items.forEach((item: any) => {
+                const baseProdId = item.product?.id || item.product?.productId;
+                const rawProdId = item.productId;
+                const recQty = Number(item.receivedQuantity ?? item.receivedQty ?? item.quantity ?? 0);
+                const unitVal = item.uom || item.unit || item.resolvedUnit;
+
+                const targetIds = new Set<string>();
+                if (baseProdId) targetIds.add(baseProdId);
+                if (rawProdId) {
+                  targetIds.add(rawProdId);
+                  if (typeof rawProdId === 'string' && rawProdId.includes('_')) {
+                    targetIds.add(rawProdId.split('_')[0]);
+                  }
+                }
+                targetIds.forEach(pid => {
+                  grnMap[pid] = (grnMap[pid] || 0) + recQty;
+                  if (unitVal && (!resolvedUnitMap[pid] || resolvedUnitMap[pid] === 'Units')) {
+                    resolvedUnitMap[pid] = unitVal;
+                  }
+                });
+              });
+            }
+          });
+
+          if (unconfiguredRes.status === 'fulfilled') {
+            const unconfData = unconfiguredRes.value.data?.data || unconfiguredRes.value.data || unconfiguredRes.value || [];
+            if (Array.isArray(unconfData) && unconfData.length > 0) {
+              grnMap = {};
+              unconfData.forEach((uItem: any) => {
+                const baseProdId = uItem.product?.id || uItem.product?.productId;
+                const rawProdId = uItem.productId;
+                const recQty = Number(uItem.receivedQty) || 0;
+                const unitVal = uItem.resolvedUnit || uItem.uom || uItem.unit;
+
+                const targetIds = new Set<string>();
+                if (baseProdId) targetIds.add(baseProdId);
+                if (rawProdId) {
+                  targetIds.add(rawProdId);
+                  if (typeof rawProdId === 'string' && rawProdId.includes('_')) {
+                    targetIds.add(rawProdId.split('_')[0]);
+                  }
+                }
+                targetIds.forEach(pid => {
+                  grnMap[pid] = (grnMap[pid] || 0) + recQty;
+                  if (unitVal && (!resolvedUnitMap[pid] || resolvedUnitMap[pid] === 'Units')) {
+                    resolvedUnitMap[pid] = unitVal;
+                  }
+                });
+              });
+            }
+          }
+        } catch (grnErr) {
+          console.error('Error fetching procurement GRNs in CreateWorkOrderFlow:', grnErr);
+        }
+
         const products = await masterDataService.getProducts('inventoryType=PRODUCTION');
         const mappedRows: SourceInventoryRow[] = (products || []).map((p: any) => {
-          let uomVal = p.uom?.abbreviation || p.uom?.name || p.unit || '';
+          const baseId = p.id ? p.id.split('_')[0] : p.id;
+          const procUnit = resolvedUnitMap[baseId] || resolvedUnitMap[p.id];
+          let uomVal = procUnit || p.uom?.abbreviation || p.uom?.name || p.unit || '';
           const textToSearch = `${p.sku || ''} ${p.name || ''} ${p.category?.name || ''}`.toUpperCase();
 
           if (!uomVal || uomVal === 'P' || uomVal === 'PCS' || uomVal === 'PACKET' || /^[0-9a-f-]{36}$/i.test(String(uomVal).trim()) || /^\d+$/.test(String(uomVal).trim())) {
@@ -144,13 +215,16 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
             }
           }
 
+          const totalProcuredQty = grnMap[baseId] || grnMap[p.id] || 0;
+          const resolvedQty = p.receivedQty ?? p.acceptedQty ?? totalProcuredQty;
+
           return {
             id: p.id || p.sku || `INV-${Math.random().toString(36).substring(2, 7)}`,
-            sku: p.sku || p.resolvedSku || p.id || 'SKU-N/A',
+            sku: (p.sku && String(p.sku).trim() && !/^[0-9a-f-]{36}$/i.test(String(p.sku).trim()) && !/-\d+-(GRAMS|KG|KILOGRAMS|GM|G|ML|L|PACKET|PCS)/i.test(String(p.sku).trim())) ? String(p.sku).trim() : '—',
             product: p.name || 'Unnamed Product',
             batch: p.batchNo || p.batchNumber || p.batches?.[0]?.batchNumber || p.inwardBatchNo || p.batchCode || (p.id ? `BAT-${p.id.slice(-5).toUpperCase()}` : 'BAT-001'),
             grn: p.grnNumber || 'GRN-STORE',
-            availableQty: p.receivedQty ?? p.acceptedQty ?? p.availableStock ?? p.stock ?? p.productionStock?.inProductionQty ?? p.availableQty ?? 0,
+            availableQty: resolvedQty,
             uom: uomVal,
             category: p.category?.name || p.categoryName || 'General',
             productType: p.productType || p.type || 'RAW_MATERIAL',

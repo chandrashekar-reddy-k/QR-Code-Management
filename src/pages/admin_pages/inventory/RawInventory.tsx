@@ -28,6 +28,7 @@ interface RawInventoryItem {
 }
 
 import { inventoryService } from './services/inventoryService';
+import procurementService from '../vsms/services/procurementService';
 
 const RawInventory: React.FC = () => {
   const [data, setData] = useState<RawInventoryItem[]>([]);
@@ -40,7 +41,10 @@ const RawInventory: React.FC = () => {
   const [editingItem, setEditingItem] = useState<RawInventoryItem | null>(null);
   const [editForm, setEditForm] = useState({ name: '', sku: '', quantity: '', price: '', type: 'Branded' as 'Branded' | 'Unbranded' });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const navigate = useNavigate();
 
   const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
@@ -52,18 +56,34 @@ const RawInventory: React.FC = () => {
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      // 1. Fetch GRNs
+      // 1. Fetch GRNs & Procurement Items
       let map: Record<string, any[]> = {};
+      let resolvedUnitMap: Record<string, string> = {};
       try {
-        const res = await inventoryService.getProcurementGRNs();
-        const list = res.data?.data || res.data || [];
+        const [grnRes, unconfiguredRes] = await Promise.allSettled([
+          inventoryService.getProcurementGRNs(),
+          procurementService.getUnconfiguredGRNItems({ includeConfigured: true })
+        ]);
+
+        const list = grnRes.status === 'fulfilled' ? (grnRes.value.data?.data || grnRes.value.data || grnRes.value || []) : [];
         setProcurementGRNs(list);
         list.forEach((grn: any) => {
           if (grn.items && Array.isArray(grn.items)) {
             grn.items.forEach((item: any) => {
-              const pid = item.productId || item.product?.id;
-              if (pid) {
+              const baseProdId = item.product?.id || item.product?.productId;
+              const rawProdId = item.productId;
+              const targetIds = new Set<string>();
+              if (baseProdId) targetIds.add(baseProdId);
+              if (rawProdId) {
+                targetIds.add(rawProdId);
+                if (typeof rawProdId === 'string' && rawProdId.includes('_')) {
+                  targetIds.add(rawProdId.split('_')[0]);
+                }
+              }
+
+              targetIds.forEach(pid => {
                 if (!map[pid]) map[pid] = [];
                 map[pid].push({
                   grnId: grn.id,
@@ -71,10 +91,51 @@ const RawInventory: React.FC = () => {
                   receivedQty: item.receivedQuantity || item.receivedQty || item.quantity || 0,
                   poDisplayId: grn.po?.displayId || grn.po?.poNumber || ''
                 });
-              }
+              });
             });
           }
         });
+        setGrnItemsMap(map);
+
+        if (unconfiguredRes.status === 'fulfilled') {
+          const unconfData = unconfiguredRes.value.data?.data || unconfiguredRes.value.data || unconfiguredRes.value || [];
+          if (Array.isArray(unconfData) && unconfData.length > 0) {
+            // Re-initialize map to prevent duplicate counting from grnRes
+            map = {};
+            unconfData.forEach((uItem: any) => {
+              const baseProdId = uItem.product?.id || uItem.product?.productId;
+              const rawProdId = uItem.productId;
+              const unitVal = uItem.resolvedUnit;
+              const recQty = Number(uItem.receivedQty) || 0;
+              const grnId = uItem.grnId || uItem.goodsReceiptId || uItem.grn?.id || '';
+
+              const targetIds = new Set<string>();
+              if (baseProdId) targetIds.add(baseProdId);
+              if (rawProdId) {
+                targetIds.add(rawProdId);
+                if (typeof rawProdId === 'string' && rawProdId.includes('_')) {
+                  targetIds.add(rawProdId.split('_')[0]);
+                }
+              }
+
+              targetIds.forEach(pid => {
+                if (!resolvedUnitMap[pid] || (unitVal && unitVal !== 'Units' && (resolvedUnitMap[pid] === 'Grams' || resolvedUnitMap[pid] === 'Units'))) {
+                  if (unitVal) resolvedUnitMap[pid] = unitVal;
+                }
+
+                if (!map[pid]) map[pid] = [];
+                if (!map[pid].some(g => g.grnItemId === uItem.id)) {
+                  map[pid].push({
+                    grnItemId: uItem.id,
+                    grnId: grnId,
+                    grnDisplayId: uItem.grn?.displayId || uItem.grn?.grnNumber || grnId.slice(0, 8) || '',
+                    receivedQty: recQty
+                  });
+                }
+              });
+            });
+          }
+        }
         setGrnItemsMap(map);
       } catch (err) {
         console.error('Error fetching procurement GRNs:', err);
@@ -84,23 +145,30 @@ const RawInventory: React.FC = () => {
       const response = await inventoryService.getRawInventory({ page: 1, limit: 2000 });
       if (response.data && response.data.data) {
         const mappedData = response.data.data.products.map((item: any) => {
-          const grnList = map[item.id] || [];
+          const baseId = item.id ? item.id.split('_')[0] : item.id;
+          const grnList = map[baseId] || map[item.id] || [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
-          const displayQty = totalProcuredQty > 0 ? totalProcuredQty : (item.baseStock ?? item.stock ?? 0);
+          const displayQty = totalProcuredQty;
+          const displayUnit = resolvedUnitMap[baseId] || resolvedUnitMap[item.id] || item.unit || 'Units';
+
+          const prodImage = (Array.isArray(item.images) && item.images.length > 0)
+            ? item.images[0]
+            : (typeof item.images === 'string' ? item.images : '') || item.image || item.masterProduct?.images?.[0] || item.masterProduct?.image || '';
+
           return {
             id: item.id,
             name: item.name,
             sku: item.sku || '-',
             barcode: item.barcode || item.posStoreStock?.barcode || '',
             category: item.category?.name || 'N/A',
-            units: item.unit || 'Units',
+            units: displayUnit,
             type: item.productType === 'BRANDED' ? 'Branded' : 'Unbranded',
             quantity: String(displayQty),
-            stock: Number(item.baseStock ?? item.stock ?? 0),
+            stock: totalProcuredQty,
             procuredQty: totalProcuredQty,
             price: '₹' + (item.mrp || 0),
             status: item.isActive,
-            image: item.name ? item.name.charAt(0).toUpperCase() : 'N',
+            image: prodImage,
             inventoryType: item.inventoryType || 'RAW'
           };
         });
@@ -108,6 +176,8 @@ const RawInventory: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching raw inventory:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -142,9 +212,9 @@ const RawInventory: React.FC = () => {
       filtered = [...filtered].sort((a, b) => {
         const aValue = a[sortField as keyof RawInventoryItem];
         const bValue = b[sortField as keyof RawInventoryItem];
-        
+
         if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return sortDirection === 'asc' 
+          return sortDirection === 'asc'
             ? aValue.localeCompare(bValue)
             : bValue.localeCompare(aValue);
         }
@@ -192,18 +262,7 @@ const RawInventory: React.FC = () => {
     }
   };
 
-  const toggleStatus = async (item: RawInventoryItem) => {
-    try {
-      await inventoryService.toggleProductStatus(item.id);
-      setData(prev => prev.map(p =>
-        p.id === item.id ? { ...p, status: !p.status } : p
-      ));
-      toast.success('Status updated successfully');
-    } catch (error) {
-      console.error('Failed to toggle status:', error);
-      toast.error('Failed to update status');
-    }
-  };
+
 
   const openEdit = (item: RawInventoryItem) => {
     setEditingItem(item);
@@ -254,13 +313,126 @@ const RawInventory: React.FC = () => {
     }
   };
 
+  const toggleSelection = (id: string) => {
+    setSelectedItems(prev =>
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedItems.length === paginatedData.length && paginatedData.length > 0) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(paginatedData.map(item => item.id));
+    }
+  };
+
+  const handleBulkMarkAsReady = async () => {
+    if (selectedItems.length === 0) return;
+
+    const selectedObjects = data.filter(item => selectedItems.includes(item.id));
+    const unbrandedSelected = selectedObjects.filter(item => item.type === 'Unbranded');
+
+    if (unbrandedSelected.length > 0) {
+      toast.error(`Invalid Selection: ${unbrandedSelected.length} Unbranded item(s) selected. Only Branded items can be marked as Ready.`);
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(
+        selectedItems.map(id => inventoryService.updateProductInventoryType(id, 'READY'))
+      );
+      const count = selectedItems.length;
+      setData(prev => prev.filter(p => !selectedItems.includes(p.id)));
+      setSelectedItems([]);
+      toast.success(`Successfully marked ${count} item(s) as ready`);
+    } catch (error) {
+      console.error('Bulk mark as ready failed:', error);
+      toast.error('Failed to mark items as ready. Please try again.');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkSendToProduction = async () => {
+    if (selectedItems.length === 0) return;
+
+    const selectedObjects = data.filter(item => selectedItems.includes(item.id));
+    const brandedSelected = selectedObjects.filter(item => item.type === 'Branded');
+
+    if (brandedSelected.length > 0) {
+      toast.error(`Invalid Selection: ${brandedSelected.length} Branded item(s) selected. Only Unbranded items can be sent to Production.`);
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      await Promise.all(
+        selectedItems.map(id => inventoryService.updateProductInventoryType(id, 'PRODUCTION'))
+      );
+      const count = selectedItems.length;
+      setData(prev => prev.filter(p => !selectedItems.includes(p.id)));
+      setSelectedItems([]);
+      toast.success(`Successfully sent ${count} item(s) to production`);
+    } catch (error) {
+      console.error('Bulk send to production failed:', error);
+      toast.error('Failed to send items to production. Please try again.');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   const columns = [
+    {
+      key: 'checkbox',
+      label: (
+        <input
+          type="checkbox"
+          className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
+          checked={selectedItems.length === paginatedData.length && paginatedData.length > 0}
+          onChange={toggleAll}
+        />
+      ),
+      sortable: false,
+      render: (item: RawInventoryItem) => (
+        <input
+          type="checkbox"
+          className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
+          checked={selectedItems.includes(item.id)}
+          onChange={() => toggleSelection(item.id)}
+        />
+      )
+    },
     {
       key: 'name',
       label: 'NAME',
       sortable: true,
       render: (item: RawInventoryItem) => (
         <div className="flex items-center min-w-[200px] max-w-[250px]">
+          <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center mr-3 overflow-hidden shrink-0 p-1">
+            {item.image ? (
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  if (target.parentElement) {
+                    const fallback = target.parentElement.querySelector('.fallback-letter') as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }
+                }}
+              />
+            ) : null}
+            <span
+              className="fallback-letter text-xs font-bold text-gray-600"
+              style={{ display: item.image ? 'none' : 'flex' }}
+            >
+              {item.name ? item.name[0].toUpperCase() : 'P'}
+            </span>
+          </div>
           <span className="text-sm font-medium text-gray-700 line-clamp-2" title={item.name}>{item.name}</span>
         </div>
       )
@@ -290,8 +462,8 @@ const RawInventory: React.FC = () => {
           status={item.type}
           size="sm"
           customColor={
-            item.type === 'Branded' 
-              ? 'bg-[#eaf8f1] text-[#20b05e]' 
+            item.type === 'Branded'
+              ? 'bg-[#eaf8f1] text-[#20b05e]'
               : 'bg-[#fff0e6] text-[#ff6a00]'
           }
           className="rounded-full"
@@ -300,7 +472,7 @@ const RawInventory: React.FC = () => {
     },
     {
       key: 'quantity',
-      label: 'PROCURED QTY',
+      label: <span className="w-full flex justify-center">PROCURED QTY</span>,
       sortable: true,
       render: (item: any) => {
         const grnMetas = grnItemsMap[item.id] || [];
@@ -308,15 +480,10 @@ const RawInventory: React.FC = () => {
         const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
         const displayQty = isGrnFiltered ? matchedGrn.receivedQty : (item.procuredQty > 0 ? item.procuredQty : item.quantity);
         return (
-          <div className="flex flex-col">
+          <div className="flex flex-col items-center">
             <span className="text-sm text-gray-900 font-bold">{displayQty}</span>
-            {item.procuredQty > 0 && item.stock !== undefined && (
-              <span className="text-[10px] text-gray-400 mt-0.5">
-                Total Stock: {item.stock}
-              </span>
-            )}
             {isGrnFiltered && (
-              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 w-fit">
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5">
                 GRN Received: {matchedGrn.receivedQty}
               </span>
             )}
@@ -329,40 +496,13 @@ const RawInventory: React.FC = () => {
       label: 'UNITS',
       sortable: false,
       render: (item: RawInventoryItem) => (
-        <div className="text-sm text-gray-500">
-          <span className="block">{item.units.split(' ')[0]} {item.units.split(' ')[1]}</span>
-          {item.units.includes('(') && <span className="block">{item.units.split(' ').slice(2).join(' ')}</span>}
-        </div>
+        <span className="text-sm text-gray-500">{item.units}</span>
       )
     },
-    {
-      key: 'price',
-      label: 'PRICE (₹)',
-      sortable: true,
-      render: (item: RawInventoryItem) => (
-        <span className="text-sm text-gray-600">{item.price}</span>
-      )
-    },
-    {
-      key: 'status',
-      label: 'STATUS',
-      sortable: false,
-      render: (item: RawInventoryItem) => (
-        <button
-          onClick={() => toggleStatus(item)}
-          className={`w-10 h-5 rounded-full relative transition-colors duration-200 focus:outline-none ${
-            item.status ? 'bg-[#20b05e]' : 'bg-gray-300'
-          }`}
-        >
-          <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 shadow transition-all duration-200 ${
-            item.status ? 'right-0.5' : 'left-0.5'
-          }`} />
-        </button>
-      )
-    },
+
     {
       key: 'actions',
-      label: 'ACTION',
+      label: <span className="w-full flex justify-center">ACTION</span>,
       sortable: false,
       render: (item: RawInventoryItem) => (
         <div className="flex justify-center items-center space-x-2">
@@ -375,7 +515,7 @@ const RawInventory: React.FC = () => {
               Mark as Ready
             </button>
           ) : (
-            <button 
+            <button
               onClick={() => sendToProduction(item)}
               className="bg-[#ff6a00] hover:bg-[#e55f00] text-white px-3 py-1.5 rounded flex items-center text-xs font-medium shadow-sm h-8 whitespace-nowrap"
             >
@@ -408,27 +548,15 @@ const RawInventory: React.FC = () => {
 
             {/* Body */}
             <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Quantity</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={editForm.quantity}
-                    onChange={e => setEditForm(f => ({ ...f, quantity: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Price (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={editForm.price}
-                    onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Quantity</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editForm.quantity}
+                  onChange={e => setEditForm(f => ({ ...f, quantity: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
               </div>
             </div>
 
@@ -474,9 +602,9 @@ const RawInventory: React.FC = () => {
           <div className="px-3.5 border-r border-gray-200 text-gray-600 flex items-center justify-center h-full">
             <Filter size={16} />
           </div>
-          
+
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select 
+            <select
               value={typeFilter}
               onChange={(e) => {
                 setTypeFilter(e.target.value);
@@ -484,18 +612,18 @@ const RawInventory: React.FC = () => {
               }}
               className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[140px] cursor-pointer"
             >
-              <option value="ALL">All Types</option>
+              <option value="ALL">Types</option>
               <option value="Branded">Branded</option>
               <option value="Unbranded">Unbranded</option>
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
 
           {/* Procurement GRN Filter */}
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select 
+            <select
               value={selectedGRNId}
               onChange={(e) => {
                 setSelectedGRNId(e.target.value);
@@ -514,7 +642,7 @@ const RawInventory: React.FC = () => {
               })}
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
 
@@ -528,12 +656,12 @@ const RawInventory: React.FC = () => {
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <RotateCcw size={14} />
-            <span>Reset Filter</span>
+            <span>Reset</span>
           </button>
         </div>
-        
+
         <div className="w-full lg:w-auto flex items-center gap-2">
-          <div className="w-full sm:w-72 lg:w-80">
+          <div className="w-full sm:w-56 lg:w-64">
             <SearchInput
               placeholder="Search name, ID, SKU, barcode..."
               value={searchTerm}
@@ -579,54 +707,83 @@ const RawInventory: React.FC = () => {
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={handleSort}
-            loading={false}
+            loading={loading}
             keyExtractor={(item) => item.id}
             emptyMessage="No stock items found"
           />
         </div>
 
-        {/* Pagination */}
-        {filteredAndSortedData.length > 0 && (
-          <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="text-gray-600 whitespace-nowrap">Show</span>
-                <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
-                  <select
-                    value={itemsPerPage.toString()}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 bg-white text-gray-900"
-                  >
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                  </select>
-                </div>
-                <span className="text-gray-600 whitespace-nowrap">
-                  Showing{" "}
-                  <span className="text-orange-600 dark:text-orange-500 font-medium">
-                    {filteredAndSortedData.length > 0 ? ((currentPage - 1) * itemsPerPage + 1).toLocaleString() : 0}
-                  </span>{" "}
-                  of{" "}
-                  <span className="text-orange-600 dark:text-orange-500 font-medium">
-                    {filteredAndSortedData.length.toLocaleString()}
-                  </span>
-                </span>
-              </div>
-
-              <div className="w-full sm:w-auto flex justify-center sm:justify-end">
-                <Pagination
-                  currentPage={currentPage}
-                  pagination={pagination}
-                  onPageChange={setCurrentPage}
-                />
-              </div>
+        {/* Selection Bar or Pagination */}
+        {selectedItems.length > 0 ? (
+          <div className="px-4 py-4 border-t border-gray-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-sm">
+              <span className="font-bold text-gray-900">{selectedItems.length}</span>
+              <span className="text-gray-500 ml-1">items selected</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                disabled={bulkActionLoading}
+                onClick={handleBulkMarkAsReady}
+                className="bg-[#008f33] hover:bg-[#007a2a] disabled:opacity-60 text-white px-4 py-2 rounded-lg flex items-center text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5 mr-1.5 transform -rotate-45" />
+                {bulkActionLoading ? 'Processing...' : 'Bulk Mark as Ready'}
+              </button>
+              <button
+                disabled={bulkActionLoading}
+                onClick={handleBulkSendToProduction}
+                className="bg-[#ff6a00] hover:bg-[#e55f00] disabled:opacity-60 text-white px-4 py-2 rounded-lg flex items-center text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                {bulkActionLoading ? 'Processing...' : 'Bulk Send to Production'}
+              </button>
             </div>
           </div>
+        ) : (
+          filteredAndSortedData.length > 0 && (
+            <div className="px-2 sm:px-4 py-3 sm:py-4 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                  <span className="text-gray-600 whitespace-nowrap">Show</span>
+                  <div className="[&_select]:text-orange-600 dark:[&_select]:text-orange-500 [&_select]:font-medium">
+                    <select
+                      value={itemsPerPage.toString()}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="w-14 sm:w-16 h-7 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 bg-white text-gray-900"
+                    >
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="500">500</option>
+                      <option value="1000">1000</option>
+                    </select>
+                  </div>
+                  <span className="text-gray-600 whitespace-nowrap">
+                    Showing{" "}
+                    <span className="text-orange-600 dark:text-orange-500 font-medium">
+                      {filteredAndSortedData.length > 0 ? ((currentPage - 1) * itemsPerPage + 1).toLocaleString() : 0}
+                    </span>{" "}
+                    of{" "}
+                    <span className="text-orange-600 dark:text-orange-500 font-medium">
+                      {filteredAndSortedData.length.toLocaleString()}
+                    </span>
+                  </span>
+                </div>
+
+                <div className="w-full sm:w-auto flex justify-center sm:justify-end">
+                  <Pagination
+                    currentPage={currentPage}
+                    pagination={pagination}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              </div>
+            </div>
+          )
         )}
       </div>
     </div>

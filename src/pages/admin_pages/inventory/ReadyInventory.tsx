@@ -12,6 +12,7 @@ import {
   EditIconButton
 } from '../../../components/ui';
 import { inventoryService } from './services/inventoryService';
+import procurementService from '../vsms/services/procurementService';
 
 interface ReadyInventoryItem {
   id: string;
@@ -27,13 +28,13 @@ interface ReadyInventoryItem {
   remainingQty: string;
   rawUnit: string;
   image: string;
+  productId?: string;
 }
 
 
 const ReadyInventory: React.FC = () => {
   const [data, setData] = useState<ReadyInventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [unitFilter, setUnitFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string | null>(null);
@@ -41,6 +42,7 @@ const ReadyInventory: React.FC = () => {
   const [editingItem, setEditingItem] = useState<ReadyInventoryItem | null>(null);
   const [editForm, setEditForm] = useState({ readyQty: '', online: '0', pos: '0', vehicle: '0' });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -53,12 +55,18 @@ const ReadyInventory: React.FC = () => {
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      // 1. Fetch GRNs
+      // 1. Fetch GRNs & Procurement Items for unit resolution
       let map: Record<string, any[]> = {};
+      let resolvedUnitMap: Record<string, string> = {};
       try {
-        const res = await inventoryService.getProcurementGRNs();
-        const list = res.data?.data || res.data || [];
+        const [grnRes, unconfiguredRes] = await Promise.allSettled([
+          inventoryService.getProcurementGRNs(),
+          procurementService.getUnconfiguredGRNItems({ includeConfigured: true })
+        ]);
+
+        const list = grnRes.status === 'fulfilled' ? (grnRes.value.data?.data || grnRes.value.data || grnRes.value || []) : [];
         setProcurementGRNs(list);
         list.forEach((grn: any) => {
           if (grn.items && Array.isArray(grn.items)) {
@@ -77,6 +85,30 @@ const ReadyInventory: React.FC = () => {
           }
         });
         setGrnItemsMap(map);
+
+        if (unconfiguredRes.status === 'fulfilled') {
+          const unconfData = unconfiguredRes.value.data?.data || unconfiguredRes.value.data || unconfiguredRes.value || [];
+          if (Array.isArray(unconfData) && unconfData.length > 0) {
+            unconfData.forEach((uItem: any) => {
+              const baseProdId = uItem.product?.id || uItem.product?.productId;
+              const rawProdId = uItem.productId;
+              const unitVal = uItem.resolvedUnit;
+              const targetIds = new Set<string>();
+              if (baseProdId) targetIds.add(baseProdId);
+              if (rawProdId) {
+                targetIds.add(rawProdId);
+                if (typeof rawProdId === 'string' && rawProdId.includes('_')) {
+                  targetIds.add(rawProdId.split('_')[0]);
+                }
+              }
+              targetIds.forEach(pid => {
+                if (!resolvedUnitMap[pid] || (unitVal && unitVal !== 'Units' && (resolvedUnitMap[pid] === 'Grams' || resolvedUnitMap[pid] === 'Units'))) {
+                  if (unitVal) resolvedUnitMap[pid] = unitVal;
+                }
+              });
+            });
+          }
+        }
       } catch (err) {
         console.error('Error fetching procurement GRNs:', err);
       }
@@ -84,59 +116,131 @@ const ReadyInventory: React.FC = () => {
       // 2. Fetch Ready Inventory
       const response = await inventoryService.getReadyInventory({ page: 1, limit: 2000 });
       if (response.data && response.data.data) {
-        const mappedData = response.data.data.products.map((item: any) => {
-          const fgPosted = item.finishedGoods?.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0) || 0;
-          const baseStockVal = Number(item.baseStock ?? item.stock ?? 0);
-          const baseQty = item.inventoryType === 'READY' ? baseStockVal : (fgPosted > 0 ? fgPosted : baseStockVal);
+        const mappedData: ReadyInventoryItem[] = [];
 
+        response.data.data.products.forEach((item: any) => {
+          const prodImage = (Array.isArray(item.images) && item.images.length > 0)
+            ? item.images[0]
+            : (typeof item.images === 'string' ? item.images : '') || item.image || item.masterProduct?.images?.[0] || item.masterProduct?.image || '';
+
+          const baseId = item.id ? item.id.split('_')[0] : item.id;
+          const displayUnit = resolvedUnitMap[baseId] || resolvedUnitMap[item.id] || item.unit || 'Units';
           const grnList = map[item.id] || [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
-          const effectiveReadyQty = totalProcuredQty > 0 ? totalProcuredQty : baseQty;
 
-          // Channels start at 0 — user allocates manually
-          const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
-          const posQty = Number(item.posStoreStock?.posStock ?? 0);
-          const vehicleQty = Number(item.vehicleStoreStock ?? item.vehicleStock ?? 0);
-          const remainingQty = effectiveReadyQty - onlineQty - posQty - vehicleQty;
+          const fgList = Array.isArray(item.finishedGoods) ? item.finishedGoods : [];
+          const variantMap: Record<string, any> = {};
 
-          return {
-            id: item.id,
-            name: item.name,
-            sku: item.sku || '-',
-            barcode: item.barcode || item.posStoreStock?.barcode || '',
-            category: item.category?.name || 'N/A',
-            units: item.inventoryType === 'RAW' ? 'Units' : (item.unit || 'Units'),
-            readyQty: String(effectiveReadyQty),
-            stock: baseQty,
-            procuredQty: totalProcuredQty,
-            online: String(onlineQty),
-            pos: String(posQty),
-            vehicle: String(vehicleQty),
-            remainingQty: String(Math.max(0, remainingQty)),
-            rawUnit: item.inventoryType === 'RAW' ? 'Units' : (item.unit || 'Units'),
-            image: item.name ? item.name.charAt(0).toUpperCase() : 'N'
-          };
+          fgList.forEach((fg: any) => {
+            let allocs = fg.costPayload?.outputAllocations;
+            if (typeof allocs === 'string') {
+              try { allocs = JSON.parse(allocs); } catch (e) {}
+            }
+            if (Array.isArray(allocs) && allocs.length > 0) {
+              allocs.forEach((alloc: any) => {
+                const allocProdId = alloc.sourceProductId || alloc.productId;
+                if (!allocProdId || allocProdId === item.id || allocProdId === baseId) {
+                  const vKey = alloc.skuName || alloc.productName || item.name;
+                  const prodName = alloc.sourceProductName || item.name || 'Product';
+                  if (!variantMap[vKey]) {
+                    const rawSku = alloc.variantSku || alloc.sku || alloc.skuCode;
+                    const isUuid = typeof rawSku === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawSku.trim());
+                    const isAutoSku = typeof rawSku === 'string' && rawSku.startsWith('SKU-');
+                    const cleanSku = (rawSku && String(rawSku).trim() && !isUuid && !isAutoSku) ? String(rawSku).trim() : null;
+
+                    const generatedSku = cleanSku || (() => {
+                      const prefix = (item.name || 'PROD').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase();
+                      const pack = (alloc.packSizeText || '').replace(/\s+/g, '-').toUpperCase();
+                      return pack ? `${prefix}-${pack}` : `${prefix}-VAR`;
+                    })();
+
+                    variantMap[vKey] = {
+                      id: `${item.id}_${vKey.replace(/[^a-zA-Z0-9]/g, '_')}`,
+                      productId: item.id,
+                      name: prodName,
+                      sku: generatedSku,
+                      barcode: item.barcode || item.posStoreStock?.barcode || '',
+                      category: item.category?.name || 'N/A',
+                      units: alloc.packSizeText ? 'Units' : displayUnit,
+                      readyQty: 0,
+                      online: 0,
+                      pos: 0,
+                      vehicle: 0,
+                      rawUnit: displayUnit,
+                      image: prodImage
+                    };
+                  }
+                  variantMap[vKey].readyQty += Number(alloc.plannedUnits) || Number(fg.postedQty) || 0;
+                }
+              });
+            }
+          });
+
+          const variantItems = Object.values(variantMap);
+          if (variantItems.length > 0) {
+            variantItems.forEach((vItem: any) => {
+              const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
+              const posQty = Number(item.posStoreStock?.posStock ?? 0);
+              const vehicleQty = Number(item.vehicleStoreStock ?? item.vehicleStock ?? 0);
+              const remainingQty = Math.max(0, vItem.readyQty - onlineQty - posQty - vehicleQty);
+
+              mappedData.push({
+                id: vItem.id,
+                productId: vItem.productId,
+                name: vItem.name,
+                sku: vItem.sku,
+                barcode: vItem.barcode,
+                category: vItem.category,
+                units: vItem.units,
+                readyQty: String(vItem.readyQty),
+                online: String(onlineQty),
+                pos: String(posQty),
+                vehicle: String(vehicleQty),
+                remainingQty: String(remainingQty),
+                rawUnit: vItem.rawUnit,
+                image: vItem.image
+              });
+            });
+          } else {
+            const fgPosted = fgList.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0);
+            const effectiveReadyQty = totalProcuredQty > 0 ? totalProcuredQty : fgPosted;
+
+            const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
+            const posQty = Number(item.posStoreStock?.posStock ?? 0);
+            const vehicleQty = Number(item.vehicleStoreStock ?? item.vehicleStock ?? 0);
+            const remainingQty = effectiveReadyQty - onlineQty - posQty - vehicleQty;
+
+            mappedData.push({
+              id: item.id,
+              productId: item.id,
+              name: item.name,
+              sku: item.sku || '—',
+              barcode: item.barcode || item.posStoreStock?.barcode || '',
+              category: item.category?.name || 'N/A',
+              units: displayUnit,
+              readyQty: String(effectiveReadyQty),
+              online: String(onlineQty),
+              pos: String(posQty),
+              vehicle: String(vehicleQty),
+              remainingQty: String(Math.max(0, remainingQty)),
+              rawUnit: displayUnit,
+              image: prodImage
+            });
+          }
         });
+
         setData(mappedData);
       }
     } catch (error) {
       console.error('Error fetching ready inventory:', error);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const availableUnits = useMemo(() => {
-    const unitsSet = new Set<string>();
-    data.forEach(item => unitsSet.add(item.rawUnit));
-    return Array.from(unitsSet).sort();
-  }, [data]);
 
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
-
-    if (unitFilter !== 'ALL') {
-      filtered = filtered.filter((item) => item.rawUnit === unitFilter);
-    }
 
     if (selectedGRNId !== 'ALL') {
       filtered = filtered.filter((item) => {
@@ -161,9 +265,9 @@ const ReadyInventory: React.FC = () => {
       filtered = [...filtered].sort((a, b) => {
         const aValue = a[sortField as keyof ReadyInventoryItem];
         const bValue = b[sortField as keyof ReadyInventoryItem];
-        
+
         if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return sortDirection === 'asc' 
+          return sortDirection === 'asc'
             ? aValue.localeCompare(bValue)
             : bValue.localeCompare(aValue);
         }
@@ -172,7 +276,7 @@ const ReadyInventory: React.FC = () => {
     }
 
     return filtered;
-  }, [data, searchTerm, unitFilter, sortField, sortDirection]);
+  }, [data, searchTerm, sortField, sortDirection]);
 
   // Pagination
   const paginatedData = filteredAndSortedData.slice(
@@ -218,7 +322,8 @@ const ReadyInventory: React.FC = () => {
     try {
       const totalQty = Number(editForm.readyQty) || 0;
 
-      await inventoryService.updateProductStock(editingItem.id, totalQty);
+      const targetId = editingItem.productId || editingItem.id;
+      await inventoryService.updateProductStock(targetId, totalQty);
 
       setData(prev => prev.map(p => {
         if (p.id === editingItem.id) {
@@ -243,8 +348,31 @@ const ReadyInventory: React.FC = () => {
       label: 'STOCK NAME',
       sortable: true,
       render: (item: ReadyInventoryItem) => (
-        <div className="min-w-[180px] max-w-[250px]">
-          <span className="text-sm font-medium text-gray-800 line-clamp-2" title={item.name}>{item.name}</span>
+        <div className="flex items-center min-w-[200px] max-w-[250px]">
+          <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center mr-3 overflow-hidden shrink-0 p-1">
+            {item.image ? (
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  if (target.parentElement) {
+                    const fallback = target.parentElement.querySelector('.fallback-letter') as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }
+                }}
+              />
+            ) : null}
+            <span
+              className="fallback-letter text-xs font-bold text-gray-600"
+              style={{ display: item.image ? 'none' : 'flex' }}
+            >
+              {item.name ? item.name[0].toUpperCase() : 'P'}
+            </span>
+          </div>
+          <span className="text-sm font-medium text-gray-700 line-clamp-2" title={item.name}>{item.name}</span>
         </div>
       )
     },
@@ -284,11 +412,6 @@ const ReadyInventory: React.FC = () => {
         return (
           <div className="flex flex-col">
             <span className="text-sm font-bold text-gray-900">{displayQty}</span>
-            {item.procuredQty > 0 && item.stock !== undefined && (
-              <span className="text-[10px] text-gray-400 mt-0.5">
-                Total Stock: {item.stock}
-              </span>
-            )}
             {isGrnFiltered && (
               <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 w-fit">
                 GRN Received: {matchedGrn.receivedQty}
@@ -418,29 +541,12 @@ const ReadyInventory: React.FC = () => {
           <div className="px-3.5 border-r border-gray-200 text-gray-600 flex items-center justify-center h-full">
             <Filter size={16} />
           </div>
-          
-          <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select 
-              value={unitFilter}
-              onChange={(e) => {
-                setUnitFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[120px] cursor-pointer"
-            >
-              <option value="ALL">All Units</option>
-              {availableUnits.map(u => (
-                <option key={u} value={u}>{u}</option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
-          </div>
+
+
 
           {/* Procurement GRN Filter */}
           <div className="border-r border-gray-200 h-full flex items-center relative">
-            <select 
+            <select
               value={selectedGRNId}
               onChange={(e) => {
                 setSelectedGRNId(e.target.value);
@@ -459,13 +565,12 @@ const ReadyInventory: React.FC = () => {
               })}
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
 
           <button
             onClick={() => {
-              setUnitFilter('ALL');
               setSelectedGRNId('ALL');
               setSearchTerm('');
               setCurrentPage(1);
@@ -473,12 +578,12 @@ const ReadyInventory: React.FC = () => {
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <RotateCcw size={14} />
-            <span>Reset Filter</span>
+            <span>Reset</span>
           </button>
         </div>
-        
+
         <div className="w-full lg:w-auto flex items-center gap-2">
-          <div className="w-full sm:w-72 lg:w-80">
+          <div className="w-full sm:w-56 lg:w-64">
             <SearchInput
               placeholder="Search name, ID, SKU, barcode..."
               value={searchTerm}
@@ -524,7 +629,7 @@ const ReadyInventory: React.FC = () => {
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={handleSort}
-            loading={false}
+            loading={loading}
             keyExtractor={(item) => item.id}
             emptyMessage="No stock items found"
           />
@@ -549,6 +654,8 @@ const ReadyInventory: React.FC = () => {
                     <option value="25">25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
                   </select>
                 </div>
                 <span className="text-gray-600 whitespace-nowrap">
