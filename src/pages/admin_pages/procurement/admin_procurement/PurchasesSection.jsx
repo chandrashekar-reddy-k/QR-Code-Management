@@ -116,7 +116,10 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
         flattenedProducts.push({
           ...prod,
           id: prod.id,
-          productId: prod.id
+          productId: prod.id,
+          skuCode: prod.skuCode || prod.sku || 'NO-SKU',
+          sku: prod.sku || prod.skuCode || '',
+          variantName: prod.variantName || ''
         });
         // If the product has variants, add each variant as a discrete product item
         if (Array.isArray(prod.variants) && prod.variants.length > 0) {
@@ -131,7 +134,8 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
               isVariantItem: true,
               price: variant.sellingPrice ?? variant.price ?? prod.price,
               purchasePrice: variant.purchasePrice ?? variant.costPrice ?? variant.landingPrice ?? prod.purchasePrice ?? prod.price,
-              skuCode: variant.sku || variant.skuCode || prod.skuCode,
+              skuCode: variant.sku || variant.skuCode || prod.skuCode || prod.sku || 'NO-SKU',
+              sku: variant.sku || variant.skuCode || '',
               barcode: variant.barcode || prod.barcode,
               unit: variant.unit || variant.unitType || prod.unit,
               unitValue: variant.measurement || variant.unitValue || prod.unitValue,
@@ -324,47 +328,79 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
       return;
     }
 
-    // Build a map of PO items from the linked PO if available
-    const poItemsMap = new Map();
-    if (grn.po && Array.isArray(grn.po.items)) {
-      grn.po.items.forEach(pi => {
-        poItemsMap.set(pi.productId, pi);
-      });
-    }
+    const poItemsList = (grn.po && Array.isArray(grn.po.items)) ? grn.po.items : [];
 
-    const mappedItems = eligibleItems.map(item => {
-      const prod = products.find(p => p.id === item.productId || p.productId === item.productId || p.id === item.product?.id);
-      const m = (Array.isArray(vendorMappings) ? vendorMappings : []).find(vItem =>
-        vItem.productId === item.productId || vItem.product?.id === item.productId || vItem.productId === prod?.id
+    const mappedItems = eligibleItems.map((item, idx) => {
+      // Find matching PO item: first by index, or by variant/product ID
+      const poItem = poItemsList[idx] || poItemsList.find(pi => 
+        (item.productVariantId && pi.productVariantId === item.productVariantId) ||
+        (pi.productId === item.productId)
       );
-      const poItem = poItemsMap.get(item.productId);
+
+      // Find variant product item from preloaded products
+      const variantProd = (item.productVariantId && products)
+        ? products.find(p => p.id === item.productVariantId || (p.isVariantItem && p.productId === item.productVariantId))
+        : (item.product?.variants && (item.productVariantId || item.variantName || item.mrp || poItem?.rate))
+          ? item.product.variants.find(v => 
+              (item.productVariantId && v.id === item.productVariantId) || 
+              (item.variantName && v.variantName === item.variantName) || 
+              (item.skuCode && v.sku === item.skuCode) || 
+              (item.mrp > 0 && Number(v.mrp) === Number(item.mrp)) || 
+              (poItem?.rate > 0 && Number(v.price) === Number(poItem.rate))
+            )
+          : null;
+
+      const prod = products.find(p => p.id === item.productId && !p.isVariantItem) ||
+                   products.find(p => p.id === item.productId || p.productId === item.productId);
+
+      const m = (Array.isArray(vendorMappings) ? vendorMappings : []).find(vItem =>
+        vItem.productId === item.productVariantId || vItem.productId === item.productId || vItem.product?.id === item.productId || vItem.productId === prod?.id
+      );
 
       const mappedMrp = parseFloat(
-        poItem?.mrp > 0 ? poItem.mrp : (m?.mrp > 0 ? m.mrp : (m?.moq > 0 ? m.moq : (item.mrp > 0 ? item.mrp : (item.product?.mrp > 0 ? item.product.mrp : (prod?.mrp > 0 ? prod.mrp : (prod?.price || 0))))))
+        item.mrp > 0 ? item.mrp : 
+        (poItem?.mrp > 0 ? poItem.mrp : 
+        (variantProd?.mrp > 0 ? variantProd.mrp : 
+        (m?.mrp > 0 ? m.mrp : 
+        (m?.moq > 0 ? m.moq : 
+        (item.product?.mrp > 0 ? item.product.mrp : 
+        (prod?.mrp > 0 ? prod.mrp : (prod?.price || 0)))))))
       );
 
       const mappedLandingPrice = parseFloat(
-        poItem?.landingPrice > 0 ? poItem.landingPrice : (poItem?.rate > 0 ? poItem.rate : (m?.landingPrice > 0 ? m.landingPrice : (m?.leadTime > 0 ? m.leadTime : (item.product?.purchasePrice > 0 ? item.product.purchasePrice : (prod?.landingPrice > 0 ? prod.landingPrice : (prod?.purchasePrice || 0))))))
+        item.landingPrice > 0 ? item.landingPrice : 
+        (poItem?.landingPrice > 0 ? poItem.landingPrice : 
+        (poItem?.rate > 0 ? poItem.rate : 
+        (m?.landingPrice > 0 ? m.landingPrice : 
+        (variantProd?.purchasePrice > 0 ? variantProd.purchasePrice : 
+        (item.product?.purchasePrice > 0 ? item.product.purchasePrice : 
+        (prod?.landingPrice > 0 ? prod.landingPrice : (prod?.purchasePrice || 0)))))))
       );
 
       const mappedSellingPrice = parseFloat(
-        poItem?.sellingPrice > 0 ? poItem.sellingPrice : (m?.sellingPrice > 0 ? m.sellingPrice : (m?.purchasePrice > 0 ? m.purchasePrice : (item.product?.price > 0 ? item.product.price : (prod?.sellingPrice > 0 ? prod.sellingPrice : (prod?.price || 0)))))
+        item.sellingPrice > 0 ? item.sellingPrice : 
+        (poItem?.sellingPrice > 0 ? poItem.sellingPrice : 
+        (variantProd?.price > 0 ? variantProd.price : 
+        (m?.sellingPrice > 0 ? m.sellingPrice : 
+        (item.product?.price > 0 ? item.product.price : 
+        (prod?.sellingPrice > 0 ? prod.sellingPrice : (prod?.price || 0))))))
       );
 
       const qty = item.receivedQty || 1;
       const taxRate = prod?.gst || item.product?.gst || 0;
-      const variantName = item.variantName || item.product?.variantName || prod?.variantName || '';
-      const mappedUom = poItem?.uom || m?.uom || item.uom || 'PACK';
-      const sku = m?.vendorSku || item.skuCode || item.sku || item.product?.skuCode || item.product?.sku || prod?.skuCode || prod?.sku || '';
+      const variantName = item.variantName || poItem?.variantName || variantProd?.variantName || prod?.variantName || item.product?.variantName || '';
+      const mappedUom = item.uom || poItem?.uom || variantProd?.unit || m?.uom || 'PACK';
+      const sku = item.skuCode || poItem?.skuCode || item.sku || poItem?.sku || variantProd?.sku || variantProd?.skuCode || prod?.skuCode || prod?.sku || m?.vendorSku || item.product?.skuCode || '';
 
       const margin = mappedLandingPrice > 0 ? (((mappedSellingPrice - mappedLandingPrice) / mappedLandingPrice) * 100).toFixed(2) : '0';
 
       return {
         productId: item.productId,
-        name: item.name || item.product?.name || prod?.name || 'Unknown Product',
+        productVariantId: item.productVariantId || poItem?.productVariantId || variantProd?.id || null,
+        name: item.name || poItem?.productName || item.product?.name || prod?.name || 'Unknown Product',
         variantName: variantName,
         skuCode: sku || 'NO-SKU',
-        barcode: item.barcode || item.product?.barcode || prod?.barcode || '',
+        barcode: item.barcode || variantProd?.barcode || item.product?.barcode || prod?.barcode || '',
         unit: mappedUom,
         uom: mappedUom,
         quantity: String(qty),
@@ -522,7 +558,14 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
       const rawProducts = (pRes.data || []).filter(x => x.isActive || x.status === 'APPROVED');
       const loadedProducts = [];
       rawProducts.forEach(prod => {
-        loadedProducts.push({ ...prod, id: prod.id, productId: prod.id });
+        loadedProducts.push({
+          ...prod,
+          id: prod.id,
+          productId: prod.id,
+          skuCode: prod.skuCode || prod.sku || 'NO-SKU',
+          sku: prod.sku || prod.skuCode || '',
+          variantName: prod.variantName || ''
+        });
         if (Array.isArray(prod.variants) && prod.variants.length > 0) {
           prod.variants.forEach(variant => {
             loadedProducts.push({
@@ -535,7 +578,8 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
               isVariantItem: true,
               price: variant.sellingPrice ?? variant.price ?? prod.price,
               purchasePrice: variant.purchasePrice ?? variant.costPrice ?? variant.landingPrice ?? prod.purchasePrice ?? prod.price,
-              skuCode: variant.sku || variant.skuCode || prod.skuCode,
+              skuCode: variant.sku || variant.skuCode || prod.skuCode || prod.sku || 'NO-SKU',
+              sku: variant.sku || variant.skuCode || '',
               barcode: variant.barcode || prod.barcode,
               unit: variant.unit || variant.unitType || prod.unit,
               unitValue: variant.measurement || variant.unitValue || prod.unitValue,
@@ -587,10 +631,13 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
       const mappedItems = rawItems.map(i => {
         const cost = parseFloat(i.unitCostBeforeDiscount) || parseFloat(i.price) || 0;
         const taxRate = parseFloat(i.taxPercent) || 0;
-        const prod = (loadedProducts || []).find(p => p.id === i.productId || p.productId === i.productId);
+        const prod = (loadedProducts || []).find(p => 
+          (i.productVariantId && (p.id === i.productVariantId || (p.isVariantItem && p.productId === i.productVariantId))) ||
+          (!i.productVariantId && p.id === i.productId && !p.isVariantItem)
+        ) || (loadedProducts || []).find(p => p.id === i.productId);
         const m = (vMappings || []).find(x => 
           String(x.vendorId) === String(data.vendorId) && 
-          (String(x.productId) === String(i.productId) || String(x.product?.id) === String(i.productId))
+          (String(x.productId) === String(i.productVariantId || i.productId) || String(x.product?.id) === String(i.productId))
         );
 
         const mappedMrp = parseFloat(
@@ -614,14 +661,15 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
           ? i.unitSellingPrice
           : (m?.sellingPrice || i.product?.price || prod?.sellingPrice || prod?.price || cost);
 
-        const mappedUom = m?.uom || i.uom || 'PACK';
+        const mappedUom = m?.uom || i.uom || prod?.unit || 'PACK';
 
         const baseItem = {
           productId: i.productId,
+          productVariantId: i.productVariantId || null,
           name: i.product?.name || prod?.name || 'Unknown',
-          variantName: i.variantName || i.product?.variantName || prod?.variantName || '',
-          skuCode: i.product?.skuCode || prod?.skuCode || i.skuCode || 'NO-SKU',
-          barcode: i.product?.barcode || prod?.barcode || i.barcode || '',
+          variantName: i.variantName || prod?.variantName || i.product?.variantName || '',
+          skuCode: i.skuCode || i.product?.skuCode || prod?.skuCode || prod?.sku || 'NO-SKU',
+          barcode: i.barcode || i.product?.barcode || prod?.barcode || '',
           unit: mappedUom,
           uom: mappedUom,
           quantity: String(i.quantity || 1),
@@ -1074,13 +1122,16 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                       {form.items
                         .map((item, index) => ({ ...item, originalIndex: index }))
                         .filter(item => {
-                          const p = products.find(x => x.id === item.productId || x.productId === item.productId);
+                          const p = products.find(x => 
+                            (item.productVariantId && (x.id === item.productVariantId || (x.isVariantItem && x.productId === item.productVariantId))) ||
+                            (!item.productVariantId && x.id === item.productId && !x.isVariantItem)
+                          ) || products.find(x => x.id === item.productId);
                           const search = itemFilter.toLowerCase();
                           if (!search) return true;
                           const name = item.name || p?.name || '';
                           const variant = item.variantName || p?.variantName || '';
                           const barcode = item.barcode || p?.barcode || '';
-                          const sku = item.skuCode || p?.skuCode || '';
+                          const sku = item.skuCode || item.sku || p?.skuCode || p?.sku || '';
                           return (
                             name.toLowerCase().includes(search) ||
                             variant.toLowerCase().includes(search) ||
@@ -1089,9 +1140,13 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                           );
                         })
                         .map((item, filteredIdx) => {
-                          const p = products.find(x => x.id === item.productId || x.productId === item.productId);
+                          const p = products.find(x => 
+                            (item.productVariantId && (x.id === item.productVariantId || (x.isVariantItem && x.productId === item.productVariantId))) ||
+                            (!item.productVariantId && x.id === item.productId && !x.isVariantItem)
+                          ) || products.find(x => x.id === item.productId);
                           const originalIdx = item.originalIndex;
                           const currentVariant = item.variantName || p?.variantName;
+                          const currentSku = item.skuCode || item.sku || p?.skuCode || p?.sku || item.product?.skuCode || item.barcode || p?.barcode || 'NO-SKU';
                           const unitLabel = item.uom || 'PACK';
                           return (
                             <tr key={originalIdx} className="hover:bg-slate-50/80 transition-colors group">
@@ -1108,7 +1163,7 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
                                       </span>
                                     )}
                                   </div>
-                                  <span className="text-[9px] font-semibold text-gray-400 mt-0.5">({p?.skuCode || p?.sku || item.skuCode || item.sku || item.product?.skuCode || item.barcode || p?.barcode || 'NO-SKU'})</span>
+                                  <span className="text-[9px] font-semibold text-gray-400 mt-0.5">({currentSku})</span>
                                 </div>
                               </td>
                               <td className="px-3 py-3 text-right">

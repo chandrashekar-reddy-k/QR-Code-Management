@@ -195,13 +195,21 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       setSelectedPO(poId);
       setPODetail({ ...data, remarks: '' });
       setGRNItems((data.items || []).map(item => {
+        const variantProd = (item.productVariantId && products)
+          ? products.find(p => p.id === item.productVariantId || p.productId === item.productVariantId)
+          : (item.product?.variants && (item.productVariantId || item.variantName || item.mrp || item.rate))
+            ? item.product.variants.find(v => (item.productVariantId && v.id === item.productVariantId) || (item.variantName && v.variantName === item.variantName) || (item.skuCode && v.sku === item.skuCode) || (item.mrp > 0 && Number(v.mrp) === Number(item.mrp)) || (item.rate > 0 && Number(v.price) === Number(item.rate)))
+            : null;
+
         const targetProd = products.find(p => p.id === item.productId || p.productId === item.productId || p.id === item.product?.id);
-        const sku = targetProd?.skuCode || targetProd?.sku || item.skuCode || item.sku || item.product?.skuCode || item.product?.sku || item.vendorSku || '';
-        const uom = item.uom || targetProd?.uom || '';
-        const variantName = item.variantName || item.product?.variantName || item.productVariant?.variantName || targetProd?.variantName || '';
+        
+        const sku = item.skuCode || variantProd?.sku || variantProd?.skuCode || item.productVariant?.sku || item.sku || targetProd?.skuCode || targetProd?.sku || item.product?.skuCode || item.product?.sku || item.vendorSku || '';
+        const uom = item.uom || variantProd?.unit || targetProd?.unit?.name || targetProd?.uom || '';
+        const variantName = item.variantName || variantProd?.variantName || item.product?.variantName || item.productVariant?.variantName || targetProd?.variantName || '';
 
         return {
           productId: item.productId,
+          productVariantId: item.productVariantId || variantProd?.id || null,
           name: item.name || item.productName || item.product?.name || targetProd?.name || 'Item',
           variantName: variantName,
           sku: sku,
@@ -1458,17 +1466,27 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {selectedReport.items?.map(item => (
-                      <tr key={item.id} className="text-sm">
-                        <td className="px-8 py-8">
-                          <div className="space-y-1">
-                            <p className="font-bold text-gray-900">{item.product?.name}</p>
-                            <p className="text-xs text-gray-400 font-medium uppercase tracking-tighter">SKU: {item.product?.skuCode || item.product?.sku || item.sku || 'N/A'}</p>
-                            {item.uom ? (
-                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.uom}</span>
-                            ) : null}
-                          </div>
-                        </td>
+                    {selectedReport.items?.map(item => {
+                      const variantName = item.variantName || item.productVariant?.variantName || item.product?.variantName;
+                      const sku = item.skuCode || item.sku || item.productVariant?.sku || item.product?.skuCode || item.product?.sku || 'N/A';
+                      return (
+                        <tr key={item.id} className="text-sm">
+                          <td className="px-8 py-8">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-bold text-gray-900">{item.product?.name || item.name}</p>
+                                {variantName && (
+                                  <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider">
+                                    {variantName}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400 font-medium uppercase tracking-tighter">SKU: {sku}</p>
+                              {item.uom ? (
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.uom}</span>
+                              ) : null}
+                            </div>
+                          </td>
                         <td className="px-4 py-8 text-center font-bold text-gray-900">{item.orderedQty}</td>
                         <td className="px-4 py-8 text-center font-bold text-gray-900">{item.receivedQty}</td>
                         <td className="px-4 py-8 text-center font-bold text-emerald-600">{item.receivedQty - (item.damagedQty || 0)}</td>
@@ -1487,7 +1505,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           </span>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>
