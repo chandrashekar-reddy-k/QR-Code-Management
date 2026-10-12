@@ -123,30 +123,23 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
       const mappingDict = {};
       const mappingArray = data?.data || data || [];
       mappingArray.forEach(m => {
-        const matchingProducts = products.filter(p => 
-          p.id === m.productId || 
-          p.parentProductId === m.productId || 
-          p.productId === m.productId
-        );
-
-        if (matchingProducts.length > 0) {
-          matchingProducts.forEach(prod => {
-            mappingDict[prod.id] = {
-              productId: prod.id,
-              vendorSku: prod.skuCode || prod.sku || m.vendorSku || '',
-              uom: m.uom || 'PACK',
-              purchasePrice: String(m.purchasePrice || 0),
-              mrp: String(m.mrp ?? prod.mrp ?? 0),
-              landingPrice: String(m.landingPrice ?? prod.landingPrice ?? prod.purchasePrice ?? 0),
-              quantity: String(m.quantity ?? 1),
-              moq: String(m.moq || 1),
-              leadTime: String(m.leadTime || 0),
-              taxPercent: String(m.taxPercent || 0),
-              lastPurchaseRate: String(m.lastPurchaseRate || 0),
-              isPreferred: m.isPreferred || false,
-              priceHistory: m.priceHistory || []
-            };
-          });
+        const prod = products.find(p => p.id === m.productId || p.productId === m.productId);
+        if (prod) {
+          mappingDict[prod.id] = {
+            productId: prod.id,
+            vendorSku: m.vendorSku || prod.skuCode || prod.sku || '',
+            uom: m.uom || 'PACK',
+            purchasePrice: String(m.purchasePrice || 0),
+            mrp: String(m.mrp ?? prod.mrp ?? 0),
+            landingPrice: String(m.landingPrice ?? prod.landingPrice ?? prod.purchasePrice ?? 0),
+            quantity: String(m.quantity ?? 1),
+            moq: String(m.moq || 1),
+            leadTime: String(m.leadTime || 0),
+            taxPercent: String(m.taxPercent || 0),
+            lastPurchaseRate: String(m.lastPurchaseRate || 0),
+            isPreferred: m.isPreferred || false,
+            priceHistory: m.priceHistory || []
+          };
         } else {
           mappingDict[m.productId] = {
             productId: m.productId,
