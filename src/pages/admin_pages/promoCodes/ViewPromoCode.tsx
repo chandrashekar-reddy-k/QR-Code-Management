@@ -124,7 +124,10 @@ const ViewPromoCode = () => {
             image: p.image || '',
             status: p.isActive || p.status === 'ACTIVE' ? 'active' : 'inactive',
             validity: p.isActive ? 'Acceptable' : 'Inactive',
-            repeatUsage: p.repeatUsage || p.maxUsesPerUser || 'Multiple',
+            repeatUsage: (() => {
+              const r = String(p.repeatUsage ?? p.maxUsesPerUser ?? '').trim().toUpperCase();
+              return r === '1' || r === 'ONE' ? 'One' : 'Multiple';
+            })(),
             whereItApplies: p.scope || p.appicableOn || 'ALL',
             products: p.products || [],
           } as any);

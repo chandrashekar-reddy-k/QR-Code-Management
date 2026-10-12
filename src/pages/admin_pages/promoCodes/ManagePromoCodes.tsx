@@ -372,13 +372,21 @@ const ManagePromoCodes = () => {
       key: "repeatUsage",
       label: "REPEAT USAGE",
       sortable: false,
-      render: (promoCode: PromoCodeRow) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">
-            {promoCode.repeatUsage ?? "-"}
-          </span>
-        </div>
-      ),
+      render: (promoCode: PromoCodeRow) => {
+        const raw = String(
+          promoCode.repeatUsage ??
+          (promoCode as any).maxUsesPerUser ??
+          ""
+        ).trim().toUpperCase();
+        const display = raw === "ONE" || raw === "1" ? "One" : raw === "MULTIPLE" ? "Multiple" : promoCode.repeatUsage || "-";
+        return (
+          <div className="text-center">
+            <span className="text-xs sm:text-sm text-gray-800">
+              {display}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: "appicableOn",

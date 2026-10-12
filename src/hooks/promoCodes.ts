@@ -164,6 +164,9 @@ const useUpdatePromoCode = (promoCodeId?: string) => {
         getSuccessMessage(result, "Promo code updated successfully"),
       );
       queryClient.invalidateQueries({ queryKey: ["promoCodes"] });
+      if (promoCodeId) {
+        queryClient.invalidateQueries({ queryKey: ["promoCode", promoCodeId] });
+      }
     },
     onError: (error) => {
       toast.error(getErrorMessage(error));

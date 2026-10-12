@@ -47,10 +47,13 @@ type PromoCodeEditItem = {
   endDate?: string;
   endTime?: string;
   repeatUsage?: string;
+  usageLimit?: string;
+  maxUsesPerUser?: number | string | null;
   appicableOn?: string;
   scope?: string;
   products?: Array<{ id: string; name?: string; sku?: string; images?: string[]; price?: number }>;
   productIds?: string[];
+  mappedProductOffers?: Record<string, any>;
 };
 
 const AddPromoCode = () => {
@@ -105,26 +108,33 @@ const AddPromoCode = () => {
     });
   }, [productsData]);
 
-  const promoCodes = useMemo(() => {
-    const item = (promoCodeResponse as { data?: PromoCodeEditItem } | undefined)
-      ?.data;
-    return item ? [item] : [];
-  }, [promoCodeResponse]);
+  const promoCodeToEdit = useMemo(() => {
+    if (!promoCodeResponse) return null;
+    const resData: any = (promoCodeResponse as any)?.data;
+    if (!resData) return null;
+    if (Array.isArray(resData)) {
+      return resData.find((p: any) => String(p.id) === String(id)) || null;
+    }
+    return resData;
+  }, [promoCodeResponse, id]);
 
   useEffect(() => {
     if (!isEditing) return;
     if (isPromoCodesLoading) return;
-
-    const promoCodeToEdit = promoCodes.find(
-      (p: PromoCodeEditItem) => String(p.id) === String(id),
-    );
-    if (!promoCodeToEdit) {
-      alert("Promo code not found!");
-      navigate("/promo-codes/manage");
-      return;
-    }
+    if (!promoCodeToEdit) return;
 
     const isSpecific = String(promoCodeToEdit.scope || promoCodeToEdit.appicableOn || '').toUpperCase() === 'SPECIFIC_PRODUCTS';
+
+    const rawUsage = String(
+      promoCodeToEdit.repeatUsage ??
+      promoCodeToEdit.usageLimit ??
+      promoCodeToEdit.maxUsesPerUser ??
+      ""
+    ).trim().toUpperCase();
+
+    const resolvedUsageLimit = (rawUsage === "ONE" || rawUsage === "1" || promoCodeToEdit.maxUsesPerUser === 1)
+      ? "ONE"
+      : "MULTIPLE";
 
     reset({
       codeName: promoCodeToEdit.promoCode || "",
@@ -147,10 +157,7 @@ const AddPromoCode = () => {
         ? formatDateForInput((promoCodeToEdit.endDate || "").split("T")[0])
         : "",
       endTime: promoCodeToEdit.endTime || "",
-      usageLimit:
-        String(promoCodeToEdit.repeatUsage || "").toUpperCase() === "MULTIPLE"
-          ? "MULTIPLE"
-          : "ONE",
+      usageLimit: resolvedUsageLimit,
       whereItApplies: isSpecific
         ? "SPECIFIC_PRODUCTS"
         : (String(promoCodeToEdit.appicableOn || "").toUpperCase() === "GLOBAL" ? "global" : ""),
@@ -183,7 +190,7 @@ const AddPromoCode = () => {
           : "0",
       ),
     );
-  }, [id, isEditing, isPromoCodesLoading, navigate, promoCodes, reset]);
+  }, [id, isEditing, isPromoCodesLoading, navigate, promoCodeToEdit, reset]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -241,6 +248,7 @@ const AddPromoCode = () => {
           : null,
       scope: values.whereItApplies || "GLOBAL",
       repeatUsage: selectedRepeatUsage,
+      maxUsesPerUser: selectedRepeatUsage === "ONE" ? 1 : null,
       productIds: values.whereItApplies === "SPECIFIC_PRODUCTS" ? selectedProductIds : [],
       productOffers: values.whereItApplies === "SPECIFIC_PRODUCTS" ? productOffers : {},
     };
