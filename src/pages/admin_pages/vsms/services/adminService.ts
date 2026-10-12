@@ -24,6 +24,7 @@ export const adminAPI = {
   // Vehicles
   getVehicles: (params?: any) => api.get('/admin/vehicles', { params }),
   getVehicleAgents: (params?: any) => api.get('/admin/vehicles/agents', { params }),
+  getAgents: (params?: any) => api.get('/admin/vehicles/agents', { params }),
   createVehicle: (data?: any) => api.post('/admin/vehicles', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
@@ -249,6 +250,10 @@ export const adminAPI = {
   uploadProductImage: (data?: any) => api.post('/admin/upload-image', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  uploadImage: (data?: any) => api.post('/admin/upload-image', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getPOSDailyReport: (params?: any) => api.get('/admin/reports/pos-daily', { params }),
 
   // Customers Module
   getCustomers: (params?: any) => api.get('/customers', { params }),

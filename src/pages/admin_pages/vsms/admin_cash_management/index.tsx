@@ -589,13 +589,18 @@ export default function AdminCashManagementContent() {
   };
 
   const filteredSummaries = summaries.filter(s => {
-    if (storeFilterId && s.vehicle?.storeId !== storeFilterId) return false;
-    const searchLower = searchTerm.toLowerCase();
-    const agent = s.vehicle?.assignedUsers?.find(u => ['SALES_AGENT', 'DELIVERY_AGENT', 'VEHICLE_AGENT'].includes(u.role));
+    if (storeFilterId && s.vehicle?.storeId && s.vehicle.storeId !== storeFilterId && s.storeId !== storeFilterId) return false;
+    const searchLower = searchTerm.trim().toLowerCase();
+    if (!searchLower) return true;
+    const agent = s.vehicle?.assignedUsers?.find(u => ['SALES_AGENT', 'DELIVERY_AGENT', 'VEHICLE_AGENT'].includes(u.role))
+      || s.vehicle?.assignedUsers?.[0]
+      || s.user;
+    const extraNames = (s.vehicle?.assignedUsers || []).map(u => u.name?.toLowerCase()).join(' ');
     return (
       s.vehicle?.vehicleNumber?.toLowerCase().includes(searchLower) ||
       s.vehicle?.vehicleName?.toLowerCase().includes(searchLower) ||
-      agent?.name?.toLowerCase().includes(searchLower)
+      agent?.name?.toLowerCase().includes(searchLower) ||
+      extraNames.includes(searchLower)
     );
   });
 

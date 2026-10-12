@@ -17,13 +17,14 @@ import {
   EditReconciliationModal, DeleteModal, 
   ViewAgentDenomsModal, ImagePreviewModal 
 } from './AgentModals';
+import ShiftBreakdownView from './ShiftBreakdownView';
 import AssignFloatView from './AssignFloatView';
 import DepositShiftCashReportView from './DepositShiftCashReportView';
 
 import { 
   getAdminReconciliation, adminUpdateReconciliation, 
   adminDeleteReconciliation, getStoreCashRegister, 
-  getStoreCashLedger 
+  getStoreCashLedger, adminReviewClosing
 } from '../services/cashService';
 import adminAPI from '../services/adminService';
 import { useUserStore } from '../store/userStore';
@@ -89,6 +90,15 @@ export default function DailyReconciliationPage() {
   const [viewingSummary, setViewingSummary] = useState(null);
   const [viewingAgentDenoms, setViewingAgentDenoms] = useState(null);
 
+  // Review (Closing Edit) State
+  const [isReviewEditing, setIsReviewEditing] = useState(null);
+  const [reviewEditData, setReviewEditData] = useState({
+    actualCash: 0, upiSales: 0, cardSales: 0, remark: '',
+    denominations: { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 }
+  });
+  const [activeCorrectionTab, setActiveCorrectionTab] = useState('CASH');
+  const [appliedParts, setAppliedParts] = useState({ CASH: false, UPI: false, CARD: false });
+
   // Ledger State
   const [ledgerData, setLedgerData] = useState(null);
   const [ledgerLoading, setLedgerLoading] = useState(false);
@@ -109,18 +119,20 @@ export default function DailyReconciliationPage() {
   const fetchVehicles = async () => {
     try {
       const { data } = await adminAPI.getVehicles({ storeId: storeFilterId });
-      setVehicles(data);
+      setVehicles(Array.isArray(data) ? data : (data?.data || []));
     } catch (error) {
       console.error('Error fetching vehicles:', error);
+      setVehicles([]);
     }
   };
 
   const fetchAgents = async () => {
     try {
       const { data } = await adminAPI.getAgents({ storeId: storeFilterId });
-      setAgents(data);
+      setAgents(Array.isArray(data) ? data : (data?.data || []));
     } catch (error) {
       console.error('Error fetching agents:', error);
+      setAgents([]);
     }
   };
 
@@ -164,6 +176,27 @@ export default function DailyReconciliationPage() {
       const newDenoms = { ...editData.denominations, [denom]: qty };
       const total = Object.entries(newDenoms).reduce((sum, [d, q]) => sum + (parseInt(d) * q), 0);
       setEditData({ ...editData, denominations: newDenoms, openingCash: total });
+    } else if (type === 'review') {
+      const newDenoms = { ...reviewEditData.denominations, [denom]: qty };
+      const total = Object.entries(newDenoms).reduce((sum, [d, q]) => sum + (parseInt(d) * q), 0);
+      setReviewEditData({ ...reviewEditData, denominations: newDenoms, actualCash: total });
+      setAppliedParts(prev => ({ ...prev, CASH: false }));
+    }
+  };
+
+  const handleReviewClosing = async (vehicleId, dateStr, shift, status, additionalData = {}) => {
+    setIsSubmitting(true);
+    try {
+      await adminReviewClosing({ vehicleId, date: dateStr || date, shift, status, ...additionalData, storeId: storeFilterId });
+      toast.success(`Closing ${status.toLowerCase()}`);
+      setIsReviewEditing(null);
+      fetchSummaries();
+      fetchStoreRegister();
+      setViewingSummary(null);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to review closing');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -185,7 +218,13 @@ export default function DailyReconciliationPage() {
     if (!editingSummary) return;
     setIsSubmitting(true);
     try {
-      await adminUpdateReconciliation(editingSummary.id, editData);
+      const vId = editingSummary.vehicleId || editingSummary.vehicle?.id;
+      const d = editingSummary.date || date;
+      await adminUpdateReconciliation({
+        ...editData,
+        vehicleId: vId,
+        date: d
+      });
       toast.success('Float updated successfully');
       setShowEditModal(false);
       fetchSummaries();
@@ -200,7 +239,9 @@ export default function DailyReconciliationPage() {
     if (!deletingSummary) return;
     setIsDeleting(true);
     try {
-      await adminDeleteReconciliation(deletingSummary.id);
+      const vId = deletingSummary.vehicleId || deletingSummary.vehicle?.id || deletingSummary.id;
+      const d = deletingSummary.date || date;
+      await adminDeleteReconciliation(vId, d);
       toast.success('Record deleted successfully');
       setShowDeleteModal(false);
       fetchSummaries();
@@ -211,12 +252,22 @@ export default function DailyReconciliationPage() {
     }
   };
 
+  const getAgentDisplay = (s) => {
+    const agent = s.vehicle?.assignedUsers?.find(u => ['SALES_AGENT', 'DELIVERY_AGENT', 'VEHICLE_AGENT'].includes(u.role))
+      || s.vehicle?.assignedUsers?.[0]
+      || s.user;
+    return agent?.name || s.vehicle?.vehicleName || s.vehicle?.vehicleNumber || 'Standard';
+  };
+
   const filteredSummaries = summaries.filter(s => {
-    const term = searchTerm.toLowerCase();
+    if (storeFilterId && s.vehicle?.storeId && s.vehicle.storeId !== storeFilterId && s.storeId !== storeFilterId) return false;
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
     const vName = s.vehicle?.vehicleName?.toLowerCase() || '';
     const vNum = s.vehicle?.vehicleNumber?.toLowerCase() || '';
-    const agentName = s.vehicle?.assignedUsers?.[0]?.name?.toLowerCase() || '';
-    return vName.includes(term) || vNum.includes(term) || agentName.includes(term);
+    const agentName = getAgentDisplay(s).toLowerCase();
+    const extraNames = (s.vehicle?.assignedUsers || []).map(u => u.name?.toLowerCase()).join(' ');
+    return vName.includes(term) || vNum.includes(term) || agentName.includes(term) || extraNames.includes(term);
   });
 
   const posToday = storeRegisterData?.liveMetrics?.totalStoreSalesGrandTotal || 0;
@@ -231,7 +282,7 @@ export default function DailyReconciliationPage() {
       { header: 'Expenses', dataKey: 'expenses' }
     ];
     const data = filteredSummaries.map(s => ({
-      agent: s.vehicle?.assignedUsers?.[0]?.name || s.vehicle?.vehicleName || 'Standard',
+      agent: getAgentDisplay(s),
       s1Open: `₹${(s.shiftDetails?.shift1?.opening?.totalOpeningCash || 0).toLocaleString()}`,
       s1Close: `₹${(s.shiftDetails?.shift1?.closing?.actualCash || 0).toLocaleString()}`,
       s2Open: `₹${(s.shiftDetails?.shift2?.opening?.totalOpeningCash || 0).toLocaleString()}`,
@@ -243,7 +294,7 @@ export default function DailyReconciliationPage() {
 
   const handleExportExcel = () => {
     const data = filteredSummaries.map(s => ({
-      'Agent / Vehicle': s.vehicle?.assignedUsers?.[0]?.name || s.vehicle?.vehicleName || 'Standard',
+      'Agent / Vehicle': getAgentDisplay(s),
       'S1 Opening Cash': s.shiftDetails?.shift1?.opening?.totalOpeningCash || 0,
       'S1 Closing Cash': s.shiftDetails?.shift1?.closing?.actualCash || 0,
       'S2 Opening Cash': s.shiftDetails?.shift2?.opening?.totalOpeningCash || 0,
@@ -252,6 +303,29 @@ export default function DailyReconciliationPage() {
     }));
     exportReportToExcel(data, `daily_recon_${date}`, 'Reconciliation');
   };
+
+  if (viewingSummary) {
+    return (
+      <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto min-h-screen bg-gray-50/50">
+        <ShiftBreakdownView 
+          viewingSummary={viewingSummary} 
+          setViewingSummary={setViewingSummary}
+          isReviewEditing={isReviewEditing} 
+          setIsReviewEditing={setIsReviewEditing}
+          activeCorrectionTab={activeCorrectionTab} 
+          setActiveCorrectionTab={setActiveCorrectionTab}
+          reviewEditData={reviewEditData} 
+          setReviewEditData={setReviewEditData}
+          appliedParts={appliedParts} 
+          setAppliedParts={setAppliedParts}
+          handleDenominationChange={handleDenominationChange} 
+          handleReviewClosing={handleReviewClosing}
+          isSubmitting={isSubmitting}
+          can={can}
+        />
+      </div>
+    );
+  }
 
   if (viewingAssignFloat) {
     return (
