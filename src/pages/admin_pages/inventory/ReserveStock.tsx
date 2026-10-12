@@ -215,7 +215,13 @@ const ReserveStock: React.FC = () => {
             onlineStock = item.onlineAppStock?.onlineStock ?? 0;
             posStock = item.posStoreStock?.posStock ?? 0;
           }
-          const vStock = item.vehicleStoreStock ?? (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0);
+          const vStock = Number(
+            item.vehicleStoreStock ??
+            item.vehicleStock ??
+            (Array.isArray(item.vehicleStockAssignments)
+              ? item.vehicleStockAssignments.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0)
+              : (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0))
+          );
           const allocated = onlineStock + posStock + vStock;
 
           const baseId = item.id ? item.id.split('_')[0] : item.id;
@@ -273,7 +279,7 @@ const ReserveStock: React.FC = () => {
           if (variantItems.length > 0) {
             variantItems.forEach((vItem: any) => {
               const remaining = Math.max(0, vItem.readyQty - allocated);
-              const availableQty = remaining > 0 ? remaining : vItem.readyQty;
+              const availableQty = remaining;
 
               mapped.push({
                 id: vItem.id,
@@ -288,7 +294,6 @@ const ReserveStock: React.FC = () => {
                 image: prodImage,
               });
 
-              const sugVehicle = vehicleQtyUpdates[item.id] || 0;
               initialQty[vItem.id] = {
                 online: 0,
                 pos: 0,
@@ -297,9 +302,13 @@ const ReserveStock: React.FC = () => {
             });
           } else {
             const fgPosted = fgList.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0);
-            const effectiveBaseQty = totalProcuredQty > 0 ? totalProcuredQty : fgPosted;
+            const effectiveBaseQty = Math.max(
+              Number(item.baseStock ?? item.stock ?? 0),
+              totalProcuredQty,
+              fgPosted
+            );
             const remaining = Math.max(0, effectiveBaseQty - allocated);
-            const availableQty = remaining > 0 ? remaining : effectiveBaseQty;
+            const availableQty = remaining;
 
             const rawSku = item.sku;
             const isUuid = typeof rawSku === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawSku.trim());

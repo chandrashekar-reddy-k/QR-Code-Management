@@ -121,9 +121,17 @@ const PurchasesSection = ({ can, setHeaderExtra, storeId }) => {
           sku: prod.sku || prod.skuCode || '',
           variantName: prod.variantName || ''
         });
-        // If the product has variants, add each variant as a discrete product item
+        // If the product has variants, add each active variant as a discrete product item
         if (Array.isArray(prod.variants) && prod.variants.length > 0) {
-          prod.variants.forEach(variant => {
+          prod.variants
+            .filter(variant => {
+              if (!variant) return false;
+              const status = String(variant.status || '').toUpperCase();
+              if (status === 'INACTIVE' || status === 'DISABLED') return false;
+              if (variant.isEnabled === false || variant.isActive === false) return false;
+              return true;
+            })
+            .forEach(variant => {
             flattenedProducts.push({
               ...prod,
               id: variant.id || `${prod.id}_${variant.variantName}`,

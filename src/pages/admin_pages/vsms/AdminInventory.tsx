@@ -243,7 +243,9 @@ export default function AdminInventory() {
 
       // 1. Primary Mega-Fetch (Consolidated from newexpenses)
       const { data: initData } = await adminAPI.getInventoryInit({
-        storeId: activeTab === 'main_master' ? undefined : storeFilterId
+        storeId: activeTab === 'main_master' ? undefined : storeFilterId,
+        force: 'true',
+        _t: Date.now()
       });
 
       if (initData?.success) {
@@ -262,6 +264,12 @@ export default function AdminInventory() {
           setTaxRates(['0', '5', '12', '18']); // Default fallback
         }
       }
+
+      // Unblock main UI immediately so Loading Section renders fresh data without delay
+      setLoading(false);
+      setLoadingMaster(false);
+      setLoadingInventory(false);
+      setLoadingVehicles(false);
 
       // 2. Secondary Fetches (Settled so one failure doesn't crash the page)
       const results = await Promise.allSettled([
