@@ -43,7 +43,7 @@ const ShiftBreakdownView = ({
         <div>
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">Shift Breakdown</h2>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-            {viewingSummary.vehicle.vehicleNumber} • {viewingSummary.date}
+            {(viewingSummary.vehicle?.vehicleNumber || viewingSummary.vehicle?.vehicleName || 'Vehicle')} • {viewingSummary.date}
           </p>
         </div>
       </div>
