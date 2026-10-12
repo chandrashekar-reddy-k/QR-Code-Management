@@ -616,60 +616,53 @@ export default function SuccessScreen() {
     if (!order) return;
 
     const invoiceNo = getInvoiceNumber(order);
-    const text = `🚐 *VillagKart Invoice #VK-${invoiceNo}*\nAmount: ₹${Math.round(order.totalAmount || 0)}\n\nThank you for shopping with us!`;
+    
+    // Extract customer mobile from all possible order properties
+    let rawMobile = order.mobile || order.customerMobile || order.customer?.mobile || '';
+    let cleanMobile = String(rawMobile).replace(/\D/g, '');
+
+    // If no mobile number was entered on the order, prompt the agent for it
+    if (!cleanMobile || cleanMobile.length < 10) {
+      const enteredPhone = window.prompt('Enter customer mobile number for WhatsApp invoice:', cleanMobile || '');
+      if (!enteredPhone) return;
+      cleanMobile = String(enteredPhone).replace(/\D/g, '');
+    }
+
+    if (!cleanMobile || cleanMobile.length < 10) {
+      toast.error('Please provide a valid 10-digit mobile number');
+      return;
+    }
+
+    // Format phone with Indian country code 91 if 10 digits
+    const formattedPhone = cleanMobile.length === 10 ? `91${cleanMobile}` : cleanMobile;
+
+    // Detailed receipt text for WhatsApp
+    const itemsList = order.items && order.items.length > 0
+      ? order.items.map((i: any) => `• ${i.product?.name || i.name || 'Item'} x ${i.quantity || 1} = ₹${Math.round((i.price || i.unitPrice || 0) * (i.quantity || 1))}`).join('\n')
+      : '';
+
+    // Generate public invoice URL
+    const publicInvoiceUrl = `${window.location.origin}/invoice/${order.id || id}`;
+
+    const text = `🚐 *VillagKart Official Bill Receipt*\n━━━━━━━━━━━━━━━━━━━━\n📄 *Invoice No:* #VK-${invoiceNo}\n📅 *Date:* ${new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN')}\n💳 *Payment Mode:* ${order.paymentMode || 'CASH'}\n${itemsList ? `\n🛒 *Items Purchased:*\n${itemsList}\n` : ''}\n💰 *Total Paid:* ₹${Math.round(order.totalAmount || 0)}\n━━━━━━━━━━━━━━━━━━━━\n📥 *View & Download PDF Invoice:*\n👉 ${publicInvoiceUrl}\n━━━━━━━━━━━━━━━━━━━━\n🙏 *Thank you for shopping with VillagKart!*`;
 
     try {
       setIsDownloading(true);
       const pdf = await generateInvoicePDF(order, settings);
-      if (!pdf) return;
-
-      const pdfBlob = pdf.output('blob');
       const fileName = `Invoice_VK-${invoiceNo}.pdf`;
-      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-      // 1. Direct WhatsApp Sharing if mobile number exists
-      if (order.mobile) {
-        // PDF cannot be sent via link directly, so we download it locally and then open WhatsApp
+      if (pdf) {
+        // Automatically save/download the PDF invoice to the agent's device
         pdf.save(fileName);
-
-        const phone = String(order.mobile).replace(/\D/g, '');
-        const formattedPhone = phone.length === 10 ? `91${phone}` : phone;
-        const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(text)}`;
-
-        window.open(whatsappUrl, '_blank');
-        toast.success('Opening WhatsApp & Downloading PDF...');
-        return;
       }
 
-      // 2. Fallback to modern Web Share API if no mobile
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: `VillagKart Invoice #VK-${invoiceNo}`,
-            text: text,
-          });
-          toast.success('Invoice shared successfully!');
-          return;
-        } catch (shareError: any) {
-          if (shareError.name === 'AbortError') return;
-          console.warn('Navigator share failed, falling back:', shareError);
-        }
-      }
-
-      // 3. Final fallback (Standard share text or Clipboard copy)
-      if (navigator.share) {
-        await navigator.share({ text });
-        pdf.save(fileName);
-        toast.success('Text shared & PDF downloaded!');
-      } else {
-        pdf.save(fileName);
-        await navigator.clipboard.writeText(text);
-        toast.success('Invoice copied & downloaded!');
-      }
+      // Direct WhatsApp redirect to the customer's phone number
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(text)}`;
+      window.open(whatsappUrl, '_blank');
+      toast.success('Redirecting directly to WhatsApp with Invoice details!');
     } catch (err) {
       console.error('Share error:', err);
-      toast.error('Could not share document');
+      toast.error('Could not prepare invoice');
     } finally {
       setIsDownloading(false);
     }

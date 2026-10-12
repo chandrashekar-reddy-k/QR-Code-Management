@@ -128,7 +128,7 @@ export default function OnlineStockManagement() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [filterVisibility, setFilterVisibility] = useState<'ALL' | 'VISIBLE' | 'HIDDEN'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [returningId, setReturningId] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -828,15 +828,47 @@ export default function OnlineStockManagement() {
           </div>
         )}
 
-        {totalPages > 1 && (
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-gray-600 dark:text-gray-300">
+            <span className="whitespace-nowrap font-medium">Rows per page:</span>
+            <select
+              value={itemsPerPage.toString()}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-lg px-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors cursor-pointer"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="500">500</option>
+            </select>
+            <span className="whitespace-nowrap ml-1 text-gray-500 dark:text-gray-400">
+              Showing{" "}
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {filtered.length > 0 ? ((currentPage - 1) * itemsPerPage + 1).toLocaleString() : 0}
+              </span>{" "}
+              -{" "}
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {Math.min(currentPage * itemsPerPage, filtered.length).toLocaleString()}
+              </span>{" "}
+              of{" "}
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {filtered.length.toLocaleString()}
+              </span>
+            </span>
+          </div>
+
+          <div className="w-full sm:w-auto flex justify-center sm:justify-end">
             <Pagination
               currentPage={currentPage}
               pagination={paginationObj}
               onPageChange={(page) => setCurrentPage(page)}
             />
           </div>
-        )}
+        </div>
       </div>
 
       {/* Edit App Config Modal */}

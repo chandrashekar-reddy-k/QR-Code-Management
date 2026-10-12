@@ -93,7 +93,7 @@ export default function AdminInventory() {
   const [expandedAgentId, setExpandedAgentId] = useState(null);
   const [viewingAgentId, setViewingAgentId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const [sales, setSales] = useState([]);
   const [users, setUsers] = useState([]);
 
@@ -1069,6 +1069,11 @@ export default function AdminInventory() {
       setShowLoadSuccessModal(true);
 
       setStockQuantities({});
+      try {
+        localStorage.removeItem('vsms_loading_draft');
+      } catch (e) {
+        console.error(e);
+      }
       setShowLoadConfirmModal(false);
       invalidateInventory();
       invalidateVehicles();
@@ -1482,9 +1487,11 @@ export default function AdminInventory() {
     <LoadingSection
       groupedLoadingItems={groupedLoadingItems}
       itemsPerPage={itemsPerPage}
+      setItemsPerPage={setItemsPerPage}
       currentPage={currentPage}
       setCurrentPage={setCurrentPage}
       stockQuantities={stockQuantities}
+      setStockQuantities={setStockQuantities}
       handleQuantityChange={handleQuantityChange}
       selectedVehicleId={selectedVehicleId}
       setSelectedVehicleId={setSelectedVehicleId}

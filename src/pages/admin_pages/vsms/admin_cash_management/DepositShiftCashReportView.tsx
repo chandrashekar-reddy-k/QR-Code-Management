@@ -87,6 +87,7 @@ export default function DepositShiftCashReportView({
         shift: selectedShift,
         amount: totalCashCollected,
         denominations: totalDenoms,
+        description: `Shift ${selectedShift} Cash Safe Deposit`,
         date,
         storeId: storeFilterId
       });
