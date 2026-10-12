@@ -10,6 +10,26 @@ interface StatCardItemProps {
   iconColor: string;
 }
 
+const formatCurrencyShort = (amount: number): string => {
+  if (!amount || isNaN(amount)) return '₹0';
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+
+  if (abs >= 10000000) {
+    const val = abs / 10000000;
+    return `${sign}₹${val % 1 === 0 ? val.toFixed(0) : val.toFixed(2)} Cr`;
+  }
+  if (abs >= 100000) {
+    const val = abs / 100000;
+    return `${sign}₹${val % 1 === 0 ? val.toFixed(0) : val.toFixed(2)} L`;
+  }
+  if (abs >= 1000) {
+    const val = abs / 1000;
+    return `${sign}₹${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)} K`;
+  }
+  return `${sign}₹${Math.round(abs)}`;
+};
+
 const StatCardItem: React.FC<StatCardItemProps> = ({ title, value, icon: Icon, iconBgColor, iconColor }) => (
   <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center">
     <div>
@@ -86,7 +106,7 @@ const InventoryDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCardItem 
           title="Total Inventory Value" 
-          value={`₹${stats.totalValue.toLocaleString()}`} 
+          value={formatCurrencyShort(stats.totalValue)} 
           icon={Package} 
           iconBgColor="bg-[#eaf8f1]" 
           iconColor="text-[#20b05e]" 
@@ -115,14 +135,14 @@ const InventoryDashboard: React.FC = () => {
         
         <StatCardItem 
           title="Raw Inventory Value" 
-          value={`₹${stats.rawValue.toLocaleString()}`} 
+          value={formatCurrencyShort(stats.rawValue)} 
           icon={Package} 
           iconBgColor="bg-[#eaf8f1]" 
           iconColor="text-[#20b05e]" 
         />
         <StatCardItem 
           title="Ready Inventory Value" 
-          value={`₹${stats.readyValue.toLocaleString()}`} 
+          value={formatCurrencyShort(stats.readyValue)} 
           icon={List} 
           iconBgColor="bg-[#eaf8f1]" 
           iconColor="text-[#20b05e]" 

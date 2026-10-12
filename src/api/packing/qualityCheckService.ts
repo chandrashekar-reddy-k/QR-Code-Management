@@ -44,6 +44,8 @@ export interface PendingQCWorkOrder {
   supervisor?: { id: string; name: string };
   operator?: { id: string; name: string };
   inspector?: { id: string; name: string };
+  outputAllocations?: any[];
+  sourceItems?: any[];
 }
 
 export interface QCUser {

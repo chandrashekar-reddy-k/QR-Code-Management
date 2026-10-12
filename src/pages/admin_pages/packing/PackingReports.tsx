@@ -734,6 +734,16 @@ export const PackingReports: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left pb-10 w-full">
+      {/* Page Title */}
+      <div>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+          Packing & Operations Reports
+        </h1>
+        <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+          Comprehensive production, repacking, cost, and traceability logs.
+        </p>
+      </div>
+
       {/* Filter & Search Bar */}
       <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
         {/* Filter controls */}

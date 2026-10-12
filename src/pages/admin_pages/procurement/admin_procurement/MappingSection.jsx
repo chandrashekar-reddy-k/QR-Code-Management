@@ -88,7 +88,7 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
               flattenedProducts.push({
                 ...prod,
                 id: variant.id || `${prod.id}_${variant.variantName}`,
-                productId: variant.productId || (variant.id && !variant.id.includes('_') ? variant.id : prod.id),
+                productId: variant.productId || prod.id,
                 parentProductId: prod.id,
                 name: prod.name,
                 variantName: variant.variantName || variant.name || '',
@@ -120,26 +120,43 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
     try {
       const { data } = await procurementAPI.getVendorMappings(v.id);
       
-      // Convert mapping array into a lookup object
       const mappingDict = {};
       const mappingArray = data?.data || data || [];
       mappingArray.forEach(m => {
         const prod = products.find(p => p.id === m.productId || p.productId === m.productId);
-        mappingDict[m.productId] = {
-          productId: m.productId,
-          vendorSku: m.vendorSku || prod?.skuCode || prod?.sku || '',
-          uom: m.uom || 'PACK',
-          purchasePrice: String(m.purchasePrice || 0),
-          mrp: String(m.mrp ?? prod?.mrp ?? 0),
-          landingPrice: String(m.landingPrice ?? prod?.landingPrice ?? prod?.purchasePrice ?? 0),
-          quantity: String(m.quantity ?? 1),
-          moq: String(m.moq || 1),
-          leadTime: String(m.leadTime || 0),
-          taxPercent: String(m.taxPercent || 0),
-          lastPurchaseRate: String(m.lastPurchaseRate || 0),
-          isPreferred: m.isPreferred || false,
-          priceHistory: m.priceHistory || []
-        };
+        if (prod) {
+          mappingDict[prod.id] = {
+            productId: prod.id,
+            vendorSku: m.vendorSku || prod.skuCode || prod.sku || '',
+            uom: m.uom || 'PACK',
+            purchasePrice: String(m.purchasePrice || 0),
+            mrp: String(m.mrp ?? prod.mrp ?? 0),
+            landingPrice: String(m.landingPrice ?? prod.landingPrice ?? prod.purchasePrice ?? 0),
+            quantity: String(m.quantity ?? 1),
+            moq: String(m.moq || 1),
+            leadTime: String(m.leadTime || 0),
+            taxPercent: String(m.taxPercent || 0),
+            lastPurchaseRate: String(m.lastPurchaseRate || 0),
+            isPreferred: m.isPreferred || false,
+            priceHistory: m.priceHistory || []
+          };
+        } else {
+          mappingDict[m.productId] = {
+            productId: m.productId,
+            vendorSku: m.vendorSku || '',
+            uom: m.uom || 'PACK',
+            purchasePrice: String(m.purchasePrice || 0),
+            mrp: String(m.mrp || 0),
+            landingPrice: String(m.landingPrice || 0),
+            quantity: String(m.quantity || 1),
+            moq: String(m.moq || 1),
+            leadTime: String(m.leadTime || 0),
+            taxPercent: String(m.taxPercent || 0),
+            lastPurchaseRate: String(m.lastPurchaseRate || 0),
+            isPreferred: m.isPreferred || false,
+            priceHistory: m.priceHistory || []
+          };
+        }
       });
       setMappedItems(mappingDict);
     } catch { 

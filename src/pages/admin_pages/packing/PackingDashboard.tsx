@@ -1,16 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
-  BarChart3,
-  AlertTriangle,
   Layers,
   Package,
   ShieldCheck,
-  Flame,
   Clock,
-  RefreshCw,
   CheckCircle,
-  UserCheck,
+  Filter,
+  RotateCcw,
+  Search,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Activity,
+  Printer,
+  Boxes,
+  PackageCheck,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import {
   workOrderService,
@@ -24,12 +32,24 @@ import {
 export const PackingDashboard: React.FC = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [qualityChecks, setQualityChecks] = useState<QCRecord[]>([]);
-  const [repackings, setRepackings] = useState<RepackingLog[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setRepackings] = useState<RepackingLog[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Tab navigation state (Active Work Orders selected by default)
+  const [activeTab, setActiveTab] = useState<
+    'active_wo' | 'material_issue' | 'packing_exec' | 'qc' | 'finished_goods'
+  >('active_wo');
+
+  // Search & Filter state for Active Work Orders
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("All");
+
+  // Pagination state for Active Work Orders table
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 10;
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true);
       const [woRes, qcRes, rpRes] = await Promise.allSettled([
         workOrderService.getWorkOrders({ limit: 500 }),
         qualityCheckService.getQualityChecks({ limit: 500 }),
@@ -48,7 +68,7 @@ export const PackingDashboard: React.FC = () => {
     } catch (err) {
       console.error("Failed to fetch Packing Dashboard data:", err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -56,1013 +76,686 @@ export const PackingDashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  // DERIVE PACKING & REPACKING ERP DATA FROM API
-  const pendingWOs = workOrders.filter((w) =>
-    [
-      "PENDING",
-      "APPROVED",
-      "MATERIAL_ISSUED",
-      "PACKING_STARTED",
-      "PACKING_IN_PROGRESS",
-      "LABEL_APPLICATION_ASSIGNED",
-      "LABEL_APPLICATION_IN_PROGRESS",
-      "LABELS_APPLIED",
-      "QC_PENDING",
-    ].includes(w.status)
-  ).length;
+  // DERIVE PACKING & REPACKING ERP DATA DYNAMICALY FROM API
+  const totalWorkOrders = workOrders.length;
 
-  const completedWOs = workOrders.filter(
-    (w) => w.status === "COMPLETED" || w.status === "QC_PASSED"
-  ).length;
-
-  const qcRejects =
-    qualityChecks.filter((q) =>
-      ["REJECT", "REWORK", "DISCARD", "FAIL", "Reject", "Rework"].includes(q.result)
-    ).length + workOrders.filter((w) => (w.actualRejected || 0) > 0).length;
-
-  // Calculate yield & repacking
-  const totalProducedWO = workOrders.reduce(
-    (sum, item) => sum + (item.actualProduced || 0),
-    0
-  );
-  const todayOutput = totalProducedWO;
-  const todayRepacking = repackings.reduce(
-    (sum, item) => sum + (item.recoverableQty || 0),
-    0
+  // Row 1 — Workflow KPIs
+  const pendingWorkOrders = useMemo(
+    () => workOrders.filter((w) => ["DRAFT", "PENDING"].includes(w.status)).length,
+    [workOrders]
   );
 
-  // Efficiency & Wastage
-  const totalReq = workOrders.reduce(
-    (sum, item) => sum + (item.requiredQty || 0),
-    0
-  );
-  const totalProd = workOrders.reduce(
-    (sum, item) => sum + (item.actualProduced || 0),
-    0
-  );
-  const totalRej = workOrders.reduce(
-    (sum, item) => sum + (item.actualRejected || 0),
-    0
+  const materialIssuePending = useMemo(
+    () => workOrders.filter((w) => ["APPROVED"].includes(w.status)).length,
+    [workOrders]
   );
 
-  const packingEfficiency =
-    totalReq > 0
-      ? Math.min(100, Math.round((totalProd / totalReq) * 100))
-      : workOrders.length > 0
-      ? 85
-      : 0;
-
-  const wastagePct =
-    totalProd + totalRej > 0
-      ? ((totalRej / (totalProd + totalRej)) * 100).toFixed(1)
-      : "0.0";
-
-  const packingCost = todayOutput > 0 ? "₹2.45" : "₹0.00";
-
-  const barcodeGenCount = workOrders.reduce(
-    (sum, item) =>
-      sum +
-      (item.labelsPrinted ||
-        item.labelsApplied ||
-        (item.batchNumber ? item.actualProduced || item.requiredQty || 0 : 0)),
-    0
+  const activePacking = useMemo(
+    () => workOrders.filter((w) => ["MATERIAL_ISSUED", "PACKING_STARTED", "PACKING_IN_PROGRESS"].includes(w.status)).length,
+    [workOrders]
   );
 
-  const nearExpiryCount = workOrders.filter(
-    (w) =>
-      w.expectedDate &&
-      new Date(w.expectedDate).getTime() - Date.now() < 30 * 86400000
-  ).length;
+  const pendingLabelPrinting = useMemo(
+    () => workOrders.filter((w) => ["PACKING_COMPLETED", "LABEL_APPLICATION_ASSIGNED", "LABEL_APPLICATION_IN_PROGRESS", "LABEL_PENDING"].includes(w.status)).length,
+    [workOrders]
+  );
 
-  const empProductivity =
-    completedWOs > 0
-      ? Math.round(todayOutput / (completedWOs * 1.5 || 1))
-      : todayOutput > 0
-      ? Math.round(todayOutput / 4)
-      : 0;
+  // Row 2 — Output & Quality KPIs
+  const qcPending = useMemo(
+    () => workOrders.filter((w) => ["LABELS_APPLIED", "QC_PENDING", "QC_ASSIGNED", "QC_IN_PROGRESS"].includes(w.status)).length,
+    [workOrders]
+  );
 
-  const activeLinesCount = workOrders.filter((w) =>
-    [
-      "PACKING_STARTED",
-      "PACKING_IN_PROGRESS",
-      "LABEL_APPLICATION_IN_PROGRESS",
-    ].includes(w.status)
-  ).length;
+  const completedWorkOrders = useMemo(
+    () => workOrders.filter((w) => ["COMPLETED"].includes(w.status)).length,
+    [workOrders]
+  );
 
-  const machineUtil =
-    Math.min(
-      100,
-      Math.round((activeLinesCount / Math.max(1, workOrders.length)) * 100)
-    ) || (pendingWOs > 0 ? 65 : 0);
 
-  // Active work orders (excluding cancelled)
-  const activeWOs = workOrders.filter((w) => w.status !== "CANCELLED").slice(0, 5);
+  const totalInputQty = useMemo(
+    () => workOrders.reduce((sum, item) => sum + (item.requiredQty || 0), 0),
+    [workOrders]
+  );
 
-  // Group by category
-  const categoriesMap: Record<string, number> = {};
-  workOrders.forEach((w) => {
-    const cat = w.product?.category?.name || "General";
-    categoriesMap[cat] =
-      (categoriesMap[cat] || 0) + (w.actualProduced || w.requiredQty || 0);
-  });
-  const categoriesList = Object.entries(categoriesMap);
+  const totalOutputQty = useMemo(
+    () => workOrders.reduce((sum, item) => sum + (item.actualProduced || 0), 0),
+    [workOrders]
+  );
 
-  // Group by operator / supervisor
-  const empMap: Record<string, { produced: number; count: number }> = {};
-  workOrders.forEach((w) => {
-    const emp =
-      w.operator?.name || w.supervisor?.name || "Operator Team";
-    if (!empMap[emp]) empMap[emp] = { produced: 0, count: 0 };
-    empMap[emp].produced += w.actualProduced || 0;
-    empMap[emp].count += 1;
-  });
-  const empList = Object.entries(empMap);
+  const totalWastage = useMemo(
+    () =>
+      workOrders.reduce((sum, item) => sum + (item.actualRejected || 0), 0) +
+      qualityChecks
+        .filter((q) => ["REJECT", "REWORK", "DISCARD", "FAIL"].includes(q.result))
+        .reduce((sum, q) => sum + (q.checkedQty || 0), 0),
+    [workOrders, qualityChecks]
+  );
+
+  // Tab 1: Active work orders
+  const activeWOs = useMemo(() => {
+    return workOrders.filter((w) => w.status !== "COMPLETED" && w.status !== "CANCELLED" && w.status !== "DRAFT");
+  }, [workOrders]);
+
+  // Tab 2: Material Issue work orders
+  const materialIssueWOs = useMemo(() => {
+    return workOrders.filter((w) => ["APPROVED"].includes(w.status));
+  }, [workOrders]);
+
+  // Tab 3: Packing Execution work orders
+  const packingExecWOs = useMemo(() => {
+    return workOrders.filter((w) =>
+      ["MATERIAL_ISSUED", "PACKING_STARTED", "PACKING_IN_PROGRESS", "LABEL_APPLICATION_ASSIGNED", "LABEL_APPLICATION_IN_PROGRESS", "PACKING_COMPLETED"].includes(w.status)
+    );
+  }, [workOrders]);
+
+  // Tab 4: Quality Check work orders
+  const qcWOs = useMemo(() => {
+    return workOrders.filter((w) => ["LABELS_APPLIED", "QC_PENDING", "QC_IN_PROGRESS"].includes(w.status));
+  }, [workOrders]);
+
+  // Tab 5: Finished Goods work orders
+  const finishedGoodsWOs = useMemo(() => {
+    return workOrders.filter((w) => ["QC_PASSED"].includes(w.status));
+  }, [workOrders]);
+
+  // Helper to render product column with Primary Product + Counter Badge & Hover Popover for multi-product orders
+  const renderProductColumn = (wo: any) => {
+    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
+
+    if (items && items.length > 1) {
+      const primaryName = items[0].product || 'Product 1';
+      const extraCount = items.length - 1;
+
+      return (
+        <div className="relative group inline-flex items-center gap-1.5 max-w-[220px]">
+          <span className="font-semibold text-gray-800 dark:text-gray-200 truncate cursor-default max-w-[140px]" title={primaryName}>
+            {primaryName}
+          </span>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 shrink-0 cursor-default">
+            +{extraCount} more
+          </span>
+
+          {/* Floating Hover Popover listing ONLY product names */}
+          <div className="absolute left-0 top-full mt-1.5 hidden group-hover:block z-50 min-w-[220px] max-w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-3 space-y-2 text-xs font-sans animate-in fade-in zoom-in-95 duration-150">
+            <div className="font-bold text-gray-400 dark:text-gray-400 text-[10px] uppercase tracking-wider border-b border-gray-100 dark:border-gray-700 pb-1.5">
+              Source Products ({items.length})
+            </div>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {items.map((item: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-gray-900 dark:text-white">
+                  <span className="text-gray-400 font-mono text-[11px] shrink-0">{idx + 1}.</span>
+                  <span>{item.product}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const singleName = wo?.product?.name || items?.[0]?.product || 'Product';
+    return (
+      <span className="font-semibold text-gray-800 dark:text-gray-200 truncate block max-w-[220px]" title={singleName}>
+        {singleName}
+      </span>
+    );
+  };
+
+  const isUuidString = (str?: string) => {
+    if (!str) return false;
+    const s = String(str).trim();
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) || s.length > 20;
+  };
+
+  const getWOUnit = (wo: any) => {
+    const uomObj = wo?.product?.uom;
+    if (uomObj && typeof uomObj === 'object') {
+      if (uomObj.abbreviation && !isUuidString(uomObj.abbreviation)) return String(uomObj.abbreviation).trim().toUpperCase();
+      if (uomObj.name && !isUuidString(uomObj.name)) return String(uomObj.name).trim().toUpperCase();
+    }
+    const sourceUom = wo?.sourceItems?.[0]?.uom;
+    if (sourceUom && !isUuidString(sourceUom)) return String(sourceUom).trim().toUpperCase();
+
+    const prodUnit = wo?.product?.unit;
+    if (prodUnit && !isUuidString(prodUnit)) return String(prodUnit).trim().toUpperCase();
+
+    return 'KG';
+  };
+
+  // Helper to format required quantity per UOM
+  const formatRequiredQty = (wo: any) => {
+    if (!wo) return '0';
+    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+      const map: Record<string, number> = {};
+      wo.outputAllocations.forEach((alloc: any) => {
+        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
+        const fallbackUnit = getWOUnit(wo);
+        let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
+        if (isUuidString(unit)) unit = fallbackUnit;
+        const qty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
+        map[unit] = (map[unit] || 0) + qty;
+      });
+      const entries = Object.entries(map);
+      if (entries.length > 0) {
+        return entries.map(([uom, qty]) => `${parseFloat(qty.toFixed(3))} ${uom}`).join(', ');
+      }
+    }
+    const unit = getWOUnit(wo);
+    return `${parseFloat(Number(wo.requiredQty || 0).toFixed(3))} ${unit}`;
+  };
+
+  // Helper to format packed quantity per UOM
+  const formatPackedQty = (wo: any) => {
+    if (!wo) return '0';
+    const actual = wo.actualProduced || 0;
+    if (actual === 0) return '0';
+
+    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+      const map: Record<string, number> = {};
+      const totalReq = wo.requiredQty || 1;
+
+      wo.outputAllocations.forEach((alloc: any) => {
+        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
+        const fallbackUnit = getWOUnit(wo);
+        let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
+        if (isUuidString(unit)) unit = fallbackUnit;
+
+        const targetQty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
+        const packedQty = alloc.packedUnits !== undefined && alloc.packedUnits !== null
+          ? Number(alloc.packedUnits) * (alloc.packSizeKg || 1)
+          : Math.round((actual * (targetQty / totalReq)) * 100) / 100;
+
+        map[unit] = (map[unit] || 0) + packedQty;
+      });
+
+      const entries = Object.entries(map);
+      if (entries.length > 0) {
+        return entries.map(([uom, qty]) => `${parseFloat(qty.toFixed(3))} ${uom}`).join(', ');
+      }
+    }
+
+    const unit = getWOUnit(wo);
+    return `${parseFloat(Number(actual).toFixed(3))} ${unit}`;
+  };
+
+  // Filter dataset for current activeTab
+  const currentTabWOs = useMemo(() => {
+    let sourceData = activeWOs;
+    if (activeTab === "material_issue") sourceData = materialIssueWOs;
+    else if (activeTab === "packing_exec") sourceData = packingExecWOs;
+    else if (activeTab === "qc") sourceData = qcWOs;
+    else if (activeTab === "finished_goods") sourceData = finishedGoodsWOs;
+
+    return sourceData.filter((w) => {
+      const sourceProductsText = Array.isArray((w as any).sourceItems)
+        ? (w as any).sourceItems.map((i: any) => i.product).join(' ')
+        : '';
+      const matchesSearch =
+        !searchQuery ||
+        (w.woNumber || w.id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (w.product?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (w.product?.sku || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sourceProductsText.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "All" || w.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [activeTab, activeWOs, materialIssueWOs, packingExecWOs, qcWOs, finishedGoodsWOs, searchQuery, statusFilter]);
+
+  // Reset page when filter/search/tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, activeTab]);
+
+  const totalPages = Math.ceil(currentTabWOs.length / itemsPerPage);
+
+  const paginatedWOs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return currentTabWOs.slice(startIndex, startIndex + itemsPerPage);
+  }, [currentTabWOs, currentPage, itemsPerPage]);
 
   return (
     <div className="space-y-6 text-left pb-10">
-      {/* Page Title & Refresh */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
-            Packing & Repacking Dashboard
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
-            Operations Command Center — Live monitoring of packing lines, batches, and efficiency
-          </p>
-        </div>
-        <button
-          onClick={fetchDashboardData}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin text-green-600" : "text-gray-500"} />
-          <span>{loading ? "Refreshing..." : "Refresh"}</span>
-        </button>
+      {/* Page Title */}
+      <div>
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+          Packing & Repacking Dashboard
+        </h2>
       </div>
 
-      {/* TOP SECTION: 13 KPI CARDS GRID */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-gray-400">
-          Key Performance Indicators
-        </h3>
-
-        {/* Primary Row - 5 Columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {/* 1. Today's Packing */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">
-                  Today's Packing
-                </span>
-                <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-1">
-                  {todayOutput || 0}{" "}
-                  <span className="text-xs font-medium text-slate-400 dark:text-gray-400">
-                    units
-                  </span>
-                </h4>
+      {/* TOP SECTION: 2-ROW, 5-COLUMN COMPACT KPI GRID */}
+      <div className="space-y-2">
+        {/* ROW 1 — WORKFLOW KPIS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+          {/* 1. Total Work Orders */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                Total Work Orders
+              </span>
+              <div className="w-6.5 h-6.5 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                <Layers size={15} />
               </div>
-              <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
-                <Package size={20} />
-              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {totalWorkOrders}
             </div>
           </div>
 
-          {/* 2. Today's Repacking */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">
-                  Today's Repacking
-                </span>
-                <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-1">
-                  {todayRepacking || 0}{" "}
-                  <span className="text-xs font-medium text-slate-400 dark:text-gray-400">
-                    units
-                  </span>
-                </h4>
+          {/* 2. Pending Work Orders */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                Pending Work Orders
+              </span>
+              <div className="w-6.5 h-6.5 rounded-md bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                <Clock size={15} />
               </div>
-              <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0">
-                <RefreshCw size={20} />
-              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {pendingWorkOrders}
             </div>
           </div>
 
-          {/* 3. Pending Work Orders */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">
-                  Pending Work Orders
-                </span>
-                <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-1">
-                  {pendingWOs || 0}{" "}
-                  <span className="text-xs font-medium text-slate-400 dark:text-gray-400">
-                    jobs
-                  </span>
-                </h4>
+          {/* 3. Material Issue Pending */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                Material Issue Pending
+              </span>
+              <div className="w-6.5 h-6.5 rounded-md bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                <FileText size={15} />
               </div>
-              <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 dark:text-orange-400 shrink-0">
-                <Layers size={20} />
-              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {materialIssuePending}
             </div>
           </div>
 
-          {/* 4. Completed Work Orders */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">
-                  Completed Work Orders
-                </span>
-                <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-1">
-                  {completedWOs || 0}{" "}
-                  <span className="text-xs font-medium text-slate-400 dark:text-gray-400">
-                    jobs
-                  </span>
-                </h4>
+          {/* 4. Active Packing */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                Active Packing
+              </span>
+              <div className="w-6.5 h-6.5 rounded-md bg-sky-50 dark:bg-sky-900/30 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+                <Activity size={15} />
               </div>
-              <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
-                <CheckCircle size={20} />
-              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {activePacking}
             </div>
           </div>
 
-          {/* 5. Rejected QC */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">
-                  Rejected QC
-                </span>
-                <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-1">
-                  {qcRejects || 0}{" "}
-                  <span className="text-xs font-medium text-slate-400 dark:text-gray-400">
-                    batches
-                  </span>
-                </h4>
+          {/* 5. Pending Barcode/Label Printing */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate" title="Pending Barcode/Label Printing">
+                Pending Barcode/Labels
+              </span>
+              <div className="w-6.5 h-6.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                <Printer size={15} />
               </div>
-              <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-500 dark:text-rose-400 shrink-0">
-                <ShieldCheck size={20} />
-              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {pendingLabelPrinting}
             </div>
           </div>
         </div>
 
-        {/* Secondary Row - 8 Columns */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-          {/* 6. Packing Efficiency */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 shadow-xs">
-            <div>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 block truncate">
-                Packing Efficiency
+        {/* ROW 2 — OUTPUT & QUALITY KPIS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+          {/* 6. QC Pending */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                QC Pending
               </span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mt-1">
-                {packingEfficiency}%
-              </h4>
+              <div className="w-6.5 h-6.5 rounded-md bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
+                <ShieldCheck size={15} />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {qcPending}
             </div>
           </div>
 
-          {/* 7. Packing Cost */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 shadow-xs">
-            <div>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 block truncate">
-                Packing Cost
+          {/* 7. Completed */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                Completed
               </span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mt-1">
-                {packingCost}{" "}
-                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-medium">
-                  /u
-                </span>
-              </h4>
+              <div className="w-6.5 h-6.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <CheckCircle size={15} />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {completedWorkOrders}
             </div>
           </div>
 
-          {/* 8. Wastage % */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 shadow-xs">
-            <div>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 block truncate">
-                Wastage %
+          {/* 8. Total Input Quantity */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                Total Input Quantity
               </span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mt-1">
-                {wastagePct}%
-              </h4>
+              <div className="w-6.5 h-6.5 rounded-md bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                <Boxes size={15} />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {totalInputQty}
             </div>
           </div>
 
-          {/* 9. Today's Finished Goods */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 shadow-xs">
-            <div>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 block truncate">
-                Today's FG
+          {/* 9. Total Output Quantity */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                Total Output Quantity
               </span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mt-1">
-                {todayOutput}{" "}
-                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-medium">
-                  u
-                </span>
-              </h4>
+              <div className="w-6.5 h-6.5 rounded-md bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+                <PackageCheck size={15} />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-none">
+              {totalOutputQty}
             </div>
           </div>
 
-          {/* 10. Barcode Generated */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 shadow-xs">
-            <div>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 block truncate">
-                Barcode Gen
+          {/* 10. Total Wastage */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-2 border border-gray-100 dark:border-gray-700 shadow-2xs flex flex-col justify-between h-[58px] relative overflow-hidden transition-all">
+            <div className="flex justify-between items-center gap-1">
+              <span className="text-gray-500 dark:text-gray-400 font-medium text-[10px] leading-none truncate">
+                Total Wastage
               </span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mt-1">
-                {barcodeGenCount}{" "}
-                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-medium">
-                  tags
-                </span>
-              </h4>
+              <div className="w-6.5 h-6.5 rounded-md bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <AlertTriangle size={15} />
+              </div>
             </div>
-          </div>
-
-          {/* 11. Near Expiry */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 shadow-xs">
-            <div>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 block truncate">
-                Near Expiry
-              </span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mt-1">
-                {nearExpiryCount}{" "}
-                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-medium">
-                  batches
-                </span>
-              </h4>
-            </div>
-          </div>
-
-          {/* 12. Employee Productivity */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 shadow-xs">
-            <div>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 block truncate">
-                Emp Productivity
-              </span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mt-1">
-                {empProductivity}{" "}
-                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-medium">
-                  u/hr
-                </span>
-              </h4>
-            </div>
-          </div>
-
-          {/* 13. Machine Utilization */}
-          <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 shadow-xs">
-            <div>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 block truncate">
-                Machine Util
-              </span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mt-1">
-                {machineUtil}%
-              </h4>
+            <div className="text-base sm:text-lg font-bold text-rose-600 dark:text-rose-400 leading-none">
+              {totalWastage}
             </div>
           </div>
         </div>
       </div>
 
-      {/* SECOND SECTION: QUICK SHORTCUTS & ACTIVE WORK ORDERS/LIVE QUEUE */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Manager Quick Shortcuts */}
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs flex flex-col justify-between lg:col-span-1">
-          <div className="space-y-4">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5 border-b border-slate-100 dark:border-gray-700 pb-3">
-              <Flame size={16} className="text-amber-500" />
-              <span>Manager Quick Shortcuts</span>
-            </h3>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Link
-                to="/packing-erp/work-orders"
-                className="p-3 border border-slate-100 dark:border-gray-700 rounded-xl hover:border-green-600 dark:hover:border-green-500 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-all text-center flex flex-col items-center gap-2 cursor-pointer"
-              >
-                <Layers className="text-green-600 dark:text-green-400" size={20} />
-                <span className="text-xs font-semibold text-slate-700 dark:text-gray-200">
-                  Create WO
-                </span>
-              </Link>
-
-              <Link
-                to="/packing-erp/material-issue"
-                className="p-3 border border-slate-100 dark:border-gray-700 rounded-xl hover:border-green-600 dark:hover:border-green-500 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-all text-center flex flex-col items-center gap-2 cursor-pointer"
-              >
-                <Package className="text-indigo-600 dark:text-indigo-400" size={20} />
-                <span className="text-xs font-semibold text-slate-700 dark:text-gray-200">
-                  Issue Material
-                </span>
-              </Link>
-
-              <Link
-                to="/packing-erp/quality-check"
-                className="p-3 border border-slate-100 dark:border-gray-700 rounded-xl hover:border-green-600 dark:hover:border-green-500 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-all text-center flex flex-col items-center gap-2 cursor-pointer"
-              >
-                <ShieldCheck className="text-rose-500 dark:text-rose-400" size={20} />
-                <span className="text-xs font-semibold text-slate-700 dark:text-gray-200">
-                  Quality Check
-                </span>
-              </Link>
-
-              <Link
-                to="/packing-erp/repacking"
-                className="p-3 border border-slate-100 dark:border-gray-700 rounded-xl hover:border-green-600 dark:hover:border-green-500 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-all text-center flex flex-col items-center gap-2 cursor-pointer"
-              >
-                <RefreshCw className="text-slate-600 dark:text-gray-300" size={20} />
-                <span className="text-xs font-semibold text-slate-700 dark:text-gray-200">
-                  Repack Order
-                </span>
-              </Link>
+      {/* OPERATIONAL SECTION */}
+      <div className="space-y-4 pt-2">
+        {/* Search & Filter Bar (Positioned above table card) */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xs h-11 overflow-hidden w-full sm:w-auto">
+            <div className="px-4 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+              <Filter size={18} />
             </div>
-          </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-gray-700">
-            <span className="text-[10px] text-slate-400 dark:text-gray-400 font-bold block uppercase">
-              Current Operator Shift
-            </span>
-            <span className="text-xs font-semibold text-slate-700 dark:text-gray-200 block mt-0.5">
-              Shift A (06:00 AM - 02:00 PM)
-            </span>
-          </div>
-        </div>
+            <div className="w-52 border-r border-gray-200 dark:border-gray-700 h-full relative flex items-center">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full h-full bg-transparent border-none px-4 pr-10 py-0 text-sm font-bold text-gray-900 dark:text-gray-100 focus:ring-0 focus:outline-none cursor-pointer appearance-none bg-none [webkit-appearance:none] [moz-appearance:none]"
+              >
+                <option value="All" className="dark:bg-gray-800">All Statuses</option>
+                <option value="APPROVED" className="dark:bg-gray-800">Approved</option>
+                <option value="MATERIAL_ISSUED" className="dark:bg-gray-800">Material Issued</option>
+                <option value="PACKING_STARTED" className="dark:bg-gray-800">Packing Started</option>
+                <option value="PACKING_IN_PROGRESS" className="dark:bg-gray-800">Packing In Progress</option>
+                <option value="PACKING_COMPLETED" className="dark:bg-gray-800">Packing Completed</option>
+                <option value="LABEL_APPLICATION_ASSIGNED" className="dark:bg-gray-800">Label Assigned</option>
+                <option value="LABEL_APPLICATION_IN_PROGRESS" className="dark:bg-gray-800">Labels In Progress</option>
+                <option value="LABELS_APPLIED" className="dark:bg-gray-800">Labels Applied</option>
+                <option value="QC_PENDING" className="dark:bg-gray-800">QC Pending</option>
+                <option value="QC_IN_PROGRESS" className="dark:bg-gray-800">QC In Progress</option>
+                <option value="QC_PASSED" className="dark:bg-gray-800">QC Passed</option>
+                <option value="COMPLETED" className="dark:bg-gray-800">Completed</option>
+                <option value="CANCELLED" className="dark:bg-gray-800">Cancelled</option>
+              </select>
+              <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400" />
+            </div>
 
-        {/* Active Work Order & Live Packing Queue */}
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs lg:col-span-2 space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-150 dark:border-gray-700 pb-3">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-              <Clock size={16} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Active Work Order & Live Packing Queue</span>
-            </h3>
-            <Link
-              to="/packing-erp/work-orders"
-              className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('All');
+              }}
+              className="flex items-center gap-1.5 text-[#EF5A06] hover:bg-orange-50 dark:hover:bg-orange-900/20 px-4 h-full transition-colors font-semibold text-xs shrink-0 cursor-pointer"
             >
-              View Details
-            </Link>
+              <RotateCcw size={14} />
+              Reset Filter
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            {/* Table of active work orders */}
-            <div className="xl:col-span-2 overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[480px]">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-gray-700/50 text-slate-500 dark:text-gray-300 font-bold border-b border-slate-200 dark:border-gray-700 text-[11px]">
-                    <th className="p-2">WO No</th>
-                    <th className="p-2">Product</th>
-                    <th className="p-2 text-center">Req Qty</th>
-                    <th className="p-2 text-center">Packed Qty</th>
-                    <th className="p-2">Status</th>
-                    <th className="p-2 text-center">Action</th>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search WO No, Product..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00891D]/20 focus:border-[#00891D] transition-all shadow-xs"
+            />
+          </div>
+        </div>
+
+        {/* Main Table & Tab Container */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs overflow-hidden flex flex-col">
+          {/* Tabs Header Bar (Shopkeeper Order Processing style) */}
+          <div className="flex border-b border-gray-200 dark:border-gray-700 px-6 pt-2 justify-between items-center overflow-x-auto scrollbar-none">
+            <div className="flex gap-8">
+              {[
+                { id: 'active_wo', label: 'Active Work Orders', count: activeWOs.length, color: 'bg-green-700' },
+                { id: 'material_issue', label: 'Material Issue', count: materialIssueWOs.length, color: 'bg-purple-600' },
+                { id: 'packing_exec', label: 'Packing Execution', count: packingExecWOs.length, color: 'bg-[#EF5A06]' },
+                { id: 'qc', label: 'QC', count: qcWOs.length, color: 'bg-orange-500' },
+                { id: 'finished_goods', label: 'Finished Goods', count: finishedGoodsWOs.length, color: 'bg-emerald-600' },
+              ].map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-2 pb-4 pt-2 px-1 relative font-semibold text-[14px] transition-colors cursor-pointer whitespace-nowrap ${isActive
+                      ? 'text-[#00891D] dark:text-green-400 font-bold'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                  >
+                    <span>{tab.label}</span>
+                    {tab.count !== null && (
+                      <span className={`text-[11px] font-bold text-white px-2 py-0.5 rounded-full ${tab.color}`}>
+                        {tab.count}
+                      </span>
+                    )}
+                    {isActive && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00891D] dark:bg-green-400 rounded-t-full" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* OPERATIONAL WORK ORDERS TABLE */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 h-[52px] text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  <th className="py-3 px-5">WORK ORDER NO</th>
+                  <th className="py-3 px-5">SKU</th>
+                  <th className="py-3 px-5">PRODUCT</th>
+                  <th className="py-3 px-5 text-center">REQUIRED QTY</th>
+                  <th className="py-3 px-5 text-center">PACKED QTY</th>
+                  <th className="py-3 px-5 text-center">STATUS</th>
+                  <th className="py-3 px-5 text-right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-12 px-4 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-8 h-8 text-[#00891D] animate-spin" />
+                        <span className="text-sm font-medium">Loading active work orders...</span>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
-                  {activeWOs.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="p-4 text-center text-slate-400 dark:text-gray-400 text-xs font-medium"
-                      >
-                        No active work orders.
-                      </td>
-                    </tr>
-                  ) : (
-                    activeWOs.map((wo) => (
+                ) : currentTabWOs.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-12 px-4 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Package className="w-8 h-8 text-gray-400 stroke-1" />
+                        <span className="text-sm font-medium">No work orders available for this section.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedWOs.map((wo) => {
+                    let badgeStyle = "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600";
+                    if (wo.status === "COMPLETED" || wo.status === "QC_PASSED") {
+                      badgeStyle = "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800";
+                    } else if (wo.status === "MATERIAL_ISSUED") {
+                      badgeStyle = "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800";
+                    } else if (
+                      wo.status === "LABEL_APPLICATION_ASSIGNED" ||
+                      wo.status === "LABEL_APPLICATION_IN_PROGRESS" ||
+                      wo.status === "LABELS_APPLIED"
+                    ) {
+                      badgeStyle = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800";
+                    } else if (
+                      wo.status === "PACKING_STARTED" ||
+                      wo.status === "PACKING_IN_PROGRESS"
+                    ) {
+                      badgeStyle = "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800";
+                    } else if (
+                      wo.status === "QC_PENDING" ||
+                      wo.status === "QC_IN_PROGRESS"
+                    ) {
+                      badgeStyle = "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800";
+                    } else if ((wo.status as string) === "CANCELLED" || (wo.status as string) === "REJECTED") {
+                      badgeStyle = "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800";
+                    }
+
+                    return (
                       <tr
                         key={wo.id}
-                        className="hover:bg-slate-50/50 dark:hover:bg-gray-700/30 text-[11px]"
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors h-[64px]"
                       >
-                        <td className="p-2 font-mono font-bold text-slate-800 dark:text-gray-200">
+                        <td className="px-5 py-3.5 font-mono font-bold text-[13px] text-gray-900 dark:text-gray-100">
                           {wo.woNumber}
                         </td>
-                        <td
-                          className="p-2 font-semibold text-slate-700 dark:text-gray-300 max-w-[120px] truncate"
-                          title={wo.product?.name}
-                        >
-                          {wo.product?.name || "Product"}
+                        <td className="px-5 py-3.5 font-mono font-semibold text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                          {wo.product?.sku || (Array.isArray((wo as any).sourceItems) && (wo as any).sourceItems[0]?.sku) || "—"}
                         </td>
-                        <td className="p-2 text-center font-bold text-slate-800 dark:text-gray-200">
-                          {wo.requiredQty}
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          {renderProductColumn(wo)}
                         </td>
-                        <td className="p-2 text-center font-bold text-slate-800 dark:text-gray-200">
-                          {wo.actualProduced || 0}
+                        <td className="px-5 py-3.5 text-center font-bold text-[13px] text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                          {formatRequiredQty(wo)}
                         </td>
-                        <td className="p-2">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                              wo.status === "COMPLETED"
-                                ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
-                                : wo.status === "CANCELLED"
-                                ? "bg-slate-50 dark:bg-gray-700 text-slate-400 dark:text-gray-400 border-slate-200 dark:border-gray-600"
-                                : wo.status === "DRAFT"
-                                ? "bg-slate-50 dark:bg-gray-700 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-600"
-                                : wo.status === "QC_PASSED"
-                                ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
-                                : wo.status === "QC_PENDING"
-                                ? "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
-                                : "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                            }`}
-                          >
+                        <td className="px-5 py-3.5 text-center font-bold text-[13px] text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                          {formatPackedQty(wo)}
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          <span className={`px-2.5 py-1 text-xs font-bold rounded-full border whitespace-nowrap inline-block ${badgeStyle}`}>
                             {wo.status}
                           </span>
                         </td>
-                        <td className="p-2 text-center font-bold">
+                        <td className="px-5 py-3.5 text-right">
                           {(wo.status === "PENDING" || wo.status === "APPROVED") && (
                             <Link
-                              to="/packing-erp/material-issue"
-                              className="text-amber-600 dark:text-amber-400 hover:underline"
+                              to={`/packing-erp/material-issue/${wo.id}`}
+                              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors px-3.5 py-1.5 rounded-lg shadow-xs whitespace-nowrap"
                             >
-                              Issue
+                              <span>Issue</span>
                             </Link>
                           )}
                           {(wo.status === "MATERIAL_ISSUED" ||
                             wo.status === "PACKING_STARTED" ||
-                            wo.status === "PACKING_IN_PROGRESS") && (
+                            wo.status === "PACKING_IN_PROGRESS" ||
+                            wo.status === "LABEL_APPLICATION_ASSIGNED" ||
+                            wo.status === "LABEL_APPLICATION_IN_PROGRESS") && (
+                              <Link
+                                to={`/packing-erp/packing-execution/${wo.id}`}
+                                className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-[#00891D] hover:bg-[#007518] transition-colors px-3.5 py-1.5 rounded-lg shadow-xs whitespace-nowrap"
+                              >
+                                <span>Pack</span>
+                              </Link>
+                            )}
+                          {(wo.status === "LABELS_APPLIED" || wo.status === "QC_PENDING" || wo.status === "QC_IN_PROGRESS") && (
                             <Link
-                              to="/packing-erp/packing-execution"
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                              to={`/packing-erp/quality-check/${wo.id}`}
+                              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-[#EF5A06] hover:bg-[#d44e05] transition-colors px-3.5 py-1.5 rounded-lg shadow-xs whitespace-nowrap"
                             >
-                              Pack
+                              <span>Start QC</span>
                             </Link>
                           )}
-                          {wo.status === "QC_PENDING" && (
+                          {(wo.status === "PACKING_COMPLETED") && (
                             <Link
-                              to="/packing-erp/quality-check"
-                              className="text-rose-600 dark:text-rose-400 hover:underline"
+                              to={`/packing-erp/barcodes-labels/${wo.id}`}
+                              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors px-3.5 py-1.5 rounded-lg shadow-xs whitespace-nowrap"
                             >
-                              Verify
+                              <span>Print Labels</span>
                             </Link>
                           )}
                           {wo.status === "QC_PASSED" && (
                             <Link
-                              to="/packing-erp/finished-goods"
-                              className="text-green-600 dark:text-green-400 hover:underline"
+                              to={`/packing-erp/finished-goods/${wo.id}`}
+                              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors px-3.5 py-1.5 rounded-lg shadow-xs whitespace-nowrap"
                             >
-                              Post FG
+                              <span>Post FG</span>
                             </Link>
                           )}
-                          {wo.status === "DRAFT" && (
+                          {(wo.status === "DRAFT" || wo.status === "COMPLETED" || wo.status === "CANCELLED") && (
                             <Link
                               to="/packing-erp/work-orders"
-                              className="text-slate-600 dark:text-gray-400 hover:underline"
+                              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors px-3 py-1.5 rounded-lg whitespace-nowrap"
                             >
-                              Edit
+                              <span>View</span>
                             </Link>
                           )}
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Live Line Status */}
-            <div className="xl:col-span-1 border-t xl:border-t-0 xl:border-l border-slate-150 dark:border-gray-700 pt-4 xl:pt-0 xl:pl-4 space-y-3.5">
-              <h4 className="font-bold text-slate-700 dark:text-gray-200 text-xs">
-                Live Packing Queue (Lines)
-              </h4>
-              {activeWOs.filter((w) =>
-                [
-                  "PACKING_STARTED",
-                  "PACKING_IN_PROGRESS",
-                  "LABEL_APPLICATION_IN_PROGRESS",
-                ].includes(w.status)
-              ).length === 0 ? (
-                <div className="text-slate-400 dark:text-gray-400 text-xs mt-4">
-                  No active packing lines running.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {activeWOs
-                    .filter((w) =>
-                      [
-                        "PACKING_STARTED",
-                        "PACKING_IN_PROGRESS",
-                        "LABEL_APPLICATION_IN_PROGRESS",
-                      ].includes(w.status)
-                    )
-                    .slice(0, 3)
-                    .map((lineWO) => (
-                      <div
-                        key={lineWO.id}
-                        className="p-2.5 bg-green-50/60 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-xs space-y-1"
-                      >
-                        <div className="flex justify-between items-center font-bold text-slate-800 dark:text-gray-200">
-                          <span>{lineWO.woNumber}</span>
-                          <span className="text-[10px] text-green-700 dark:text-green-300 font-bold bg-green-100 dark:bg-green-900/50 px-1.5 py-0.5 rounded">
-                            Active
-                          </span>
-                        </div>
-                        <p className="text-slate-600 dark:text-gray-400 text-[11px] font-medium truncate">
-                          {lineWO.product?.name || "Product"}
-                        </p>
-                        <div className="flex justify-between text-[10px] text-slate-500 dark:text-gray-400 font-semibold pt-1">
-                          <span>
-                            Produced: {lineWO.actualProduced || 0} / {lineWO.requiredQty}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* THIRD SECTION: MATERIAL SHORTAGE ALERTS */}
-      <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-        <div className="flex justify-between items-center border-b border-slate-150 dark:border-gray-700 pb-3">
-          <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-            <AlertTriangle size={16} className="text-rose-500 dark:text-rose-400" />
-            <span>Material Shortage Alerts</span>
-          </h3>
-          <Link
-            to="/packing-erp/material-issue"
-            className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
-          >
-            View Details
-          </Link>
-        </div>
-
-        {workOrders.filter((w) => w.status === "APPROVED" || w.status === "PENDING").length === 0 ? (
-          <div className="text-slate-400 dark:text-gray-400 text-xs">
-            No material shortages currently reported.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-            {workOrders
-              .filter((w) => w.status === "APPROVED" || w.status === "PENDING")
-              .slice(0, 3)
-              .map((mWO) => (
-                <div
-                  key={mWO.id}
-                  className="p-3 bg-amber-50/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center justify-between"
-                >
-                  <div>
-                    <span className="font-mono font-bold text-slate-800 dark:text-gray-200">
-                      {mWO.woNumber}
-                    </span>
-                    <p className="text-slate-600 dark:text-gray-400 font-medium text-[11px] truncate">
-                      {mWO.product?.name || "Product"}
-                    </p>
-                  </div>
-                  <Link
-                    to="/packing-erp/material-issue"
-                    className="px-2.5 py-1 bg-amber-600 text-white rounded text-[10px] font-bold hover:bg-amber-700 transition-colors"
-                  >
-                    Issue BOM
-                  </Link>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
-
-      {/* FOURTH SECTION: PACKING STATUS, DAILY PRODUCTION, CATEGORY WISE PACKING */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Packing Status */}
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-gray-700 pb-3">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-              <CheckCircle size={16} className="text-green-600 dark:text-green-400" />
-              <span>Packing Status</span>
-            </h3>
-            <Link
-              to="/packing-erp/reports?tab=packing"
-              className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
-            >
-              View Details
-            </Link>
-          </div>
-
-          <div className="space-y-3.5 text-xs">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500 dark:text-gray-400 font-medium">Active Batches</span>
-              <span className="font-bold text-slate-800 dark:text-gray-200">
-                {workOrders.filter((w) => w.batchNumber).length || workOrders.length} Batches
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500 dark:text-gray-400 font-medium">Completed Today</span>
-              <span className="font-bold text-green-600 dark:text-green-400">
-                {
-                  workOrders.filter(
-                    (w) =>
-                      w.status === "COMPLETED" ||
-                      w.status === "QC_PASSED" ||
-                      w.status === "PACKING_COMPLETED"
-                  ).length
-                }{" "}
-                Jobs
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500 dark:text-gray-400 font-medium">Pending QC Release</span>
-              <span className="font-bold text-orange-500 dark:text-orange-400">
-                {
-                  workOrders.filter((w) =>
-                    ["QC_PENDING", "LABELS_APPLIED", "PACKING_COMPLETED"].includes(w.status)
-                  ).length
-                }{" "}
-                Batches
-              </span>
-            </div>
-            <div className="pt-1.5">
-              <div className="flex justify-between mb-1 text-[10px] font-bold text-slate-400 dark:text-gray-400">
-                <span>Shift Target Progress</span>
-                <span>{packingEfficiency}%</span>
-              </div>
-              <div className="w-full bg-slate-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-green-600 dark:bg-green-500 h-full rounded-full transition-all"
-                  style={{ width: `${packingEfficiency}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Daily Production */}
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-gray-700 pb-3">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-              <BarChart3 size={16} className="text-green-600 dark:text-green-400" />
-              <span>Daily Production</span>
-            </h3>
-            <Link
-              to="/packing-erp/reports?tab=packing"
-              className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
-            >
-              View Details
-            </Link>
-          </div>
-
-          {workOrders.length === 0 ? (
-            <div className="text-slate-400 dark:text-gray-400 text-xs mt-4">
-              No daily production data available yet.
-            </div>
-          ) : (
-            <div className="space-y-2.5 text-xs">
-              {workOrders.slice(0, 4).map((wo) => (
-                <div key={wo.id} className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold text-slate-700 dark:text-gray-300">
-                    <span className="truncate max-w-[140px]">
-                      {wo.product?.name || "Product"}
-                    </span>
-                    <span>
-                      {wo.actualProduced || 0} / {wo.requiredQty}
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-indigo-500 dark:bg-indigo-400 h-full rounded-full"
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.round(
-                            ((wo.actualProduced || 0) / (wo.requiredQty || 1)) * 100
-                          )
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Category Wise Packing */}
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-gray-700 pb-3">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-              <Layers size={16} className="text-green-600 dark:text-green-400" />
-              <span>Category Wise Packing</span>
-            </h3>
-            <Link
-              to="/packing-erp/reports?tab=conversion"
-              className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
-            >
-              View Details
-            </Link>
-          </div>
-
-          {categoriesList.length === 0 ? (
-            <div className="text-slate-400 dark:text-gray-400 text-xs mt-4">
-              No category packing data available.
-            </div>
-          ) : (
-            <div className="space-y-3 text-xs">
-              {categoriesList.slice(0, 4).map(([cat, qty]) => (
-                <div
-                  key={cat}
-                  className="flex items-center justify-between p-2 bg-slate-50 dark:bg-gray-700/40 rounded-lg"
-                >
-                  <span className="font-semibold text-slate-700 dark:text-gray-300">{cat}</span>
-                  <span className="font-bold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-0.5 rounded text-[11px]">
-                    {qty} units
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* FIFTH SECTION: EMPLOYEE PERFORMANCE, RAW MATERIAL CONSUMPTION, REJECTED ITEMS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Employee Performance */}
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-gray-700 pb-3">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-              <UserCheck size={16} className="text-green-600 dark:text-green-400" />
-              <span>Employee Performance</span>
-            </h3>
-            <Link
-              to="/packing-erp/reports?tab=employee"
-              className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
-            >
-              View Details
-            </Link>
-          </div>
-
-          {empList.length === 0 ? (
-            <div className="text-slate-400 dark:text-gray-400 text-xs mt-4">
-              No employee performance data available.
-            </div>
-          ) : (
-            <div className="space-y-2.5 text-xs">
-              {empList.slice(0, 4).map(([name, data]) => (
-                <div
-                  key={name}
-                  className="flex justify-between items-center p-2 border border-slate-100 dark:border-gray-700 rounded-lg"
-                >
-                  <div>
-                    <span className="font-bold text-slate-800 dark:text-gray-200 block">
-                      {name}
-                    </span>
-                    <span className="text-[10px] text-slate-400 dark:text-gray-400">
-                      {data.count} Assigned Jobs
-                    </span>
-                  </div>
-                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">
-                    {data.produced} units
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Raw Material Consumption */}
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-gray-700 pb-3">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-              <Package size={16} className="text-green-600 dark:text-green-400" />
-              <span>Raw Material Consumption</span>
-            </h3>
-            <Link
-              to="/packing-erp/reports?tab=consumption"
-              className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
-            >
-              View Details
-            </Link>
-          </div>
-
-          {workOrders.length === 0 ? (
-            <div className="text-slate-400 dark:text-gray-400 text-xs mt-4">
-              No material consumption data available.
-            </div>
-          ) : (
-            <div className="space-y-2 text-xs">
-              {workOrders.slice(0, 4).map((wo) => (
-                <div
-                  key={wo.id}
-                  className="flex justify-between items-center p-2 bg-slate-50 dark:bg-gray-700/40 rounded-lg text-[11px]"
-                >
-                  <span className="font-medium text-slate-700 dark:text-gray-300 truncate max-w-[130px]">
-                    {wo.product?.name || "Product"} Materials
-                  </span>
-                  <span className="font-bold text-slate-800 dark:text-gray-200">
-                    {Math.round((wo.requiredQty || 100) * 1.05)} kg/units
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Rejected Items */}
-        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-gray-700 pb-3">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-              <AlertTriangle size={16} className="text-rose-500 dark:text-rose-400" />
-              <span>Rejected Items</span>
-            </h3>
-            <Link
-              to="/packing-erp/reports?tab=rejected"
-              className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
-            >
-              View Details
-            </Link>
-          </div>
-
-          {qcRejects === 0 &&
-          qualityChecks.filter(
-            (q) => q.result === "REJECT" || q.result === "REWORK" || q.result === "DISCARD"
-          ).length === 0 ? (
-            <div className="text-slate-400 dark:text-gray-400 text-xs mt-4">
-              No rejected items recorded.
-            </div>
-          ) : (
-            <div className="space-y-2 text-xs">
-              {qualityChecks
-                .filter((q) =>
-                  ["REJECT", "REWORK", "DISCARD"].includes(q.result)
-                )
-                .slice(0, 4)
-                .map((qc) => (
-                  <div
-                    key={qc.id}
-                    className="flex justify-between items-center p-2 bg-rose-50/60 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg text-[11px]"
-                  >
-                    <div>
-                      <span className="font-bold text-rose-800 dark:text-rose-300">
-                        {qc.qcNumber}
-                      </span>
-                      <p className="text-rose-600 dark:text-rose-400 text-[10px] truncate">
-                        {qc.failureReason || "Failed Checkpoint"}
-                      </p>
-                    </div>
-                    <span className="font-bold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/50 px-2 py-0.5 rounded text-[10px]">
-                      {qc.result}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* LAST SECTION: BATCH STATUS */}
-      <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl p-5 shadow-xs space-y-4">
-        <div className="flex justify-between items-center border-b border-slate-150 dark:border-gray-700 pb-3">
-          <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-            <Clock size={16} className="text-green-600 dark:text-green-400" />
-            <span>Batch Status</span>
-          </h3>
-          <Link
-            to="/packing-erp/reports?tab=traceability"
-            className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline"
-          >
-            View Details
-          </Link>
-        </div>
-
-        {workOrders.length === 0 ? (
-          <div className="text-slate-400 dark:text-gray-400 text-xs">
-            No active batches.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-gray-700/50 text-slate-500 dark:text-gray-300 font-bold border-b border-slate-200 dark:border-gray-700 text-[11px]">
-                  <th className="p-2.5">Batch Number</th>
-                  <th className="p-2.5">WO Number</th>
-                  <th className="p-2.5">Product</th>
-                  <th className="p-2.5 text-center">Qty Produced</th>
-                  <th className="p-2.5 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
-                {workOrders.slice(0, 6).map((wo) => (
-                  <tr key={wo.id} className="hover:bg-slate-50/50 dark:hover:bg-gray-700/30">
-                    <td className="p-2.5 font-mono font-bold text-slate-800 dark:text-gray-200">
-                      {wo.batchNumber || `BATCH-${wo.woNumber}`}
-                    </td>
-                    <td className="p-2.5 font-mono font-bold text-slate-600 dark:text-gray-400">
-                      {wo.woNumber}
-                    </td>
-                    <td className="p-2.5 font-semibold text-slate-700 dark:text-gray-300">
-                      {wo.product?.name || "Product"}
-                    </td>
-                    <td className="p-2.5 text-center font-bold text-slate-800 dark:text-gray-200">
-                      {wo.actualProduced || 0} / {wo.requiredQty}
-                    </td>
-                    <td className="p-2.5 text-center">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
-                        {wo.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
-        )}
+
+          {/* Pagination Footer - Only displays when currentTabWOs has more than 10 rows */}
+          {currentTabWOs.length > 10 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="text-[13px] text-gray-500 dark:text-gray-400 font-medium">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, currentTabWOs.length)} of {currentTabWOs.length} entries
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-[14px] font-semibold text-gray-700 dark:text-gray-300 px-2">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -6,13 +6,9 @@ const ShopkeeperAdminERP = lazy(() => import("../pages/admin_pages/orders/Shopke
 
 // Packing ERP (Admin)
 const PackingDashboard = lazy(() => import("../pages/admin_pages/packing/PackingDashboard"));
-const PackingMasterData = lazy(() => import("../pages/admin_pages/packing/PackingMasterData"));
-const PackingProductBOM = lazy(() => import("../pages/admin_pages/packing/PackingProductBOM"));
 const PackingWorkOrders = lazy(() => import("../pages/admin_pages/packing/PackingWorkOrders"));
 const PackingApprovals = lazy(() => import("../pages/admin_pages/packing/PackingApprovals"));
-const PackingMaterialIssue = lazy(() => import("../pages/admin_pages/packing/PackingMaterialIssue"));
 const PackingMaterialIssueDetails = lazy(() => import("../pages/admin_pages/packing/PackingMaterialIssueDetails"));
-const PackingExecution = lazy(() => import("../pages/admin_pages/packing/PackingExecution"));
 const PackingExecutionDetails = lazy(() => import("../pages/admin_pages/packing/PackingExecutionDetails"));
 const PackingBarcodesLabels = lazy(() => import("../pages/admin_pages/packing/PackingBarcodesLabels"));
 const PackingQualityCheck = lazy(() => import("../pages/admin_pages/packing/PackingQualityCheck"));
@@ -719,16 +715,6 @@ export const protectedRoutes: RouteConfig[] = [
     requiresAuth: true,
   },
   {
-    path: "/packing-erp/master-data",
-    component: PackingMasterData,
-    requiresAuth: true,
-  },
-  {
-    path: "/packing-erp/product-bom",
-    component: PackingProductBOM,
-    requiresAuth: true,
-  },
-  {
     path: "/packing-erp/work-orders",
     component: PackingWorkOrders,
     requiresAuth: true,
@@ -739,18 +725,8 @@ export const protectedRoutes: RouteConfig[] = [
     requiresAuth: true,
   },
   {
-    path: "/packing-erp/material-issue",
-    component: PackingMaterialIssue,
-    requiresAuth: true,
-  },
-  {
     path: "/packing-erp/material-issue/:id",
     component: PackingMaterialIssueDetails,
-    requiresAuth: true,
-  },
-  {
-    path: "/packing-erp/packing-execution",
-    component: PackingExecution,
     requiresAuth: true,
   },
   {
@@ -759,17 +735,17 @@ export const protectedRoutes: RouteConfig[] = [
     requiresAuth: true,
   },
   {
-    path: "/packing-erp/barcodes-labels",
+    path: "/packing-erp/barcodes-labels/:id",
     component: PackingBarcodesLabels,
     requiresAuth: true,
   },
   {
-    path: "/packing-erp/quality-check",
+    path: "/packing-erp/quality-check/:id",
     component: PackingQualityCheck,
     requiresAuth: true,
   },
   {
-    path: "/packing-erp/finished-goods",
+    path: "/packing-erp/finished-goods/:id",
     component: PackingFinishedGoods,
     requiresAuth: true,
   },

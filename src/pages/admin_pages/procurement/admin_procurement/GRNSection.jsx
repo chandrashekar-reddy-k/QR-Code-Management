@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Truck, X, ChevronRight, Loader2, Trash2, History, PackageCheck, Edit3, FileText, Upload, 
-  Paperclip, File, Trash, CheckCircle2, ShoppingCart, MapPin, ShieldCheck, Package, 
+import {
+  Truck, X, ChevronRight, Loader2, Trash2, History, PackageCheck, Edit3, FileText, Upload,
+  Paperclip, File, Trash, CheckCircle2, ShoppingCart, MapPin, ShieldCheck, Package,
   AlertTriangle, MinusCircle, Timer, MessageSquare, FileX, Printer, Download, ShieldCheck as ShieldCheckIcon,
   Users, Plus, Phone, Mail, User, Clock, DollarSign, Building2, Tag, ToggleLeft, ToggleRight,
   ShieldAlert, CreditCard, Hash, ChevronLeft
@@ -60,14 +60,14 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
 
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh] bg-black/40 backdrop-blur-sm" onClick={() => setIsOpen(false)}>
-          <div 
+          <div
             className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-lg flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 m-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Select Product & Variant</span>
-              <button 
-                onClick={() => setIsOpen(false)} 
+              <button
+                onClick={() => setIsOpen(false)}
                 className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
               >
                 <X size={16} />
@@ -97,11 +97,10 @@ const SearchableProductDropdown = ({ products, selectedProductId, onChange, plac
                           onChange(resolvedId, p);
                           setIsOpen(false);
                         }}
-                        className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${
-                          isSelected 
-                            ? 'bg-emerald-50 text-emerald-700' 
+                        className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl cursor-pointer transition-colors ${isSelected
+                            ? 'bg-emerald-50 text-emerald-700'
                             : 'text-gray-700 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
@@ -181,6 +180,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
     { id: Date.now(), productId: '', qty: '', unit: 'KG', price: '', total: 0, damaged: '', expiry: '' }
   ]);
   const [showVendorModal, setShowVendorModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [newVendor, setNewVendor] = useState({
     vendorName: '', mobile: '', email: '', address: '',
     gstNumber: '', contactPerson: '', creditDays: '30', openingBalance: '0',
@@ -256,7 +256,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       setVendors(Array.isArray(vendorsArray) ? vendorsArray : []);
       setUsers(Array.isArray(usersArray) ? usersArray : []);
       setProducts(flattenedProducts);
-    } catch (error) { 
+    } catch (error) {
       console.error('GRN load error:', error);
       // Suppress global toast on partial failure 
     }
@@ -292,13 +292,21 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       setSelectedPO(poId);
       setPODetail({ ...data, remarks: '' });
       setGRNItems((data.items || []).map(item => {
+        const variantProd = (item.productVariantId && products)
+          ? products.find(p => p.id === item.productVariantId || p.productId === item.productVariantId)
+          : (item.product?.variants && (item.productVariantId || item.variantName || item.mrp || item.rate))
+            ? item.product.variants.find(v => (item.productVariantId && v.id === item.productVariantId) || (item.variantName && v.variantName === item.variantName) || (item.skuCode && v.sku === item.skuCode) || (item.mrp > 0 && Number(v.mrp) === Number(item.mrp)) || (item.rate > 0 && Number(v.price) === Number(item.rate)))
+            : null;
+
         const targetProd = products.find(p => p.id === item.productId || p.productId === item.productId || p.id === item.product?.id);
-        const sku = targetProd?.skuCode || targetProd?.sku || item.skuCode || item.sku || item.product?.skuCode || item.product?.sku || item.vendorSku || '';
-        const uom = item.uom || targetProd?.uom || '';
-        const variantName = item.variantName || item.product?.variantName || item.productVariant?.variantName || targetProd?.variantName || '';
+        
+        const sku = item.skuCode || variantProd?.sku || variantProd?.skuCode || item.productVariant?.sku || item.sku || targetProd?.skuCode || targetProd?.sku || item.product?.skuCode || item.product?.sku || item.vendorSku || '';
+        const uom = item.uom || variantProd?.unit || targetProd?.unit?.name || targetProd?.uom || '';
+        const variantName = item.variantName || variantProd?.variantName || item.product?.variantName || item.productVariant?.variantName || targetProd?.variantName || '';
 
         return {
           productId: item.productId,
+          productVariantId: item.productVariantId || variantProd?.id || null,
           name: item.name || item.productName || item.product?.name || targetProd?.name || 'Item',
           variantName: variantName,
           sku: sku,
@@ -392,7 +400,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
   const handleEditGRN = (grn) => {
     setEditGRN(grn);
     setSelectedPO(grn.poId);
-    
+
     // Parse metadata if available from remarks
     let parsedAttachments = [];
     if (grn.remarks && grn.remarks.includes('[GRN_METADATA]:')) {
@@ -415,7 +423,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
     }
 
     setPODetail(grn.po ? { ...grn.po, challanId: grn.challanId || grn.po.challanId || '', remarks: cleanRemarkText } : { challanId: grn.challanId || '', remarks: cleanRemarkText });
-    
+
     // Set directGRNData for basic details (Received By, Delivery Date, Notes)
     setDirectGRNData({
       vendorId: grn.po?.vendorId || '',
@@ -441,42 +449,58 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
   };
 
   const handleDeleteGRN = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this Goods Receipt? This will revert stock increases.')) return;
-    try {
-      await procurementAPI.deleteGRN(id);
-      toast.success('Goods receipt deleted');
-      loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error deleting GRN');
-    }
+    setConfirmDialog({
+      title: 'Delete Goods Receipt',
+      message: 'Are you sure you want to delete this Goods Receipt? This will revert stock increases.',
+      confirmText: 'Delete GRN',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await procurementAPI.deleteGRN(id);
+          toast.success('Goods receipt deleted');
+          loadData();
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Error deleting GRN');
+        }
+      }
+    });
   };
 
   const handleApproveQC = async (grn) => {
-    if (!window.confirm(`Are you sure you want to approve all items for GRN-${grn.displayId} (Bypassing QC)?`)) return;
-    try {
-      const pendingItems = (grn.items || []).filter(item => item.qcStatus === 'PENDING');
-      if (pendingItems.length === 0) {
-        toast.error('No pending items to approve on this GRN.');
-        return;
+    setConfirmDialog({
+      title: 'Approve Quality Control',
+      message: `Are you sure you want to approve all items for GRN-${grn.displayId} (Bypassing QC)?`,
+      confirmText: 'Approve QC',
+      cancelText: 'Cancel',
+      variant: 'emerald',
+      onConfirm: async () => {
+        try {
+          const pendingItems = (grn.items || []).filter(item => item.qcStatus === 'PENDING');
+          if (pendingItems.length === 0) {
+            toast.error('No pending items to approve on this GRN.');
+            return;
+          }
+
+          // Approve each pending item
+          for (const item of pendingItems) {
+            await procurementAPI.updateQCStatus(item.id, { status: 'APPROVED', remarks: 'Bulk Approved (QC Bypassed)' });
+          }
+
+          toast.success(`Successfully approved QC for all items in GRN-${grn.displayId}`);
+          loadData();
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Error approving QC');
+        }
       }
-      
-      // Approve each pending item
-      for (const item of pendingItems) {
-        await procurementAPI.updateQCStatus(item.id, { status: 'APPROVED', remarks: 'Bulk Approved (QC Bypassed)' });
-      }
-      
-      toast.success(`Successfully approved QC for all items in GRN-${grn.displayId}`);
-      loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error approving QC');
-    }
+    });
   };
 
   const handleCreateDirectGRN = async () => {
     if (!directGRNData.vendorId) return toast.error('Select a vendor');
     const items = directItems.filter(i => i.productId && parseInt(i.qty) > 0);
     if (items.length === 0) return toast.error('Add at least one item with valid quantity');
-    
+
     setSubmitting(true);
     try {
       // 1. Auto-create a Purchase Order for this direct receipt
@@ -601,23 +625,21 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       {view !== 'report' && !view.startsWith('create-') && (
         <div className="flex items-center justify-between w-full">
           <div className="flex gap-4 p-1 rounded-2xl w-fit">
-            <button 
-              onClick={() => { setView('receive'); setSelectedPO(null); }} 
-              className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                view === 'receive' 
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' 
+            <button
+              onClick={() => { setView('receive'); setSelectedPO(null); }}
+              className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${view === 'receive'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
                   : 'text-gray-400 hover:text-gray-600 bg-gray-50'
-              }`}
+                }`}
             >
               Receive Goods
             </button>
-            <button 
-              onClick={() => setView('history')} 
-              className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                view === 'history' 
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' 
+            <button
+              onClick={() => setView('history')}
+              className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${view === 'history'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
                   : 'text-gray-400 hover:text-gray-600 bg-gray-50'
-              }`}
+                }`}
             >
               GRN History
             </button>
@@ -642,7 +664,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
               Back to Goods Receipt
             </button>
           </div>
-          
+
           <div className="text-center mb-12 space-y-3">
             <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">Create Goods Receipt Note</h1>
             <p className="text-sm font-bold text-gray-400">Choose the type of GRN to create.</p>
@@ -696,13 +718,13 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
               <p className="text-sm font-bold text-gray-400">Record stock purchased directly from vendors or local markets.</p>
             </div>
           </div>
-          
+
           <div className="space-y-6">
             {/* Basic Details Card */}
             <div className="bg-white border border-gray-100 rounded-3xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Basic Details</h3>
-                <button 
+                <button
                   onClick={handleOpenVendorModal}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all"
                 >
@@ -713,7 +735,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Vendor <span className="text-rose-500">*</span></label>
-                    <select 
+                    <select
                       value={directGRNData.vendorId}
                       onChange={e => setDirectGRNData(prev => ({ ...prev, vendorId: e.target.value }))}
                       className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -726,7 +748,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Received By <span className="text-rose-500">*</span></label>
-                    <select 
+                    <select
                       value={directGRNData.receivedBy}
                       onChange={e => setDirectGRNData(prev => ({ ...prev, receivedBy: e.target.value }))}
                       className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -741,8 +763,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Purchase Date & Time</label>
-                    <input 
-                      type="datetime-local" 
+                    <input
+                      type="datetime-local"
                       value={directGRNData.purchaseDate}
                       onChange={e => setDirectGRNData(prev => ({ ...prev, purchaseDate: e.target.value }))}
                       className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -750,7 +772,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Verification Notes</label>
-                    <textarea 
+                    <textarea
                       placeholder="Add purchase or verification remarks..."
                       value={directGRNData.notes}
                       onChange={e => setDirectGRNData(prev => ({ ...prev, notes: e.target.value }))}
@@ -767,7 +789,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Items ({directItems.filter(i => i.productId).length})</h3>
                 <div className="flex items-center gap-2">
                   {directItems.length > 1 && (
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setDirectItems([{ id: Date.now(), productId: '', name: '', qty: '', unit: 'KG', price: '', total: 0, damaged: '', expiry: '' }])}
                       className="flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
@@ -776,7 +798,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                       Clear
                     </button>
                   )}
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setDirectItems(prev => [...prev, { id: Date.now(), productId: '', name: '', qty: '', unit: 'KG', price: '', total: 0, damaged: '', expiry: '' }])}
                     className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all active:scale-95 shadow-sm"
@@ -825,8 +847,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           />
                         </td>
                         <td className="px-2 py-3">
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             value={item.qty}
                             onChange={e => {
                               const updated = [...directItems];
@@ -838,7 +860,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           />
                         </td>
                         <td className="px-2 py-3">
-                          <select 
+                          <select
                             value={item.unit}
                             onChange={e => {
                               const updated = [...directItems];
@@ -854,8 +876,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           </select>
                         </td>
                         <td className="px-2 py-3">
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             value={item.price}
                             onChange={e => {
                               const updated = [...directItems];
@@ -872,8 +894,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           </div>
                         </td>
                         <td className="px-2 py-3">
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             value={item.damaged}
                             onChange={e => {
                               const updated = [...directItems];
@@ -884,8 +906,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           />
                         </td>
                         <td className="px-2 py-3">
-                          <input 
-                            type="date" 
+                          <input
+                            type="date"
                             value={item.expiry}
                             onChange={e => {
                               const updated = [...directItems];
@@ -896,7 +918,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           />
                         </td>
                         <td className="px-2 py-3 text-center">
-                          <button 
+                          <button
                             onClick={() => setDirectItems(prev => prev.filter((_, i) => i !== idx))}
                             className="p-2 text-gray-300 hover:text-rose-500 transition-colors"
                           >
@@ -947,10 +969,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 </div>
               )}
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-3 pt-4">
-              <button 
+              <button
                 onClick={() => setView('receive')}
                 className="px-8 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
               >
@@ -959,7 +981,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
               <button className="px-8 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm">
                 Save Draft
               </button>
-              <button 
+              <button
                 onClick={handleCreateDirectGRN}
                 disabled={submitting}
                 className="px-10 py-3 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
@@ -974,90 +996,90 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       {view === 'receive' && (
         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden p-6">
           {pos.length === 0 ? (
-                <div className="p-20 border-2 border-dashed border-gray-100 rounded-[2rem] text-center">
-                  <Truck size={64} className="mx-auto text-gray-200 mb-4" strokeWidth={1.5} />
-                  <h3 className="text-xl font-black text-gray-300 uppercase tracking-tighter">No Open Purchase Orders</h3>
-                  <p className="text-sm font-bold text-gray-400 mt-2">All orders have been received or closed.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left table-auto">
-                    <thead>
-                      <tr className="text-[9px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 whitespace-nowrap">
-                        <th className="px-4 py-4">PO Details</th>
-                        <th className="px-4 py-4">Vendor</th>
-                        <th className="px-4 py-4">ETA / Delivery Date</th>
-                        <th className="px-4 py-4 text-center">Items</th>
-                        <th className="px-4 py-4 text-center">Delivery Status</th>
-                        <th className="px-4 py-4 text-center">Verification Status</th>
-                        <th className="px-4 py-4 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {pos.map(po => (
-                        <tr
-                          key={po.id}
-                          className="group hover:bg-emerald-50/30 transition-all cursor-pointer border-b border-gray-50 last:border-0"
+            <div className="p-20 border-2 border-dashed border-gray-100 rounded-[2rem] text-center">
+              <Truck size={64} className="mx-auto text-gray-200 mb-4" strokeWidth={1.5} />
+              <h3 className="text-xl font-black text-gray-300 uppercase tracking-tighter">No Open Purchase Orders</h3>
+              <p className="text-sm font-bold text-gray-400 mt-2">All orders have been received or closed.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left table-auto">
+                <thead>
+                  <tr className="text-[9px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 whitespace-nowrap">
+                    <th className="px-4 py-4">PO Details</th>
+                    <th className="px-4 py-4">Vendor</th>
+                    <th className="px-4 py-4">ETA / Delivery Date</th>
+                    <th className="px-4 py-4 text-center">Items</th>
+                    <th className="px-4 py-4 text-center">Delivery Status</th>
+                    <th className="px-4 py-4 text-center">Verification Status</th>
+                    <th className="px-4 py-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {pos.map(po => (
+                    <tr
+                      key={po.id}
+                      className="group hover:bg-emerald-50/30 transition-all cursor-pointer border-b border-gray-50 last:border-0"
+                    >
+                      <td className="px-4 py-4" onClick={() => selectPO(po.id)}>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-gray-900 group-hover:text-emerald-600 transition-colors uppercase tracking-tight truncate max-w-[120px]">
+                            PO-{po.displayId}
+                          </span>
+                          <span className="text-[9px] font-bold text-gray-400">₹{po.totalAmount?.toLocaleString()}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-gray-900 tracking-tight truncate max-w-[150px]">{po.vendor?.vendorName}</span>
+                          <span className="text-[9px] font-bold text-gray-400">{po.vendor?.phone || '+91 XXXXX XXXXX'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-gray-900 tracking-tight">
+                            {format(new Date(po.poDate), 'yyyy-MM-dd')}
+                          </span>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">
+                            {format(new Date(po.poDate), 'hh:mm a')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <div className="inline-flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                          <PackageCheck size={12} className="text-gray-400" />
+                          <span className="text-[10px] font-black text-gray-900">{po.items?.length || 0}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`text-[9px] font-black px-3 py-1 rounded-full border uppercase tracking-widest ${po.status === 'DELIVERED'
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                          : po.status === 'ORDERED'
+                            ? 'bg-blue-50 text-blue-600 border-blue-100'
+                            : 'bg-amber-50 text-amber-600 border-amber-100'
+                          }`}>
+                          {po.status === 'ORDERED' ? 'Arrived' : po.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="text-[9px] font-black px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-full uppercase tracking-widest">
+                          Pending
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <button
+                          onClick={() => selectPO(po.id)}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all active:scale-95 shadow-sm"
                         >
-                          <td className="px-4 py-4" onClick={() => selectPO(po.id)}>
-                            <div className="flex flex-col">
-                              <span className="text-xs font-black text-gray-900 group-hover:text-emerald-600 transition-colors uppercase tracking-tight truncate max-w-[120px]">
-                                PO-{po.displayId}
-                              </span>
-                              <span className="text-[9px] font-bold text-gray-400">₹{po.totalAmount?.toLocaleString()}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-xs font-black text-gray-900 tracking-tight truncate max-w-[150px]">{po.vendor?.vendorName}</span>
-                              <span className="text-[9px] font-bold text-gray-400">{po.vendor?.phone || '+91 XXXXX XXXXX'}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-xs font-black text-gray-900 tracking-tight">
-                                {format(new Date(po.poDate), 'yyyy-MM-dd')}
-                              </span>
-                              <span className="text-[9px] font-bold text-gray-400 uppercase">
-                                {format(new Date(po.poDate), 'hh:mm a')}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="inline-flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                              <PackageCheck size={12} className="text-gray-400" />
-                              <span className="text-[10px] font-black text-gray-900">{po.items?.length || 0}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className={`text-[9px] font-black px-3 py-1 rounded-full border uppercase tracking-widest ${po.status === 'DELIVERED'
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                : po.status === 'ORDERED'
-                                  ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                  : 'bg-amber-50 text-amber-600 border-amber-100'
-                              }`}>
-                              {po.status === 'ORDERED' ? 'Arrived' : po.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className="text-[9px] font-black px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-full uppercase tracking-widest">
-                              Pending
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-right">
-                            <button
-                              onClick={() => selectPO(po.id)}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all active:scale-95 shadow-sm"
-                            >
-                              Receive
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                          Receive
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -1065,21 +1087,21 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-3">
-                <button
-                  onClick={() => { setSelectedPO(null); setPODetail(null); setEditGRN(null); setView('receive'); }}
-                  className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-emerald-600 uppercase tracking-widest hover:translate-x-[-4px] transition-all w-fit"
-                >
-                  <ChevronRight size={14} className="rotate-180" strokeWidth={3} />
-                  Back to Goods Receipt
-                </button>
-                <span className="text-gray-200">|</span>
-                <button
-                  onClick={() => { setSelectedPO(null); setPODetail(null); setEditGRN(null); setView('create-selection'); }}
-                  className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-emerald-600 uppercase tracking-widest transition-all w-fit"
-                >
-                  Back to Type Selection
-                </button>
-              </div>
+              <button
+                onClick={() => { setSelectedPO(null); setPODetail(null); setEditGRN(null); setView('receive'); }}
+                className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-emerald-600 uppercase tracking-widest hover:translate-x-[-4px] transition-all w-fit"
+              >
+                <ChevronRight size={14} className="rotate-180" strokeWidth={3} />
+                Back to Goods Receipt
+              </button>
+              <span className="text-gray-200">|</span>
+              <button
+                onClick={() => { setSelectedPO(null); setPODetail(null); setEditGRN(null); setView('create-selection'); }}
+                className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-emerald-600 uppercase tracking-widest transition-all w-fit"
+              >
+                Back to Type Selection
+              </button>
+            </div>
             <div className="space-y-1">
               <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">
                 {editGRN ? `EDIT GOODS RECEIPT (GRN-${editGRN.displayId})` : 'CREATE PO-BASED GRN'}
@@ -1098,7 +1120,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Linked PO <span className="text-rose-500">*</span></label>
-                    <select 
+                    <select
                       value={selectedPO || ''}
                       disabled={Boolean(editGRN)}
                       onChange={e => e.target.value ? selectPO(e.target.value) : setSelectedPO(null)}
@@ -1115,8 +1137,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Vendor</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       readOnly
                       value={poDetail?.vendor?.vendorName || 'Auto-filled from PO'}
                       className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 outline-none text-gray-500"
@@ -1124,7 +1146,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Received By <span className="text-rose-500">*</span></label>
-                    <select 
+                    <select
                       value={directGRNData.receivedBy}
                       onChange={e => setDirectGRNData(prev => ({ ...prev, receivedBy: e.target.value }))}
                       className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -1139,8 +1161,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Delivery Date & Time</label>
-                    <input 
-                      type="datetime-local" 
+                    <input
+                      type="datetime-local"
                       value={directGRNData.purchaseDate}
                       onChange={e => setDirectGRNData(prev => ({ ...prev, purchaseDate: e.target.value }))}
                       className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -1149,7 +1171,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                   <div className="flex gap-4">
                     <div className="flex-1 space-y-2">
                       <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Challan / Invoice No</label>
-                      <input 
+                      <input
                         type="text"
                         placeholder="CH-2024-XXXX"
                         value={poDetail?.challanId || ''}
@@ -1174,233 +1196,233 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                   <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Items Verification</h3>
                 </div>
                 {/* Items Table */}
-              <div className="overflow-x-auto custom-scrollbar w-full">
-                <table className="w-max min-w-full text-left">
-                  <thead>
-                    <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 whitespace-nowrap">
-                      <th className="px-3 py-4">Item</th>
-                      <th className="px-3 py-4 text-center">Ordered</th>
-                      <th className="px-3 py-4 text-center">Already RCVD</th>
-                      <th className="px-3 py-4 text-center">Balance</th>
-                      <th className="px-3 py-4 text-center">Receive Now</th>
-                      <th className="px-3 py-4 text-center">Damaged</th>
-                      <th className="px-3 py-4 text-center">Expiry Check</th>
-                      <th className="px-3 py-4 text-center text-rose-500">Missing</th>
-                      <th className="px-3 py-4 text-right whitespace-nowrap sticky right-0 bg-white z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.05)]">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {grnItems.map((item, idx) => {
-                      const missing = Math.max(0, item.balance - (parseInt(item.receivedQty) || 0) - (parseInt(item.damagedQty) || 0));
-                      return (
-                        <tr key={item.productId} className="group">
-                          <td className="px-3 py-6">
-                            <div className="flex flex-col">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-sm font-black text-gray-900 tracking-tight">{item.name}</span>
-                                {(item.variantName || item.product?.variantName || item.productVariant?.variantName) && (
-                                  <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider">
-                                    {item.variantName || item.product?.variantName || item.productVariant?.variantName}
-                                  </span>
-                                )}
+                <div className="overflow-x-auto custom-scrollbar w-full">
+                  <table className="w-max min-w-full text-left">
+                    <thead>
+                      <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 whitespace-nowrap">
+                        <th className="px-3 py-4">Item</th>
+                        <th className="px-3 py-4 text-center">Ordered</th>
+                        <th className="px-3 py-4 text-center">Already RCVD</th>
+                        <th className="px-3 py-4 text-center">Balance</th>
+                        <th className="px-3 py-4 text-center">Receive Now</th>
+                        <th className="px-3 py-4 text-center">Damaged</th>
+                        <th className="px-3 py-4 text-center">Expiry Check</th>
+                        <th className="px-3 py-4 text-center text-rose-500">Missing</th>
+                        <th className="px-3 py-4 text-right whitespace-nowrap sticky right-0 bg-white z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.05)]">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {grnItems.map((item, idx) => {
+                        const missing = Math.max(0, item.balance - (parseInt(item.receivedQty) || 0) - (parseInt(item.damagedQty) || 0));
+                        return (
+                          <tr key={item.productId} className="group">
+                            <td className="px-3 py-6">
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-sm font-black text-gray-900 tracking-tight">{item.name}</span>
+                                  {(item.variantName || item.product?.variantName || item.productVariant?.variantName) && (
+                                    <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider">
+                                      {item.variantName || item.product?.variantName || item.productVariant?.variantName}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-400">SKU: {item.sku || item.skuCode || item.product?.skuCode || 'N/A'}</span>
+                                {item.weight ? <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.weight}</span> : null}
                               </div>
-                              <span className="text-[10px] font-bold text-gray-400">SKU: {item.sku || item.skuCode || item.product?.skuCode || 'N/A'}</span>
-                              {item.weight ? <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.weight}</span> : null}
-                            </div>
-                          </td>
-                          <td className="px-3 py-6 text-center text-sm font-black text-gray-900">{item.orderedQty}</td>
-                          <td className="px-3 py-6 text-center text-sm font-black text-gray-400">{item.alreadyReceived}</td>
-                          <td className="px-3 py-6 text-center text-sm font-black text-gray-900">{item.balance}</td>
-                          <td className="px-3 py-6">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => {
-                                  const updated = [...grnItems];
-                                  const cur = parseInt(updated[idx].receivedQty) || 0;
-                                  updated[idx].receivedQty = String(Math.max(0, cur - 1));
-                                  setGRNItems(updated);
-                                }}
-                                className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold"
-                              >-</button>
-                              <input
-                                type="number"
-                                min="0"
-                                value={item.receivedQty}
-                                onChange={e => {
-                                  const updated = [...grnItems];
-                                  updated[idx].receivedQty = e.target.value;
-                                  setGRNItems(updated);
-                                }}
-                                className="w-16 bg-white border border-gray-100 rounded-lg px-2 py-1.5 text-xs font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
-                              />
-                              <button
-                                onClick={() => {
-                                  const updated = [...grnItems];
-                                  const cur = parseInt(updated[idx].receivedQty) || 0;
-                                  updated[idx].receivedQty = String(cur + 1);
-                                  setGRNItems(updated);
-                                }}
-                                className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold"
-                              >+</button>
-                            </div>
-                          </td>
-                          <td className="px-3 py-6">
-                            <div className="flex justify-center">
-                              <input
-                                type="number"
-                                min="0"
-                                value={item.damagedQty}
-                                onChange={e => {
-                                  const updated = [...grnItems];
-                                  updated[idx].damagedQty = e.target.value;
-                                  setGRNItems(updated);
-                                }}
-                                className="w-16 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
-                              />
-                            </div>
-                          </td>
-                          <td className="px-3 py-6">
-                            <div className="flex items-center justify-center gap-1">
-                              {['Safe', 'Near', 'Expired'].map(status => (
+                            </td>
+                            <td className="px-3 py-6 text-center text-sm font-black text-gray-900">{item.orderedQty}</td>
+                            <td className="px-3 py-6 text-center text-sm font-black text-gray-400">{item.alreadyReceived}</td>
+                            <td className="px-3 py-6 text-center text-sm font-black text-gray-900">{item.balance}</td>
+                            <td className="px-3 py-6">
+                              <div className="flex items-center justify-center gap-2">
                                 <button
-                                  key={status}
                                   onClick={() => {
                                     const updated = [...grnItems];
-                                    updated[idx].expiryStatus = status.toUpperCase();
+                                    const cur = parseInt(updated[idx].receivedQty) || 0;
+                                    updated[idx].receivedQty = String(Math.max(0, cur - 1));
                                     setGRNItems(updated);
                                   }}
-                                  className={`px-2 py-1 rounded-md text-[8px] font-black uppercase transition-all ${item.expiryStatus === status.toUpperCase()
+                                  className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold"
+                                >-</button>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.receivedQty}
+                                  onChange={e => {
+                                    const updated = [...grnItems];
+                                    updated[idx].receivedQty = e.target.value;
+                                    setGRNItems(updated);
+                                  }}
+                                  className="w-16 bg-white border border-gray-100 rounded-lg px-2 py-1.5 text-xs font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const updated = [...grnItems];
+                                    const cur = parseInt(updated[idx].receivedQty) || 0;
+                                    updated[idx].receivedQty = String(cur + 1);
+                                    setGRNItems(updated);
+                                  }}
+                                  className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-bold"
+                                >+</button>
+                              </div>
+                            </td>
+                            <td className="px-3 py-6">
+                              <div className="flex justify-center">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.damagedQty}
+                                  onChange={e => {
+                                    const updated = [...grnItems];
+                                    updated[idx].damagedQty = e.target.value;
+                                    setGRNItems(updated);
+                                  }}
+                                  className="w-16 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-xs font-black text-center focus:ring-1 focus:ring-emerald-500 outline-none"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-6">
+                              <div className="flex items-center justify-center gap-1">
+                                {['Safe', 'Near', 'Expired'].map(status => (
+                                  <button
+                                    key={status}
+                                    onClick={() => {
+                                      const updated = [...grnItems];
+                                      updated[idx].expiryStatus = status.toUpperCase();
+                                      setGRNItems(updated);
+                                    }}
+                                    className={`px-2 py-1 rounded-md text-[8px] font-black uppercase transition-all ${item.expiryStatus === status.toUpperCase()
                                       ? status === 'Safe' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
                                         : status === 'Near' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
                                           : 'bg-rose-600 text-white shadow-lg shadow-rose-600/20'
                                       : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
-                                    }`}
-                                >
-                                  {status}
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-3 py-6 text-center">
-                            <span className={`text-sm font-black ${missing > 0 ? 'text-rose-500' : 'text-gray-300'}`}>{missing}</span>
-                          </td>
-                          <td className="px-3 py-6 text-right sticky right-0 bg-white group-hover:bg-gray-50 transition-all z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.05)]">
-                            <span className="text-[10px] font-black px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full uppercase tracking-widest">
-                              Accepted
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Notes & Attachments */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-gray-50">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Notes</label>
-                  <textarea
-                    placeholder="Add any remarks about the delivery..."
-                    value={poDetail?.remarks !== undefined ? poDetail.remarks : ''}
-                    onChange={(e) => setPODetail(prev => ({ ...prev, remarks: e.target.value }))}
-                    className="w-full h-32 bg-gray-50 border border-gray-100 rounded-[1.5rem] p-4 text-xs font-bold text-gray-900 focus:ring-1 focus:ring-emerald-500 outline-none placeholder:text-gray-300 resize-none"
-                  />
+                                      }`}
+                                  >
+                                    {status}
+                                  </button>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-3 py-6 text-center">
+                              <span className={`text-sm font-black ${missing > 0 ? 'text-rose-500' : 'text-gray-300'}`}>{missing}</span>
+                            </td>
+                            <td className="px-3 py-6 text-right sticky right-0 bg-white group-hover:bg-gray-50 transition-all z-10 shadow-[-10px_0_10px_-3px_rgba(0,0,0,0.05)]">
+                              <span className="text-[10px] font-black px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full uppercase tracking-widest">
+                                Accepted
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Attachments</label>
-                    {uploading && <Loader2 className="animate-spin text-emerald-600" size={14} />}
+
+                {/* Notes & Attachments */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-gray-50">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Notes</label>
+                    <textarea
+                      placeholder="Add any remarks about the delivery..."
+                      value={poDetail?.remarks !== undefined ? poDetail.remarks : ''}
+                      onChange={(e) => setPODetail(prev => ({ ...prev, remarks: e.target.value }))}
+                      className="w-full h-32 bg-gray-50 border border-gray-100 rounded-[1.5rem] p-4 text-xs font-bold text-gray-900 focus:ring-1 focus:ring-emerald-500 outline-none placeholder:text-gray-300 resize-none"
+                    />
                   </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Attachments</label>
+                      {uploading && <Loader2 className="animate-spin text-emerald-600" size={14} />}
+                    </div>
 
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    accept="image/*,.pdf,.doc,.docx"
-                  />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      accept="image/*,.pdf,.doc,.docx"
+                    />
 
-                  <div className="flex flex-wrap gap-3">
-                    {['Invoice', 'Challan', 'Photos'].map(label => (
-                      <button
-                        key={label}
-                        onClick={() => fileInputRef.current.click()}
-                        disabled={uploading}
-                        className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-xl text-[10px] font-black text-gray-400 uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm disabled:opacity-50"
-                      >
-                        <Upload size={14} className="opacity-40" />
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {attachments.length > 0 && (
-                    <div className="grid grid-cols-1 gap-2 mt-4">
-                      {attachments.map((file, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl group">
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="p-2 bg-white rounded-lg text-emerald-600">
-                              <File size={14} />
-                            </div>
-                            <span className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{file.name}</span>
-                          </div>
-                          <button
-                            onClick={() => removeAttachment(idx)}
-                            className="p-2 text-gray-300 hover:text-rose-500 transition-all"
-                          >
-                            <Trash size={14} />
-                          </button>
-                        </div>
+                    <div className="flex flex-wrap gap-3">
+                      {['Invoice', 'Challan', 'Photos'].map(label => (
+                        <button
+                          key={label}
+                          onClick={() => fileInputRef.current.click()}
+                          disabled={uploading}
+                          className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-xl text-[10px] font-black text-gray-400 uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm disabled:opacity-50"
+                        >
+                          <Upload size={14} className="opacity-40" />
+                          {label}
+                        </button>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Footer Totals & Actions */}
-              <div className="bg-gray-50/50 rounded-[2rem] p-8 border border-gray-100">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                  <div className="flex flex-wrap items-center gap-12">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Received</span>
-                      <span className="text-2xl font-black text-emerald-600">{grnItems.reduce((acc, curr) => acc + (parseInt(curr.receivedQty) || 0), 0)}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Damaged</span>
-                      <span className="text-2xl font-black text-rose-500">{grnItems.reduce((acc, curr) => acc + (parseInt(curr.damagedQty) || 0), 0)}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Missing</span>
-                      <span className="text-2xl font-black text-amber-500">{grnItems.reduce((acc, curr) => acc + Math.max(0, curr.balance - (parseInt(curr.receivedQty) || 0) - (parseInt(curr.damagedQty) || 0)), 0)}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Accepted Items</span>
-                      <span className="text-2xl font-black text-gray-900">{grnItems.length}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    <button 
-                      onClick={() => { setSelectedPO(null); setPODetail(null); setEditGRN(null); setView('receive'); }}
-                      className="px-8 py-4 bg-white border border-gray-200 text-gray-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button className="flex-1 md:flex-none px-8 py-4 bg-white border border-gray-200 text-gray-400 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm">
-                      Save Draft
-                    </button>
-                    <button
-                      onClick={handleSubmitGRN}
-                      disabled={submitting}
-                      className="flex-1 md:flex-none px-12 py-4 bg-emerald-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
-                    >
-                      {submitting ? 'Processing...' : (editGRN ? 'Update GRN' : 'Complete GRN')}
-                    </button>
+                    {attachments.length > 0 && (
+                      <div className="grid grid-cols-1 gap-2 mt-4">
+                        {attachments.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl group">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="p-2 bg-white rounded-lg text-emerald-600">
+                                <File size={14} />
+                              </div>
+                              <span className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{file.name}</span>
+                            </div>
+                            <button
+                              onClick={() => removeAttachment(idx)}
+                              className="p-2 text-gray-300 hover:text-rose-500 transition-all"
+                            >
+                              <Trash size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Footer Totals & Actions */}
+                <div className="bg-gray-50/50 rounded-[2rem] p-8 border border-gray-100">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="flex flex-wrap items-center gap-12">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Received</span>
+                        <span className="text-2xl font-black text-emerald-600">{grnItems.reduce((acc, curr) => acc + (parseInt(curr.receivedQty) || 0), 0)}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Damaged</span>
+                        <span className="text-2xl font-black text-rose-500">{grnItems.reduce((acc, curr) => acc + (parseInt(curr.damagedQty) || 0), 0)}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Missing</span>
+                        <span className="text-2xl font-black text-amber-500">{grnItems.reduce((acc, curr) => acc + Math.max(0, curr.balance - (parseInt(curr.receivedQty) || 0) - (parseInt(curr.damagedQty) || 0)), 0)}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Accepted Items</span>
+                        <span className="text-2xl font-black text-gray-900">{grnItems.length}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                      <button
+                        onClick={() => { setSelectedPO(null); setPODetail(null); setEditGRN(null); setView('receive'); }}
+                        className="px-8 py-4 bg-white border border-gray-200 text-gray-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button className="flex-1 md:flex-none px-8 py-4 bg-white border border-gray-200 text-gray-400 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm">
+                        Save Draft
+                      </button>
+                      <button
+                        onClick={handleSubmitGRN}
+                        disabled={submitting}
+                        className="flex-1 md:flex-none px-12 py-4 bg-emerald-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
+                      >
+                        {submitting ? 'Processing...' : (editGRN ? 'Update GRN' : 'Complete GRN')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
             )}
           </div>
         </div>
@@ -1434,11 +1456,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                   {grns.filter(grn => {
                     const searchTerm = searchParams.get('search')?.toLowerCase();
                     if (!searchTerm) return true;
-                    
+
                     const grnId = `GRN-${grn.displayId}`.toLowerCase();
                     const poId = `PO-${grn.po?.displayId}`.toLowerCase();
                     const vendor = grn.po?.vendor?.vendorName?.toLowerCase() || '';
-                    
+
                     return (
                       grnId.includes(searchTerm) ||
                       poId.includes(searchTerm) ||
@@ -1487,8 +1509,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                         </td>
                         <td className="px-4 py-4 text-center">
                           <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg border tracking-widest ${grn.status === 'COMPLETE'
-                              ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                              : 'bg-amber-50 text-amber-600 border-amber-100'
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            : 'bg-amber-50 text-amber-600 border-amber-100'
                             }`}>
                             {grn.status === 'COMPLETE' ? 'Completed' : 'Partial'}
                           </span>
@@ -1546,9 +1568,9 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
 
       {view === 'report' && selectedReport && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 space-y-10 animate-in fade-in duration-500">
-          
+
           {/* Top Navigation */}
-          <button 
+          <button
             onClick={() => { setView('history'); setSelectedReport(null); setHideMainHeader?.(false); }}
             className="flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-all group"
           >
@@ -1637,25 +1659,34 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {selectedReport.items?.map(item => (
-                      <tr key={item.id} className="text-sm">
-                        <td className="px-8 py-8">
-                          <div className="space-y-1">
-                            <p className="font-bold text-gray-900">{item.product?.name}</p>
-                            <p className="text-xs text-gray-400 font-medium uppercase tracking-tighter">SKU: {item.product?.skuCode || item.product?.sku || item.sku || 'N/A'}</p>
-                            {item.uom ? (
-                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.uom}</span>
-                            ) : null}
-                          </div>
-                        </td>
+                    {selectedReport.items?.map(item => {
+                      const variantName = item.variantName || item.productVariant?.variantName || item.product?.variantName;
+                      const sku = item.skuCode || item.sku || item.productVariant?.sku || item.product?.skuCode || item.product?.sku || 'N/A';
+                      return (
+                        <tr key={item.id} className="text-sm">
+                          <td className="px-8 py-8">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-bold text-gray-900">{item.product?.name || item.name}</p>
+                                {variantName && (
+                                  <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider">
+                                    {variantName}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400 font-medium uppercase tracking-tighter">SKU: {sku}</p>
+                              {item.uom ? (
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.uom}</span>
+                              ) : null}
+                            </div>
+                          </td>
                         <td className="px-4 py-8 text-center font-bold text-gray-900">{item.orderedQty}</td>
                         <td className="px-4 py-8 text-center font-bold text-gray-900">{item.receivedQty}</td>
                         <td className="px-4 py-8 text-center font-bold text-emerald-600">{item.receivedQty - (item.damagedQty || 0)}</td>
                         <td className="px-4 py-8 text-center font-bold text-rose-500">{item.damagedQty || 0}</td>
                         <td className="px-4 py-8 text-center">
-                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                            item.expiryStatus === 'SAFE' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                          }`}>
+                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${item.expiryStatus === 'SAFE' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                            }`}>
                             {item.expiryStatus || 'Safe'}
                           </span>
                         </td>
@@ -1666,7 +1697,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           </span>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>
@@ -1795,11 +1827,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveVendorTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-wider transition-all border-b-2 outline-none whitespace-nowrap ${
-                      isActive 
-                        ? 'border-emerald-600 text-emerald-600 bg-white shadow-sm shadow-emerald-50/30' 
+                    className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-[10px] font-black uppercase tracking-wider transition-all border-b-2 outline-none whitespace-nowrap ${isActive
+                        ? 'border-emerald-600 text-emerald-600 bg-white shadow-sm shadow-emerald-50/30'
                         : 'border-transparent text-gray-400 hover:text-slate-600 bg-transparent'
-                    }`}
+                      }`}
                   >
                     <Icon size={12} className={isActive ? 'text-emerald-600' : 'text-gray-300'} />
                     <span>{tab.label}</span>
@@ -1821,7 +1852,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                       <User size={16} className="text-emerald-600" />
                       <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">General & Contact Details</h4>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2 group">
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Business Name *</label>
@@ -1829,11 +1860,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <Users size={16} />
                           </div>
-                          <input 
-                            required 
-                            value={newVendor.vendorName} 
+                          <input
+                            required
+                            value={newVendor.vendorName}
                             onChange={e => setNewVendor({ ...newVendor, vendorName: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="Enter business entity name..."
                           />
                         </div>
@@ -1845,11 +1876,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <Phone size={16} />
                           </div>
-                          <input 
-                            required 
-                            value={newVendor.mobile} 
+                          <input
+                            required
+                            value={newVendor.mobile}
                             onChange={e => setNewVendor({ ...newVendor, mobile: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="Enter 10-digit mobile number..."
                           />
                         </div>
@@ -1861,10 +1892,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <User size={16} />
                           </div>
-                          <input 
-                            value={newVendor.contactPerson} 
+                          <input
+                            value={newVendor.contactPerson}
                             onChange={e => setNewVendor({ ...newVendor, contactPerson: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="Enter point of contact name..."
                           />
                         </div>
@@ -1876,11 +1907,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <Mail size={16} />
                           </div>
-                          <input 
+                          <input
                             type="email"
-                            value={newVendor.email} 
+                            value={newVendor.email}
                             onChange={e => setNewVendor({ ...newVendor, email: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="name@business.com"
                           />
                         </div>
@@ -1892,9 +1923,9 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <Tag size={16} />
                           </div>
-                          <select 
+                          <select
                             required
-                            value={newVendor.vendorCategory} 
+                            value={newVendor.vendorCategory}
                             onChange={e => setNewVendor({ ...newVendor, vendorCategory: e.target.value })}
                             className="w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
                           >
@@ -1913,10 +1944,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <MapPin size={16} />
                           </div>
-                          <input 
-                            value={newVendor.address} 
+                          <input
+                            value={newVendor.address}
                             onChange={e => setNewVendor({ ...newVendor, address: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="Enter official street address..."
                           />
                         </div>
@@ -1940,11 +1971,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <Clock size={16} />
                           </div>
-                          <input 
-                            type="number" 
-                            value={newVendor.creditDays} 
+                          <input
+                            type="number"
+                            value={newVendor.creditDays}
                             onChange={e => setNewVendor({ ...newVendor, creditDays: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="30"
                           />
                         </div>
@@ -1956,11 +1987,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <DollarSign size={16} />
                           </div>
-                          <input 
-                            type="number" 
-                            value={newVendor.creditLimit} 
+                          <input
+                            type="number"
+                            value={newVendor.creditLimit}
                             onChange={e => setNewVendor({ ...newVendor, creditLimit: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="50000"
                           />
                         </div>
@@ -1972,9 +2003,9 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <FileText size={16} />
                           </div>
-                          <select 
+                          <select
                             required
-                            value={newVendor.paymentTerms} 
+                            value={newVendor.paymentTerms}
                             onChange={e => setNewVendor({ ...newVendor, paymentTerms: e.target.value })}
                             className="w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
                           >
@@ -1993,11 +2024,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <Tag size={16} />
                           </div>
-                          <input 
-                            type="number" 
-                            value={newVendor.minOrderQty} 
+                          <input
+                            type="number"
+                            value={newVendor.minOrderQty}
                             onChange={e => setNewVendor({ ...newVendor, minOrderQty: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="1"
                           />
                         </div>
@@ -2009,11 +2040,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <DollarSign size={16} />
                           </div>
-                          <input 
-                            type="number" 
-                            value={newVendor.openingBalance} 
+                          <input
+                            type="number"
+                            value={newVendor.openingBalance}
                             onChange={e => setNewVendor({ ...newVendor, openingBalance: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="0.00"
                           />
                         </div>
@@ -2054,15 +2085,14 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <ShieldAlert size={16} />
                           </div>
-                          <input 
-                            value={newVendor.gstNumber} 
+                          <input
+                            value={newVendor.gstNumber}
                             onChange={e => setNewVendor({ ...newVendor, gstNumber: e.target.value.toUpperCase() })}
                             maxLength={15}
-                            className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border transition-all outline-none ${
-                              newVendor.isTaxable && !newVendor.gstNumber
+                            className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border transition-all outline-none ${newVendor.isTaxable && !newVendor.gstNumber
                                 ? 'border-rose-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/5'
                                 : 'border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5'
-                            }`}
+                              }`}
                             placeholder="Enter 15-character GSTIN (e.g. 29GGGGG1314R1Z5)..."
                           />
                         </div>
@@ -2091,10 +2121,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <Building2 size={16} />
                           </div>
-                          <input 
-                            value={newVendor.bankName} 
+                          <input
+                            value={newVendor.bankName}
                             onChange={e => setNewVendor({ ...newVendor, bankName: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="e.g. State Bank of India..."
                           />
                         </div>
@@ -2106,10 +2136,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <CreditCard size={16} />
                           </div>
-                          <input 
-                            value={newVendor.accountNumber} 
+                          <input
+                            value={newVendor.accountNumber}
                             onChange={e => setNewVendor({ ...newVendor, accountNumber: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="Enter bank account number..."
                           />
                         </div>
@@ -2121,10 +2151,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <Hash size={16} />
                           </div>
-                          <input 
-                            value={newVendor.ifscCode} 
+                          <input
+                            value={newVendor.ifscCode}
                             onChange={e => setNewVendor({ ...newVendor, ifscCode: e.target.value.toUpperCase() })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="e.g. SBIN0001234..."
                           />
                         </div>
@@ -2136,10 +2166,10 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                             <MapPin size={16} />
                           </div>
-                          <input 
-                            value={newVendor.bankBranch} 
+                          <input
+                            value={newVendor.bankBranch}
                             onChange={e => setNewVendor({ ...newVendor, bankBranch: e.target.value })}
-                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                             placeholder="e.g. Bangalore MG Road..."
                           />
                         </div>
@@ -2153,8 +2183,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
               <div className="p-6 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3 w-full">
                 {/* Left Action - Previous / Cancel */}
                 <div className="flex gap-2">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowVendorModal(false)}
                     className="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-100 transition-all border border-transparent hover:border-gray-100 bg-white shadow-sm"
                   >
@@ -2182,7 +2212,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                       Next Section <ChevronRight size={12} strokeWidth={3} />
                     </button>
                   ) : (
-                    <button 
+                    <button
                       type="submit"
                       className="flex items-center gap-1.5 px-12 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all"
                     >
@@ -2192,6 +2222,53 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border shadow-inner ${confirmDialog.variant === 'danger'
+                ? 'bg-rose-50 text-rose-600 border-rose-100'
+                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+              }`}>
+              {confirmDialog.variant === 'danger' ? (
+                <Trash2 size={28} strokeWidth={2} />
+              ) : (
+                <ShieldCheck size={28} strokeWidth={2} />
+              )}
+            </div>
+            <h3 className="text-base font-black text-slate-900 tracking-tight mb-2 uppercase">
+              {confirmDialog.title}
+            </h3>
+            <p className="text-xs font-medium text-slate-500 leading-relaxed mb-6 px-2">
+              {confirmDialog.message}
+            </p>
+            <div className="flex items-center gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                {confirmDialog.cancelText || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  if (action) action();
+                }}
+                className={`flex-1 py-3 px-4 rounded-xl text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg active:scale-95 ${confirmDialog.variant === 'danger'
+                    ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                  }`}
+              >
+                {confirmDialog.confirmText || 'Confirm'}
+              </button>
+            </div>
           </div>
         </div>
       )}

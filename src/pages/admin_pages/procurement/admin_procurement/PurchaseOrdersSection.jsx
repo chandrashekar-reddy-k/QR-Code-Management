@@ -799,9 +799,10 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
       } else {
         const { data } = await procurementAPI.getVendorMappings(vendorId);
         const mappedArray = data?.data || data || [];
-        setMappedItems(mappedArray.map(m => {
+        const flattenedMapped = [];
+
+        mappedArray.forEach(m => {
           const prod = m.product || {};
-          const unitStr = typeof prod.unit === 'object' ? (prod.unit?.type || prod.unit?.name || '') : (prod.unit || '');
           const finalUom = m.uom || 'PACK';
 
           const mappedMrp = parseFloat(m.mrp > 0 ? m.mrp : (m.moq > 0 ? m.moq : (prod.mrp > 0 ? prod.mrp : (prod.price || 0))));
@@ -810,7 +811,7 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
           const mappedRate = parseFloat(m.landingPrice > 0 ? m.landingPrice : (m.leadTime > 0 ? m.leadTime : (m.purchasePrice > 0 ? m.purchasePrice : (prod.purchasePrice || prod.price || 0))));
           const mappedQuantity = parseInt(m.quantity ?? (m.taxPercent > 0 ? m.taxPercent : 1)) || 1;
 
-          return {
+          const baseItem = {
             productId: prod.id || m.productId,
             id: prod.id || m.productId,
             name: prod.name || 'Unknown Product',
@@ -832,7 +833,30 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
             discount: parseFloat(m.discount || 0),
             quantity: mappedQuantity
           };
-        }));
+
+          flattenedMapped.push(baseItem);
+
+          if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+            prod.variants.forEach(v => {
+              flattenedMapped.push({
+                ...baseItem,
+                productId: v.id || `${prod.id}_${v.variantName}`,
+                id: v.id || `${prod.id}_${v.variantName}`,
+                parentProductId: prod.id,
+                variantName: v.variantName || v.name || '',
+                skuCode: v.sku || v.skuCode || baseItem.skuCode,
+                barcode: v.barcode || baseItem.barcode,
+                mrp: v.mrp || baseItem.mrp,
+                landingPrice: v.landingPrice || baseItem.landingPrice,
+                sellingPrice: v.sellingPrice || baseItem.sellingPrice,
+                purchasePrice: v.purchasePrice ?? v.costPrice ?? baseItem.purchasePrice,
+                rate: v.purchasePrice ?? v.costPrice ?? baseItem.rate,
+                isVariantItem: true
+              });
+            });
+          }
+        });
+        setMappedItems(flattenedMapped);
       }
     } catch (err) { console.error('onVendorSelect Error:', err); toast.error(poType === 'DIRECT' ? 'Failed to load products' : 'Failed to load mapped items'); }
   };
@@ -1710,12 +1734,22 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                               (p.name && (item.product?.name || item.name) && p.name.trim().toLowerCase() === (item.product?.name || item.name).trim().toLowerCase())
                             );
 
+                            const variantItem = (item.productVariantId && preloadedProducts)
+                              ? preloadedProducts.find(p => p.id === item.productVariantId || p.variantId === item.productVariantId)
+                              : (item.product?.variants && (item.productVariantId || item.variantName || item.mrp || item.rate))
+                                ? item.product.variants.find(v => (item.productVariantId && v.id === item.productVariantId) || (item.variantName && v.variantName === item.variantName) || (item.skuCode && v.sku === item.skuCode) || (item.mrp > 0 && Number(v.mrp) === Number(item.mrp)) || (item.rate > 0 && Number(v.price) === Number(item.rate)))
+                                : null;
+
+                            const variantName = item.variantName || variantItem?.variantName || item.productVariant?.variantName || item.product?.variantName;
+
                             const rawSku = 
+                              (item.skuCode && item.skuCode !== 'NO-SKU' && item.skuCode !== 'N/A') ? item.skuCode :
+                              (variantItem?.sku && variantItem.sku !== 'NO-SKU') ? variantItem.sku :
+                              (item.productVariant?.sku && item.productVariant.sku !== 'NO-SKU') ? item.productVariant.sku :
+                              (item.sku && item.sku !== 'NO-SKU' && item.sku !== 'N/A') ? item.sku :
+                              (item.vendorSku && item.vendorSku !== 'NO-SKU') ? item.vendorSku :
                               (item.product?.skuCode && item.product.skuCode !== 'NO-SKU') ? item.product.skuCode :
                               (item.product?.sku && item.product.sku !== 'NO-SKU') ? item.product.sku :
-                              (item.skuCode && item.skuCode !== 'NO-SKU') ? item.skuCode :
-                              (item.sku && item.sku !== 'NO-SKU') ? item.sku :
-                              (item.vendorSku && item.vendorSku !== 'NO-SKU') ? item.vendorSku :
                               (targetProd?.skuCode && targetProd.skuCode !== 'NO-SKU') ? targetProd.skuCode :
                               (targetProd?.sku && targetProd.sku !== 'NO-SKU') ? targetProd.sku :
                               (targetProd?.vendorSku && targetProd.vendorSku !== 'NO-SKU') ? targetProd.vendorSku :
@@ -1732,7 +1766,16 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                             return (
                               <tr key={item.id || item.productId} className="hover:bg-slate-50/20 transition-all duration-150">
                                 <td className="px-6 py-4 text-center text-xs font-bold text-slate-400">{skuDisplay}</td>
-                                <td className="px-6 py-4 text-sm font-black text-slate-800 tracking-tight">{item.product?.name || item.name}</td>
+                                <td className="px-6 py-4 text-sm font-black text-slate-800 tracking-tight">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span>{item.product?.name || item.name}</span>
+                                    {variantName && (
+                                      <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                        {variantName}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
                                 <td className="px-6 py-4 text-center text-sm font-bold text-slate-800">{qty} {unit}</td>
                                 <td className="px-6 py-4 text-center text-sm font-bold text-slate-700">₹{Number(mrp).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                 <td className="px-6 py-4 text-center text-sm font-black text-slate-700">₹{Number(landingPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -1957,41 +2000,60 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {viewingPO.items?.map((item) => {
-                            const targetProd = (preloadedProducts || []).find(p => 
-                              (p.id && (p.id === item.productId || p.id === item.product?.id || p.id === item.product_id)) ||
-                              (p.name && (item.product?.name || item.name) && p.name.trim().toLowerCase() === (item.product?.name || item.name).trim().toLowerCase())
-                            );
+                          {viewingPO.items?.map((item, idx) => {
+                            const itemVarId = item.productVariantId || item.variantId;
+                            
+                            // Find matching product or variant in preloadedProducts
+                            const targetProd = (preloadedProducts || []).find(p => {
+                              if (itemVarId && p.id === itemVarId) return true;
+                              if (p.isVariantItem && (p.id === item.productId || p.parentProductId === item.productId || p.productId === item.productId)) {
+                                if (item.variantName && (p.variantName || p.name)?.toLowerCase() === item.variantName.toLowerCase()) return true;
+                                if (item.skuCode && p.skuCode === item.skuCode) return true;
+                                if (item.mrp > 0 && Math.abs(Number(p.mrp || 0) - Number(item.mrp || 0)) < 0.01) return true;
+                              }
+                              return (p.id && (p.id === item.productId || p.id === item.product?.id || p.id === item.product_id)) ||
+                                (p.name && (item.product?.name || item.name) && p.name.trim().toLowerCase() === (item.product?.name || item.name).trim().toLowerCase());
+                            });
+
+                            const matchedVariant = targetProd?.variants?.find(v => 
+                              (itemVarId && v.id === itemVarId) ||
+                              (item.variantName && (v.variantName || v.name)?.toLowerCase() === item.variantName.toLowerCase()) ||
+                              (item.mrp > 0 && Math.abs(Number(v.mrp || 0) - Number(item.mrp || 0)) < 0.01)
+                            ) || (targetProd?.isVariantItem ? targetProd : null);
+
+                            const variantName = item.product?.variantName || item.variantName || item.productVariant?.variantName || matchedVariant?.variantName || (matchedVariant?.isVariantItem ? matchedVariant.variantName : matchedVariant?.name);
 
                             const rawSku = 
-                              (item.product?.skuCode && item.product.skuCode !== 'NO-SKU') ? item.product.skuCode :
-                              (item.product?.sku && item.product.sku !== 'NO-SKU') ? item.product.sku :
                               (item.skuCode && item.skuCode !== 'NO-SKU') ? item.skuCode :
                               (item.sku && item.sku !== 'NO-SKU') ? item.sku :
+                              (targetProd?.isVariantItem && targetProd.skuCode && targetProd.skuCode !== 'NO-SKU') ? targetProd.skuCode :
+                              (matchedVariant?.sku || matchedVariant?.skuCode) ? (matchedVariant.sku || matchedVariant.skuCode) :
+                              (item.productVariant?.sku && item.productVariant.sku !== 'NO-SKU') ? item.productVariant.sku :
+                              (item.product?.skuCode && item.product.skuCode !== 'NO-SKU') ? item.product.skuCode :
+                              (item.product?.sku && item.product.sku !== 'NO-SKU') ? item.product.sku :
                               (item.vendorSku && item.vendorSku !== 'NO-SKU') ? item.vendorSku :
                               (targetProd?.skuCode && targetProd.skuCode !== 'NO-SKU') ? targetProd.skuCode :
                               (targetProd?.sku && targetProd.sku !== 'NO-SKU') ? targetProd.sku :
-                              (targetProd?.vendorSku && targetProd.vendorSku !== 'NO-SKU') ? targetProd.vendorSku :
                               null;
 
                             const skuDisplay = (!rawSku || rawSku === 'NO-SKU' || rawSku === 'N/A' || rawSku.trim() === '') ? '-' : rawSku;
-                            const mapItem = (mappedItems || []).find(m => (m.productId || m.id) === (item.productId || item.product?.id));
-                            const mrp = item.mrp > 0 ? item.mrp : (mapItem?.mrp > 0 ? mapItem.mrp : (mapItem?.moq > 0 ? mapItem.moq : (item.product?.mrp > 0 ? item.product.mrp : (item.product?.price > 0 ? item.product.price : (targetProd?.mrp > 0 ? targetProd.mrp : (targetProd?.price || 0))))));
-                            const landingPrice = item.landingPrice > 0 ? item.landingPrice : (mapItem?.landingPrice > 0 ? mapItem.landingPrice : (mapItem?.leadTime > 0 ? mapItem.leadTime : (item.rate > 0 ? item.rate : (item.product?.landingPrice > 0 ? item.product.landingPrice : (item.product?.purchasePrice > 0 ? item.product.purchasePrice : (targetProd?.landingPrice || targetProd?.purchasePrice || 0))))));
-                            const sellingPrice = item.sellingPrice > 0 ? item.sellingPrice : (mapItem?.sellingPrice > 0 ? mapItem.sellingPrice : (mapItem?.purchasePrice > 0 ? mapItem.purchasePrice : (item.product?.sellingPrice > 0 ? item.product.sellingPrice : (item.product?.price > 0 ? item.product.price : (targetProd?.sellingPrice > 0 ? targetProd.sellingPrice : (targetProd?.price || 0))))));
+                            const mapItem = (mappedItems || []).find(m => (m.productId || m.id) === (itemVarId || item.productId || item.product?.id));
+                            const mrp = item.mrp > 0 ? item.mrp : (matchedVariant?.mrp > 0 ? matchedVariant.mrp : (mapItem?.mrp > 0 ? mapItem.mrp : (mapItem?.moq > 0 ? mapItem.moq : (item.product?.mrp > 0 ? item.product.mrp : (item.product?.price > 0 ? item.product.price : (targetProd?.mrp > 0 ? targetProd.mrp : (targetProd?.price || 0)))))));
+                            const landingPrice = item.landingPrice > 0 ? item.landingPrice : (matchedVariant?.landingPrice > 0 ? matchedVariant.landingPrice : (mapItem?.landingPrice > 0 ? mapItem.landingPrice : (mapItem?.leadTime > 0 ? mapItem.leadTime : (item.rate > 0 ? item.rate : (item.product?.landingPrice > 0 ? item.product.landingPrice : (item.product?.purchasePrice > 0 ? item.product.purchasePrice : (targetProd?.landingPrice || targetProd?.purchasePrice || 0)))))));
+                            const sellingPrice = item.sellingPrice > 0 ? item.sellingPrice : (matchedVariant?.sellingPrice > 0 ? matchedVariant.sellingPrice : (mapItem?.sellingPrice > 0 ? mapItem.sellingPrice : (mapItem?.purchasePrice > 0 ? mapItem.purchasePrice : (item.product?.sellingPrice > 0 ? item.product.sellingPrice : (item.product?.price > 0 ? item.product.price : (targetProd?.sellingPrice > 0 ? targetProd.sellingPrice : (targetProd?.price || 0)))))));
                             const qty = item.quantity ?? 1;
                             const unit = item.uom || mapItem?.uom || 'PACK';
                             const totalValuation = item.total ?? ((landingPrice || 0) * qty);
 
                             return (
-                              <tr key={item.id || item.productId} className="hover:bg-slate-50/50 transition-colors">
+                              <tr key={item.id || item.productVariantId || `${item.productId}_${idx}`} className="hover:bg-slate-50/50 transition-colors">
                                 <td className="px-6 py-3.5 text-center text-xs font-medium text-slate-400">{skuDisplay}</td>
                                 <td className="px-6 py-3.5 text-xs font-black text-slate-900 tracking-tight">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span>{item.product?.name || item.name}</span>
-                                    {(item.product?.variantName || item.variantName || item.productVariant?.variantName) && (
+                                    {variantName && (
                                       <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider">
-                                        {item.product?.variantName || item.variantName || item.productVariant?.variantName}
+                                        {variantName}
                                       </span>
                                     )}
                                   </div>

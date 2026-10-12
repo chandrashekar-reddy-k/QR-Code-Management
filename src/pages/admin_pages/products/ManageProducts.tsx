@@ -13,14 +13,11 @@ import {
   ChevronDown,
   Barcode,
   Camera,
-  Scan,
-  X,
-  Undo2,
-  Dices,
   MoreVertical,
   Loader2,
   Save,
 } from "lucide-react";
+// @ts-ignore
 import BarcodeScannerOverlay from "../../../components/BarcodeScannerOverlay";
 import {
   SearchInput,
@@ -698,6 +695,7 @@ const ManageProducts = () => {
     const tableProduct: TableProduct = {
       id: expandedProductIdForFetch,
       productId: (p.productId as string) || String(p.id ?? "").slice(0, 8).toUpperCase(),
+      barcode: (p.barcode as string) || (p.sku as string) || "",
       sellerName: supplier[0]?.companyName ?? warehouse?.name ?? "N/A",
       name: (p.name as string) ?? "",
       sku: mainSku || "N/A",
@@ -1487,7 +1485,7 @@ const ManageProducts = () => {
       {/* Barcode Scanner Modal */}
       {isScannerOpen && (
         <BarcodeScannerOverlay
-          onScan={(code) => {
+          onScan={(code: string) => {
             const cleanCode = String(code || "").trim();
             if (cleanCode) {
               setSearchTerm(cleanCode);
@@ -1820,7 +1818,7 @@ const ManageProducts = () => {
         message="Are you sure you want to restore previous stock quantities and low stock thresholds for all products?"
         confirmText={undoResetStockMutation.isPending ? "Restoring..." : "Yes, Restore Stock"}
         cancelText="Cancel"
-        variant="primary"
+        variant="info"
       />
 
       {/* Random Stock Confirmation Modal */}
@@ -1836,7 +1834,7 @@ const ManageProducts = () => {
         message="Are you sure you want to assign random stock quantities (between 10 and 150) to ALL products? (You can use 'Undo Reset' to revert if needed)."
         confirmText={randomStockMutation.isPending ? "Assigning..." : "Yes, Assign Random Stock"}
         cancelText="Cancel"
-        variant="primary"
+        variant="info"
       />
 
       {/* Quick Edit Modal */}
@@ -2068,7 +2066,7 @@ const ManageProducts = () => {
       {/* Barcode Scanner Modal */}
       {isScannerOpen && (
         <BarcodeScannerOverlay
-          onScan={(code) => {
+          onScan={(code: string) => {
             const trimmed = (code || "").trim();
             if (trimmed) {
               setBarcodeSearch(trimmed);

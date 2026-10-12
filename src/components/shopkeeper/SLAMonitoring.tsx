@@ -7,6 +7,7 @@ import { SelectInput, SearchInput } from "../ui";
 import { useSocket } from "../../hooks/useSocket";
 
 interface SLAMonitoringProps {
+  orders?: any[];
   onNavigate?: (screen: string, data?: any) => void;
   onBack?: () => void;
   canConfigureSla?: boolean;
@@ -14,11 +15,18 @@ interface SLAMonitoringProps {
 
 const ORANGE = "#EF5A06";
 
-export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonitoringProps) {
-  const [orders, setOrders] = useState<any[]>([]);
+export function SLAMonitoring({ orders: propOrders, onNavigate, canConfigureSla = false }: SLAMonitoringProps) {
+  const [orders, setOrders] = useState<any[]>(propOrders || []);
   const [slaData, setSlaData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propOrders);
   const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    if (propOrders) {
+      setOrders(propOrders);
+      setLoading(false);
+    }
+  }, [propOrders]);
 
   // Filter states
   const [slaFilter, setSlaFilter] = useState("");
@@ -79,8 +87,28 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
   const socket = useSocket(1);
 
   const fetchData = () => {
+    if (propOrders) return;
+    const cachedWh = localStorage.getItem("partnerWarehouseId");
+    const storedU = localStorage.getItem("partnerUser");
+    let userWarehouseId = "";
+    if (cachedWh && cachedWh !== "undefined") {
+      userWarehouseId = cachedWh;
+    } else if (storedU) {
+      try {
+        const u = JSON.parse(storedU);
+        userWarehouseId =
+          u.warehouseId || u.warehouse_id || u.partnerWarehouseId || "";
+      } catch {
+        /* silent */
+      }
+    }
+
+    const endpoint = userWarehouseId
+      ? `/orders?store_id=${userWarehouseId}&view=shopkeeper&limit=100`
+      : "/orders?view=shopkeeper&limit=100";
+
     Promise.all([
-      api.get('/orders?all=true&limit=100'),
+      api.get(endpoint),
       api.get('/sla')
     ]).then(([ordersRes, slaRes]) => {
       const resData = ordersRes.data;
@@ -94,7 +122,21 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
       } else if (resData && Array.isArray(resData.orders)) {
         allOrders = resData.orders;
       }
-      setOrders(allOrders);
+
+      // Deduplicate and filter out mismatching warehouses
+      const seenIds = new Set();
+      const filteredOrdersList: any[] = [];
+      for (const o of allOrders) {
+        const id = o.id || o.order_number;
+        if (id && !seenIds.has(id)) {
+          const oWh = o.warehouseId || o.warehouse_id;
+          if (userWarehouseId && oWh && oWh !== userWarehouseId) continue;
+          seenIds.add(id);
+          filteredOrdersList.push(o);
+        }
+      }
+
+      setOrders(filteredOrdersList);
       setSlaData(slaRes.data);
       setLoading(false);
     }).catch(err => {
@@ -133,13 +175,21 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
     );
   }
 
-  // Helper to check if order status is not dispatched or cancelled
-  const isNotDispatchedOrCancelled = (o: any) => {
-    const s = o.status?.toLowerCase();
-    return s && !['dispatched', 'delivered', 'completed', 'cancelled', 'rejected', 'out_for_delivery'].includes(s);
+  // Helper to check if order is active in store fulfillment pipeline (matching OrderProcessing definition)
+  const isActiveOrder = (o: any) => {
+    const s = (o.status || '').toUpperCase();
+    return ['CONFIRMED', 'ALLOCATED', 'ACCEPTED', 'PICKING', 'PACKING', 'PACKED', 'PROCESSING', 'READY', 'READY_FOR_PICKUP', 'PENDING'].includes(s);
   };
 
+  const isCompletedOrClosed = (o: any) => {
+    const s = (o.status || '').toUpperCase();
+    return ['DISPATCHED', 'DELIVERED', 'COMPLETED', 'OUT_FOR_DELIVERY', 'DELIVERED_TO_STORE', 'RECEIVED_AT_STORE', 'SHIPPED', 'CANCELLED', 'REJECTED', 'RETURNED', 'FAILED'].includes(s);
+  };
 
+  const isCancelledOrRejected = (o: any) => {
+    const s = (o.status || '').toLowerCase();
+    return ['cancelled', 'rejected'].includes(s);
+  };
 
   // Helper to check if order date matches the dateFilter
   const matchesDateFilter = (o: any) => {
@@ -164,10 +214,6 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
     return true;
   };
 
-  const isCancelledOrRejected = (o: any) => {
-    const s = o.status?.toLowerCase();
-    return s && ['cancelled', 'rejected'].includes(s);
-  };
   // 1. Summary counts
   let onTrackCount = 0;
   let atRiskCount = 0;
@@ -176,7 +222,7 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
   const breachesList: any[] = [];
 
   orders.forEach((o) => {
-    const s = o.status?.toLowerCase();
+    const s = (o.status || '').toLowerCase();
     if (!s || isCancelledOrRejected(o)) {
       return;
     }
@@ -203,7 +249,7 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
     const acceptedAt = acceptedAtStr ? new Date(acceptedAtStr).getTime() : now.getTime();
 
     // Freeze calculation if order is completed/dispatched
-    const isCompleted = ['dispatched', 'delivered', 'completed', 'out_for_delivery'].includes(s);
+    const isCompleted = isCompletedOrClosed(o);
     const endVal = isCompleted ? (o.dispatched_at || o.dispatchedAt || o.deliveredAt || o.delivered_at) : null;
     const evaluationTime = endVal ? new Date(endVal) : now;
     const elapsed = (evaluationTime.getTime() - acceptedAt) / 60000;
@@ -224,7 +270,7 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
           });
         }
       }
-    } else {
+    } else if (isActiveOrder(o)) {
       if (slaInfo.status === 'breached') {
         activeBreachedCount++;
         breachesList.push({
@@ -257,8 +303,7 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
   let totalFulfillmentMinutes = 0;
   let completedCount = 0;
   orders.forEach((o) => {
-    const s = o.status?.toLowerCase();
-    if (!['dispatched', 'delivered', 'completed', 'out_for_delivery'].includes(s)) {
+    if (!isCompletedOrClosed(o)) {
       return;
     }
 
@@ -290,20 +335,20 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
   const summary = {
     active_orders: activeOrdersCount,
     at_risk: atRiskCount,
-    active_breaches: dispatchedBreachedCount,
+    active_breaches: activeBreachedCount,
     avg_fulfillment: dynamicAvgFulfillment
   };
 
   const onTimeCount = onTrackCount;
 
   const filteredOrders = orders.filter((o) => {
-    if (!isNotDispatchedOrCancelled(o)) return false;
+    if (!isActiveOrder(o)) return false;
 
     const slaInfo = getSLAInfo(o, now);
     const currentSlaStatus = slaInfo.status;
 
-    // Do not display 'on_track' orders in the monitoring table
-    if (currentSlaStatus === 'on_track') return false;
+    // Do not display 'on_track' orders in the monitoring table unless filtered explicitly
+    if (!slaFilter && currentSlaStatus === 'on_track') return false;
 
     if (slaFilter && currentSlaStatus !== slaFilter) return false;
     if (stageFilter && (o.status || "").toLowerCase() !== stageFilter.toLowerCase()) return false;
@@ -331,7 +376,7 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
       <div className="mb-6 flex justify-between items-center">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-[32px] font-bold text-[#111827] dark:text-gray-100 leading-none">SLA Monitoring</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight leading-none">SLA Monitoring</h1>
             <div className="bg-green-100 dark:bg-green-900/30 rounded-full px-2.5 py-1 flex items-center gap-1.5 border border-green-200 dark:border-green-800">
               <div className="w-2 h-2 rounded-full animate-pulse bg-green-500" />
               <span className="text-green-700 dark:text-green-400 font-semibold text-xs">Live</span>
@@ -563,14 +608,14 @@ export function SLAMonitoring({ onNavigate, canConfigureSla = false }: SLAMonito
         <div className="w-full overflow-x-auto">
           <table className="w-full border-collapse table-auto text-left text-sm">
             <thead>
-              <tr className="bg-transparent border-b border-gray-300 dark:border-gray-600 h-10">
-                <th className="px-4 py-2 font-bold text-black dark:text-white uppercase tracking-wider text-xs">Order Number</th>
-                <th className="px-4 py-2 font-bold text-black dark:text-white uppercase tracking-wider text-xs">Assigned Staff</th>
-                <th className="px-4 py-2 font-bold text-black dark:text-white uppercase tracking-wider text-xs">Current Stage</th>
-                <th className="px-4 py-2 font-bold text-black dark:text-white uppercase tracking-wider text-xs text-center">SLA Remaining</th>
-                <th className="px-4 py-2 font-bold text-black dark:text-white uppercase tracking-wider text-xs text-center">SLA Status</th>
-                <th className="px-4 py-2 font-bold text-black dark:text-white uppercase tracking-wider text-xs text-center">Priority</th>
-                <th className="px-4 py-2 font-bold text-black dark:text-white uppercase tracking-wider text-xs text-right">Actions</th>
+              <tr className="bg-transparent border-b border-gray-300 dark:border-gray-600 h-10 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                <th className="px-4 py-2 text-left">Order Number</th>
+                <th className="px-4 py-2 text-left">Assigned Staff</th>
+                <th className="px-4 py-2 text-left">Current Stage</th>
+                <th className="px-4 py-2 text-center">SLA Remaining</th>
+                <th className="px-4 py-2 text-center">SLA Status</th>
+                <th className="px-4 py-2 text-center">Priority</th>
+                <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-150 dark:divide-gray-700">

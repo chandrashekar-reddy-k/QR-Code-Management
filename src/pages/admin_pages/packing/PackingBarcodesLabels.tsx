@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Printer, RefreshCw, Barcode, ClipboardList, CheckCircle, AlertTriangle, UserCheck, Clock } from 'lucide-react';
 import { authService, User } from '../../../api/packing/authService';
 import { workOrderService, WorkOrder, WoStatus } from '../../../api/packing/workOrderService';
@@ -147,11 +148,169 @@ const drawBarcode128 = (canvas: HTMLCanvasElement | null, text: string) => {
   ctx.fillText(text, canvas.width / 2, barcodeHeight + 18);
 };
 
+export interface WOProductItem {
+  id?: string;
+  name: string;
+  sku?: string;
+  batch?: string;
+  mrp?: number;
+  qty?: number;
+  printUnits?: number;
+  uom?: string;
+}
+
+const getWOProducts = (wo: any): WOProductItem[] => {
+  if (!wo) return [];
+  const list: WOProductItem[] = [];
+  const seenNames = new Set<string>();
+
+  const addProduct = (item: WOProductItem) => {
+    if (item.name && item.name.trim() && !seenNames.has(item.name.trim().toLowerCase())) {
+      seenNames.add(item.name.trim().toLowerCase());
+      list.push({
+        ...item,
+        name: item.name.trim(),
+      });
+    }
+  };
+
+  // 1. Check outputAllocations FIRST (Target packed products generated for labeling)
+  if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
+    wo.outputAllocations.forEach((item: any, idx: number) => {
+      const name = item.skuName || item.sourceProductName || item.name;
+
+      // Calculate total weight / quantity in KG (e.g. 2 units * 26 kg = 52 KG)
+      const totalQtyVal =
+        item.totalQtyKg !== undefined && item.totalQtyKg !== null
+          ? Number(item.totalQtyKg)
+          : item.plannedUnits && item.packSizeKg
+          ? Number(item.plannedUnits) * Number(item.packSizeKg)
+          : item.packedQty ?? item.actualProduced ?? item.plannedUnits ?? item.quantity ?? item.qty;
+
+      // Extract unit (e.g. "KG", "P", "Units") from packSizeText like "26 KG" or uom
+      const parts = item.packSizeText ? item.packSizeText.trim().split(/\s+/) : [];
+      const extractedUnit = parts.length > 1 ? parts.slice(1).join(' ') : (item.uom || 'KG');
+
+      const packedUnitsVal = (item.packedUnits !== '' && item.packedUnits !== null && item.packedUnits !== undefined) ? Number(item.packedUnits) : NaN;
+      const printUnitsCount = (!isNaN(packedUnitsVal) && packedUnitsVal > 0) ? packedUnitsVal : (Number(item.plannedUnits) || undefined);
+
+      const skuCode =
+        item.sku ||
+        item.skuCode ||
+        item.code ||
+        item.sourceProductSku ||
+        (Array.isArray(wo.sourceItems) && wo.sourceItems[idx]?.sku) ||
+        wo.product?.sku ||
+        '';
+
+      if (name) {
+        addProduct({
+          id: item.sourceProductId || `out-${idx}`,
+          name,
+          sku: skuCode,
+          batch: item.batch || item.batchNo || wo.batchNumber,
+          mrp: item.mrp || (wo.product as any)?.mrp || 60,
+          qty: totalQtyVal !== undefined ? Number(totalQtyVal) || totalQtyVal : undefined,
+          printUnits: printUnitsCount,
+          uom: extractedUnit,
+        });
+      }
+    });
+    if (list.length > 0) return list;
+  }
+
+  // 2. Otherwise check sourceItems (STRICTLY WITHOUT raw stock availableQty)
+  if (Array.isArray(wo.sourceItems) && wo.sourceItems.length > 0) {
+    wo.sourceItems.forEach((item: any, idx: number) => {
+      const name = item.product || item.productName || item.name;
+      // Strictly ONLY packed quantity fields (NEVER availableQty!)
+      const packedQtyVal =
+        item.packedQty ??
+        item.packedUnits ??
+        item.actualProduced ??
+        item.producedQty ??
+        item.packed;
+
+      const skuCode = item.sku || item.skuCode || item.code || wo.product?.sku || '';
+
+      if (name) {
+        addProduct({
+          id: item.id || item.productId || `src-${idx}`,
+          name,
+          sku: skuCode,
+          batch: item.batch || item.batchNo || wo.batchNumber,
+          mrp: item.mrp || (wo.product as any)?.mrp || 60,
+          qty: packedQtyVal !== undefined ? Number(packedQtyVal) || packedQtyVal : undefined,
+          uom: item.uom || 'Units',
+        });
+      }
+    });
+    if (list.length > 0) return list;
+  }
+
+  // 3. Otherwise check items array
+  if (Array.isArray(wo.items) && wo.items.length > 0) {
+    wo.items.forEach((item: any, idx: number) => {
+      const name = item.product || item.productName || item.name || item.sku;
+      if (name) {
+        addProduct({
+          id: item.id || `item-${idx}`,
+          name,
+          sku: item.sku || wo.product?.sku || '',
+          mrp: item.mrp || (wo.product as any)?.mrp || 60,
+        });
+      }
+    });
+    if (list.length > 0) return list;
+  }
+
+  // 4. Otherwise check products array
+  if (Array.isArray(wo.products) && wo.products.length > 0) {
+    wo.products.forEach((item: any, idx: number) => {
+      const name = typeof item === 'string' ? item : item.name || item.product;
+      if (name) {
+        addProduct({
+          id: item.id || `prod-${idx}`,
+          name,
+          sku: item.sku || wo.product?.sku || '',
+          mrp: item.mrp || (wo.product as any)?.mrp || 60,
+        });
+      }
+    });
+    if (list.length > 0) return list;
+  }
+
+  // 5. Fallback to main product
+  if (wo.product?.name) {
+    addProduct({
+      id: wo.product.id || wo.productId,
+      name: wo.product.name,
+      sku: wo.product.sku || '',
+      mrp: (wo.product as any)?.mrp || 60,
+    });
+  }
+
+  if (list.length === 0) {
+    list.push({
+      name: wo.product?.name || 'Product',
+      sku: wo.product?.sku || 'SKU-SM500',
+      mrp: (wo.product as any)?.mrp || 60,
+    });
+  }
+
+  return list;
+};
+
 export const PackingBarcodesLabels: React.FC = () => {
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
+  const [selectedProductIndex, setSelectedProductIndex] = useState<number>(0);
+
+  const woProducts = useMemo(() => getWOProducts(selectedWO), [selectedWO]);
+  const currentProductItem = woProducts[selectedProductIndex] || woProducts[0];
+  const selectedProductName = currentProductItem?.name || selectedWO?.product?.name || 'Product';
 
   // Printer Status State
   const [printerStatus, setPrinterStatus] = useState<'Online' | 'Offline'>('Online');
@@ -214,6 +373,29 @@ export const PackingBarcodesLabels: React.FC = () => {
     printer: string;
     jobId: string;
   } | null>(null);
+
+  // Track printed product indices for multi-product work orders
+  const [printedProductIndexesMap, setPrintedProductIndexesMap] = useState<Record<string, number[]>>(() => {
+    try {
+      const saved = localStorage.getItem('printed_product_indexes_map');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading printed product indexes map:', e);
+    }
+    return {};
+  });
+
+  const savePrintedProductIndexesMap = (updatedMap: Record<string, number[]>) => {
+    setPrintedProductIndexesMap(updatedMap);
+    try {
+      localStorage.setItem('printed_product_indexes_map', JSON.stringify(updatedMap));
+    } catch (e) {
+      console.error('Error saving printed product indexes map:', e);
+    }
+  };
 
   // History state (24-hour window)
   const [history, setHistory] = useState<PrintJob[]>([]);
@@ -292,8 +474,19 @@ export const PackingBarcodesLabels: React.FC = () => {
     return workOrders.filter((w) => eligibleStatuses.includes(w.status));
   }, [workOrders]);
 
+  const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const targetId = id || searchParams.get('wo') || searchParams.get('id') || searchParams.get('woId');
+
   // Sync initial selection & updates
   useEffect(() => {
+    if (targetId && workOrders.length > 0) {
+      const found = workOrders.find((w) => w.id === targetId || w.woNumber === targetId);
+      if (found) {
+        setSelectedWO(found);
+        return;
+      }
+    }
     if (selectableWOs.length > 0 && !selectedWO) {
       setSelectedWO(selectableWOs[0]);
     } else if (selectedWO) {
@@ -302,20 +495,26 @@ export const PackingBarcodesLabels: React.FC = () => {
         setSelectedWO(updated);
       }
     }
-  }, [selectableWOs, selectedWO, workOrders]);
+  }, [targetId, selectableWOs, selectedWO, workOrders]);
 
-  // Sync inputs when selected WO changes
+  // Reset selected product index when selectedWO changes
+  useEffect(() => {
+    setSelectedProductIndex(0);
+  }, [selectedWO?.id]);
+
+  // Sync inputs when selected WO or selected product index changes
   useEffect(() => {
     if (selectedWO) {
+      const curProd = woProducts[selectedProductIndex] || woProducts[0];
       const recipe = selectedWO.recipe;
       const product = selectedWO.product;
 
-      setSku(product?.sku || recipe?.code || 'SKU-SM500');
-      setBatchNo(selectedWO.batchNumber || `BATCH-${selectedWO.woNumber}`);
+      setSku(curProd?.sku || product?.sku || recipe?.code || 'SKU-SM500');
+      setBatchNo(curProd?.batch || selectedWO.batchNumber || `BATCH-${selectedWO.woNumber}`);
       setLotNo(`LOT-${selectedWO.woNumber}`);
-      setMrp((product as any)?.mrp || 60);
+      setMrp(curProd?.mrp || (product as any)?.mrp || 60);
 
-      const reqCount = selectedWO.actualProduced || selectedWO.requiredQty;
+      const reqCount = curProd?.qty || selectedWO.actualProduced || selectedWO.requiredQty;
       setPrintQty(reqCount);
       if (selectedWO.operatorId) {
         setAssignedOperatorId(selectedWO.operatorId);
@@ -329,7 +528,7 @@ export const PackingBarcodesLabels: React.FC = () => {
       exp.setDate(exp.getDate() + 180);
       setExpiryDate(exp.toISOString().split('T')[0]);
     }
-  }, [selectedWO]);
+  }, [selectedWO, selectedProductIndex, woProducts]);
 
   // Draw barcode on preview canvas
   useEffect(() => {
@@ -366,7 +565,7 @@ export const PackingBarcodesLabels: React.FC = () => {
     }
 
     setPreviewNotice(
-      `Label preview generated successfully for ${selectedWO.product?.name || sku}!`
+      `Label preview generated successfully for ${selectedProductName || sku}!`
     );
     setTimeout(() => setPreviewNotice(null), 4000);
 
@@ -385,7 +584,7 @@ export const PackingBarcodesLabels: React.FC = () => {
     }
 
     const labelCards: string[] = [];
-    const productName = selectedWO?.product?.name || 'Product Name';
+    const productName = selectedProductName || selectedWO?.product?.name || 'Product Name';
 
     const isCompact = activeHeightMm <= 30;
     const headerFontSize = isCompact ? '11px' : '18px';
@@ -582,15 +781,33 @@ export const PackingBarcodesLabels: React.FC = () => {
       jobId: createdJob.id,
     });
 
-    // Update Work Order status to LABEL_APPLICATION_ASSIGNED
-    try {
-      await workOrderService.updateWorkOrderStatus(selectedWO.id, 'LABEL_APPLICATION_ASSIGNED', {
-        labelsPrinted: printQty,
-        operatorId: assignedOperatorId,
-      });
-      fetchWorkOrders();
-    } catch (err) {
-      console.error('Failed to update work order status via API:', err);
+    // Track printed product indices for multi-product work orders
+    const woId = selectedWO.id;
+    const currentPrintedIndices = printedProductIndexesMap[woId] || [];
+    const updatedPrintedIndices = Array.from(new Set([...currentPrintedIndices, selectedProductIndex]));
+    const newMap = { ...printedProductIndexesMap, [woId]: updatedPrintedIndices };
+    savePrintedProductIndexesMap(newMap);
+
+    const allProductsPrinted = woProducts.length === 0 || woProducts.every((_, idx) => updatedPrintedIndices.includes(idx));
+
+    if (allProductsPrinted || woProducts.length <= 1) {
+      // Update Work Order status to LABEL_APPLICATION_ASSIGNED only after ALL products in WO are printed
+      try {
+        await workOrderService.updateWorkOrderStatus(selectedWO.id, 'LABEL_APPLICATION_ASSIGNED', {
+          labelsPrinted: printQty,
+          operatorId: assignedOperatorId,
+        });
+        fetchWorkOrders();
+      } catch (err) {
+        console.error('Failed to update work order status via API:', err);
+      }
+    } else {
+      // Find next unprinted product index and automatically switch to it
+      const nextIndex = woProducts.findIndex((_, idx) => !updatedPrintedIndices.includes(idx));
+      if (nextIndex !== -1) {
+        setSelectedProductIndex(nextIndex);
+      }
+      setPreviewNotice(`Labels printed for Product ${selectedProductIndex + 1} (${selectedProductName}). Active product switched to Product ${nextIndex + 1}.`);
     }
 
     // Trigger Print
@@ -656,41 +873,55 @@ export const PackingBarcodesLabels: React.FC = () => {
   return (
     <div className="space-y-6 text-left pb-10">
       {/* Top Section: Selector & Header */}
-      <div className="bg-white border border-slate-200 dark:bg-gray-800 dark:border-gray-700 rounded-xl p-4 shadow-xs">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 border-b border-slate-100 dark:border-gray-700 pb-3">
-          <div>
-            <h2 className="text-base font-bold text-slate-800 dark:text-white">
+      <div className="bg-white border border-slate-200 dark:bg-gray-800 dark:border-gray-700 rounded-xl p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4 border-b border-slate-100 dark:border-gray-700 pb-4">
+          <div className="min-w-[240px]">
+            <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
               Barcode & Label Generation
             </h2>
-            <p className="text-xs text-slate-400 dark:text-gray-400">
+            <p className="text-xs text-slate-400 dark:text-gray-400 mt-0.5">
               Select a completed work order to generate and print product labels.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <select
-              className="p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-sm bg-slate-50 dark:bg-gray-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-[#00891D]"
-              value={selectedWO?.id || ''}
-              onChange={(e) => {
-                const wo = selectableWOs.find((w) => w.id === e.target.value);
-                if (wo) setSelectedWO(wo);
-              }}
-            >
-              {selectableWOs.length === 0 && (
-                <option value="">No packed products available for label printing</option>
-              )}
-              {selectableWOs.map((w) => (
-                <option key={w.id} value={w.id} className="dark:bg-gray-800">
-                  {w.woNumber} - {w.product?.name || 'Product'} ({w.status.replace(/_/g, ' ')})
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2 max-w-full lg:max-w-xl w-full lg:w-auto">
+            <div className="flex-1 relative">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Select Work Order
+              </label>
+              <select
+                className="w-full p-2.5 border border-slate-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-semibold bg-slate-50 dark:bg-gray-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-[#00891D] truncate"
+                value={selectedWO?.id || ''}
+                onChange={(e) => {
+                  const wo = selectableWOs.find((w) => w.id === e.target.value);
+                  if (wo) setSelectedWO(wo);
+                }}
+              >
+                {selectableWOs.length === 0 && (
+                  <option value="">No packed products available for label printing</option>
+                )}
+                {selectableWOs.map((w) => {
+                  const prods = getWOProducts(w);
+                  const primaryName = prods[0]?.name || 'Product';
+                  const extraCount = prods.length - 1;
+                  const labelText = extraCount > 0
+                    ? `${w.woNumber} — ${primaryName} (+${extraCount} more products) • [${w.status.replace(/_/g, ' ')}]`
+                    : `${w.woNumber} — ${primaryName} • [${w.status.replace(/_/g, ' ')}]`;
+                  const fullProdList = prods.map((p) => p.name).join(', ');
+                  return (
+                    <option key={w.id} value={w.id} title={`${w.woNumber} (${fullProdList})`} className="dark:bg-gray-800">
+                      {labelText}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
             <button
               onClick={() => {
                 fetchWorkOrders();
                 fetchPrintHistory();
               }}
-              title="Refresh Data"
-              className="p-2 bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+              title="Refresh Work Orders Data"
+              className="p-2.5 mt-5 bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 rounded-xl hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors cursor-pointer shrink-0"
             >
               <RefreshCw size={16} />
             </button>
@@ -698,29 +929,29 @@ export const PackingBarcodesLabels: React.FC = () => {
         </div>
 
         {selectedWO && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 bg-slate-50 dark:bg-gray-900/50 p-4 rounded-xl text-xs border border-slate-200 dark:border-gray-700">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 bg-slate-50 dark:bg-gray-900/50 p-4 rounded-xl text-xs border border-slate-200 dark:border-gray-700">
             <div>
               <span className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase tracking-wider mb-1">
                 Work Order Number
               </span>
-              <span className="font-mono font-bold text-slate-800 dark:text-white">
+              <span className="font-mono font-bold text-slate-800 dark:text-white text-sm">
                 {selectedWO.woNumber}
               </span>
             </div>
             <div>
               <span className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase tracking-wider mb-1">
-                Product Name
+                Products Included
               </span>
-              <span className="font-semibold text-slate-800 dark:text-white truncate block">
-                {selectedWO.product?.name || '-'}
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60">
+                {woProducts.length} {woProducts.length === 1 ? 'Product' : 'Products'}
               </span>
             </div>
             <div>
               <span className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase tracking-wider mb-1">
-                Product BOM
+                Active Product Name
               </span>
-              <span className="font-mono font-bold text-slate-800 dark:text-white truncate block">
-                {selectedWO.recipe?.code || selectedWO.recipeId}
+              <span className="font-semibold text-slate-800 dark:text-white truncate block" title={selectedProductName}>
+                {selectedProductName}
               </span>
             </div>
             <div>
@@ -736,7 +967,9 @@ export const PackingBarcodesLabels: React.FC = () => {
                 Packed Quantity
               </span>
               <span className="font-bold text-slate-900 dark:text-white">
-                {selectedWO.actualProduced || selectedWO.requiredQty} Units
+                {currentProductItem?.qty !== undefined
+                  ? `${currentProductItem.qty} ${currentProductItem.uom || 'Units'}`
+                  : `${printQty || selectedWO.actualProduced || selectedWO.requiredQty} Units`}
               </span>
             </div>
             <div>
@@ -747,23 +980,76 @@ export const PackingBarcodesLabels: React.FC = () => {
                 {selectedWO.status}
               </span>
             </div>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 dark:text-gray-400 uppercase tracking-wider mb-1">
-                Workflow Status
-              </span>
-              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
-                {selectedWO.status === 'LABELS_APPLIED'
-                  ? 'Labels Applied'
-                  : selectedWO.status === 'LABEL_APPLICATION_IN_PROGRESS'
-                  ? 'Application In Progress'
-                  : selectedWO.status === 'LABEL_APPLICATION_ASSIGNED'
-                  ? 'Application Assigned'
-                  : 'Pending Printing'}
-              </span>
-            </div>
           </div>
         )}
       </div>
+
+      {/* Interactive Visual Product Selector Tab Strip for Multi-Product Work Orders */}
+      {selectedWO && woProducts.length > 1 && (
+        <div className="bg-white border border-emerald-200 dark:bg-gray-800 dark:border-emerald-900/50 rounded-xl p-4 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-gray-700 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00891D] animate-pulse"></span>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-gray-200">
+                Work Order Products ({woProducts.length} Included) — Select Target Product to Label:
+              </h3>
+            </div>
+            <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+              Product {selectedProductIndex + 1} of {woProducts.length} Selected
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {woProducts.map((prod, idx) => {
+              const isActive = selectedProductIndex === idx;
+              const isPrinted = (printedProductIndexesMap[selectedWO?.id || ''] || []).includes(idx);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedProductIndex(idx)}
+                  className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                    isActive
+                      ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-[#00891D] ring-2 ring-[#00891D]/20 shadow-sm'
+                      : 'bg-slate-50 dark:bg-gray-900/40 border-slate-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                        isActive
+                          ? 'bg-[#00891D] text-white'
+                          : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300'
+                      }`}
+                    >
+                      Product {idx + 1}
+                    </span>
+                    {isPrinted ? (
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 dark:bg-emerald-950/80 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700 flex items-center gap-1">
+                        ✓ Printed
+                      </span>
+                    ) : isActive ? (
+                      <span className="text-[10px] font-bold text-[#00891D] dark:text-emerald-400 flex items-center gap-1">
+                        ✓ Active for Labeling
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="font-bold text-xs text-slate-900 dark:text-white line-clamp-2 mb-1">
+                    {prod.name}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 pt-1.5 border-t border-slate-200/60 dark:border-gray-700/60 mt-1 font-mono">
+                    <span>SKU: {prod.sku || 'N/A'}</span>
+                    <span>PACKED QTY: {prod.qty !== undefined ? `${prod.qty} ${prod.uom || ''}` : `${selectedWO?.actualProduced || 0} Units`}</span>
+                    <span>MRP: ₹{prod.mrp || 60}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Completion Success Banner */}
       {successBanner && (
@@ -846,6 +1132,23 @@ export const PackingBarcodesLabels: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Active Target Product Summary Badge */}
+            {woProducts.length > 1 && (
+              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-lg flex items-center justify-between">
+                <div>
+                  <span className="block text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                    Selected Product for Labeling
+                  </span>
+                  <span className="font-bold text-xs text-slate-900 dark:text-white block truncate max-w-[200px]" title={selectedProductName}>
+                    Product {selectedProductIndex + 1}: {selectedProductName}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold bg-[#00891D] text-white px-2.5 py-1 rounded-full shrink-0">
+                  {selectedProductIndex + 1} of {woProducts.length}
+                </span>
+              </div>
+            )}
 
             {/* Target Printer selection */}
             <div className="grid grid-cols-2 gap-3 items-end">
@@ -1202,7 +1505,7 @@ export const PackingBarcodesLabels: React.FC = () => {
                   lineHeight: 1.1,
                 }}
               >
-                {selectedWO?.product?.name || 'Select a Work Order'}
+                {selectedProductName || selectedWO?.product?.name || 'Select a Work Order'}
               </div>
 
               <div

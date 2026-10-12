@@ -37,6 +37,10 @@ export interface WoApprovalDetails {
   priority: Priority;
   status: string;
   warehouseName?: string;
+  availableQty?: number;
+  sourceItems?: any[];
+  outputAllocations?: any[];
+  requiredQty?: number;
 }
 
 export interface ApprovalRequest {

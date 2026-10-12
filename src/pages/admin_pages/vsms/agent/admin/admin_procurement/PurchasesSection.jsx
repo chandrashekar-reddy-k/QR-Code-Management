@@ -246,38 +246,85 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
     const grn = grns.find(g => g.id === grnId);
     if (!grn) return;
 
-    // Only map APPROVED items from the GRN
-    const approvedItems = grn.items.filter(i => i.qcStatus === 'APPROVED');
+    // Only map APPROVED items from the GRN (fallback to non-REJECTED if none approved)
+    const approvedItems = (grn.items || []).filter(i => i.qcStatus === 'APPROVED');
+    const eligibleItems = approvedItems.length > 0
+      ? approvedItems
+      : (grn.items || []).filter(i => i.qcStatus !== 'REJECTED');
     
-    if (approvedItems.length === 0) {
-      toast.error('Selected GRN does not have any approved items.');
+    if (eligibleItems.length === 0) {
+      toast.error('Selected GRN does not have any eligible items.');
       setForm(prev => ({ ...prev, grnId: '', items: [] }));
       return;
     }
 
-    // Build a map of PO items from the linked PO if available
-    const poItemsMap = new Map();
-    if (grn.po && Array.isArray(grn.po.items)) {
-      grn.po.items.forEach(pi => {
-        poItemsMap.set(pi.productId, pi);
-      });
-    }
+    const poItemsList = (grn.po && Array.isArray(grn.po.items)) ? grn.po.items : [];
 
     // Map GRN items to Purchase Invoice items
-    const mappedItems = approvedItems.map(item => {
-      const prod = products.find(p => p.id === item.productId);
-      const poItem = poItemsMap.get(item.productId);
-      const cost = poItem?.landingPrice > 0 ? poItem.landingPrice : (poItem?.rate > 0 ? poItem.rate : (item.product?.purchasePrice || prod?.purchasePrice || prod?.price || 0));
-      const mrpVal = poItem?.mrp > 0 ? poItem.mrp : (item.mrp || item.product?.mrp || prod?.mrp || prod?.price || 0);
-      const sellingVal = poItem?.sellingPrice > 0 ? poItem.sellingPrice : (item.product?.price || prod?.price || cost);
-      // Auto-fetch Received Qty as the invoice quantity (max allowed)
+    const mappedItems = eligibleItems.map((item, idx) => {
+      // Match against PO items: first by sequence index, then fallback to variant/product ID
+      const poItem = poItemsList[idx] || poItemsList.find(pi => 
+        (item.productVariantId && pi.productVariantId === item.productVariantId) ||
+        (pi.productId === item.productId)
+      );
+
+      // Find variant product item from preloaded products
+      const variantProd = (item.productVariantId && products)
+        ? products.find(p => p.id === item.productVariantId || p.productId === item.productVariantId)
+        : (item.product?.variants && (item.productVariantId || item.variantName || item.mrp || poItem?.rate))
+          ? item.product.variants.find(v => 
+              (item.productVariantId && v.id === item.productVariantId) || 
+              (item.variantName && v.variantName === item.variantName) || 
+              (item.skuCode && v.sku === item.skuCode) || 
+              (item.mrp > 0 && Number(v.mrp) === Number(item.mrp)) || 
+              (poItem?.rate > 0 && Number(v.price) === Number(poItem.rate))
+            )
+          : null;
+
+      const prod = products.find(p => p.id === item.productId || p.productId === item.productId || p.id === item.product?.id);
+
+      const cost = parseFloat(
+        item.landingPrice > 0 ? item.landingPrice : 
+        (poItem?.landingPrice > 0 ? poItem.landingPrice : 
+        (poItem?.rate > 0 ? poItem.rate : 
+        (variantProd?.purchasePrice > 0 ? variantProd.purchasePrice : 
+        (item.product?.purchasePrice > 0 ? item.product.purchasePrice : 
+        (prod?.landingPrice > 0 ? prod.landingPrice : (prod?.purchasePrice || prod?.price || 0))))))
+      );
+
+      const mrpVal = parseFloat(
+        item.mrp > 0 ? item.mrp : 
+        (poItem?.mrp > 0 ? poItem.mrp : 
+        (variantProd?.mrp > 0 ? variantProd.mrp : 
+        (item.product?.mrp > 0 ? item.product.mrp : 
+        (prod?.mrp > 0 ? prod.mrp : (prod?.price || 0))))))
+      );
+
+      const sellingVal = parseFloat(
+        item.sellingPrice > 0 ? item.sellingPrice : 
+        (poItem?.sellingPrice > 0 ? poItem.sellingPrice : 
+        (variantProd?.price > 0 ? variantProd.price : 
+        (item.product?.price > 0 ? item.product.price : 
+        (prod?.sellingPrice > 0 ? prod.sellingPrice : (prod?.price || cost))))))
+      );
+
       const qty = item.receivedQty || 1;
-      const taxRate = prod?.gst || 0;
+      const taxRate = prod?.gst || item.product?.gst || 0;
+      const variantName = item.variantName || poItem?.variantName || variantProd?.variantName || item.product?.variantName || prod?.variantName || '';
+      const mappedUom = item.uom || poItem?.uom || variantProd?.unit || 'PACK';
+      const sku = item.skuCode || item.sku || poItem?.skuCode || variantProd?.sku || variantProd?.skuCode || item.product?.skuCode || prod?.skuCode || '';
+
+      const margin = cost > 0 ? (((sellingVal - cost) / cost) * 100).toFixed(2) : '0';
 
       return {
         productId: item.productId,
-        name: prod?.name || item.product?.name || 'Unknown Product',
-        skuCode: prod?.skuCode || item.product?.skuCode || 'NO-SKU',
+        productVariantId: item.productVariantId || poItem?.productVariantId || variantProd?.id || null,
+        name: item.name || poItem?.productName || item.product?.name || prod?.name || 'Unknown Product',
+        variantName: variantName,
+        skuCode: sku || 'NO-SKU',
+        barcode: item.barcode || variantProd?.barcode || item.product?.barcode || prod?.barcode || '',
+        unit: mappedUom,
+        uom: mappedUom,
         quantity: String(qty),
         maxQuantity: qty, // Store max allowed for frontend validation
         mrp: String(mrpVal),
@@ -288,7 +335,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
         taxType: taxRate > 0 ? 'GST' : 'NONE',
         taxPercent: String(taxRate),
         netCost: String(cost),
-        profitMargin: cost > 0 ? (((sellingVal - cost) / cost) * 100).toFixed(2) : '0',
+        profitMargin: String(margin),
         unitSellingPrice: String(sellingVal),
         mfgDate: item.mfgDate ? format(new Date(item.mfgDate), 'yyyy-MM-dd') : '',
         expDate: item.expiryDate ? format(new Date(item.expiryDate), 'yyyy-MM-dd') : '',
@@ -299,7 +346,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
     setForm(prev => ({
       ...prev,
       grnId,
-      vendorId: grn.po?.vendorId || prev.vendorId,
+      vendorId: grn.po?.vendorId || grn.po?.vendor?.id || prev.vendorId,
       items: mappedItems.map(i => calculateItemValues(i))
     }));
 
@@ -521,9 +568,9 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
         const baseItem = {
           productId: i.productId,
           name: i.product?.name || prod?.name || 'Unknown',
-          variantName: i.variantName || i.product?.variantName || prod?.variantName || '',
-          skuCode: i.product?.skuCode || prod?.skuCode || i.skuCode || 'NO-SKU',
-          barcode: i.product?.barcode || prod?.barcode || i.barcode || '',
+          variantName: i.variantName || prod?.variantName || i.product?.variantName || '',
+          skuCode: i.skuCode || i.product?.skuCode || prod?.skuCode || 'NO-SKU',
+          barcode: i.barcode || i.product?.barcode || prod?.barcode || '',
           unit: mappedUom,
           uom: mappedUom,
           quantity: String(i.quantity || 1),
@@ -1038,7 +1085,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                                       </span>
                                     )}
                                   </div>
-                                  <span className="text-[9px] font-semibold text-gray-400 mt-0.5">({p?.skuCode || p?.sku || item.skuCode || item.sku || item.product?.skuCode || item.barcode || p?.barcode || 'NO-SKU'})</span>
+                                  <span className="text-[9px] font-semibold text-gray-400 mt-0.5">({item.skuCode || item.sku || p?.skuCode || p?.sku || item.product?.skuCode || item.barcode || p?.barcode || 'NO-SKU'})</span>
                                 </div>
                               </td>
                               <td className="px-3 py-3 text-right">

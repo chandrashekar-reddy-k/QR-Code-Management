@@ -125,6 +125,7 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
     { id: Date.now(), productId: '', qty: '', unit: 'KG', price: '', total: 0, damaged: '', expiry: '' }
   ]);
   const [showVendorModal, setShowVendorModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [newVendor, setNewVendor] = useState({
     vendorName: '', mobile: '', email: '', address: '',
     gstNumber: '', contactPerson: '', creditDays: '30', openingBalance: '0',
@@ -162,8 +163,11 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       setVendors(vendorData.data?.data || vendorData.data || vendorData || []);
       setUsers(userData.data?.data || userData.data || userData || []);
       setProducts(productData.data?.data || productData.data || productData || []);
-    } catch { // Suppress global toast on partial failure }
-    finally { setLoading(false); }
+    } catch { 
+      /* Suppress global toast on partial failure */ 
+    } finally { 
+      setLoading(false); 
+    }
   }, [storeId]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -195,13 +199,21 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
       setSelectedPO(poId);
       setPODetail({ ...data, remarks: '' });
       setGRNItems((data.items || []).map(item => {
+        const variantProd = (item.productVariantId && products)
+          ? products.find(p => p.id === item.productVariantId || p.productId === item.productVariantId)
+          : (item.product?.variants && (item.productVariantId || item.variantName || item.mrp || item.rate))
+            ? item.product.variants.find(v => (item.productVariantId && v.id === item.productVariantId) || (item.variantName && v.variantName === item.variantName) || (item.skuCode && v.sku === item.skuCode) || (item.mrp > 0 && Number(v.mrp) === Number(item.mrp)) || (item.rate > 0 && Number(v.price) === Number(item.rate)))
+            : null;
+
         const targetProd = products.find(p => p.id === item.productId || p.productId === item.productId || p.id === item.product?.id);
-        const sku = targetProd?.skuCode || targetProd?.sku || item.skuCode || item.sku || item.product?.skuCode || item.product?.sku || item.vendorSku || '';
-        const uom = item.uom || targetProd?.uom || '';
-        const variantName = item.variantName || item.product?.variantName || item.productVariant?.variantName || targetProd?.variantName || '';
+        
+        const sku = item.skuCode || variantProd?.sku || variantProd?.skuCode || item.productVariant?.sku || item.sku || targetProd?.skuCode || targetProd?.sku || item.product?.skuCode || item.product?.sku || item.vendorSku || '';
+        const uom = item.uom || variantProd?.unit || targetProd?.unit?.name || targetProd?.uom || '';
+        const variantName = item.variantName || variantProd?.variantName || item.product?.variantName || item.productVariant?.variantName || targetProd?.variantName || '';
 
         return {
           productId: item.productId,
+          productVariantId: item.productVariantId || variantProd?.id || null,
           name: item.name || item.productName || item.product?.name || targetProd?.name || 'Item',
           variantName: variantName,
           sku: sku,
@@ -311,35 +323,51 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
   };
 
   const handleDeleteGRN = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this Goods Receipt? This will revert stock increases.')) return;
-    try {
-      await procurementAPI.deleteGRN(id);
-      toast.success('Goods receipt deleted');
-      loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error deleting GRN');
-    }
+    setConfirmDialog({
+      title: 'Delete Goods Receipt',
+      message: 'Are you sure you want to delete this Goods Receipt? This will revert stock increases.',
+      confirmText: 'Delete GRN',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await procurementAPI.deleteGRN(id);
+          toast.success('Goods receipt deleted');
+          loadData();
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Error deleting GRN');
+        }
+      }
+    });
   };
 
   const handleApproveQC = async (grn) => {
-    if (!window.confirm(`Are you sure you want to approve all items for GRN-${grn.displayId} (Bypassing QC)?`)) return;
-    try {
-      const pendingItems = (grn.items || []).filter(item => item.qcStatus === 'PENDING');
-      if (pendingItems.length === 0) {
-        toast.error('No pending items to approve on this GRN.');
-        return;
+    setConfirmDialog({
+      title: 'Approve Quality Control',
+      message: `Are you sure you want to approve all items for GRN-${grn.displayId} (Bypassing QC)?`,
+      confirmText: 'Approve QC',
+      cancelText: 'Cancel',
+      variant: 'emerald',
+      onConfirm: async () => {
+        try {
+          const pendingItems = (grn.items || []).filter(item => item.qcStatus === 'PENDING');
+          if (pendingItems.length === 0) {
+            toast.error('No pending items to approve on this GRN.');
+            return;
+          }
+          
+          // Approve each pending item
+          for (const item of pendingItems) {
+            await procurementAPI.updateQCStatus(item.id, { status: 'APPROVED', remarks: 'Bulk Approved (QC Bypassed)' });
+          }
+          
+          toast.success(`Successfully approved QC for all items in GRN-${grn.displayId}`);
+          loadData();
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Error approving QC');
+        }
       }
-      
-      // Approve each pending item
-      for (const item of pendingItems) {
-        await procurementAPI.updateQCStatus(item.id, { status: 'APPROVED', remarks: 'Bulk Approved (QC Bypassed)' });
-      }
-      
-      toast.success(`Successfully approved QC for all items in GRN-${grn.displayId}`);
-      loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error approving QC');
-    }
+    });
   };
 
   const handleCreateDirectGRN = async () => {
@@ -1458,17 +1486,27 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {selectedReport.items?.map(item => (
-                      <tr key={item.id} className="text-sm">
-                        <td className="px-8 py-8">
-                          <div className="space-y-1">
-                            <p className="font-bold text-gray-900">{item.product?.name}</p>
-                            <p className="text-xs text-gray-400 font-medium uppercase tracking-tighter">SKU: {item.product?.skuCode || item.product?.sku || item.sku || 'N/A'}</p>
-                            {item.uom ? (
-                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.uom}</span>
-                            ) : null}
-                          </div>
-                        </td>
+                    {selectedReport.items?.map(item => {
+                      const variantName = item.variantName || item.productVariant?.variantName || item.product?.variantName;
+                      const sku = item.skuCode || item.sku || item.productVariant?.sku || item.product?.skuCode || item.product?.sku || 'N/A';
+                      return (
+                        <tr key={item.id} className="text-sm">
+                          <td className="px-8 py-8">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-bold text-gray-900">{item.product?.name || item.name}</p>
+                                {variantName && (
+                                  <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.2 rounded text-[10px] font-bold uppercase tracking-wider">
+                                    {variantName}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400 font-medium uppercase tracking-tighter">SKU: {sku}</p>
+                              {item.uom ? (
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded uppercase">{item.uom}</span>
+                              ) : null}
+                            </div>
+                          </td>
                         <td className="px-4 py-8 text-center font-bold text-gray-900">{item.orderedQty}</td>
                         <td className="px-4 py-8 text-center font-bold text-gray-900">{item.receivedQty}</td>
                         <td className="px-4 py-8 text-center font-bold text-emerald-600">{item.receivedQty - (item.damagedQty || 0)}</td>
@@ -1487,7 +1525,8 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                           </span>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>
@@ -2000,6 +2039,55 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border shadow-inner ${
+              confirmDialog.variant === 'danger'
+                ? 'bg-rose-50 text-rose-600 border-rose-100'
+                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+            }`}>
+              {confirmDialog.variant === 'danger' ? (
+                <Trash2 size={28} strokeWidth={2} />
+              ) : (
+                <ShieldCheck size={28} strokeWidth={2} />
+              )}
+            </div>
+            <h3 className="text-base font-black text-slate-900 tracking-tight mb-2 uppercase">
+              {confirmDialog.title}
+            </h3>
+            <p className="text-xs font-medium text-slate-500 leading-relaxed mb-6 px-2">
+              {confirmDialog.message}
+            </p>
+            <div className="flex items-center gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                {confirmDialog.cancelText || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  if (action) action();
+                }}
+                className={`flex-1 py-3 px-4 rounded-xl text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg active:scale-95 ${
+                  confirmDialog.variant === 'danger'
+                    ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                }`}
+              >
+                {confirmDialog.confirmText || 'Confirm'}
+              </button>
+            </div>
           </div>
         </div>
       )}

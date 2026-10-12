@@ -432,7 +432,7 @@ export default function ShopkeeperERP() {
           <Returns onBack={goBack} />
         </div>
         <div style={{ display: screen === "sla-monitoring" ? "block" : "none" }}>
-          <SLAMonitoring onBack={goBack} />
+          <SLAMonitoring orders={orders} onBack={goBack} />
         </div>
         <div style={{ display: screen === "profile" ? "block" : "none" }}>
           <ProfileScreen onNavigate={navigate} onBack={goBack} />

@@ -244,7 +244,7 @@ export function StaffTracker() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-900 font-bold bg-[#F9FAFB]/50">
+                <tr className="border-b border-gray-100 text-[10px] sm:text-xs uppercase tracking-wide text-gray-700 dark:text-gray-300 font-bold bg-[#F9FAFB]/50">
                   <th className="px-6 py-4 font-bold">ORDER ID</th>
                   <th className="px-6 py-4 font-bold">ORDER DATE & TIME</th>
                   <th className="px-6 py-4 font-bold">CUSTOMER</th>
@@ -401,7 +401,7 @@ export function StaffTracker() {
       {/* Header section with Stats */}
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-[22px] font-bold text-[#111827]">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
             Staff Status Tracker
           </h2>
         </div>
@@ -496,7 +496,7 @@ export function StaffTracker() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-900 font-bold bg-white">
+              <tr className="border-b border-gray-100 text-[10px] sm:text-xs uppercase tracking-wide text-gray-700 dark:text-gray-300 font-bold bg-white">
                 <th className="px-3 py-3 font-bold">STAFF MEMBER</th>
                 <th className="px-3 py-3 font-bold">STAFF ID / PHONE</th>
                 <th className="px-3 py-3 font-bold">ACTIVE ORDERS</th>
