@@ -1,18 +1,23 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { Truck, Search, Barcode, ArrowUpCircle, Gift, Package, PackageCheck, ArrowLeft, Loader2, History, Clock, Printer, FileDown, FileText, RefreshCw, Check, X, Camera } from 'lucide-react';
+import { Truck, Search, Barcode, ArrowUpCircle, Gift, Package, PackageCheck, ArrowLeft, Loader2, History, Clock, Printer, FileDown, FileText, RefreshCw, Check, X, Camera, Save, Trash2, BookmarkCheck } from 'lucide-react';
 import { StockItemRow } from './SharedComponents';
 import adminAPI from '.././services/adminService';
 import * as XLSX from 'xlsx';
 import { useLoadHistoryQuery } from '../hooks/useVsmsCache';
 import BarcodeScannerOverlay from '../../../../components/BarcodeScannerOverlay';
+import toast from 'react-hot-toast';
+
+const DRAFT_STORAGE_KEY = 'vsms_loading_draft';
 
 const LoadingSection = ({
   groupedLoadingItems,
-  itemsPerPage,
+  itemsPerPage: initialItemsPerPage = 25,
+  setItemsPerPage: externalSetItemsPerPage,
   currentPage,
   setCurrentPage,
   stockQuantities,
+  setStockQuantities,
   handleQuantityChange,
   selectedVehicleId,
   setSelectedVehicleId,
@@ -28,6 +33,10 @@ const LoadingSection = ({
   vehicleInventoryMap,
   can
 }) => {
+  const [localItemsPerPage, setLocalItemsPerPage] = useState(initialItemsPerPage || 25);
+  const itemsPerPage = externalSetItemsPerPage ? initialItemsPerPage : localItemsPerPage;
+  const setItemsPerPage = externalSetItemsPerPage || setLocalItemsPerPage;
+
   const [showLoadModal, setShowLoadModal] = useState(true);
   const [selectedSession, setSelectedSession] = useState(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -35,6 +44,78 @@ const LoadingSection = ({
   const [procurementGRNs, setProcurementGRNs] = useState([]);
   const [selectedGRNId, setSelectedGRNId] = useState('ALL');
   const [grnItemsMap, setGrnItemsMap] = useState({});
+
+  // Draft Management State
+  const [savedDraftInfo, setSavedDraftInfo] = useState(null);
+
+  // Check saved draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.stockQuantities && Object.keys(parsed.stockQuantities).length > 0) {
+          setSavedDraftInfo(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse draft from localStorage:', e);
+    }
+  }, []);
+
+  const handleSaveDraft = () => {
+    const activeEntries = Object.entries(stockQuantities || {}).filter(([_, qty]) => (parseFloat(qty) || 0) > 0);
+    if (activeEntries.length === 0 && !selectedVehicleId) {
+      toast.error('No activities or quantities entered to save as draft.');
+      return;
+    }
+
+    const draftData = {
+      selectedVehicleId: selectedVehicleId || '',
+      stockQuantities: stockQuantities || {},
+      itemCount: activeEntries.length,
+      savedAt: new Date().toISOString()
+    };
+
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+      setSavedDraftInfo(draftData);
+      toast.success(`Draft saved successfully (${activeEntries.length} items recorded)`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to save draft to local storage');
+    }
+  };
+
+  const handleRestoreDraft = () => {
+    if (!savedDraftInfo) return;
+
+    if (savedDraftInfo.selectedVehicleId && setSelectedVehicleId) {
+      setSelectedVehicleId(savedDraftInfo.selectedVehicleId);
+    }
+
+    if (savedDraftInfo.stockQuantities) {
+      if (setStockQuantities) {
+        setStockQuantities(savedDraftInfo.stockQuantities);
+      } else if (handleQuantityChange) {
+        Object.entries(savedDraftInfo.stockQuantities).forEach(([pId, qty]) => {
+          handleQuantityChange(pId, qty);
+        });
+      }
+    }
+
+    toast.success('Draft restored successfully');
+  };
+
+  const handleClearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      setSavedDraftInfo(null);
+      toast.success('Saved draft cleared');
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     adminAPI.getGRNs?.().then((res) => {
@@ -505,11 +586,36 @@ const LoadingSection = ({
               </select>
             </div>
 
-            <div className="flex items-center gap-6 self-end md:self-auto">
+            <div className="flex flex-wrap items-center gap-3 self-end md:self-auto">
+              {/* Save Draft / Clear Draft Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  className="px-3.5 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 border border-gray-300 dark:border-gray-600 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer"
+                  title="Save current entered quantities as a draft to local storage"
+                >
+                  <Save size={14} className="text-emerald-600" />
+                  <span>Save Draft</span>
+                </button>
+
+                {savedDraftInfo && (
+                  <button
+                    type="button"
+                    onClick={handleClearDraft}
+                    className="p-2.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-gray-200 dark:border-gray-700 transition-all cursor-pointer"
+                    title="Clear saved draft"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+
               <div className="flex flex-col items-end">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Load Value</span>
                 <span className="text-xl font-black text-emerald-600">₹{Math.round(totalLoadingValue).toLocaleString('en-IN')}</span>
               </div>
+
               <button
                 onClick={async () => {
                   await handleInitiateLoad();
@@ -534,6 +640,38 @@ const LoadingSection = ({
             </div>
           </div>
 
+          {/* Saved Draft Alert Notification Banner */}
+          {savedDraftInfo && (
+            <div className="mb-6 p-3.5 bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300">
+                <BookmarkCheck size={18} className="text-emerald-600 shrink-0" />
+                <div>
+                  <span className="font-bold">Saved Draft Available:</span>{" "}
+                  <span>
+                    {savedDraftInfo.itemCount || Object.keys(savedDraftInfo.stockQuantities || {}).length} item(s) saved
+                    {savedDraftInfo.savedAt && ` on ${new Date(savedDraftInfo.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}.
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRestoreDraft}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] uppercase tracking-wider rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer"
+                >
+                  Restore Draft
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearDraft}
+                  className="px-2.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-gray-600 hover:text-rose-600 border border-gray-200 dark:border-gray-700 rounded-lg text-[11px] font-bold uppercase transition-all cursor-pointer"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
+
           {regularItems.length > 0 && (
             <div className="space-y-4 text-left">
               <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2">Regular Products</h4>
@@ -550,13 +688,63 @@ const LoadingSection = ({
             </div>
           )}
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8 py-4 border-t border-gray-200">
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-emerald-600 disabled:opacity-30 transition-colors">Prev</button>
-              <span className="text-[10px] font-bold text-emerald-600 px-4 py-2 bg-emerald-50 rounded-xl">Page {currentPage} of {totalPages}</span>
-              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-emerald-600 disabled:opacity-30 transition-colors">Next</button>
+          {/* Rows Per Page Pagination & Page Controls */}
+          <div className="p-4 mt-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
+            <div className="flex flex-wrap items-center gap-2 text-gray-600 dark:text-gray-300">
+              <span className="whitespace-nowrap font-medium text-xs">Rows per page:</span>
+              <select
+                value={itemsPerPage.toString()}
+                onChange={(e) => {
+                  const newLimit = Number(e.target.value);
+                  setItemsPerPage(newLimit);
+                  if (setCurrentPage) setCurrentPage(1);
+                }}
+                className="h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-lg px-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors cursor-pointer"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="500">500</option>
+              </select>
+              <span className="whitespace-nowrap ml-1 text-gray-500 dark:text-gray-400 text-xs">
+                Showing{" "}
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                  {allFiltered.length > 0 ? ((currentPage - 1) * itemsPerPage + 1).toLocaleString() : 0}
+                </span>{" "}
+                -{" "}
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                  {Math.min(currentPage * itemsPerPage, allFiltered.length).toLocaleString()}
+                </span>{" "}
+                of{" "}
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                  {allFiltered.length.toLocaleString()}
+                </span>
+              </span>
             </div>
-          )}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-40 disabled:hover:bg-gray-100 disabled:hover:text-gray-600 rounded-lg transition-colors cursor-pointer"
+              >
+                Prev
+              </button>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800/40 rounded-lg">
+                Page {currentPage} of {totalPages || 1}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-40 disabled:hover:bg-gray-100 disabled:hover:text-gray-600 rounded-lg transition-colors cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
         selectedSession ? (

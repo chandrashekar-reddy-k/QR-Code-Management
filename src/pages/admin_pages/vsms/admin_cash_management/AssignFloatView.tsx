@@ -136,6 +136,7 @@ export default function AssignFloatView({
       await adminSubmitOpeningCash({
         shift: assignmentData.shift || 1,
         agentId: assignmentData.agentId,
+        userId: assignmentData.agentId,
         vehicleId: assignmentData.vehicleId,
         date: format(new Date(), 'yyyy-MM-dd'),
         denominations: assignmentData.denominations,

@@ -667,6 +667,8 @@ const ClosingCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/Clos
 const AgentStockTransfer = lazy(() => import("../pages/admin_pages/vsms/agent/AgentStockTransfer"));
 
 
+const PublicInvoiceView = lazy(() => import("../pages/public_pages/PublicInvoiceView"));
+
 // Route configuration interface
 export interface RouteConfig {
   path: string;
@@ -689,6 +691,11 @@ export const publicRoutes: RouteConfig[] = [
   {
     path: "/create-password",
     component: CreatePassword,
+    requiresAuth: false,
+  },
+  {
+    path: "/invoice/:id",
+    component: PublicInvoiceView,
     requiresAuth: false,
   },
 ];
