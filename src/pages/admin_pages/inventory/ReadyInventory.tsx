@@ -176,12 +176,19 @@ const ReadyInventory: React.FC = () => {
             }
           });
 
+          const vehicleQty = Number(
+            item.vehicleStoreStock ??
+            item.vehicleStock ??
+            (Array.isArray(item.vehicleStockAssignments)
+              ? item.vehicleStockAssignments.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0)
+              : (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0))
+          );
+
           const variantItems = Object.values(variantMap);
           if (variantItems.length > 0) {
             variantItems.forEach((vItem: any) => {
               const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
               const posQty = Number(item.posStoreStock?.posStock ?? 0);
-              const vehicleQty = Number(item.vehicleStoreStock ?? item.vehicleStock ?? 0);
               const remainingQty = Math.max(0, vItem.readyQty - onlineQty - posQty - vehicleQty);
 
               mappedData.push({
@@ -203,12 +210,15 @@ const ReadyInventory: React.FC = () => {
             });
           } else {
             const fgPosted = fgList.reduce((sum: number, fg: any) => sum + (fg.postedQty || 0), 0);
-            const effectiveReadyQty = totalProcuredQty > 0 ? totalProcuredQty : fgPosted;
+            const effectiveReadyQty = Math.max(
+              Number(item.baseStock ?? item.stock ?? 0),
+              totalProcuredQty,
+              fgPosted
+            );
 
             const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
             const posQty = Number(item.posStoreStock?.posStock ?? 0);
-            const vehicleQty = Number(item.vehicleStoreStock ?? item.vehicleStock ?? 0);
-            const remainingQty = effectiveReadyQty - onlineQty - posQty - vehicleQty;
+            const remainingQty = Math.max(0, effectiveReadyQty - onlineQty - posQty - vehicleQty);
 
             mappedData.push({
               id: item.id,

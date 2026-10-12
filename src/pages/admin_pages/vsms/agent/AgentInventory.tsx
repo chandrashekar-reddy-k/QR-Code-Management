@@ -131,7 +131,8 @@ export default function AgentInventory() {
     try {
       setLoading(true);
       const { data } = await productsAPI.getMyRefills();
-      setRefillHistory(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : (data?.data || []);
+      setRefillHistory(Array.isArray(list) ? list : []);
     } catch { toast.error('Failed to load refill history'); }
     finally { setLoading(false); }
   };

@@ -684,9 +684,17 @@ const PurchaseOrdersSection = ({ can, setHeaderExtra, setHideMainHeader, storeId
               quantity: 0,
               rate: p.purchasePrice || p.price || 0
             });
-            // Variants as individual items
+            // Variants as individual items (active only)
             if (Array.isArray(p.variants) && p.variants.length > 0) {
-              p.variants.forEach(v => {
+              p.variants
+                .filter(v => {
+                  if (!v) return false;
+                  const status = String(v.status || '').toUpperCase();
+                  if (status === 'INACTIVE' || status === 'DISABLED') return false;
+                  if (v.isEnabled === false || v.isActive === false) return false;
+                  return true;
+                })
+                .forEach(v => {
                 flattened.push({
                   productId: v.productId || p.id,
                   id: v.id || `${p.id}_${v.variantName}`,

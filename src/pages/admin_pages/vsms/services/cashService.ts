@@ -29,13 +29,23 @@ export const adminSubmitOpeningCash = async (data) => {
   return response.data;
 };
 
-export const adminUpdateReconciliation = async (data) => {
+export const adminUpdateReconciliation = async (idOrData, maybeData) => {
+  let data = idOrData;
+  if (maybeData) {
+    data = { ...maybeData, id: idOrData };
+  }
   const response = await api.put('/cash/admin/reconciliation', data);
   return response.data;
 };
 
-export const adminDeleteReconciliation = async (vehicleId, date) => {
-  const response = await api.delete(`/cash/admin/reconciliation/${vehicleId}/${date}`);
+export const adminDeleteReconciliation = async (vehicleIdOrSummary, date) => {
+  let vId = vehicleIdOrSummary;
+  let d = date;
+  if (typeof vehicleIdOrSummary === 'object' && vehicleIdOrSummary !== null) {
+    vId = vehicleIdOrSummary.vehicleId || vehicleIdOrSummary.vehicle?.id;
+    d = vehicleIdOrSummary.date || date;
+  }
+  const response = await api.delete(`/cash/admin/reconciliation/${vId}/${d}`);
   return response.data;
 };
 

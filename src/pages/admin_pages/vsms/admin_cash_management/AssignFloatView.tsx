@@ -51,8 +51,8 @@ export default function AssignFloatView({
             adminAPI.getAgents().catch(() => ({ data: [] })),
             adminAPI.getVehicles().catch(() => ({ data: [] }))
           ]);
-          setLocalAgents(agRes.data || []);
-          setLocalVehicles(vehRes.data || []);
+          setLocalAgents(Array.isArray(agRes.data) ? agRes.data : (agRes.data?.data || []));
+          setLocalVehicles(Array.isArray(vehRes.data) ? vehRes.data : (vehRes.data?.data || []));
         } catch (err) {
           console.error('Error loading agents/vehicles in AssignFloatView:', err);
         } finally {

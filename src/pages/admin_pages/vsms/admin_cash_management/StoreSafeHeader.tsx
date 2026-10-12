@@ -458,7 +458,9 @@ const StoreSafeHeader = ({
               <span>·</span>
               <span>Opened By {openedByName}</span>
               <span>·</span>
-              <span>Opening: ₹{openingCashAmount.toLocaleString()}</span>
+              <span>Float Dispatched: ₹{agentOutflow.toLocaleString()}</span>
+              <span>·</span>
+              <span>Collected: ₹{agentInflow.toLocaleString()}</span>
             </div>
           </div>
 
@@ -505,7 +507,9 @@ const StoreSafeHeader = ({
                 <span>·</span>
                 <span>Opened By {openedByName}</span>
                 <span>·</span>
-                <span>Opening: ₹{openingCashAmount.toLocaleString()}</span>
+                <span>Safe Balance: ₹{safeBalance.toLocaleString()}</span>
+                <span>·</span>
+                <span>Transferred: ₹{bankTransferredAmount.toLocaleString()}</span>
               </div>
             </div>
 

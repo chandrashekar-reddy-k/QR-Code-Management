@@ -225,9 +225,17 @@ const GRNSection = ({ can, storeId, setHideMainHeader }) => {
           productId: p.id,
           id: p.id
         });
-        // Discrete Variants
+        // Discrete Variants (active only)
         if (Array.isArray(p.variants) && p.variants.length > 0) {
-          p.variants.forEach(v => {
+          p.variants
+            .filter(v => {
+              if (!v) return false;
+              const status = String(v.status || '').toUpperCase();
+              if (status === 'INACTIVE' || status === 'DISABLED') return false;
+              if (v.isEnabled === false || v.isActive === false) return false;
+              return true;
+            })
+            .forEach(v => {
             const variantTargetId = v.id || v.productId || p.id;
             flattenedProducts.push({
               ...p,

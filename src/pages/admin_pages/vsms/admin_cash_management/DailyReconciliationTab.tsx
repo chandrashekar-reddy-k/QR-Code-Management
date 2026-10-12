@@ -104,7 +104,9 @@ const DailyReconciliationTab = ({
                   const s1Close = s1?.closing?.actualCash || 0;
                   const s2Open = s2?.opening?.totalOpeningCash || 0;
                   const s2Close = s2?.closing?.actualCash || 0;
-                  const agent = summary.vehicle?.assignedUsers?.find(u => ['SALES_AGENT', 'DELIVERY_AGENT', 'VEHICLE_AGENT'].includes(u.role));
+                  const agent = summary.vehicle?.assignedUsers?.find(u => ['SALES_AGENT', 'DELIVERY_AGENT', 'VEHICLE_AGENT'].includes(u.role))
+                    || summary.vehicle?.assignedUsers?.[0]
+                    || summary.user;
                   const vehicleName = summary.vehicle?.vehicleName || summary.vehicle?.vehicleNumber || 'Standard';
 
                   return (
@@ -116,7 +118,7 @@ const DailyReconciliationTab = ({
                           </div>
                           <div className="flex flex-col">
                             <span className="text-xs font-bold text-gray-900">
-                              {agent?.name || 'Unassigned'}
+                              {agent?.name || summary.agentName || summary.userName || 'Unassigned'}
                             </span>
                             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                               {vehicleName}
