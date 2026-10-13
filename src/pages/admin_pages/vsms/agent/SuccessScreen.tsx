@@ -641,8 +641,9 @@ export default function SuccessScreen() {
       ? order.items.map((i: any) => `• ${i.product?.name || i.name || 'Item'} x ${i.quantity || 1} = ₹${Math.round((i.price || i.unitPrice || 0) * (i.quantity || 1))}`).join('\n')
       : '';
 
-    // Generate public invoice URL
-    const publicInvoiceUrl = `${window.location.origin}/invoice/${order.id || id}`;
+    // Generate public invoice URL from .env (fallback to current origin)
+    const baseUrl = ((import.meta as any).env?.VITE_PUBLIC_WEB_URL || window.location.origin).replace(/\/+$/, '');
+    const publicInvoiceUrl = `${baseUrl}/invoice/${order.id || id}`;
 
     const text = `🚐 *VillagKart Official Bill Receipt*\n━━━━━━━━━━━━━━━━━━━━\n📄 *Invoice No:* #VK-${invoiceNo}\n📅 *Date:* ${new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN')}\n💳 *Payment Mode:* ${order.paymentMode || 'CASH'}\n${itemsList ? `\n🛒 *Items Purchased:*\n${itemsList}\n` : ''}\n💰 *Total Paid:* ₹${Math.round(order.totalAmount || 0)}\n━━━━━━━━━━━━━━━━━━━━\n📥 *View & Download PDF Invoice:*\n👉 ${publicInvoiceUrl}\n━━━━━━━━━━━━━━━━━━━━\n🙏 *Thank you for shopping with VillagKart!*`;
 
