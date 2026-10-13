@@ -6,10 +6,10 @@ import { workOrderService, WorkOrder, WoStatus } from '../../../api/packing/work
 import { barcodeService } from '../../../api/packing/barcodeService';
 
 const DEFAULT_PRINTERS = [
-  'Zebra ZD420 (Thermal)',
-  'TSC TE244 (Thermal)',
+  'Zebra ZD420 (Thermal Roll)',
+  'HP LaserJet Tank (Office Sheet)',
+  'TSC TE244 (Thermal Roll)',
   'Brother TD-4420DN',
-  'Bluetooth Portable Printer',
   'Generic Thermal Print Head',
 ];
 
@@ -117,13 +117,13 @@ const drawBarcode128 = (canvas: HTMLCanvasElement | null, text: string) => {
   });
   bars = bars.concat(PATTERNS[106]);
 
-  const scale = 2; // slightly smaller scale to fit longer texts
+  const scale = 2; // crisp 2x module scaling for thermal printing
   const barcodeWidth = bars.reduce((acc, curr) => acc + curr, 0) * scale;
 
-  canvas.width = Math.max(barcodeWidth + 40, 300);
-  canvas.height = 100;
+  canvas.width = barcodeWidth + 24;
+  canvas.height = 70;
   
-  const barcodeHeight = 75;
+  const barcodeHeight = 48;
 
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -143,9 +143,9 @@ const drawBarcode128 = (canvas: HTMLCanvasElement | null, text: string) => {
 
   // Draw text
   ctx.fillStyle = '#000000';
-  ctx.font = 'bold 16px monospace';
+  ctx.font = 'bold 12px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(text, canvas.width / 2, barcodeHeight + 18);
+  ctx.fillText(text, canvas.width / 2, barcodeHeight + 15);
 };
 
 export interface WOProductItem {
@@ -338,22 +338,57 @@ export const PackingBarcodesLabels: React.FC = () => {
   const [labelTemplate, setLabelTemplate] = useState<'Retail Label' | 'Bulk Label' | 'Export Label'>('Retail Label');
   const [barcodeType, setBarcodeType] = useState<'Code 128' | 'EAN-13' | 'QR Code' | 'GS1-128'>('Code 128');
 
-  // Label Dimension & Preset State (Default: 50mm x 25mm Single Barcode Label)
-  const [labelSizePreset, setLabelSizePreset] = useState<'50x25' | '100x50' | 'custom'>('50x25');
-  const [customWidthMm, setCustomWidthMm] = useState<number>(50);
-  const [customHeightMm, setCustomHeightMm] = useState<number>(25);
+  // Media Stock & Dimensions Configuration
+  // '2col_roll' = Continuous 2-column roll (Zebra ZD420 default: 104mm roll, 50x25mm labels, 0mm col gap, 2mm side margins, 31mm pitch)
+  // '1col_roll' = Continuous 1-column roll
+  // 'a4_sheet' = Multi-label A4 sheet (HP LaserJet: 8 labels per sheet)
+  // 'custom' = Custom dimensions
+  const [mediaPreset, setMediaPreset] = useState<'2col_roll' | '1col_roll' | 'a4_sheet' | 'custom'>('2col_roll');
+  const [labelWidthMm, setLabelWidthMm] = useState<number>(50);
+  const [labelHeightMm, setLabelHeightMm] = useState<number>(25);
+  const [colGapMm, setColGapMm] = useState<number>(0);
+  const [rowGapMm, setRowGapMm] = useState<number>(6);
+  const [sideMarginMm, setSideMarginMm] = useState<number>(2);
 
-  const activeWidthMm = useMemo(() => {
-    if (labelSizePreset === '50x25') return 50;
-    if (labelSizePreset === '100x50') return 100;
-    return customWidthMm || 50;
-  }, [labelSizePreset, customWidthMm]);
+  // Synchronize preset changes
+  const handleMediaPresetChange = (preset: '2col_roll' | '1col_roll' | 'a4_sheet' | 'custom') => {
+    setMediaPreset(preset);
+    if (preset === '2col_roll') {
+      setLabelWidthMm(50);
+      setLabelHeightMm(25);
+      setColGapMm(0);
+      setRowGapMm(6);
+      setSideMarginMm(2);
+    } else if (preset === '1col_roll') {
+      setLabelWidthMm(50);
+      setLabelHeightMm(25);
+      setColGapMm(0);
+      setRowGapMm(6);
+      setSideMarginMm(2);
+    } else if (preset === 'a4_sheet') {
+      setLabelWidthMm(48);
+      setLabelHeightMm(25);
+      setColGapMm(2);
+      setRowGapMm(2);
+      setSideMarginMm(5);
+    }
+  };
 
-  const activeHeightMm = useMemo(() => {
-    if (labelSizePreset === '50x25') return 25;
-    if (labelSizePreset === '100x50') return 50;
-    return customHeightMm || 25;
-  }, [labelSizePreset, customHeightMm]);
+  // Total printable page width and feed height in mm
+  const rollWidthMm = useMemo(() => {
+    if (mediaPreset === 'a4_sheet') return 210; // A4 standard width (210mm)
+    if (mediaPreset === '1col_roll') return labelWidthMm + (sideMarginMm * 2);
+    // 2-column continuous roll: sideMargin + labelWidth + colGap + labelWidth + sideMargin (2 + 50 + 0 + 50 + 2 = 104mm backing width)
+    return (labelWidthMm * 2) + colGapMm + (sideMarginMm * 2);
+  }, [mediaPreset, labelWidthMm, colGapMm, sideMarginMm]);
+
+  const rowFeedHeightMm = useMemo(() => {
+    if (mediaPreset === 'a4_sheet') return 297; // A4 standard height (297mm)
+    return labelHeightMm + rowGapMm;
+  }, [mediaPreset, labelHeightMm, rowGapMm]);
+
+  const activeWidthMm = labelWidthMm;
+  const activeHeightMm = labelHeightMm;
 
   // Input Fields
   const [sku, setSku] = useState('');
@@ -583,53 +618,99 @@ export const PackingBarcodesLabels: React.FC = () => {
       barcodeDataUrl = offCanvas.toDataURL('image/png');
     }
 
-    const labelCards: string[] = [];
     const productName = selectedProductName || selectedWO?.product?.name || 'Product Name';
 
-    const isCompact = activeHeightMm <= 30;
-    const headerFontSize = isCompact ? '11px' : '18px';
-    const headerPadding = isCompact ? '2px' : '6px';
-    const titleFontSize = isCompact ? '10.5px' : '13px';
-    const bodyFontSize = isCompact ? '8px' : '10px';
-    const bodyPadding = isCompact ? '1px 2px' : '0 8%';
-    const barcodeMaxHeight = isCompact ? '20px' : '40px';
-    const qrSize = isCompact ? '22px' : '35px';
-
-    const cardBody = `
-      <div class="label-card" style="width: ${activeWidthMm}mm; height: ${activeHeightMm}mm; display:flex; flex-direction:column; justify-content:space-between; padding:${isCompact ? '2.5mm 3.5mm' : '10px 14px'}; font-family:'Segoe UI',Arial,sans-serif; background:#fff; overflow:hidden; page-break-after:always; break-after:page; border:none; box-sizing:border-box;">
-        <div style="text-align:center; font-size:${headerFontSize}; font-weight:900; color:#00891D; letter-spacing:0.5px; text-transform:uppercase; border-bottom:1px solid #e5e7eb; padding-bottom:${headerPadding}; margin-bottom:0; line-height:1.1;">
+    // Solid monochrome label card template for crisp thermal and laser printing
+    const singleLabelCard = `
+      <div class="label-card" style="width: ${labelWidthMm}mm; height: ${labelHeightMm}mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; padding: 1.5mm 2.2mm; font-family: 'Segoe UI', Arial, sans-serif; background: #ffffff; color: #000000; overflow: hidden; border: none;">
+        <div style="text-align: center; font-size: 10px; font-weight: 900; color: #000000; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 1px; margin-bottom: 1px; line-height: 1.1;">
           VILLAGKART RETAIL
         </div>
-        <div style="text-align:center; font-size:${titleFontSize}; font-weight:700; color:#111827; margin-bottom:0; margin-top:1px; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+        <div style="text-align: center; font-size: 9.5px; font-weight: 700; color: #000000; margin: 0; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
           ${productName}
         </div>
-        <div style="font-size:${bodyFontSize}; color:#111827; line-height:1.25; padding:${bodyPadding}; flex-grow:1; display:flex; flex-direction:column; justify-content:center; margin:1px 0;">
-          <div style="display:flex; justify-content:space-between; gap:2px;">
-            <span>SKU: <b>${job.sku}</b></span>
-            <span>Batch: <b>${job.batchNo}</b></span>
+        <div style="font-size: 6.8px; font-weight: 600; color: #000000; line-height: 1.25; margin: 1px 0; display: flex; flex-direction: column; justify-content: center; gap: 0.5px;">
+          <div style="display: flex; justify-content: space-between; gap: 2px; white-space: nowrap; overflow: hidden;">
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%;">SKU: <b>${job.sku}</b></span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 52%; text-align: right;">Batch: <b>${job.batchNo}</b></span>
           </div>
-          <div style="display:flex; justify-content:space-between; gap:2px;">
-            <span>Lot: <b>${lotNo || 'N/A'}</b></span>
-            <span>MRP: <b>₹${mrp || 0}.00</b></span>
+          <div style="display: flex; justify-content: space-between; gap: 2px; white-space: nowrap; overflow: hidden;">
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%;">Lot: <b>${lotNo || 'N/A'}</b></span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 35%; text-align: right;">MRP: <b>₹${mrp || 0}.00</b></span>
           </div>
-          <div style="display:flex; justify-content:space-between; gap:2px;">
-            <span>MFG: ${mfgDate}</span>
-            <span>EXP: ${expiryDate}</span>
+          <div style="display: flex; justify-content: space-between; gap: 2px; white-space: nowrap; overflow: hidden;">
+            <span style="white-space: nowrap;">MFG: ${mfgDate}</span>
+            <span style="white-space: nowrap; text-align: right;">EXP: ${expiryDate}</span>
           </div>
         </div>
-        <div style="border-top:1px solid #e5e7eb; padding-top:${isCompact ? '2px' : '6px'}; margin-top:auto;">
+        <div style="border-top: 1px solid #000000; padding-top: 1px; margin-top: auto;">
           ${
             type !== 'QR Code'
-              ? `<div style="display:flex;justify-content:center;width:100%;"><img src="${barcodeDataUrl}" style="max-width:100%; height:auto; max-height:${barcodeMaxHeight}; image-rendering:pixelated; display:block;" alt="barcode" /></div>`
-              : `<div style="display:flex;justify-content:center;"><img src="${qrCodeUrl}" style="width:${qrSize};height:${qrSize};" alt="QR" /></div>`
+              ? `<div style="display: flex; justify-content: center; width: 100%;"><img src="${barcodeDataUrl}" style="max-width: 100%; height: 17px; image-rendering: pixelated; display: block;" alt="barcode" /></div>`
+              : `<div style="display: flex; justify-content: center;"><img src="${qrCodeUrl}" style="width: 20px; height: 20px; display: block;" alt="QR" /></div>`
           }
         </div>
       </div>
     `;
 
-    for (let i = 0; i < job.printedQty; i++) {
-      labelCards.push(cardBody);
+    const emptySpacerCard = `
+      <div class="label-card label-card-empty" style="width: ${labelWidthMm}mm; height: ${labelHeightMm}mm; box-sizing: border-box; visibility: hidden;"></div>
+    `;
+
+    let generatedPagesHtml = '';
+
+    if (mediaPreset === '2col_roll' || mediaPreset === 'custom') {
+      // 2 labels per row feed across the continuous roll
+      const totalRows = Math.ceil(job.printedQty / 2);
+      const rowElements: string[] = [];
+      for (let r = 0; r < totalRows; r++) {
+        const leftIdx = r * 2;
+        const rightIdx = leftIdx + 1;
+        const leftLabel = singleLabelCard;
+        const rightLabel = rightIdx < job.printedQty ? singleLabelCard : emptySpacerCard;
+        rowElements.push(`
+          <div class="label-row-feed">
+            ${leftLabel}
+            ${rightLabel}
+          </div>
+        `);
+      }
+      generatedPagesHtml = rowElements.join('');
+    } else if (mediaPreset === '1col_roll') {
+      // 1 label per row feed
+      const rowElements: string[] = [];
+      for (let i = 0; i < job.printedQty; i++) {
+        rowElements.push(`
+          <div class="label-row-feed">
+            ${singleLabelCard}
+          </div>
+        `);
+      }
+      generatedPagesHtml = rowElements.join('');
+    } else if (mediaPreset === 'a4_sheet') {
+      // A4 Sheet: 8 labels per sheet (4 columns x 2 rows)
+      const labelsPerSheet = 8;
+      const totalSheets = Math.ceil(job.printedQty / labelsPerSheet);
+      const sheetElements: string[] = [];
+      for (let s = 0; s < totalSheets; s++) {
+        const sheetLabels: string[] = [];
+        for (let l = 0; l < labelsPerSheet; l++) {
+          const globalIdx = s * labelsPerSheet + l;
+          if (globalIdx < job.printedQty) {
+            sheetLabels.push(singleLabelCard);
+          } else {
+            sheetLabels.push(emptySpacerCard);
+          }
+        }
+        sheetElements.push(`
+          <div class="label-sheet-page">
+            ${sheetLabels.join('')}
+          </div>
+        `);
+      }
+      generatedPagesHtml = sheetElements.join('');
     }
+
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -645,38 +726,111 @@ export const PackingBarcodesLabels: React.FC = () => {
       return;
     }
 
+    const pageCss = mediaPreset === 'a4_sheet'
+      ? `
+        @page {
+          size: A4 portrait;
+          margin: 10mm 5mm !important;
+        }
+        html, body {
+          width: 210mm;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .label-sheet-page {
+          width: 200mm;
+          min-height: 270mm;
+          display: grid;
+          grid-template-columns: repeat(4, ${labelWidthMm}mm);
+          grid-template-rows: repeat(2, ${labelHeightMm}mm);
+          gap: ${colGapMm}mm;
+          justify-content: center;
+          align-content: start;
+          page-break-inside: avoid;
+          break-inside: avoid;
+          box-sizing: border-box;
+        }
+        .label-sheet-page:not(:last-child) {
+          page-break-after: always;
+          break-after: page;
+        }
+      `
+      : `
+        @page {
+          size: ${rollWidthMm}mm ${rowFeedHeightMm}mm;
+          margin: 0 !important;
+        }
+        html, body {
+          width: ${rollWidthMm}mm;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .label-row-feed {
+          width: ${rollWidthMm}mm;
+          height: ${rowFeedHeightMm}mm;
+          box-sizing: border-box;
+          padding-left: ${sideMarginMm}mm;
+          padding-right: ${sideMarginMm}mm;
+          padding-top: 0;
+          padding-bottom: ${rowGapMm}mm;
+          display: grid;
+          grid-template-columns: ${mediaPreset === '1col_roll' ? `${labelWidthMm}mm` : `${labelWidthMm}mm ${labelWidthMm}mm`};
+          column-gap: ${colGapMm}mm;
+          align-items: start;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+        .label-row-feed:not(:last-child) {
+          page-break-after: always;
+          break-after: page;
+        }
+      `;
+
     printWindow.document.open();
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="UTF-8" />
+          <title>VillagKart Label Print Job - ${job.batchNo}</title>
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
-            @page { size: ${activeWidthMm}mm ${activeHeightMm}mm; margin: 0; }
-            body {
-              font-family: 'Segoe UI', Arial, sans-serif;
-              background: #fff;
-              width: ${activeWidthMm}mm;
-              height: ${activeHeightMm}mm;
-            }
-            .label-grid { display: block; }
-            @media print { body { background: #fff; } }
+            ${pageCss}
           </style>
         </head>
         <body>
-          <div class="label-grid">${labelCards.join('')}</div>
+          ${generatedPagesHtml}
           <script>
-            window.onload = function() {
+            window.onload = async function() {
+              try {
+                const images = Array.from(document.images);
+                await Promise.all(
+                  images.map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return img.decode ? img.decode().catch(() => {}) : new Promise(res => {
+                      img.onload = res;
+                      img.onerror = res;
+                    });
+                  })
+                );
+              } catch (e) {}
               setTimeout(function() {
                 window.focus();
                 window.print();
-                setTimeout(function() { 
-                  if (window.frameElement && window.frameElement.parentNode) {
-                    window.frameElement.parentNode.removeChild(window.frameElement);
-                  }
-                }, 500);
-              }, 100);
+              }, 60);
+            };
+            window.onafterprint = function() {
+              try {
+                if (window.frameElement && window.frameElement.parentNode) {
+                  window.frameElement.parentNode.removeChild(window.frameElement);
+                }
+              } catch (e) {}
             };
           </script>
         </body>
@@ -1174,7 +1328,13 @@ export const PackingBarcodesLabels: React.FC = () => {
                       if (e.target.value === '__ADD_NEW__') {
                         setIsAddingPrinter(true);
                       } else {
-                        setSelectedPrinter(e.target.value);
+                        const val = e.target.value;
+                        setSelectedPrinter(val);
+                        if (val.toLowerCase().includes('laser') || val.toLowerCase().includes('hp') || val.toLowerCase().includes('sheet')) {
+                          handleMediaPresetChange('a4_sheet');
+                        } else if (val.toLowerCase().includes('zebra') || val.toLowerCase().includes('thermal') || val.toLowerCase().includes('roll')) {
+                          handleMediaPresetChange('2col_roll');
+                        }
                       }
                     }}
                   >
@@ -1191,7 +1351,7 @@ export const PackingBarcodesLabels: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <input
                       type="text"
-                      placeholder="e.g. Xprinter XP-365B"
+                      placeholder="e.g. Zebra ZD420 (Thermal Roll)"
                       value={newPrinterName}
                       onChange={(e) => setNewPrinterName(e.target.value)}
                       className="w-full p-1.5 border border-[#00891D] rounded-lg text-xs bg-white dark:bg-gray-900 dark:text-white"
@@ -1239,55 +1399,112 @@ export const PackingBarcodesLabels: React.FC = () => {
               </div>
             </div>
 
-            {/* Label Dimensions / Preset */}
-            <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 uppercase mb-1">
-                Label Dimensions Preset *
-              </label>
+            {/* Explicit Hardware vs Chrome Print Notice */}
+            <div className="bg-amber-50/80 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/40 p-2.5 rounded-lg text-[11px] space-y-1">
+              <div className="font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                <Printer size={13} className="shrink-0 text-amber-700 dark:text-amber-400" />
+                <span>Printer Device vs Chrome Destination:</span>
+              </div>
+              <p className="text-amber-800 dark:text-amber-400 text-[10.5px] leading-tight">
+                ERP records <strong>{selectedPrinter}</strong> for audit logs. When Chrome's print dialog opens, ensure <strong>Destination</strong> matches your physical printer, <strong>Scale is 100%</strong>, and <strong>Margins: None</strong>.
+              </p>
+            </div>
+
+            {/* Media Stock & Layout Configuration */}
+            <div className="space-y-2 border border-slate-200 dark:border-gray-700 p-3 rounded-lg bg-slate-50/50 dark:bg-gray-900/30">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 uppercase">
+                  Media Stock & Layout *
+                </label>
+                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                  {mediaPreset === '2col_roll' ? 'Continuous 2-Up Roll' : mediaPreset === 'a4_sheet' ? 'A4 Sheet (8 Labels)' : mediaPreset === '1col_roll' ? 'Continuous 1-Up Roll' : 'Custom Stock'}
+                </span>
+              </div>
+
               <select
-                className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-slate-50 dark:bg-gray-900 text-slate-800 dark:text-gray-200 focus:ring-1 focus:ring-[#00891D] font-medium"
-                value={labelSizePreset}
-                onChange={(e: any) => setLabelSizePreset(e.target.value)}
+                className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-200 focus:ring-1 focus:ring-[#00891D] font-medium"
+                value={mediaPreset}
+                onChange={(e: any) => handleMediaPresetChange(e.target.value)}
               >
-                <option value="50x25" className="dark:bg-gray-800">
-                  Single Barcode Label (50 × 25 mm / 2" × 1" Landscape)
+                <option value="2col_roll" className="dark:bg-gray-800">
+                  Continuous 2-Up Roll (Zebra ZD420 — 50×25 mm × 2 columns, 104 mm Roll, 31 mm Pitch)
                 </option>
-                <option value="100x50" className="dark:bg-gray-800">
-                  Standard Shipping/Retail Label (100 × 50 mm / 4" × 2")
+                <option value="1col_roll" className="dark:bg-gray-800">
+                  Continuous 1-Up Roll (Single Column — 50×25 mm)
+                </option>
+                <option value="a4_sheet" className="dark:bg-gray-800">
+                  A4 Paper Sheet (HP LaserJet — 8 labels: 4 cols × 2 rows)
                 </option>
                 <option value="custom" className="dark:bg-gray-800">
-                  Custom Dimensions (mm)
+                  Custom Roll / Sheet Dimensions (mm)
                 </option>
               </select>
-              {labelSizePreset === 'custom' && (
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold block mb-1">Width (mm)</span>
-                    <input
-                      type="number"
-                      min={20}
-                      max={200}
-                      value={customWidthMm}
-                      onChange={(e) => setCustomWidthMm(Number(e.target.value))}
-                      className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold block mb-1">Height (mm)</span>
-                    <input
-                      type="number"
-                      min={15}
-                      max={200}
-                      value={customHeightMm}
-                      onChange={(e) => setCustomHeightMm(Number(e.target.value))}
-                      className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
-                    />
-                  </div>
+
+              {/* Millimeter adjustment inputs */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <div>
+                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold block mb-0.5">Label W (mm)</span>
+                  <input
+                    type="number"
+                    min={20}
+                    max={200}
+                    value={labelWidthMm}
+                    onChange={(e) => setLabelWidthMm(Number(e.target.value))}
+                    className="w-full p-1 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
+                  />
                 </div>
-              )}
-              <div className="mt-1 text-[11px] text-[#00891D] font-semibold flex items-center justify-between">
-                <span>📐 Printer Target: {activeWidthMm} mm × {activeHeightMm} mm</span>
-                <span className="text-slate-400 font-normal text-[10px]">(Single Label Media)</span>
+                <div>
+                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold block mb-0.5">Label H (mm)</span>
+                  <input
+                    type="number"
+                    min={15}
+                    max={200}
+                    value={labelHeightMm}
+                    onChange={(e) => setLabelHeightMm(Number(e.target.value))}
+                    className="w-full p-1 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold block mb-0.5">Col Gap (mm)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={colGapMm}
+                    onChange={(e) => setColGapMm(Number(e.target.value))}
+                    className="w-full p-1 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold block mb-0.5">Row Gap / Pitch (mm)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={rowGapMm}
+                    onChange={(e) => setRowGapMm(Number(e.target.value))}
+                    className="w-full p-1 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold block mb-0.5">Side Margin (mm)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={sideMarginMm}
+                    onChange={(e) => setSideMarginMm(Number(e.target.value))}
+                    className="w-full p-1 border border-slate-200 dark:border-gray-700 rounded text-xs text-center dark:bg-gray-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="text-[10.5px] text-[#00891D] font-mono font-semibold pt-1 border-t border-slate-200/60 dark:border-gray-700 flex justify-between items-center">
+                <span>Total Width: {rollWidthMm} mm</span>
+                <span>Feed Pitch: {rowFeedHeightMm} mm</span>
               </div>
             </div>
 
@@ -1454,8 +1671,8 @@ export const PackingBarcodesLabels: React.FC = () => {
                 <Barcode size={18} className="text-[#00891D]" />
                 <span>Label Preview Template</span>
               </h3>
-              <span className="text-[10px] font-bold text-[#00891D] bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
-                {activeWidthMm} × {activeHeightMm} mm
+              <span className="text-[10px] font-bold text-slate-800 bg-slate-100 dark:bg-gray-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 px-2 py-0.5 rounded-full font-mono">
+                {labelWidthMm} × {labelHeightMm} mm ({mediaPreset === '2col_roll' ? '2-Up Roll' : mediaPreset === 'a4_sheet' ? 'A4 Sheet' : '1-Up Roll'})
               </span>
             </div>
 
@@ -1463,8 +1680,8 @@ export const PackingBarcodesLabels: React.FC = () => {
             <div
               style={{
                 background: '#fff',
-                border: '1.5px solid #d1d5db',
-                borderRadius: 10,
+                border: '1.5px solid #000000',
+                borderRadius: 8,
                 padding: activeHeightMm <= 30 ? '10px 14px' : '14px 18px',
                 maxWidth: 360,
                 width: '100%',
@@ -1482,10 +1699,10 @@ export const PackingBarcodesLabels: React.FC = () => {
                   textAlign: 'center',
                   fontSize: activeHeightMm <= 30 ? 14 : 20,
                   fontWeight: 900,
-                  color: '#00891D',
+                  color: '#000000',
                   letterSpacing: 0.5,
                   textTransform: 'uppercase',
-                  borderBottom: '1.5px solid #e5e7eb',
+                  borderBottom: '1.5px solid #000000',
                   paddingBottom: activeHeightMm <= 30 ? 4 : 8,
                   marginBottom: 0,
                   lineHeight: 1.1,
@@ -1521,22 +1738,22 @@ export const PackingBarcodesLabels: React.FC = () => {
                   margin: '4px 0',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '4px', whiteSpace: 'nowrap', fontSize: activeHeightMm <= 30 ? 9 : 10 }}>
-                  <span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', fontSize: activeHeightMm <= 30 ? 9 : 10 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '48%' }}>
                     SKU: <b>{sku || '—'}</b>
                   </span>
-                  <span style={{ textAlign: 'right' }}>
+                  <span style={{ textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '52%' }}>
                     Batch:{' '}
                     <b style={{ fontFamily: 'monospace', fontSize: activeHeightMm <= 30 ? 9 : 10 }}>
                       {batchNo || '—'}
                     </b>
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: activeHeightMm <= 30 ? 9 : 11 }}>
-                  <span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', fontSize: activeHeightMm <= 30 ? 9 : 11 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>
                     Lot: <b style={{ fontFamily: 'monospace' }}>{lotNo || '—'}</b>
                   </span>
-                  <span>
+                  <span style={{ textAlign: 'right', whiteSpace: 'nowrap', maxWidth: '35%' }}>
                     MRP: <b>₹{mrp || 0}.00</b>
                   </span>
                 </div>

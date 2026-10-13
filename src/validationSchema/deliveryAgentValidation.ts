@@ -4,7 +4,10 @@ export const step1Schema = yup.object({
   role: yup
     .string()
     .required("Portal Type is required")
-    .oneOf(["DELIVERY_AGENT", "VEHICLE_AGENT", "SHOPKEEPER"], "Invalid Portal Type"),
+    .oneOf(
+      ["DELIVERY_AGENT", "VEHICLE_AGENT", "SHOPKEEPER", "PACKING_OPERATOR", "QC_INSPECTOR"],
+      "Invalid Portal Type"
+    ),
 
   fullName: yup
     .string()
@@ -370,7 +373,7 @@ export const step4Schema = yup.object({
           .test(
             "fileSize",
             "File size must be less than 5MB",
-            (value, context) => {
+            (_value, context) => {
               const file = context?.parent?.file; // assuming you store the actual File object
               if (!file) return true; // skip if file object not available
               return file.size <= 5 * 1024 * 1024;

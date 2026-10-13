@@ -619,6 +619,24 @@ const ViewDeliveryAgent = () => {
                     {deliveryBoy.dob ? deliveryBoy.dob : "---"}
                   </span>
                 </div>
+
+                <div className="grid grid-cols-[180px_10px_1fr] items-center">
+                  <span className="text-xs font-medium text-gray-500">
+                    Portal Type
+                  </span>
+                  <span>:</span>
+                  <span className="font-semibold text-gray-800">
+                    {deliveryBoy.role === "PACKING_OPERATOR"
+                      ? "Packing Operator Portal"
+                      : deliveryBoy.role === "QC_INSPECTOR"
+                      ? "QC Inspector Portal"
+                      : deliveryBoy.role === "VEHICLE_AGENT"
+                      ? "VSMS Vehicle Agent Portal"
+                      : deliveryBoy.role === "SHOPKEEPER"
+                      ? "Shopkeeper Portal"
+                      : "Delivery Agent Portal"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
