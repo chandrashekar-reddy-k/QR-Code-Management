@@ -589,12 +589,22 @@ export default function AdminPOS() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await productsAPI.getAll({ showAll: true, storeId, bypassCache: true });
-      // Map the stock to posStock since this is a POS terminal
-      const mappedData = data.map(p => ({
-        ...p,
-        stock: p.posStock !== undefined && p.posStock !== null ? p.posStock : p.stock
-      }));
+      const { data } = await productsAPI.getAll({ showAll: true, storeId, bypassCache: true, channel: 'POS_STORE', posOnly: 'true' });
+      // Map the stock strictly to posStock since this is a POS terminal, filtering for items enabled for Store POS
+      const mappedData = (Array.isArray(data) ? data : [])
+        .filter((p: any) => {
+          const isPos = p.isPosEnabled !== undefined
+            ? p.isPosEnabled
+            : (p.isPos !== undefined
+              ? p.isPos
+              : (p.posStoreStock?.isPosEnabled !== undefined ? p.posStoreStock.isPosEnabled : false));
+          const hasPosStock = Number(p.posStock ?? 0) > 0;
+          return Boolean(isPos) || hasPosStock;
+        })
+        .map((p: any) => ({
+          ...p,
+          stock: p.posStock !== undefined && p.posStock !== null ? Number(p.posStock) : 0
+        }));
       setProducts(mappedData);
     } catch (err) {
       toast.error('Failed to load products');
@@ -647,20 +657,24 @@ export default function AdminPOS() {
   const flattenedPosItems = useMemo(() => {
     const list: any[] = [];
     products.forEach((p: any) => {
-      // Must be present in PosStoreStock and enabled for POS
+      // Must be present in PosStoreStock / ChannelInventory and enabled for POS
       const isPos = p.isPosEnabled !== undefined
         ? p.isPosEnabled
         : (p.isPos !== undefined
           ? p.isPos
           : (p.posStoreStock?.isPosEnabled !== undefined ? p.posStoreStock.isPosEnabled : false));
 
-      if (!isPos) return;
+      const hasPosStock = Number(p.posStock ?? p.stock ?? 0) > 0;
+      if (!isPos && !hasPosStock) return;
 
       if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
         p.variants.forEach((v: any) => {
-          const varPrice = Number(v.sellingPrice ?? v.salePrice ?? v.finalPrice ?? v.posPrice ?? v.price ?? p.price ?? 0);
+          const varPosInv = v.channelInventories?.find?.((ci: any) => ci.channel === 'POS_STORE');
+          const varPrice = Number(varPosInv?.channelPrice ?? v.posPrice ?? v.sellingPrice ?? v.salePrice ?? v.finalPrice ?? v.price ?? p.posPrice ?? p.price ?? 0);
           const varMrp = Number(v.mrp ?? p.mrp ?? 0);
-          const varStock = v.stock !== undefined && v.stock !== null ? Number(v.stock) : (v.posStock !== undefined && v.posStock !== null ? Number(v.posStock) : Number(p.stock ?? 0));
+          const varStock = v.posStock !== undefined && v.posStock !== null 
+            ? Number(v.posStock) 
+            : (varPosInv !== undefined ? Number(varPosInv.quantity) : (v.stock !== undefined && v.stock !== null ? Number(v.stock) : Number(p.stock ?? 0)));
           list.push({
             ...p,
             id: `${p.id}_var_${v.id}`,
@@ -691,7 +705,7 @@ export default function AdminPOS() {
           displayName: p.name,
           fullName: p.name,
           name: p.name,
-          price: Number(p.price ?? 0),
+          price: Number(p.posPrice ?? p.price ?? 0),
           mrp: Number(p.mrp ?? 0),
           stock: Number(p.stock ?? 0),
           barcode: p.barcode || '',
