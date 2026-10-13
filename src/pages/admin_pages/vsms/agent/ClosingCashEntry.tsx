@@ -14,6 +14,8 @@ import {
   Loader2,
   ShoppingBag,
   RefreshCw,
+  AlertTriangle,
+  Info,
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { submitClosingCash, getCashStatus } from '../services/cashService';
@@ -72,9 +74,19 @@ export default function ClosingCashEntry() {
   const openingDenoms = currentShift?.openingDenominations || {};
   const isClosingSubmitted = Boolean(currentShift?.closingSubmitted);
 
+  const difference = actualCash - expectedCash;
+  const isBalanced = Math.abs(difference) <= 0.01;
+  const isShortage = difference < -0.01;
+  const isSurplus = difference > 0.01;
+  const remainingNeeded = isShortage ? Math.abs(difference) : 0;
+
   const handleSubmit = async () => {
     if (!isOpeningAssigned) {
       toast.error(`Shift ${activeShift} cannot be closed because no opening float was assigned by the store manager yet.`);
+      return;
+    }
+    if (!isBalanced && !remark.trim()) {
+      toast.error(`Please explain the ₹${Math.abs(difference).toFixed(2)} ${isShortage ? 'shortage' : 'surplus'} before submitting.`);
       return;
     }
     setLoading(true);
@@ -299,9 +311,38 @@ export default function ClosingCashEntry() {
 
         {/* Enter Cash Denominations Card */}
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs space-y-3.5">
-          <h3 className="text-sm font-extrabold text-gray-900">
-            Enter Cash Denominations
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-gray-900">
+              Enter Cash Denominations
+            </h3>
+            <div className="flex items-center gap-2">
+              {actualCash === 0 && isOpeningAssigned && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prefilled = { ...counts };
+                    Object.entries(openingDenoms).forEach(([d, c]) => {
+                      prefilled[Number(d)] = Number(c) || 0;
+                    });
+                    setCounts(prefilled);
+                    toast.success('Pre-filled assigned float counts');
+                  }}
+                  className="text-[11px] font-bold text-[#00891D] hover:underline cursor-pointer"
+                >
+                  Pre-fill Float
+                </button>
+              )}
+              {actualCash > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCounts(DENOMINATIONS.reduce((acc, d) => ({ ...acc, [d]: 0 }), {}))}
+                  className="text-[11px] font-bold text-gray-400 hover:text-gray-600 underline cursor-pointer"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-3">
             {DENOMINATIONS.map((denom) => (
@@ -326,13 +367,13 @@ export default function ClosingCashEntry() {
                     min="0"
                     value={counts[denom] === 0 ? '0' : counts[denom]}
                     onChange={(e) => handleCountChange(denom, e.target.value)}
-                    className="w-full text-center text-xs font-extrabold text-gray-900 bg-transparent outline-none"
+                    className="w-full text-center text-xs font-extrabold text-gray-900 bg-transparent outline-none tabular-nums"
                   />
                 </div>
 
                 {/* Line Total */}
                 <div className="w-20 text-right">
-                  <span className="text-xs font-bold text-gray-900">
+                  <span className="text-xs font-bold text-gray-900 tabular-nums">
                     ₹{((counts[denom] || 0) * denom).toFixed(2)}
                   </span>
                 </div>
@@ -340,29 +381,159 @@ export default function ClosingCashEntry() {
             ))}
           </div>
 
-          {/* Actual Total Cost Section */}
+          {/* Actual Total Cash Counted */}
           <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-500">Actual Total Cost</span>
-            <span className="text-lg font-black text-gray-900">
+            <span className="text-xs font-bold text-gray-500">Actual Total Cash</span>
+            <span className="text-lg font-black text-gray-900 tabular-nums">
               ₹{actualCash.toFixed(2)}
             </span>
           </div>
 
-          {/* Explain Difference Section */}
-          <div className="space-y-1.5 pt-2">
-            <label className="text-xs font-bold text-gray-900">
-              Explain Difference <span className="text-red-500">*</span>
-            </label>
-            <div className="bg-white rounded-2xl border border-gray-200 p-3.5 shadow-2xs">
-              <textarea
-                rows={3}
-                placeholder="Why is there a difference?"
-                value={remark}
-                onChange={(e) => setRemark(e.target.value)}
-                className="w-full bg-transparent text-xs font-semibold text-gray-700 placeholder:text-gray-400 outline-none resize-none"
-              />
+          {/* Live Reconciliation Satisfaction & Remaining Needed Card */}
+          <div className="space-y-2.5 pt-1">
+            <div className="bg-gray-50/90 rounded-2xl p-3.5 border border-gray-200/80 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-gray-500">Expected Shift Cash:</span>
+                <span className="font-extrabold text-gray-900 tabular-nums">
+                  ₹{expectedCash.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-gray-500">Actual Cash Entered:</span>
+                <span className="font-extrabold text-gray-900 text-sm tabular-nums">
+                  ₹{actualCash.toFixed(2)}
+                </span>
+              </div>
+
+              {/* Progress bar to satisfy expected cash */}
+              {expectedCash > 0 && (
+                <div className="space-y-1 pt-1">
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-300 rounded-full ${
+                        isBalanced 
+                          ? 'bg-[#00891D]' 
+                          : isSurplus 
+                            ? 'bg-blue-600' 
+                            : 'bg-amber-500'
+                      }`}
+                      style={{ width: `${Math.min(100, Math.round((actualCash / expectedCash) * 100))}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 font-bold">
+                    <span>{Math.min(100, Math.round((actualCash / expectedCash) * 100))}% Satisfied</span>
+                    {isShortage && (
+                      <span className="text-amber-700 font-extrabold tabular-nums">
+                        Need ₹{remainingNeeded.toFixed(2)} more to satisfy
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Dynamic Status Banner */}
+              <div className="pt-2 border-t border-gray-200/60">
+                {isBalanced ? (
+                  <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-emerald-800">
+                    <div className="flex items-center gap-2 text-xs font-bold">
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      <span>Balanced! Cash entered matches expected amount.</span>
+                    </div>
+                    <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Satisfied ✓
+                    </span>
+                  </div>
+                ) : isShortage ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200/90 rounded-xl text-amber-900 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                        <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                        <span>Shortage: Need ₹{remainingNeeded.toFixed(2)} more to satisfy</span>
+                      </div>
+                      <span className="text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full uppercase tabular-nums">
+                        -₹{remainingNeeded.toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-700 font-medium">
+                      Enter <strong>₹{remainingNeeded.toFixed(2)}</strong> more across denominations to balance, or provide a reason below.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-blue-50 border border-blue-200/90 rounded-xl text-blue-900 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-blue-800">
+                        <Info size={15} className="text-blue-600 shrink-0" />
+                        <span>Surplus: Entered ₹{Math.abs(difference).toFixed(2)} extra</span>
+                      </div>
+                      <span className="text-[10px] font-black bg-blue-100 text-blue-900 px-2 py-0.5 rounded-full uppercase tabular-nums">
+                        +₹{Math.abs(difference).toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-blue-700 font-medium">
+                      Cash entered is greater than expected. Please explain the excess cash below.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Remarks / Difference Explanation Section */}
+          {isBalanced ? (
+            <div className="space-y-2 pt-1 animate-in fade-in">
+              <div className="flex items-center justify-between p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl text-xs text-emerald-800">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                  <span className="font-semibold">Amounts match! No remarks needed to submit.</span>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Optional
+                </span>
+              </div>
+
+              {/* Collapsible optional closing notes */}
+              <details className="group">
+                <summary className="text-xs font-bold text-gray-500 hover:text-gray-800 cursor-pointer list-none flex items-center justify-between py-1 px-1 select-none">
+                  <span className="hover:underline">+ Add optional closing note</span>
+                  <span className="text-[10px] font-semibold text-gray-400 group-open:hidden">Click to expand</span>
+                </summary>
+                <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs mt-1.5 animate-in fade-in">
+                  <textarea
+                    rows={2}
+                    placeholder="Add any optional notes about this shift closing (optional)..."
+                    value={remark}
+                    onChange={(e) => setRemark(e.target.value)}
+                    className="w-full bg-transparent text-xs font-semibold text-gray-700 placeholder:text-gray-400 outline-none resize-none"
+                  />
+                </div>
+              </details>
+            </div>
+          ) : (
+            <div className="space-y-1.5 pt-1 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                  <span>Explain Difference</span>
+                  <span className="text-red-500 font-extrabold">*</span>
+                </label>
+                <span className="text-[10px] font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Mandatory for variance
+                </span>
+              </div>
+              <div className="bg-white rounded-2xl border-2 border-red-200 focus-within:border-red-400 p-3.5 shadow-2xs">
+                <textarea
+                  rows={3}
+                  required
+                  placeholder={`Please explain why there is a ₹${Math.abs(difference).toFixed(2)} ${isShortage ? 'shortage' : 'surplus'} (mandatory)...`}
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  className="w-full bg-transparent text-xs font-semibold text-gray-800 placeholder:text-red-300 outline-none resize-none"
+                />
+              </div>
+              <p className="text-[11px] font-medium text-red-600 pl-1">
+                An explanation is required because entered cash does not match expected shift cash.
+              </p>
+            </div>
+          )}
 
           {/* Bottom Action Buttons */}
           <div className="grid grid-cols-2 gap-3 pt-2">

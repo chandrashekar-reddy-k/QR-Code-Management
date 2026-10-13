@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../services/api';
 import adminAPI from '../services/adminService';
-import { CheckCircle, Home, Share2, Smartphone, Banknote, CreditCard, Download } from 'lucide-react';
+import { CheckCircle, Home, Share2, Smartphone, Banknote, CreditCard, Download, ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { jsPDF } from 'jspdf';
 import villagKartLogo from '../../../../assets/vk.png';
@@ -345,7 +345,9 @@ export default function SuccessScreen() {
     pdf.setFont('helvetica', 'normal');
     pdf.text(`${dateStr} | ${timeStr}`, pageWidth - margin, y + 22, { align: 'right' });
 
-    if (order.customerName || order.mobile) {
+    const effCustomerName = order.customerName || order.customer?.name;
+    const effMobile = order.mobile || order.customerMobile || order.customer?.mobile;
+    if (effCustomerName || effMobile) {
       pdf.setTextColor(...grayText);
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'bold');
@@ -354,10 +356,10 @@ export default function SuccessScreen() {
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
       let customerInfo = '';
-      if (order.customerName && order.mobile) {
-        customerInfo = `${order.customerName.toUpperCase()} (${order.mobile})`;
+      if (effCustomerName && effMobile) {
+        customerInfo = `${effCustomerName.toUpperCase()} (${effMobile})`;
       } else {
-        customerInfo = order.customerName ? order.customerName.toUpperCase() : order.mobile;
+        customerInfo = effCustomerName ? effCustomerName.toUpperCase() : effMobile;
       }
       drawUnicodeText(pdf, customerInfo, pageWidth - margin, y + 38, { fontSize: 10, align: 'right', color: darkText });
     }
@@ -792,10 +794,10 @@ export default function SuccessScreen() {
           )}
           <button
             id="new-sale-btn"
-            onClick={() => navigate('/vsms/agent-portal/today-plan')}
+            onClick={() => navigate('/vsms/agent-portal/sales')}
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl active:scale-[0.98] transition-all shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2 relative overflow-hidden group cursor-pointer"
           >
-            <Home size={16} strokeWidth={2.5} className="relative z-10" />
+            <ShoppingCart size={16} strokeWidth={2.5} className="relative z-10" />
             <span className="relative z-10 uppercase text-[10px] tracking-[0.15em] font-black">
               Process New Sale
             </span>
