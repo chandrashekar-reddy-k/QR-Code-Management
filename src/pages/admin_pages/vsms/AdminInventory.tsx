@@ -495,6 +495,10 @@ export default function AdminInventory() {
   const returnFilteredItems = React.useMemo(() => {
     const q = returnSearch.toLowerCase();
     return items.filter(i => {
+      // In return section, only show products currently loaded in the selected vehicle
+      const inVehicleQty = vehicleInventoryMap[i.id] || 0;
+      if (selectedVehicleId && inVehicleQty <= 0) return false;
+
       const matchesSearch = i.name.toLowerCase().includes(q) ||
         (i.barcode && i.barcode.toLowerCase().includes(q)) ||
         (i.displayId && i.displayId.toLowerCase().includes(q));
@@ -502,7 +506,7 @@ export default function AdminInventory() {
       const matchesSubCategory = returnSubCategory === 'ALL' || i.subCategory?.name === returnSubCategory;
       return matchesSearch && matchesCategory && matchesSubCategory;
     });
-  }, [items, returnSearch, returnCategory, returnSubCategory]);
+  }, [items, returnSearch, returnCategory, returnSubCategory, selectedVehicleId, vehicleInventoryMap]);
 
   const groupedReturnItems = React.useMemo(() => {
     const regular = [];
@@ -1156,10 +1160,14 @@ export default function AdminInventory() {
       } else {
         await adminAPI.returnStock({ vehicleId: selectedVehicleId, items: actionItems });
         toast.success('Stock returned successfully');
+        invalidateInventory();
+        invalidateVehicles();
       }
       setStockQuantities({});
-      fetchData(true); // Refresh main item master stock silently
-      if (type === 'RETURN') fetchVehicleInventory(selectedVehicleId);
+      await fetchData(true); // Refresh main item master stock silently
+      if (type === 'RETURN' && selectedVehicleId) {
+        await fetchVehicleInventory(selectedVehicleId);
+      }
     } catch (error) {
       console.error(`❌ ${type} Error:`, error);
       const msg = error.response?.data?.message || `Failed to ${type === 'LOAD' ? 'load' : 'return'} stock`;

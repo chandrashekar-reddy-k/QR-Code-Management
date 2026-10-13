@@ -155,18 +155,22 @@ const ReturnSection = ({
                 <td className="px-3 py-2.5 bg-amber-50/5 dark:bg-amber-950/5">
                   <div className="flex items-center justify-center gap-3">
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-black text-amber-700 dark:text-amber-500">{item.loadedVehicleStock || 0}</span>
+                      <span className="text-[10px] font-black text-amber-700 dark:text-amber-500">
+                        {currentStock}
+                      </span>
                       <span className="text-[7px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest leading-none mt-0.5">In Vehicle</span>
                     </div>
                     <div className="w-px h-4 bg-amber-100 dark:bg-amber-900" />
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{item.posStoreStock?.posStock || 0}</span>
+                      <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">
+                        {item.warehouseStock ?? item.stock ?? 0}
+                      </span>
                       <span className="text-[7px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest leading-none mt-0.5">In Store</span>
                     </div>
                     <div className="w-px h-4 bg-amber-100 dark:bg-amber-900" />
                     <div className="flex flex-col items-center bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded-lg border border-amber-100 dark:border-amber-900/50 shadow-sm">
                       <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">
-                        {Math.max(0, (item.vehicleStock || 0) - (item.loadedVehicleStock || 0))}
+                        {item.vehicleStoreStock || 0}
                       </span>
                       <span className="text-[7px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest leading-none mt-0.5">VSM</span>
                     </div>
@@ -319,6 +323,14 @@ const ReturnSection = ({
                         <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">Free / Promotional Items</h4>
                       </div>
                       {renderReturnTable(freeItems, true)}
+                    </div>
+                  )}
+
+                  {regularItems.length === 0 && freeItems.length === 0 && (
+                    <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-900/50 rounded-[2rem] border border-dashed border-gray-200 dark:border-gray-800">
+                      <Package size={40} className="mx-auto text-gray-300 dark:text-gray-700 mb-4" />
+                      <p className="text-sm font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">No stock currently present in this vehicle</p>
+                      <p className="text-xs text-gray-400 mt-1">Only products with active stock loaded in the vehicle appear here for return.</p>
                     </div>
                   )}
 
