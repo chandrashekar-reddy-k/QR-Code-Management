@@ -6,6 +6,11 @@ export const addExpense = async (data) => {
     return response.data;
 };
 
+export const updateExpense = async (id, data) => {
+    const response = await api.put(`/expenses/${id}`, data);
+    return response.data;
+};
+
 export const getMyExpenses = async (params) => {
     const response = await api.get('/expenses/my', { params });
     return response.data;
