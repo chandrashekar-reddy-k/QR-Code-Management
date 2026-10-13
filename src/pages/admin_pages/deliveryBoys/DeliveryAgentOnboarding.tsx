@@ -198,11 +198,6 @@ const STEP4_SLOT_DEFS: Pick<
     },
   ];
 
-const STEP4_DOCUMENT_TYPE_FALLBACKS: Record<string, string[]> = {
-  AADHAR_CARD: ["AADHAAR_CARD", "AADHAAR"],
-  PHOTO: ["PASSPORT_PHOTO", "PASSPORT_SIZE_PHOTO"],
-};
-
 function initialStep4Slots(): Step4DocumentSlot[] {
   return STEP4_SLOT_DEFS.map((d) => ({
     ...d,
@@ -236,6 +231,7 @@ type AgentEducation = {
   marksOrCgpa?: string;
   percentage?: string;
   marks?: string;
+  cgpa?: number | string;
 };
 
 type AgentExperience = {
@@ -245,6 +241,7 @@ type AgentExperience = {
   toDate?: string;
   rolesAndResponsibilities?: string;
   responsibilities?: string;
+  payslips?: string[];
 };
 
 type AgentDocument = {
@@ -280,6 +277,7 @@ type AgentDetails = {
   gender?: string;
   maritalStatus?: string;
   nationality?: string;
+  role?: string;
   addresses?: AgentAddress[];
   permanentAddress?: AgentAddress;
   communicationAddress?: AgentAddress;
@@ -451,7 +449,6 @@ const DeliveryAgentOnboarding = () => {
     const fatherNames = ["Suresh Kumar", "Ramesh Sharma", "Vijay Singh", "Anil Patel", "Babu Rao", "Narayana Reddy", "Karan Singh", "Mohan Das"];
     const genders = ["MALE", "FEMALE", "OTHER"];
     const maritalStatuses = ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"];
-    const domains = ["gmail.com", "yahoo.com", "outlook.com", "villagkart.com"];
     const nationalities = ["Indian", "Nepalese", "Bhutanese"];
 
     const getRandomElement = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
@@ -804,11 +801,11 @@ const DeliveryAgentOnboarding = () => {
     setHasExperience(expRows.length ? "yes" : "no");
     // Show payslips from first experience if present, else fallback to old logic
     if (expRows.length && expRows[0].payslips && expRows[0].payslips.length) {
-      setExistingPaySlipUrls(expRows[0].payslips.filter((u) => !!u?.trim()));
+      setExistingPaySlipUrls(expRows[0].payslips.filter((u: string) => !!u?.trim()));
     } else {
       setExistingPaySlipUrls(
         (source.lastSixMonthsPaySlipUrls || source.paySlipUrls || []).filter(
-          (u) => !!u?.trim(),
+          (u: string) => !!u?.trim(),
         ),
       );
     }
@@ -1073,7 +1070,7 @@ const DeliveryAgentOnboarding = () => {
       } else if (existingPaySlipUrls.length > 0) {
         paySlipsForValidation = existingPaySlipUrls;
       } else {
-        setErrors((prev) => ({
+        setErrors((prev: any) => ({
           ...prev,
           paySlips: "Upload pay slips (images or PDF)",
         }));
@@ -1126,7 +1123,7 @@ const DeliveryAgentOnboarding = () => {
       return;
     }
 
-    setErrors((prev) => {
+    setErrors((prev: any) => {
       const next = { ...prev };
       delete next.paySlips;
       return next;
@@ -1316,7 +1313,7 @@ const DeliveryAgentOnboarding = () => {
           } else if (existingPaySlipUrls.length > 0) {
             paySlipsForValidation = existingPaySlipUrls;
           } else {
-            setErrors((prev) => ({
+            setErrors((prev: any) => ({
               ...prev,
               paySlips: "Upload either 1 PDF or 6 images",
             }));
@@ -1921,6 +1918,8 @@ const DeliveryAgentOnboarding = () => {
                     { value: "DELIVERY_AGENT", label: "Delivery Agent Portal" },
                     { value: "VEHICLE_AGENT", label: "VSMS Vehicle Agent Portal" },
                     { value: "SHOPKEEPER", label: "Shopkeeper Portal" },
+                    { value: "PACKING_OPERATOR", label: "Packing Operator Portal" },
+                    { value: "QC_INSPECTOR", label: "QC Inspector Portal" },
                   ]}
                   required
                   error={errors.role}

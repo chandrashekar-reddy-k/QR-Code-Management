@@ -179,10 +179,22 @@ const Login = () => {
       } else if (isQc) {
         sessionStorage.setItem('portalMode', 'QC');
         localStorage.setItem('portalMode', 'QC');
+        sessionStorage.setItem('staffToken', data.data.accessToken);
+        sessionStorage.setItem('staffUser', JSON.stringify(user));
+        localStorage.setItem('partnerToken', data.data.accessToken);
+        localStorage.setItem('token', data.data.accessToken);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('partnerUser', JSON.stringify(user));
         navigate("/packer/qc/dashboard");
       } else if (isOperator) {
         sessionStorage.setItem('portalMode', 'OPERATOR');
         localStorage.setItem('portalMode', 'OPERATOR');
+        sessionStorage.setItem('staffToken', data.data.accessToken);
+        sessionStorage.setItem('staffUser', JSON.stringify(user));
+        localStorage.setItem('partnerToken', data.data.accessToken);
+        localStorage.setItem('token', data.data.accessToken);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('partnerUser', JSON.stringify(user));
         navigate("/packer/operator/dashboard");
       } else if (isShopkeeperRole) {
         sessionStorage.setItem('portalMode', 'SHOPKEEPER');

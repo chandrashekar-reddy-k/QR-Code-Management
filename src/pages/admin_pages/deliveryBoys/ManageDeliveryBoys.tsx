@@ -238,7 +238,7 @@ const ManageDeliveryBoys = () => {
   }, [location, refetch]);
 
   const rawAgents: ApiDeliveryAgentResponse[] = useMemo(
-    () => extractAgentsFromGetAllResponse(data) as ApiDeliveryAgentResponse[],
+    () => extractAgentsFromGetAllResponse(data) as unknown as ApiDeliveryAgentResponse[],
     [data],
   );
 
@@ -266,14 +266,6 @@ const ManageDeliveryBoys = () => {
   const pendingRequests = stats.pending;
   const acceptedRequests = stats.accepted;
   const rejectedRequests = stats.rejected;
-
-  // Get unique cities for filter
-  const cities = useMemo(() => {
-    const uniqueCities = Array.from(
-      new Set(agents.map((a) => a.city || "").filter((city) => city !== "")),
-    );
-    return uniqueCities.sort();
-  }, [agents]);
 
   // Filter and sort agents
   const filteredAndSortedAgents = useMemo(() => {
@@ -558,9 +550,15 @@ const ManageDeliveryBoys = () => {
         if (agent.role === "VEHICLE_AGENT") {
           label = "VSMS Vehicle";
           colorClass = "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300";
-        } else if (["SHOPKEEPER", "SHOPER"].includes(agent.role)) {
+        } else if (agent.role && ["SHOPKEEPER", "SHOPER"].includes(agent.role)) {
           label = "Shopkeeper";
           colorClass = "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
+        } else if (agent.role === "PACKING_OPERATOR") {
+          label = "Packing Operator";
+          colorClass = "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300";
+        } else if (agent.role === "QC_INSPECTOR") {
+          label = "QC Inspector";
+          colorClass = "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300";
         }
         return (
           <div className="text-center">
