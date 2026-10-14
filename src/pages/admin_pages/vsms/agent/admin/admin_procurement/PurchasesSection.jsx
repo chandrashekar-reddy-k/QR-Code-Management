@@ -81,6 +81,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
     // We always refetch products to ensure latest prices/taxes are used
     try {
       const extractList = (res) => Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : (Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res?.data?.data?.data) ? res.data.data.data : [])));
+      const resolveUnit = (u) => { if (!u) return ''; if (typeof u === 'object') return u.name || u.type || ''; return String(u); };
       const [v, p, c, u, sc, s, po, g] = await Promise.all([
         procurementAPI.getVendors(),
         adminAPI.getItems(),
@@ -311,7 +312,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
       const qty = item.receivedQty || 1;
       const taxRate = prod?.gst || item.product?.gst || 0;
       const variantName = item.variantName || poItem?.variantName || variantProd?.variantName || item.product?.variantName || prod?.variantName || '';
-      const mappedUom = item.uom || poItem?.uom || variantProd?.unit || 'PACK';
+      const mappedUom = resolveUnit(item.uom || poItem?.uom || variantProd?.unit || m?.uom) || 'PACK';
       const sku = item.skuCode || item.sku || poItem?.skuCode || variantProd?.sku || variantProd?.skuCode || item.product?.skuCode || prod?.skuCode || '';
 
       const margin = cost > 0 ? (((sellingVal - cost) / cost) * 100).toFixed(2) : '0';
@@ -495,7 +496,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
               purchasePrice: variant.purchasePrice ?? variant.costPrice ?? variant.landingPrice ?? prod.purchasePrice ?? prod.price,
               skuCode: variant.sku || variant.skuCode || prod.skuCode,
               barcode: variant.barcode || prod.barcode,
-              unit: variant.unit || variant.unitType || prod.unit,
+              unit: resolveUnit(variant.unit || variant.unitType || prod.unit),
               unitValue: variant.measurement || variant.unitValue || prod.unitValue,
               measurement: variant.measurement || prod.measurement,
               variants: []
@@ -563,7 +564,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
           ? i.unitSellingPrice
           : (m?.sellingPrice || i.product?.price || prod?.sellingPrice || prod?.price || cost);
 
-        const mappedUom = m?.uom || i.uom || 'PACK';
+        const mappedUom = resolveUnit(m?.uom || i.uom || prod?.unit) || 'PACK';
 
         const baseItem = {
           productId: i.productId,
@@ -1069,7 +1070,7 @@ const PurchasesSection = ({ can, setHeaderExtra }) => {
                           const p = products.find(x => x.id === item.productId || x.productId === item.productId);
                           const originalIdx = item.originalIndex;
                           const currentVariant = item.variantName || p?.variantName;
-                          const unitLabel = item.uom || 'PACK';
+                          const unitLabel = resolveUnit(item.uom) || resolveUnit(item.unit) || 'PACK';
                           return (
                             <tr key={originalIdx} className="hover:bg-slate-50/80 transition-colors group">
                               <td className="px-3 py-3 text-center">
