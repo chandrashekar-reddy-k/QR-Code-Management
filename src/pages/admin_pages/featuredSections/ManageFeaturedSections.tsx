@@ -1,26 +1,39 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package } from 'lucide-react';
-import { FeaturedSection, SortField, SortDirection } from '../../../types';
-import { SearchInput, ConfirmModal, DataTable, StatCard, ViewIconButton, EditIconButton, DeleteIconButton, SelectInput, Pagination, PrimaryButton } from '../../../components/ui';
+import { Plus } from 'lucide-react';
+import { SortField, SortDirection } from '../../../types';
+import {
+  SearchInput,
+  ConfirmModal,
+  DataTable,
+  ViewIconButton,
+  EditIconButton,
+  DeleteIconButton,
+  SelectInput,
+  Pagination,
+  PrimaryButton,
+} from '../../../components/ui';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
-
-import { getStoredFeaturedSections, saveStoredFeaturedSections } from '../../../utils/featuredSectionsStorage';
+import { useGetAppSections, useDeleteAppSection, AppSection } from '../../../hooks/appSections';
 
 const ManageFeaturedSections = () => {
   const navigate = useNavigate();
-  const [featuredSections, setFeaturedSections] = useState<FeaturedSection[]>(getStoredFeaturedSections);
-  const [loading, setLoading] = useState(false);
+  const { data: apiResponse, isLoading } = useGetAppSections();
+  const deleteMutation = useDeleteAppSection();
+
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  useEffect(() => {
-    setFeaturedSections(getStoredFeaturedSections());
-  }, []);
+  const sections: AppSection[] = useMemo(() => {
+    if (!apiResponse) return [];
+    if (Array.isArray(apiResponse)) return apiResponse;
+    if (Array.isArray(apiResponse.data)) return apiResponse.data;
+    return [];
+  }, [apiResponse]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -39,53 +52,29 @@ const ManageFeaturedSections = () => {
   };
 
   const filteredAndSortedSections = useMemo(() => {
-    let filtered = featuredSections;
+    let filtered = [...sections];
 
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (f) =>
-          f.id.toString().includes(searchTerm.toLowerCase()) ||
-          f.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          f.shortDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          f.style.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          f.productType.toLowerCase().includes(searchTerm.toLowerCase())
+          (f.id && f.id.toLowerCase().includes(term)) ||
+          (f.title && f.title.toLowerCase().includes(term)) ||
+          (f.subTitle && f.subTitle.toLowerCase().includes(term)) ||
+          (f.titleType && f.titleType.toLowerCase().includes(term)) ||
+          (f.roleName && f.roleName.toLowerCase().includes(term)) ||
+          (f.linkPath && f.linkPath.toLowerCase().includes(term))
       );
     }
 
     if (!sortField || !sortDirection) return filtered;
 
-    return [...filtered].sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+    return [...filtered].sort((a: any, b: any) => {
+      let aValue = a[sortField] ?? '';
+      let bValue = b[sortField] ?? '';
 
-      switch (sortField) {
-        case 'id':
-          aValue = a.id;
-          bValue = b.id;
-          break;
-        case 'title':
-          aValue = a.title.toLowerCase();
-          bValue = b.title.toLowerCase();
-          break;
-        case 'shortDescription':
-          aValue = a.shortDescription.toLowerCase();
-          bValue = b.shortDescription.toLowerCase();
-          break;
-        case 'style':
-          aValue = a.style.toLowerCase();
-          bValue = b.style.toLowerCase();
-          break;
-        case 'productType':
-          aValue = a.productType.toLowerCase();
-          bValue = b.productType.toLowerCase();
-          break;
-        case 'position':
-          aValue = a.position;
-          bValue = b.position;
-          break;
-        default:
-          return 0;
-      }
+      if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+      if (typeof bValue === 'string') bValue = bValue.toLowerCase();
 
       if (sortDirection === 'asc') {
         return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
@@ -93,31 +82,23 @@ const ManageFeaturedSections = () => {
         return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
       }
     });
-  }, [featuredSections, searchTerm, sortField, sortDirection]);
+  }, [sections, searchTerm, sortField, sortDirection]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredAndSortedSections.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredAndSortedSections.length / itemsPerPage) || 1;
   const paginatedSections = filteredAndSortedSections.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const handleDeleteClick = (id: number) => {
+  const handleDeleteClick = (id: string) => {
     setDeleteConfirm({ isOpen: true, id });
   };
 
   const handleDeleteConfirm = async () => {
-    if (deleteConfirm.id === null) return;
-    
+    if (!deleteConfirm.id) return;
     try {
-      const updated = featuredSections.filter(fs => fs.id !== deleteConfirm.id);
-      setFeaturedSections(updated);
-      saveStoredFeaturedSections(updated);
-      alert('Featured section deleted successfully!');
-    } catch (error: unknown) {
-      console.error('Error deleting featured section:', error);
-      const message = error instanceof Error ? error.message : 'Error deleting featured section. Please try again.';
-      alert(message);
+      await deleteMutation.mutateAsync(deleteConfirm.id);
     } finally {
       setDeleteConfirm({ isOpen: false, id: null });
     }
@@ -129,9 +110,9 @@ const ManageFeaturedSections = () => {
       key: 'id',
       label: 'ID',
       sortable: true,
-      render: (section: FeaturedSection) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm font-semibold text-gray-800">{section.id}</span>
+      render: (section: AppSection) => (
+        <div className="text-center font-mono text-xs text-gray-700 truncate max-w-[120px]" title={section.id}>
+          {section.id.slice(0, 8)}...
         </div>
       ),
     },
@@ -139,7 +120,7 @@ const ManageFeaturedSections = () => {
       key: 'title',
       label: 'TITLE',
       sortable: true,
-      render: (section: FeaturedSection) => (
+      render: (section: AppSection) => (
         <div className="text-left font-semibold text-gray-900">
           <span className="text-xs sm:text-sm">
             {section.title}
@@ -148,13 +129,13 @@ const ManageFeaturedSections = () => {
       ),
     },
     {
-      key: 'shortDescription',
-      label: 'SHORT DESCRIPTION',
+      key: 'subTitle',
+      label: 'SUBTITLE / SHORT DESC',
       sortable: true,
-      render: (section: FeaturedSection) => (
+      render: (section: AppSection) => (
         <div className="text-left text-gray-600">
-          <span className="text-xs sm:text-sm max-w-xs truncate block" title={section.shortDescription}>
-            {section.shortDescription}
+          <span className="text-xs sm:text-sm max-w-xs truncate block" title={section.subTitle || ''}>
+            {section.subTitle || '-'}
           </span>
         </div>
       ),
@@ -163,10 +144,10 @@ const ManageFeaturedSections = () => {
       key: 'titleType',
       label: 'TYPE',
       sortable: true,
-      render: (section: FeaturedSection) => (
+      render: (section: AppSection) => (
         <div className="text-left">
           <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-            {section.titleType || 'SHOP_MORE_UNLOCK_MORE'}
+            {section.titleType}
           </span>
         </div>
       ),
@@ -175,7 +156,7 @@ const ManageFeaturedSections = () => {
       key: 'roleName',
       label: 'ROLE',
       sortable: true,
-      render: (section: FeaturedSection) => (
+      render: (section: AppSection) => (
         <div className="text-left">
           <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
             {section.roleName || 'CUSTOMER'}
@@ -187,9 +168,27 @@ const ManageFeaturedSections = () => {
       key: 'linkPath',
       label: 'LINK PATH',
       sortable: true,
-      render: (section: FeaturedSection) => (
+      render: (section: AppSection) => (
         <div className="text-left font-mono text-xs text-blue-600">
-          {section.linkPath || '/coupons'}
+          {section.linkPath || '-'}
+        </div>
+      ),
+    },
+    {
+      key: 'isActive',
+      label: 'STATUS',
+      sortable: true,
+      render: (section: AppSection) => (
+        <div className="text-center">
+          <span
+            className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
+              section.isActive
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {section.isActive ? 'Active' : 'Inactive'}
+          </span>
         </div>
       ),
     },
@@ -197,7 +196,7 @@ const ManageFeaturedSections = () => {
       key: 'actions',
       label: 'ACTIONS',
       sortable: false,
-      render: (section: FeaturedSection) => (
+      render: (section: AppSection) => (
         <div className="flex items-center justify-center gap-2">
           <ViewIconButton
             onClick={() => navigate(`/featured-sections/view/${section.id}`)}
@@ -267,13 +266,13 @@ const ManageFeaturedSections = () => {
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={handleSort}
-            keyExtractor={(section) => section.id.toString()}
+            keyExtractor={(section) => section.id}
             emptyMessage={
               searchTerm
                 ? "No featured sections found matching your search"
                 : "No featured sections found"
             }
-            loading={loading}
+            loading={isLoading}
           />
         </div>
 
@@ -341,4 +340,3 @@ const ManageFeaturedSections = () => {
 };
 
 export default ManageFeaturedSections;
-
