@@ -5,58 +5,11 @@ import { FeaturedSection, SortField, SortDirection } from '../../../types';
 import { SearchInput, ConfirmModal, DataTable, StatCard, ViewIconButton, EditIconButton, DeleteIconButton, SelectInput, Pagination, PrimaryButton } from '../../../components/ui';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 
-// Mock data for featured sections
-const mockFeaturedSections: FeaturedSection[] = [
-  {
-    id: 1,
-    title: 'Featured Products',
-    shortDescription: 'Weekends deal goes here',
-    style: 'style_1',
-    productType: 'Featured',
-    categoryIds: '100,205,360',
-    position: 1,
-  },
-  {
-    id: 2,
-    title: 'Products on Sale',
-    shortDescription: 'Special discounts on selected items',
-    style: 'style_2',
-    productType: 'Sale',
-    categoryIds: '150,250,400',
-    position: 2,
-  },
-  {
-    id: 3,
-    title: 'New Arrivals',
-    shortDescription: 'Latest products just arrived',
-    style: 'style_3',
-    productType: 'New',
-    categoryIds: '200,300,450',
-    position: 3,
-  },
-  {
-    id: 4,
-    title: 'Best Sellers',
-    shortDescription: 'Top selling products this month',
-    style: 'style_4',
-    productType: 'Best Seller',
-    categoryIds: '120,220,380',
-    position: 4,
-  },
-  {
-    id: 5,
-    title: 'Flash Sale',
-    shortDescription: 'Limited time offers',
-    style: 'style_1',
-    productType: 'Flash Sale',
-    categoryIds: '180,280,420',
-    position: 5,
-  },
-];
+import { getStoredFeaturedSections, saveStoredFeaturedSections } from '../../../utils/featuredSectionsStorage';
 
 const ManageFeaturedSections = () => {
   const navigate = useNavigate();
-  const [featuredSections, setFeaturedSections] = useState<FeaturedSection[]>(mockFeaturedSections);
+  const [featuredSections, setFeaturedSections] = useState<FeaturedSection[]>(getStoredFeaturedSections);
   const [loading, setLoading] = useState(false);
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -66,23 +19,8 @@ const ManageFeaturedSections = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    fetchFeaturedSections();
+    setFeaturedSections(getStoredFeaturedSections());
   }, []);
-
-  const fetchFeaturedSections = async () => {
-    try {
-      setLoading(true);
-      // Using mock data for now - replace with API call when ready
-      // const data = await featuredSectionsAPI.getAll();
-      // setFeaturedSections(Array.isArray(data) ? data : data.featuredSections || []);
-      setFeaturedSections(mockFeaturedSections);
-    } catch (error) {
-      console.error('Error fetching featured sections:', error);
-      setFeaturedSections(mockFeaturedSections);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -172,9 +110,9 @@ const ManageFeaturedSections = () => {
     if (deleteConfirm.id === null) return;
     
     try {
-      // Using mock data for now - replace with API call when ready
-      // await featuredSectionsAPI.delete(deleteConfirm.id);
-      setFeaturedSections(featuredSections.filter(fs => fs.id !== deleteConfirm.id));
+      const updated = featuredSections.filter(fs => fs.id !== deleteConfirm.id);
+      setFeaturedSections(updated);
+      saveStoredFeaturedSections(updated);
       alert('Featured section deleted successfully!');
     } catch (error: unknown) {
       console.error('Error deleting featured section:', error);
@@ -185,11 +123,11 @@ const ManageFeaturedSections = () => {
     }
   };
 
-  // Calculate KPI metrics
+  // KPI calculations
   const totalSections = featuredSections.length;
-  const style1Sections = featuredSections.filter(fs => fs.style === 'style_1').length;
-  const style2Sections = featuredSections.filter(fs => fs.style === 'style_2').length;
-  const featuredProductSections = featuredSections.filter(fs => fs.productType === 'Featured').length;
+  const style1Sections = featuredSections.filter(s => s.style === 'style_1').length;
+  const style2Sections = featuredSections.filter(s => s.style === 'style_2').length;
+  const featuredProductSections = featuredSections.filter(s => s.productType === 'Featured').length;
 
   // Table columns
   const columns = [
@@ -208,8 +146,8 @@ const ManageFeaturedSections = () => {
       label: 'TITLE',
       sortable: true,
       render: (section: FeaturedSection) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 font-semibold">
+        <div className="text-left font-semibold text-gray-900">
+          <span className="text-xs sm:text-sm">
             {section.title}
           </span>
         </div>
@@ -220,52 +158,10 @@ const ManageFeaturedSections = () => {
       label: 'SHORT DESCRIPTION',
       sortable: true,
       render: (section: FeaturedSection) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 max-w-xs truncate block mx-auto" title={section.shortDescription}>
+        <div className="text-left text-gray-600">
+          <span className="text-xs sm:text-sm max-w-md truncate block" title={section.shortDescription}>
             {section.shortDescription}
           </span>
-        </div>
-      ),
-    },
-    {
-      key: 'style',
-      label: 'STYLE',
-      sortable: true,
-      render: (section: FeaturedSection) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{section.style}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'productType',
-      label: 'PRODUCT TYPE',
-      sortable: false,
-      render: (section: FeaturedSection) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{section.productType}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'categoryIds',
-      label: 'CATEGORY IDS',
-      sortable: false,
-      render: (section: FeaturedSection) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800 max-w-xs truncate block mx-auto" title={section.categoryIds}>
-            {section.categoryIds}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'position',
-      label: 'POSITION',
-      sortable: true,
-      render: (section: FeaturedSection) => (
-        <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{section.position}</span>
         </div>
       ),
     },

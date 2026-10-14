@@ -5,54 +5,7 @@ import { FeaturedSection } from '../../../types';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import BackButton from '../../../components/common/BackButton';
 
-// Mock data for featured sections (same as ManageFeaturedSections)
-const mockFeaturedSections: FeaturedSection[] = [
-  {
-    id: 1,
-    title: 'Featured Products',
-    shortDescription: 'Weekends deal goes here',
-    style: 'style_1',
-    productType: 'Featured',
-    categoryIds: '100,205,360',
-    position: 1,
-  },
-  {
-    id: 2,
-    title: 'Products on Sale',
-    shortDescription: 'Special discounts on selected items',
-    style: 'style_2',
-    productType: 'Sale',
-    categoryIds: '150,250,400',
-    position: 2,
-  },
-  {
-    id: 3,
-    title: 'New Arrivals',
-    shortDescription: 'Latest products just arrived',
-    style: 'style_3',
-    productType: 'New',
-    categoryIds: '200,300,450',
-    position: 3,
-  },
-  {
-    id: 4,
-    title: 'Best Sellers',
-    shortDescription: 'Top selling products this month',
-    style: 'style_4',
-    productType: 'Best Seller',
-    categoryIds: '120,220,380',
-    position: 4,
-  },
-  {
-    id: 5,
-    title: 'Flash Sale',
-    shortDescription: 'Limited time offers',
-    style: 'style_1',
-    productType: 'Flash Sale',
-    categoryIds: '180,280,420',
-    position: 5,
-  },
-];
+import { getStoredFeaturedSections } from '../../../utils/featuredSectionsStorage';
 
 const ViewFeaturedSection = () => {
   const { id } = useParams<{ id: string }>();
@@ -64,9 +17,8 @@ const ViewFeaturedSection = () => {
     const fetchSection = async () => {
       try {
         setLoading(true);
-        // Using mock data for now - replace with API call when ready
-        // const data = await featuredSectionsAPI.getById(parseInt(id || '0'));
-        const foundSection = mockFeaturedSections.find((s) => s.id === parseInt(id || '0'));
+        const stored = getStoredFeaturedSections();
+        const foundSection = stored.find((s) => s.id === parseInt(id || '0'));
         if (foundSection) {
           setSection(foundSection);
         } else {
@@ -141,57 +93,12 @@ const ViewFeaturedSection = () => {
           </div>
 
           {/* Short Description */}
-          <div className="pb-4 border-b border-gray-200">
+          <div>
             <div className="flex items-center gap-2 mb-2">
               <Layout size={16} className="text-blue-600" />
               <label className="text-xs font-semibold text-gray-700 uppercase">Short Description</label>
             </div>
-            <p className="text-sm text-gray-700">{section.shortDescription}</p>
-          </div>
-
-          {/* Style and Product Type */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Layout size={16} className="text-blue-600" />
-                <label className="text-xs font-semibold text-gray-700 uppercase">Style</label>
-              </div>
-              <p className="text-sm font-medium text-gray-900">{section.style}</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Tag size={16} className="text-blue-600" />
-                <label className="text-xs font-semibold text-gray-700 uppercase">Product Type</label>
-              </div>
-              <p className="text-sm font-medium text-gray-900">{section.productType}</p>
-            </div>
-          </div>
-
-          {/* Category IDs */}
-          <div className="pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 uppercase">Category IDs</label>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {section.categoryIds.split(',').map((categoryId, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs font-medium"
-                >
-                  {categoryId.trim()}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Position */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Hash size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 uppercase">Position</label>
-            </div>
-            <p className="text-sm font-medium text-gray-900">{section.position}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{section.shortDescription}</p>
           </div>
         </div>
       </div>

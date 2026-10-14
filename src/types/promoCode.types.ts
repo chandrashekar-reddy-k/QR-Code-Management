@@ -29,6 +29,8 @@ export interface PromoCodeFormData {
 
 export interface PromoCodeFormValues {
   codeName: string;
+  title?: string;
+  description?: string;
   discountType: string;
   minimumOrderValue: string;
   maximumDiscount: string;
@@ -39,4 +41,5 @@ export interface PromoCodeFormValues {
   usageLimit: string;
   whereItApplies: string;
 }
+
 

@@ -36,6 +36,8 @@ type PromoCodeQuery = {
 
 type PromoCodeRow = PromoCode & {
   id: string;
+  title?: string;
+  description?: string;
   value?: number | null;
   maxDiscountAmount?: number | null;
   percentageOff?: number | null;
