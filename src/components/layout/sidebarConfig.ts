@@ -539,6 +539,7 @@ export const sidebarConfig: MenuSection[] = [
     stateKey: "isPromotionsOffersOpen",
     subItems: [
       { path: "/promo-codes/manage", label: "Promo Codes", icon: Ticket },
+      { path: "/featured-sections", label: "Featured Sections", icon: Package },
       { path: "/banners", label: "Banners", icon: ImageIcon },
       { path: "/campaigns", label: "Campaigns", icon: Sliders },
       { path: "/home-sliders/manage", label: "Home Sliders", icon: Sliders },

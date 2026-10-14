@@ -46,7 +46,8 @@ import {
     updateExpenseCategory,
     deleteExpenseCategory,
     bulkUpdateExpenseStatus, 
-    addExpense 
+    addExpense,
+    updateExpense
 } from '../vsms/services/expenseService';
 import { getStoreCashRegister } from '../vsms/services/cashService';
 import { exportExpensesToExcel } from '../../../utils/expenseExportHelper';
@@ -707,6 +708,61 @@ export default function ExpensesManagement() {
         return clean.trim().split('\n').pop() || '—';
     };
 
+    const [editingExpenseId, setEditingExpenseId] = useState(null);
+
+    const resetExpenseForm = () => {
+        setNewExpense({
+            mainCategory: '',
+            subCategory: '',
+            amount: '',
+            paymentMode: 'CASH',
+            description: '',
+            paidTo: '',
+            paidDate: format(new Date(), 'yyyy-MM-dd'),
+            billDate: format(new Date(), 'yyyy-MM-dd')
+        });
+        setBillFile(null);
+        setBillPreview(null);
+        setEditingExpenseId(null);
+    };
+
+    const openEditExpenseModal = (exp) => {
+        const meta = getMeta(exp);
+        let main = '';
+        let sub = '';
+        if (exp.type) {
+            const cleanType = exp.type.replace(/^\[(AGENT|STORE)\]\s*/i, '');
+            const parts = cleanType.split(' | ');
+            main = parts[0]?.trim() || '';
+            sub = parts[1]?.trim() || '';
+        }
+
+        // Clean description
+        let cleanDesc = exp.description || '';
+        cleanDesc = cleanDesc.replace(/\[METADATA:({.+?})\]/g, '');
+        cleanDesc = cleanDesc.replace(/\[APPROVED_BY:(.+?)\]/g, '');
+        cleanDesc = cleanDesc.replace(/\[PAID_BY:(.+?)\]/g, '');
+        cleanDesc = cleanDesc.replace(/\[PAYMENT:(.+?)\]/g, '');
+        cleanDesc = cleanDesc.replace(/\[PERSONAL_CASH\]\s*/g, '');
+        cleanDesc = cleanDesc.trim();
+
+        setNewExpense({
+            mainCategory: main,
+            subCategory: sub,
+            amount: exp.amount || '',
+            paymentMode: exp.paymentMode || 'CASH',
+            description: cleanDesc,
+            paidTo: meta.paidTo || exp.paidTo || '',
+            paidDate: meta.paidDate || exp.paidDate || format(new Date(), 'yyyy-MM-dd'),
+            billDate: meta.billDate || exp.billDate || exp.date || format(new Date(), 'yyyy-MM-dd')
+        });
+
+        setBillFile(null);
+        setBillPreview(exp.billImage || null);
+        setEditingExpenseId(exp.id);
+        setShowAddExpense(true);
+    };
+
     const handleCreateExpense = async (e) => {
         e.preventDefault();
         setSubmitting(true);
@@ -725,25 +781,20 @@ export default function ExpensesManagement() {
             if (storeId) formData.append('storeId', storeId);
             if (billFile) formData.append('billImage', billFile);
 
-            await addExpense(formData);
-            toast.success('Direct expense logged successfully');
+            if (editingExpenseId) {
+                await updateExpense(editingExpenseId, formData);
+                toast.success('Expense updated successfully');
+            } else {
+                await addExpense(formData);
+                toast.success('Direct expense logged successfully');
+            }
+
             setShowAddExpense(false);
-            setNewExpense({
-                mainCategory: '',
-                subCategory: '',
-                amount: '',
-                paymentMode: 'CASH',
-                description: '',
-                paidTo: '',
-                paidDate: format(new Date(), 'yyyy-MM-dd'),
-                billDate: format(new Date(), 'yyyy-MM-dd')
-            });
-            setBillFile(null);
-            setBillPreview(null);
+            resetExpenseForm();
             loadExpenses();
             setActiveTab('monitoring');
         } catch (e) {
-            toast.error(e?.response?.data?.message || 'Failed to create expense');
+            toast.error(e?.response?.data?.message || (editingExpenseId ? 'Failed to update expense' : 'Failed to create expense'));
         } finally {
             setSubmitting(false);
         }
@@ -759,17 +810,21 @@ export default function ExpensesManagement() {
                             <div className="flex items-center gap-4">
                                 <button
                                     type="button"
-                                    onClick={() => setShowAddExpense(false)}
+                                    onClick={() => { setShowAddExpense(false); resetExpenseForm(); }}
                                     className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all"
                                 >
                                     <ArrowLeft size={20} />
                                 </button>
                                 <div>
-                                    <h4 className="text-lg font-bold tracking-tight leading-none">New Expense Request</h4>
-                                    <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80">Log direct expenditure & generate expense record</p>
+                                    <h4 className="text-lg font-bold tracking-tight leading-none">
+                                        {editingExpenseId ? 'Edit Expense Record' : 'New Expense Request'}
+                                    </h4>
+                                    <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80">
+                                        {editingExpenseId ? 'Update details of pending expense voucher' : 'Log direct expenditure & generate expense record'}
+                                    </p>
                                 </div>
                             </div>
-                            <Receipt size={28} className="opacity-20" />
+                            {editingExpenseId ? <Edit size={24} className="opacity-40" /> : <Receipt size={28} className="opacity-20" />}
                         </div>
 
                         {/* Body */}
@@ -905,8 +960,14 @@ export default function ExpensesManagement() {
                         <div className="px-8 py-6 border-t border-gray-200 bg-gray-50/30 flex justify-end shrink-0 rounded-b-xl">
                             <button type="submit" disabled={submitting}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:scale-95">
-                                {submitting ? <Loader2 size={18} className="animate-spin" /> : <Receipt size={18} />}
-                                Submit Request
+                                {submitting ? (
+                                    <Loader2 size={18} className="animate-spin" />
+                                ) : editingExpenseId ? (
+                                    <Edit size={18} />
+                                ) : (
+                                    <Receipt size={18} />
+                                )}
+                                {editingExpenseId ? 'Update Expense' : 'Submit Request'}
                             </button>
                         </div>
                     </form>
@@ -1151,8 +1212,20 @@ export default function ExpensesManagement() {
                                                         )}
                                                         {can('EXPENSES', 'UPDATE', 'APPROVAL') && exp.status === 'APPROVED' && (
                                                             <button onClick={() => setActionModal({ expenseId: exp.id, action: 'PAID', expense: exp })}
-                                                                className="p-1 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100">
+                                                                className="p-1 bg-emerald-50 text-emerald-600 rounded-md hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100" title="Pay / Reimburse">
                                                                 <ShieldCheck size={10} />
+                                                            </button>
+                                                        )}
+                                                        {exp.status === 'PENDING' && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openEditExpenseModal(exp);
+                                                                }}
+                                                                className="p-1 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                                                                title="Edit Expense"
+                                                            >
+                                                                <Edit size={10} />
                                                             </button>
                                                         )}
                                                     </div>
