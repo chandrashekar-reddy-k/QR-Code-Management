@@ -518,7 +518,7 @@ const getReqForSKU = (alloc: any) => {
           {STAGES.map((stage, idx) => {
             const uiStatus = selectedWO.status === 'PACKING_STARTED' && (selectedWO.actualProduced || 0) > 0 
                 ? 'PACKING_IN_PROGRESS' 
-                : selectedWO.status;
+                : (selectedWO.status === 'LABELS_PRINTED' ? 'LABEL_APPLICATION_ASSIGNED' : selectedWO.status);
             
             const activeIdx = STAGES.findIndex((s) => s.key === uiStatus);
             const isCompletedState = selectedWO.status === 'LABELS_APPLIED' || selectedWO.status === 'COMPLETED' || selectedWO.status === 'QC_PENDING';
@@ -731,7 +731,7 @@ const getReqForSKU = (alloc: any) => {
               </button>
             )}
 
-            {selectedWO.status === 'LABEL_APPLICATION_ASSIGNED' && (
+            {(selectedWO.status === 'LABEL_APPLICATION_ASSIGNED' || selectedWO.status === 'LABELS_PRINTED') && (
               <button
                 onClick={handleStartLabeling}
                 disabled={actionLoading}
