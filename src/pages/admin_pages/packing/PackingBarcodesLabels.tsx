@@ -349,6 +349,8 @@ export const PackingBarcodesLabels: React.FC = () => {
   const [colGapMm, setColGapMm] = useState<number>(2);
   const [sideMarginMm, setSideMarginMm] = useState<number>(1);
   const [feedPitchMm, setFeedPitchMm] = useState<number>(31);
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
+  const [printRotation, setPrintRotation] = useState<0 | 90 | 180 | 270>(0);
 
 
 
@@ -763,6 +765,13 @@ export const PackingBarcodesLabels: React.FC = () => {
     const paddingTopMm = 0;
     const paddingBottomMm = verticalGapMm;
 
+    const transformCss = printRotation !== 0
+      ? `
+        transform: rotate(${printRotation}deg);
+        transform-origin: center center;
+      `
+      : '';
+
     const pageCss = mediaPreset === 'a4_sheet'
       ? `
         @page {
@@ -788,6 +797,7 @@ export const PackingBarcodesLabels: React.FC = () => {
           page-break-inside: avoid;
           break-inside: avoid;
           box-sizing: border-box;
+          ${transformCss}
         }
         .label-sheet-page:not(:last-child) {
           page-break-after: always;
@@ -796,11 +806,12 @@ export const PackingBarcodesLabels: React.FC = () => {
       `
       : `
         @page {
-          size: ${effectiveRollWidth}mm ${effectiveFeedPitch}mm;
+          size: ${effectiveRollWidth}mm ${effectiveFeedPitch}mm ${printOrientation};
           margin: 0 !important;
         }
         html, body {
           width: ${effectiveRollWidth}mm;
+          height: ${effectiveFeedPitch}mm;
           margin: 0 !important;
           padding: 0 !important;
           background: #ffffff !important;
@@ -823,6 +834,7 @@ export const PackingBarcodesLabels: React.FC = () => {
           page-break-inside: avoid;
           break-inside: avoid;
           overflow: hidden;
+          ${transformCss}
         }
         .label-row-feed:not(:last-child) {
           page-break-after: always;
@@ -1626,6 +1638,39 @@ export const PackingBarcodesLabels: React.FC = () => {
                           }}
                           className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs text-center font-mono bg-white dark:bg-gray-900 dark:text-white"
                         />
+                      </div>
+                    </div>
+
+                    {/* Orientation & Rotation Controls for Thermal Printers */}
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60 dark:border-gray-700">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 mb-0.5">
+                          CSS Print Orientation
+                        </label>
+                        <select
+                          value={printOrientation}
+                          onChange={(e) => setPrintOrientation(e.target.value as 'portrait' | 'landscape')}
+                          className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-200 font-medium"
+                        >
+                          <option value="portrait">Portrait (Default for TSC TE244)</option>
+                          <option value="landscape">Landscape</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 mb-0.5">
+                          Hardware Rotation
+                        </label>
+                        <select
+                          value={printRotation}
+                          onChange={(e) => setPrintRotation(Number(e.target.value) as 0 | 90 | 180 | 270)}
+                          className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-200 font-medium"
+                        >
+                          <option value={0}>0° Normal (No Rotation)</option>
+                          <option value={90}>90° Clockwise</option>
+                          <option value={180}>180° Inverted</option>
+                          <option value={270}>270° Counter-Clockwise</option>
+                        </select>
                       </div>
                     </div>
                   </div>
