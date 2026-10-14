@@ -123,12 +123,6 @@ const ManageFeaturedSections = () => {
     }
   };
 
-  // KPI calculations
-  const totalSections = featuredSections.length;
-  const style1Sections = featuredSections.filter(s => s.style === 'style_1').length;
-  const style2Sections = featuredSections.filter(s => s.style === 'style_2').length;
-  const featuredProductSections = featuredSections.filter(s => s.productType === 'Featured').length;
-
   // Table columns
   const columns = [
     {
@@ -137,7 +131,7 @@ const ManageFeaturedSections = () => {
       sortable: true,
       render: (section: FeaturedSection) => (
         <div className="text-center">
-          <span className="text-xs sm:text-sm text-gray-800">{section.id}</span>
+          <span className="text-xs sm:text-sm font-semibold text-gray-800">{section.id}</span>
         </div>
       ),
     },
@@ -159,9 +153,43 @@ const ManageFeaturedSections = () => {
       sortable: true,
       render: (section: FeaturedSection) => (
         <div className="text-left text-gray-600">
-          <span className="text-xs sm:text-sm max-w-md truncate block" title={section.shortDescription}>
+          <span className="text-xs sm:text-sm max-w-xs truncate block" title={section.shortDescription}>
             {section.shortDescription}
           </span>
+        </div>
+      ),
+    },
+    {
+      key: 'titleType',
+      label: 'TYPE',
+      sortable: true,
+      render: (section: FeaturedSection) => (
+        <div className="text-left">
+          <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+            {section.titleType || 'SHOP_MORE_UNLOCK_MORE'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'roleName',
+      label: 'ROLE',
+      sortable: true,
+      render: (section: FeaturedSection) => (
+        <div className="text-left">
+          <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
+            {section.roleName || 'CUSTOMER'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'linkPath',
+      label: 'LINK PATH',
+      sortable: true,
+      render: (section: FeaturedSection) => (
+        <div className="text-left font-mono text-xs text-blue-600">
+          {section.linkPath || '/coupons'}
         </div>
       ),
     },
@@ -194,11 +222,16 @@ const ManageFeaturedSections = () => {
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
       {/* Page Title */}
-      <div className="mb-2 mt-3">
+      <div className="mb-4 mt-3">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-1">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-            Featured Sections
-          </h1>
+          <div>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+              Featured Sections
+            </h1>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Manage in-app section titles, descriptions, roles, and deep link paths
+            </p>
+          </div>
           <PrimaryButton
             onClick={() => navigate('/featured-sections/create')}
             size="sm"
@@ -209,42 +242,6 @@ const ManageFeaturedSections = () => {
           </PrimaryButton>
         </div>
         <Breadcrumbs />
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <StatCard
-          title="Total Sections"
-          value={totalSections}
-          icon={Package}
-          variant="purple"
-          size="md"
-          valueSize="2xl"
-        />
-        <StatCard
-          title="Style 1 Sections"
-          value={style1Sections}
-          icon={Package}
-          variant="yellow"
-          size="md"
-          valueSize="2xl"
-        />
-        <StatCard
-          title="Style 2 Sections"
-          value={style2Sections}
-          icon={Package}
-          variant="green"
-          size="md"
-          valueSize="2xl"
-        />
-        <StatCard
-          title="Featured Product Sections"
-          value={featuredProductSections}
-          icon={Package}
-          variant="red"
-          size="md"
-          valueSize="2xl"
-        />
       </div>
 
       {/* Search */}

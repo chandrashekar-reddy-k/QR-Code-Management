@@ -93,12 +93,34 @@ const ViewFeaturedSection = () => {
           </div>
 
           {/* Short Description */}
-          <div>
+          <div className="pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2 mb-2">
               <Layout size={16} className="text-blue-600" />
               <label className="text-xs font-semibold text-gray-700 uppercase">Short Description</label>
             </div>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{section.shortDescription}</p>
+          </div>
+
+          {/* Section Configuration */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Section Type</label>
+              <span className="px-2.5 py-1 text-xs rounded bg-blue-50 text-blue-700 font-semibold inline-block">
+                {section.titleType || 'SHOP_MORE_UNLOCK_MORE'}
+              </span>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Target Role</label>
+              <span className="text-xs font-medium text-gray-800 inline-block py-1">
+                {section.roleName || 'CUSTOMER'}
+              </span>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Deep Link Path</label>
+              <span className="text-xs font-medium text-blue-600 inline-block py-1">
+                {section.linkPath || '/coupons'}
+              </span>
+            </div>
           </div>
         </div>
       </div>

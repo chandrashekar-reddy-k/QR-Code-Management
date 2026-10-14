@@ -26,6 +26,9 @@ const AddFeaturedSection = () => {
   const [formData, setFormData] = useState<FeaturedSectionFormData>({
     title: "",
     shortDescription: "",
+    roleName: "CUSTOMER",
+    titleType: "SHOP_MORE_UNLOCK_MORE",
+    linkPath: "/coupons",
     categoryIds: "",
     productType: "",
     position: "",
@@ -93,6 +96,9 @@ const AddFeaturedSection = () => {
         setFormData({
           title: sectionToEdit.title,
           shortDescription: sectionToEdit.shortDescription,
+          roleName: sectionToEdit.roleName || "CUSTOMER",
+          titleType: sectionToEdit.titleType || "SHOP_MORE_UNLOCK_MORE",
+          linkPath: sectionToEdit.linkPath || "/coupons",
           categoryIds: sectionToEdit.categoryIds,
           productType: sectionToEdit.productType,
           position: sectionToEdit.position.toString(),
@@ -179,6 +185,9 @@ const AddFeaturedSection = () => {
                   ...item,
                   title: formData.title.trim(),
                   shortDescription: formData.shortDescription.trim(),
+                  roleName: formData.roleName || "CUSTOMER",
+                  titleType: formData.titleType || "SHOP_MORE_UNLOCK_MORE",
+                  linkPath: formData.linkPath || "/coupons",
                 }
               : item
           );
@@ -190,6 +199,9 @@ const AddFeaturedSection = () => {
             id: nextId,
             title: formData.title.trim(),
             shortDescription: formData.shortDescription.trim(),
+            roleName: formData.roleName || "CUSTOMER",
+            titleType: formData.titleType || "SHOP_MORE_UNLOCK_MORE",
+            linkPath: formData.linkPath || "/coupons",
             style: "style_1",
             productType: "Featured",
             categoryIds: "",
