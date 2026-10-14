@@ -687,7 +687,13 @@ export const PackingDashboard: React.FC = () => {
                                 to={`/packing-erp/packing-execution/${wo.id}`}
                                 className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-[#00891D] hover:bg-[#007518] transition-colors px-3.5 py-1.5 rounded-lg shadow-xs whitespace-nowrap"
                               >
-                                <span>Pack</span>
+                                <span>
+                                  {wo.status === "LABELS_PRINTED" ||
+                                  wo.status === "LABEL_APPLICATION_ASSIGNED" ||
+                                  wo.status === "LABEL_APPLICATION_IN_PROGRESS"
+                                    ? "Label"
+                                    : "Pack"}
+                                </span>
                               </Link>
                             )}
                           {(wo.status === "LABELS_APPLIED" || wo.status === "QC_PENDING" || wo.status === "QC_IN_PROGRESS") && (
