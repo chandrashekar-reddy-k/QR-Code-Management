@@ -1,8 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Save, ChevronDown, X } from "lucide-react";
-// import { featuredSectionsAPI, categoriesAPI } from '../../../lib/api';
-import { FeaturedSectionFormData, FeaturedSection } from "../../../types";
+import { Save } from "lucide-react";
 import {
   FormSectionWithDots,
   TextInput,
@@ -12,150 +10,76 @@ import {
 } from "../../../components/ui";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
-
 import {
-  getStoredFeaturedSections,
-  saveStoredFeaturedSections,
-} from "../../../utils/featuredSectionsStorage";
+  useGetAppSectionById,
+  useCreateAppSection,
+  useUpdateAppSection,
+} from "../../../hooks/appSections";
+
+const TITLE_TYPE_OPTIONS = [
+  { value: "SHOP_MORE_UNLOCK_MORE", label: "SHOP_MORE_UNLOCK_MORE (Coupons / Shop More)" },
+  { value: "FEATURED_PRODUCTS", label: "FEATURED_PRODUCTS (Featured)" },
+  { value: "PRODUCTS_ON_SALE", label: "PRODUCTS_ON_SALE (Sale / Deals)" },
+  { value: "BEST_SELLERS", label: "BEST_SELLERS (Popular)" },
+  { value: "TOP_CATEGORIES", label: "TOP_CATEGORIES (Categories)" },
+  { value: "CUSTOM", label: "CUSTOM" },
+];
+
+const ROLE_OPTIONS = [
+  { value: "CUSTOMER", label: "CUSTOMER" },
+  { value: "PARTNER", label: "PARTNER" },
+  { value: "DELIVERY_BOY", label: "DELIVERY_BOY" },
+];
 
 const AddFeaturedSection = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = !!id;
 
-  const [formData, setFormData] = useState<FeaturedSectionFormData>({
-    title: "",
-    shortDescription: "",
-    roleName: "CUSTOMER",
+  const { data: sectionData, isLoading: isFetching } = useGetAppSectionById(id, isEditing);
+  const createMutation = useCreateAppSection();
+  const updateMutation = useUpdateAppSection(id);
+
+  const [formData, setFormData] = useState({
     titleType: "SHOP_MORE_UNLOCK_MORE",
+    title: "",
+    subTitle: "",
+    roleName: "CUSTOMER",
     linkPath: "/coupons",
-    categoryIds: "",
-    productType: "",
-    position: "",
-    backgroundColorLight: "#ffffff",
-    backgroundColorDark: "#000000",
-    appStyle: "style_1",
-    webStyle: "style_1",
+    displayOrder: 1,
+    isActive: true,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
-        setShowCategoryDropdown(false);
-      }
-    };
-
-    if (showCategoryDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showCategoryDropdown]);
-
-  const fetchCategories = async () => {
-    try {
-      // const data = await categoriesAPI.getAll();
-      // setCategories(Array.isArray(data) ? data : data.categories || []);
-      // Mock categories - replace with API call
-      setCategories([
-        { id: 1, name: "Fruits & Vegetables" },
-        { id: 2, name: "Dairy Products" },
-        { id: 3, name: "Grains & Pulses" },
-        { id: 4, name: "Spices & Condiments" },
-        { id: 5, name: "Beverages" },
-        { id: 6, name: "Snacks & Sweets" },
-        { id: 7, name: "Personal Care" },
-        { id: 8, name: "Household Items" },
-      ]);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      setCategories([]);
-    }
-  };
-
-  useEffect(() => {
-    if (isEditing) {
-      const stored = getStoredFeaturedSections();
-      const sectionToEdit = stored.find(
-        (s) => s.id === parseInt(id || "0")
-      );
-      if (sectionToEdit) {
+    if (isEditing && sectionData) {
+      const data = sectionData.data || sectionData;
+      if (data && data.title) {
         setFormData({
-          title: sectionToEdit.title,
-          shortDescription: sectionToEdit.shortDescription,
-          roleName: sectionToEdit.roleName || "CUSTOMER",
-          titleType: sectionToEdit.titleType || "SHOP_MORE_UNLOCK_MORE",
-          linkPath: sectionToEdit.linkPath || "/coupons",
-          categoryIds: sectionToEdit.categoryIds,
-          productType: sectionToEdit.productType,
-          position: sectionToEdit.position.toString(),
-          backgroundColorLight: "#ffffff",
-          backgroundColorDark: "#000000",
-          appStyle: sectionToEdit.style,
-          webStyle: sectionToEdit.style,
+          titleType: data.titleType || "SHOP_MORE_UNLOCK_MORE",
+          title: data.title || "",
+          subTitle: data.subTitle || "",
+          roleName: data.roleName || "CUSTOMER",
+          linkPath: data.linkPath || "/coupons",
+          displayOrder: Number(data.displayOrder) || 1,
+          isActive: data.isActive !== undefined ? data.isActive : true,
         });
-      } else {
-        alert("Featured section not found!");
-        navigate("/featured-sections");
       }
     }
-  }, [id, isEditing, navigate]);
+  }, [isEditing, sectionData]);
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    const finalValue = type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
-  };
-
-  const handleCategoryToggle = (categoryId: number) => {
-    const currentIds = formData.categoryIds
-      ? formData.categoryIds.split(",").map((id) => id.trim()).filter(id => id)
-      : [];
-    
-    if (currentIds.includes(categoryId.toString())) {
-      const newIds = currentIds.filter((id) => id !== categoryId.toString());
-      setFormData((prev) => ({ ...prev, categoryIds: newIds.join(",") }));
-    } else {
-      const newIds = [...currentIds, categoryId.toString()];
-      setFormData((prev) => ({ ...prev, categoryIds: newIds.join(",") }));
-    }
-  };
-
-  const removeCategory = (categoryId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const currentIds = formData.categoryIds
-      ? formData.categoryIds.split(",").map((id) => id.trim()).filter(id => id)
-      : [];
-    const newIds = currentIds.filter((id) => id !== categoryId.toString());
-    setFormData((prev) => ({ ...prev, categoryIds: newIds.join(",") }));
-  };
-
-  const getSelectedCategories = () => {
-    if (!formData.categoryIds) return [];
-    const selectedIds = formData.categoryIds.split(",").map((id) => id.trim()).filter(id => id);
-    return selectedIds.map((id) => {
-      const category = categories.find((cat) => cat.id.toString() === id);
-      return category ? { id: category.id, name: category.name } : null;
-    }).filter(Boolean) as { id: number; name: string }[];
   };
 
   const validate = () => {
@@ -163,8 +87,11 @@ const AddFeaturedSection = () => {
     if (!formData.title.trim()) {
       newErrors.title = "Title is required";
     }
-    if (!formData.shortDescription.trim()) {
-      newErrors.shortDescription = "Short description is required";
+    if (!formData.subTitle.trim()) {
+      newErrors.subTitle = "Short description is required";
+    }
+    if (!formData.titleType.trim()) {
+      newErrors.titleType = "Title Type is required";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -172,62 +99,31 @@ const AddFeaturedSection = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      try {
-        setLoading(true);
-        const stored = getStoredFeaturedSections();
+    if (!validate()) return;
 
-        if (isEditing) {
-          const targetId = parseInt(id || "0");
-          const updated = stored.map((item) =>
-            item.id === targetId
-              ? {
-                  ...item,
-                  title: formData.title.trim(),
-                  shortDescription: formData.shortDescription.trim(),
-                  roleName: formData.roleName || "CUSTOMER",
-                  titleType: formData.titleType || "SHOP_MORE_UNLOCK_MORE",
-                  linkPath: formData.linkPath || "/coupons",
-                }
-              : item
-          );
-          saveStoredFeaturedSections(updated);
-          alert("Featured section updated successfully!");
-        } else {
-          const nextId = stored.length > 0 ? Math.max(...stored.map((s) => s.id)) + 1 : 1;
-          const newSection: FeaturedSection = {
-            id: nextId,
-            title: formData.title.trim(),
-            shortDescription: formData.shortDescription.trim(),
-            roleName: formData.roleName || "CUSTOMER",
-            titleType: formData.titleType || "SHOP_MORE_UNLOCK_MORE",
-            linkPath: formData.linkPath || "/coupons",
-            style: "style_1",
-            productType: "Featured",
-            categoryIds: "",
-            position: nextId,
-          };
-          saveStoredFeaturedSections([...stored, newSection]);
-          alert("Featured section created successfully!");
-        }
-        navigate("/featured-sections");
-      } catch (error: unknown) {
-        console.error(
-          `Error ${isEditing ? "updating" : "creating"} featured section:`,
-          error
-        );
-        const message =
-          error instanceof Error
-            ? error.message
-            : `Error ${
-                isEditing ? "updating" : "creating"
-              } featured section. Please try again.`;
-        alert(message);
-      } finally {
-        setLoading(false);
+    try {
+      const payload = {
+        titleType: formData.titleType.trim(),
+        title: formData.title.trim(),
+        subTitle: formData.subTitle.trim(),
+        roleName: formData.roleName.trim(),
+        linkPath: formData.linkPath.trim(),
+        displayOrder: Number(formData.displayOrder) || 1,
+        isActive: formData.isActive,
+      };
+
+      if (isEditing) {
+        await updateMutation.mutateAsync(payload);
+      } else {
+        await createMutation.mutateAsync(payload);
       }
+      navigate("/featured-sections");
+    } catch (error) {
+      console.error("Error saving app section:", error);
     }
   };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
@@ -250,66 +146,134 @@ const AddFeaturedSection = () => {
         className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
       >
         <div className="max-w-4xl">
-          {/* Basic Information Section */}
-          <FormSectionWithDots title="Basic Information">
-            <TextInput
-              label="Title for section"
-              required
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Ex : Featured Products / Products on Sale"
-              error={errors.title}
-            />
+          {isFetching ? (
+            <div className="p-8 text-center text-gray-500">Loading section details...</div>
+          ) : (
+            <>
+              {/* Basic Information Section */}
+              <FormSectionWithDots title="App Section Configuration">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                      Section Type <span className="text-red-500">*</span>
+                    </label>
+                    <SelectInput
+                      name="titleType"
+                      value={formData.titleType}
+                      onChange={handleChange}
+                      options={TITLE_TYPE_OPTIONS}
+                      className="w-full text-xs"
+                    />
+                  </div>
 
-            {/* Short Description */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Short Description <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="shortDescription"
-                value={formData.shortDescription}
-                onChange={handleChange}
-                placeholder="Ex : Weekends deal goes here"
-                rows={3}
-                className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white text-gray-900 ${
-                  errors.shortDescription
-                    ? "border-red-300 dark:border-red-600 focus:ring-red-500"
-                    : "border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500"
-                }`}
-              />
-              {errors.shortDescription && (
-                <p className="text-[10px] text-red-600 mt-0.5">
-                  {errors.shortDescription}
-                </p>
-              )}
-            </div>
-          </FormSectionWithDots>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                      Role Name
+                    </label>
+                    <SelectInput
+                      name="roleName"
+                      value={formData.roleName}
+                      onChange={handleChange}
+                      options={ROLE_OPTIONS}
+                      className="w-full text-xs"
+                    />
+                  </div>
+                </div>
 
-          {/* Submit Buttons */}
-          <div className="flex items-center justify-end gap-3 mt-6">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => navigate("/featured-sections")}
-              className="px-4 py-2 text-xs font-medium"
-            >
-              Cancel
-            </Button>
-            <PrimaryButton
-              type="submit"
-              disabled={loading}
-              isLoading={loading}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium"
-            >
-              <Save size={14} />
-              <span>
-                {isEditing ? "Update Featured Section" : "Add Featured Section"}
-              </span>
-            </PrimaryButton>
-          </div>
+                <TextInput
+                  label="Title for Section"
+                  required
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="Ex : Shop More, Unlock More"
+                  error={errors.title}
+                />
+
+                {/* Subtitle / Short Description */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Subtitle / Short Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    name="subTitle"
+                    value={formData.subTitle}
+                    onChange={handleChange}
+                    placeholder="Ex : Add more to your cart and get exciting offers..."
+                    rows={3}
+                    className={`w-full px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 bg-white text-gray-900 ${
+                      errors.subTitle
+                        ? "border-red-300 dark:border-red-600 focus:ring-red-500"
+                        : "border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500"
+                    }`}
+                  />
+                  {errors.subTitle && (
+                    <p className="text-[10px] text-red-600 mt-0.5">
+                      {errors.subTitle}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <TextInput
+                    label="Link Path (Deep Link / Route)"
+                    type="text"
+                    name="linkPath"
+                    value={formData.linkPath}
+                    onChange={handleChange}
+                    placeholder="Ex : /coupons or /products"
+                  />
+
+                  <TextInput
+                    label="Display Order"
+                    type="number"
+                    name="displayOrder"
+                    value={String(formData.displayOrder)}
+                    onChange={handleChange}
+                    placeholder="1"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    name="isActive"
+                    checked={formData.isActive}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  />
+                  <label htmlFor="isActive" className="text-xs font-medium text-gray-700">
+                    Active (Visible in App)
+                  </label>
+                </div>
+              </FormSectionWithDots>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center justify-end gap-3 mt-6">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => navigate("/featured-sections")}
+                  className="px-4 py-2 text-xs font-medium"
+                >
+                  Cancel
+                </Button>
+                <PrimaryButton
+                  type="submit"
+                  disabled={isSaving}
+                  isLoading={isSaving}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium"
+                >
+                  <Save size={14} />
+                  <span>
+                    {isEditing ? "Update Featured Section" : "Add Featured Section"}
+                  </span>
+                </PrimaryButton>
+              </div>
+            </>
+          )}
         </div>
       </form>
     </div>
