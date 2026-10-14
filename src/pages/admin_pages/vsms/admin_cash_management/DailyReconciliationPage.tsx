@@ -335,6 +335,11 @@ export default function DailyReconciliationPage() {
           setViewingAssignFloat(false);
           fetchSummaries();
         }}
+        date={date}
+        storeFilterId={storeFilterId}
+        summaries={summaries}
+        vehicles={vehicles}
+        agents={agents}
       />
     );
   }

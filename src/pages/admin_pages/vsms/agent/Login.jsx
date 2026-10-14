@@ -49,6 +49,15 @@ export default function Login() {
       if (data.storeId) {
         sessionStorage.setItem("staffWarehouseId", data.storeId);
       }
+      localStorage.setItem("staffToken", data.token);
+      localStorage.setItem("staffRefreshToken", data.token);
+      localStorage.setItem("staffUser", JSON.stringify(userPayload));
+      localStorage.setItem("staffRole", data.role);
+      if (data.storeId) {
+        localStorage.setItem("staffWarehouseId", data.storeId);
+      }
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("partnerToken", data.token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("user", JSON.stringify(userPayload));
       localStorage.setItem("partnerUser", JSON.stringify(userPayload));

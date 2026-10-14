@@ -9,7 +9,7 @@ export function useSocket(storeId?: number | string) {
   const [socket, setSocket] = useState<Socket | undefined>(undefined);
 
   useEffect(() => {
-    const token = sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+    const token = sessionStorage.getItem('staffToken') || localStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
     if (!token || !SOCKET_URL) return;
 
     const newSocket = io(SOCKET_URL, {

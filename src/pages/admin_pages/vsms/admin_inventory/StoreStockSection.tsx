@@ -68,9 +68,9 @@ const StoreStockSection = ({
 
             <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between group">
               <div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Live Valuation</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Live POS Stock Valuation</span>
                 <div className="text-lg font-bold text-emerald-600 tracking-tight mt-0.5">₹{totalValuation.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                <span className="text-[9px] text-gray-400 font-medium">{warehouseStock.length} Total Registered Products</span>
+                <span className="text-[9px] text-gray-400 font-medium">{warehouseStock.length} Store POS Products</span>
               </div>
             </div>
           </div>
@@ -84,7 +84,7 @@ const StoreStockSection = ({
               className={`flex-shrink-0 whitespace-nowrap px-5 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all border ${warehouseCategory === 'ALL' ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white border-gray-200 text-gray-400 hover:border-emerald-200 hover:text-emerald-600'
                 }`}
             >
-              All Stock
+              All POS Stock
             </button>
             <button
               onClick={() => setWarehouseCategory('NO_STOCK')}
@@ -179,11 +179,11 @@ const StoreStockSection = ({
                         </span>
                       </div>
 
-                      {/* Total */}
-                      <div className="flex flex-col items-end min-w-[3.5rem] bg-gray-50 dark:bg-gray-900/50 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Total</span>
-                        <span className="text-sm font-bold text-blue-600 tracking-tighter">
-                          {stock.product.totalStock || stock.quantity}
+                      {/* Store POS Stock */}
+                      <div className="flex flex-col items-end min-w-[3.5rem] bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                        <span className="text-[7px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none mb-1">POS Stock</span>
+                        <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 tracking-tighter">
+                          {stock.quantity}
                         </span>
                       </div>
 

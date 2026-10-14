@@ -392,8 +392,17 @@ export default function AdminPOS() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await productsAPI.getAll({ showAll: true, storeId });
-      setProducts(data);
+      const { data } = await productsAPI.getAll({ showAll: true, storeId, channel: 'POS_STORE', posOnly: 'true' });
+      const mapped = (Array.isArray(data) ? data : [])
+        .filter(p => {
+          const isPos = p.isPosEnabled ?? p.isPos ?? p.posStoreStock?.isPosEnabled ?? false;
+          return isPos || Number(p.posStock ?? 0) > 0;
+        })
+        .map(p => ({
+          ...p,
+          stock: p.posStock !== undefined && p.posStock !== null ? Number(p.posStock) : 0
+        }));
+      setProducts(mapped);
     } catch (err) {
       toast.error('Failed to load products');
     } finally {

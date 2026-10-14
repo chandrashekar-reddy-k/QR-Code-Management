@@ -32,7 +32,7 @@ const api = axios.create({
 
 // Set Authorization header interceptor
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem("staffToken") || localStorage.getItem("partnerToken");
+  const token = sessionStorage.getItem("staffToken") || localStorage.getItem("staffToken") || localStorage.getItem("partnerToken") || localStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -65,7 +65,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
 
   useEffect(() => {
     try {
-      const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("partnerUser");
+      const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("staffUser") || localStorage.getItem("partnerUser") || localStorage.getItem("user");
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
@@ -89,7 +89,7 @@ function ProfileScreen({ onNavigate, onBack }: { onNavigate: (screen: string) =>
       try {
         const allOrders = sharedOrders || [];
 
-        const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("partnerUser");
+        const storedUser = sessionStorage.getItem("staffUser") || localStorage.getItem("staffUser") || localStorage.getItem("partnerUser") || localStorage.getItem("user");
         const userObj = storedUser ? JSON.parse(storedUser) : null;
         let skId = userObj?.shopkeeper_id || userObj?.shopkeeperId || userObj?.id;
         if (skId && typeof skId === 'object' && skId.id) skId = skId.id;

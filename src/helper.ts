@@ -43,6 +43,11 @@ const clearAuthAndRedirect = () => {
     sessionStorage.removeItem('staffRole');
     sessionStorage.removeItem('staffWarehouseId');
     sessionStorage.removeItem('staffActiveOrder');
+    localStorage.removeItem('staffToken');
+    localStorage.removeItem('staffRefreshToken');
+    localStorage.removeItem('staffUser');
+    localStorage.removeItem('staffRole');
+    localStorage.removeItem('staffWarehouseId');
   } else {
     localStorage.removeItem('partnerToken');
     localStorage.removeItem('partnerRefreshToken');
@@ -50,6 +55,10 @@ const clearAuthAndRedirect = () => {
     localStorage.removeItem('partnerRole');
     localStorage.removeItem('partnerWarehouseId');
     localStorage.removeItem('partnerIsAuthenticated');
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('staffToken');
+    localStorage.removeItem('staffRefreshToken');
   }
   sessionStorage.clear();
   const path = window.location.pathname || '';
@@ -74,14 +83,14 @@ const refreshAccessToken = async (): Promise<string> => {
   const isShopkeeper = window.location.pathname.startsWith('/shopkeeper') && !window.location.pathname.startsWith('/shopkeeper-erp');
   // Check all possible storage keys for refresh token
   const refreshToken = isShopkeeper
-    ? (sessionStorage.getItem('staffRefreshToken') || localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken'))
-    : (localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken') || sessionStorage.getItem('staffRefreshToken'));
+    ? (sessionStorage.getItem('staffRefreshToken') || localStorage.getItem('staffRefreshToken') || localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken'))
+    : (localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken') || sessionStorage.getItem('staffRefreshToken') || localStorage.getItem('staffRefreshToken'));
 
   console.log('[AUTH] refreshAccessToken called', {
     isShopkeeper,
     pathname: window.location.pathname,
     hasRefreshToken: !!refreshToken,
-    refreshTokenSource: sessionStorage.getItem('staffRefreshToken') ? 'staffRefreshToken(session)' : localStorage.getItem('partnerRefreshToken') ? 'partnerRefreshToken(local)' : localStorage.getItem('refreshToken') ? 'refreshToken(local)' : 'NONE'
+    refreshTokenSource: sessionStorage.getItem('staffRefreshToken') ? 'staffRefreshToken(session)' : localStorage.getItem('staffRefreshToken') ? 'staffRefreshToken(local)' : localStorage.getItem('partnerRefreshToken') ? 'partnerRefreshToken(local)' : localStorage.getItem('refreshToken') ? 'refreshToken(local)' : 'NONE'
   });
 
   if (!refreshToken) {
@@ -89,8 +98,8 @@ const refreshAccessToken = async (): Promise<string> => {
     throw new Error('No refresh token available');
   }
 
-  const identityBaseUrl = import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000';
-  const fullUrl = `${identityBaseUrl.replace(/\/$/, '')}/api/v1/auth/refresh-token`;
+  const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+  const fullUrl = `${identityBaseUrl}/api/v1/auth/refresh-token`;
   console.log('[AUTH] Calling refresh-token API:', fullUrl);
 
   const response = await fetch(fullUrl, {
@@ -114,6 +123,7 @@ const refreshAccessToken = async (): Promise<string> => {
     // Update access token in all relevant storage locations
     if (isShopkeeper) {
       sessionStorage.setItem('staffToken', data.data.accessToken);
+      localStorage.setItem('staffToken', data.data.accessToken);
     } else {
       localStorage.setItem('partnerToken', data.data.accessToken);
       localStorage.setItem('token', data.data.accessToken);
@@ -123,6 +133,7 @@ const refreshAccessToken = async (): Promise<string> => {
     if (data.data.refreshToken) {
       if (isShopkeeper) {
         sessionStorage.setItem('staffRefreshToken', data.data.refreshToken);
+        localStorage.setItem('staffRefreshToken', data.data.refreshToken);
       } else {
         localStorage.setItem('partnerRefreshToken', data.data.refreshToken);
         localStorage.setItem('refreshToken', data.data.refreshToken);
@@ -258,9 +269,9 @@ async function fetchData<T>(
       // Check multiple storage keys — login hook may store token as 'partnerToken' OR 'token'
       const partnerTok = localStorage.getItem('partnerToken');
       const genericTok = localStorage.getItem('token');
-      const staffTok = sessionStorage.getItem('staffToken');
+      const staffTok = sessionStorage.getItem('staffToken') || localStorage.getItem('staffToken');
       const token = isShopkeeper
-        ? (staffTok || genericTok)
+        ? (staffTok || genericTok || partnerTok)
         : (partnerTok || genericTok || staffTok);
 
       console.log('[AUTH] fetchData token check', {
@@ -281,7 +292,7 @@ async function fetchData<T>(
           options.headers = { ...options.headers, Authorization: `Bearer ${newToken}` };
         } else {
           // No token and no refresh in progress — try to refresh before giving up
-          const anyRefreshToken = localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken') || sessionStorage.getItem('staffRefreshToken');
+          const anyRefreshToken = localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken') || sessionStorage.getItem('staffRefreshToken') || localStorage.getItem('staffRefreshToken');
           console.warn('[AUTH] No access token found. Attempting refresh. Has refresh token:', !!anyRefreshToken);
           if (anyRefreshToken) {
             try {

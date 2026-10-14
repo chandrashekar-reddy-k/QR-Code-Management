@@ -274,7 +274,7 @@ export default function AdminInventory() {
       // 2. Secondary Fetches (Settled so one failure doesn't crash the page)
       const results = await Promise.allSettled([
         adminAPI.getAuditHistory({ storeId: storeFilterId }),
-        activeTab === 'inventory' ? procurementAPI.getStockReport({ storeId: storeFilterId }) : Promise.resolve({ data: [] }),
+        activeTab === 'inventory' ? procurementAPI.getStockReport({ storeId: storeFilterId, channel: 'POS_STORE' }) : Promise.resolve({ data: [] }),
         adminAPI.getStores(),
         adminAPI.getSales().catch(() => ({ data: [] })),
         adminAPI.getUsers().catch(() => ({ data: [] }))
@@ -282,7 +282,43 @@ export default function AdminInventory() {
 
       // Process settled results
       if (results[0].status === 'fulfilled') setAuditHistory(results[0].value.data || []);
-      if (results[1].status === 'fulfilled') setWarehouseStock(results[1].value.data || []);
+      if (results[1].status === 'fulfilled') {
+        const reportStock = results[1].value.data || [];
+        if (reportStock.length > 0) {
+          setWarehouseStock(reportStock);
+        } else if (initData?.items?.length > 0) {
+          // Map Store POS stock from initData items
+          const posStockList = initData.items
+            .filter((i: any) => i.isPos || i.isPosEnabled || Number(i.posStock || 0) > 0)
+            .map((i: any) => ({
+              id: `pos-${i.id}`,
+              productId: i.id,
+              quantity: Number(i.posStock || 0),
+              warehouseStock: Number(i.posStock || 0),
+              vehicleStock: Number(i.vehicleStock || 0),
+              totalStock: Number(i.posStock || 0),
+              storeId: storeFilterId,
+              product: {
+                ...i,
+                id: i.id,
+                name: i.name,
+                barcode: i.barcode,
+                displayId: i.sku || i.id?.slice(0, 8),
+                image: i.image,
+                landingPrice: i.landingPrice || i.costPrice || 0,
+                price: i.posPrice || i.price || 0,
+                vehicleStock: i.vehicleStock || 0,
+                totalStock: i.posStock || 0,
+                category: i.category,
+                status: i.status || (i.isActive ? 'ACTIVE' : 'INACTIVE'),
+                minStockAlert: i.minStockAlert || 5
+              }
+            }));
+          setWarehouseStock(posStockList);
+        } else {
+          setWarehouseStock([]);
+        }
+      }
       if (results[2].status === 'fulfilled' && results[2].value.data?.success) {
         const fetchedStores = results[2].value.data.data;
         setStores(fetchedStores);
