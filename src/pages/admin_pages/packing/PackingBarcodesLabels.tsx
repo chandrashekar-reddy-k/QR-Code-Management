@@ -120,10 +120,10 @@ const drawBarcode128 = (canvas: HTMLCanvasElement | null, text: string) => {
   const scale = 2; // crisp 2x module scaling for thermal printing
   const barcodeWidth = bars.reduce((acc, curr) => acc + curr, 0) * scale;
 
-  canvas.width = barcodeWidth + 24;
-  canvas.height = 70;
+  canvas.width = barcodeWidth + 8;
+  canvas.height = 42;
   
-  const barcodeHeight = 48;
+  const barcodeHeight = 42;
 
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -140,12 +140,6 @@ const drawBarcode128 = (canvas: HTMLCanvasElement | null, text: string) => {
     x += w;
     isBar = !isBar;
   });
-
-  // Draw text
-  ctx.fillStyle = '#000000';
-  ctx.font = 'bold 12px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(text, canvas.width / 2, barcodeHeight + 15);
 };
 
 export interface WOProductItem {
@@ -664,10 +658,11 @@ export const PackingBarcodesLabels: React.FC = () => {
   };
 
   const printLabels = (job: PrintJob, _template: string, type: string) => {
+    const barcodeDisplayNumber = (selectedWO?.product as any)?.barcode || generateBarcodeFromSKU(job.sku);
     let barcodeDataUrl = '';
     if (type !== 'QR Code') {
       const offCanvas = document.createElement('canvas');
-      drawBarcode128(offCanvas, (selectedWO?.product as any)?.barcode || generateBarcodeFromSKU(job.sku));
+      drawBarcode128(offCanvas, barcodeDisplayNumber);
       barcodeDataUrl = offCanvas.toDataURL('image/png');
     }
 
@@ -675,7 +670,7 @@ export const PackingBarcodesLabels: React.FC = () => {
 
     // Solid monochrome label card template for crisp thermal and laser printing
     const singleLabelCard = `
-      <div class="label-card" style="width: ${labelWidthMm}mm; height: ${labelHeightMm}mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; padding: 1.5mm 2.2mm; font-family: 'Segoe UI', Arial, sans-serif; background: #ffffff; color: #000000; overflow: hidden; border: none;">
+      <div class="label-card">
         <div style="text-align: center; font-size: 10px; font-weight: 900; color: #000000; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 1px; margin-bottom: 1px; line-height: 1.1;">
           VILLAGKART RETAIL
         </div>
@@ -696,11 +691,18 @@ export const PackingBarcodesLabels: React.FC = () => {
             <span style="white-space: nowrap; text-align: right;">EXP: ${expiryDate}</span>
           </div>
         </div>
-        <div style="border-top: 1px solid #000000; padding-top: 1px; margin-top: auto;">
+        <div style="border-top: 1px solid #000000; padding-top: 1px; margin-top: auto; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           ${
             type !== 'QR Code'
-              ? `<div style="display: flex; justify-content: center; width: 100%;"><img src="${barcodeDataUrl}" style="max-width: 100%; height: 17px; image-rendering: pixelated; display: block;" alt="barcode" /></div>`
-              : `<div style="display: flex; justify-content: center;"><img src="${qrCodeUrl}" style="width: 20px; height: 20px; display: block;" alt="QR" /></div>`
+              ? `
+                <div style="display: flex; justify-content: center; width: 100%;">
+                  <img src="${barcodeDataUrl}" style="max-width: 100%; height: 16px; image-rendering: pixelated; display: block;" alt="barcode" />
+                </div>
+                <div style="font-family: 'Consolas', 'Courier New', monospace; font-size: 11px; font-weight: 900; letter-spacing: 2.5px; color: #000000; text-align: center; margin-top: 1.5px; line-height: 1;">
+                  ${barcodeDisplayNumber}
+                </div>
+              `
+              : `<div style="display: flex; justify-content: center;"><img src="${qrCodeUrl}" style="width: 22px; height: 22px; display: block;" alt="QR" /></div>`
           }
         </div>
       </div>
@@ -765,12 +767,14 @@ export const PackingBarcodesLabels: React.FC = () => {
     const paddingTopMm = 0;
     const paddingBottomMm = verticalGapMm;
 
-    const transformCss = printRotation !== 0
-      ? `
-        transform: rotate(${printRotation}deg);
-        transform-origin: center center;
-      `
+    // CSS rotation: When rotating 90 or 270 deg, rotate individual label card or entire row feed
+    const cardTransformCss = printRotation !== 0
+      ? `transform: rotate(${printRotation}deg); transform-origin: center center;`
       : '';
+
+    // If printRotation is 90 or 270, swap card inner width and height so content fits naturally
+    const cardRenderWidth = (printRotation === 90 || printRotation === 270) ? labelHeightMm : labelWidthMm;
+    const cardRenderHeight = (printRotation === 90 || printRotation === 270) ? labelWidthMm : labelHeightMm;
 
     const pageCss = mediaPreset === 'a4_sheet'
       ? `
@@ -797,7 +801,6 @@ export const PackingBarcodesLabels: React.FC = () => {
           page-break-inside: avoid;
           break-inside: avoid;
           box-sizing: border-box;
-          ${transformCss}
         }
         .label-sheet-page:not(:last-child) {
           page-break-after: always;
@@ -806,18 +809,19 @@ export const PackingBarcodesLabels: React.FC = () => {
       `
       : `
         @page {
-          size: ${effectiveRollWidth}mm ${effectiveFeedPitch}mm ${printOrientation};
-          margin: 0 !important;
+          size: ${effectiveRollWidth}mm ${effectiveFeedPitch}mm;
+          margin: 0mm !important;
         }
-        html, body {
-          width: ${effectiveRollWidth}mm;
-          height: ${effectiveFeedPitch}mm;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #ffffff !important;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          image-rendering: pixelated;
+        @media print {
+          html, body {
+            width: ${effectiveRollWidth}mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            image-rendering: pixelated;
+          }
         }
         .label-row-feed {
           width: ${effectiveRollWidth}mm;
@@ -830,15 +834,30 @@ export const PackingBarcodesLabels: React.FC = () => {
           display: grid;
           grid-template-columns: repeat(${layoutColumns}, ${labelWidthMm}mm);
           column-gap: ${colGapMm}mm;
-          align-items: start;
+          align-items: center;
+          justify-content: center;
           page-break-inside: avoid;
           break-inside: avoid;
-          overflow: hidden;
-          ${transformCss}
-        }
-        .label-row-feed:not(:last-child) {
           page-break-after: always;
           break-after: page;
+          overflow: hidden;
+        }
+        .label-card {
+          width: ${labelWidthMm}mm;
+          height: ${labelHeightMm}mm;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 1.5mm 2.2mm;
+          font-family: 'Segoe UI', Arial, sans-serif;
+          background: #ffffff;
+          color: #000000;
+          overflow: hidden;
+          border: none;
+          page-break-inside: avoid;
+          break-inside: avoid;
+          ${cardTransformCss}
         }
       `;
 
@@ -2046,15 +2065,20 @@ export const PackingBarcodesLabels: React.FC = () => {
 
                 <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 'auto', paddingTop: activeHeightMm <= 30 ? 4 : 8 }}>
                   {barcodeType !== 'QR Code' ? (
-                    <canvas
-                      ref={previewCanvasRef}
-                      style={{
-                        width: '100%',
-                        height: activeHeightMm <= 30 ? 46 : 72,
-                        display: 'block',
-                        imageRendering: 'pixelated',
-                      }}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                      <canvas
+                        ref={previewCanvasRef}
+                        style={{
+                          width: '100%',
+                          height: activeHeightMm <= 30 ? 36 : 56,
+                          display: 'block',
+                          imageRendering: 'pixelated',
+                        }}
+                      />
+                      <div style={{ fontFamily: 'Consolas, "Courier New", monospace', fontSize: activeHeightMm <= 30 ? '14px' : '17px', fontWeight: 900, letterSpacing: '3px', color: '#000000', textAlign: 'center', marginTop: '4px', lineHeight: 1 }}>
+                        {(selectedWO?.product as any)?.barcode || generateBarcodeFromSKU(sku)}
+                      </div>
+                    </div>
                   ) : (
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <img src={qrCodeUrl} style={{ width: activeHeightMm <= 30 ? 55 : 80, height: activeHeightMm <= 30 ? 55 : 80 }} alt="QR" />
