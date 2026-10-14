@@ -37,6 +37,13 @@ export const barcodeService = {
   completeTask: async (data: { workOrderId: string; appliedQuantity: number }) => {
     const res = await API.post('/barcodes/complete-task', data);
     return res.data;
+  },
+  getProductPurchaseDates: async (
+    productId: string,
+    params?: { sku?: string; sourceProductId?: string; workOrderId?: string }
+  ) => {
+    const res = await API.get(`/procurement/purchases/product-dates/${productId}`, { params });
+    return res.data;
   }
 };
 

@@ -144,7 +144,7 @@ export const PackingDashboard: React.FC = () => {
   // Tab 3: Packing Execution work orders
   const packingExecWOs = useMemo(() => {
     return workOrders.filter((w) =>
-      ["MATERIAL_ISSUED", "PACKING_STARTED", "PACKING_IN_PROGRESS", "LABEL_APPLICATION_ASSIGNED", "LABEL_APPLICATION_IN_PROGRESS", "PACKING_COMPLETED"].includes(w.status)
+      ["MATERIAL_ISSUED", "PACKING_STARTED", "PACKING_IN_PROGRESS", "LABELS_PRINTED", "LABEL_APPLICATION_ASSIGNED", "LABEL_APPLICATION_IN_PROGRESS", "PACKING_COMPLETED"].includes(w.status)
     );
   }, [workOrders]);
 
@@ -502,6 +502,7 @@ export const PackingDashboard: React.FC = () => {
                 <option value="PACKING_STARTED" className="dark:bg-gray-800">Packing Started</option>
                 <option value="PACKING_IN_PROGRESS" className="dark:bg-gray-800">Packing In Progress</option>
                 <option value="PACKING_COMPLETED" className="dark:bg-gray-800">Packing Completed</option>
+                <option value="LABELS_PRINTED" className="dark:bg-gray-800">Labels Printed</option>
                 <option value="LABEL_APPLICATION_ASSIGNED" className="dark:bg-gray-800">Label Assigned</option>
                 <option value="LABEL_APPLICATION_IN_PROGRESS" className="dark:bg-gray-800">Labels In Progress</option>
                 <option value="LABELS_APPLIED" className="dark:bg-gray-800">Labels Applied</option>
@@ -622,6 +623,7 @@ export const PackingDashboard: React.FC = () => {
                     } else if (wo.status === "MATERIAL_ISSUED") {
                       badgeStyle = "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800";
                     } else if (
+                      wo.status === "LABELS_PRINTED" ||
                       wo.status === "LABEL_APPLICATION_ASSIGNED" ||
                       wo.status === "LABEL_APPLICATION_IN_PROGRESS" ||
                       wo.status === "LABELS_APPLIED"
@@ -678,6 +680,7 @@ export const PackingDashboard: React.FC = () => {
                           {(wo.status === "MATERIAL_ISSUED" ||
                             wo.status === "PACKING_STARTED" ||
                             wo.status === "PACKING_IN_PROGRESS" ||
+                            wo.status === "LABELS_PRINTED" ||
                             wo.status === "LABEL_APPLICATION_ASSIGNED" ||
                             wo.status === "LABEL_APPLICATION_IN_PROGRESS") && (
                               <Link
