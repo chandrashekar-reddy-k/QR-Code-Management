@@ -234,13 +234,18 @@ export default function OrderDetail() {
                         Margin: +₹{itemMargin.toFixed(2)}
                       </p>
                       {item.returnedQty > 0 && (
-                        <p className="text-[9px] font-black text-red-500 mt-0.5 flex items-center gap-1"><RotateCcw size={8} /> {item.returnedQty} returned</p>
+                        <p className="text-[9px] font-black text-red-500 mt-0.5 flex items-center gap-1"><RotateCcw size={8} /> {item.returnedQty} returned (Remaining: {Math.max(0, qty - item.returnedQty)})</p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-8 text-xs font-black text-gray-900 pr-1 shrink-0">
-                    <span>x{qty}</span>
-                    <span>₹{Math.round(sp * qty)}</span>
+                    <span>{item.returnedQty > 0 ? `x${qty - item.returnedQty} / ${qty}` : `x${qty}`}</span>
+                    <div className="text-right">
+                      <span>₹{Math.round(sp * (item.returnedQty > 0 ? (qty - item.returnedQty) : qty))}</span>
+                      {item.returnedQty > 0 && (
+                        <p className="text-[9px] text-gray-400 line-through">₹{Math.round(sp * qty)}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -251,12 +256,12 @@ export default function OrderDetail() {
           <div className="pt-3 border-t border-gray-100 space-y-1.5">
             <h4 className="text-xs font-black text-gray-900">Bill Summary</h4>
             <div className="flex items-center justify-between text-xs font-medium text-gray-500 pt-0.5">
-              <span>Subtotal</span>
+              <span>Net Subtotal</span>
               <span className="font-black text-gray-900">₹{Math.round(order.totalAmount || 0)}</span>
             </div>
             {totalReturned > 0 && (
               <div className="flex items-center justify-between text-xs font-bold text-red-500">
-                <span>Returns</span>
+                <span>Total Returns</span>
                 <span>-₹{Math.round(totalReturned)}</span>
               </div>
             )}
@@ -266,17 +271,50 @@ export default function OrderDetail() {
                 +₹{(order.items?.reduce((sum: number, item: any) => {
                   const sp = Number(item.price || item.sellingPrice || 0);
                   const lp = Number(item.landingPrice ?? item.landing_price ?? item.product?.landingPrice ?? item.costPrice ?? 0);
-                  const qty = Number(item.quantity || 1);
-                  return sum + (lp > 0 ? (sp - lp) * qty : sp * 0.20 * qty);
+                  const netQty = Math.max(0, Number(item.quantity || 1) - (item.returnedQty || 0));
+                  return sum + (lp > 0 ? (sp - lp) * netQty : sp * 0.20 * netQty);
                 }, 0) || 0).toFixed(2)}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm font-black text-emerald-900 pt-2 border-t border-gray-100">
               <span>Total Bill</span>
-              <span className="text-base text-[#00891D]">₹{Math.round((Number(order?.totalAmount) || 0) - (Number(totalReturned) || 0))}</span>
+              <span className="text-base text-[#00891D]">₹{Math.round(Number(order?.totalAmount) || 0)}</span>
             </div>
           </div>
         </div>
+
+        {/* Returns History Card */}
+        {order.returns?.length > 0 && (
+          <div className="bg-white rounded-3xl p-4 border border-rose-100 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 text-rose-700">
+              <RotateCcw size={16} />
+              <h3 className="text-xs font-black">Return History ({order.returns.length})</h3>
+            </div>
+            <div className="space-y-2">
+              {order.returns.map((r: any, idx: number) => {
+                const matchedItem = (order.items || []).find((it: any) => it.id === r.orderItemId || it.productId === r.productId);
+                const origQty = matchedItem?.quantity || r.returnQty;
+                const totalReturned = (order.returns || [])
+                  .filter((ret: any) => ret.orderItemId === r.orderItemId || ret.productId === r.productId)
+                  .reduce((sum: number, ret: any) => sum + (ret.returnQty || 0), 0);
+                const remainingQty = matchedItem?.returnableQty !== undefined 
+                  ? matchedItem.returnableQty 
+                  : Math.max(0, origQty - totalReturned);
+                const prodName = r.product?.name || matchedItem?.product?.name || matchedItem?.name || 'Item';
+                return (
+                  <div key={idx} className="p-2.5 rounded-2xl bg-rose-50/50 border border-rose-100 text-xs flex justify-between items-center">
+                    <div>
+                      <p className="font-black text-rose-900">{prodName}</p>
+                      <p className="text-[10px] text-rose-600 font-bold">Returned: {r.returnQty} qty • Remaining: {remainingQty} of {origQty} • Refund: ₹{Math.round(r.returnAmount || r.refundAmount || 0)}</p>
+                      {r.reason && <p className="text-[9px] text-gray-500 mt-0.5">Reason: {r.reason}</p>}
+                    </div>
+                    <span className="text-[9px] font-bold text-gray-400">{r.createdAt ? format(new Date(r.createdAt), 'dd MMM, hh:mm a') : ''}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <button onClick={() => navigate('/vsms/agent-portal/sales-history')} className="w-full py-4 bg-white text-emerald-600 text-xs font-black uppercase tracking-widest rounded-2xl border border-emerald-100 shadow-sm active:scale-[0.98] transition-all">
           Back to History
