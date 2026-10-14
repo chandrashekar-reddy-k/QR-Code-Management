@@ -3,7 +3,7 @@
 import React from 'react';
 import {
   Loader2, BookOpen, Building2, Vault, Coins, ArrowUpRight, ArrowDownLeft,
-  ShoppingCart, Lock, ExternalLink, Shield, Package
+  ShoppingCart, Lock, ExternalLink, Shield, Package, RotateCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -32,6 +32,7 @@ const AuditLedgerTab = ({
   const filteredLedger = ledgerData.ledger.filter(entry => {
     if (ledgerFilter === 'BANK') return entry.type === 'BANK_TRANSFER';
     if (ledgerFilter === 'SAFE') return entry.type === 'SAFE_MOVEMENT';
+    if (ledgerFilter === 'RETURN') return entry.type === 'RETURN_OUTFLOW';
     return true;
   });
 
@@ -55,6 +56,7 @@ const AuditLedgerTab = ({
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200 shadow-inner">
             {[
               { id: 'ALL', label: 'All', icon: BookOpen, color: 'text-emerald-600' },
+              { id: 'RETURN', label: 'Returns', icon: RotateCcw, color: 'text-rose-600' },
               { id: 'BANK', label: 'Bank', icon: Building2, color: 'text-rose-600' },
               { id: 'SAFE', label: 'Safe', icon: Vault, color: 'text-slate-600' }
             ].map(f => (
@@ -93,6 +95,7 @@ const AuditLedgerTab = ({
                   'SAFE_MOVEMENT': { icon: Vault, bg: 'bg-slate-100', text: 'text-slate-600', badge: 'INTERNAL' },
                   'STORE_SALE': { icon: ShoppingCart, bg: 'bg-sky-50', text: 'text-sky-600', badge: 'POS' },
                   'EXPENSE_OUTFLOW': { icon: Package, bg: 'bg-rose-50', text: 'text-rose-600', badge: 'EXPENSE' },
+                  'RETURN_OUTFLOW': { icon: RotateCcw, bg: 'bg-rose-50', text: 'text-rose-600', badge: 'RETURN' },
                   'CLOSING': { icon: Lock, bg: 'bg-slate-100', text: 'text-slate-600', badge: 'CLOSE' },
                 };
                 const cfg = typeConfig[entry.type] || typeConfig['OPENING'];
