@@ -1851,7 +1851,7 @@ export default function AdminPOS() {
         ) : (
           <>
             {/* Left Side: Product Section */}
-            <div className="flex-[3] flex flex-col gap-6 overflow-hidden">
+            <div className="flex-[2.2] flex flex-col gap-6 overflow-hidden">
               {/* Categories */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] shrink-0">
                 <button
@@ -1884,7 +1884,7 @@ export default function AdminPOS() {
               </div>
 
               {/* Product Grid */}
-              <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pb-6 scrollbar-thin scrollbar-thumb-slate-200">
+              <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3.5 pb-6 scrollbar-thin scrollbar-thumb-slate-200">
                 {loading ? (
                   [...Array(12)].map((_, i) => (
                     <div key={i} className="h-[300px] bg-white rounded-3xl border border-slate-50 animate-pulse shadow-sm" />
@@ -2069,7 +2069,7 @@ export default function AdminPOS() {
               </div>
             </div>
 
-            <div className="flex-[1.3] hidden lg:flex flex-col bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-right duration-500">
+            <div className="flex-[1.4] min-w-[380px] xl:min-w-[440px] hidden lg:flex flex-col bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-right duration-500">
               {checkoutStep === 'CART' && (
                 <>
                   {/* Header */}
