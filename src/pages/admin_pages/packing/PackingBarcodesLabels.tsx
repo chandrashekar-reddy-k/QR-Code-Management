@@ -809,7 +809,7 @@ export const PackingBarcodesLabels: React.FC = () => {
       `
       : `
         @page {
-          size: ${effectiveRollWidth}mm ${effectiveFeedPitch}mm;
+          size: ${effectiveRollWidth}mm ${effectiveFeedPitch}mm ${printOrientation};
           margin: 0mm !important;
         }
         @media print {
