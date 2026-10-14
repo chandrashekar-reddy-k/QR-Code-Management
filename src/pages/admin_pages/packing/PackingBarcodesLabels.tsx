@@ -345,6 +345,7 @@ export const PackingBarcodesLabels: React.FC = () => {
   const [feedPitchMm, setFeedPitchMm] = useState<number>(31);
   const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [printRotation, setPrintRotation] = useState<0 | 90 | 180 | 270>(0);
+  const [horizontalOffsetMm, setHorizontalOffsetMm] = useState<number>(0);
 
 
 
@@ -762,8 +763,8 @@ export const PackingBarcodesLabels: React.FC = () => {
       generatedPagesHtml = rowElements.join('');
     }
 
-    const paddingLeftMm = sideMarginMm;
-    const paddingRightMm = sideMarginMm;
+    const paddingLeftMm = Math.max(0, sideMarginMm + horizontalOffsetMm);
+    const paddingRightMm = Math.max(0, sideMarginMm - horizontalOffsetMm);
     const paddingTopMm = 0;
     const paddingBottomMm = verticalGapMm;
 
@@ -1661,17 +1662,17 @@ export const PackingBarcodesLabels: React.FC = () => {
                     </div>
 
                     {/* Orientation & Rotation Controls for Thermal Printers */}
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60 dark:border-gray-700">
+                    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60 dark:border-gray-700">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 mb-0.5">
-                          CSS Print Orientation
+                          CSS Orientation
                         </label>
                         <select
                           value={printOrientation}
                           onChange={(e) => setPrintOrientation(e.target.value as 'portrait' | 'landscape')}
                           className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-200 font-medium"
                         >
-                          <option value="portrait">Portrait (Default for TSC TE244)</option>
+                          <option value="portrait">Portrait</option>
                           <option value="landscape">Landscape</option>
                         </select>
                       </div>
@@ -1685,11 +1686,27 @@ export const PackingBarcodesLabels: React.FC = () => {
                           onChange={(e) => setPrintRotation(Number(e.target.value) as 0 | 90 | 180 | 270)}
                           className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-200 font-medium"
                         >
-                          <option value={0}>0° Normal (No Rotation)</option>
+                          <option value={0}>0° Normal</option>
                           <option value={90}>90° Clockwise</option>
-                          <option value={180}>180° Inverted</option>
-                          <option value={270}>270° Counter-Clockwise</option>
+                          <option value={180}>180° Inverted (Reverse)</option>
+                          <option value={270}>270° Counter-CW</option>
                         </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-gray-400 mb-0.5" title="Positive shifts right, negative shifts left">
+                          Shift Right (+mm)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min={-20}
+                          max={30}
+                          value={horizontalOffsetMm}
+                          onChange={(e) => setHorizontalOffsetMm(Number(e.target.value))}
+                          className="w-full p-1.5 border border-slate-200 dark:border-gray-700 rounded-lg text-xs text-center font-mono bg-white dark:bg-gray-900 dark:text-white"
+                          placeholder="e.g. 2"
+                        />
                       </div>
                     </div>
                   </div>
