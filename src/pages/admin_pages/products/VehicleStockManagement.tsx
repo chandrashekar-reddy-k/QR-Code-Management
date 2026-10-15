@@ -269,6 +269,18 @@ export default function VehicleStockManagement() {
             vStoreStock = Number(p.vehicleStoreStock) || 0;
           }
 
+          // Resolve VSM price from channelInventories (VEHICLE) or vsmPrice
+          let resolvedVsmPrice = Number(p.vsmPrice || 0);
+          if (Array.isArray(p.channelInventories)) {
+            const vehRecord = p.channelInventories.find((ci: any) => ci.channel === 'VEHICLE');
+            if (vehRecord && vehRecord.channelPrice != null) {
+              resolvedVsmPrice = Number(vehRecord.channelPrice);
+            }
+          }
+          if (!resolvedVsmPrice) {
+            resolvedVsmPrice = Number(p.sellingPrice ?? p.finalPrice ?? p.price ?? 0);
+          }
+
           return {
             id: p.id,
             productId,
@@ -282,7 +294,7 @@ export default function VehicleStockManagement() {
             mrp: Number(p.mrp || 0), // From Product master
             landingPrice: Number(p.landingPrice ?? p.costPrice ?? 0), // From Product master (costPrice)
             sellingPrice: Number(p.sellingPrice ?? p.finalPrice ?? p.price ?? 0), // From Product master
-            vsmPrice: Number(p.vsmPrice || p.sellingPrice || p.price || 0),
+            vsmPrice: resolvedVsmPrice,
             totalCatalogStock: Number(p.stock ?? p.catalogStock ?? p.stageStocks?.CENTRAL ?? 0),
             vehicleStoreStock: vStoreStock,
             vehicleStock: vStock,

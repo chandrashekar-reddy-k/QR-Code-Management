@@ -381,20 +381,22 @@ const LoadingSection = ({
                 <td className="px-3 py-2.5 bg-emerald-50/5">
                   <div className="flex items-center justify-center gap-3">
                     <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-bold text-emerald-700">{item.warehouseStock ?? item.stock ?? 0}</span>
+                      <span className="text-[10px] font-bold text-emerald-700">
+                        {selectedVehicleId ? (item.warehouseStock ?? item.stock ?? 0) : 0}
+                      </span>
                       <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest leading-none mt-0.5">In Store</span>
                     </div>
                     <div className="w-px h-4 bg-emerald-100" />
                     <div className="flex flex-col items-center">
                       <span className="text-[10px] font-bold text-amber-600">
-                        {selectedVehicleId ? (vehicleInventoryMap[item.id] || 0) : (item.loadedVehicleStock || 0)}
+                        {selectedVehicleId ? (vehicleInventoryMap[item.id] || 0) : 0}
                       </span>
                       <span className="text-[7px] font-bold text-amber-500 uppercase tracking-widest leading-none mt-0.5">In Vehicle</span>
                     </div>
                     <div className="w-px h-4 bg-emerald-100" />
                     <div className="flex flex-col items-center bg-white px-1.5 py-0.5 rounded-lg border border-emerald-100 shadow-sm">
                       <span className="text-[10px] font-bold text-blue-600">
-                        {item.vehicleStoreStock || 0}
+                        {selectedVehicleId ? (item.vehicleStoreStock || 0) : 0}
                       </span>
                       <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">VSM</span>
                     </div>
