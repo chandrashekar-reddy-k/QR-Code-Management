@@ -76,19 +76,21 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* Product Title & Discount Tag */}
-      <div className="flex items-center justify-between mt-1.5 px-0.5 min-h-[1.5rem] gap-1">
-        <h3 className="text-xs font-extrabold text-gray-900 truncate flex-1">
+      <div className="flex flex-col mt-1.5 px-0.5 min-h-[2rem] gap-1 flex-1 justify-between">
+        <h3 className="text-xs font-medium text-gray-800 leading-snug break-words">
           {typeof product.name === 'object' && product.name !== null ? product.name.name || 'Item' : (product.name || 'Jaggery')}
         </h3>
-        {product.promoCode ? (
-          <span className="text-[8px] font-black text-emerald-800 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-0.5">
-            🏷️ {product.promoCode}
-          </span>
-        ) : (
-          <span className="text-[8px] font-black text-[#E85D04] bg-orange-50 border border-orange-200 px-1 py-0.5 rounded uppercase shrink-0">
-            {product.discount ? `${product.discount}% OFF` : '28% OFF'}
-          </span>
-        )}
+        <div className="flex items-center">
+          {product.promoCode ? (
+            <span className="text-[8px] font-black text-emerald-800 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-0.5">
+              🏷️ {product.promoCode}
+            </span>
+          ) : (
+            <span className="text-[8px] font-black text-[#E85D04] bg-orange-50 border border-orange-200 px-1 py-0.5 rounded uppercase shrink-0">
+              {product.discount ? `${product.discount}% OFF` : '28% OFF'}
+            </span>
+          )}
+        </div>
       </div>
 
 
