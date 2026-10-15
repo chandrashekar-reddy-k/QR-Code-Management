@@ -29,8 +29,8 @@ const AuditRow = memo(({ item, initialQuantity, onQuantityChange }) => {
           <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-100 shadow-inner flex items-center justify-center no-print">
             {item.product?.isFree ? <Gift size={18} className="text-emerald-500" /> : <Package size={18} className="text-gray-400 group-hover:text-emerald-500" />}
           </div>
-          <div className="flex flex-col">
-            <span className="text-[11px] font-black text-gray-800 line-clamp-1 uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[11px] font-medium text-gray-800 leading-snug break-words uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
             <span className="text-[8px] font-bold text-gray-400 uppercase">{item.product?.skuCode}</span>
           </div>
         </div>
@@ -306,8 +306,8 @@ const VehicleStockSection = ({
                             <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center">
                               {item.product?.isFree ? <Gift size={18} className="text-emerald-500" /> : <Package size={18} className="text-gray-400 group-hover:text-emerald-500" />}
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-xs font-bold text-gray-800 line-clamp-1 leading-tight uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-xs font-medium text-gray-800 leading-snug break-words uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
                                   VSM: {item.vehicleStoreStock ?? item.product?.vehicleStoreStock ?? 0}
@@ -392,7 +392,7 @@ const VehicleStockSection = ({
                                     {item.product?.isFree ? <Gift size={14} className="text-emerald-500" /> : <Package size={14} className="text-gray-400 group-hover:text-emerald-500" />}
                                   </div>
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[11px] font-black text-gray-800 uppercase tracking-tight truncate">{item.product?.name || 'Unknown'}</span>
+                                    <span className="text-[11px] font-medium text-gray-800 uppercase tracking-tight leading-snug break-words">{item.product?.name || 'Unknown'}</span>
                                     <span className="text-[8px] font-bold text-gray-400 uppercase">{item.product?.skuCode}</span>
                                   </div>
                                 </div>
