@@ -40,9 +40,9 @@ export function useVehiclesQuery(storeFilterId: string | null) {
         users: filteredUsers,
       };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes fresh
-    gcTime: 30 * 60 * 1000,    // 30 minutes in memory
-    refetchOnWindowFocus: false,
+    staleTime: 0, // Always fetch fresh
+    gcTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -84,9 +84,9 @@ export function useRoutesQuery(storeId: string | null) {
         stores: fetchedStores,
       };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes fresh
-    gcTime: 30 * 60 * 1000,    // 30 minutes in memory
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -111,7 +111,7 @@ export function usePerformanceQuery(storeId: string | null) {
       };
     },
     staleTime: 0,              // Instant fresh data
-    gcTime: 5 * 60 * 1000,     // 5 minutes in memory
+    gcTime: 0,
     refetchOnWindowFocus: true,
   });
 }
@@ -137,9 +137,9 @@ export function useCollectionsQuery(storeId: string | null) {
       }));
       return data;
     },
-    staleTime: 2 * 60 * 1000,  // 2 minutes fresh
-    gcTime: 15 * 60 * 1000,    // 15 minutes in memory
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -219,9 +219,9 @@ export function useSalesQuery(
         users: userList,
       };
     },
-    staleTime: 3 * 60 * 1000,  // 3 minutes fresh
-    gcTime: 30 * 60 * 1000,    // 30 minutes in memory
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
