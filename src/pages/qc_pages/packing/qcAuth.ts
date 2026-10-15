@@ -49,7 +49,9 @@ export const getQCUser = (): QCUser => {
 export const qcLogout = () => {
   sessionStorage.removeItem('staffToken');
   sessionStorage.removeItem('staffUser');
+  sessionStorage.removeItem('portalMode');
   localStorage.removeItem('partnerToken');
   localStorage.removeItem('partnerUser');
+  localStorage.removeItem('portalMode');
   localStorage.removeItem('token');
 };

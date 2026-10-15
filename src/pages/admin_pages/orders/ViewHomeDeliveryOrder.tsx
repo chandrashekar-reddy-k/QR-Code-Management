@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Phone, MapPin, ChevronDown, Search, FileText } from "lucide-react";
+import { Phone, MapPin, ChevronDown, Search, FileText, Printer } from "lucide-react";
 import fetchData from "../../../helper";
 import api from "../../../api/axios";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
 import { formatDate, formatCurrency } from "../../../utils/formatters";
 import { generateInvoicePDF, getInvoiceNumber } from "../../../utils/generateInvoicePDF";
+import { printThermalReceipt } from "../../../utils/printThermalReceipt";
 import {
   Button,
   SelectInput,
@@ -428,19 +429,34 @@ const ViewHomeDeliveryOrder = () => {
   }, [statusUpdateOpen]);
 
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [printingThermal, setPrintingThermal] = useState(false);
 
   const handleDownloadInvoice = async () => {
     if (!order) return;
     try {
       setDownloadingInvoice(true);
-      const pdf = await generateInvoicePDF(order as any);
+      const apiOrder = (data as any)?.data || order;
+      const pdf = await generateInvoicePDF(apiOrder as any);
       if (pdf) {
-        pdf.save(`Invoice_VK-${getInvoiceNumber(order as any)}.pdf`);
+        pdf.save(`Invoice_VK-${getInvoiceNumber(apiOrder as any)}.pdf`);
       }
     } catch (err) {
       console.error("Error generating invoice PDF:", err);
     } finally {
       setDownloadingInvoice(false);
+    }
+  };
+
+  const handlePrintThermalReceipt = () => {
+    if (!order) return;
+    try {
+      setPrintingThermal(true);
+      const apiOrder = (data as any)?.data || order;
+      printThermalReceipt(apiOrder as any);
+    } catch (err) {
+      console.error("Error printing thermal receipt:", err);
+    } finally {
+      setPrintingThermal(false);
     }
   };
 
@@ -553,11 +569,19 @@ const ViewHomeDeliveryOrder = () => {
             </h1>
             <Breadcrumbs />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <Button
+              onClick={handlePrintThermalReceipt}
+              disabled={printingThermal}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <Printer size={16} />
+              {printingThermal ? "Printing..." : "Thermal Receipt"}
+            </Button>
             <Button
               onClick={handleDownloadInvoice}
               disabled={downloadingInvoice}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
               <FileText size={16} />
               {downloadingInvoice ? "Generating..." : "Download Invoice PDF"}

@@ -408,6 +408,7 @@ export default function AdminSales() {
     try {
       const { data } = await ordersAPI.getById(sale.id);
       setFullOrder(data);
+      setViewingOrder(data);
     } catch (err) {
       console.error('[Admin] Failed to load enriched order:', err);
       // Fallback: use the list item data
@@ -436,8 +437,9 @@ export default function AdminSales() {
     try {
       const { data } = await ordersAPI.editItem(detailOrder.id, editingItem.id, { quantity: editQty });
       setFullOrder(data);
+      setViewingOrder(data);
       // Also update the list entry
-      setSales(prev => prev.map(s => s.id === data.id ? { ...s, totalAmount: data.totalAmount } : s));
+      setSales(prev => prev.map(s => s.id === data.id ? { ...s, ...data } : s));
       setEditingItem(null);
       invalidateSales();
       toast.success('Quantity updated');
@@ -453,7 +455,8 @@ export default function AdminSales() {
     try {
       const { data } = await ordersAPI.removeItem(detailOrder.id, itemId);
       setFullOrder(data);
-      setSales(prev => prev.map(s => s.id === data.id ? { ...s, totalAmount: data.totalAmount } : s));
+      setViewingOrder(data);
+      setSales(prev => prev.map(s => s.id === data.id ? { ...s, ...data } : s));
       invalidateSales();
       toast.success('Item removed');
     } catch (err) {
@@ -470,14 +473,24 @@ export default function AdminSales() {
         items: [{ orderItemId: returningItem.id, returnQty }],
         reason: returnReason || undefined
       });
-      setFullOrder(data);
-      setSales(prev => prev.map(s => s.id === data.id ? { ...s, totalAmount: data.totalAmount, status: data.status } : s));
+      // Re-fetch complete enriched order from getById to ensure all fields are fresh
+      try {
+        const fullRes = await ordersAPI.getById(detailOrder.id);
+        setFullOrder(fullRes.data);
+        setViewingOrder(fullRes.data);
+        setSales(prev => prev.map(s => s.id === detailOrder.id ? { ...s, ...fullRes.data } : s));
+      } catch {
+        setFullOrder(data);
+        setViewingOrder(prev => ({ ...prev, ...data }));
+        setSales(prev => prev.map(s => s.id === data.id ? { ...s, ...data } : s));
+      }
       setReturningItem(null);
       setReturnReason('');
       invalidateSales();
-      toast.success('Return processed');
+      toast.success('Return processed successfully');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to process return');
+      const errMsg = err.response?.data?.message || 'Failed to process return';
+      toast.error(errMsg, { duration: 5000 });
     } finally { setActionLoading(false); }
   };
 
@@ -1145,7 +1158,8 @@ export default function AdminSales() {
   // Apply Store filter mathematically to sales
   const listToRender = useMemo(() => {
     return sales.filter(s => {
-      if (storeFilterId && s.storeId !== storeFilterId) return false;
+      const orderStoreId = s.storeId || s.warehouseId || s.allocatedStoreId || s.pickupStoreId;
+      if (storeFilterId && orderStoreId && orderStoreId !== storeFilterId) return false;
 
       // Tab filtering
       if (roleTab === 'Admins') {
@@ -1161,10 +1175,11 @@ export default function AdminSales() {
       // Order Status Filter
       if (orderStatusFilter && orderStatusFilter !== 'ALL') {
         const statusUpper = (s.status || '').toUpperCase();
-        if (orderStatusFilter === 'COMPLETED' && statusUpper !== 'COMPLETED' && statusUpper !== 'DELIVERED') return false;
-        if (orderStatusFilter === 'PENDING' && statusUpper !== 'PENDING' && statusUpper !== 'CONFIRMED' && statusUpper !== 'PLACED') return false;
-        if (orderStatusFilter === 'CANCELLED' && statusUpper !== 'CANCELLED' && statusUpper !== 'CANCELED') return false;
-        if (orderStatusFilter === 'RETURNED' && statusUpper !== 'RETURNED') return false;
+        if (orderStatusFilter === 'COMPLETED' && !['COMPLETED', 'DELIVERED', 'PARTIALLY_RETURNED'].includes(statusUpper)) return false;
+        if (orderStatusFilter === 'PARTIALLY_RETURNED' && statusUpper !== 'PARTIALLY_RETURNED') return false;
+        if (orderStatusFilter === 'PENDING' && !['PENDING', 'CONFIRMED', 'PLACED'].includes(statusUpper)) return false;
+        if (orderStatusFilter === 'CANCELLED' && !['CANCELLED', 'CANCELED'].includes(statusUpper)) return false;
+        if (orderStatusFilter === 'RETURNED' && !['RETURNED', 'PARTIALLY_RETURNED'].includes(statusUpper)) return false;
       }
 
       const query = searchQuery.toLowerCase();
@@ -1617,12 +1632,14 @@ export default function AdminSales() {
                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">
                       Invoice <span className="text-emerald-600">#{detailOrder.displayId || detailOrder.orderNumber || viewingOrder.displayId || viewingOrder.orderNumber}</span>
                     </h2>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${(detailOrder.status || viewingOrder.status) === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                      (detailOrder.status || viewingOrder.status) === 'RETURNED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                        (detailOrder.status || viewingOrder.status) === 'CANCELLED' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                          'bg-emerald-50 text-emerald-600 border-emerald-100'
-                      }`}>
-                      {detailOrder.status || viewingOrder.status || 'PENDING'}
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                      (detailOrder.status || viewingOrder.status) === 'PARTIALLY_RETURNED' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      (detailOrder.status || viewingOrder.status) === 'RETURNED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                      (detailOrder.status || viewingOrder.status) === 'CANCELLED' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                      ['COMPLETED', 'DELIVERED'].includes(detailOrder.status || viewingOrder.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                      'bg-blue-50 text-blue-600 border-blue-100'
+                    }`}>
+                      {(detailOrder.status || viewingOrder.status || 'PENDING').replace('_', ' ')}
                     </span>
                     {loadingOrder && <Loader2 size={16} className="animate-spin text-gray-300" />}
                   </div>
@@ -1846,7 +1863,7 @@ export default function AdminSales() {
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-rose-600 group-hover:text-rose-100 uppercase tracking-widest mb-1">Returns & Adjust</p>
-                      <p className="text-xl font-black text-rose-900 group-hover:text-white tabular-nums">₹{(viewingOrder.returns?.reduce((sum, r) => sum + r.refundAmount, 0) || 0).toFixed(0)}</p>
+                      <p className="text-xl font-black text-rose-900 group-hover:text-white tabular-nums">₹{(detailOrder.returns?.reduce((sum, r) => sum + (r.refundAmount || r.returnAmount || 0), 0) || 0).toFixed(0)}</p>
                     </div>
                   </div>
                 </div>
@@ -1861,13 +1878,13 @@ export default function AdminSales() {
                       <div>
                         <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Basket Inventory</h3>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                          {viewingOrder.items?.length || 0} Products • Total Quantity: {viewingOrder.items?.reduce((sum, i) => sum + i.quantity, 0) || 0}
+                          {detailOrder.items?.length || 0} Products • Total Quantity: {detailOrder.items?.reduce((sum, i) => sum + i.quantity, 0) || 0}
                         </p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Discount</p>
-                      <p className="text-sm font-black text-rose-600">-₹{(viewingOrder.items?.reduce((sum, i) => sum + (i.discount || 0), 0) || 0).toFixed(0)}</p>
+                      <p className="text-sm font-black text-rose-600">-₹{(detailOrder.items?.reduce((sum, i) => sum + (i.discount || 0), 0) || 0).toFixed(0)}</p>
                     </div>
                   </div>
 
@@ -1893,55 +1910,61 @@ export default function AdminSales() {
                                 </div>
                                 <div>
                                   <p className="text-xs font-black text-gray-900 uppercase tracking-tight">{item.product?.name || item.productName || 'Unknown Product'}</p>
-                                  <p className="text-[9px] font-bold text-emerald-600 uppercase mt-0.5 tracking-widest">SKU: {item.productId?.slice(-6).toUpperCase()}</p>
-                                  {item.returnedQty > 0 && (
-                                    <p className="text-[9px] font-black text-rose-500 mt-0.5 flex items-center gap-1"><RotateCcw size={8} /> {item.returnedQty} returned</p>
-                                  )}
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">SKU: {item.productId?.slice(-6).toUpperCase()}</p>
+                                    {item.returnedQty > 0 && (
+                                      <span className="text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                        <RotateCcw size={8} /> {item.returnedQty} returned (Orig: {item.quantity})
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-5 text-center whitespace-nowrap">
-                              <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 whitespace-nowrap">
-                                {item.quantity} {item.product?.unit?.name || 'pcs'}
-                              </span>
+                              <div className="inline-flex flex-col items-center">
+                                <span className={`text-xs font-black px-3 py-1.5 rounded-xl border whitespace-nowrap ${
+                                  item.returnedQty > 0
+                                    ? 'text-amber-800 bg-amber-50 border-amber-200'
+                                    : 'text-emerald-700 bg-emerald-50 border-emerald-100'
+                                }`}>
+                                  {item.returnedQty > 0
+                                    ? `${Math.max(0, item.quantity - item.returnedQty)} / ${item.quantity}`
+                                    : item.quantity} {item.product?.unit?.name || 'pcs'}
+                                </span>
+                                {item.returnedQty > 0 && (
+                                  <span className="text-[9px] font-bold text-amber-700 mt-0.5">
+                                    Remaining: {Math.max(0, item.quantity - item.returnedQty)}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-5 text-right font-black text-gray-600 text-xs tabular-nums">
-                              ₹{Number(item.price || item.sellingPrice || 0).toFixed(0)}
+                              ₹{Number(item.price || item.unitPrice || item.sellingPrice || 0).toFixed(0)}
                             </td>
                             <td className="px-6 py-5 text-right font-black text-gray-400 text-[10px] tabular-nums">
                               {item.product?.gst || 0}%
                             </td>
                             <td className="px-6 py-5 text-right font-black text-gray-900 text-xs tabular-nums">
-                              ₹{(Number(item.price || item.sellingPrice || 0) * Number(item.quantity || 1)).toFixed(0)}
+                              ₹{(Number(item.price || item.unitPrice || item.sellingPrice || 0) * Math.max(0, Number(item.quantity || 1) - (item.returnedQty || 0))).toFixed(0)}
+                              {item.returnedQty > 0 && (
+                                <p className="text-[9px] text-gray-400 line-through">
+                                  ₹{(Number(item.price || item.unitPrice || item.sellingPrice || 0) * Number(item.quantity || 1)).toFixed(0)}
+                                </p>
+                              )}
                             </td>
                             {canEditOrder && (
                               <td className="px-6 py-5">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {/* <button
-                                    title="Edit Quantity"
-                                    onClick={() => { setEditingItem(item); setEditQty(item.quantity); }}
-                                    className="w-8 h-8 flex items-center justify-center bg-sky-50 text-sky-600 rounded-xl hover:bg-sky-500 hover:text-white transition-all border border-sky-100 shadow-sm"
-                                  >
-                                    <Edit3 size={14} />
-                                  </button> */}
-                                  {(item.returnableQty > 0 || (!fullOrder && item.quantity > 0)) && (
+                                  {((item.returnableQty !== undefined ? item.returnableQty : Math.max(0, item.quantity - (item.returnedQty || 0))) > 0) && (
                                     <button
-                                      title="Return Item"
+                                      title={`Return Item (${item.returnableQty !== undefined ? item.returnableQty : Math.max(0, item.quantity - (item.returnedQty || 0))} remaining)`}
                                       onClick={() => { setReturningItem(item); setReturnQty(1); }}
                                       className="w-8 h-8 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-500 hover:text-white transition-all border border-emerald-100 shadow-sm"
                                     >
                                       <RotateCcw size={14} />
                                     </button>
                                   )}
-                                  {/* {(detailOrder.items || viewingOrder.items)?.length > 1 && (
-                                    <button
-                                      title="Remove Item"
-                                      onClick={() => { if (confirm('Remove this item from the order?')) handleRemoveItem(item.id); }}
-                                      className="w-8 h-8 flex items-center justify-center bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all border border-rose-100 shadow-sm"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  )} */}
                                 </div>
                               </td>
                             )}
@@ -1955,7 +1978,7 @@ export default function AdminSales() {
                     <div className="flex items-center gap-6">
                       <div>
                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Gross Bill</p>
-                        <p className="text-lg font-black text-gray-300">₹{((detailOrder.totalAmount || viewingOrder.totalAmount || 0) + (detailOrder.discountAmount || 0)).toFixed(0)}</p>
+                        <p className="text-lg font-black text-gray-300">₹{((detailOrder.totalAmount || 0) + (detailOrder.discountAmount || 0)).toFixed(0)}</p>
                       </div>
                       {detailOrder.appliedPromotion && (
                         <>
@@ -1970,12 +1993,12 @@ export default function AdminSales() {
                       <div className="w-[1px] h-10 bg-gray-800"></div>
                       <div>
                         <p className="text-[9px] font-black text-white uppercase tracking-widest mb-1">Net Payable</p>
-                        <p className="text-2xl font-black tracking-tighter">₹{(detailOrder.totalAmount || viewingOrder.totalAmount || 0).toFixed(0)}</p>
+                        <p className="text-2xl font-black tracking-tighter">₹{(detailOrder.totalAmount || 0).toFixed(0)}</p>
                       </div>
                       <div className="w-[1px] h-10 bg-gray-800"></div>
                       <div>
                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Items Count</p>
-                        <p className="text-lg font-black">{viewingOrder.items?.length || 0}</p>
+                        <p className="text-lg font-black">{detailOrder.items?.length || 0}</p>
                       </div>
                     </div>
                     <div className="w-full md:w-auto">
@@ -1985,7 +2008,7 @@ export default function AdminSales() {
                         </div>
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest">Description / Remarks</p>
-                          <p className="text-xs text-slate-300 font-medium italic">"{viewingOrder.remark || 'Standard transaction processed without additional remarks.'}"</p>
+                          <p className="text-xs text-slate-300 font-medium italic">"{detailOrder.remark || 'Standard transaction processed without additional remarks.'}"</p>
                         </div>
                       </div>
                     </div>
@@ -1999,19 +2022,44 @@ export default function AdminSales() {
                       <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center"><RotateCcw size={18} /></div>
                       <div>
                         <h3 className="text-sm font-black text-rose-800 uppercase tracking-tight">Return History</h3>
-                        <p className="text-[10px] font-bold text-rose-500/70 uppercase tracking-widest">{detailOrder.returns.length} return(s) recorded</p>
+                        <p className="text-[10px] font-bold text-rose-500/70 uppercase tracking-widest">{detailOrder.returns.length} return transaction(s) recorded</p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      {detailOrder.returns.map((r, i) => (
-                        <div key={i} className="flex justify-between items-center py-3 px-4 bg-white rounded-2xl border border-rose-100/50">
-                          <div>
-                            <p className="text-xs font-black text-rose-800">Qty: {r.returnQty} • ₹{(r.returnAmount || r.refundAmount || 0).toFixed(0)}</p>
-                            {r.reason && <p className="text-[9px] font-bold text-rose-500/70 mt-0.5">{r.reason}</p>}
+                      {detailOrder.returns.map((r, i) => {
+                        const matchedItem = (detailOrder.items || []).find(it => it.id === r.orderItemId || it.productId === r.productId);
+                        const origQty = matchedItem?.quantity || r.returnQty;
+                        const totalReturnedForThisItem = (detailOrder.returns || [])
+                          .filter(ret => ret.orderItemId === r.orderItemId || ret.productId === r.productId)
+                          .reduce((sum, ret) => sum + (ret.returnQty || 0), 0);
+                        const remainingQty = matchedItem?.returnableQty !== undefined 
+                          ? matchedItem.returnableQty 
+                          : Math.max(0, origQty - totalReturnedForThisItem);
+                        const prodName = r.product?.name || matchedItem?.product?.name || matchedItem?.productName || 'Item';
+                        return (
+                          <div key={i} className="flex justify-between items-center py-3.5 px-5 bg-white rounded-2xl border border-rose-100 shadow-sm hover:border-rose-200 transition-all">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-black text-gray-900">{prodName}</span>
+                                <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-bold">
+                                  Returned: {r.returnQty} qty
+                                </span>
+                                <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                                  Remaining: {remainingQty} of {origQty}
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-medium text-gray-500">
+                                Refund: <span className="font-bold text-gray-900">₹{(r.returnAmount || r.refundAmount || 0).toFixed(0)}</span>
+                                {r.reason && <span className="ml-2 text-rose-600 font-semibold">• Reason: {r.reason}</span>}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] font-bold text-gray-400 block">{r.createdAt ? format(new Date(r.createdAt), 'dd MMM yyyy, hh:mm a') : 'Recently'}</span>
+                              <span className="text-[9px] font-black uppercase text-emerald-600 tracking-wider">Processed</span>
+                            </div>
                           </div>
-                          <span className="text-[9px] font-bold text-rose-400">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -2071,7 +2119,7 @@ export default function AdminSales() {
                 </div>
                 <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100 text-center">
                   <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest mb-1">Refund Amount</p>
-                  <p className="text-2xl font-black text-rose-600 tracking-tighter">₹{(returnQty * (returningItem.price || 0)).toFixed(0)}</p>
+                  <p className="text-2xl font-black text-rose-600 tracking-tighter">₹{(returnQty * (returningItem.price || returningItem.unitPrice || 0)).toFixed(0)}</p>
                 </div>
                 <input type="text" placeholder="Reason for return (optional)" value={returnReason} onChange={e => setReturnReason(e.target.value)} className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-100 text-sm font-bold text-gray-700 outline-none placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-500/20" />
                 <div className="grid grid-cols-2 gap-3">
@@ -2137,9 +2185,10 @@ export default function AdminSales() {
                         >
                           <option value="ALL">Status</option>
                           <option value="COMPLETED">Completed</option>
+                          <option value="PARTIALLY_RETURNED">Partially Returned</option>
+                          <option value="RETURNED">Returned</option>
                           <option value="PENDING">Pending</option>
                           <option value="CANCELLED">Cancelled</option>
-                          <option value="RETURNED">Returned</option>
                         </select>
                         <ChevronDown
                           size={16}
@@ -2546,9 +2595,22 @@ export default function AdminSales() {
                                       </td>
                                       {/* Invoice ID */}
                                       <td className="px-4 py-3.5 text-center">
-                                        <span className="text-xs sm:text-sm text-gray-800 font-medium">
-                                          {item.displayId || (item.orderNumber ? `VK-${item.orderNumber}` : `VK-${String(item.id).replace(/\D/g, '').slice(0, 6)}`)}
-                                        </span>
+                                        <div className="flex flex-col items-center gap-1">
+                                          <span className="text-xs sm:text-sm text-gray-800 font-medium">
+                                            {item.displayId || (item.orderNumber ? `VK-${item.orderNumber}` : `VK-${String(item.id).replace(/\D/g, '').slice(0, 6)}`)}
+                                          </span>
+                                          {item.status && (
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                                              item.status === 'PARTIALLY_RETURNED' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                              item.status === 'RETURNED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                              item.status === 'CANCELLED' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                              item.status === 'COMPLETED' || item.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                              'bg-gray-50 text-gray-600 border-gray-200'
+                                            }`}>
+                                              {item.status.replace('_', ' ')}
+                                            </span>
+                                          )}
+                                        </div>
                                       </td>
                                       {/* Date & Time */}
                                       <td className="px-4 py-3.5 text-center whitespace-nowrap">

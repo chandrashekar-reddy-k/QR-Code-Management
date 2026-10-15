@@ -89,8 +89,8 @@ export default function PaymentScreen() {
 
       // Step 1: Create order from cart in database
       const payload = {
-        mobile: customerMobile || '9876543210',
-        customerName: customerName || 'Walk-in Customer',
+        mobile: customerMobile?.trim() || undefined,
+        customerName: customerName?.trim() || 'Walk-in Customer',
         items: items.map(i => ({ productId: i.productId || i.id, quantity: i.quantity || 1 })),
         deliverySlot: deliverySlot || 'MORNING',
         deliveryDate: deliveryDate || new Date().toISOString().split('T')[0],

@@ -216,7 +216,8 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
           }
 
           const totalProcuredQty = grnMap[baseId] || grnMap[p.id] || 0;
-          const resolvedQty = p.receivedQty ?? p.acceptedQty ?? totalProcuredQty;
+          const inProdQty = Number(p.inProductionQty || p.productionStock?.inProductionQty || 0);
+          const resolvedQty = inProdQty > 0 ? inProdQty : (p.receivedQty ?? p.acceptedQty ?? p.availableStock ?? totalProcuredQty);
 
           return {
             id: p.id || p.sku || `INV-${Math.random().toString(36).substring(2, 7)}`,

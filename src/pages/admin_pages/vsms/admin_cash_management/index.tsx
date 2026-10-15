@@ -736,6 +736,8 @@ export default function AdminCashManagementContent() {
           handleDenominationChange={handleDenominationChange}
           handleAssignFloat={handleAssignFloat}
           isSubmitting={isSubmitting}
+          date={date}
+          storeFilterId={storeFilterId}
         />
       </div>
     );

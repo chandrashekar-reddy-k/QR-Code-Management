@@ -199,12 +199,12 @@ export default function SalesEntry() {
             <div className="grid grid-cols-2 gap-3">
               {/* Customer Name */}
               <div className="space-y-1">
-                <label className="text-xs font-extrabold text-gray-900 flex items-center gap-0.5">
-                  Customer Name <span className="text-red-500 font-extrabold">*</span>
+                <label className="text-xs font-extrabold text-gray-900 flex items-center gap-1">
+                  Customer Name <span className="text-gray-400 font-normal text-[10px]">(Optional)</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="Customer Name"
+                  placeholder="Customer Name (Optional)"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
@@ -213,12 +213,12 @@ export default function SalesEntry() {
 
               {/* Mobile Number */}
               <div className="space-y-1">
-                <label className="text-xs font-extrabold text-gray-900 flex items-center gap-0.5">
-                  Mobile Number <span className="text-red-500 font-extrabold">*</span>
+                <label className="text-xs font-extrabold text-gray-900 flex items-center gap-1">
+                  Mobile Number <span className="text-gray-400 font-normal text-[10px]">(Optional)</span>
                 </label>
                 <input
                   type="tel"
-                  placeholder="Enter Mobile Number"
+                  placeholder="Enter Mobile Number (Optional)"
                   value={customerMobile}
                   onChange={(e) => setCustomerMobile(e.target.value)}
                   className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"

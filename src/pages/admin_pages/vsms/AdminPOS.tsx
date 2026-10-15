@@ -589,12 +589,22 @@ export default function AdminPOS() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await productsAPI.getAll({ showAll: true, storeId, bypassCache: true });
-      // Map the stock to posStock since this is a POS terminal
-      const mappedData = data.map(p => ({
-        ...p,
-        stock: p.posStock !== undefined && p.posStock !== null ? p.posStock : p.stock
-      }));
+      const { data } = await productsAPI.getAll({ showAll: true, storeId, bypassCache: true, channel: 'POS_STORE', posOnly: 'true' });
+      // Map the stock strictly to posStock since this is a POS terminal, filtering for items enabled for Store POS
+      const mappedData = (Array.isArray(data) ? data : [])
+        .filter((p: any) => {
+          const isPos = p.isPosEnabled !== undefined
+            ? p.isPosEnabled
+            : (p.isPos !== undefined
+              ? p.isPos
+              : (p.posStoreStock?.isPosEnabled !== undefined ? p.posStoreStock.isPosEnabled : false));
+          const hasPosStock = Number(p.posStock ?? 0) > 0;
+          return Boolean(isPos) || hasPosStock;
+        })
+        .map((p: any) => ({
+          ...p,
+          stock: p.posStock !== undefined && p.posStock !== null ? Number(p.posStock) : 0
+        }));
       setProducts(mappedData);
     } catch (err) {
       toast.error('Failed to load products');
@@ -647,20 +657,24 @@ export default function AdminPOS() {
   const flattenedPosItems = useMemo(() => {
     const list: any[] = [];
     products.forEach((p: any) => {
-      // Must be present in PosStoreStock and enabled for POS
+      // Must be present in PosStoreStock / ChannelInventory and enabled for POS
       const isPos = p.isPosEnabled !== undefined
         ? p.isPosEnabled
         : (p.isPos !== undefined
           ? p.isPos
           : (p.posStoreStock?.isPosEnabled !== undefined ? p.posStoreStock.isPosEnabled : false));
 
-      if (!isPos) return;
+      const hasPosStock = Number(p.posStock ?? p.stock ?? 0) > 0;
+      if (!isPos && !hasPosStock) return;
 
       if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
         p.variants.forEach((v: any) => {
-          const varPrice = Number(v.sellingPrice ?? v.salePrice ?? v.finalPrice ?? v.posPrice ?? v.price ?? p.price ?? 0);
+          const varPosInv = v.channelInventories?.find?.((ci: any) => ci.channel === 'POS_STORE');
+          const varPrice = Number(varPosInv?.channelPrice ?? v.posPrice ?? v.sellingPrice ?? v.salePrice ?? v.finalPrice ?? v.price ?? p.posPrice ?? p.price ?? 0);
           const varMrp = Number(v.mrp ?? p.mrp ?? 0);
-          const varStock = v.stock !== undefined && v.stock !== null ? Number(v.stock) : (v.posStock !== undefined && v.posStock !== null ? Number(v.posStock) : Number(p.stock ?? 0));
+          const varStock = v.posStock !== undefined && v.posStock !== null 
+            ? Number(v.posStock) 
+            : (varPosInv !== undefined ? Number(varPosInv.quantity) : (v.stock !== undefined && v.stock !== null ? Number(v.stock) : Number(p.stock ?? 0)));
           list.push({
             ...p,
             id: `${p.id}_var_${v.id}`,
@@ -691,7 +705,7 @@ export default function AdminPOS() {
           displayName: p.name,
           fullName: p.name,
           name: p.name,
-          price: Number(p.price ?? 0),
+          price: Number(p.posPrice ?? p.price ?? 0),
           mrp: Number(p.mrp ?? 0),
           stock: Number(p.stock ?? 0),
           barcode: p.barcode || '',
@@ -736,21 +750,13 @@ export default function AdminPOS() {
     const trimmedName = customerName?.trim();
     const cleanMobile = customerMobile?.trim().replace(/\D/g, '');
 
-    if (!trimmedName) {
-      toast.error('Customer name is required');
-      return false;
-    }
-    if (trimmedName.length < 2) {
-      toast.error('Customer name must be at least 2 characters');
-      return false;
-    }
-    if (!cleanMobile) {
-      toast.error('Customer mobile number is required');
-      return false;
-    }
-    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
-      toast.error('Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9)');
-      return false;
+    // Customer details are now OPTIONAL for standard POS cash/upi sales (Walk-in customers).
+    // If a mobile number is entered, validate that it has 10 valid digits.
+    if (cleanMobile && cleanMobile.length > 0) {
+      if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+        toast.error('Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9)');
+        return false;
+      }
     }
     return true;
   };
@@ -768,11 +774,24 @@ export default function AdminPOS() {
 
   const handlePayment = async () => {
     if (!validateCustomerDetails()) return;
-    if (!selectedPaymentMode) return toast.error('Please select payment mode');
+    if (selectedPaymentMode === 'CASH') {
+      const received = parseFloat(cashReceived);
+      if (!cashReceived || isNaN(received) || received <= 0) {
+        return toast.error('Please enter Received Cash amount');
+      }
+      if (received < totalAmount) {
+        const shortage = (totalAmount - received).toFixed(2);
+        return toast.error(`Received Cash (₹${received.toFixed(2)}) is less than total amount (₹${totalAmount.toFixed(2)}). Short by ₹${shortage}`);
+      }
+    }
 
     if (selectedPaymentMode === 'CREDIT') {
       if (!customerName?.trim() || !customerMobile?.trim()) {
-        return toast.error('Customer name and mobile are required for Credit payments');
+        return toast.error('Customer name and mobile are required for Credit (Udhar) payments');
+      }
+      const cleanMobile = customerMobile.trim().replace(/\D/g, '');
+      if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+        return toast.error('Valid 10-digit mobile number required for Credit (Udhar)');
       }
     }
 
@@ -1832,7 +1851,7 @@ export default function AdminPOS() {
         ) : (
           <>
             {/* Left Side: Product Section */}
-            <div className="flex-[3] flex flex-col gap-6 overflow-hidden">
+            <div className="flex-[2.2] flex flex-col gap-6 overflow-hidden">
               {/* Categories */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] shrink-0">
                 <button
@@ -1865,7 +1884,7 @@ export default function AdminPOS() {
               </div>
 
               {/* Product Grid */}
-              <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pb-6 scrollbar-thin scrollbar-thumb-slate-200">
+              <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3.5 pb-6 scrollbar-thin scrollbar-thumb-slate-200">
                 {loading ? (
                   [...Array(12)].map((_, i) => (
                     <div key={i} className="h-[300px] bg-white rounded-3xl border border-slate-50 animate-pulse shadow-sm" />
@@ -2050,7 +2069,7 @@ export default function AdminPOS() {
               </div>
             </div>
 
-            <div className="flex-[1.3] hidden lg:flex flex-col bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-right duration-500">
+            <div className="flex-[1.4] min-w-[380px] xl:min-w-[440px] hidden lg:flex flex-col bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-right duration-500">
               {checkoutStep === 'CART' && (
                 <>
                   {/* Header */}
@@ -2098,12 +2117,11 @@ export default function AdminPOS() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                          <User size={10} className="text-emerald-500" /> Name <span className="text-rose-500 font-bold">*</span>
+                          <User size={10} className="text-emerald-500" /> Name <span className="text-slate-400 font-normal">(Optional)</span>
                         </label>
                         <input
                           type="text"
-                          required
-                          placeholder="Enter Customer Name *"
+                          placeholder="Walk-in Customer"
                           className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
@@ -2111,13 +2129,12 @@ export default function AdminPOS() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                          <Smartphone size={10} className="text-emerald-500" /> Mobile <span className="text-rose-500 font-bold">*</span>
+                          <Smartphone size={10} className="text-emerald-500" /> Mobile <span className="text-slate-400 font-normal">(Optional)</span>
                         </label>
                         <input
                           type="tel"
-                          required
                           maxLength={10}
-                          placeholder="Enter 10-digit mobile *"
+                          placeholder="Mobile (Optional)"
                           className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
                           value={customerMobile}
                           onChange={(e) => {
@@ -2333,28 +2350,84 @@ export default function AdminPOS() {
 
                     {selectedPaymentMode === 'CASH' && (
                       <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
-                        <div className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 shadow-sm">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Received Cash</label>
-                            <div className="relative">
-                              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300">₹</span>
-                              <input
-                                type="number"
-                                value={cashReceived}
-                                onChange={(e) => setCashReceived(e.target.value)}
-                                className="w-full pl-8 text-3xl font-black text-slate-900 outline-none bg-transparent placeholder:text-slate-100"
-                                placeholder="0.00"
-                                autoFocus
-                              />
+                        {(() => {
+                          const receivedVal = parseFloat(cashReceived) || 0;
+                          const hasEntered = cashReceived.trim().length > 0;
+                          const isShort = hasEntered && receivedVal < totalAmount;
+                          const changeDue = Math.max(0, receivedVal - totalAmount);
+                          const shortage = Math.max(0, totalAmount - receivedVal);
+
+                          return (
+                            <div className={`bg-white border rounded-2xl p-6 space-y-4 shadow-sm transition-all ${
+                              !hasEntered
+                                ? 'border-amber-300 ring-2 ring-amber-100'
+                                : isShort
+                                ? 'border-rose-400 ring-2 ring-rose-100'
+                                : 'border-emerald-300 ring-2 ring-emerald-100'
+                            }`}>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-700 flex items-center gap-1">
+                                    Received Cash <span className="text-rose-500 font-bold">*</span>
+                                  </label>
+                                  <span className="text-[10px] font-bold text-slate-400">
+                                    Bill Total: <b className="text-slate-800">₹{totalAmount.toFixed(2)}</b>
+                                  </span>
+                                </div>
+                                <div className="relative">
+                                  <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={cashReceived}
+                                    onChange={(e) => setCashReceived(e.target.value)}
+                                    className="w-full pl-8 text-3xl font-black text-slate-900 outline-none bg-transparent placeholder:text-slate-200"
+                                    placeholder="0.00"
+                                    autoFocus
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Quick denomination chips */}
+                              <div className="flex flex-wrap gap-1.5 pt-1">
+                                {[Math.ceil(totalAmount), 50, 100, 200, 500, 2000].filter((v, idx, arr) => arr.indexOf(v) === idx && v >= totalAmount).slice(0, 4).map((amt) => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setCashReceived(String(amt))}
+                                    className="px-2.5 py-1 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 rounded-lg text-[10px] font-bold text-slate-600 transition-all cursor-pointer"
+                                  >
+                                    ₹{amt}
+                                  </button>
+                                ))}
+                              </div>
+
+                              <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                                  {isShort ? 'Shortage Amount' : 'Change Due'}
+                                </span>
+                                <span className={`text-xl font-black ${
+                                  isShort ? 'text-rose-600' : 'text-emerald-600'
+                                }`}>
+                                  {isShort ? `- ₹${shortage.toFixed(2)}` : `₹${changeDue.toFixed(2)}`}
+                                </span>
+                              </div>
+
+                              {/* Helper Status message */}
+                              {!hasEntered && (
+                                <p className="text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+                                  ⚠️ Enter cash received from customer to proceed
+                                </p>
+                              )}
+                              {isShort && (
+                                <p className="text-[10px] font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200">
+                                  ❌ Insufficient cash: Short by ₹{shortage.toFixed(2)}
+                                </p>
+                              )}
                             </div>
-                          </div>
-                          <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
-                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Change Due</span>
-                            <span className="text-xl font-black text-orange-600">
-                              ₹{Math.max(0, (parseFloat(cashReceived) || 0) - totalAmount).toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
+                          );
+                        })()}
                       </div>
                     )}
 
@@ -2425,14 +2498,31 @@ export default function AdminPOS() {
                   </div>
 
                   <div className="p-6 bg-slate-50/50 border-t border-slate-100">
-                    <button
-                      onClick={handlePayment}
-                      disabled={actionLoading || !selectedPaymentMode}
-                      className="w-full bg-emerald-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 shadow-emerald-600/20"
-                    >
-                      {actionLoading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} strokeWidth={3} />}
-                      Complete Payment
-                    </button>
+                    {(() => {
+                      const isCashInvalid =
+                        selectedPaymentMode === 'CASH' &&
+                        (!cashReceived.trim() || (parseFloat(cashReceived) || 0) < totalAmount);
+                      const isCreditInvalid =
+                        selectedPaymentMode === 'CREDIT' &&
+                        (!customerName?.trim() || !customerMobile?.trim());
+
+                      const isButtonDisabled = actionLoading || !selectedPaymentMode || isCashInvalid || isCreditInvalid;
+
+                      return (
+                        <button
+                          onClick={handlePayment}
+                          disabled={isButtonDisabled}
+                          className={`w-full text-white font-black py-5 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 ${
+                            isButtonDisabled
+                              ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                              : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 cursor-pointer'
+                          }`}
+                        >
+                          {actionLoading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} strokeWidth={3} />}
+                          Complete Payment
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

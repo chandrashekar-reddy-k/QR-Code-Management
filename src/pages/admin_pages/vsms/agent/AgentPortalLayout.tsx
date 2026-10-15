@@ -426,41 +426,6 @@ export default function AgentPortalLayout({ children }: AgentPortalLayoutProps) 
               >
                 <Menu size={18} />
               </button>
-
-              {/* Modern iOS-Style Toggle Switch Component */}
-              <div className="flex items-center gap-2 bg-slate-50 border border-gray-200 p-1 pl-2.5 rounded-full shadow-xs">
-                <span className="text-[11px] sm:text-xs font-black tracking-tight text-slate-700 uppercase flex items-center gap-1.5 whitespace-nowrap">
-                  <span className={`w-2 h-2 rounded-full ${trackingOn ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                  <span className="hidden sm:inline">Live Location:</span>
-                  <span className={trackingOn ? 'text-emerald-700' : 'text-rose-600'}>
-                    {trackingOn ? 'ON' : 'OFF'}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={trackingOn}
-                  onClick={async () => {
-                    if (locationService.isTrackingActive()) {
-                      await locationService.stopLiveTracking();
-                      setTrackingOn(false);
-                    } else {
-                      locationService.enableLiveTracking();
-                      setTrackingOn(true);
-                    }
-                  }}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    trackingOn ? 'bg-emerald-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      trackingOn ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">

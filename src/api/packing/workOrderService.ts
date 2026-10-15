@@ -5,6 +5,7 @@ export type WoStatus =
   | 'DRAFT'
   | 'PENDING'
   | 'APPROVED'
+  | 'LABELS_PRINTED'
   | 'MATERIAL_ISSUED'
   | 'PACKING_STARTED'
   | 'PACKING_IN_PROGRESS'
@@ -126,8 +127,12 @@ export const workOrderService = {
     return res.data.data;
   },
 
-  async updateQuantity(id: string, data: { actualProduced?: number; actualRejected?: number }): Promise<WorkOrder> {
-    const res = await apiClient.patch<{ success: boolean; data: WorkOrder }>(`/work-orders/${id}/update-quantity`, data);
+  async updateQuantity(id: string, data: { actualProduced?: number; actualRejected?: number; status?: WoStatus }): Promise<WorkOrder> {
+    const payload = {
+      ...data,
+      ...(data.status ? { status: data.status } : (data.actualProduced && data.actualProduced > 0 ? { status: 'PACKING_IN_PROGRESS' as WoStatus } : {}))
+    };
+    const res = await apiClient.patch<{ success: boolean; data: WorkOrder }>(`/work-orders/${id}/update-quantity`, payload);
     return res.data.data;
   },
 

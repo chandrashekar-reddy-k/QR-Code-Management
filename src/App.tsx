@@ -316,7 +316,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAgentPortal = location.pathname.startsWith('/vsms/agent-portal');
   const isPackerOperatorPortal = location.pathname.startsWith('/packer/operator') || location.pathname.startsWith('/packer');
   const isStaffPortal = isShopkeeperPortal || isAgentPortal || isPackerOperatorPortal;
-  const token = isStaffPortal ? (sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token')) : localStorage.getItem('partnerToken');
+  const token = isStaffPortal
+    ? (sessionStorage.getItem('staffToken') || localStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token'))
+    : (localStorage.getItem('partnerToken') || localStorage.getItem('token') || sessionStorage.getItem('staffToken') || localStorage.getItem('staffToken'));
 
   const [securityVerified, setSecurityVerified] = useState(true);
 
@@ -331,8 +333,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   let user: any = null;
   try {
     const userStr = isStaffPortal
-      ? (sessionStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user'))
-      : (localStorage.getItem('partnerUser') || localStorage.getItem('user'));
+      ? (sessionStorage.getItem('staffUser') || localStorage.getItem('staffUser') || localStorage.getItem('partnerUser') || localStorage.getItem('user'))
+      : (localStorage.getItem('partnerUser') || localStorage.getItem('user') || sessionStorage.getItem('staffUser') || localStorage.getItem('staffUser'));
     user = userStr ? JSON.parse(userStr) : null;
   } catch (e) { }
 

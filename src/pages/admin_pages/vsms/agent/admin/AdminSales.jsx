@@ -1078,7 +1078,8 @@ export default function AdminSales() {
 
   // Apply Store filter mathematically to sales
   const listToRender = sales.filter(s => {
-    if (storeFilterId && s.storeId !== storeFilterId) return false;
+    const orderStoreId = s.storeId || s.warehouseId || s.allocatedStoreId || s.pickupStoreId;
+    if (storeFilterId && orderStoreId && orderStoreId !== storeFilterId) return false;
     
     // Tab filtering
     if (roleTab === 'Admins') {
@@ -1772,19 +1773,44 @@ export default function AdminSales() {
                       <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center"><RotateCcw size={18} /></div>
                       <div>
                         <h3 className="text-sm font-black text-rose-800 uppercase tracking-tight">Return History</h3>
-                        <p className="text-[10px] font-bold text-rose-500/70 uppercase tracking-widest">{detailOrder.returns.length} return(s) recorded</p>
+                        <p className="text-[10px] font-bold text-rose-500/70 uppercase tracking-widest">{detailOrder.returns.length} return transaction(s) recorded</p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      {detailOrder.returns.map((r, i) => (
-                        <div key={i} className="flex justify-between items-center py-3 px-4 bg-white rounded-2xl border border-rose-100/50">
-                          <div>
-                            <p className="text-xs font-black text-rose-800">Qty: {r.returnQty} • ₹{(r.returnAmount || r.refundAmount || 0).toFixed(0)}</p>
-                            {r.reason && <p className="text-[9px] font-bold text-rose-500/70 mt-0.5">{r.reason}</p>}
+                      {detailOrder.returns.map((r, i) => {
+                        const matchedItem = (detailOrder.items || []).find(it => it.id === r.orderItemId || it.productId === r.productId);
+                        const origQty = matchedItem?.quantity || r.returnQty;
+                        const totalReturnedForThisItem = (detailOrder.returns || [])
+                          .filter(ret => ret.orderItemId === r.orderItemId || ret.productId === r.productId)
+                          .reduce((sum, ret) => sum + (ret.returnQty || 0), 0);
+                        const remainingQty = matchedItem?.returnableQty !== undefined 
+                          ? matchedItem.returnableQty 
+                          : Math.max(0, origQty - totalReturnedForThisItem);
+                        const prodName = r.product?.name || matchedItem?.product?.name || matchedItem?.productName || 'Item';
+                        return (
+                          <div key={i} className="flex justify-between items-center py-3.5 px-5 bg-white rounded-2xl border border-rose-100 shadow-sm hover:border-rose-200 transition-all">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-black text-gray-900">{prodName}</span>
+                                <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-bold">
+                                  Returned: {r.returnQty} qty
+                                </span>
+                                <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                                  Remaining: {remainingQty} of {origQty}
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-medium text-gray-500">
+                                Refund: <span className="font-bold text-gray-900">₹{(r.returnAmount || r.refundAmount || 0).toFixed(0)}</span>
+                                {r.reason && <span className="ml-2 text-rose-600 font-semibold">• Reason: {r.reason}</span>}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] font-bold text-gray-400 block">{r.createdAt ? format(new Date(r.createdAt), 'dd MMM yyyy, hh:mm a') : 'Recently'}</span>
+                              <span className="text-[9px] font-black uppercase text-emerald-600 tracking-wider">Processed</span>
+                            </div>
                           </div>
-                          <span className="text-[9px] font-bold text-rose-400">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

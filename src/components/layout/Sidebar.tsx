@@ -29,7 +29,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
   // Fetch full role-based permissions from Identity Service and update state
   const refreshPermissions = useCallback(async () => {
     try {
-      const token = localStorage.getItem('partnerToken') || sessionStorage.getItem('staffToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('partnerToken') || sessionStorage.getItem('staffToken') || localStorage.getItem('staffToken') || localStorage.getItem('token');
       if (!token) return;
       const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "https://identity.villagkart.com").replace(/\/+$/, '');
       const res = await fetch(`${baseUrl}/api/v1/auth/me?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -39,6 +39,8 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
         localStorage.setItem('partnerToken', data.data.accessToken);
         localStorage.setItem('token', data.data.accessToken);
         localStorage.setItem('authToken', data.data.accessToken);
+        localStorage.setItem('staffToken', data.data.accessToken);
+        sessionStorage.setItem('staffToken', data.data.accessToken);
       }
       // Identity Service may return permissions as: flat array, nested user.permissions array, or object map
       const raw = data.data?.flatPermissions || data.data?.permissions || data.data?.user?.permissions || data.flatPermissions || data.permissions;

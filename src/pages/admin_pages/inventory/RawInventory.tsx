@@ -50,6 +50,7 @@ const RawInventory: React.FC = () => {
   const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
   const [selectedGRNId, setSelectedGRNId] = useState<string>('ALL');
   const [grnItemsMap, setGrnItemsMap] = useState<Record<string, any>>({});
+  const [sendQtyMap, setSendQtyMap] = useState<Record<string, number | string>>({});
 
   useEffect(() => {
     loadData();
@@ -148,7 +149,12 @@ const RawInventory: React.FC = () => {
           const baseId = item.id ? item.id.split('_')[0] : item.id;
           const grnList = map[baseId] || map[item.id] || [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
-          const displayQty = totalProcuredQty;
+          const inProdQty = Number(item.productionStock?.inProductionQty || 0);
+          const availableProcuredQty = totalProcuredQty > 0 ? Math.max(0, totalProcuredQty - inProdQty) : 0;
+          const rawStock = totalProcuredQty > 0
+            ? availableProcuredQty
+            : (typeof item.stock === 'number' && item.stock >= 0 ? item.stock : 0);
+          const displayQty = rawStock;
           const displayUnit = resolvedUnitMap[baseId] || resolvedUnitMap[item.id] || item.unit || 'Units';
 
           const prodImage = (Array.isArray(item.images) && item.images.length > 0)
@@ -164,12 +170,14 @@ const RawInventory: React.FC = () => {
             units: displayUnit,
             type: item.productType === 'BRANDED' ? 'Branded' : 'Unbranded',
             quantity: String(displayQty),
-            stock: totalProcuredQty,
-            procuredQty: totalProcuredQty,
+            stock: rawStock,
+            procuredQty: rawStock,
+            totalProcuredQty: totalProcuredQty,
             price: '₹' + (item.mrp || 0),
             status: item.isActive,
             image: prodImage,
-            inventoryType: item.inventoryType || 'RAW'
+            inventoryType: item.inventoryType || 'RAW',
+            inProductionQty: inProdQty
           };
         });
         setData(mappedData);
@@ -252,10 +260,51 @@ const RawInventory: React.FC = () => {
   };
 
   const sendToProduction = async (item: RawInventoryItem) => {
+    const grnMetas = grnItemsMap[item.id] || [];
+    const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
+    const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
+    const currentStock = typeof (item as any).procuredQty === 'number'
+      ? (item as any).procuredQty
+      : (typeof (item as any).stock === 'number' && (item as any).stock >= 0 ? (item as any).stock : (Number(item.quantity) || 0));
+    const entered = sendQtyMap[item.id];
+    const qtyToSend = Number(entered);
+
+    if (entered === undefined || entered === '' || isNaN(qtyToSend) || qtyToSend <= 0) {
+      toast.error('Please enter a quantity to send.');
+      return;
+    }
+    if (currentStock > 0 && qtyToSend > currentStock) {
+      toast.error(`Quantity cannot exceed available stock (${currentStock}).`);
+      return;
+    }
+
     try {
-      await inventoryService.updateProductInventoryType(item.id, 'PRODUCTION');
-      setData(prev => prev.filter(p => p.id !== item.id));
-      toast.success('Successfully sent to production');
+      await inventoryService.updateProductInventoryType(item.id, 'PRODUCTION', {
+        transferQty: qtyToSend,
+        grnId: isGrnFiltered ? selectedGRNId : undefined
+      });
+
+      const remainingStock = Math.max(0, currentStock - qtyToSend);
+      if (remainingStock <= 0) {
+        setData(prev => prev.filter(p => p.id !== item.id));
+      } else {
+        setData(prev => prev.map(p => p.id === item.id ? { 
+          ...p, 
+          stock: remainingStock, 
+          quantity: String(remainingStock),
+          procuredQty: remainingStock,
+          inProductionQty: ((p as any).inProductionQty || 0) + qtyToSend
+        } : p));
+      }
+
+      setSendQtyMap(prev => {
+        const copy = { ...prev };
+        delete copy[item.id];
+        return copy;
+      });
+
+      toast.success(`Successfully sent ${qtyToSend} ${item.units} to production`);
+      await loadData();
     } catch (error) {
       console.error('Failed to send to production:', error);
       toast.error('Failed to send item to production. Please try again.');
@@ -366,15 +415,44 @@ const RawInventory: React.FC = () => {
       return;
     }
 
+    for (const item of selectedObjects) {
+      const entered = sendQtyMap[item.id];
+      const qtyToSend = Number(entered);
+      if (entered === undefined || entered === '' || isNaN(qtyToSend) || qtyToSend <= 0) {
+        toast.error(`Please enter a send quantity for "${item.name}".`);
+        return;
+      }
+      const currentStock = typeof (item as any).procuredQty === 'number'
+        ? (item as any).procuredQty
+        : (typeof (item as any).stock === 'number' && (item as any).stock >= 0 ? (item as any).stock : (Number(item.quantity) || 0));
+      if (currentStock > 0 && qtyToSend > currentStock) {
+        toast.error(`Send quantity for "${item.name}" cannot exceed available stock (${currentStock}).`);
+        return;
+      }
+    }
+
     setBulkActionLoading(true);
     try {
+      let totalSentUnits = 0;
       await Promise.all(
-        selectedItems.map(id => inventoryService.updateProductInventoryType(id, 'PRODUCTION'))
+        selectedObjects.map(async (item) => {
+          const grnMetas = grnItemsMap[item.id] || [];
+          const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
+          const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
+          const qtyToSend = Number(sendQtyMap[item.id]);
+
+          totalSentUnits += qtyToSend;
+          await inventoryService.updateProductInventoryType(item.id, 'PRODUCTION', {
+            transferQty: qtyToSend,
+            grnId: isGrnFiltered ? selectedGRNId : undefined
+          });
+        })
       );
-      const count = selectedItems.length;
-      setData(prev => prev.filter(p => !selectedItems.includes(p.id)));
+
+      await loadData();
       setSelectedItems([]);
-      toast.success(`Successfully sent ${count} item(s) to production`);
+      setSendQtyMap({});
+      toast.success(`Successfully sent ${totalSentUnits} unit(s) to production`);
     } catch (error) {
       console.error('Bulk send to production failed:', error);
       toast.error('Failed to send items to production. Please try again.');
@@ -478,7 +556,12 @@ const RawInventory: React.FC = () => {
         const grnMetas = grnItemsMap[item.id] || [];
         const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
         const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
-        const displayQty = isGrnFiltered ? matchedGrn.receivedQty : (item.procuredQty > 0 ? item.procuredQty : item.quantity);
+        const currentQty = typeof item.procuredQty === 'number'
+          ? item.procuredQty
+          : (typeof item.stock === 'number' && item.stock >= 0 ? item.stock : (Number(item.quantity) || 0));
+        const displayQty = isGrnFiltered
+          ? Math.min(matchedGrn.receivedQty, currentQty)
+          : currentQty;
         return (
           <div className="flex flex-col items-center">
             <span className="text-sm text-gray-900 font-bold">{displayQty}</span>
@@ -499,7 +582,42 @@ const RawInventory: React.FC = () => {
         <span className="text-sm text-gray-500">{item.units}</span>
       )
     },
+    {
+      key: 'sendQty',
+      label: <span className="w-full flex justify-center">SEND QTY</span>,
+      sortable: false,
+      render: (item: any) => {
+        if (item.type !== 'Unbranded') {
+          return <span className="text-gray-400 text-xs text-center block">—</span>;
+        }
 
+        const grnMetas = grnItemsMap[item.id] || [];
+        const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
+        const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
+        const currentStock = typeof item.procuredQty === 'number'
+          ? item.procuredQty
+          : (typeof item.stock === 'number' && item.stock >= 0 ? item.stock : (Number(item.quantity) || 0));
+        const maxQty = isGrnFiltered ? Math.min(matchedGrn.receivedQty, currentStock > 0 ? currentStock : matchedGrn.receivedQty) : currentStock;
+        const val = sendQtyMap[item.id] !== undefined ? sendQtyMap[item.id] : '';
+
+        return (
+          <div className="flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="number"
+              min="1"
+              max={maxQty > 0 ? maxQty : undefined}
+              value={val}
+              onChange={(e) => {
+                const rawVal = e.target.value;
+                setSendQtyMap(prev => ({ ...prev, [item.id]: rawVal }));
+              }}
+              placeholder="Qty"
+              className="w-20 px-2 py-1 text-center font-bold text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6a00] focus:border-transparent bg-white shadow-2xs"
+            />
+          </div>
+        );
+      }
+    },
     {
       key: 'actions',
       label: <span className="w-full flex justify-center">ACTION</span>,

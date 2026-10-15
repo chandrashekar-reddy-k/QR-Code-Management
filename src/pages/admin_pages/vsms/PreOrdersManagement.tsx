@@ -19,7 +19,8 @@ const getAuthToken = () =>
   localStorage.getItem('partnerToken') ||
   localStorage.getItem('authToken') ||
   localStorage.getItem('token') ||
-  sessionStorage.getItem('staffToken') || '';
+  sessionStorage.getItem('staffToken') ||
+  localStorage.getItem('staffToken') || '';
 
 const api = axios.create({ baseURL: API_BASE });
 api.interceptors.request.use(cfg => {

@@ -253,7 +253,6 @@ export const adminAPI = {
   uploadImage: (data?: any) => api.post('/admin/upload-image', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  getPOSDailyReport: (params?: any) => api.get('/admin/reports/pos-daily', { params }),
 
   // Customers Module
   getCustomers: (params?: any) => api.get('/customers', { params }),

@@ -10,8 +10,8 @@ export const inventoryService = {
   getReserveInventory: async (params: any) => {
     return api.get('/product', { params: { ...params, inventoryType: 'RESERVE' } });
   },
-  updateProductInventoryType: async (productId: string, inventoryType: 'RAW' | 'READY' | 'RESERVE' | 'PRODUCTION') => {
-    return api.put(`/product/${productId}`, { inventoryType });
+  updateProductInventoryType: async (productId: string, inventoryType: 'RAW' | 'READY' | 'RESERVE' | 'PRODUCTION', extra?: { transferQty?: number; grnId?: string }) => {
+    return api.put(`/product/${productId}`, { inventoryType, ...extra });
   },
   saveChannelAllocation: async (productId: string, allocation: { onlineQty: number; posQty: number; vehicleQty: number }) => {
     return api.patch(`/product/${productId}/channel-allocation`, allocation);

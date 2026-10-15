@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { ChevronLeft, ChevronRight, CheckCircle, Upload } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import {
   PrimaryButton,
   Button,
@@ -30,10 +29,11 @@ const AddDeliveryAgent = () => {
     control,
     watch,
     setValue,
-    formState: { errors },
+    formState,
   } = useForm({
     mode: "onChange",
   });
+  const errors = formState.errors as Record<string, { message?: string } | undefined>;
 
   const sameAsPermanent = watch("sameAsPermanent");
 
@@ -95,7 +95,7 @@ const AddDeliveryAgent = () => {
     setCurrentStep((prev) => prev - 1);
   };
 
-  const handleFilePreview = (file: File | null, setter: any) => {
+  const handleFilePreview = (file: File | null | undefined, setter: any) => {
     if (!file) {
       setter(null);
       return;
@@ -299,6 +299,8 @@ const AddDeliveryAgent = () => {
                       <option value="DELIVERY_AGENT">Delivery Agent Portal</option>
                       <option value="VEHICLE_AGENT">VSMS Vehicle Agent Portal</option>
                       <option value="SHOPKEEPER">Shopkeeper Portal</option>
+                      <option value="PACKING_OPERATOR">Packing Operator Portal</option>
+                      <option value="QC_INSPECTOR">QC Inspector Portal</option>
                     </SelectInput>
                   )}
                 />

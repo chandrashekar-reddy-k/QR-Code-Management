@@ -1,93 +1,17 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, Layout, Tag, MapPin, Hash } from 'lucide-react';
-import { FeaturedSection } from '../../../types';
+import { Tag, MapPin, Hash, CheckCircle, XCircle } from 'lucide-react';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import BackButton from '../../../components/common/BackButton';
-
-// Mock data for featured sections (same as ManageFeaturedSections)
-const mockFeaturedSections: FeaturedSection[] = [
-  {
-    id: 1,
-    title: 'Featured Products',
-    shortDescription: 'Weekends deal goes here',
-    style: 'style_1',
-    productType: 'Featured',
-    categoryIds: '100,205,360',
-    position: 1,
-  },
-  {
-    id: 2,
-    title: 'Products on Sale',
-    shortDescription: 'Special discounts on selected items',
-    style: 'style_2',
-    productType: 'Sale',
-    categoryIds: '150,250,400',
-    position: 2,
-  },
-  {
-    id: 3,
-    title: 'New Arrivals',
-    shortDescription: 'Latest products just arrived',
-    style: 'style_3',
-    productType: 'New',
-    categoryIds: '200,300,450',
-    position: 3,
-  },
-  {
-    id: 4,
-    title: 'Best Sellers',
-    shortDescription: 'Top selling products this month',
-    style: 'style_4',
-    productType: 'Best Seller',
-    categoryIds: '120,220,380',
-    position: 4,
-  },
-  {
-    id: 5,
-    title: 'Flash Sale',
-    shortDescription: 'Limited time offers',
-    style: 'style_1',
-    productType: 'Flash Sale',
-    categoryIds: '180,280,420',
-    position: 5,
-  },
-];
+import { useGetAppSectionById } from '../../../hooks/appSections';
 
 const ViewFeaturedSection = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [section, setSection] = useState<FeaturedSection | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: responseData, isLoading } = useGetAppSectionById(id, !!id);
 
-  useEffect(() => {
-    const fetchSection = async () => {
-      try {
-        setLoading(true);
-        // Using mock data for now - replace with API call when ready
-        // const data = await featuredSectionsAPI.getById(parseInt(id || '0'));
-        const foundSection = mockFeaturedSections.find((s) => s.id === parseInt(id || '0'));
-        if (foundSection) {
-          setSection(foundSection);
-        } else {
-          alert('Featured section not found!');
-          navigate('/featured-sections');
-        }
-      } catch (error) {
-        console.error('Error fetching featured section:', error);
-        alert('Error fetching featured section. Please try again.');
-        navigate('/featured-sections');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const section = responseData?.data || responseData;
 
-    if (id) {
-      fetchSection();
-    }
-  }, [id, navigate]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
@@ -97,16 +21,16 @@ const ViewFeaturedSection = () => {
     );
   }
 
-  if (!section) {
+  if (!section || !section.title) {
     return (
       <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
         <div className="p-8 text-center">
           <p className="text-gray-500 mb-4">Featured section not found</p>
           <button
             onClick={() => navigate('/featured-sections')}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs"
           >
-            Go Back
+            Back to Featured Sections
           </button>
         </div>
       </div>
@@ -118,9 +42,17 @@ const ViewFeaturedSection = () => {
       {/* Page Title */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-          Featured Section Details
+          View Featured Section
         </h1>
-        <BackButton to="/featured-sections" />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/featured-sections/edit/${section.id}`)}
+            className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors"
+          >
+            Edit Section
+          </button>
+          <BackButton to="/featured-sections" />
+        </div>
       </div>
 
       {/* Breadcrumbs */}
@@ -129,70 +61,59 @@ const ViewFeaturedSection = () => {
       </div>
 
       {/* Details Card */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6">
-        <div className="space-y-6">
-          {/* Title */}
-          <div className="pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Star size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 uppercase">Title</label>
-            </div>
-            <p className="text-sm font-bold text-gray-900">{section.title}</p>
-          </div>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 max-w-4xl space-y-6">
+        <div>
+          <span className="inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200 mb-2">
+            {section.titleType}
+          </span>
+          <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
+          <p className="text-sm text-gray-600 mt-1">{section.subTitle || 'No description provided'}</p>
+        </div>
 
-          {/* Short Description */}
-          <div className="pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Layout size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 uppercase">Short Description</label>
-            </div>
-            <p className="text-sm text-gray-700">{section.shortDescription}</p>
-          </div>
-
-          {/* Style and Product Type */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 border-t border-gray-100 pt-4">
+          <div className="flex items-start gap-2.5">
+            <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Layout size={16} className="text-blue-600" />
-                <label className="text-xs font-semibold text-gray-700 uppercase">Style</label>
-              </div>
-              <p className="text-sm font-medium text-gray-900">{section.style}</p>
+              <p className="text-xs text-gray-500 font-medium">Display Order</p>
+              <p className="text-sm font-semibold text-gray-800">{section.displayOrder ?? 1}</p>
             </div>
+          </div>
+
+          <div className="flex items-start gap-2.5">
+            <Tag className="w-4 h-4 text-gray-400 mt-0.5" />
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Tag size={16} className="text-blue-600" />
-                <label className="text-xs font-semibold text-gray-700 uppercase">Product Type</label>
-              </div>
-              <p className="text-sm font-medium text-gray-900">{section.productType}</p>
+              <p className="text-xs text-gray-500 font-medium">Role Target</p>
+              <p className="text-sm font-semibold text-gray-800">{section.roleName || 'CUSTOMER'}</p>
             </div>
           </div>
 
-          {/* Category IDs */}
-          <div className="pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 uppercase">Category IDs</label>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {section.categoryIds.split(',').map((categoryId, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs font-medium"
-                >
-                  {categoryId.trim()}
-                </span>
-              ))}
+          <div className="flex items-start gap-2.5">
+            <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Link Path / Deep Link</p>
+              <p className="text-sm font-mono font-semibold text-blue-600">{section.linkPath || '-'}</p>
             </div>
           </div>
 
-          {/* Position */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Hash size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 uppercase">Position</label>
+          <div className="flex items-start gap-2.5">
+            {section.isActive ? (
+              <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+            ) : (
+              <XCircle className="w-4 h-4 text-red-500 mt-0.5" />
+            )}
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Status</p>
+              <p className="text-sm font-semibold text-gray-800">
+                {section.isActive ? 'Active' : 'Inactive'}
+              </p>
             </div>
-            <p className="text-sm font-medium text-gray-900">{section.position}</p>
           </div>
+        </div>
+
+        <div className="border-t border-gray-100 pt-4 text-xs text-gray-400 flex flex-wrap gap-4">
+          <div>ID: <span className="font-mono text-gray-600">{section.id}</span></div>
+          {section.createdAt && <div>Created: {new Date(section.createdAt).toLocaleString()}</div>}
+          {section.updatedAt && <div>Last Updated: {new Date(section.updatedAt).toLocaleString()}</div>}
         </div>
       </div>
     </div>
@@ -200,4 +121,3 @@ const ViewFeaturedSection = () => {
 };
 
 export default ViewFeaturedSection;
-

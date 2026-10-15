@@ -40,7 +40,7 @@ api.interceptors.request.use((config) => {
   }
   config.url = url;
 
-  const token = sessionStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
+  const token = sessionStorage.getItem('staffToken') || localStorage.getItem('staffToken') || localStorage.getItem('partnerToken') || localStorage.getItem('token') || localStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -50,7 +50,7 @@ api.interceptors.request.use((config) => {
 // Handle 401 (token expired/invalid)
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // 503 Service Unavailable or 500 Internal Server Error (usually DB connection issues)
     // DO NOT LOGOUT the user for these. Just let the component handle the error toast.
     if (error.response?.status === 503 || (error.response?.status === 500 && error.response?.data?.message?.includes('connection'))) {
@@ -58,7 +58,34 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?._retry) {
+      error.config._retry = true;
+      const refreshToken = sessionStorage.getItem('staffRefreshToken') || localStorage.getItem('staffRefreshToken') || localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+          const res = await axios.post(`${identityBaseUrl}/api/v1/auth/refresh-token`, { refreshToken });
+          if (res.data?.data?.accessToken) {
+            const newToken = res.data.data.accessToken;
+            sessionStorage.setItem('staffToken', newToken);
+            localStorage.setItem('staffToken', newToken);
+            localStorage.setItem('partnerToken', newToken);
+            localStorage.setItem('token', newToken);
+            if (res.data.data.refreshToken) {
+              sessionStorage.setItem('staffRefreshToken', res.data.data.refreshToken);
+              localStorage.setItem('staffRefreshToken', res.data.data.refreshToken);
+              localStorage.setItem('partnerRefreshToken', res.data.data.refreshToken);
+              localStorage.setItem('refreshToken', res.data.data.refreshToken);
+            }
+            error.config.headers = error.config.headers || {};
+            error.config.headers.Authorization = `Bearer ${newToken}`;
+            return api(error.config);
+          }
+        } catch (refreshErr) {
+          console.error('[API Interceptor] Token refresh failed:', refreshErr);
+        }
+      }
+
       if (window.location.pathname.includes('/success')) {
         console.warn('[API Interceptor] 401 Error on Success page. Skipping logout to preserve order view.');
         return Promise.reject(error);

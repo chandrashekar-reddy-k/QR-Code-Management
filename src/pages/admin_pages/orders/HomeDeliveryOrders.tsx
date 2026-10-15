@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { Filter, ChevronDown, RotateCcw, FileText } from "lucide-react";
+import { Filter, ChevronDown, RotateCcw, FileText, Printer, Loader2 } from "lucide-react";
 import {
   SearchInput,
   SelectInput,
@@ -11,6 +11,7 @@ import {
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import { formatDate } from "../../../utils/formatters";
 import { generateInvoicePDF, getInvoiceNumber } from "../../../utils/generateInvoicePDF";
+import { printThermalReceipt } from "../../../utils/printThermalReceipt";
 import api from "../../../api/axios";
 import { useGetDeliveryOrders, useBulkTransitionOrders, useGeneratePickingList } from "../../../hooks/order";
 import { useGetRouteMaps, type RouteMapItem } from "../../../hooks/deliverySettings";
@@ -604,8 +605,12 @@ const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {
     return statusMap[statusUpper] || status;
   };
 
+  const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
+  const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
+
   const handleDownloadInvoice = async (order: TableOrder) => {
     try {
+      setDownloadingOrderId(order.id);
       const fullOrderRes = await api.get(`/partner/orders/${order.id}`);
       const fullOrder = fullOrderRes?.data?.data || fullOrderRes?.data || order;
       const pdf = await generateInvoicePDF(fullOrder as any);
@@ -615,6 +620,22 @@ const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {
     } catch (err) {
       console.error("Error generating invoice PDF:", err);
       toast.error("Failed to generate invoice PDF");
+    } finally {
+      setDownloadingOrderId(null);
+    }
+  };
+
+  const handlePrintThermalReceipt = async (order: TableOrder) => {
+    try {
+      setPrintingOrderId(order.id);
+      const fullOrderRes = await api.get(`/partner/orders/${order.id}`);
+      const fullOrder = fullOrderRes?.data?.data || fullOrderRes?.data || order;
+      printThermalReceipt(fullOrder as any);
+    } catch (err) {
+      console.error("Error printing thermal receipt:", err);
+      toast.error("Failed to fetch order details for thermal receipt");
+    } finally {
+      setPrintingOrderId(null);
     }
   };
 
@@ -777,11 +798,28 @@ const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {
     render: (order: TableOrder) => (
       <div className="flex items-center justify-center gap-1">
         <button
-          onClick={() => handleDownloadInvoice(order)}
-          title="Download Invoice PDF"
-          className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors cursor-pointer"
+          onClick={() => handlePrintThermalReceipt(order)}
+          disabled={printingOrderId === order.id}
+          title="Print 80mm Thermal Receipt"
+          className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
         >
-          <FileText size={15} />
+          {printingOrderId === order.id ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <Printer size={15} />
+          )}
+        </button>
+        <button
+          onClick={() => handleDownloadInvoice(order)}
+          disabled={downloadingOrderId === order.id}
+          title="Download Invoice PDF"
+          className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+        >
+          {downloadingOrderId === order.id ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <FileText size={15} />
+          )}
         </button>
         <ViewIconButton
           onClick={() =>
@@ -988,6 +1026,51 @@ const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {
           />
         </div>
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedOrderIds.length > 0 && (
+        <div className="mb-4 bg-gradient-to-r from-indigo-50 via-purple-50 to-emerald-50 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-emerald-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl p-3 sm:p-4 shadow-sm flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold">
+              {selectedOrderIds.length}
+            </span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
+              {selectedOrderIds.length === 1 ? "1 order selected" : `${selectedOrderIds.length} orders selected`}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handlePrintPickingList}
+              disabled={isGeneratingPickingList}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+            >
+              {isGeneratingPickingList ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+              <span>Print Picking List</span>
+            </button>
+
+            <button
+              onClick={() => {
+                const selectedFirst = tableOrders.find((o) => selectedOrderIds.includes(o.id));
+                if (selectedFirst) {
+                  handlePrintThermalReceipt(selectedFirst);
+                }
+              }}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <Printer size={13} />
+              <span>Print Thermal Receipt</span>
+            </button>
+
+            <button
+              onClick={() => setSelectedOrderIds([])}
+              className="px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              Deselect All
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">

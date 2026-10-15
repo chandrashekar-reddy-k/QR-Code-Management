@@ -25,12 +25,14 @@ import {
   Loader2,
   Trash2,
   CheckCircle,
+  UserCheck,
 } from 'lucide-react';
 
 const KANBAN_COLUMNS: WoStatus[] = [
   'DRAFT',
   'PENDING',
   'APPROVED',
+  'LABELS_PRINTED',
   'MATERIAL_ISSUED',
   'PACKING_STARTED',
   'PACKING_IN_PROGRESS',
@@ -97,6 +99,14 @@ const resolveProductUnit = (product: any): string => {
   return String(rawUnit);
 };
 
+export const resolveDisplayStatus = (wo?: WorkOrder | null): WoStatus => {
+  if (!wo) return 'DRAFT';
+  if (wo.status === 'PACKING_STARTED' && (wo.actualProduced || 0) > 0) {
+    return 'PACKING_IN_PROGRESS';
+  }
+  return wo.status;
+};
+
 export const PackingWorkOrders: React.FC = () => {
   const [apiWorkOrders, setApiWorkOrders] = useState<WorkOrder[]>([]);
   const [apiWorkOrdersLoading, setApiWorkOrdersLoading] = useState(true);
@@ -134,6 +144,9 @@ export const PackingWorkOrders: React.FC = () => {
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
   const [deleteConfirmWO, setDeleteConfirmWO] = useState<WorkOrder | null>(null);
+  const [assignPoWO, setAssignPoWO] = useState<WorkOrder | null>(null);
+  const [selectedOperatorId, setSelectedOperatorId] = useState<string>('');
+  const [isAssigningPO, setIsAssigningPO] = useState<boolean>(false);
 
   // Inline edit state
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -216,9 +229,17 @@ export const PackingWorkOrders: React.FC = () => {
     );
   }, [apiWorkOrders]);
 
+  // Filter staff agents who have the PACKING_OPERATOR role created under Packing Operator Portal
+  const packingOperators = useMemo(() => {
+    const poStaff = apiOperators.filter((op) => op.role === 'PACKING_OPERATOR');
+    if (poStaff.length > 0) return poStaff;
+    return apiOperators;
+  }, [apiOperators]);
+
   // Filter application
   const filteredWOs = useMemo(() => {
     return workOrders.filter((wo) => {
+      const displayStatus = resolveDisplayStatus(wo);
       const matchesSearch =
         (wo.product?.name || '').toLowerCase().includes(search.toLowerCase()) ||
         (wo.woNumber || wo.id).toLowerCase().includes(search.toLowerCase()) ||
@@ -226,7 +247,10 @@ export const PackingWorkOrders: React.FC = () => {
           .toLowerCase()
           .includes(search.toLowerCase());
 
-      const matchesStatus = filterStatus === 'All' || wo.status === filterStatus;
+      const matchesStatus =
+        filterStatus === 'All' ||
+        wo.status === filterStatus ||
+        displayStatus === filterStatus;
       const matchesPriority =
         filterPriority === 'All' || wo.priority === filterPriority;
       const woDatePrefix = wo.expectedDate ? wo.expectedDate.substring(0, 10) : '';
@@ -237,7 +261,7 @@ export const PackingWorkOrders: React.FC = () => {
       else if (kpiFilter === 'pending') matchesKpi = wo.status === 'PENDING';
       else if (kpiFilter === 'approved') matchesKpi = wo.status === 'APPROVED';
       else if (kpiFilter === 'packing_started')
-        matchesKpi = wo.status === 'PACKING_STARTED';
+        matchesKpi = displayStatus === 'PACKING_STARTED' || displayStatus === 'PACKING_IN_PROGRESS';
       else if (kpiFilter === 'qc_pending') matchesKpi = wo.status === 'QC_PENDING';
       else if (kpiFilter === 'completed') matchesKpi = wo.status === 'COMPLETED';
 
@@ -275,6 +299,8 @@ export const PackingWorkOrders: React.FC = () => {
         return 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800';
       case 'APPROVED':
         return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
+      case 'LABELS_PRINTED':
+        return 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
       case 'MATERIAL_ISSUED':
         return 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
       case 'PACKING_STARTED':
@@ -532,6 +558,46 @@ export const PackingWorkOrders: React.FC = () => {
     }
   };
 
+  // Assign Packing Operator (PO) Handler
+  const handleOpenAssignPO = (wo: WorkOrder) => {
+    setAssignPoWO(wo);
+    setSelectedOperatorId(wo.operatorId || wo.operator?.id || '');
+    fetchOperators();
+  };
+
+  const handleAssignPO = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!assignPoWO) return;
+    if (!selectedOperatorId) {
+      showToast('Please select a packing operator.');
+      return;
+    }
+
+    setIsAssigningPO(true);
+    try {
+      await workOrderService.updateWorkOrder(assignPoWO.id, {
+        operatorId: selectedOperatorId,
+      });
+
+      const assignedOp = apiOperators.find((op) => op.id === selectedOperatorId);
+      const opName = assignedOp?.name || 'Operator';
+      showToast(`Work order ${assignPoWO.woNumber || assignPoWO.id} assigned to ${opName} successfully.`);
+
+      setAssignPoWO(null);
+      await fetchWorkOrders();
+
+      if (selectedWO && selectedWO.id === assignPoWO.id) {
+        const updated = await workOrderService.getWorkOrderById(assignPoWO.id);
+        if (updated) setSelectedWO(updated);
+      }
+    } catch (err: any) {
+      console.error('Failed to assign operator:', err);
+      showToast(err.response?.data?.message || err.message || 'Failed to assign operator');
+    } finally {
+      setIsAssigningPO(false);
+    }
+  };
+
   // Delete Draft Handler
   const handleDeleteDraft = (wo: WorkOrder) => {
     setDeleteConfirmWO(wo);
@@ -549,7 +615,11 @@ export const PackingWorkOrders: React.FC = () => {
         return to === 'APPROVED' || to === 'CANCELLED';
       case 'APPROVED':
         return (
-          to === 'MATERIAL_ISSUED' || to === 'PACKING_STARTED' || to === 'CANCELLED'
+          to === 'LABELS_PRINTED' || to === 'MATERIAL_ISSUED' || to === 'PACKING_STARTED' || to === 'CANCELLED'
+        );
+      case 'LABELS_PRINTED':
+        return (
+          to === 'MATERIAL_ISSUED' || to === 'PACKING_STARTED' || to === 'LABEL_APPLICATION_ASSIGNED' || to === 'CANCELLED'
         );
       case 'MATERIAL_ISSUED':
         return to === 'PACKING_STARTED' || to === 'CANCELLED';
@@ -783,10 +853,10 @@ export const PackingWorkOrders: React.FC = () => {
                 </div>
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${getStatusColor(
-                    currentWO.status
+                    resolveDisplayStatus(currentWO)
                   )}`}
                 >
-                  {currentWO.status ? currentWO.status.replace(/_/g, ' ') : ''}
+                  {resolveDisplayStatus(currentWO).replace(/_/g, ' ')}
                 </span>
               </div>
 
@@ -887,9 +957,21 @@ export const PackingWorkOrders: React.FC = () => {
                 </div>
 
                 <div className="p-3.5 bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
-                  <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide mb-1">
-                    Assigned Staff
-                  </span>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-gray-400 dark:text-gray-400 block text-[11px] font-medium uppercase tracking-wide">
+                      Assigned Staff
+                    </span>
+                    {!isEditing && ['APPROVED', 'LABELS_PRINTED', 'LABEL_APPLICATION_ASSIGNED'].includes(currentWO.status) && (
+                      <button
+                        onClick={() => handleOpenAssignPO(currentWO)}
+                        className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                        title="Assign or reassign packing operator"
+                      >
+                        <UserCheck size={12} />
+                        <span>{currentWO.operator ? 'Reassign PO' : 'Assign PO'}</span>
+                      </button>
+                    )}
+                  </div>
                   {isEditing ? (
                     <select
                       className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#00891D]"
@@ -897,9 +979,9 @@ export const PackingWorkOrders: React.FC = () => {
                       onChange={(e) => setEditSupervisor(e.target.value)}
                     >
                       <option value="">Select staff member...</option>
-                      {apiOperators.map((op) => (
+                      {packingOperators.map((op) => (
                         <option key={op.id} value={op.id}>
-                          {op.name}
+                          {op.name} {op.phone ? `(${op.phone})` : ''}
                         </option>
                       ))}
                     </select>
@@ -1392,14 +1474,27 @@ export const PackingWorkOrders: React.FC = () => {
                       <td className="py-2.5 px-2.5">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-normal whitespace-nowrap ${getStatusColor(
-                            wo.status
+                            resolveDisplayStatus(wo)
                           )}`}
                         >
-                          {wo.status ? wo.status.replace(/_/g, ' ') : ''}
+                          {resolveDisplayStatus(wo).replace(/_/g, ' ')}
                         </span>
                       </td>
                       <td className="py-2.5 px-2.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {['APPROVED', 'LABELS_PRINTED', 'LABEL_APPLICATION_ASSIGNED'].includes(wo.status) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenAssignPO(wo);
+                              }}
+                              className="px-2.5 py-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 border border-emerald-300 dark:border-emerald-700 rounded-md transition-colors cursor-pointer inline-flex items-center gap-1 shadow-xs whitespace-nowrap"
+                              title={wo.operator?.name ? `Assigned to: ${wo.operator.name} (Click to reassign)` : 'Assign Packing Operator'}
+                            >
+                              <UserCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
+                              <span>{wo.operator?.name ? 'Reassign PO' : 'Assign PO'}</span>
+                            </button>
+                          )}
                           {['DRAFT', 'PENDING'].includes(wo.status) && (
                             <button
                               onClick={(e) => {
@@ -1479,7 +1574,7 @@ export const PackingWorkOrders: React.FC = () => {
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-[1800px]">
             {KANBAN_COLUMNS.map((column) => {
-              const columnWOs = filteredWOs.filter((w) => w.status === column);
+              const columnWOs = filteredWOs.filter((w) => resolveDisplayStatus(w) === column);
 
               return (
                 <div
@@ -1550,6 +1645,18 @@ export const PackingWorkOrders: React.FC = () => {
                               {wo.operator?.name || 'Unassigned'}
                             </span>
                           </div>
+                          {['APPROVED', 'LABELS_PRINTED', 'LABEL_APPLICATION_ASSIGNED'].includes(wo.status) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenAssignPO(wo);
+                              }}
+                              className="w-full mt-2 py-1 px-2 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 border border-emerald-300 dark:border-emerald-700 rounded transition-colors inline-flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                            >
+                              <UserCheck size={12} />
+                              <span>{wo.operator?.name ? 'Reassign PO' : 'Assign PO'}</span>
+                            </button>
+                          )}
                           <div className="flex justify-between">
                             <span>Due Date:</span>
                             <span className="font-mono font-bold text-gray-600 dark:text-gray-300">
@@ -1659,6 +1766,130 @@ export const PackingWorkOrders: React.FC = () => {
                   <>
                     <Trash2 size={15} />
                     <span>Delete Work Order</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ASSIGN PACKING OPERATOR (PO) MODAL */}
+      {assignPoWO && (
+        <div
+          className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !isAssigningPO && setAssignPoWO(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              disabled={isAssigningPO}
+              onClick={() => setAssignPoWO(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <UserCheck size={22} />
+              </div>
+              <div className="space-y-0.5 pr-6">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Assign Packing Operator (PO)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400">
+                  Select a staff member with packing operator role to execute this work order.
+                </p>
+              </div>
+            </div>
+
+            {/* Work Order Info Card */}
+            <div className="bg-slate-50 dark:bg-gray-700/40 rounded-xl p-3.5 border border-slate-200/80 dark:border-gray-700 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-gray-400 font-medium">Work Order No:</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white bg-slate-200/70 dark:bg-gray-600 px-2 py-0.5 rounded">
+                  {assignPoWO.woNumber || assignPoWO.id}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-gray-400 font-medium">Product:</span>
+                <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[200px]" title={assignPoWO.product?.name}>
+                  {assignPoWO.product?.name || 'N/A'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-gray-400 font-medium">Required Qty:</span>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {formatRequiredQty(assignPoWO)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-gray-400 font-medium">Currently Assigned:</span>
+                <span className={`font-semibold ${assignPoWO.operator ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  {assignPoWO.operator?.name || 'Unassigned'}
+                </span>
+              </div>
+            </div>
+
+            {/* Dropdown Section */}
+            <div className="space-y-2">
+              <label
+                htmlFor="assign-po-select"
+                className="block text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Packing Operator Staff <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  id="assign-po-select"
+                  value={selectedOperatorId}
+                  onChange={(e) => setSelectedOperatorId(e.target.value)}
+                  disabled={isAssigningPO}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00891D] focus:border-transparent transition-all shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <option value="">-- Select Packing Operator --</option>
+                  {packingOperators.map((op) => (
+                    <option key={op.id} value={op.id}>
+                      {op.name} {op.phone ? `(${op.phone})` : op.email ? `(${op.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400">
+                Staff agents created under the Packing Operator Portal in Staff Management.
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-gray-700">
+              <button
+                type="button"
+                disabled={isAssigningPO}
+                onClick={() => setAssignPoWO(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isAssigningPO || !selectedOperatorId}
+                onClick={handleAssignPO}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#00891D] hover:bg-[#007518] shadow-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+              >
+                {isAssigningPO ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Assigning...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck size={14} />
+                    <span>Confirm Assignment</span>
                   </>
                 )}
               </button>

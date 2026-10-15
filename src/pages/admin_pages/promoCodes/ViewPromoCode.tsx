@@ -114,6 +114,8 @@ const ViewPromoCode = () => {
           setPromoCode({
             id: p.id,
             promoCode: p.code || p.promoCode,
+            title: p.title || p.code || p.promoCode,
+            description: p.description || p.message || '',
             message: p.title || p.description || p.message || '',
             startDate: p.startDate,
             endDate: p.expiryDate || p.endDate,
@@ -212,13 +214,26 @@ const ViewPromoCode = () => {
             </div>
           </div>
 
-          {/* Message */}
-          <div className="pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Ticket size={16} className="text-blue-600" />
-              <label className="text-xs font-semibold text-gray-700 uppercase">Message</label>
+          {/* Title & Description */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Tag size={16} className="text-blue-600" />
+                <label className="text-xs font-semibold text-gray-700 uppercase">Offer Title</label>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 bg-gray-50 p-2.5 rounded-lg">
+                {(promoCode as any).title || promoCode.promoCode}
+              </p>
             </div>
-            <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{promoCode.message}</p>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Ticket size={16} className="text-blue-600" />
+                <label className="text-xs font-semibold text-gray-700 uppercase">Offer Description</label>
+              </div>
+              <p className="text-sm text-gray-700 bg-gray-50 p-2.5 rounded-lg">
+                {(promoCode as any).description || promoCode.message || "-"}
+              </p>
+            </div>
           </div>
 
           {/* Date Information */}

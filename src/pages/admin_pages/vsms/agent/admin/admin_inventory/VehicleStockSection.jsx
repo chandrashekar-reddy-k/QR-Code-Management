@@ -7,6 +7,7 @@ const AuditRow = memo(({ item, initialQuantity, onQuantityChange }) => {
   const [localQty, setLocalQty] = useState(initialQuantity ?? '');
   const price = parseFloat(item.product?.price || 0);
   const systemQty = item.quantity;
+  const vsmQty = Number(item.vehicleStoreStock ?? item.product?.vehicleStoreStock ?? 0);
 
   // Sync with prop if it changes from outside
   useEffect(() => {
@@ -33,6 +34,11 @@ const AuditRow = memo(({ item, initialQuantity, onQuantityChange }) => {
             <span className="text-[8px] font-bold text-gray-400 uppercase">{item.product?.skuCode}</span>
           </div>
         </div>
+      </td>
+      <td className="px-3 py-4 text-center">
+        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          {vsmQty}
+        </span>
       </td>
       <td className="px-6 py-4 text-center">
         <span className="text-sm font-black text-gray-400">{systemQty}</span>
@@ -93,6 +99,7 @@ const VehicleStockSection = ({
       'Category': item.product?.category?.name || 'General',
       'SKU Code': item.product?.skuCode,
       'Barcode': item.product?.barcode,
+      'VSM Stock': item.vehicleStoreStock ?? item.product?.vehicleStoreStock ?? 0,
       'Rate': item.product?.price || 0,
       'Current Quantity': item.quantity,
       'Unit': item.product?.unit?.name || 'pcs',
@@ -301,6 +308,11 @@ const VehicleStockSection = ({
                             </div>
                             <div className="flex flex-col">
                               <span className="text-xs font-bold text-gray-800 line-clamp-1 leading-tight uppercase tracking-tight">{item.product?.name || 'Unknown'}</span>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                                  VSM: {item.vehicleStoreStock ?? item.product?.vehicleStoreStock ?? 0}
+                                </span>
+                              </div>
                               {isAuditMode && (
                                 <span className={`text-[9px] font-black uppercase tracking-tighter mt-0.5 ${diff === 0 ? 'text-gray-400' : diff > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                   Diff: {diff > 0 ? `+${diff}` : diff}
@@ -338,16 +350,17 @@ const VehicleStockSection = ({
                     <table className="w-full text-left border-collapse table-fixed">
                       <thead>
                         <tr className="bg-gray-50/50 text-[9px] font-black uppercase tracking-widest text-gray-400">
-                          <th className="px-4 py-3 w-[35%]">Product Details</th>
-                          <th className="px-3 py-3 text-center w-[15%]">System Qty</th>
+                          <th className="px-4 py-3 w-[28%]">Product Details</th>
+                          <th className="px-2 py-3 text-center w-[12%] text-amber-600">VSM Stock</th>
+                          <th className="px-3 py-3 text-center w-[14%]">System Qty</th>
                           {isAuditMode && (
                             <>
-                              <th className="px-3 py-3 text-center text-emerald-600 w-[15%]">Actual</th>
-                              <th className="px-3 py-3 text-center text-rose-600 w-[15%]">Diff</th>
+                              <th className="px-3 py-3 text-center text-emerald-600 w-[14%]">Actual</th>
+                              <th className="px-3 py-3 text-center text-rose-600 w-[14%]">Diff</th>
                             </>
                           )}
-                          {!isAuditMode && <th className="px-3 py-3 text-center w-[15%]">Rate</th>}
-                          <th className="pr-4 py-3 text-right w-[20%]">Net Value</th>
+                          {!isAuditMode && <th className="px-3 py-3 text-center w-[14%]">Rate</th>}
+                          <th className="pr-4 py-3 text-right w-[18%]">Net Value</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
@@ -368,6 +381,7 @@ const VehicleStockSection = ({
 
                           const price = parseFloat(item.product?.price || 0);
                           const systemQty = item.quantity;
+                          const vsmQty = Number(item.vehicleStoreStock ?? item.product?.vehicleStoreStock ?? 0);
                           const displayAmount = systemQty * price;
 
                           return (
@@ -382,6 +396,11 @@ const VehicleStockSection = ({
                                     <span className="text-[8px] font-bold text-gray-400 uppercase">{item.product?.skuCode}</span>
                                   </div>
                                 </div>
+                              </td>
+                              <td className="px-2 py-2 text-center">
+                                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                  {vsmQty}
+                                </span>
                               </td>
                               <td className="px-3 py-2 text-center">
                                 <span className="text-[10px] font-black text-gray-400">{systemQty}</span>

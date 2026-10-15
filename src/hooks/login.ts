@@ -187,7 +187,14 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
           if (anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id) {
             sessionStorage.setItem("staffWarehouseId", anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id || "");
           }
-          // Also set partner fields as fallback
+          // Also persist staff and partner fields in localStorage so sessions survive tab close for 24h
+          localStorage.setItem("staffToken", data.data.accessToken);
+          localStorage.setItem("staffRefreshToken", data.data.refreshToken);
+          localStorage.setItem("staffUser", JSON.stringify(user));
+          localStorage.setItem("staffRole", user.role);
+          if (anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id) {
+            localStorage.setItem("staffWarehouseId", anyUser.store?.id || anyUser.warehouseId || anyUser.warehouse_id || "");
+          }
           localStorage.setItem("partnerToken", data.data.accessToken);
           localStorage.setItem("partnerRefreshToken", data.data.refreshToken);
           localStorage.setItem("partnerUser", JSON.stringify(user));

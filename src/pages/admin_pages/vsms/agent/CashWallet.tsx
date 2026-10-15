@@ -11,10 +11,11 @@ import {
     HandCoins,
     Timer,
     Upload,
-    FileText
+    FileText,
+    Pencil
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getMyExpenses, getExpenseCategories, addExpense } from '../services/expenseService';
+import { getMyExpenses, getExpenseCategories, addExpense, updateExpense } from '../services/expenseService';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -25,6 +26,7 @@ export default function CashWallet() {
     
     // Modal & Form State
     const [showAddExpense, setShowAddExpense] = useState(false);
+    const [editingExpenseId, setEditingExpenseId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [expenseCategories, setExpenseCategories] = useState([]);
     const [billFile, setBillFile] = useState(null);
@@ -77,12 +79,67 @@ export default function CashWallet() {
         } catch (err) { console.error('Failed to load categories'); }
     };
 
-    const handleCreateExpense = async (e) => {
+    const resetForm = () => {
+        setNewExpense({
+            mainCategory: '',
+            subCategory: '',
+            amount: '',
+            paymentMode: 'CASH',
+            description: '',
+            paidTo: '',
+            paidDate: format(new Date(), 'yyyy-MM-dd'),
+            billDate: format(new Date(), 'yyyy-MM-dd')
+        });
+        setBillFile(null);
+        setBillPreview(null);
+        setEditingExpenseId(null);
+    };
+
+    const openEditExpenseModal = (exp) => {
+        // Extract category parts if formatted as "Main | Sub"
+        let main = '';
+        let sub = '';
+        if (exp.type) {
+            const parts = exp.type.split(' | ');
+            main = parts[0] || '';
+            sub = parts[1] || '';
+        }
+
+        // Clean description
+        let cleanDesc = exp.description || '';
+        cleanDesc = cleanDesc.replace(/\[METADATA:({.+?})\]/g, '');
+        cleanDesc = cleanDesc.replace(/\[APPROVED_BY:(.+?)\]/g, '');
+        cleanDesc = cleanDesc.replace(/\[PAID_BY:(.+?)\]/g, '');
+        cleanDesc = cleanDesc.replace(/\[PAYMENT:(.+?)\]/g, '');
+        cleanDesc = cleanDesc.replace(/\[PERSONAL_CASH\]\s*/g, '');
+        cleanDesc = cleanDesc.trim();
+
+        setNewExpense({
+            mainCategory: main,
+            subCategory: sub,
+            amount: exp.amount || '',
+            paymentMode: exp.paymentMode || 'CASH',
+            description: cleanDesc,
+            paidTo: exp.paidTo || '',
+            paidDate: exp.paidDate ? format(new Date(exp.paidDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+            billDate: exp.billDate ? format(new Date(exp.billDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+        });
+
+        setBillFile(null);
+        setBillPreview(exp.billImage || null);
+        setEditingExpenseId(exp.id);
+        setShowAddExpense(true);
+    };
+
+    const handleSaveExpense = async (e) => {
         e.preventDefault();
         setSubmitting(true);
         try {
             const formData = new FormData();
-            formData.append('type', `${newExpense.mainCategory} | ${newExpense.subCategory}`);
+            const fullType = newExpense.subCategory 
+                ? `${newExpense.mainCategory} | ${newExpense.subCategory}`
+                : newExpense.mainCategory;
+            formData.append('type', fullType);
             formData.append('amount', newExpense.amount);
             formData.append('paymentMode', newExpense.paymentMode);
             formData.append('description', newExpense.description);
@@ -91,19 +148,22 @@ export default function CashWallet() {
             formData.append('billDate', newExpense.billDate);
             if (billFile) formData.append('billImage', billFile);
 
-            await addExpense(formData);
-            toast.success('Expense request submitted successfully');
+            if (editingExpenseId) {
+                await updateExpense(editingExpenseId, formData);
+                toast.success('Expense updated successfully');
+            } else {
+                await addExpense(formData);
+                toast.success('Expense request submitted successfully');
+            }
+
             setShowAddExpense(false);
-            setNewExpense({
-                mainCategory: '', subCategory: '', amount: '', paymentMode: 'CASH',
-                description: '', paidTo: '', 
-                paidDate: format(new Date(), 'yyyy-MM-dd'),
-                billDate: format(new Date(), 'yyyy-MM-dd')
-            });
-            setBillFile(null); setBillPreview(null);
+            resetForm();
             loadData();
-        } catch (e) { toast.error(e?.response?.data?.message || 'Failed to submit'); }
-        finally { setSubmitting(false); }
+        } catch (e) {
+            toast.error(e?.response?.data?.message || (editingExpenseId ? 'Failed to update' : 'Failed to submit'));
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     if (loading) {
@@ -249,11 +309,27 @@ export default function CashWallet() {
                                                             </span>
                                                             <span className="text-[10px] font-bold text-slate-300">{format(new Date(exp.createdAt), 'dd MMM, hh:mm a')}</span>
                                                         </div>
-                                                        {payInfo && payInfo.balance > 0 && (
-                                                            <span className="text-[9px] font-black text-orange-500 uppercase tracking-tighter bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100">
-                                                                Bal: ₹{payInfo.balance.toLocaleString()}
-                                                            </span>
-                                                        )}
+                                                        <div className="flex items-center gap-2">
+                                                            {payInfo && payInfo.balance > 0 && (
+                                                                <span className="text-[9px] font-black text-orange-500 uppercase tracking-tighter bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100">
+                                                                    Bal: ₹{payInfo.balance.toLocaleString()}
+                                                                </span>
+                                                            )}
+                                                            {exp.status === 'PENDING' && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openEditExpenseModal(exp);
+                                                                    }}
+                                                                    className="flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition-all active:scale-95 shadow-xs"
+                                                                    title="Edit pending expense"
+                                                                >
+                                                                    <Pencil size={11} strokeWidth={2.5} />
+                                                                    <span>Edit</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -284,16 +360,18 @@ export default function CashWallet() {
             {showAddExpense && (
                 <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300 overflow-y-auto">
                     <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden my-8 flex flex-col max-h-[90vh]">
-                        <form onSubmit={handleCreateExpense} className="flex flex-col h-full overflow-hidden">
+                        <form onSubmit={handleSaveExpense} className="flex flex-col h-full overflow-hidden">
                             {/* Header */}
                             <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
-                                        <Receipt size={20} />
+                                        {editingExpenseId ? <Pencil size={18} /> : <Receipt size={20} />}
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-800">New Expense Request</h3>
+                                    <h3 className="text-xl font-bold text-gray-800">
+                                        {editingExpenseId ? 'Edit Expense Request' : 'New Expense Request'}
+                                    </h3>
                                 </div>
-                                <button type="button" onClick={() => setShowAddExpense(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 transition-all">
+                                <button type="button" onClick={() => { setShowAddExpense(false); resetForm(); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 transition-all">
                                     <X size={18} />
                                 </button>
                             </div>
@@ -417,8 +495,14 @@ export default function CashWallet() {
                             <div className="px-8 py-6 border-t border-gray-100 bg-gray-50/30 flex justify-end shrink-0">
                                 <button type="submit" disabled={submitting}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 active:scale-95">
-                                    {submitting ? <Loader2 size={18} className="animate-spin" /> : <Receipt size={18} />}
-                                    Submit Request
+                                    {submitting ? (
+                                        <Loader2 size={18} className="animate-spin" />
+                                    ) : editingExpenseId ? (
+                                        <Pencil size={18} />
+                                    ) : (
+                                        <Receipt size={18} />
+                                    )}
+                                    {editingExpenseId ? 'Update Expense' : 'Submit Request'}
                                 </button>
                             </div>
                         </form>
