@@ -359,6 +359,16 @@ export default function ShopkeeperERP() {
     setScreen(tab as Screen);
   }, [location]);
 
+  useEffect(() => {
+    const handleNav = (e: any) => {
+      if (e.detail?.screen) {
+        setScreen(e.detail.screen as Screen);
+      }
+    };
+    window.addEventListener("shopkeeperNavigateScreen", handleNav);
+    return () => window.removeEventListener("shopkeeperNavigateScreen", handleNav);
+  }, []);
+
   const navigate = (dest: string, data?: unknown) => {
     setHistory(prev => [...prev, screen]);
 
@@ -475,7 +485,7 @@ export default function ShopkeeperERP() {
   return (
     <SharedOrdersContext.Provider value={{ orders, loading, refreshOrders: fetchOrders }}>
       <ShopkeeperNewOrderAlertProvider>
-        <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
+          <div className="min-h-screen bg-[#F5F7FA] dark:bg-gray-900 flex" style={{ fontFamily: "'Roboto', system-ui, sans-serif" }}>
           {/* Desktop Sidebar */}
           <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex-shrink-0 h-screen sticky top-0">
             {/* Logo or Brand */}
