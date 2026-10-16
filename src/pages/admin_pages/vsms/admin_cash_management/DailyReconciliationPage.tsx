@@ -334,6 +334,7 @@ export default function DailyReconciliationPage() {
         onSuccess={() => {
           setViewingAssignFloat(false);
           fetchSummaries();
+          fetchStoreRegister();
         }}
         date={date}
         storeFilterId={storeFilterId}

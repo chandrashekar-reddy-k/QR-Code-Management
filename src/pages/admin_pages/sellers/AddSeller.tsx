@@ -563,28 +563,31 @@ const AddSeller = () => {
                     )}
                   />
 
-                  {/* EmailID with Verify */}
+                  {/* Email Address (Optional) */}
                   <Controller
                     name="email"
                     control={control}
                     render={({ field }) => (
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                          EmailID <span className="text-red-500">*</span>
+                          Email Address <span className="text-gray-400 font-normal text-[11px]">(Optional)</span>
                         </label>
                         <div className="relative">
                           <input
                             type="email"
                             {...field}
-                            placeholder="Enter Email ID"
+                            value={field.value || ''}
+                            placeholder="Enter Email Address (optional)"
                             className="w-full pr-16 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-2 border-gray-300 dark:border-gray-600 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
                           />
-                          <button
-                            type="button"
-                            className="absolute inset-y-0 right-3 flex items-center text-[11px] font-semibold text-green-600"
-                          >
-                            Verify
-                          </button>
+                          {field.value && field.value.trim() && (
+                            <button
+                              type="button"
+                              className="absolute inset-y-0 right-3 flex items-center text-[11px] font-semibold text-green-600"
+                            >
+                              Verify
+                            </button>
+                          )}
                         </div>
                         {errors.email?.message && (
                           <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
@@ -763,6 +766,7 @@ const AddSeller = () => {
               render={({ field }) => (
                 <TextInput
                   label="Tax Name"
+                  required
                   type="text"
                   {...field}
                   placeholder="Enter tax name."
@@ -777,6 +781,7 @@ const AddSeller = () => {
               render={({ field }) => (
                 <TextInput
                   label="Tax Number"
+                  required
                   type="text"
                   {...field}
                   placeholder="Enter tax number."
@@ -983,6 +988,7 @@ const AddSeller = () => {
               render={({ field }) => (
                 <TextInput
                   label="State"
+                  required
                   type="text"
                   {...field}
                   placeholder="Enter state"

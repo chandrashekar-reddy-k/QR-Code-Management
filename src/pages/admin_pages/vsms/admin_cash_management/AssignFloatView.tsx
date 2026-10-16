@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, ChevronDown, Loader2, CheckCircle2, 
-  AlertTriangle, Info, RotateCcw, Coins, ShieldCheck, Sun, Moon
+  AlertTriangle, Info, RotateCcw, Coins, ShieldCheck, Sun, Moon, Ban, Wrench
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -40,6 +40,7 @@ export default function AssignFloatView({
     shift: 1,
     agentId: '',
     vehicleId: '',
+    isNoService: false,
     denominations: { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 }
   });
 
@@ -138,7 +139,8 @@ export default function AssignFloatView({
   const shiftKey = `shift${currentShift}`;
   const existingShiftData = existingSummary?.shiftDetails?.[shiftKey];
   const existingOpening = existingShiftData?.opening;
-  const isAlreadyAssigned = !!existingOpening && !existingOpening.isNoService;
+  const isExistingNoService = !!existingOpening?.isNoService;
+  const isAlreadyAssigned = !!existingOpening && !isExistingNoService;
   const alreadyAssignedAmount = existingOpening ? (Number(existingOpening.totalOpeningCash) || 0) : 0;
   const alreadyAssignedDenoms = existingOpening?.denominations || {};
 
@@ -147,13 +149,15 @@ export default function AssignFloatView({
     .filter(d => (parseInt(alreadyAssignedDenoms[d]) || 0) > 0)
     .map(d => ({ denom: d, count: parseInt(alreadyAssignedDenoms[d]) }));
 
-  // Shift 2 prerequisite: Shift 1 must be closed
-  const isShift1Closed = !!existingSummary?.shiftDetails?.shift1?.closing;
+  // Shift 2 prerequisite: Shift 1 must be closed or marked No Service
+  const isShift1Closed = !!existingSummary?.shiftDetails?.shift1?.closing || !!existingSummary?.shiftDetails?.shift1?.opening?.isNoService;
   const isShift2Blocked = currentShift === 2 && !isShift1Closed;
+
+  const isNoServiceActive = !!assignmentData.isNoService;
 
   // Calculate current total amount dynamically from denominations
   const denomsObj = assignmentData.denominations || {};
-  const totalAmount = Object.entries(denomsObj).reduce((sum, [denom, count]) => {
+  const totalAmount = isNoServiceActive ? 0 : Object.entries(denomsObj).reduce((sum, [denom, count]) => {
     return sum + (Number(denom) * (Number(count) || 0));
   }, 0);
 
@@ -169,11 +173,27 @@ export default function AssignFloatView({
       return;
     }
 
-    const targetKey = `${currentSelectVal}_s${currentShift}_${existingOpening?.id || 'none'}_${alreadyAssignedAmount}`;
+    const targetKey = `${currentSelectVal}_s${currentShift}_${existingOpening?.id || 'none'}_${alreadyAssignedAmount}_${isExistingNoService}`;
     if (lastLoadedRef.current !== targetKey) {
       lastLoadedRef.current = targetKey;
 
-      if (isAlreadyAssigned && existingOpening?.denominations) {
+      if (isExistingNoService) {
+        const emptyDenoms = { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 };
+        if (isControlled) {
+          propsSetAssignmentData(prev => ({
+            ...prev,
+            isNoService: true,
+            denominations: emptyDenoms,
+            amount: 0
+          }));
+        } else {
+          setLocalData(prev => ({
+            ...prev,
+            isNoService: true,
+            denominations: emptyDenoms
+          }));
+        }
+      } else if (isAlreadyAssigned && existingOpening?.denominations) {
         const newDenoms = { "500": 0, "200": 0, "100": 0, "50": 0, "20": 0, "10": 0, "5": 0, "2": 0, "1": 0 };
         Object.entries(existingOpening.denominations).forEach(([d, c]) => {
           newDenoms[d] = parseInt(c) || 0;
@@ -183,12 +203,14 @@ export default function AssignFloatView({
         if (isControlled) {
           propsSetAssignmentData(prev => ({
             ...prev,
+            isNoService: false,
             denominations: newDenoms,
             amount: assignedTotal
           }));
         } else {
           setLocalData(prev => ({
             ...prev,
+            isNoService: false,
             denominations: newDenoms
           }));
         }
@@ -197,18 +219,20 @@ export default function AssignFloatView({
         if (isControlled) {
           propsSetAssignmentData(prev => ({
             ...prev,
+            isNoService: false,
             denominations: emptyDenoms,
             amount: 0
           }));
         } else {
           setLocalData(prev => ({
             ...prev,
+            isNoService: false,
             denominations: emptyDenoms
           }));
         }
       }
     }
-  }, [currentSelectVal, currentShift, isAlreadyAssigned, existingOpening?.id, alreadyAssignedAmount]);
+  }, [currentSelectVal, currentShift, isAlreadyAssigned, isExistingNoService, existingOpening?.id, alreadyAssignedAmount]);
 
   const handleResetToAssigned = () => {
     if (!isAlreadyAssigned || !existingOpening?.denominations) return;
@@ -314,7 +338,7 @@ export default function AssignFloatView({
       return;
     }
 
-    if (totalAmount <= 0) {
+    if (!isNoServiceActive && totalAmount <= 0) {
       toast.error('Please enter valid denominations (amount must be greater than 0)');
       return;
     }
@@ -327,12 +351,13 @@ export default function AssignFloatView({
         userId: assignmentData.agentId,
         vehicleId: assignmentData.vehicleId,
         date: effectiveDate,
-        denominations: assignmentData.denominations,
-        openingCash: totalAmount,
-        totalOpeningCash: totalAmount,
+        denominations: isNoServiceActive ? {} : assignmentData.denominations,
+        openingCash: isNoServiceActive ? 0 : totalAmount,
+        totalOpeningCash: isNoServiceActive ? 0 : totalAmount,
+        isNoService: isNoServiceActive,
         storeId: storeFilterId
       });
-      toast.success(isAlreadyAssigned ? 'Float updated successfully!' : 'Float assigned successfully!');
+      toast.success(isNoServiceActive ? 'Shift marked as No Service' : (isAlreadyAssigned ? 'Float updated successfully!' : 'Float assigned successfully!'));
       if (onSuccess) onSuccess();
       else handleBack();
     } catch (error) {
@@ -463,7 +488,22 @@ export default function AssignFloatView({
         {/* Float Assignment Status Banner (Shows whether already assigned and how much) */}
         {currentSelectVal && (
           <div className="space-y-3 animate-in fade-in duration-200">
-            {isAlreadyAssigned ? (
+            {isExistingNoService ? (
+              <div className="p-4 bg-slate-100 rounded-2xl border border-slate-300 shadow-2xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-slate-800 font-bold text-xs">
+                    <Ban size={16} className="text-slate-600 shrink-0" />
+                    <span>Marked as "No Service" for Shift {currentShift}</span>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-700 bg-slate-200 border border-slate-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    No Service
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed mt-1">
+                  This shift was marked as No Service (Vehicle maintenance / Agent absent / Off duty).
+                </p>
+              </div>
+            ) : isAlreadyAssigned ? (
               <div className="p-4 bg-amber-50/90 rounded-2xl border border-amber-200/90 shadow-2xs">
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
@@ -540,7 +580,7 @@ export default function AssignFloatView({
             )}
 
             {/* Shift already closed by agent notice */}
-            {existingShiftData?.closing && (
+            {existingShiftData?.closing && !isExistingNoService && (
               <div className="p-3.5 bg-blue-50/80 rounded-2xl border border-blue-200/80 flex items-center justify-between text-xs text-blue-900 animate-in fade-in">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={16} className="shrink-0 text-blue-600" />
@@ -553,11 +593,41 @@ export default function AssignFloatView({
                 </span>
               </div>
             )}
+
+            {/* No Service Toggle Card */}
+            <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-between">
+              <label htmlFor="noServiceCheckbox" className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  id="noServiceCheckbox"
+                  type="checkbox"
+                  checked={isNoServiceActive}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (isControlled) {
+                      propsSetAssignmentData(prev => ({ ...prev, isNoService: checked }));
+                    } else {
+                      setLocalData(prev => ({ ...prev, isNoService: checked }));
+                    }
+                  }}
+                  className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-bold text-gray-800">Mark as "No Service" for Shift {currentShift}</span>
+                  <p className="text-[11px] text-gray-500">Enable this if the vehicle/agent is not operating this shift (e.g. breakdown, day off).</p>
+                </div>
+              </label>
+              {isNoServiceActive && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  No Cash Needed
+                </span>
+              )}
+            </div>
           </div>
         )}
 
         {/* Field 3: Denominations Table */}
-        <div>
+        {!isNoServiceActive && (
+          <div>
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-xs font-bold text-gray-900">Denominations</h4>
             {totalAmount > 0 && (
@@ -644,6 +714,7 @@ export default function AssignFloatView({
             </table>
           </div>
         </div>
+        )}
       </div>
 
       {/* Bottom Action Buttons */}
@@ -660,11 +731,17 @@ export default function AssignFloatView({
           onClick={handleConfirmAssignment}
           disabled={isSubmitting || (!assignmentData.agentId && !assignmentData.vehicleId) || isShift2Blocked}
           className={`px-8 py-3 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${
-            isAlreadyAssigned ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[#0e8345] hover:bg-[#0c6f3a]'
+            isNoServiceActive 
+              ? 'bg-slate-700 hover:bg-slate-800'
+              : isAlreadyAssigned 
+                ? 'bg-amber-600 hover:bg-amber-700' 
+                : 'bg-[#0e8345] hover:bg-[#0c6f3a]'
           }`}
         >
           {isSubmitting ? (
             <Loader2 className="animate-spin" size={16} />
+          ) : isNoServiceActive ? (
+            'Confirm No Service'
           ) : isAlreadyAssigned ? (
             'Update Assignment'
           ) : (
