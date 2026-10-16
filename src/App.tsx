@@ -378,7 +378,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // since SUPER_ADMIN can carry all permission slugs.
   const isAdminRole = ["SUPER_ADMIN", "SUPERADMIN", "ADMIN"].includes(role.toString().toUpperCase());
   const isAdminOnlyPerms = hasAdminPerms && !hasPartnerPermissions && !hasAgentPermissions && !hasShopkeeperPermissions;
-  if (isAdminRole || isAdminOnlyPerms) {
+  const isDeliveryAgent = role.toString().toUpperCase() === 'DELIVERY_AGENT' ||
+    (user?.customRole?.portalType || '').toString().toUpperCase() === 'DELIVERY_AGENT' ||
+    (user?.customRole?.name || '').toString().toUpperCase().includes('DELIVERY AGENT');
+  const isInactiveUser = user?.isActive === false;
+
+  if (isAdminRole || isAdminOnlyPerms || isDeliveryAgent || isInactiveUser) {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('permissions');
@@ -420,7 +425,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   const isExplicitAgent =
     !isExplicitShopkeeperRole && !isExplicitPartnerRole && (
-      ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
+      ["VEHICLE_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
       isCustomAgentRole ||
       (sessionStorage.getItem('portalMode') === 'AGENT' && !isExplicitShopkeeperRole && !isExplicitPartnerRole)
     );

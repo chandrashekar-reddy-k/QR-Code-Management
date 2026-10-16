@@ -9,6 +9,7 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  isActive?: boolean;
   avatar: string | null;
   store: unknown | null;
   supplier: unknown | null;
@@ -59,6 +60,7 @@ const formatLoginSuccess = (data: any): LoginResponse => ({
       name: data.data.user?.name || "",
       email: data.data.user?.email || "",
       role: data.data.user?.roles?.[0] || data.data.user?.role || "PARTNER",
+      isActive: data.data.user?.isActive !== undefined ? Boolean(data.data.user?.isActive) : true,
       avatar: data.data.user?.avatar || null,
       store: null,
       supplier: null,
@@ -155,6 +157,18 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
 
         const role = (user.role || "").toUpperCase();
 
+        // Block DELIVERY_AGENT role completely from the partner portal
+        if (role === "DELIVERY_AGENT") {
+          toast.error("Delivery agents are not permitted to log in here. Please use the Delivery Agent App.");
+          return;
+        }
+
+        // Block inactive users from logging in for any role
+        if (user.isActive === false) {
+          toast.error("Account is inactive. Please contact support or administrator.");
+          return;
+        }
+
         // Block admin/super-admin accounts by role — they should use the Admin Portal,
         // not the Partner Portal, regardless of what permissions they carry.
         const isAdminRole = ["SUPER_ADMIN", "SUPERADMIN", "ADMIN"].includes(role);
@@ -178,7 +192,7 @@ const useLogin = (onSuccess: (data: LoginResponse) => void) => {
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem('permissions', JSON.stringify(permissions));
 
-        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'VEHICLE_AGENT', 'DELIVERY_AGENT', 'SALES_AGENT', 'VSMS_AGENT', 'PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER', 'PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR'].includes(user.role?.toUpperCase());
+        const isStaffRole = (hasShopkeeper && !hasPartner) || ['WAREHOUSE_STAFF', 'REGIONAL_ADMIN', 'OPERATIONAL_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'VEHICLE_AGENT', 'SALES_AGENT', 'VSMS_AGENT', 'PACKING_OPERATOR', 'PACKER_OPERATOR', 'OPERATOR', 'PACKER', 'PACKING_QC', 'PACKER_QC', 'QC_INSPECTOR'].includes(user.role?.toUpperCase());
         if (isStaffRole) {
           sessionStorage.setItem("staffToken", data.data.accessToken);
           sessionStorage.setItem("staffRefreshToken", data.data.refreshToken);

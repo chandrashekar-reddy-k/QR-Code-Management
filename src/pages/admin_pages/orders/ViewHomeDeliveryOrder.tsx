@@ -337,28 +337,9 @@ const ViewHomeDeliveryOrder = () => {
       : null;
     const agentName = assignedAgent?.name || (orderData as any).assignment?.agent?.name || (orderData as any).agent?.name || (orderData.agentId ? `Agent (${String(orderData.agentId).slice(0, 8)})` : null);
 
-    // Payment method and status mapping
-    let paymentMethod = (orderData as any).paymentMethod || "N/A";
-    let paymentStatus = (orderData as any).paymentStatus || "N/A";
-    if (orderData.payment && typeof orderData.payment === "object") {
-      const payment = orderData.payment as { method?: string; status?: string };
-
-      if (payment.method) {
-        paymentMethod = payment.method;
-      }
-
-      if (payment.status) {
-        paymentStatus = payment.status; // direct API value
-      }
-    }
-
-    const isDeliveredStatus = ((orderData as any).status || "").toUpperCase() === "DELIVERED";
-    const isCodMethod = (paymentMethod || "").toUpperCase() === "COD";
-
-    // If order is delivered and payment method is COD, payment is collected upon delivery -> Successful / SUCCESS
-    if (isDeliveredStatus && isCodMethod && (paymentStatus === "PENDING" || paymentStatus === "N/A" || !paymentStatus)) {
-      paymentStatus = "SUCCESS";
-    }
+    // Payment method and status mapping: directly connected to Order table columns (orderData.paymentStatus, orderData.paymentMethod)
+    const paymentMethod = (orderData as any).paymentMethod || (orderData.payment as any)?.method || "N/A";
+    const paymentStatus = (orderData as any).paymentStatus || (orderData.payment as any)?.status || "PENDING";
 
     return {
       id: orderData.id || id || "",
