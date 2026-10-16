@@ -407,9 +407,9 @@ export default function AdminCashManagementContent() {
     if (!assignmentData.isNoService && assignmentData.amount <= 0) return toast.error('Enter valid denominations');
     const agent = agents.find(a => a.id === assignmentData.agentId);
     if (!agent) return toast.error('Agent not found');
-    const vehicleId = agent.assignedVehicleId || agent.assignedVehicle?.id;
+    const vehicleId = assignmentData.vehicleId || agent.assignedVehicleId || agent.assignedVehicle?.id || vehicles.find(v => v.assignedUsers?.some(u => u.id === agent.id))?.id;
     if (!vehicleId) return toast.error('Agent has no assigned vehicle. Please assign a vehicle first.');
-    const requestedAmount = assignmentData.isNoService ? 0 : assignmentData.amount;
+    const requestedAmount = assignmentData.isNoService ? 0 : (assignmentData.amount || 0);
     const availableCounterCash = storeRegisterData?.liveMetrics?.availableCash || 0;
     if (!assignmentData.isNoService && requestedAmount > availableCounterCash) {
       return toast.error(`Insufficient funds: Counter has ₹${availableCounterCash.toFixed(2)}, requested ₹${requestedAmount.toFixed(2)}.`);
