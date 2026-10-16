@@ -46,12 +46,12 @@ interface DeliveryBoyFormInputs {
   avatar: File | null | string;
 }
 
-// Interface for API payload
+  // Interface for API payload
 interface ApiDeliveryBoyPayload {
   name: string;
   phone: string;
   email: string;
-  password: string;
+  password?: string;
   dob: string;
   bankInfo: {
     bankName: string;
@@ -137,9 +137,10 @@ const mockCities: { id: number; name: string; state: string }[] = [
   { id: 15, name: "Thane", state: "Maharashtra" },
   { id: 16, name: "Bhopal", state: "Madhya Pradesh" },
   { id: 17, name: "Visakhapatnam", state: "Andhra Pradesh" },
-  { id: 18, name: "Patna", state: "Bihar" },
-  { id: 19, name: "Vadodara", state: "Gujarat" },
-  { id: 20, name: "Ghaziabad", state: "Uttar Pradesh" },
+  { id: 18, name: "Guntur", state: "Andhra Pradesh" },
+  { id: 19, name: "Patna", state: "Bihar" },
+  { id: 20, name: "Vadodara", state: "Gujarat" },
+  { id: 21, name: "Ghaziabad", state: "Uttar Pradesh" },
 ];
 
 const AddDeliveryBoy = () => {
@@ -178,6 +179,7 @@ const AddDeliveryBoy = () => {
     formState: { errors },
   } = useForm<DeliveryBoyFormInputs>({
     resolver: yupResolver(deliveryBoySchema) as any,
+    context: { isEditMode },
     mode: "onChange",
     defaultValues: {
       name: "",
@@ -425,7 +427,7 @@ const AddDeliveryBoy = () => {
         name: data.name,
         phone: data.mobile,
         email: data.email,
-        password: data.password,
+        ...(data.password ? { password: data.password } : {}),
         dob: data.dateOfBirth,
         bankInfo: {
           bankName: data.bankName,
@@ -673,12 +675,11 @@ const AddDeliveryBoy = () => {
                 control={control}
                 render={({ field }) => (
                   <PasswordInput
-                    label="Password"
-                    required
+                    label="Password (Optional)"
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Enter Password"
+                    placeholder="Enter Password (optional)"
                     error={errors.password?.message}
                   />
                 )}
@@ -689,12 +690,11 @@ const AddDeliveryBoy = () => {
                 control={control}
                 render={({ field }) => (
                   <PasswordInput
-                    label="Confirm Password"
-                    required
+                    label="Confirm Password (Optional)"
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Enter Confirm Password"
+                    placeholder="Enter Confirm Password (optional)"
                     error={errors.confirmPassword?.message}
                   />
                 )}

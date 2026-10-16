@@ -23,13 +23,23 @@ export const deliveryBoySchema = yup.object({
 
   password: yup
     .string()
-    .required("Password is required")
-    .min(6, "Password must be at least 6 characters"),
+    .optional()
+    .nullable()
+    .test("password-min", "Password must be at least 6 characters", function (value) {
+      if (!value || value.trim().length === 0) return true;
+      return value.length >= 6;
+    }),
 
   confirmPassword: yup
     .string()
-    .required("Confirm password is required")
-    .oneOf([yup.ref("password")], "Passwords must match"),
+    .optional()
+    .nullable()
+    .test("confirm-match", "Passwords must match", function (value) {
+      const pwd = this.parent.password;
+      if (!pwd && !value) return true;
+      if (pwd && !value) return false;
+      return value === pwd;
+    }),
 
   ifscCode: yup
     .string()

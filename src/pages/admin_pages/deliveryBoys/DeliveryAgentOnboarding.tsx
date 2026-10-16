@@ -36,6 +36,7 @@ import {
   step4Schema,
   step5Schema,
 } from "../../../validationSchema/deliveryAgentValidation";
+import fetchData from "../../../helper";
 
 const STORAGE_KEY = "deliveryAgentOnboarding_userId";
 
@@ -63,6 +64,7 @@ const STATE_OPTIONS = [
 const CITY_OPTIONS = [
   { value: "Hyderabad", label: "Hyderabad" },
   { value: "Vijayawada", label: "Vijayawada" },
+  { value: "Guntur", label: "Guntur" },
   { value: "Bangalore", label: "Bangalore" },
 ];
 
@@ -442,6 +444,65 @@ const DeliveryAgentOnboarding = () => {
     nationality: "",
     role: "DELIVERY_AGENT",
   });
+
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+  const [phoneAvailable, setPhoneAvailable] = useState<boolean | null>(null);
+
+  // Helper to normalize phone
+  const normalizePhoneNumber = (p: string) =>
+    String(p || "").replace(/\s+/g, "").replace(/^(?:\+91|91)/, "").replace(/\D/g, "");
+
+  // Real-time phone check debounce when phone number is entered
+  useEffect(() => {
+    const raw = s1.phone?.trim() || "";
+    const digits = normalizePhoneNumber(raw);
+
+    if (digits.length !== 10) {
+      setPhoneAvailable(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsCheckingPhone(true);
+        const queryParams = new URLSearchParams({ phone: digits });
+        if (effectiveId) {
+          queryParams.append("excludeUserId", effectiveId);
+        }
+        const res: any = await fetchData(
+          `partner/deliveryagents/check-phone?${queryParams.toString()}`,
+          "GET"
+        );
+
+        if (res?.data?.exists || res?.exists) {
+          setPhoneAvailable(false);
+          setErrors((prev: any) => ({
+            ...prev,
+            phone: "This phone number is already registered with an existing account.",
+          }));
+        } else {
+          setPhoneAvailable(true);
+          setErrors((prev: any) => {
+            if (
+              prev.phone ===
+              "This phone number is already registered with an existing account."
+            ) {
+              const next = { ...prev };
+              delete next.phone;
+              return next;
+            }
+            return prev;
+          });
+        }
+      } catch (err: any) {
+        console.warn("Phone availability check failed:", err);
+      } finally {
+        setIsCheckingPhone(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [s1.phone, effectiveId]);
 
   const handleAutofill = () => {
     const firstNames = ["Rahul", "Amit", "Vijay", "Suresh", "Ramesh", "Deepak", "Anil", "Sunil", "Vikram", "Rajesh", "Priya", "Neha", "Anjali", "Kiran", "Jyoti"];
@@ -1287,15 +1348,19 @@ const DeliveryAgentOnboarding = () => {
   ) => {
     try {
       if (currentStep === 1) {
-        if (!isEditMode && (!s1.password || s1.password.trim().length < 6)) {
+        if (s1.password && s1.password.trim().length > 0) {
           const errs: Record<string, string> = {};
-          if (!s1.password) errs.password = "Password is required";
-          else if (s1.password.trim().length < 6) errs.password = "Minimum 6 characters";
+          if (s1.password.trim().length < 6) errs.password = "Minimum 6 characters";
           if (s1.confirmPassword !== s1.password) errs.confirmPassword = "Passwords must match";
-          if (shouldSetErrors) setErrors(errs);
-          return false;
+          if (Object.keys(errs).length > 0) {
+            if (shouldSetErrors) setErrors(errs);
+            return false;
+          }
         }
         await step1Schema.validate(s1, { abortEarly: false });
+        if (errors.phone === "This phone number is already registered with an existing account.") {
+          return false;
+        }
       }
       if (currentStep === 2) {
         await step2Schema.validate(
@@ -1393,6 +1458,12 @@ const DeliveryAgentOnboarding = () => {
         }
         setErrors((prev: Record<string, string>) => {
           if (!prev[path]) return prev;
+          if (
+            path === "phone" &&
+            prev[path] === "This phone number is already registered with an existing account."
+          ) {
+            return prev;
+          }
           const next = { ...prev };
           delete next[path];
           return next;
@@ -1692,13 +1763,13 @@ const DeliveryAgentOnboarding = () => {
           {isEditMode ? "Edit Delivery Agent" : "Add Delivery Agent"}
         </h1>
         <div className="flex items-center gap-2">
-          <button
+          {/* <button
             type="button"
             onClick={handleAutofill}
             className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm flex items-center gap-1 min-h-[36px]"
           >
             ✨ Autofill
-          </button>
+          </button> */}
           <BackButton to="/delivery-boys/manage" />
         </div>
       </div>
@@ -1832,19 +1903,17 @@ const DeliveryAgentOnboarding = () => {
                   error={errors.email}
                 />
                 <PasswordInput
-                  label="Password"
-                  placeholder="Enter login password"
+                  label="Password (Optional)"
+                  placeholder="Enter login password (optional)"
                   value={s1.password || ""}
                   onChange={(e) => setS1({ ...s1, password: e.target.value })}
-                  required={!isEditMode}
                   error={errors.password}
                 />
                 <PasswordInput
-                  label="Confirm Password"
-                  placeholder="Confirm login password"
+                  label="Confirm Password (Optional)"
+                  placeholder="Confirm login password (optional)"
                   value={s1.confirmPassword || ""}
                   onChange={(e) => setS1({ ...s1, confirmPassword: e.target.value })}
-                  required={!isEditMode}
                   error={errors.confirmPassword}
                 />
                 <div>
@@ -1868,17 +1937,29 @@ const DeliveryAgentOnboarding = () => {
                   required
                   error={errors.gender}
                 />
-                <TextInput
-                  label="Mobile Number"
-                  type="tel"
-                  onlyNumbers
-                  maxLength={10}
-                  placeholder="Enter mobile number"
-                  value={s1.phone}
-                  onChange={(e) => setS1({ ...s1, phone: e.target.value })}
-                  required
-                  error={errors.phone}
-                />
+                <div>
+                  <TextInput
+                    label="Mobile Number"
+                    type="tel"
+                    onlyNumbers
+                    maxLength={10}
+                    placeholder="Enter mobile number"
+                    value={s1.phone}
+                    onChange={(e) => setS1({ ...s1, phone: e.target.value })}
+                    required
+                    error={errors.phone}
+                  />
+                  {isCheckingPhone && (
+                    <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1 font-medium">
+                      Checking availability in database...
+                    </p>
+                  )}
+                  {!isCheckingPhone && phoneAvailable === true && !errors.phone && s1.phone?.length === 10 && (
+                    <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1 font-semibold">
+                      ✓ Phone number is available
+                    </p>
+                  )}
+                </div>
                 <TextInput
                   label="Alternate Mobile Number"
                   type="tel"

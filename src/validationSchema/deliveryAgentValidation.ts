@@ -75,13 +75,21 @@ phone: yup
     .string()
     .nullable()
     .notRequired()
-    .min(6, "Password must be at least 6 characters"),
+    .test("password-length", "Password must be at least 6 characters", (val) => {
+      if (!val || val.trim().length === 0) return true;
+      return val.length >= 6;
+    }),
 
   confirmPassword: yup
     .string()
     .nullable()
     .notRequired()
-    .oneOf([yup.ref("password")], "Passwords must match"),
+    .test("passwords-match", "Passwords must match", function (val) {
+      const pwd = this.parent.password;
+      if (!pwd && !val) return true;
+      if (pwd && !val) return false;
+      return val === pwd;
+    }),
 
   dob: yup
     .string()
