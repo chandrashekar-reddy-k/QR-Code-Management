@@ -307,7 +307,9 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Business Name *</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Business Name <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <Users size={16} />
@@ -323,7 +325,9 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
                   </div>
 
                   <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Primary Contact No. *</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Primary Contact No. <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <Phone size={16} />
@@ -354,7 +358,7 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
                   </div>
 
                   <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Official Email ID</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Official Email ID (Optional)</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <Mail size={16} />
@@ -370,7 +374,9 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
                   </div>
 
                   <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Vendor Category *</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Vendor Category <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <Tag size={16} />
@@ -450,7 +456,9 @@ const VendorsSection = ({ can, setHideMainHeader }) => {
                   </div>
 
                   <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Payment terms *</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Payment Terms <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <FileText size={16} />

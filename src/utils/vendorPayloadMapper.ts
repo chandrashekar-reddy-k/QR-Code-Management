@@ -13,7 +13,7 @@ interface VendorFormData {
   name: string;
   surname?: string;
   vendorDesignation?: string;
-  email: string;
+  email?: string | null;
   phone: string;
   password?: string | null;
   confirmPassword?: string | null;
@@ -48,7 +48,7 @@ interface VendorFormData {
 export interface VendorApiPayload {
   name: string;
   phone: string;
-  email: string;
+  email?: string;
   password?: string;
   avatar: string; // Required by API
   bankInfo: {
@@ -114,7 +114,7 @@ export const mapVendorFormToApiPayload = async (
   const payload: VendorApiPayload = {
     name: formData.name,
     phone: formData.phone,
-    email: formData.email,
+    ...(formData.email && formData.email.trim() ? { email: formData.email.trim() } : {}),
     ...(formData.password && { password: formData.password }),
     // Avatar (use logo URL) - required field
     avatar: avatar,

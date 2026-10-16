@@ -3,7 +3,8 @@ import {
   Users, Plus, Search, Loader2, Edit3, ToggleLeft, ToggleRight, 
   ArrowLeft, Phone, Mail, MapPin, ShieldCheck, User, Clock, 
   DollarSign, BookOpen, Trash2, X, CheckCircle2, XCircle,
-  Building2, CreditCard, Hash, Tag, ShieldAlert, FileText, Check, ChevronRight, ChevronLeft
+  Building2, CreditCard, Hash, Tag, ShieldAlert, FileText, Check, ChevronRight, ChevronLeft,
+  AlertCircle
 } from 'lucide-react';
 import { procurementAPI } from '../../vsms/services/procurementService';
 import toast from 'react-hot-toast';
@@ -23,6 +24,9 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
   
   // Tab navigation for vendor form sections
   const [activeFormTab, setActiveFormTab] = useState('regulation');
+
+  // Field-level validation errors
+  const [formErrors, setFormErrors] = useState({});
 
   const initialForm = {
     hasGst: 'No',
@@ -54,6 +58,21 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
 
   const [form, setForm] = useState(initialForm);
 
+  // Helper: update a single field and clear its error
+  const setField = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setFormErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  // Inline field error component
+  const FieldError = ({ name }) =>
+    formErrors[name] ? (
+      <p className="flex items-center gap-1 text-[9px] font-black text-rose-500 uppercase tracking-wider pl-1 mt-1">
+        <AlertCircle size={9} />
+        {formErrors[name]}
+      </p>
+    ) : null;
+
   const loadVendors = useCallback(async () => {
     setLoading(true);
     try {
@@ -79,32 +98,127 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
     };
   }, [showForm, setHideMainHeader]);
 
+  // ── Validation rules per tab ──────────────────────────────────────────────
+  const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+  const PAN_REGEX   = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  const PHONE_REGEX = /^[6-9][0-9]{9}$/;
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const IFSC_REGEX  = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+  const PINCODE_REGEX = /^[0-9]{6}$/;
+  const ACCOUNT_REGEX = /^[0-9]{9,18}$/;
+
+  const validateRegulationTab = () => {
+    const errors = {};
+    if (form.hasGst === 'Yes') {
+      const g = form.gstNumber?.trim().toUpperCase() || '';
+      if (!g) errors.gstNumber = 'GSTIN is required when GST is selected';
+      else if (g.length !== 15) errors.gstNumber = 'GSTIN must be exactly 15 characters';
+      else if (!GSTIN_REGEX.test(g)) errors.gstNumber = 'Invalid GSTIN format (e.g. 29ABCDE1234F1Z5)';
+    }
+    if (!form.vendorName?.trim()) {
+      errors.vendorName = 'Vendor name is required';
+    } else if (form.vendorName.trim().length < 2) {
+      errors.vendorName = 'Vendor name must be at least 2 characters';
+    } else if (form.vendorName.trim().length > 200) {
+      errors.vendorName = 'Vendor name cannot exceed 200 characters';
+    }
+    if (!form.mobile?.trim()) {
+      errors.mobile = 'Phone number is required';
+    } else if (!PHONE_REGEX.test(form.mobile.trim())) {
+      errors.mobile = 'Enter a valid 10-digit Indian mobile number';
+    }
+    if (form.email?.trim() && !EMAIL_REGEX.test(form.email.trim())) {
+      errors.email = 'Enter a valid email address';
+    }
+    if (form.panNumber?.trim() && !PAN_REGEX.test(form.panNumber.trim().toUpperCase())) {
+      errors.panNumber = 'Invalid PAN format (e.g. ABCDE1234F)';
+    }
+    if (form.pincode?.trim() && !PINCODE_REGEX.test(form.pincode.trim())) {
+      errors.pincode = 'Pincode must be exactly 6 digits';
+    }
+    return errors;
+  };
+
+  const validateGeneralTab = () => {
+    const errors = {};
+    if (!form.vendorName?.trim()) {
+      errors.vendorName_general = 'Business name is required';
+    } else if (form.vendorName.trim().length < 2) {
+      errors.vendorName_general = 'Business name must be at least 2 characters';
+    }
+    if (!form.mobile?.trim()) {
+      errors.mobile_general = 'Contact number is required';
+    } else if (!PHONE_REGEX.test(form.mobile.trim())) {
+      errors.mobile_general = 'Enter a valid 10-digit Indian mobile number';
+    }
+    if (form.email?.trim() && !EMAIL_REGEX.test(form.email.trim())) {
+      errors.email_general = 'Enter a valid email address';
+    }
+    return errors;
+  };
+
+  const validateCommercialTab = () => {
+    const errors = {};
+    const cd = Number(form.creditDays);
+    if (form.creditDays !== '' && (isNaN(cd) || cd < 0 || cd > 365)) {
+      errors.creditDays = 'Credit days must be between 0 and 365';
+    }
+    const cl = Number(form.creditLimit);
+    if (form.creditLimit !== '' && (isNaN(cl) || cl < 0)) {
+      errors.creditLimit = 'Credit limit cannot be negative';
+    }
+    const moq = Number(form.minOrderQty);
+    if (form.minOrderQty !== '' && (isNaN(moq) || moq < 1)) {
+      errors.minOrderQty = 'Minimum order quantity must be at least 1';
+    }
+    if (!form.paymentTerms) {
+      errors.paymentTerms = 'Payment terms selection is required';
+    }
+    return errors;
+  };
+
+  const validateSettlementTab = () => {
+    const errors = {};
+    // If any bank field is provided, validate all banking fields together
+    const hasBankInfo = form.bankName?.trim() || form.accountNumber?.trim() || form.ifscCode?.trim();
+    if (hasBankInfo) {
+      if (!form.bankName?.trim()) errors.bankName = 'Bank name is required when providing bank details';
+      if (!form.accountNumber?.trim()) {
+        errors.accountNumber = 'Account number is required when providing bank details';
+      } else if (!ACCOUNT_REGEX.test(form.accountNumber.trim())) {
+        errors.accountNumber = 'Account number must be 9–18 digits';
+      }
+      if (!form.ifscCode?.trim()) {
+        errors.ifscCode = 'IFSC code is required when providing bank details';
+      } else if (!IFSC_REGEX.test(form.ifscCode.trim().toUpperCase())) {
+        errors.ifscCode = 'Invalid IFSC format (e.g. SBIN0001234)';
+      }
+    } else if (form.accountNumber?.trim() && !ACCOUNT_REGEX.test(form.accountNumber.trim())) {
+      errors.accountNumber = 'Account number must be 9–18 digits';
+    } else if (form.ifscCode?.trim() && !IFSC_REGEX.test(form.ifscCode.trim().toUpperCase())) {
+      errors.ifscCode = 'Invalid IFSC format (e.g. SBIN0001234)';
+    }
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Final checks before submitting
-    if (form.hasGst === 'Yes') {
-      if (!form.gstNumber || !form.gstNumber.trim()) {
-        setActiveFormTab('regulation');
-        toast.error('GST Identification Number is mandatory when GST is selected.');
-        return;
-      }
-      if (form.gstNumber.trim().length !== 15) {
-        setActiveFormTab('regulation');
-        toast.error('GST Identification Number must be exactly 15 characters.');
-        return;
-      }
-    }
+    // Validate all tabs before final submit
+    const regErrors = validateRegulationTab();
+    const genErrors = validateGeneralTab();
+    const comErrors = validateCommercialTab();
+    const settErrors = validateSettlementTab();
+    const allErrors = { ...regErrors, ...genErrors, ...comErrors, ...settErrors };
 
-    if (!form.vendorName || !form.vendorName.trim()) {
-      setActiveFormTab('general');
-      toast.error('Vendor Name is required.');
-      return;
-    }
-
-    if (!form.mobile || !form.mobile.trim()) {
-      setActiveFormTab('general');
-      toast.error('Mobile Number is required.');
+    if (Object.keys(allErrors).length > 0) {
+      setFormErrors(allErrors);
+      // Navigate to the first tab with errors
+      if (Object.keys(regErrors).length > 0) setActiveFormTab('regulation');
+      else if (Object.keys(genErrors).length > 0) setActiveFormTab('general');
+      else if (Object.keys(comErrors).length > 0) setActiveFormTab('commercial');
+      else setActiveFormTab('settlement');
+      toast.error('Please fix the highlighted errors before submitting.');
       return;
     }
 
@@ -116,6 +230,8 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
         email: form.email?.trim() || undefined,
         address: form.address?.trim() || undefined,
         gstNumber: form.hasGst === 'Yes' ? form.gstNumber.trim() : undefined,
+        panNumber: form.panNumber?.trim().toUpperCase() || undefined,
+        ifscCode: form.ifscCode?.trim().toUpperCase() || undefined,
         storeId: storeId || undefined
       };
 
@@ -130,6 +246,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
       setEditVendor(null);
       setActiveFormTab('regulation');
       setForm(initialForm);
+      setFormErrors({});
       await loadVendors();
     } catch (err) {
       toast.error(err.response?.data?.response || err.response?.data?.message || 'Error saving vendor information');
@@ -197,6 +314,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
       minOrderQty: String(v.minOrderQty || 1),
       isTaxable: v.isTaxable || false
     });
+    setFormErrors({});
     setShowForm(true);
   };
 
@@ -244,10 +362,28 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
 
   const isTabIncomplete = (tabId) => {
     if (tabId === 'regulation') {
-      return form.hasGst === 'Yes' && (!form.gstNumber || form.gstNumber.trim().length !== 15);
+      const hasRegulationErrors = Object.keys(formErrors).some(k =>
+        ['gstNumber','vendorName','mobile','email','panNumber','pincode'].includes(k)
+      );
+      const missingRequired = (!form.vendorName?.trim() || !form.mobile?.trim()) ||
+        (form.hasGst === 'Yes' && (!form.gstNumber || form.gstNumber.trim().length !== 15));
+      return missingRequired || hasRegulationErrors;
     }
     if (tabId === 'general') {
-      return !form.vendorName?.trim() || !form.mobile?.trim();
+      const hasGeneralErrors = Object.keys(formErrors).some(k =>
+        ['vendorName_general','mobile_general','email_general'].includes(k)
+      );
+      return (!form.vendorName?.trim() || !form.mobile?.trim()) || hasGeneralErrors;
+    }
+    if (tabId === 'commercial') {
+      return Object.keys(formErrors).some(k =>
+        ['creditDays','creditLimit','minOrderQty','paymentTerms'].includes(k)
+      );
+    }
+    if (tabId === 'settlement') {
+      return Object.keys(formErrors).some(k =>
+        ['bankName','accountNumber','ifscCode'].includes(k)
+      );
     }
     return false;
   };
@@ -256,10 +392,26 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     const sequence = ['regulation', 'general', 'commercial', 'settlement'];
     const idx = sequence.indexOf(activeFormTab);
+
+    // Validate current tab before advancing
+    let errors = {};
+    if (activeFormTab === 'regulation') errors = validateRegulationTab();
+    if (activeFormTab === 'general')    errors = validateGeneralTab();
+    if (activeFormTab === 'commercial') errors = validateCommercialTab();
+    if (activeFormTab === 'settlement') errors = validateSettlementTab();
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(prev => ({ ...prev, ...errors }));
+      toast.error('Please fix the highlighted errors before continuing.');
+      return;
+    }
+
     if (idx < sequence.length - 1) {
       setActiveFormTab(sequence[idx + 1]);
     }
+    return; // prevent the old nextTab body from running
   };
+
 
   const prevTab = (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
@@ -344,37 +496,45 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
             {activeFormTab === 'general' && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Business Name *</label>
+                  <div className="space-y-1 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Business Name <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <Users size={16} />
                       </div>
                       <input 
                         value={form.vendorName} 
-                        onChange={e => setForm({ ...form, vendorName: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                        onChange={e => setField('vendorName', e.target.value)}
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.vendorName_general ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                         placeholder="Enter business entity name..."
                       />
                     </div>
+                    <FieldError name="vendorName_general" />
                   </div>
 
-                  <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Primary Contact No. *</label>
+                  <div className="space-y-1 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Primary Contact No. <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <Phone size={16} />
                       </div>
                       <input 
                         value={form.mobile} 
-                        onChange={e => setForm({ ...form, mobile: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                        onChange={e => setField('mobile', e.target.value)}
+                        maxLength={10}
+                        inputMode="numeric"
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.mobile_general ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                         placeholder="Enter 10-digit mobile number..."
                       />
                     </div>
+                    <FieldError name="mobile_general" />
                   </div>
 
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">POC Name</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -382,15 +542,15 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         value={form.contactPerson} 
-                        onChange={e => setForm({ ...form, contactPerson: e.target.value })}
+                        onChange={e => setField('contactPerson', e.target.value)}
                         className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
                         placeholder="Enter point of contact name..."
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Official Email ID</label>
+                  <div className="space-y-1 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Official Email ID (Optional)</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <Mail size={16} />
@@ -398,34 +558,37 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       <input 
                         type="email"
                         value={form.email} 
-                        onChange={e => setForm({ ...form, email: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                        placeholder="name@business.com"
+                        onChange={e => setField('email', e.target.value)}
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.email_general ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
+                        placeholder="name@business.com (optional)"
                       />
                     </div>
+                    <FieldError name="email_general" />
                   </div>
 
-                  <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Vendor Category *</label>
+                  <div className="space-y-1 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Vendor Category <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <Tag size={16} />
                       </div>
                       <select 
                         value={form.vendorCategory} 
-                        onChange={e => setForm({ ...form, vendorCategory: e.target.value })}
+                        onChange={e => setField('vendorCategory', e.target.value)}
                         className="w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
                       >
                         <option value="RAW_MATERIAL">Raw Materials</option>
                         <option value="PACKAGING">Packaging Materials</option>
                         <option value="FINISHED_GOODS">Finished Goods</option>
-                        <option value="LOGISTICS">Logistics & Freight</option>
+                        <option value="LOGISTICS">Logistics &amp; Freight</option>
                         <option value="SERVICES">Consulting / Services</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Business Address</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -433,7 +596,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         value={form.address} 
-                        onChange={e => setForm({ ...form, address: e.target.value })}
+                        onChange={e => setField('address', e.target.value)}
                         className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
                         placeholder="Enter official street address..."
                       />
@@ -447,7 +610,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
             {activeFormTab === 'commercial' && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Credit Cycle Days</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -455,15 +618,18 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         type="number" 
+                        min={0}
+                        max={365}
                         value={form.creditDays} 
-                        onChange={e => setForm({ ...form, creditDays: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                        onChange={e => setField('creditDays', e.target.value)}
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.creditDays ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                         placeholder="30"
                       />
                     </div>
+                    <FieldError name="creditDays" />
                   </div>
 
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Credit Limit (₹)</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -471,25 +637,30 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         type="number" 
+                        min={0}
                         value={form.creditLimit} 
-                        onChange={e => setForm({ ...form, creditLimit: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                        onChange={e => setField('creditLimit', e.target.value)}
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.creditLimit ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                         placeholder="50000"
                       />
                     </div>
+                    <FieldError name="creditLimit" />
                   </div>
 
-                  <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Payment terms *</label>
+                  <div className="space-y-1 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Payment Terms <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
                         <FileText size={16} />
                       </div>
                       <select 
                         value={form.paymentTerms} 
-                        onChange={e => setForm({ ...form, paymentTerms: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
+                        onChange={e => setField('paymentTerms', e.target.value)}
+                        className={`w-full bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold border ${formErrors.paymentTerms ? 'border-rose-300' : 'border-gray-100 focus:border-emerald-200'} focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer`}
                       >
+                        <option value="">Select payment terms...</option>
                         <option value="Net 30">Net 30 Days</option>
                         <option value="Net 15">Net 15 Days</option>
                         <option value="COD">Cash on Delivery (COD)</option>
@@ -497,9 +668,10 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                         <option value="Due on Receipt">Due on Receipt</option>
                       </select>
                     </div>
+                    <FieldError name="paymentTerms" />
                   </div>
 
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Min. Order Qty (MOQ)</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -507,16 +679,18 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         type="number" 
+                        min={1}
                         value={form.minOrderQty} 
-                        onChange={e => setForm({ ...form, minOrderQty: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                        onChange={e => setField('minOrderQty', e.target.value)}
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.minOrderQty ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                         placeholder="1"
                       />
                     </div>
+                    <FieldError name="minOrderQty" />
                   </div>
 
                   {!editVendor && (
-                    <div className="space-y-2 group md:col-span-4">
+                    <div className="space-y-1 group md:col-span-4">
                       <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Opening Account Balance (₹)</label>
                       <div className="relative">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -525,7 +699,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                         <input 
                           type="number" 
                           value={form.openingBalance} 
-                          onChange={e => setForm({ ...form, openingBalance: e.target.value })}
+                          onChange={e => setField('openingBalance', e.target.value)}
                           className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
                           placeholder="0.00"
                         />
@@ -535,6 +709,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                 </div>
               </div>
             )}
+
 
             {/* SECTION 3: Regulation & Tax */}
             {activeFormTab === 'regulation' && (
@@ -571,7 +746,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
 
                 {/* GSTIN input with auto-fill callouts */}
                 {form.hasGst === 'Yes' && (
-                  <div className="space-y-2 group w-full">
+                  <div className="space-y-1 group w-full">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
                       GSTIN <span className="text-rose-500 font-black">*</span>
                     </label>
@@ -583,16 +758,11 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                         value={form.gstNumber} 
                         onChange={async (e) => {
                           const val = e.target.value.toUpperCase();
-                          setForm(prev => ({ ...prev, gstNumber: val }));
+                          setField('gstNumber', val);
                           // Trigger autofill on exactly 15 characters
                           if (val.length === 15) {
                             try {
                               toast.loading('Fetching GST Details from Deepvue...', { id: 'gst-fetch' });
-                              // Request details from Deepvue backend proxy or sandbox client API:
-                              // Sandbox/Demo mock parameters for testing fallback:
-                              const deepvueAPIUrl = `https://production.deepvue.tech/v1/verification/gstin-advanced`;
-                              
-                              // We fallback on a mock client success payload since custom production tokens are configured by user at runtime:
                               setTimeout(() => {
                                 setForm(prev => ({
                                   ...prev,
@@ -612,10 +782,11 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                           }
                         }}
                         maxLength={15}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.gstNumber ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`}
                         placeholder="e.g. 29ABCDE1234F1Z5"
                       />
                     </div>
+                    <FieldError name="gstNumber" />
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider pl-1">
                       Pressing Enter or typing 15 characters will trigger auto-fill using Deepvue APIs.
                     </p>
@@ -625,22 +796,25 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                 {/* Form fields layout mapping exactly to the mock image */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Vendor Name */}
-                  <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Vendor Name *</label>
+                  <div className="space-y-1 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Vendor Name <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <input 
                       value={form.vendorName} 
-                      onChange={e => setForm({ ...form, vendorName: e.target.value })}
-                      className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                      onChange={e => setField('vendorName', e.target.value)}
+                      className={`w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border ${formErrors.vendorName ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                       placeholder="Enter vendor name..."
                     />
+                    <FieldError name="vendorName" />
                   </div>
 
                   {/* Branch Selection */}
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Branch (Optional)</label>
                     <select 
                       value={form.branch} 
-                      onChange={e => setForm({ ...form, branch: e.target.value })}
+                      onChange={e => setField('branch', e.target.value)}
                       className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                     >
                       <option value="">All Branches (Company-wide)</option>
@@ -650,11 +824,11 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                   </div>
 
                   {/* Vendor Type */}
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Vendor Type</label>
                     <select 
                       value={form.vendorType} 
-                      onChange={e => setForm({ ...form, vendorType: e.target.value })}
+                      onChange={e => setField('vendorType', e.target.value)}
                       className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                     >
                       <option value="Company">Company</option>
@@ -665,57 +839,67 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                   </div>
 
                   {/* PAN Number */}
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">PAN Number</label>
                     <input 
                       value={form.panNumber} 
-                      onChange={e => setForm({ ...form, panNumber: e.target.value.toUpperCase() })}
+                      onChange={e => setField('panNumber', e.target.value.toUpperCase())}
                       maxLength={10}
-                      className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                      className={`w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border ${formErrors.panNumber ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                       placeholder="ABCDE1234F"
                     />
+                    <FieldError name="panNumber" />
                   </div>
 
                   {/* Email Address */}
-                  <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Email Address</label>
+                  <div className="space-y-1 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Email Address (Optional)</label>
                     <input 
                       type="email"
                       value={form.email} 
-                      onChange={e => setForm({ ...form, email: e.target.value })}
-                      className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
-                      placeholder="e.g. info@domain.com"
+                      onChange={e => setField('email', e.target.value)}
+                      className={`w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border ${formErrors.email ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
+                      placeholder="e.g. info@domain.com (optional)"
                     />
+                    <FieldError name="email" />
                   </div>
 
                   {/* Phone Number */}
-                  <div className="space-y-2 group">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Phone Number *</label>
+                  <div className="space-y-1 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">
+                      Phone Number <span className="text-rose-500 font-bold ml-0.5">*</span>
+                    </label>
                     <input 
                       value={form.mobile} 
-                      onChange={e => setForm({ ...form, mobile: e.target.value })}
-                      className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                      onChange={e => setField('mobile', e.target.value.replace(/\D/g, ''))}
+                      maxLength={10}
+                      inputMode="numeric"
+                      className={`w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border ${formErrors.mobile ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                       placeholder="e.g. 9876543210"
                     />
+                    <FieldError name="mobile" />
                   </div>
 
                   {/* Pincode */}
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Pincode</label>
                     <input 
                       value={form.pincode} 
-                      onChange={e => setForm({ ...form, pincode: e.target.value })}
-                      className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                      onChange={e => setField('pincode', e.target.value.replace(/\D/g, ''))}
+                      maxLength={6}
+                      inputMode="numeric"
+                      className={`w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border ${formErrors.pincode ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                       placeholder="e.g. 500001"
                     />
+                    <FieldError name="pincode" />
                   </div>
 
                   {/* Business Address */}
-                  <div className="space-y-2 group md:col-span-2">
+                  <div className="space-y-1 group md:col-span-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Business Address</label>
                     <textarea 
                       value={form.address} 
-                      onChange={e => setForm({ ...form, address: e.target.value })}
+                      onChange={e => setField('address', e.target.value)}
                       rows={3}
                       className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none resize-none" 
                       placeholder="Enter official street address..."
@@ -723,22 +907,22 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                   </div>
 
                   {/* City */}
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">City</label>
                     <input 
                       value={form.city} 
-                      onChange={e => setForm({ ...form, city: e.target.value })}
+                      onChange={e => setField('city', e.target.value)}
                       className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
                       placeholder="e.g. Hyderabad"
                     />
                   </div>
 
                   {/* State */}
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">State</label>
                     <input 
                       value={form.state} 
-                      onChange={e => setForm({ ...form, state: e.target.value })}
+                      onChange={e => setField('state', e.target.value)}
                       className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
                       placeholder="e.g. Telangana"
                     />
@@ -751,7 +935,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                     type="checkbox" 
                     id="isTds"
                     checked={form.isTds} 
-                    onChange={e => setForm({ ...form, isTds: e.target.checked })}
+                    onChange={e => setField('isTds', e.target.checked)}
                     className="w-4 h-4 text-emerald-600 border-slate-200 rounded focus:ring-emerald-500"
                   />
                   <label htmlFor="isTds" className="text-xs font-bold text-slate-800 cursor-pointer">TDS Applicable for this vendor?</label>
@@ -762,8 +946,11 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
             {/* SECTION 4: Bank Details */}
             {activeFormTab === 'settlement' && (
               <div className="space-y-6 animate-in fade-in duration-300">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                  Bank details are optional. If provided, all three fields (Bank Name, Account Number, IFSC) must be filled.
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Bank Name</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -771,14 +958,15 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         value={form.bankName} 
-                        onChange={e => setForm({ ...form, bankName: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                        onChange={e => setField('bankName', e.target.value)}
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.bankName ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                         placeholder="e.g. State Bank of India..."
                       />
                     </div>
+                    <FieldError name="bankName" />
                   </div>
 
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Account Number</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -786,14 +974,17 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         value={form.accountNumber} 
-                        onChange={e => setForm({ ...form, accountNumber: e.target.value })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                        onChange={e => setField('accountNumber', e.target.value.replace(/\D/g, ''))}
+                        maxLength={18}
+                        inputMode="numeric"
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.accountNumber ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                         placeholder="Enter bank account number..."
                       />
                     </div>
+                    <FieldError name="accountNumber" />
                   </div>
 
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">IFSC Code</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -801,14 +992,16 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         value={form.ifscCode} 
-                        onChange={e => setForm({ ...form, ifscCode: e.target.value.toUpperCase() })}
-                        className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
+                        onChange={e => setField('ifscCode', e.target.value.toUpperCase())}
+                        maxLength={11}
+                        className={`w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border ${formErrors.ifscCode ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10' : 'border-gray-100 focus:border-emerald-200 focus:ring-emerald-500/5'} focus:ring-4 transition-all outline-none`} 
                         placeholder="e.g. SBIN0001234..."
                       />
                     </div>
+                    <FieldError name="ifscCode" />
                   </div>
 
-                  <div className="space-y-2 group">
+                  <div className="space-y-1 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 group-focus-within:text-emerald-500 transition-colors">Bank Branch</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors">
@@ -816,7 +1009,7 @@ const VendorsSection = ({ can, setHideMainHeader, storeId }) => {
                       </div>
                       <input 
                         value={form.bankBranch} 
-                        onChange={e => setForm({ ...form, bankBranch: e.target.value })}
+                        onChange={e => setField('bankBranch', e.target.value)}
                         className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold border border-gray-100 focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none" 
                         placeholder="e.g. Bangalore MG Road..."
                       />

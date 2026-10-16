@@ -515,19 +515,20 @@ export const sidebarConfig: MenuSection[] = [
   //   label: "Reservations",
   //   icon: Clock,
   // },
-  {
-    type: "collapsible",
-    permission: "Partner: Pricing Engine",
-    label: "Pricing Engine",
-    icon: DollarSign,
-    stateKey: "isPricingOpen",
-    activeCheck: (pathname: string) => pathname.startsWith("/pricing"),
-    subItems: [
-      { path: "/pricing/price-books", label: "Price Books", icon: BookOpen },
-      { path: "/pricing/product-pricing", label: "Product Pricing", icon: Tag },
-      // { path: "/pricing/price-comparison", label: "Price Comparison", icon: BarChart3 }
-    ],
-  },
+  // Pricing Engine hidden from sidebar
+  // {
+  //   type: "collapsible",
+  //   permission: "Partner: Pricing Engine",
+  //   label: "Pricing Engine",
+  //   icon: DollarSign,
+  //   stateKey: "isPricingOpen",
+  //   activeCheck: (pathname: string) => pathname.startsWith("/pricing"),
+  //   subItems: [
+  //     { path: "/pricing/price-books", label: "Price Books", icon: BookOpen },
+  //     { path: "/pricing/product-pricing", label: "Product Pricing", icon: Tag },
+  //     // { path: "/pricing/price-comparison", label: "Price Comparison", icon: BarChart3 }
+  //   ],
+  // },
 
 
   // Promotions and Offers

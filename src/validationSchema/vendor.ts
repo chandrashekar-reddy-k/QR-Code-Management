@@ -23,11 +23,14 @@ export const vendorSchema = yup.object({
 
   email: yup
     .string()
-    .required('Email is required')
-    .email('Invalid email address')
-    .max(100, 'Email cannot exceed 100 characters')
     .trim()
-    .lowercase(),
+    .max(100, 'Email cannot exceed 100 characters')
+    .test('valid-email', 'Invalid email address', function(value) {
+      if (!value || value.trim() === '') return true;
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+    })
+    .optional()
+    .nullable(),
 
   phone: yup
     .string()
