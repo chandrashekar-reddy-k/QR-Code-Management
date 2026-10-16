@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Printer, RefreshCw, Barcode, ClipboardList, CheckCircle, AlertTriangle, Clock, Sliders, ChevronDown, ChevronUp, RotateCcw, Info, Settings2, LayoutGrid } from 'lucide-react';
+import { Printer, RefreshCw, Barcode, ClipboardList, CheckCircle, AlertTriangle, Clock, Sliders, ChevronDown, ChevronUp, RotateCcw, Info, Settings2 } from 'lucide-react';
 import { authService, User } from '../../../api/packing/authService';
 import { workOrderService, WorkOrder, WoStatus } from '../../../api/packing/workOrderService';
 import { barcodeService } from '../../../api/packing/barcodeService';
@@ -150,13 +150,40 @@ export interface WOProductItem {
   mrp?: number;
   qty?: number;
   printUnits?: number;
+  packedUnits?: number;
+  plannedUnits?: number;
+  packSizeKg?: number;
+  packSizeText?: string;
   uom?: string;
 }
+
+const normalizeUnit = (u?: string) => {
+  if (!u) return '';
+  const trimmed = String(u).trim().toUpperCase();
+  if (trimmed === 'KILOGRAMS' || trimmed === 'KILOGRAM') return 'KG';
+  if (trimmed === 'GRAMS' || trimmed === 'GRAM') return 'GM';
+  if (trimmed === 'LITRES' || trimmed === 'LITRE' || trimmed === 'LITERS' || trimmed === 'LITER') return 'L';
+  if (trimmed === 'MILLILITRES' || trimmed === 'MILLILITRE' || trimmed === 'MILLILITERS' || trimmed === 'MILLILITER') return 'ML';
+  return trimmed;
+};
+
+const getWOUnit = (wo: any) => {
+  if (!wo) return '';
+  // Unit fetched strictly from Eligible Source Inventory (wo.sourceItems)
+  let sources = wo.sourceItems;
+  if (typeof sources === 'string') {
+    try { sources = JSON.parse(sources); } catch (e) {}
+  }
+  const sourceItems = Array.isArray(sources) && sources.length > 0 ? sources : [];
+  const sourceUom = sourceItems[0]?.uom;
+  return sourceUom ? normalizeUnit(sourceUom) : '';
+};
 
 const getWOProducts = (wo: any): WOProductItem[] => {
   if (!wo) return [];
   const list: WOProductItem[] = [];
   const seenNames = new Set<string>();
+  const sourceInvUnit = getWOUnit(wo);
 
   const addProduct = (item: WOProductItem) => {
     if (item.name && item.name.trim() && !seenNames.has(item.name.trim().toLowerCase())) {
@@ -168,9 +195,19 @@ const getWOProducts = (wo: any): WOProductItem[] => {
     }
   };
 
+  // Safely parse outputAllocations and sourceItems if stringified
+  let allocs = wo.outputAllocations;
+  if (typeof allocs === 'string') {
+    try { allocs = JSON.parse(allocs); } catch (e) {}
+  }
+  let sources = wo.sourceItems;
+  if (typeof sources === 'string') {
+    try { sources = JSON.parse(sources); } catch (e) {}
+  }
+
   // 1. Check outputAllocations FIRST (Target packed products generated for labeling)
-  if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
-    wo.outputAllocations.forEach((item: any, idx: number) => {
+  if (Array.isArray(allocs) && allocs.length > 0) {
+    allocs.forEach((item: any, idx: number) => {
       const name = item.skuName || item.sourceProductName || item.name;
 
       // Calculate total weight / quantity in KG (e.g. 2 units * 26 kg = 52 KG)
@@ -181,19 +218,26 @@ const getWOProducts = (wo: any): WOProductItem[] => {
           ? Number(item.plannedUnits) * Number(item.packSizeKg)
           : item.packedQty ?? item.actualProduced ?? item.plannedUnits ?? item.quantity ?? item.qty;
 
-      // Extract unit (e.g. "KG", "P", "Units") from packSizeText like "26 KG" or uom
-      const parts = item.packSizeText ? item.packSizeText.trim().split(/\s+/) : [];
-      const extractedUnit = parts.length > 1 ? parts.slice(1).join(' ') : (item.uom || 'KG');
-
       const packedUnitsVal = (item.packedUnits !== '' && item.packedUnits !== null && item.packedUnits !== undefined) ? Number(item.packedUnits) : NaN;
-      const printUnitsCount = (!isNaN(packedUnitsVal) && packedUnitsVal > 0) ? packedUnitsVal : (Number(item.plannedUnits) || undefined);
+      const plannedUnitsVal = Number(item.plannedUnits) || 0;
+      const derivedFromProduced = (wo.actualProduced && item.packSizeKg && Number(item.packSizeKg) > 0)
+        ? Math.round(Number(wo.actualProduced) / Number(item.packSizeKg))
+        : 0;
+
+      const printUnitsCount = (!isNaN(packedUnitsVal) && packedUnitsVal > 0)
+        ? packedUnitsVal
+        : (derivedFromProduced > 0)
+        ? derivedFromProduced
+        : (plannedUnitsVal > 0)
+        ? plannedUnitsVal
+        : undefined;
 
       const skuCode =
         item.sku ||
         item.skuCode ||
         item.code ||
         item.sourceProductSku ||
-        (Array.isArray(wo.sourceItems) && wo.sourceItems[idx]?.sku) ||
+        (Array.isArray(sources) && sources[idx]?.sku) ||
         wo.product?.sku ||
         '';
 
@@ -206,7 +250,11 @@ const getWOProducts = (wo: any): WOProductItem[] => {
           mrp: item.mrp || (wo.product as any)?.mrp || 60,
           qty: totalQtyVal !== undefined ? Number(totalQtyVal) || totalQtyVal : undefined,
           printUnits: printUnitsCount,
-          uom: extractedUnit,
+          packedUnits: !isNaN(packedUnitsVal) ? packedUnitsVal : (derivedFromProduced > 0 ? derivedFromProduced : undefined),
+          plannedUnits: plannedUnitsVal > 0 ? plannedUnitsVal : undefined,
+          packSizeKg: item.packSizeKg,
+          packSizeText: item.packSizeText,
+          uom: sourceInvUnit,
         });
       }
     });
@@ -235,7 +283,7 @@ const getWOProducts = (wo: any): WOProductItem[] => {
           batch: item.batch || item.batchNo || wo.batchNumber,
           mrp: item.mrp || (wo.product as any)?.mrp || 60,
           qty: packedQtyVal !== undefined ? Number(packedQtyVal) || packedQtyVal : undefined,
-          uom: item.uom || 'Units',
+          uom: sourceInvUnit,
         });
       }
     });
@@ -348,9 +396,6 @@ export const PackingBarcodesLabels: React.FC = () => {
   const [horizontalOffsetMm, setHorizontalOffsetMm] = useState<number>(0);
 
 
-
-  // Preview Mode: 'single' (detailed label) or 'roll' (continuous 2-column roll representation)
-  const [previewMode, setPreviewMode] = useState<'single' | 'roll'>('single');
 
   // Automatic Vertical Gap Calculation: Feed Pitch - Label Height
   const verticalGapMm = useMemo(() => {
@@ -576,8 +621,16 @@ export const PackingBarcodesLabels: React.FC = () => {
       setLotNo(`LOT-${selectedWO.woNumber}`);
       setMrp(curProd?.mrp || (product as any)?.mrp || 60);
 
-      const reqCount = curProd?.qty || selectedWO.actualProduced || selectedWO.requiredQty;
-      setPrintQty(reqCount);
+      // Prefill print quantity with packed units (count of packages, not required weight)
+      const targetUnits =
+        curProd?.printUnits ??
+        curProd?.packedUnits ??
+        curProd?.plannedUnits ??
+        (selectedWO.actualProduced && curProd?.packSizeKg ? Math.round(Number(selectedWO.actualProduced) / Number(curProd.packSizeKg)) : undefined) ??
+        selectedWO.actualProduced ??
+        selectedWO.requiredQty ??
+        1;
+      setPrintQty(targetUnits);
 
       // Default baseline dates
       const today = new Date().toISOString().split('T')[0];
@@ -628,9 +681,11 @@ export const PackingBarcodesLabels: React.FC = () => {
     }
   }, [printerStatus]);
 
-  const labelsRequired = selectedWO
-    ? selectedWO.actualProduced ?? selectedWO.requiredQty ?? 0
-    : 0;
+  const labelsRequired =
+    currentProductItem?.printUnits ??
+    currentProductItem?.packedUnits ??
+    currentProductItem?.plannedUnits ??
+    (selectedWO ? (selectedWO.actualProduced ?? selectedWO.requiredQty ?? 0) : 0);
 
   const handleGeneratePreview = (e?: React.MouseEvent | React.FormEvent) => {
     if (e) e.preventDefault();
@@ -772,10 +827,6 @@ export const PackingBarcodesLabels: React.FC = () => {
     const cardTransformCss = printRotation !== 0
       ? `transform: rotate(${printRotation}deg); transform-origin: center center;`
       : '';
-
-    // If printRotation is 90 or 270, swap card inner width and height so content fits naturally
-    const cardRenderWidth = (printRotation === 90 || printRotation === 270) ? labelHeightMm : labelWidthMm;
-    const cardRenderHeight = (printRotation === 90 || printRotation === 270) ? labelWidthMm : labelHeightMm;
 
     const pageCss = mediaPreset === 'a4_sheet'
       ? `
@@ -1217,8 +1268,10 @@ export const PackingBarcodesLabels: React.FC = () => {
                 Packed Quantity
               </span>
               <span className="font-bold text-slate-900 dark:text-white">
-                {currentProductItem?.qty !== undefined
-                  ? `${currentProductItem.qty} ${currentProductItem.uom || 'Units'}`
+                {currentProductItem?.printUnits !== undefined
+                  ? `${currentProductItem.printUnits} Units${currentProductItem?.qty ? ` (${currentProductItem.qty} ${currentProductItem.uom || getWOUnit(selectedWO)})` : ''}`
+                  : currentProductItem?.qty !== undefined
+                  ? `${currentProductItem.qty} ${currentProductItem.uom || getWOUnit(selectedWO)}`
                   : `${printQty || selectedWO.actualProduced || selectedWO.requiredQty} Units`}
               </span>
             </div>
@@ -1951,33 +2004,6 @@ export const PackingBarcodesLabels: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* View Mode Toggle: Single Label vs Continuous Roll Strip */}
-                <div className="flex items-center bg-slate-100 dark:bg-gray-700 p-0.5 rounded-lg border border-slate-200 dark:border-gray-600 text-[10px] font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMode('single')}
-                    className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
-                      previewMode === 'single'
-                        ? 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white shadow-2xs font-bold'
-                        : 'text-slate-600 dark:text-gray-300 hover:text-slate-900'
-                    }`}
-                  >
-                    Single Label
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMode('roll')}
-                    className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
-                      previewMode === 'roll'
-                        ? 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white shadow-2xs font-bold'
-                        : 'text-slate-600 dark:text-gray-300 hover:text-slate-900'
-                    }`}
-                  >
-                    <LayoutGrid size={11} />
-                    <span>2-Col Roll ({rollWidthMmConfig}mm)</span>
-                  </button>
-                </div>
-
                 <span className="text-[10px] font-bold text-slate-800 bg-slate-100 dark:bg-gray-700 dark:text-gray-200 border border-slate-300 dark:border-gray-600 px-2 py-0.5 rounded-full font-mono shrink-0">
                   {labelWidthMm} × {labelHeightMm} mm
                 </span>
@@ -1985,8 +2011,6 @@ export const PackingBarcodesLabels: React.FC = () => {
             </div>
 
             {/* PREVIEW CONTENT */}
-            {previewMode === 'single' ? (
-              /* Single Label Preview Container */
               <div
                 style={{
                   background: '#fff',
@@ -2101,83 +2125,8 @@ export const PackingBarcodesLabels: React.FC = () => {
                       <img src={qrCodeUrl} style={{ width: activeHeightMm <= 30 ? 55 : 80, height: activeHeightMm <= 30 ? 55 : 80 }} alt="QR" />
                     </div>
                   )}
-                </div>
               </div>
-            ) : (
-              /* Continuous Roll 2-Column Live Diagram */
-              <div className="space-y-2">
-                <div className="bg-slate-100 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-xl p-3 flex flex-col items-center">
-                  {/* Roll Backing Paper Container */}
-                  <div className="w-full max-w-[340px] bg-amber-50/70 dark:bg-amber-950/20 border-2 border-dashed border-amber-300 dark:border-amber-800/80 rounded-lg p-2 relative shadow-inner">
-                    {/* Backing paper header metadata */}
-                    <div className="flex justify-between items-center text-[9px] font-mono text-amber-800 dark:text-amber-400 font-bold mb-1.5 border-b border-amber-200 dark:border-amber-900/50 pb-1">
-                      <span>Roll Width: {rollWidthMmConfig} mm</span>
-                      <span>Feed Pitch: {feedPitchMm} mm</span>
-                      <span>Gap: {verticalGapMm} mm</span>
-                    </div>
-
-                    {/* Row 1 Feed Simulation */}
-                    <div className="flex items-center justify-between gap-1 mb-2">
-                      <div className="w-2 h-16 bg-amber-200/60 dark:bg-amber-900/40 rounded flex items-center justify-center text-[8px] font-mono font-bold text-amber-700 dark:text-amber-400 writing-vertical" title={`Side Margin: ${sideMarginMm}mm`}>
-                        {sideMarginMm}m
-                      </div>
-
-                      {Array.from({ length: layoutColumns }).map((_, colIdx) => (
-                        <React.Fragment key={colIdx}>
-                          <div className="flex-1 bg-white dark:bg-gray-800 border border-slate-800 dark:border-gray-300 rounded p-1.5 text-center flex flex-col justify-between shadow-xs min-h-[64px]">
-                            <div className="font-extrabold text-[8px] border-b border-slate-900 dark:border-gray-300 pb-0.5 text-slate-900 dark:text-white uppercase truncate">
-                              VILLAGKART
-                            </div>
-                            <div className="text-[7.5px] font-bold text-slate-800 dark:text-gray-200 truncate my-0.5">
-                              {selectedProductName || 'Product Name'}
-                            </div>
-                            <div className="text-[6.5px] text-slate-500 dark:text-gray-400 font-mono flex justify-between">
-                              <span>₹{mrp}.00</span>
-                              <span>Col {colIdx + 1}</span>
-                            </div>
-                            <div className="h-2.5 bg-slate-900 dark:bg-gray-200 rounded-2xs mt-0.5 opacity-80" />
-                          </div>
-                          {colIdx < layoutColumns - 1 && (
-                            <div className="w-1.5 h-16 bg-amber-200/60 dark:bg-amber-900/40 rounded flex items-center justify-center text-[7px] font-mono font-bold text-amber-700 dark:text-amber-400" title={`Column Gap: ${colGapMm}mm`}>
-                              {colGapMm}
-                            </div>
-                          )}
-                        </React.Fragment>
-                      ))}
-
-                      <div className="w-2 h-16 bg-amber-200/60 dark:bg-amber-900/40 rounded flex items-center justify-center text-[8px] font-mono font-bold text-amber-700 dark:text-amber-400 writing-vertical" title={`Side Margin: ${sideMarginMm}mm`}>
-                        {sideMarginMm}m
-                      </div>
-                    </div>
-
-                    {/* Vertical Gap indicator */}
-                    <div className="w-full py-0.5 bg-amber-200/80 dark:bg-amber-900/60 rounded text-center text-[8px] font-mono font-bold text-amber-900 dark:text-amber-200 border-y border-amber-300 dark:border-amber-800 mb-2">
-                      ↑ Automatic Vertical Feed Gap: {verticalGapMm} mm ↓
-                    </div>
-
-                    {/* Row 2 (Subsequent row repeat) */}
-                    <div className="flex items-center justify-between gap-1 opacity-50">
-                      <div className="w-2 h-8 bg-amber-200/60 dark:bg-amber-900/40 rounded" />
-                      {Array.from({ length: layoutColumns }).map((_, colIdx) => (
-                        <React.Fragment key={colIdx}>
-                          <div className="flex-1 bg-white/70 dark:bg-gray-800/70 border border-dashed border-slate-500 rounded p-1 text-center h-8 flex items-center justify-center text-[8px] font-mono">
-                            Row 2 Label ({colIdx + 1})
-                          </div>
-                          {colIdx < layoutColumns - 1 && (
-                            <div className="w-1.5 h-8 bg-amber-200/60 dark:bg-amber-900/40 rounded" />
-                          )}
-                        </React.Fragment>
-                      ))}
-                      <div className="w-2 h-8 bg-amber-200/60 dark:bg-amber-900/40 rounded" />
-                    </div>
-                  </div>
-
-                  <span className="text-[10px] text-slate-500 dark:text-gray-400 mt-2 font-medium">
-                    Continuous roll backing layout (104 mm backing width, {layoutColumns} labels across, 31 mm feed pitch)
-                  </span>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Print Summary Card */}
@@ -2213,69 +2162,6 @@ export const PackingBarcodesLabels: React.FC = () => {
             </div>
           </div>
 
-          {/* Label Application Progress Card */}
-          <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-xl text-xs space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-indigo-800 dark:text-indigo-400 block uppercase text-[10px] tracking-wider">
-                Application Task Progress
-              </span>
-              <span className="text-[9px] text-indigo-500 font-medium">Auto-updating</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-center pt-1 mb-2">
-              <div className="bg-white dark:bg-gray-900 p-2 rounded border border-indigo-50 dark:border-indigo-900/50">
-                <span className="text-[10px] text-slate-500 dark:text-gray-400 block font-semibold">
-                  Assigned Operator
-                </span>
-                <span className="text-xs font-bold text-slate-800 dark:text-white truncate block">
-                  {selectedWO?.operator?.name || operators.find((o) => o.id === (selectedWO?.operatorId || selectedWO?.operator?.id))?.name || 'Not Assigned'}
-                </span>
-              </div>
-              <div className="bg-white dark:bg-gray-900 p-2 rounded border border-indigo-50 dark:border-indigo-900/50">
-                <span className="text-[10px] text-slate-500 dark:text-gray-400 block font-semibold">
-                  Current Status
-                </span>
-                <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 block">
-                  {selectedWO?.status === 'LABELS_APPLIED'
-                    ? 'Complete'
-                    : selectedWO?.status === 'LABEL_APPLICATION_IN_PROGRESS'
-                    ? 'In Progress'
-                    : selectedWO?.status === 'LABELS_PRINTED'
-                    ? 'Labels Printed'
-                    : selectedWO?.status === 'LABEL_APPLICATION_ASSIGNED'
-                    ? 'Assigned'
-                    : selectedWO?.status || 'Pending'}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center pt-1 border-t border-indigo-100 dark:border-indigo-900/50 mt-2">
-              <div>
-                <span className="text-[10px] text-slate-500 dark:text-gray-400 block font-semibold">
-                  Printed
-                </span>
-                <span className="text-sm font-bold text-slate-800 dark:text-white">
-                  {labelsPrinted}
-                </span>
-              </div>
-              <div className="border-x border-indigo-100 dark:border-indigo-900/50">
-                <span className="text-[10px] text-slate-500 dark:text-gray-400 block font-semibold">
-                  Applied
-                </span>
-                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                  {selectedWO?.labelsApplied || 0}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-500 dark:text-gray-400 block font-semibold">
-                  Remaining
-                </span>
-                <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
-                  {Math.max(0, labelsPrinted - (selectedWO?.labelsApplied || 0))}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right Column: Print History & Logs */}

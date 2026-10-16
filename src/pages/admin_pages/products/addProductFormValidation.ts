@@ -274,7 +274,7 @@ function collectVariantFieldErrors(
   const finalSelling = parseNonNegativeNumber(variant.salePrice);
   if (finalSelling === null && !out[k("salePrice")]) {
     out[k("salePrice")] = "Final Selling Price is required";
-  } else {
+  } else if (finalSelling !== null) {
     if (mrpList !== null && finalSelling > mrpList) {
       out[k("salePrice")] =
         "Final Selling Price must be less than or equal to Original Price / M.R.P";
@@ -302,7 +302,7 @@ function collectVariantFieldErrors(
     const low = parseNonNegInt(lowRaw);
     if (low === null && !out[k("lowStockThreshold")]) {
       out[k("lowStockThreshold")] = "Use a whole number ≥ 0";
-    } else if (stock !== null && low > stock) {
+    } else if (stock !== null && low !== null && low > stock) {
       out[k("lowStockThreshold")] = "Cannot be greater than stock quantity";
     }
   }
@@ -344,7 +344,7 @@ function collectVariantFieldErrors(
       options.variantImagePreviews[Number(vid)]?.primary;
     const hasFile = !!variant.primaryImage;
     const hasPreview = !!existingPrimary;
-    if (!hasFile && !(options.isEditVariantMode && hasPreview)) {
+    if (!hasFile && !hasPreview) {
       out[k("primaryImage")] = "Primary image is required";
     }
   }

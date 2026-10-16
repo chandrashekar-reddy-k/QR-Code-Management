@@ -379,13 +379,7 @@ const ReserveStock: React.FC = () => {
 
 
 
-  const toggleAll = () => {
-    if (selectedItems.length === paginatedData.length && paginatedData.length > 0) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems(paginatedData.map(item => item.id));
-    }
-  };
+
 
   const toggleSelection = (id: string) => {
     setSelectedItems(prev =>
@@ -505,6 +499,21 @@ const ReserveStock: React.FC = () => {
     currentPage * itemsPerPage
   );
 
+  const isAllSelected =
+    filteredAndSortedData.length > 0 &&
+    filteredAndSortedData.every(item => selectedItems.includes(item.id));
+
+  const toggleAll = () => {
+    if (isAllSelected) {
+      setSelectedItems(prev =>
+        prev.filter(id => !filteredAndSortedData.some(item => item.id === id))
+      );
+    } else {
+      const allIds = filteredAndSortedData.map(item => item.id);
+      setSelectedItems(prev => Array.from(new Set([...prev, ...allIds])));
+    }
+  };
+
   const pagination = {
     page: currentPage,
     limit: itemsPerPage,
@@ -531,9 +540,11 @@ const ReserveStock: React.FC = () => {
       label: (
         <input
           type="checkbox"
-          className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-          checked={selectedItems.length === paginatedData.length && paginatedData.length > 0}
+          className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          checked={isAllSelected}
+          disabled={filteredAndSortedData.length === 0}
           onChange={toggleAll}
+          title={isAllSelected ? "Deselect all" : `Select all ${filteredAndSortedData.length} items`}
         />
       ),
       sortable: false,
@@ -780,7 +791,7 @@ const ReserveStock: React.FC = () => {
 
 
           <button
-            onClick={() => { setSelectedGRNId('ALL'); setSearchTerm(''); setCurrentPage(1); }}
+            onClick={() => { setSelectedGRNId('ALL'); setSearchTerm(''); setSelectedItems([]); setCurrentPage(1); }}
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
           >
             <RotateCcw size={14} />
@@ -848,21 +859,38 @@ const ReserveStock: React.FC = () => {
       </div>
 
       {/* Bottom Actions */}
-      <div className="mt-6 flex items-center justify-end gap-4">
-        <button
-          onClick={() => navigate('/inventory/ready')}
-          className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={saveSelectedAllocations}
-          disabled={selectedItems.length === 0 || isSaving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#008f33] hover:bg-[#007a2a] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          {isSaving ? 'Reserving...' : 'Reserve Stock'}
-        </button>
+      <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          {selectedItems.length > 0 && (
+            <div className="text-sm flex items-center gap-2">
+              <span className="font-bold text-gray-900">{selectedItems.length}</span>
+              <span className="text-gray-500">items selected</span>
+              <button
+                type="button"
+                onClick={() => setSelectedItems([])}
+                className="text-xs text-red-600 hover:text-red-700 underline font-medium cursor-pointer ml-1"
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/inventory/ready')}
+            className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={saveSelectedAllocations}
+            disabled={selectedItems.length === 0 || isSaving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#008f33] hover:bg-[#007a2a] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            {isSaving ? 'Reserving...' : selectedItems.length > 0 ? `Reserve Stock (${selectedItems.length})` : 'Reserve Stock'}
+          </button>
+        </div>
       </div>
     </div>
   );

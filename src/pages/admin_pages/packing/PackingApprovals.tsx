@@ -715,8 +715,6 @@ export const PackingApprovals: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
                     {(selectedRequest.woDetails as any).outputAllocations.map((alloc: any, idx: number) => {
-                      const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-                      const unit = parts.length > 1 ? parts.slice(1).join(' ') : 'KG';
                       const reqQtyVal = alloc.totalQtyKg ?? ((Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1));
 
                       const sourceItems = (selectedRequest.woDetails as any)?.sourceItems || [];
@@ -725,6 +723,7 @@ export const PackingApprovals: React.FC = () => {
                           (alloc.sourceProductName && s.product && s.product.trim().toLowerCase() === alloc.sourceProductName.trim().toLowerCase()) ||
                           (alloc.sourceProductId && s.id === alloc.sourceProductId)
                       ) || sourceItems[0];
+                      const unit = matchedSourceItem?.uom || (selectedRequest.woDetails as any)?.uom || 'KG';
 
                       const availQty = matchedSourceItem ? Number(matchedSourceItem.availableQty) || 0 : ((selectedRequest.woDetails as any)?.availableQty ?? 0);
                       const isSufficient = availQty >= reqQtyVal;

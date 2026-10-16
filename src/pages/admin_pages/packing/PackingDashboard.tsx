@@ -24,6 +24,7 @@ import {
   workOrderService,
   qualityCheckService,
   repackingService,
+  masterDataService,
   WorkOrder,
   QCRecord,
   RepackingLog,
@@ -33,6 +34,7 @@ export const PackingDashboard: React.FC = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [qualityChecks, setQualityChecks] = useState<QCRecord[]>([]);
   const [, setRepackings] = useState<RepackingLog[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Tab navigation state (Active Work Orders selected by default)
@@ -50,10 +52,11 @@ export const PackingDashboard: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [woRes, qcRes, rpRes] = await Promise.allSettled([
+      const [woRes, qcRes, rpRes, catRes] = await Promise.allSettled([
         workOrderService.getWorkOrders({ limit: 500 }),
         qualityCheckService.getQualityChecks({ limit: 500 }),
         repackingService.getRepackingLogs({ limit: 500 }),
+        masterDataService.getProducts().catch(() => []),
       ]);
 
       if (woRes.status === "fulfilled" && woRes.value?.data) {
@@ -64,6 +67,9 @@ export const PackingDashboard: React.FC = () => {
       }
       if (rpRes.status === "fulfilled" && rpRes.value?.data) {
         setRepackings(rpRes.value.data);
+      }
+      if (catRes.status === "fulfilled" && catRes.value) {
+        setCatalogProducts(catRes.value);
       }
     } catch (err) {
       console.error("Failed to fetch Packing Dashboard data:", err);
@@ -160,7 +166,7 @@ export const PackingDashboard: React.FC = () => {
 
   // Helper to render product column with Primary Product + Counter Badge & Hover Popover for multi-product orders
   const renderProductColumn = (wo: any) => {
-    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
+    const items = getSourceItemsArray(wo);
 
     if (items && items.length > 1) {
       const primaryName = items[0].product || 'Product 1';
@@ -201,81 +207,189 @@ export const PackingDashboard: React.FC = () => {
     );
   };
 
-  const isUuidString = (str?: string) => {
-    if (!str) return false;
-    const s = String(str).trim();
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) || s.length > 20;
+  const getSourceItemsArray = (wo: any): any[] => {
+    let items = wo?.sourceItems;
+    if (typeof items === 'string') {
+      try { items = JSON.parse(items); } catch (e) {}
+    }
+    return Array.isArray(items) ? items : [];
+  };
+
+  const getOutputAllocationsArray = (wo: any): any[] => {
+    let allocs = wo?.outputAllocations;
+    if (typeof allocs === 'string') {
+      try { allocs = JSON.parse(allocs); } catch (e) {}
+    }
+    return Array.isArray(allocs) ? allocs : [];
+  };
+
+  const normalizeUnit = (u?: string) => {
+    if (!u) return '';
+    const trimmed = String(u).trim().toUpperCase();
+    if (trimmed === 'KILOGRAMS' || trimmed === 'KILOGRAM') return 'KG';
+    if (trimmed === 'GRAMS' || trimmed === 'GRAM') return 'GM';
+    if (trimmed === 'LITRES' || trimmed === 'LITRE' || trimmed === 'LITERS' || trimmed === 'LITER') return 'L';
+    if (trimmed === 'MILLILITRES' || trimmed === 'MILLILITRE' || trimmed === 'MILLILITERS' || trimmed === 'MILLILITER') return 'ML';
+    return trimmed;
   };
 
   const getWOUnit = (wo: any) => {
-    const uomObj = wo?.product?.uom;
-    if (uomObj && typeof uomObj === 'object') {
-      if (uomObj.abbreviation && !isUuidString(uomObj.abbreviation)) return String(uomObj.abbreviation).trim().toUpperCase();
-      if (uomObj.name && !isUuidString(uomObj.name)) return String(uomObj.name).trim().toUpperCase();
-    }
-    const sourceUom = wo?.sourceItems?.[0]?.uom;
-    if (sourceUom && !isUuidString(sourceUom)) return String(sourceUom).trim().toUpperCase();
-
-    const prodUnit = wo?.product?.unit;
-    if (prodUnit && !isUuidString(prodUnit)) return String(prodUnit).trim().toUpperCase();
-
-    return 'KG';
+    // Unit fetched strictly from Eligible Source Inventory (wo.sourceItems)
+    const items = getSourceItemsArray(wo);
+    const sourceUom = items[0]?.uom;
+    return sourceUom ? normalizeUnit(sourceUom) : '';
   };
 
-  // Helper to format required quantity per UOM
+  // Helper to format required quantity based on source inventory UOM
   const formatRequiredQty = (wo: any) => {
     if (!wo) return '0';
-    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
-      const map: Record<string, number> = {};
-      wo.outputAllocations.forEach((alloc: any) => {
-        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-        const fallbackUnit = getWOUnit(wo);
-        let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
-        if (isUuidString(unit)) unit = fallbackUnit;
-        const qty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
-        map[unit] = (map[unit] || 0) + qty;
-      });
-      const entries = Object.entries(map);
-      if (entries.length > 0) {
-        return entries.map(([uom, qty]) => `${parseFloat(qty.toFixed(3))} ${uom}`).join(', ');
+    const invUnit = getWOUnit(wo);
+    const allocs = getOutputAllocationsArray(wo);
+    if (allocs.length > 0) {
+      const totalAllocated = allocs.reduce((sum: number, alloc: any) => {
+        return sum + (Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1));
+      }, 0);
+      if (totalAllocated > 0) {
+        return `${parseFloat(totalAllocated.toFixed(3))} ${invUnit}`;
       }
     }
-    const unit = getWOUnit(wo);
-    return `${parseFloat(Number(wo.requiredQty || 0).toFixed(3))} ${unit}`;
+    return `${parseFloat(Number(wo.requiredQty || 0).toFixed(3))} ${invUnit}`;
   };
 
-  // Helper to format packed quantity per UOM
+  // Helper to format packed quantity based on source inventory UOM
   const formatPackedQty = (wo: any) => {
     if (!wo) return '0';
-    const actual = wo.actualProduced || 0;
-    if (actual === 0) return '0';
+    const invUnit = getWOUnit(wo);
+    const actual = Number(wo.actualProduced) || 0;
+    if (actual === 0) return `0 ${invUnit}`;
 
-    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
-      const map: Record<string, number> = {};
-      const totalReq = wo.requiredQty || 1;
+    const allocs = getOutputAllocationsArray(wo);
+    if (allocs.length > 0) {
+      const totalReq = Number(wo.requiredQty) || 1;
+      let totalPacked = 0;
 
-      wo.outputAllocations.forEach((alloc: any) => {
-        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-        const fallbackUnit = getWOUnit(wo);
-        let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
-        if (isUuidString(unit)) unit = fallbackUnit;
-
+      allocs.forEach((alloc: any) => {
         const targetQty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
         const packedQty = alloc.packedUnits !== undefined && alloc.packedUnits !== null
           ? Number(alloc.packedUnits) * (alloc.packSizeKg || 1)
           : Math.round((actual * (targetQty / totalReq)) * 100) / 100;
 
-        map[unit] = (map[unit] || 0) + packedQty;
+        totalPacked += (packedQty || 0);
       });
 
-      const entries = Object.entries(map);
-      if (entries.length > 0) {
-        return entries.map(([uom, qty]) => `${parseFloat(qty.toFixed(3))} ${uom}`).join(', ');
+      return `${parseFloat(totalPacked.toFixed(3))} ${invUnit}`;
+    }
+
+    return `${parseFloat(actual.toFixed(3))} ${invUnit}`;
+  };
+
+  // Helper to resolve variant SKU for a work order
+  const getWOSku = (wo: any, catalog: any[] = []) => {
+    if (!wo) return '—';
+
+    const allocs = getOutputAllocationsArray(wo);
+    const sources = getSourceItemsArray(wo);
+
+    // 1. Check outputAllocations (Target output items / variants being packed)
+    if (allocs.length > 0) {
+      const firstAlloc = allocs[0];
+      const allocSku = firstAlloc.sku || firstAlloc.skuCode || firstAlloc.sourceProductSku;
+      if (allocSku && allocSku !== '—' && allocSku !== 'N/A') {
+        return allocSku;
+      }
+
+      const prodName = (firstAlloc.sourceProductName || firstAlloc.productName || firstAlloc.product || wo.product?.name || '').trim();
+      const packText = (firstAlloc.packSizeText || '').trim();
+
+      // Look up variant in catalog products
+      if (catalog && catalog.length > 0) {
+        const matched = catalog.find((p: any) => {
+          const pName = (p.name || '').toLowerCase().trim();
+          const targetName = prodName.toLowerCase().trim();
+          return (
+            (firstAlloc.sourceProductId && p.id === firstAlloc.sourceProductId) ||
+            (wo.productId && p.id === wo.productId) ||
+            (targetName && pName === targetName) ||
+            (targetName && (pName.includes(targetName) || targetName.includes(pName)))
+          );
+        });
+
+        if (matched) {
+          // Check product variants
+          if (Array.isArray(matched.variants) && matched.variants.length > 0) {
+            const matchedVariant = matched.variants.find((v: any) => {
+              const vText = `${v.measurement || ''} ${v.unit || ''}`.trim().toLowerCase();
+              const pTextLower = packText.toLowerCase();
+              const vName = (v.variantName || '').trim().toLowerCase();
+              const skuNameLower = (firstAlloc.skuName || '').trim().toLowerCase();
+
+              return (
+                (pTextLower && vText === pTextLower) ||
+                (vName && skuNameLower.includes(vName))
+              );
+            });
+
+            if (matchedVariant?.sku && matchedVariant.sku !== '—') {
+              return matchedVariant.sku;
+            }
+          }
+
+          // If no variant SKU, check product.sku
+          if (matched.sku && matched.sku !== '—') {
+            if (packText) {
+              const prefix = matched.sku.includes('-')
+                ? matched.sku.split('-')[0]
+                : matched.sku;
+              return `${prefix}-${packText.replace(/\s+/g, '-').toUpperCase()}`;
+            }
+            return matched.sku;
+          }
+        }
+      }
+
+      // If still not found, construct standard variant SKU from product name & pack size
+      if (prodName && packText) {
+        const codePart = prodName.replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase();
+        return `${codePart}-${packText.replace(/\s+/g, '-').toUpperCase()}`;
       }
     }
 
-    const unit = getWOUnit(wo);
-    return `${parseFloat(Number(actual).toFixed(3))} ${unit}`;
+    // 2. Check wo.product.sku
+    if (wo.product?.sku && wo.product.sku !== '—' && wo.product.sku !== 'N/A') {
+      return wo.product.sku;
+    }
+
+    // 3. Check wo.product.variants
+    if (Array.isArray(wo.product?.variants) && wo.product.variants.length > 0) {
+      const firstVar = wo.product.variants[0];
+      if (firstVar?.sku && firstVar.sku !== '—') {
+        return firstVar.sku;
+      }
+    }
+
+    // 4. Check sourceItems
+    if (sources.length > 0 && sources[0]?.sku && sources[0].sku !== '—' && sources[0].sku !== 'N/A') {
+      return sources[0].sku;
+    }
+
+    // 5. Check catalog by wo.product?.name
+    if (wo.product?.name && catalog && catalog.length > 0) {
+      const matched = catalog.find((p: any) => p.name?.toLowerCase().trim() === wo.product.name.toLowerCase().trim());
+      if (matched?.sku && matched.sku !== '—') {
+        return matched.sku;
+      }
+      if (Array.isArray(matched?.variants) && matched.variants.length > 0 && matched.variants[0]?.sku) {
+        return matched.variants[0].sku;
+      }
+    }
+
+    // 6. Fallback if product has a name
+    if (wo.product?.name) {
+      const codePart = wo.product.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase();
+      return `${codePart}-SKU`;
+    }
+
+    return '—';
   };
 
   // Filter dataset for current activeTab
@@ -290,16 +404,18 @@ export const PackingDashboard: React.FC = () => {
       const sourceProductsText = Array.isArray((w as any).sourceItems)
         ? (w as any).sourceItems.map((i: any) => i.product).join(' ')
         : '';
+      const resolvedSku = getWOSku(w, catalogProducts);
       const matchesSearch =
         !searchQuery ||
         (w.woNumber || w.id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (w.product?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (w.product?.sku || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resolvedSku.toLowerCase().includes(searchQuery.toLowerCase()) ||
         sourceProductsText.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === "All" || w.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [activeTab, activeWOs, materialIssueWOs, packingExecWOs, qcWOs, finishedGoodsWOs, searchQuery, statusFilter]);
+  }, [activeTab, activeWOs, materialIssueWOs, packingExecWOs, qcWOs, finishedGoodsWOs, searchQuery, statusFilter, catalogProducts]);
 
   // Reset page when filter/search/tab changes
   useEffect(() => {
@@ -652,7 +768,7 @@ export const PackingDashboard: React.FC = () => {
                           {wo.woNumber}
                         </td>
                         <td className="px-5 py-3.5 font-mono font-semibold text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                          {wo.product?.sku || (Array.isArray((wo as any).sourceItems) && (wo as any).sourceItems[0]?.sku) || "—"}
+                          {getWOSku(wo, catalogProducts)}
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           {renderProductColumn(wo)}

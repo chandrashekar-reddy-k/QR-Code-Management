@@ -10,7 +10,7 @@ export const inventoryService = {
   getReserveInventory: async (params: any) => {
     return api.get('/product', { params: { ...params, inventoryType: 'RESERVE' } });
   },
-  updateProductInventoryType: async (productId: string, inventoryType: 'RAW' | 'READY' | 'RESERVE' | 'PRODUCTION', extra?: { transferQty?: number; grnId?: string }) => {
+  updateProductInventoryType: async (productId: string, inventoryType: 'RAW' | 'READY' | 'RESERVE' | 'PRODUCTION', extra?: { transferQty?: number; grnId?: string; name?: string; sku?: string; price?: number; [key: string]: any }) => {
     return api.put(`/product/${productId}`, { inventoryType, ...extra });
   },
   saveChannelAllocation: async (productId: string, allocation: { onlineQty: number; posQty: number; vehicleQty: number }) => {
@@ -46,21 +46,7 @@ export const inventoryService = {
         };
       });
 
-      // Also map standalone POs if GRNs aren't present for them
-      const grnPoIds = new Set(grnList.map((g: any) => g.poId).filter(Boolean));
-      const standalonePOs = poList
-        .filter((po: any) => !grnPoIds.has(po.id))
-        .map((po: any) => ({
-          id: po.id,
-          displayId: po.displayId || (po.poNumber ? `PO-#${po.poNumber}` : po.id.slice(0, 8)),
-          po: { vendor: po.vendor },
-          items: (po.items || []).map((item: any) => ({
-            productId: item.productId,
-            receivedQuantity: item.receivedQty || item.quantity || 0
-          }))
-        }));
-
-      return { data: { data: [...mappedGRNs, ...standalonePOs] } };
+      return { data: { data: mappedGRNs } };
     } catch (err) {
       console.error('getProcurementGRNs error:', err);
       return { data: { data: [] } };

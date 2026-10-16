@@ -6,6 +6,7 @@ import {
   WorkOrder,
 } from '../../../api/packing/workOrderService';
 import { masterDataService } from '../../../api/packing/masterDataService';
+import { resolveProductAndSku } from './PackingExecutionDetails';
 import { authService, User } from '../../../api/packing/authService';
 import { CreateWorkOrderFlow } from './CreateWorkOrderFlow';
 import {
@@ -397,48 +398,38 @@ export const PackingWorkOrders: React.FC = () => {
     );
   };
 
-  const isUuidString = (str?: string) => {
-    if (!str) return false;
-    const s = String(str).trim();
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) || s.length > 20;
+
+  const normalizeUnit = (u?: string) => {
+    if (!u) return '';
+    const trimmed = String(u).trim().toUpperCase();
+    if (trimmed === 'KILOGRAMS' || trimmed === 'KILOGRAM') return 'KG';
+    if (trimmed === 'GRAMS' || trimmed === 'GRAM') return 'GM';
+    if (trimmed === 'LITRES' || trimmed === 'LITRE' || trimmed === 'LITERS' || trimmed === 'LITER') return 'L';
+    if (trimmed === 'MILLILITRES' || trimmed === 'MILLILITRE' || trimmed === 'MILLILITERS' || trimmed === 'MILLILITER') return 'ML';
+    return trimmed;
   };
 
   const getWOUnit = (wo: any) => {
-    const uomObj = wo?.product?.uom;
-    if (uomObj && typeof uomObj === 'object') {
-      if (uomObj.abbreviation && !isUuidString(uomObj.abbreviation)) return String(uomObj.abbreviation).trim().toUpperCase();
-      if (uomObj.name && !isUuidString(uomObj.name)) return String(uomObj.name).trim().toUpperCase();
-    }
+    // Unit fetched strictly from Eligible Source Inventory (wo.sourceItems)
     const items = getSourceItemsArray(wo);
     const sourceUom = items[0]?.uom;
-    if (sourceUom && !isUuidString(sourceUom)) return String(sourceUom).trim().toUpperCase();
-
-    const prodUnit = wo?.product?.unit;
-    if (prodUnit && !isUuidString(prodUnit)) return String(prodUnit).trim().toUpperCase();
-
-    return 'KG';
+    return sourceUom ? normalizeUnit(sourceUom) : '';
   };
 
-  // Utility to format work order required quantity based on output allocations and UOMs
+  // Utility to format work order required quantity based on source inventory UOM
   const formatRequiredQty = (wo: any) => {
-    if (!wo) return '0 KG';
+    if (!wo) return '0';
+    const invUnit = getWOUnit(wo);
     const outputAllocations = getOutputAllocationsArray(wo);
     if (outputAllocations.length > 0) {
-      const map: Record<string, number> = {};
-      outputAllocations.forEach((alloc: any) => {
-        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-        const fallbackUnit = getWOUnit(wo);
-        let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
-        if (isUuidString(unit)) unit = fallbackUnit;
-        const qty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
-        map[unit] = (map[unit] || 0) + qty;
-      });
-      const entries = Object.entries(map);
-      if (entries.length > 0) {
-        return entries.map(([uom, qty]) => `${parseFloat(qty.toFixed(3))} ${uom}`).join(', ');
+      const totalAllocated = outputAllocations.reduce((sum: number, alloc: any) => {
+        return sum + (Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1));
+      }, 0);
+      if (totalAllocated > 0) {
+        return `${parseFloat(totalAllocated.toFixed(3))} ${invUnit}`;
       }
     }
-    return `${parseFloat(Number(wo.requiredQty || 0).toFixed(3))} ${getWOUnit(wo)}`;
+    return `${parseFloat(Number(wo.requiredQty || 0).toFixed(3))} ${invUnit}`;
   };
 
   const renderSkuColumn = (wo: any) => {
@@ -474,7 +465,28 @@ export const PackingWorkOrders: React.FC = () => {
       );
     }
 
-    const singleSku = wo?.product?.sku || items[0]?.sku || items[0]?.itemCode || wo?.sku || wo?.recipe?.code || '—';
+    const allocs = getOutputAllocationsArray(wo);
+    const allocSku = allocs[0]?.sku || allocs[0]?.skuCode || allocs[0]?.sourceProductSku;
+    const variantSku = wo?.product?.variants?.find((v: any) => {
+      const vText = `${v.measurement || ''} ${v.unit || ''}`.trim().toLowerCase();
+      const pTextLower = (allocs[0]?.packSizeText || '').trim().toLowerCase();
+      return pTextLower && vText === pTextLower;
+    })?.sku || wo?.product?.variants?.[0]?.sku;
+
+    const validSourceSku = items[0]?.sku && items[0]?.sku !== '—' && items[0]?.sku !== 'N/A' ? items[0].sku : null;
+    const validAllocSku = allocSku && allocSku !== '—' && allocSku !== 'N/A' ? allocSku : null;
+    const validProductSku = wo?.product?.sku && wo?.product?.sku !== '—' && wo?.product?.sku !== 'N/A' ? wo.product.sku : null;
+    const validVariantSku = variantSku && variantSku !== '—' && variantSku !== 'N/A' ? variantSku : null;
+
+    let derivedVariantSku: string | null = null;
+    if (allocs.length > 0 && allocs[0]?.packSizeText) {
+      const pName = (allocs[0].sourceProductName || allocs[0].productName || allocs[0].product || wo?.product?.name || '').trim();
+      if (pName) {
+        derivedVariantSku = `${pName.replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase()}-${allocs[0].packSizeText.replace(/\s+/g, '-').toUpperCase()}`;
+      }
+    }
+
+    const singleSku = validAllocSku || validVariantSku || validProductSku || validSourceSku || items[0]?.itemCode || derivedVariantSku || wo?.sku || wo?.recipe?.code || '—';
     return (
       <span className="font-mono font-bold text-gray-700 dark:text-gray-200 truncate block max-w-[140px]" title={singleSku}>
         {singleSku}
@@ -482,38 +494,30 @@ export const PackingWorkOrders: React.FC = () => {
     );
   };
 
-  // Utility to format actual produced quantity per UOM
+  // Utility to format actual produced quantity based on source inventory UOM
   const formatActualProduced = (wo: any) => {
-    if (!wo) return '0 KG';
+    if (!wo) return '0';
+    const invUnit = getWOUnit(wo);
     const actual = wo.actualProduced || 0;
     const outputAllocations = getOutputAllocationsArray(wo);
 
     if (outputAllocations.length > 0) {
-      const map: Record<string, number> = {};
       const totalReq = wo.requiredQty || 1;
+      let totalPacked = 0;
 
       outputAllocations.forEach((alloc: any) => {
-        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-        const fallbackUnit = getWOUnit(wo);
-        let unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
-        if (isUuidString(unit)) unit = fallbackUnit;
-
         const targetQty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
         const packedQty = alloc.packedUnits !== undefined && alloc.packedUnits !== null
           ? Number(alloc.packedUnits) * (alloc.packSizeKg || 1)
           : (alloc.packedQty !== undefined && alloc.packedQty !== null ? Number(alloc.packedQty) : Math.round((actual * (targetQty / totalReq)) * 100) / 100);
 
-        map[unit] = (map[unit] || 0) + (packedQty || 0);
+        totalPacked += (packedQty || 0);
       });
 
-      const entries = Object.entries(map);
-      if (entries.length > 0) {
-        return entries.map(([uom, qty]) => `${parseFloat(qty.toFixed(3))} ${uom}`).join(', ');
-      }
+      return `${parseFloat(totalPacked.toFixed(3))} ${invUnit}`;
     }
 
-    const unit = getWOUnit(wo);
-    return `${parseFloat(Number(actual).toFixed(3))} ${unit}`;
+    return `${parseFloat(Number(actual).toFixed(3))} ${invUnit}`;
   };
 
   // Edit WO Handler
@@ -1033,10 +1037,7 @@ export const PackingWorkOrders: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-medium">
                       {getOutputAllocationsArray(currentWO).map((alloc: any, idx: number) => {
-                        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-                        const fallbackUnit = getWOUnit(currentWO);
-                        let allocUom = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
-                        if (!allocUom || isUuidString(allocUom)) allocUom = fallbackUnit;
+                        const allocUom = getWOUnit(currentWO);
 
                         const val = typeof alloc.totalQtyKg === 'number' || !isNaN(Number(alloc.totalQtyKg))
                           ? parseFloat(Number(alloc.totalQtyKg).toFixed(4))
@@ -1120,7 +1121,8 @@ export const PackingWorkOrders: React.FC = () => {
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="bg-emerald-50/50 dark:bg-emerald-950/30 text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 border-b border-gray-200 dark:border-gray-700">
-                          <th className="py-2.5 px-3.5">TARGET PRODUCT / SKU</th>
+                          <th className="py-2.5 px-3.5">SKU</th>
+                          <th className="py-2.5 px-3.5">PRODUCT NAME</th>
                           <th className="py-2.5 px-3.5">PACK SIZE</th>
                           <th className="py-2.5 px-3.5 text-center">ALLOCATED QTY</th>
                           <th className="py-2.5 px-3.5">DESTINATION STORE</th>
@@ -1129,11 +1131,15 @@ export const PackingWorkOrders: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-medium">
                         {getOutputAllocationsArray(currentWO).map((alloc: any, idx: number) => {
+                          const resolved = resolveProductAndSku(alloc, currentWO, []);
                           const postedQty = alloc.packedUnits ?? alloc.packedQty ?? alloc.plannedUnits ?? 0;
                           return (
                             <tr key={idx} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/30">
+                              <td className="py-2.5 px-3.5 font-mono font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                                {resolved.sku}
+                              </td>
                               <td className="py-2.5 px-3.5 font-bold text-gray-900 dark:text-white">
-                                {alloc.skuName || alloc.productName || currentWO.product?.name || '—'}
+                                {resolved.productName}
                               </td>
                               <td className="py-2.5 px-3.5 text-gray-600 dark:text-gray-300">
                                 <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-[11px] font-semibold">

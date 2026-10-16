@@ -653,7 +653,7 @@ const ManageProducts = () => {
     const variantLabels = resolveListRowUnitLabels(firstVar, unitTypesOptions, unitsByTypeId);
     const mainUnit = productLabels.unit || variantLabels.unit;
     const mainUnitType = productLabels.unitType || variantLabels.unitType;
-    const mainSku = String(p.sku ?? firstVar.sku ?? "");
+    const mainSku = String(p.sku ?? "");
 
     const transformedVariants: Variant[] = (Array.isArray(variantsArray) ? variantsArray : []).map((variant: any, index: number) => {
       const imgs = (Array.isArray(variant.primaryImages) && variant.primaryImages.length > 0 ? variant.primaryImages : Array.isArray(variant.images) && variant.images?.length ? variant.images : variant.image ? [variant.image] : variant.primaryImage ? [variant.primaryImage] : []) as string[];
@@ -753,7 +753,6 @@ const ManageProducts = () => {
       const dispUnitType = productLabels.unitType || variantLabels.unitType;
       const resolvedSku = String(
         ((product as unknown) as Record<string, unknown>).sku ||
-        firstVariant?.sku ||
         ""
       );
       const transformedVariants: Variant[] = variantsToShow.map((v: any, index: number) => {

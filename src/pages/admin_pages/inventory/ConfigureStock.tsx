@@ -9,6 +9,7 @@ import {
   Pagination
 } from '../../../components/ui';
 import procurementService from '../vsms/services/procurementService';
+import { masterDataService } from '../../../api/packing/masterDataService';
 
 interface ConfigureStockItem {
   id: string;
@@ -36,23 +37,41 @@ const ConfigureStock: React.FC = () => {
 
   const [procurementGRNs, setProcurementGRNs] = useState<any[]>([]);
   const [selectedGRNId, setSelectedGRNId] = useState<string>('ALL');
-  const [configFilter, setConfigFilter] = useState<'ALL' | 'UNCONFIGURED' | 'CONFIGURED'>('ALL');
+  const [configFilter, setConfigFilter] = useState<'ALL' | 'UNCONFIGURED' | 'CONFIGURED'>('UNCONFIGURED');
 
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const res = await procurementService.getUnconfiguredGRNItems({ includeConfigured: true });
+      const [res, catalogProducts] = await Promise.all([
+        procurementService.getUnconfiguredGRNItems({ includeConfigured: true }),
+        masterDataService.getProducts().catch(() => [])
+      ]);
+
+      const catalogMap = new Map<string, any>();
+      (catalogProducts || []).forEach((p: any) => {
+        if (p?.id) catalogMap.set(p.id, p);
+        if (Array.isArray(p?.variants)) {
+          p.variants.forEach((v: any) => {
+            if (v?.id) catalogMap.set(v.id, { ...v, sku: v.sku || p.sku });
+          });
+        }
+      });
+
       if (res.data?.success) {
         const items = res.data.data.map((item: any) => {
           const prodImage = (Array.isArray(item.product?.images) && item.product.images.length > 0)
             ? item.product.images[0]
             : (typeof item.product?.images === 'string' ? item.product.images : '') || item.product?.image || item.product?.masterProduct?.images?.[0] || item.product?.masterProduct?.image || '';
 
+          const prodId = item.productVariantId || item.productId || item.product?.id;
+          const catalogProd = prodId ? catalogMap.get(prodId) : null;
+          const sku = catalogProd?.sku || catalogProd?.resolvedSku || item.product?.sku || item.product?.masterProduct?.sku || '-';
+
           return {
             id: item.id,
             grnId: item.grnId || item.goodsReceiptId || item.grn?.id || '',
             name: item.product?.name || 'Unknown',
-            sku: item.resolvedSku || item.product?.sku || item.product?.masterProduct?.sku || item.product?.barcode || 'N/A',
+            sku,
             category: item.resolvedCategory || item.product?.category?.name || item.product?.subCategory?.name || 'General',
             quantity: item.receivedQty || 0,
             unit: item.resolvedUnit || item.product?.unit || 'Units',
@@ -113,14 +132,6 @@ const ConfigureStock: React.FC = () => {
     );
   };
 
-  const toggleAll = () => {
-    if (selectedItems.length === paginatedData.length && paginatedData.length > 0) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems(paginatedData.map(item => item.id));
-    }
-  };
-
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     let filtered = data;
@@ -168,6 +179,27 @@ const ConfigureStock: React.FC = () => {
     currentPage * itemsPerPage
   );
 
+  // Only unconfigured items in filtered list can be selected across all pages
+  const allSelectableItems = useMemo(
+    () => filteredAndSortedData.filter((item) => !item.isConfigured),
+    [filteredAndSortedData]
+  );
+
+  const isAllSelected =
+    allSelectableItems.length > 0 &&
+    allSelectableItems.every((item) => selectedItems.includes(item.id));
+
+  const toggleAll = () => {
+    if (isAllSelected) {
+      setSelectedItems((prev) =>
+        prev.filter((id) => !allSelectableItems.some((item) => item.id === id))
+      );
+    } else {
+      const selectableIds = allSelectableItems.map((item) => item.id);
+      setSelectedItems((prev) => Array.from(new Set([...prev, ...selectableIds])));
+    }
+  };
+
   const pagination = {
     page: currentPage,
     limit: itemsPerPage,
@@ -196,18 +228,30 @@ const ConfigureStock: React.FC = () => {
       label: (
         <input
           type="checkbox"
-          className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-          checked={selectedItems.length === paginatedData.length && paginatedData.length > 0}
+          className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          checked={isAllSelected}
+          disabled={allSelectableItems.length === 0}
           onChange={toggleAll}
+          title={isAllSelected ? "Deselect all" : `Select all ${allSelectableItems.length} items`}
         />
       ),
       sortable: false,
       render: (item: ConfigureStockItem) => {
         const isSelected = selectedItems.includes(item.id);
+        if (item.isConfigured) {
+          return (
+            <input
+              type="checkbox"
+              disabled
+              title="Already configured in Raw Inventory"
+              className="w-4 h-4 text-gray-300 rounded border-gray-200 cursor-not-allowed opacity-40 bg-gray-100"
+            />
+          );
+        }
         return (
           <input
             type="checkbox"
-            className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+            className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
             checked={isSelected}
             onChange={() => toggleSelection(item.id)}
           />
@@ -252,7 +296,7 @@ const ConfigureStock: React.FC = () => {
       label: 'SKU',
       sortable: true,
       render: (item: ConfigureStockItem) => (
-        <span className="text-sm text-[#0066cc] hover:underline cursor-pointer">{item.sku}</span>
+        <span className="text-sm text-gray-600 font-medium">{item.sku}</span>
       )
     },
     {
@@ -336,13 +380,14 @@ const ConfigureStock: React.FC = () => {
               value={configFilter}
               onChange={(e) => {
                 setConfigFilter(e.target.value as any);
+                setSelectedItems([]);
                 setCurrentPage(1);
               }}
               className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[160px] cursor-pointer"
             >
-              <option value="ALL">Status</option>
               <option value="UNCONFIGURED">Pending Config</option>
               <option value="CONFIGURED">Configured</option>
+              <option value="ALL">All Status</option>
             </select>
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
@@ -355,6 +400,7 @@ const ConfigureStock: React.FC = () => {
               value={selectedGRNId}
               onChange={(e) => {
                 setSelectedGRNId(e.target.value);
+                setSelectedItems([]);
                 setCurrentPage(1);
               }}
               className="pl-4 pr-8 py-2 text-sm text-gray-700 bg-transparent focus:outline-none font-medium appearance-none h-full min-w-[200px] cursor-pointer"
@@ -377,8 +423,9 @@ const ConfigureStock: React.FC = () => {
           <button
             onClick={() => {
               setSelectedGRNId('ALL');
-              setConfigFilter('ALL');
+              setConfigFilter('UNCONFIGURED');
               setSearchTerm('');
+              setSelectedItems([]);
               setCurrentPage(1);
             }}
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
@@ -419,9 +466,16 @@ const ConfigureStock: React.FC = () => {
         {/* Selection Bar or Pagination */}
         {selectedItems.length > 0 ? (
           <div className="px-4 py-4 border-t border-gray-200 bg-white flex items-center justify-between">
-            <div className="text-sm">
+            <div className="text-sm flex items-center gap-2">
               <span className="font-bold text-gray-900">{selectedItems.length}</span>
-              <span className="text-gray-500 ml-1">items selected</span>
+              <span className="text-gray-500">items selected</span>
+              <button
+                type="button"
+                onClick={() => setSelectedItems([])}
+                className="text-xs text-red-600 hover:text-red-700 underline font-medium cursor-pointer ml-2"
+              >
+                Clear selection
+              </button>
             </div>
             <div className="flex items-center gap-3">
               <Button

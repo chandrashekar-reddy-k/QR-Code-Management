@@ -618,7 +618,6 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                                             )}
                                           </div>
                                           <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">SKU: {String(p.id).slice(-6).toUpperCase()}</span>
                                             {(() => {
                                               const unitStr = typeof p.unit === 'object' ? (p.unit?.type || p.unit?.name || '') : (p.unit || '');
                                               const cleanUnit = unitStr.includes('-') && unitStr.length > 20 ? '' : unitStr;
