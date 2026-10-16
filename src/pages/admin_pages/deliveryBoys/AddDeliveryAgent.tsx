@@ -461,6 +461,7 @@ const AddDeliveryAgent = () => {
                       <option value="">Select City</option>
                       <option value="Hyderabad">Hyderabad</option>
                       <option value="Vijayawada">Vijayawada</option>
+                      <option value="Guntur">Guntur</option>
                     </SelectInput>
                   )}
                 />
@@ -580,6 +581,7 @@ const AddDeliveryAgent = () => {
                       <option value="">Select City</option>
                       <option value="Hyderabad">Hyderabad</option>
                       <option value="Vijayawada">Vijayawada</option>
+                      <option value="Guntur">Guntur</option>
                     </SelectInput>
                   )}
                 />

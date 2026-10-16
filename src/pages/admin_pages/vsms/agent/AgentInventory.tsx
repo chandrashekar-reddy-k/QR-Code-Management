@@ -831,7 +831,7 @@ export default function AgentInventory() {
                           : <Package size={18} className="text-gray-300" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-extrabold text-gray-900 truncate">{name}</p>
+                        <p className="text-xs font-medium text-gray-800 leading-snug break-words">{name}</p>
                         <p className="text-[10px] font-semibold text-gray-400">Available: {available}</p>
                       </div>
                       <div className="flex items-center bg-white border border-gray-200 rounded-xl p-0.5 shrink-0">
@@ -1110,7 +1110,7 @@ export default function AgentInventory() {
 
                       {/* Product Details */}
                       <div className="flex-1 min-w-0 space-y-1">
-                        <h4 className="text-xs font-extrabold text-gray-900 truncate">{name}</h4>
+                        <h4 className="text-xs font-medium text-gray-800 leading-snug break-words">{name}</h4>
                         <div className="flex flex-col items-start gap-1">
                           <span className="text-[8px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">
                             ON VEHICLE: {onVehicle}
@@ -1606,7 +1606,7 @@ export default function AgentInventory() {
 
                       {/* Item Details */}
                       <div className="flex-1 min-w-0 space-y-1">
-                        <h3 className="text-sm font-extrabold text-gray-900 truncate tracking-tight">
+                        <h3 className="text-sm font-medium text-gray-800 leading-snug break-words">
                           {name}
                         </h3>
                         <p className="text-xs font-semibold text-gray-400">
@@ -1919,7 +1919,7 @@ export default function AgentInventory() {
 
                     {/* Product Name & Current / Price Pills */}
                     <div className="flex-1 min-w-0 space-y-1">
-                      <h4 className="text-xs font-extrabold text-gray-900 truncate">{p.name}</h4>
+                      <h4 className="text-xs font-medium text-gray-800 leading-snug break-words">{p.name}</h4>
 
                       <div className="flex flex-col items-start gap-1">
                         <span className="text-[8px] font-extrabold text-[#00891D] bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">

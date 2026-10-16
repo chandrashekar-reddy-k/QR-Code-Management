@@ -120,7 +120,7 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0 space-y-1">
-                  <h4 className="text-xs font-extrabold text-gray-900 truncate">
+                  <h4 className="text-xs font-medium text-gray-800 leading-snug break-words">
                     {item.name}
                   </h4>
                   <p className="text-[10px] font-medium text-gray-400">

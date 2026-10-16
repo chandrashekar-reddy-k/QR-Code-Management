@@ -637,9 +637,19 @@ export default function AdminInventory() {
     }
   }, [activeTab, subTab, vehicles]);
 
+  // Periodic polling for refills when admin is on the refills tab
+  useEffect(() => {
+    if (activeTab === 'operations' && subTab === 'refills') {
+      const interval = setInterval(() => {
+        loadRefillRequests();
+      }, 10000); // Check every 10 seconds for real-time refill updates
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, subTab, storeFilterId]);
+
   const loadRefillRequests = async () => {
     try {
-      const { data } = await adminAPI.getRefillRequests({ storeId: storeFilterId });
+      const { data } = await adminAPI.getRefillRequests({ storeId: storeFilterId, _t: Date.now() });
       setRefillRequests(data);
     } catch (error) {
       toast.error('Failed to load refill requests');

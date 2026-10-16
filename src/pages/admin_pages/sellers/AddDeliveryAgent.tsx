@@ -222,7 +222,7 @@ const AddDeliveryAgent = () => {
           Add Delivery Agent
         </h1>
         <div className="flex items-center gap-2">
-          {currentStep === 1 && (
+          {/* {currentStep === 1 && (
             <button
               type="button"
               onClick={handleAutofill}
@@ -230,7 +230,7 @@ const AddDeliveryAgent = () => {
             >
               ✨ Autofill
             </button>
-          )}
+          )} */}
           <BackButton to="/delivery-boys/manage" />
         </div>
       </div>
