@@ -535,8 +535,13 @@ export default function HomepagePromos() {
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {filteredProducts.map(product => {
-                const discountPercent = product.mrp && product.mrp > product.price
-                  ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+                const isPopularOrWeekly = activeTab === 'popular' || activeTab === 'weekly';
+                const displayPrice = isPopularOrWeekly
+                  ? (product.onlinePrice ?? product.channelPrice ?? product.price)
+                  : product.price;
+
+                const discountPercent = product.mrp && product.mrp > displayPrice
+                  ? Math.round(((product.mrp - displayPrice) / product.mrp) * 100)
                   : 0;
 
                 return (
@@ -606,14 +611,19 @@ export default function HomepagePromos() {
                     ) : (
                       <div className="flex items-center gap-6 justify-between w-full md:w-auto">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-black text-gray-900 dark:text-gray-100">₹{product.price}</span>
-                          {product.mrp && product.mrp > product.price && (
+                          <span className="text-lg font-black text-gray-900 dark:text-gray-100">₹{displayPrice}</span>
+                          {Boolean(product.mrp && Number(product.mrp) > Number(displayPrice)) && (
                             <>
                               <span className="text-gray-400 text-xs line-through">₹{product.mrp}</span>
                               <span className="text-emerald-500 text-[10px] font-black bg-emerald-500/10 px-2 py-0.5 rounded-md">
                                 {discountPercent}% OFF
                               </span>
                             </>
+                          )}
+                          {isPopularOrWeekly && (
+                            <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-md ml-1">
+                              Online Price
+                            </span>
                           )}
                         </div>
 
