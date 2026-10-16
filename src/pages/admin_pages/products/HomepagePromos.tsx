@@ -79,6 +79,7 @@ export default function HomepagePromos() {
       return {
         ...p,
         onlineStock,
+        stock: onlineStock,
         channelPrice,
         onlinePrice: channelPrice,
         price: salePrice,
@@ -383,6 +384,12 @@ export default function HomepagePromos() {
   };
 
   const filteredProducts = onlineProducts.filter(p => {
+    // Only show products that are in stock
+    const effectiveStock = (p.onlineStock !== undefined && p.onlineStock !== null)
+      ? Number(p.onlineStock)
+      : (p.stock ?? 0);
+    if (effectiveStock <= 0) return false;
+
     if (activeTab === 'popular') {
       return p.isFeatured;
     } else if (activeTab === 'weekly') {
@@ -399,7 +406,12 @@ export default function HomepagePromos() {
   });
 
   const promotedIds = new Set(filteredProducts.map(p => p.id));
-  const nonPromotedProducts = onlineProducts.filter(p => !promotedIds.has(p.id));
+  const nonPromotedProducts = onlineProducts.filter(p => {
+    const effectiveStock = (p.onlineStock !== undefined && p.onlineStock !== null)
+      ? Number(p.onlineStock)
+      : (p.stock ?? 0);
+    return !promotedIds.has(p.id) && effectiveStock > 0;
+  });
 
   return (
     <div className="p-8 min-h-screen bg-gray-50/50 dark:bg-gray-955/20 text-gray-900 dark:text-gray-100 animate-fadeIn">
@@ -560,11 +572,11 @@ export default function HomepagePromos() {
                       <div className="min-w-0">
                         <h3 className="font-bold text-sm truncate">
                           {product.name}
-                          {product.stock !== undefined && product.stock <= 0 && (
+                          {(product.onlineStock ?? product.stock ?? 0) <= 0 && (
                             <span className="ml-2 text-[9px] text-red-500 font-extrabold uppercase tracking-wider">(Out of Stock)</span>
                           )}
                         </h3>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Unit: {product.unit} | Stock: {product.stock || 0}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Unit: {product.unit} | Online Stock: {product.onlineStock ?? product.stock ?? 0}</p>
                       </div>
                     </div>
 
