@@ -247,8 +247,9 @@ export default function VehicleStockManagement() {
           const vsaArray = Array.isArray(p.vehicleStockAssignments) ? p.vehicleStockAssignments : [];
           const combinedVs = [...vStocksArray, ...vsaArray];
 
-          const vStock = Number(vStocksArray.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0)) ||
-                         Number(combinedVs.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0));
+          const calculatedVStock = Number(vStocksArray.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0)) ||
+                                  Number(combinedVs.reduce((a: number, c: any) => a + (Number(c.quantity) || 0), 0));
+          const vStock = calculatedVStock > 0 ? calculatedVStock : Number(p.vehicleStock || 0);
 
           const rawVs = combinedVs;
 
@@ -759,6 +760,7 @@ export default function VehicleStockManagement() {
                   <th className="py-3 px-4">Landing Price</th>
                   <th className="py-3 px-4">Selling Price</th>
                   <th className="py-3 px-4">VSM Price</th>
+                  <th className="py-3 px-4">VSM Stock</th>
                   <th className="py-3 px-4">Vehicle Store Stock</th>
                   <th className="py-3 px-4 text-center">Van Permission</th>
                   <th className="py-3 px-4 text-center">Actions</th>
@@ -819,6 +821,11 @@ export default function VehicleStockManagement() {
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-emerald-600 dark:text-emerald-400">₹{(item.vsmPrice || 0).toFixed(2)}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className={`font-semibold ${item.vehicleStock > 0 ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
+                        {item.vehicleStock}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-gray-800 dark:text-gray-200">{item.vehicleStoreStock}</div>
