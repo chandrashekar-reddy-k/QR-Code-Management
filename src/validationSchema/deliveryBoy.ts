@@ -23,20 +23,31 @@ export const deliveryBoySchema = yup.object({
 
   password: yup
     .string()
-    .optional()
     .nullable()
+    .test("password-required", "Password is required", function (value) {
+      const isEdit = Boolean(this.options.context?.isEditMode);
+      if (isEdit) return true;
+      return Boolean(value && value.trim().length > 0);
+    })
     .test("password-min", "Password must be at least 6 characters", function (value) {
-      if (!value || value.trim().length === 0) return true;
+      const isEdit = Boolean(this.options.context?.isEditMode);
+      if (isEdit && (!value || value.trim().length === 0)) return true;
+      if (!value || value.trim().length === 0) return false;
       return value.length >= 6;
     }),
 
   confirmPassword: yup
     .string()
-    .optional()
     .nullable()
+    .test("confirm-required", "Confirm password is required", function (value) {
+      const isEdit = Boolean(this.options.context?.isEditMode);
+      if (isEdit && (!this.parent.password || this.parent.password.trim().length === 0)) return true;
+      return Boolean(value && value.trim().length > 0);
+    })
     .test("confirm-match", "Passwords must match", function (value) {
       const pwd = this.parent.password;
-      if (!pwd && !value) return true;
+      const isEdit = Boolean(this.options.context?.isEditMode);
+      if (isEdit && !pwd && !value) return true;
       if (pwd && !value) return false;
       return value === pwd;
     }),

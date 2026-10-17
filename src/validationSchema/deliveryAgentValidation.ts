@@ -74,19 +74,30 @@ phone: yup
   password: yup
     .string()
     .nullable()
-    .notRequired()
-    .test("password-length", "Password must be at least 6 characters", (val) => {
-      if (!val || val.trim().length === 0) return true;
-      return val.length >= 6;
+    .test("password-required", "Password is required", function (val) {
+      const isEdit = Boolean(this.options.context?.isEditMode);
+      if (isEdit) return true;
+      return Boolean(val && val.trim().length > 0);
+    })
+    .test("password-length", "Password must be at least 6 characters", function (val) {
+      const isEdit = Boolean(this.options.context?.isEditMode);
+      if (isEdit && (!val || val.trim().length === 0)) return true;
+      if (!val || val.trim().length === 0) return false;
+      return val.trim().length >= 6;
     }),
 
   confirmPassword: yup
     .string()
     .nullable()
-    .notRequired()
+    .test("confirm-password-required", "Confirm password is required", function (val) {
+      const isEdit = Boolean(this.options.context?.isEditMode);
+      if (isEdit && (!this.parent.password || this.parent.password.trim().length === 0)) return true;
+      return Boolean(val && val.trim().length > 0);
+    })
     .test("passwords-match", "Passwords must match", function (val) {
       const pwd = this.parent.password;
-      if (!pwd && !val) return true;
+      const isEdit = Boolean(this.options.context?.isEditMode);
+      if (isEdit && !pwd && !val) return true;
       if (pwd && !val) return false;
       return val === pwd;
     }),
