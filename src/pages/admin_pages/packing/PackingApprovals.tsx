@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { approvalService } from '../../../api/packing/approvalService';
 import { workOrderService } from '../../../api/packing/workOrderService';
+import { masterDataService } from '../../../api/packing/masterDataService';
 import type {
   ApprovalRequest,
   ApprovalType,
@@ -67,6 +68,7 @@ const resolveProductUnit = (product: any): string => {
 
 export const PackingApprovals: React.FC = () => {
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -94,6 +96,15 @@ export const PackingApprovals: React.FC = () => {
         allWOs = woRes.data || [];
       } catch (e) {
         console.warn('Failed to fetch work orders:', e);
+      }
+
+      try {
+        const catalogRes = await masterDataService.getProducts().catch(() => masterDataService.getProducts('inventoryType=PRODUCTION').catch(() => []));
+        if (Array.isArray(catalogRes)) {
+          setCatalogProducts(catalogRes);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch catalog products:', e);
       }
 
       const woApprovalMap = new Map<string, ApprovalRequest>();
@@ -706,11 +717,12 @@ export const PackingApprovals: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-gray-700/50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-400 border-b border-slate-100 dark:border-gray-700">
-                      <th className="py-2.5 px-4">TARGET SKU</th>
-                      <th className="py-2.5 px-4">PACK SIZE</th>
-                      <th className="py-2.5 px-4 text-center">PLANNED UNITS</th>
-                      <th className="py-2.5 px-4 text-right">REQ QTY</th>
-                      <th className="py-2.5 px-4 text-center">STOCK STATUS</th>
+                      <th className="py-2.5 px-4 font-bold w-[20%]">SKU CODE</th>
+                      <th className="py-2.5 px-4 font-bold w-[30%]">VARIANT NAME</th>
+                      <th className="py-2.5 px-4 font-bold w-[15%]">PACK SIZE</th>
+                      <th className="py-2.5 px-4 font-bold text-center w-[12%]">PLANNED UNITS</th>
+                      <th className="py-2.5 px-4 font-bold text-right w-[13%]">REQ QTY</th>
+                      <th className="py-2.5 px-4 font-bold text-center w-[10%]">STOCK STATUS</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
@@ -728,10 +740,44 @@ export const PackingApprovals: React.FC = () => {
                       const availQty = matchedSourceItem ? Number(matchedSourceItem.availableQty) || 0 : ((selectedRequest.woDetails as any)?.availableQty ?? 0);
                       const isSufficient = availQty >= reqQtyVal;
 
+                      let skuCode = alloc.sku || alloc.skuCode || '';
+                      if (!skuCode || skuCode === '—' || skuCode === '-') {
+                        const searchName = (alloc.sourceProductName || selectedRequest.productName || selectedRequest.woDetails?.outputProduct || '').toLowerCase().trim();
+                        const prod = catalogProducts.find((p: any) => {
+                          const pName = (p.name || '').toLowerCase().trim();
+                          return searchName && (pName === searchName || pName.includes(searchName) || searchName.includes(pName));
+                        });
+                        if (prod) {
+                          const packText = (alloc.packSizeText || '').trim().toLowerCase();
+                          if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+                            const vMatch = prod.variants.find((v: any) => {
+                              const vText = `${v.measurement || ''} ${v.unit || ''}`.trim().toLowerCase();
+                              const vName = (v.variantName || '').trim().toLowerCase();
+                              const skuNameLower = (alloc.skuName || '').trim().toLowerCase();
+                              return (packText && vText === packText) || (vName && skuNameLower.includes(vName));
+                            });
+                            if (vMatch?.sku) skuCode = vMatch.sku;
+                          }
+                          if (!skuCode && prod.sku) skuCode = prod.sku;
+                        }
+                        if (!skuCode && matchedSourceItem?.sku && matchedSourceItem.sku !== '—' && matchedSourceItem.sku !== '-') {
+                          skuCode = matchedSourceItem.sku;
+                        }
+                      }
+
                       return (
                         <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-gray-700/20">
+                          <td className="py-2.5 px-4">
+                            {skuCode && skuCode !== '—' && skuCode !== '-' ? (
+                              <span className="font-mono font-bold text-[11px] text-slate-700 dark:text-gray-200 bg-slate-100 dark:bg-gray-800 border border-slate-200/80 dark:border-gray-700 px-2.5 py-1 rounded-md inline-block">
+                                {skuCode}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-mono text-xs">—</span>
+                            )}
+                          </td>
                           <td className="py-2.5 px-4 font-bold text-slate-900 dark:text-white">
-                            {alloc.skuName}
+                            {alloc.skuName || alloc.productName || '—'}
                           </td>
                           <td className="py-2.5 px-4 text-slate-600 dark:text-gray-300">
                             {alloc.packSizeText}

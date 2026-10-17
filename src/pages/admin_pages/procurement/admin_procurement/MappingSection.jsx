@@ -3,7 +3,7 @@ import {
   Search, Link2, CheckCircle2, ChevronRight, ChevronDown, Package, Loader2,
   Star, Clock, ShieldCheck, Tag, Info, AlertCircle, Sparkles,
   ToggleLeft, ToggleRight, X, ArrowLeft, ArrowUpRight, DollarSign, Calendar,
-  CheckSquare, Square
+  CheckSquare, Square, Layers
 } from 'lucide-react';
 import { procurementAPI } from '../../vsms/services/procurementService';
 import { adminAPI } from '../../vsms/services/adminService';
@@ -48,8 +48,11 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [products, setProducts] = useState([]);
   
-  // mappedItems maps productId -> mapping data object
+  // mappedItems maps productId/variantId -> mapping data object
   const [mappedItems, setMappedItems] = useState({});
+  
+  // Track which product variant accordions are expanded
+  const [expandedProductVariants, setExpandedProductVariants] = useState({});
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,6 +61,13 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
   
   // State to manage showing price history modal
   const [historyModal, setHistoryModal] = useState(null);
+
+  const toggleVariantsExpand = (productId) => {
+    setExpandedProductVariants(prev => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
+  };
 
   useEffect(() => {
     if (setHideMainHeader) {
@@ -78,42 +88,32 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
         setVendors(v.data?.data || v.data || []);
         
         const rawProducts = p.data?.data || p.data || [];
-        const flattenedProducts = [];
+        const cleanProducts = [];
+        const seenIds = new Set();
+
         (Array.isArray(rawProducts) ? rawProducts : []).forEach(prod => {
-          // Add the base product
-          flattenedProducts.push(prod);
-          // If the product has variants, add each active variant as its own discrete product item
-          if (Array.isArray(prod.variants) && prod.variants.length > 0) {
-            prod.variants
-              .filter(variant => {
+          if (!prod || !prod.id) return;
+          if (seenIds.has(prod.id)) return;
+          seenIds.add(prod.id);
+
+          // Retain active variants inside the base product rather than flattening into individual top-level cards
+          const activeVariants = Array.isArray(prod.variants)
+            ? prod.variants.filter(variant => {
                 if (!variant) return false;
                 const status = String(variant.status || '').toUpperCase();
                 if (status === 'INACTIVE' || status === 'DISABLED') return false;
                 if (variant.isEnabled === false || variant.isActive === false) return false;
                 return true;
               })
-              .forEach(variant => {
-                flattenedProducts.push({
-                  ...prod,
-                  id: variant.id || `${prod.id}_${variant.variantName}`,
-                  productId: variant.productId || prod.id,
-                  parentProductId: prod.id,
-                  name: prod.name,
-                  variantName: variant.variantName || variant.name || '',
-                  isVariantItem: true,
-                  price: variant.sellingPrice ?? variant.price ?? prod.price,
-                  purchasePrice: variant.purchasePrice ?? variant.costPrice ?? variant.landingPrice ?? prod.purchasePrice ?? prod.price,
-                  skuCode: variant.sku || variant.skuCode || prod.skuCode,
-                  barcode: variant.barcode || prod.barcode,
-                  unit: variant.unit || variant.unitType || prod.unit,
-                  unitValue: variant.measurement || variant.unitValue || prod.unitValue,
-                  measurement: variant.measurement || prod.measurement,
-                  variants: [] // prevent recursive expansion
-                });
-              });
-          }
+            : [];
+
+          cleanProducts.push({
+            ...prod,
+            variants: activeVariants
+          });
         });
-        setProducts(flattenedProducts);
+
+        setProducts(cleanProducts);
       } catch { 
         toast.error('Failed to load initial data'); 
       } finally { 
@@ -130,16 +130,36 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
       
       const mappingDict = {};
       const mappingArray = data?.data || data || [];
+      const autoExpanded = {};
+
       mappingArray.forEach(m => {
-        const prod = products.find(p => p.id === m.productId || p.productId === m.productId);
-        if (prod) {
-          mappingDict[prod.id] = {
-            productId: prod.id,
-            vendorSku: m.vendorSku || prod.skuCode || prod.sku || '',
-            uom: m.uom || 'PACK',
+        // Look up either top-level product or variant inside products
+        let matchedProduct = products.find(p => p.id === m.productId || p.productId === m.productId);
+        let matchedVariant = null;
+
+        if (!matchedProduct) {
+          for (const p of products) {
+            const vr = p.variants?.find(vrItem => vrItem.id === m.productId || vrItem._id === m.productId);
+            if (vr) {
+              matchedProduct = p;
+              matchedVariant = vr;
+              autoExpanded[p.id] = true;
+              break;
+            }
+          }
+        }
+
+        const targetItem = matchedVariant || matchedProduct;
+        const targetId = matchedVariant ? matchedVariant.id : (matchedProduct ? matchedProduct.id : m.productId);
+
+        if (targetItem) {
+          mappingDict[targetId] = {
+            productId: targetId,
+            vendorSku: m.vendorSku || targetItem.sku || targetItem.skuCode || '',
+            uom: m.uom || getProductUom(targetItem),
             purchasePrice: String(m.purchasePrice || 0),
-            mrp: String(m.mrp ?? prod.mrp ?? 0),
-            landingPrice: String(m.landingPrice ?? prod.landingPrice ?? prod.purchasePrice ?? 0),
+            mrp: String(m.mrp ?? targetItem.mrp ?? 0),
+            landingPrice: String(m.landingPrice ?? targetItem.landingPrice ?? targetItem.purchasePrice ?? 0),
             quantity: String(m.quantity ?? 1),
             moq: String(m.moq || 1),
             leadTime: String(m.leadTime || 0),
@@ -166,26 +186,47 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
           };
         }
       });
+
       setMappedItems(mappingDict);
+      if (Object.keys(autoExpanded).length > 0) {
+        setExpandedProductVariants(prev => ({ ...prev, ...autoExpanded }));
+      }
     } catch { 
       toast.error('Failed to load existing mappings'); 
     }
   };
 
-  const toggleProduct = (productId, standardPrice = 0) => {
-    const p = products.find(item => item.id === productId);
+  const toggleProduct = (productId, standardPrice = 0, variantObj = null, parentProd = null) => {
+    let p = parentProd || products.find(item => item.id === productId);
+    let v = variantObj;
+    if (!v && (!p || p.id !== productId)) {
+      for (const prod of products) {
+        const found = prod.variants?.find(vr => vr.id === productId || vr._id === productId);
+        if (found) {
+          p = prod;
+          v = found;
+          break;
+        }
+      }
+    }
+
     setMappedItems(prev => {
       const next = { ...prev };
       if (next[productId]) {
         delete next[productId];
       } else {
+        const vendorSku = v ? (v.sku || v.skuCode || p?.skuCode || p?.sku || '') : (p?.skuCode || p?.sku || '');
+        const uom = v ? (v.unit || v.unitType || getProductUom(p)) : getProductUom(p);
+        const mrp = v ? (v.mrp || p?.mrp || 0) : (p?.mrp || 0);
+        const landing = v ? (v.landingPrice || v.costPrice || v.purchasePrice || standardPrice) : (p?.landingPrice || standardPrice || p?.purchasePrice || p?.price || 0);
+
         next[productId] = {
           productId,
-          vendorSku: p?.skuCode || p?.sku || '',
-          uom: getProductUom(p),
+          vendorSku,
+          uom: typeof uom === 'object' ? (uom?.type || uom?.name || 'PACK') : (uom || 'PACK'),
           purchasePrice: String(standardPrice),
-          mrp: String(p?.mrp || 0),
-          landingPrice: String(p?.landingPrice || standardPrice || p?.purchasePrice || p?.price || 0),
+          mrp: String(mrp),
+          landingPrice: String(landing),
           quantity: '1',
           moq: '1',
           leadTime: '3',
@@ -199,11 +240,36 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
     });
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name?.toLowerCase().includes(pSearch.toLowerCase()) || 
-    p.variantName?.toLowerCase().includes(pSearch.toLowerCase()) ||
-    p.skuCode?.toLowerCase().includes(pSearch.toLowerCase())
-  );
+  const filteredProducts = useMemo(() => {
+    const term = pSearch.toLowerCase().trim();
+    if (!term) return products;
+    return products.filter(p => {
+      const nameMatch = p.name?.toLowerCase().includes(term);
+      const skuMatch = p.skuCode?.toLowerCase().includes(term) || p.sku?.toLowerCase().includes(term);
+      const variantMatch = Array.isArray(p.variants) && p.variants.some(v => 
+        (v.variantName || v.name || '')?.toLowerCase().includes(term) ||
+        (v.sku || v.skuCode || '')?.toLowerCase().includes(term)
+      );
+      return nameMatch || skuMatch || variantMatch;
+    });
+  }, [products, pSearch]);
+
+  useEffect(() => {
+    const term = pSearch.toLowerCase().trim();
+    if (!term) return;
+    const toExpand = {};
+    products.forEach(p => {
+      if (Array.isArray(p.variants) && p.variants.some(v => 
+        (v.variantName || v.name || '')?.toLowerCase().includes(term) ||
+        (v.sku || v.skuCode || '')?.toLowerCase().includes(term)
+      )) {
+        toExpand[p.id] = true;
+      }
+    });
+    if (Object.keys(toExpand).length > 0) {
+      setExpandedProductVariants(prev => ({ ...prev, ...toExpand }));
+    }
+  }, [pSearch, products]);
 
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
@@ -233,8 +299,8 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
 
     Object.keys(groups).forEach(cat => {
       groups[cat].sort((a, b) => {
-        const isAMapped = !!mappedItems[a.id];
-        const isBMapped = !!mappedItems[b.id];
+        const isAMapped = !!mappedItems[a.id] || (Array.isArray(a.variants) && a.variants.some(v => !!mappedItems[v.id]));
+        const isBMapped = !!mappedItems[b.id] || (Array.isArray(b.variants) && b.variants.some(v => !!mappedItems[v.id]));
         if (isAMapped && !isBMapped) return -1;
         if (!isAMapped && isBMapped) return 1;
         return (a.name || '').localeCompare(b.name || '');
@@ -536,8 +602,9 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                     .filter(([catName]) => selectedCategoryFilter === 'ALL' || selectedCategoryFilter === catName)
                     .map(([catName, categoryProducts]) => {
                       const isCollapsed = !!collapsedCategories[catName];
-                      const mappedCatCount = categoryProducts.filter(p => !!mappedItems[p.id]).length;
-                      const isAllCatSelected = categoryProducts.length > 0 && mappedCatCount === categoryProducts.length;
+                      const isProdOrVarMapped = (p) => !!mappedItems[p.id] || (Array.isArray(p.variants) && p.variants.some(v => !!mappedItems[v.id]));
+                      const mappedCatCount = categoryProducts.filter(isProdOrVarMapped).length;
+                      const isAllCatSelected = categoryProducts.length > 0 && categoryProducts.every(p => !!mappedItems[p.id]);
 
                       return (
                         <div key={catName} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden transition-all">
@@ -583,19 +650,22 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                               {categoryProducts.map((p, pIdx) => {
                                 const isMapped = !!mappedItems[p.id];
                                 const itemData = mappedItems[p.id];
+                                const isVariantsExpanded = !!expandedProductVariants[p.id];
+                                const activeVariants = Array.isArray(p.variants) ? p.variants : [];
+                                const mappedVariantsCount = activeVariants.filter(v => !!mappedItems[v.id]).length;
 
                                 return (
                                   <div 
-                                    key={p.id ? `${p.id}_${p.variantName || pIdx}` : pIdx}
+                                    key={p.id ? `${p.id}_${pIdx}` : pIdx}
                                     className={`rounded-xl border transition-all duration-300 overflow-hidden ${
                                       isMapped 
                                         ? 'bg-white border-emerald-300 shadow-sm ring-1 ring-emerald-500/10' 
                                         : 'bg-white border-gray-200/80 hover:border-gray-300'
                                     }`}
                                   >
-                                    {/* Main row click to toggle mapping */}
+                                    {/* Main row click to toggle mapping of base product */}
                                     <div 
-                                      onClick={() => toggleProduct(p.id, p.purchasePrice || p.price)}
+                                      onClick={() => toggleProduct(p.id, p.purchasePrice || p.price, null, p)}
                                       className={`flex items-center justify-between p-4 cursor-pointer select-none transition-all ${
                                         isMapped ? 'bg-slate-50/80 border-b border-slate-100' : 'hover:bg-slate-50/20'
                                       }`}
@@ -606,12 +676,7 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                                         <div className="min-w-0 flex-1">
                                           <div className="flex items-center gap-2 flex-wrap">
                                             <span className="text-xs font-black text-gray-900 tracking-tight">{p.name}</span>
-                                            {p.variantName && (
-                                              <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
-                                                Variant: {p.variantName}
-                                              </span>
-                                            )}
-                                            {isMapped && itemData.isPreferred && (
+                                            {isMapped && itemData?.isPreferred && (
                                               <span className="inline-flex items-center gap-0.5 bg-amber-50 border border-amber-200/50 px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-amber-600 tracking-wide">
                                                 <Star size={8} fill="currentColor" /> Preferred Supplier
                                               </span>
@@ -630,23 +695,33 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                                                 </span>
                                               );
                                             })()}
-                                            {p.variants && p.variants.length > 0 && (
-                                              <div className="flex items-center gap-1">
-                                                <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">
-                                                  {p.variants.length} Variants Available:
-                                                </span>
-                                                {p.variants.map((v, vIdx) => {
-                                                  const vUnitStr = typeof v.unit === 'object' ? (v.unit?.type || v.unit?.name || '') : (v.unit || '');
-                                                  const cleanVUnit = vUnitStr.includes('-') && vUnitStr.length > 20 ? '' : vUnitStr;
-                                                  const vMeasurement = v.measurement || v.unitValue || '';
-                                                  const vVal = [vMeasurement, cleanVUnit].filter(Boolean).join(' ');
-                                                  return (
-                                                    <span key={v.id || vIdx} className="text-[8px] font-bold text-slate-600 bg-slate-50 border border-slate-200 px-1 py-0.5 rounded">
-                                                      {v.variantName || v.name}{vVal ? ` - ${vVal}` : ''} (₹{v.price || v.sellingPrice || 0})
-                                                    </span>
-                                                  );
-                                                })}
-                                              </div>
+
+                                            {/* Clickable Green Variants Available Button */}
+                                            {activeVariants.length > 0 && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  toggleVariantsExpand(p.id);
+                                                }}
+                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer active:scale-95 ${
+                                                  isVariantsExpanded 
+                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/20' 
+                                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100 hover:border-emerald-300'
+                                                }`}
+                                                title={isVariantsExpanded ? "Hide variants" : "Click to view and map variants"}
+                                              >
+                                                <span className={`w-1.5 h-1.5 rounded-full ${isVariantsExpanded ? 'bg-white' : 'bg-emerald-500 animate-pulse'}`} />
+                                                {activeVariants.length} Variants Available
+                                                {mappedVariantsCount > 0 && (
+                                                  <span className={`px-1 py-0.2 rounded text-[8px] font-bold ${
+                                                    isVariantsExpanded ? 'bg-emerald-700 text-white' : 'bg-emerald-200 text-emerald-800'
+                                                  }`}>
+                                                    {mappedVariantsCount} mapped
+                                                  </span>
+                                                )}
+                                                <ChevronDown size={11} className={`transition-transform duration-200 ${isVariantsExpanded ? 'rotate-180' : ''}`} />
+                                              </button>
                                             )}
                                           </div>
                                         </div>
@@ -667,7 +742,7 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                                     </div>
 
                                     {/* Detail inputs expanded if mapped */}
-                                    {isMapped && (
+                                    {isMapped && itemData && (
                                       <div className="p-4 bg-white grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 animate-in slide-in-from-top-2 duration-300">
                                         {/* Product SKU */}
                                         <div className="space-y-1">
@@ -677,7 +752,7 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                                             value={(itemData.vendorSku && itemData.vendorSku !== 'NO-SKU') ? itemData.vendorSku : ((p.skuCode && p.skuCode !== 'NO-SKU') ? p.skuCode : ((p.sku && p.sku !== 'NO-SKU') ? p.sku : '-'))} 
                                             readOnly
                                             disabled
-                                            className="w-full bg-slate-100/70 text-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 cursor-not-allowed select-none"
+                                            className="w-full bg-slate-100/70 text-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 cursor-not-allowed select-none font-mono"
                                           />
                                         </div>
 
@@ -778,6 +853,220 @@ const MappingSection = ({ can, setHideMainHeader, storeId }) => {
                                               <ToggleLeft size={26} className="text-gray-300 cursor-pointer" />
                                             )}
                                           </button>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Expandable Variants Sub-panel (Matching Image 2 Pattern) */}
+                                    {activeVariants.length > 0 && isVariantsExpanded && (
+                                      <div className="border-t border-slate-200/80 bg-slate-50/70 p-3 sm:p-4 space-y-2.5 animate-in slide-in-from-top-2 duration-200">
+                                        <div className="flex items-center justify-between px-1">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                              <Layers size={13} className="text-emerald-600" />
+                                              Product Variants ({activeVariants.length})
+                                            </span>
+                                            <span className="text-[9px] text-slate-500 font-semibold hidden sm:inline">
+                                              — Select and configure mappings for individual variants
+                                            </span>
+                                          </div>
+                                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                                            {mappedVariantsCount} of {activeVariants.length} Mapped
+                                          </span>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                          {activeVariants.map((v, vIdx) => {
+                                            const isVarMapped = !!mappedItems[v.id];
+                                            const varItemData = mappedItems[v.id];
+                                            const vUnitStr = typeof v.unit === 'object' ? (v.unit?.type || v.unit?.name || '') : (v.unit || '');
+                                            const cleanVUnit = vUnitStr.includes('-') && vUnitStr.length > 20 ? '' : vUnitStr;
+                                            const vMeasurement = v.measurement || v.unitValue || '';
+                                            const vLabel = [vMeasurement, cleanVUnit].filter(Boolean).join(' ');
+                                            const vStandardPrice = v.purchasePrice ?? v.costPrice ?? v.landingPrice ?? v.price ?? v.sellingPrice ?? 0;
+
+                                            return (
+                                              <div
+                                                key={v.id || vIdx}
+                                                className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+                                                  isVarMapped 
+                                                    ? 'bg-white border-emerald-300 shadow-xs ring-1 ring-emerald-500/10' 
+                                                    : 'bg-white/90 border-slate-200/90 hover:border-slate-300 hover:bg-white'
+                                                }`}
+                                              >
+                                                {/* Variant Row Click to Toggle Mapping */}
+                                                <div
+                                                  onClick={() => toggleProduct(v.id, vStandardPrice, v, p)}
+                                                  className={`flex items-center justify-between p-3 cursor-pointer select-none transition-all ${
+                                                    isVarMapped ? 'bg-slate-50/70 border-b border-slate-100' : 'hover:bg-slate-50/30'
+                                                  }`}
+                                                >
+                                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <span className="text-[10px] font-extrabold text-slate-400 w-5 text-center shrink-0">
+                                                      {vIdx + 1}
+                                                    </span>
+                                                    <ProductThumbnail p={{ ...p, ...v, image: v.image || p.image || p.imageUrl }} isMapped={isVarMapped} />
+                                                    <div className="min-w-0 flex-1">
+                                                      <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-xs font-black text-gray-900 tracking-tight">
+                                                          {v.variantName || v.name || `${p.name} Variant`}
+                                                        </span>
+                                                        <span className="bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+                                                          Variant
+                                                        </span>
+                                                        {(v.sku || v.skuCode) && (
+                                                          <span className="text-[9px] font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60">
+                                                            {v.sku || v.skuCode}
+                                                          </span>
+                                                        )}
+                                                        {isVarMapped && varItemData?.isPreferred && (
+                                                          <span className="inline-flex items-center gap-0.5 bg-amber-50 border border-amber-200/50 px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-amber-600 tracking-wide">
+                                                            <Star size={8} fill="currentColor" /> Preferred Supplier
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      {vLabel && (
+                                                        <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                                          <span className="text-[9px] text-slate-700 font-extrabold bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200/60">
+                                                            {vLabel}
+                                                          </span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  </div>
+
+                                                  <div className="flex items-center gap-4 shrink-0">
+                                                    <div className="flex flex-col items-end">
+                                                      <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">Standard Price</span>
+                                                      <span className="text-xs font-black text-slate-800">₹{vStandardPrice}</span>
+                                                    </div>
+                                                    
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                                      isVarMapped ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-200'
+                                                    }`}>
+                                                      {isVarMapped && <CheckCircle2 size={12} strokeWidth={3} />}
+                                                    </div>
+                                                  </div>
+                                                </div>
+
+                                                {/* Variant Detail inputs expanded if mapped */}
+                                                {isVarMapped && varItemData && (
+                                                  <div className="p-4 bg-white grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 animate-in slide-in-from-top-2 duration-300">
+                                                    {/* Variant SKU */}
+                                                    <div className="space-y-1">
+                                                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Variant SKU</label>
+                                                      <input 
+                                                        type="text" 
+                                                        value={(varItemData.vendorSku && varItemData.vendorSku !== 'NO-SKU') ? varItemData.vendorSku : ((v.sku && v.sku !== 'NO-SKU') ? v.sku : ((v.skuCode && v.skuCode !== 'NO-SKU') ? v.skuCode : '-'))} 
+                                                        readOnly
+                                                        disabled
+                                                        className="w-full bg-slate-100/70 text-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 cursor-not-allowed select-none font-mono"
+                                                      />
+                                                    </div>
+
+                                                    {/* Quantity */}
+                                                    <div className="space-y-1">
+                                                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Quantity</label>
+                                                      <input 
+                                                        type="number" 
+                                                        value={varItemData.quantity ?? ''} 
+                                                        onChange={e => handleFieldChange(v.id, 'quantity', e.target.value)}
+                                                        className="w-full bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
+                                                        placeholder="1"
+                                                      />
+                                                    </div>
+
+                                                    {/* UOM */}
+                                                    <div className="space-y-1">
+                                                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">UOM</label>
+                                                      <input 
+                                                        type="text" 
+                                                        value={varItemData.uom ?? 'PACK'} 
+                                                        onChange={e => handleFieldChange(v.id, 'uom', e.target.value)}
+                                                        className="w-full bg-slate-50/50 rounded-xl px-3 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all uppercase"
+                                                        placeholder="e.g. KG, PACK"
+                                                      />
+                                                    </div>
+
+                                                    {/* MRP */}
+                                                    <div className="space-y-1">
+                                                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">MRP (₹)</label>
+                                                      <div className="relative">
+                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₹</span>
+                                                        <input 
+                                                          type="number" 
+                                                          value={varItemData.mrp ?? ''} 
+                                                          onChange={e => handleFieldChange(v.id, 'mrp', e.target.value)}
+                                                          className="w-full bg-slate-50/50 rounded-xl pl-6 pr-2 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
+                                                          placeholder="0.00"
+                                                        />
+                                                      </div>
+                                                    </div>
+
+                                                    {/* Landing Price */}
+                                                    <div className="space-y-1">
+                                                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Landing Price (₹)</label>
+                                                      <div className="relative">
+                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₹</span>
+                                                        <input 
+                                                          type="number" 
+                                                          value={varItemData.landingPrice ?? ''} 
+                                                          onChange={e => handleFieldChange(v.id, 'landingPrice', e.target.value)}
+                                                          className="w-full bg-slate-50/50 rounded-xl pl-6 pr-2 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
+                                                          placeholder="0.00"
+                                                        />
+                                                      </div>
+                                                    </div>
+
+                                                    {/* Selling Price */}
+                                                    <div className="space-y-1">
+                                                      <div className="flex justify-between items-center">
+                                                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Selling Price (₹)</label>
+                                                        {varItemData.priceHistory?.length > 0 && (
+                                                          <button 
+                                                            type="button" 
+                                                            onClick={() => setHistoryModal(varItemData)}
+                                                            className="text-emerald-600 hover:text-emerald-700 transition-colors"
+                                                            title="View Rate History Logs"
+                                                          >
+                                                            <Clock size={10} strokeWidth={3} />
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                      <div className="relative">
+                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] font-bold">₹</span>
+                                                        <input 
+                                                          type="number" 
+                                                          value={varItemData.purchasePrice} 
+                                                          onChange={e => handleFieldChange(v.id, 'purchasePrice', e.target.value)}
+                                                          className="w-full bg-slate-50/50 rounded-xl pl-6 pr-2 py-1.5 text-xs font-bold border border-slate-100 focus:bg-white focus:border-emerald-200 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all"
+                                                          placeholder="0.00"
+                                                        />
+                                                      </div>
+                                                    </div>
+
+                                                    {/* Preferred Vendor Switch */}
+                                                    <div className="space-y-1 flex flex-col justify-end pb-1 items-start md:items-center">
+                                                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 select-none cursor-pointer" onClick={() => handleTogglePreferred(v.id)}>
+                                                        Preferred Supplier
+                                                      </label>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => handleTogglePreferred(v.id)}
+                                                        className="focus:outline-none transition-all active:scale-95 mt-1"
+                                                      >
+                                                        {varItemData.isPreferred ? (
+                                                          <ToggleRight size={26} className="text-amber-500 cursor-pointer" />
+                                                        ) : (
+                                                          <ToggleLeft size={26} className="text-gray-300 cursor-pointer" />
+                                                        )}
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
                                         </div>
                                       </div>
                                     )}

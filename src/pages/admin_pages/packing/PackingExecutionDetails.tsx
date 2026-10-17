@@ -243,7 +243,20 @@ export const PackingExecutionDetails: React.FC = () => {
   };
 
   const handleAllocPackedChange = (idx: number, value: string) => {
-    const num = value === '' ? 0 : Math.max(0, parseInt(value) || 0);
+    const cleanStr = value.replace(/^0+(?=\d)/, '');
+    let num: number | '' = cleanStr === '' ? '' : Math.max(0, parseInt(cleanStr, 10) || 0);
+    const planned = Number(allocInputs[idx]?.plannedUnits) || 0;
+    const currentRejected = Number(allocInputs[idx]?.rejectedUnits) || 0;
+
+    if (num !== '' && planned > 0 && num > planned) {
+      showToast(`Packed units cannot exceed planned units (${planned}).`, true);
+      num = planned;
+    } else if (num !== '' && planned > 0 && num + currentRejected > planned) {
+      const maxAllowed = Math.max(0, planned - currentRejected);
+      showToast(`Total units (packed + rejected) cannot exceed planned units (${planned}). Max packed: ${maxAllowed}`, true);
+      num = maxAllowed;
+    }
+
     setAllocInputs((prev) => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], packedUnits: num };
@@ -257,7 +270,17 @@ export const PackingExecutionDetails: React.FC = () => {
   };
 
   const handleAllocRejectedChange = (idx: number, value: string) => {
-    const num = value === '' ? 0 : Math.max(0, parseInt(value) || 0);
+    const cleanStr = value.replace(/^0+(?=\d)/, '');
+    let num: number | '' = cleanStr === '' ? '' : Math.max(0, parseInt(cleanStr, 10) || 0);
+    const planned = Number(allocInputs[idx]?.plannedUnits) || 0;
+    const currentPacked = Number(allocInputs[idx]?.packedUnits) || 0;
+
+    if (num !== '' && planned > 0 && currentPacked + num > planned) {
+      const maxAllowed = Math.max(0, planned - currentPacked);
+      showToast(`Total units (packed + rejected) cannot exceed planned units (${planned}). Max rejected: ${maxAllowed}`, true);
+      num = maxAllowed;
+    }
+
     setAllocInputs((prev) => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], rejectedUnits: num };
@@ -451,16 +474,44 @@ const getReqForSKU = (alloc: any) => {
   };
 
   const handleSaveQuantity = async () => {
+    for (const alloc of allocInputs) {
+      const planned = Number(alloc.plannedUnits) || 0;
+      const packed = Number(alloc.packedUnits) || 0;
+      const rejected = Number(alloc.rejectedUnits) || 0;
+      const label = alloc.skuName || alloc.productName || 'SKU';
+      if (planned > 0 && packed > planned) {
+        showToast(`Packed units for ${label} cannot exceed planned units (${planned}).`, true);
+        return;
+      }
+      if (planned > 0 && packed + rejected > planned) {
+        showToast(`Total units for ${label} cannot exceed planned units (${planned}).`, true);
+        return;
+      }
+    }
+
     if (actualProduced > reqQty) {
       showToast(`Packed quantity cannot exceed required quantity (${reqQty}).`, true);
       return;
     }
     try {
       setActionLoading(true);
+      const allocationsPayload = allocInputs.map((a: any) => {
+        const resolved = resolveProductAndSku(a, selectedWO, catalogProducts);
+        return {
+          ...a,
+          sku: a.sku || resolved.sku,
+          productName: a.productName || resolved.productName,
+        };
+      });
       const updated = await workOrderService.updateQuantity(selectedWO.id, {
         actualProduced,
         actualRejected,
       });
+      if (allocationsPayload.length > 0) {
+        await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
+          outputAllocations: allocationsPayload,
+        });
+      }
       setSelectedWO(updated);
       showToast('Packed quantity updated successfully!');
       fetchWO();
@@ -509,6 +560,21 @@ const getReqForSKU = (alloc: any) => {
   };
 
   const handleCompletePacking = async () => {
+    for (const alloc of allocInputs) {
+      const planned = Number(alloc.plannedUnits) || 0;
+      const packed = Number(alloc.packedUnits) || 0;
+      const rejected = Number(alloc.rejectedUnits) || 0;
+      const label = alloc.skuName || alloc.productName || 'SKU';
+      if (planned > 0 && packed > planned) {
+        showToast(`Packed units for ${label} cannot exceed planned units (${planned}).`, true);
+        return;
+      }
+      if (planned > 0 && packed + rejected > planned) {
+        showToast(`Total units for ${label} cannot exceed planned units (${planned}).`, true);
+        return;
+      }
+    }
+
     if (actualProduced <= 0) {
       showToast('Packed quantity must be greater than 0 to complete packing.', true);
       return;
@@ -519,11 +585,24 @@ const getReqForSKU = (alloc: any) => {
     }
     try {
       setActionLoading(true);
+      const allocationsPayload = allocInputs.map((a: any) => {
+        const resolved = resolveProductAndSku(a, selectedWO, catalogProducts);
+        return {
+          ...a,
+          sku: a.sku || resolved.sku,
+          productName: a.productName || resolved.productName,
+        };
+      });
       // Ensure quantity is updated before marking complete
       await workOrderService.updateQuantity(selectedWO.id, {
         actualProduced,
         actualRejected,
       });
+      if (allocationsPayload.length > 0) {
+        await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
+          outputAllocations: allocationsPayload,
+        });
+      }
       const updated = await workOrderService.completePacking(selectedWO.id);
       setSelectedWO(updated);
       showToast(`Work Order ${updated.woNumber} packing completed!`);
@@ -999,7 +1078,8 @@ const getReqForSKU = (alloc: any) => {
                               type="number"
                               min="0"
                               max={alloc.plannedUnits}
-                              value={alloc.packedUnits === undefined || alloc.packedUnits === null ? '' : alloc.packedUnits}
+                              placeholder="0"
+                              value={alloc.packedUnits === undefined || alloc.packedUnits === null || alloc.packedUnits === '' || alloc.packedUnits === 0 ? '' : alloc.packedUnits}
                               onChange={(e) => handleAllocPackedChange(idx, e.target.value)}
                               className="w-24 p-1.5 text-center border border-slate-200 dark:border-gray-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-emerald-600 dark:bg-gray-900 dark:text-white"
                             />
@@ -1008,7 +1088,8 @@ const getReqForSKU = (alloc: any) => {
                             <input
                               type="number"
                               min="0"
-                              value={alloc.rejectedUnits === 0 ? '' : alloc.rejectedUnits}
+                              placeholder="0"
+                              value={alloc.rejectedUnits === 0 || alloc.rejectedUnits === '' || alloc.rejectedUnits == null ? '' : alloc.rejectedUnits}
                               onChange={(e) => handleAllocRejectedChange(idx, e.target.value)}
                               className="w-24 p-1.5 text-center border border-slate-200 dark:border-gray-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-rose-600 dark:bg-gray-900 dark:text-white"
                             />

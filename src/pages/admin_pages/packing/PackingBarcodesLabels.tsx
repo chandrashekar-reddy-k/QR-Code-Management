@@ -687,6 +687,11 @@ export const PackingBarcodesLabels: React.FC = () => {
     currentProductItem?.plannedUnits ??
     (selectedWO ? (selectedWO.actualProduced ?? selectedWO.requiredQty ?? 0) : 0);
 
+  const maxPrintQty = Math.max(
+    1,
+    Number(labelsRequired) || (Number(selectedWO?.actualProduced) || Number(selectedWO?.requiredQty) || 1)
+  );
+
   const handleGeneratePreview = (e?: React.MouseEvent | React.FormEvent) => {
     if (e) e.preventDefault();
     setValidationError('');
@@ -695,6 +700,10 @@ export const PackingBarcodesLabels: React.FC = () => {
     if (!sku) return setValidationError('SKU is required.');
     if (!batchNo) return setValidationError('Batch Number is required.');
     if (mrp <= 0) return setValidationError('MRP must be greater than 0.');
+    if (printQty <= 0) return setValidationError('Print quantity must be greater than 0.');
+    if (maxPrintQty > 0 && printQty > maxPrintQty) {
+      return setValidationError(`Print quantity cannot exceed packed quantity (${maxPrintQty}).`);
+    }
     if (!mfgDate) return setValidationError('Manufacturing Date is required.');
     if (!expiryDate) return setValidationError('Expiry Date is required.');
 
@@ -1007,6 +1016,10 @@ export const PackingBarcodesLabels: React.FC = () => {
     }
     if (printQty <= 0) {
       setValidationError('Print quantity must be greater than 0.');
+      return;
+    }
+    if (maxPrintQty > 0 && printQty > maxPrintQty) {
+      setValidationError(`Print quantity cannot exceed packed quantity (${maxPrintQty}).`);
       return;
     }
     if (isWidthOverRoll) {
@@ -1932,9 +1945,21 @@ export const PackingBarcodesLabels: React.FC = () => {
                   type="number"
                   required
                   min={1}
+                  max={maxPrintQty}
+                  placeholder="1"
                   className="w-full p-2 border border-slate-200 dark:border-gray-700 rounded-lg text-xs text-center bg-white dark:bg-gray-900 text-slate-800 dark:text-white font-bold text-[#00891D]"
-                  value={printQty}
-                  onChange={(e) => setPrintQty(Number(e.target.value))}
+                  value={printQty || ''}
+                  onChange={(e) => {
+                    const cleanStr = e.target.value.replace(/^0+(?=\d)/, '');
+                    let val = cleanStr === '' ? 0 : Math.max(0, parseInt(cleanStr, 10) || 0);
+                    if (maxPrintQty > 0 && val > maxPrintQty) {
+                      setValidationError(`Print quantity cannot exceed packed quantity (${maxPrintQty}).`);
+                      val = maxPrintQty;
+                    } else if (validationError.includes('Print quantity')) {
+                      setValidationError('');
+                    }
+                    setPrintQty(val);
+                  }}
                 />
               </div>
             </div>
