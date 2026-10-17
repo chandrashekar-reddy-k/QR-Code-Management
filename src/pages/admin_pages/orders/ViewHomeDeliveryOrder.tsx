@@ -337,20 +337,9 @@ const ViewHomeDeliveryOrder = () => {
       : null;
     const agentName = assignedAgent?.name || (orderData as any).assignment?.agent?.name || (orderData as any).agent?.name || (orderData.agentId ? `Agent (${String(orderData.agentId).slice(0, 8)})` : null);
 
-    // Payment method and status mapping
-    let paymentMethod = "N/A";
-    let paymentStatus = "N/A";
-    if (orderData.payment && typeof orderData.payment === "object") {
-      const payment = orderData.payment as { method?: string; status?: string };
-
-      if (payment.method) {
-        paymentMethod = payment.method;
-      }
-
-      if (payment.status) {
-        paymentStatus = payment.status; //  direct API value
-      }
-    }
+    // Payment method and status mapping: directly connected to Order table columns (orderData.paymentStatus, orderData.paymentMethod)
+    const paymentMethod = (orderData as any).paymentMethod || (orderData.payment as any)?.method || "N/A";
+    const paymentStatus = (orderData as any).paymentStatus || (orderData.payment as any)?.status || "PENDING";
 
     return {
       id: orderData.id || id || "",
@@ -809,7 +798,15 @@ const ViewHomeDeliveryOrder = () => {
                 <span className="text-xs sm:text-sm font-medium text-gray-500 uppercase mb-1 sm:mb-0 sm:w-48">
                   Payment Status
                 </span>
-                <span className="text-sm sm:text-base font-semibold text-gray-800">
+                <span className={`text-xs sm:text-sm font-semibold px-2.5 py-1 rounded-full w-fit ${
+                  order.paymentStatus === "SUCCESS" || order.paymentStatus === "PAID"
+                    ? "bg-green-100 text-green-700"
+                    : order.paymentStatus === "REFUNDED" || order.paymentStatus === "REFUND_PENDING"
+                    ? "bg-purple-100 text-purple-700"
+                    : order.paymentStatus === "FAILED"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-yellow-100 text-yellow-800"
+                }`}>
                   {order.paymentStatus}
                 </span>
               </div>

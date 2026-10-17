@@ -163,8 +163,8 @@ const ViewSelfPickupOrder = () => {
       image: item.product?.images?.[0] || "",
     }));
 
-    const paymentMethod = (orderData.payment as any)?.method || "N/A";
-    const paymentStatus = (orderData.payment as any)?.status || "N/A";
+    const paymentMethod = (orderData as any).paymentMethod || (orderData.payment as any)?.method || "N/A";
+    const paymentStatus = (orderData as any).paymentStatus || (orderData.payment as any)?.status || "PENDING";
 
 
     return {

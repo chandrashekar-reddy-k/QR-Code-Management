@@ -66,12 +66,32 @@ const Login = () => {
     const customRolePortalType = ((user as any).customRole?.portalType || (user as any).customRole?.type || "").toUpperCase();
     const customRoleNameUpper = ((user as any).customRole?.name || (user as any).customRole?.code || "").toUpperCase();
 
+    // Block DELIVERY_AGENT role completely from the partner portal
+    if (
+      roleUpper === "DELIVERY_AGENT" ||
+      customRolePortalType === "DELIVERY_AGENT" ||
+      customRolePortalType === "DELIVERY_AGENT_PORTAL" ||
+      customRoleNameUpper.includes("DELIVERY AGENT")
+    ) {
+      setErrorMessage("Delivery agents are not permitted to log in here. Please use the Delivery Agent App.");
+      localStorage.clear();
+      sessionStorage.clear();
+      return;
+    }
+
+    // Block inactive accounts
+    if (user.isActive === false) {
+      setErrorMessage("Account is inactive. Please contact support or administrator.");
+      localStorage.clear();
+      sessionStorage.clear();
+      return;
+    }
+
     const isExplicitAgentRole =
-      ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
-      ["VEHICLE_AGENT", "DELIVERY_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(customRolePortalType) ||
+      ["VEHICLE_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(roleUpper) ||
+      ["VEHICLE_AGENT", "SALES_AGENT", "VSMS_AGENT"].includes(customRolePortalType) ||
       customRoleNameUpper.includes("VEHICLE AGENT") ||
       customRoleNameUpper.includes("VSMS AGENT") ||
-      customRoleNameUpper.includes("DELIVERY AGENT") ||
       customRoleNameUpper.includes("SALES AGENT") ||
       roleUpper.includes("VEHICLE") ||
       userPermissions.some((p: string) => p.startsWith("vsms_agent_") || p.includes("vehicle_agent"));

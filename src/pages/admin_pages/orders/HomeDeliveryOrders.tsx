@@ -432,7 +432,15 @@ const HomeDeliveryOrders = ({ defaultDeliveryType }: HomeDeliveryOrdersProps = {
           : order.payment?.status === "REFUND_PENDING" 
             ? "REFUND_PENDING" 
             : resolvedStatus,
-        paymentStatus: order.payment?.status || "N/A",
+        paymentStatus: (() => {
+          const directStatus = order.payment?.status || (order as any).paymentStatus;
+          const method = ((order.payment?.method || (order as any).paymentMethod) || "").toUpperCase();
+          const isDelivered = (order.status || "").toUpperCase() === "DELIVERED";
+          if (isDelivered && method === "COD" && (!directStatus || directStatus === "PENDING" || directStatus === "N/A")) {
+            return "SUCCESS";
+          }
+          return directStatus || "N/A";
+        })(),
         orderDate: order.createdAt || new Date().toISOString(),
       };
     });

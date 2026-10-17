@@ -928,6 +928,7 @@ const AddSeller = () => {
                     </label>
                     <textarea
                       {...field}
+                      value={field.value || ''}
                       placeholder="Enter store description"
                       rows={4}
                       className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400"
@@ -1020,6 +1021,7 @@ const AddSeller = () => {
                   label="Address Line 2"
                   type="text"
                   {...field}
+                  value={field.value || ''}
                   placeholder="Enter address line 2 (optional)"
                   error={errors.line2?.message}
                 />
@@ -1201,6 +1203,7 @@ const AddSeller = () => {
                   label="Branch"
                   type="text"
                   {...field}
+                  value={field.value || ''}
                   placeholder="Enter branch name (optional)"
                   error={errors.branch?.message}
                 />

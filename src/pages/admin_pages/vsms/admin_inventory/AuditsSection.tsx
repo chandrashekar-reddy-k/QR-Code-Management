@@ -20,8 +20,14 @@ const AuditsSection = ({
       return null;
     }
 
+    const activeAuditItems = (audit.items || []).filter(item => {
+      if (item.product?.isActive === false) return false;
+      if (item.product?.status === 'INACTIVE') return false;
+      return true;
+    });
+
     const exportAuditDetailToExcel = () => {
-      const data = audit.items.map(item => ({
+      const data = activeAuditItems.map(item => ({
         'Product Name': item.product?.name || item.productName || 'Product (' + (item.productId?.slice(-6) || 'Item') + ')',
         'Category': item.product?.category?.name || item.category || 'General',
         'SKU Code': item.product?.skuCode || item.product?.sku || 'N/A',
@@ -144,7 +150,7 @@ const AuditsSection = ({
             </div>
             <div className="flex flex-col min-w-[100px]">
               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Package size={10} className="text-emerald-400" /> Items</span>
-              <span className="text-xs font-bold text-gray-800">{audit.items.length} Products</span>
+              <span className="text-xs font-bold text-gray-800">{activeAuditItems.length} Products</span>
             </div>
             <div className="flex-1 min-w-[200px] bg-emerald-50/40 p-3 rounded-xl border border-emerald-100/50">
               <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-0.5 flex items-center gap-1.5"><Gift size={10} /> Remark</span>
@@ -157,12 +163,12 @@ const AuditsSection = ({
           {/* Summary Comparison KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             {(() => {
-              const totalBefore = audit.items.reduce((acc, i) => acc + (Number(i.oldQuantity) || 0), 0);
-              const totalAfter = audit.items.reduce((acc, i) => acc + (Number(i.newQuantity) || 0), 0);
+              const totalBefore = activeAuditItems.reduce((acc, i) => acc + (Number(i.oldQuantity) || 0), 0);
+              const totalAfter = activeAuditItems.reduce((acc, i) => acc + (Number(i.newQuantity) || 0), 0);
               const netVariance = totalAfter - totalBefore;
-              const surplusItems = audit.items.filter(i => (i.newQuantity || 0) > (i.oldQuantity || 0)).length;
-              const deficitItems = audit.items.filter(i => (i.newQuantity || 0) < (i.oldQuantity || 0)).length;
-              const matchedItems = audit.items.filter(i => (i.newQuantity || 0) === (i.oldQuantity || 0)).length;
+              const surplusItems = activeAuditItems.filter(i => (i.newQuantity || 0) > (i.oldQuantity || 0)).length;
+              const deficitItems = activeAuditItems.filter(i => (i.newQuantity || 0) < (i.oldQuantity || 0)).length;
+              const matchedItems = activeAuditItems.filter(i => (i.newQuantity || 0) === (i.oldQuantity || 0)).length;
 
               return (
                 <>
@@ -212,7 +218,7 @@ const AuditsSection = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {audit.items.map((item) => {
+                {activeAuditItems.map((item) => {
                   const diff = (item.newQuantity || 0) - (item.oldQuantity || 0);
                   const prodName = item.product?.name || item.productName || 'Product (' + (item.productId?.slice(-6) || 'Item') + ')';
                   const catName = item.product?.category?.name || item.category || 'General';

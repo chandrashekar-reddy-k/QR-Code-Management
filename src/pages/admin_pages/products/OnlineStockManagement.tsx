@@ -165,6 +165,7 @@ export default function OnlineStockManagement() {
 
       const mapped: OnlineStockProduct[] = raw
         .filter((p: any) => {
+          if (p.isActive === false) return false;
           const isPublished = p.onlineAppStock?.isPublished !== undefined
             ? Boolean(p.onlineAppStock.isPublished)
             : (p.isOnline === true || (Array.isArray(p.tags) && p.tags.includes('CH:ONLINE')));

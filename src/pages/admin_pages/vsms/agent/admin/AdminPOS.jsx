@@ -395,8 +395,10 @@ export default function AdminPOS() {
       const { data } = await productsAPI.getAll({ showAll: true, storeId, channel: 'POS_STORE', posOnly: 'true' });
       const mapped = (Array.isArray(data) ? data : [])
         .filter(p => {
+          if (p.isActive === false) return false;
+          if (p.status === 'INACTIVE') return false;
           const isPos = p.isPosEnabled ?? p.isPos ?? p.posStoreStock?.isPosEnabled ?? false;
-          return isPos || Number(p.posStock ?? 0) > 0;
+          return Boolean(isPos);
         })
         .map(p => ({
           ...p,

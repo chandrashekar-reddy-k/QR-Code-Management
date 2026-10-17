@@ -168,7 +168,7 @@ const StockManagement = () => {
         vehicleStock: Number(p.vehicleStock ?? 0),
         totalStock: Number(p.totalStock ?? (Number(p.stock ?? 0) + Number(p.vehicleStock ?? 0))),
         image: p.image || (Array.isArray(p.images) ? p.images[0] : null),
-        isActive: Boolean(p.isActive ?? (p.status === 'ACTIVE' || p.status === 'APPROVED')),
+        isActive: p.isActive === false ? false : Boolean(p.isActive ?? (p.status === 'ACTIVE' || p.status === 'APPROVED')),
         isOnline,
         isPos,
         lifecycleStage: stage,

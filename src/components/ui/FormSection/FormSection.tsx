@@ -1,7 +1,7 @@
 import { ReactNode, FormEvent } from 'react';
 
 export interface FormSectionProps {
-  title: string;
+  title?: string;
   description?: string;
   children: ReactNode;
   variant?: 'default' | 'highlighted' | 'white';
@@ -32,7 +32,9 @@ const FormSection = ({
       onSubmit={onSubmit}
       className={`${baseStyles} ${variantStyles} ${className}`}
     >
-      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">{title}</h3>
+      {title && (
+        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">{title}</h3>
+      )}
       {description && (
         <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">{description}</p>
       )}

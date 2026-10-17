@@ -518,7 +518,7 @@ const ManageProducts = () => {
         sku: p.sku != null ? String(p.sku) : undefined,
         stock: Number(p.stock ?? 0),
         isActive: p.isActive === true,
-        status: String(p.status ?? p.isActive === true ? "ACTIVE" : "INACTIVE"),
+        status: p.isActive === false ? "INACTIVE" : String(p.status || (p.isActive === true ? "ACTIVE" : "INACTIVE")),
         warehouse: p.warehouse as ApiProduct["warehouse"],
         supplier: p.supplier as ApiProduct["supplier"],
         categoryId: p.categoryId != null ? String(p.categoryId) : undefined,
@@ -708,7 +708,7 @@ const ManageProducts = () => {
         p.finalPrice ?? p.salePrice ?? p.sellingPrice ?? p.landingPrice ?? p.price ?? 0
       ),
       variantsCount: transformedVariants.length,
-      status: (p.status as string) === "ACTIVE" || p.isActive === true ? "active" : "inactive",
+      status: p.isActive === false ? "inactive" : ((p.status as string) === "ACTIVE" || p.isActive === true ? "active" : "inactive"),
       isActive: p.isActive === true,
       variants: transformedVariants,
     };
@@ -729,8 +729,8 @@ const ManageProducts = () => {
   const tableProducts: TableProduct[] = useMemo(() => {
     return products.map((product) => {
       let displayStatus: "active" | "inactive" | "pending" = "pending";
-      if (product.status === "ACTIVE" || (product.isActive && product.status !== "PENDING")) displayStatus = "active";
-      else if (product.status === "INACTIVE" || !product.isActive) displayStatus = "inactive";
+      if (!product.isActive || product.status === "INACTIVE") displayStatus = "inactive";
+      else if (product.status === "ACTIVE" || (product.isActive && product.status !== "PENDING")) displayStatus = "active";
       else if (product.status === "PENDING") displayStatus = "pending";
 
       const sellerName = product.supplier?.length ? product.supplier[0].companyName : product.warehouse?.name || "N/A";

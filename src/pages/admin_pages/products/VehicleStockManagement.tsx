@@ -197,9 +197,16 @@ export default function VehicleStockManagement() {
 
       const mapped: VehicleInventoryItem[] = raw
         .filter((p: any) => {
-          const isVehicle = p.liveStockChannel?.isVehicle !== undefined
-            ? Boolean(p.liveStockChannel.isVehicle)
-            : (p.isVehicle === true || (Array.isArray(p.tags) && p.tags.includes('CH:VEHICLE')));
+          if (p.isActive === false) return false;
+          if (p.status === 'INACTIVE') return false;
+
+          const vehInv = Array.isArray(p.channelInventories) ? p.channelInventories.find((ci: any) => ci.channel === 'VEHICLE') : null;
+          const isVehicle = vehInv !== undefined && vehInv !== null
+            ? Boolean(vehInv.isActive)
+            : (p.liveStockChannel?.isVehicle !== undefined
+              ? Boolean(p.liveStockChannel.isVehicle)
+              : (p.isVehicle !== undefined ? Boolean(p.isVehicle) : (Array.isArray(p.tags) && p.tags.includes('CH:VEHICLE'))));
+
           let parsedNotes: any = {};
           if (p.liveStockChannel?.channelNotes && typeof p.liveStockChannel.channelNotes === 'string') {
             try {
@@ -214,11 +221,12 @@ export default function VehicleStockManagement() {
           return isVehicle || hasVehicleStock;
         })
         .map((p: any) => {
-          const tags = Array.isArray(p.tags) ? p.tags : [];
-          const hasChTag = tags.some((t: string) => t.startsWith('CH:'));
-          const isVehicle = p.liveStockChannel?.isVehicle !== undefined
-            ? Boolean(p.liveStockChannel.isVehicle)
-            : (hasChTag ? tags.includes('CH:VEHICLE') : Boolean(p.isVehicle));
+          const vehInv = Array.isArray(p.channelInventories) ? p.channelInventories.find((ci: any) => ci.channel === 'VEHICLE') : null;
+          const isVehicle = vehInv !== undefined && vehInv !== null
+            ? Boolean(vehInv.isActive)
+            : (p.liveStockChannel?.isVehicle !== undefined
+              ? Boolean(p.liveStockChannel.isVehicle)
+              : (p.isVehicle !== undefined ? Boolean(p.isVehicle) : (Array.isArray(p.tags) && p.tags.includes('CH:VEHICLE'))));
           const variants = Array.isArray(p.variants) ? p.variants : [];
           const firstVar = variants[0] || {};
           const variantName = p.variantName || firstVar.variantName || firstVar.name || 'Default';
@@ -326,14 +334,10 @@ export default function VehicleStockManagement() {
     try {
       await fetchData(`productmanagement/product/${item.id}/lifecycle`, 'POST', {
         stage: 'LIVE',
-        isVehicle: newVehicle,
-        isOnline: true,
-        isPos: true
+        isVehicle: newVehicle
       }).catch(() => fetchData(`product/${item.id}/lifecycle`, 'POST', {
         stage: 'LIVE',
-        isVehicle: newVehicle,
-        isOnline: true,
-        isPos: true
+        isVehicle: newVehicle
       }));
       toast.success(`${item.name} ${newVehicle ? 'Enabled for Fleet Delivery Vans' : 'Disabled from Fleet Vans'}`);
     } catch (err: any) {
