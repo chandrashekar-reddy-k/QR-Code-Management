@@ -408,8 +408,11 @@ const DeliveryAgentOnboarding = () => {
   const hasPrefilledRef = useRef(false);
   const [step, setStep] = useState(1);
   useEffect(() => {
-    if (isEditMode) return; // edit mode uses routeAgentId, not sessionStorage
-    if (step > 1 && !userId) {
+    if (isEditMode) return;
+    if (step === 1) {
+      sessionStorage.removeItem(STORAGE_KEY);
+      setUserId("");
+    } else if (step > 1 && !userId) {
       const storedId = sessionStorage.getItem(STORAGE_KEY);
       if (storedId) setUserId(storedId);
     }
@@ -466,7 +469,7 @@ const DeliveryAgentOnboarding = () => {
       try {
         setIsCheckingPhone(true);
         const queryParams = new URLSearchParams({ phone: digits });
-        if (effectiveId) {
+        if (isEditMode && effectiveId) {
           queryParams.append("excludeUserId", effectiveId);
         }
         const res: any = await fetchData(
@@ -713,13 +716,13 @@ const DeliveryAgentOnboarding = () => {
 
 
   useEffect(() => {
-    if (!userId) {
+    if (!isEditMode && step > 1 && !userId) {
       const storedId = sessionStorage.getItem(STORAGE_KEY);
       if (storedId) {
         setUserId(storedId);
       }
     }
-  }, [userId]);
+  }, [userId, isEditMode, step]);
 
   useEffect(() => {
     if (
@@ -1348,16 +1351,34 @@ const DeliveryAgentOnboarding = () => {
   ) => {
     try {
       if (currentStep === 1) {
-        if (s1.password && s1.password.trim().length > 0) {
+        if (!isEditMode) {
           const errs: Record<string, string> = {};
-          if (s1.password.trim().length < 6) errs.password = "Minimum 6 characters";
-          if (s1.confirmPassword !== s1.password) errs.confirmPassword = "Passwords must match";
+          if (!s1.password || s1.password.trim().length === 0) {
+            errs.password = "Password is required";
+          } else if (s1.password.trim().length < 6) {
+            errs.password = "Minimum 6 characters";
+          }
+          if (!s1.confirmPassword || s1.confirmPassword.trim().length === 0) {
+            errs.confirmPassword = "Confirm password is required";
+          } else if (s1.confirmPassword !== s1.password) {
+            errs.confirmPassword = "Passwords must match";
+          }
           if (Object.keys(errs).length > 0) {
-            if (shouldSetErrors) setErrors(errs);
+            if (shouldSetErrors) setErrors((prev: any) => ({ ...prev, ...errs }));
             return false;
           }
+        } else {
+          if (s1.password && s1.password.trim().length > 0) {
+            const errs: Record<string, string> = {};
+            if (s1.password.trim().length < 6) errs.password = "Minimum 6 characters";
+            if (s1.confirmPassword !== s1.password) errs.confirmPassword = "Passwords must match";
+            if (Object.keys(errs).length > 0) {
+              if (shouldSetErrors) setErrors((prev: any) => ({ ...prev, ...errs }));
+              return false;
+            }
+          }
         }
-        await step1Schema.validate(s1, { abortEarly: false });
+        await step1Schema.validate(s1, { abortEarly: false, context: { isEditMode } });
         if (errors.phone === "This phone number is already registered with an existing account.") {
           return false;
         }
@@ -1433,7 +1454,7 @@ const DeliveryAgentOnboarding = () => {
     async (path: string) => {
       try {
         if (step === 1) {
-          await step1Schema.validateAt(path, s1);
+          await step1Schema.validateAt(path, s1, { context: { isEditMode } });
         } else if (step === 2) {
           await step2Schema.validateAt(path, {
             permanentAddress,
@@ -1478,6 +1499,7 @@ const DeliveryAgentOnboarding = () => {
     [
       step,
       s1,
+      isEditMode,
       permanentAddress,
       communicationAddress,
       sameAsPermanent,
@@ -1903,17 +1925,19 @@ const DeliveryAgentOnboarding = () => {
                   error={errors.email}
                 />
                 <PasswordInput
-                  label="Password (Optional)"
-                  placeholder="Enter login password (optional)"
+                  label={isEditMode ? "Password (Optional)" : "Password"}
+                  placeholder={isEditMode ? "Enter login password (optional)" : "Enter login password"}
                   value={s1.password || ""}
                   onChange={(e) => setS1({ ...s1, password: e.target.value })}
+                  required={!isEditMode}
                   error={errors.password}
                 />
                 <PasswordInput
-                  label="Confirm Password (Optional)"
-                  placeholder="Confirm login password (optional)"
+                  label={isEditMode ? "Confirm Password (Optional)" : "Confirm Password"}
+                  placeholder={isEditMode ? "Confirm login password (optional)" : "Confirm login password"}
                   value={s1.confirmPassword || ""}
                   onChange={(e) => setS1({ ...s1, confirmPassword: e.target.value })}
+                  required={!isEditMode}
                   error={errors.confirmPassword}
                 />
                 <div>

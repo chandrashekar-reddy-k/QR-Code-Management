@@ -675,11 +675,12 @@ const AddDeliveryBoy = () => {
                 control={control}
                 render={({ field }) => (
                   <PasswordInput
-                    label="Password (Optional)"
+                    label={isEditMode ? "Password (Optional)" : "Password"}
+                    required={!isEditMode}
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Enter Password (optional)"
+                    placeholder={isEditMode ? "Enter Password (optional)" : "Enter Password"}
                     error={errors.password?.message}
                   />
                 )}
@@ -690,11 +691,12 @@ const AddDeliveryBoy = () => {
                 control={control}
                 render={({ field }) => (
                   <PasswordInput
-                    label="Confirm Password (Optional)"
+                    label={isEditMode ? "Confirm Password (Optional)" : "Confirm Password"}
+                    required={!isEditMode}
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
-                    placeholder="Enter Confirm Password (optional)"
+                    placeholder={isEditMode ? "Enter Confirm Password (optional)" : "Enter Confirm Password"}
                     error={errors.confirmPassword?.message}
                   />
                 )}
