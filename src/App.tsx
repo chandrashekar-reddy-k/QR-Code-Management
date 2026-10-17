@@ -21,6 +21,8 @@ import { ToastContainer } from "react-toastify";
 import { Toaster as HotToaster } from "react-hot-toast";
 import { NewOrderAlertProvider } from "./contexts/NewOrderAlertContext";
 import { OmsNewOrderAlertOverlay } from "./components/common/OmsNewOrderAlertOverlay";
+import { UnassignedDeliveryAlertProvider } from "./contexts/UnassignedDeliveryAlertContext";
+import { UnassignedDeliveryAlertPopup } from "./components/common/UnassignedDeliveryAlertPopup";
 import { sidebarConfig } from "./components/layout/sidebarConfig";
 import SecurityVerificationOverlay from "./components/SecurityVerificationOverlay";
 
@@ -596,7 +598,10 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <Provider store={store}>
           <Router>
-            <Routes>{renderRoutes()}</Routes>
+            <UnassignedDeliveryAlertProvider>
+              <Routes>{renderRoutes()}</Routes>
+              <UnassignedDeliveryAlertPopup />
+            </UnassignedDeliveryAlertProvider>
           </Router>
           <ToastContainer />
           <HotToaster position="top-right" />
