@@ -593,13 +593,15 @@ export default function AdminPOS() {
       // Map the stock strictly to posStock since this is a POS terminal, filtering for items enabled for Store POS
       const mappedData = (Array.isArray(data) ? data : [])
         .filter((p: any) => {
+          if (p.isActive === false) return false;
+          if (p.status === 'INACTIVE') return false;
           const isPos = p.isPosEnabled !== undefined
             ? p.isPosEnabled
             : (p.isPos !== undefined
               ? p.isPos
               : (p.posStoreStock?.isPosEnabled !== undefined ? p.posStoreStock.isPosEnabled : false));
-          const hasPosStock = Number(p.posStock ?? 0) > 0;
-          return Boolean(isPos) || hasPosStock;
+          // Strictly require product to be enabled for POS - inactive items must not show
+          return Boolean(isPos);
         })
         .map((p: any) => ({
           ...p,

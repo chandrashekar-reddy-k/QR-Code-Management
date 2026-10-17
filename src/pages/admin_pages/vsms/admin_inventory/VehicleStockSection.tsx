@@ -144,6 +144,10 @@ const VehicleStockSection = ({
     }
     const safeInventory = inventory || [];
     const filteredActiveStock = safeInventory.filter(i => {
+      if (i.product?.isActive === false) return false;
+      if (i.product?.status === 'INACTIVE') return false;
+      if (i.product?.channelInventories?.some(ci => ci.channel === 'VEHICLE' && ci.isActive === false)) return false;
+
       const q = vehicleSearch.toLowerCase();
       return !q ||
         (i.product?.name?.toLowerCase() || "").includes(q) ||

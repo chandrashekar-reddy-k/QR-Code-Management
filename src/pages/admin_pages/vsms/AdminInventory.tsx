@@ -287,9 +287,9 @@ export default function AdminInventory() {
         if (reportStock.length > 0) {
           setWarehouseStock(reportStock);
         } else if (initData?.items?.length > 0) {
-          // Map Store POS stock from initData items
+          // Map Store POS stock from initData items (strictly active and enabled)
           const posStockList = initData.items
-            .filter((i: any) => i.isPos || i.isPosEnabled || Number(i.posStock || 0) > 0)
+            .filter((i: any) => i.isActive !== false && i.status !== 'INACTIVE' && i.isPos !== false && i.isPosEnabled !== false && (i.isPos || i.isPosEnabled))
             .map((i: any) => ({
               id: `pos-${i.id}`,
               productId: i.id,
@@ -480,6 +480,8 @@ export default function AdminInventory() {
   const loadingFilteredItems = React.useMemo(() => {
     const q = opsSearch.toLowerCase().trim();
     return items.filter(i => {
+      if (i.isActive === false || i.status === 'INACTIVE') return false;
+
       const itemTags = Array.isArray(i.tags) ? i.tags : [];
       const hasChTag = itemTags.some((t: string) => t.startsWith('CH:'));
       const isVehicleEnabled = i.isVehicle !== undefined 
