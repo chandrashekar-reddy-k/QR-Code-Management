@@ -851,7 +851,8 @@ const ViewProduct = () => {
   };
 
   const handleStatusToggle = () => {
-    const newIsActive = !(product.status === 'active' || product.status === 'approved');
+    const isCurrentlyActive = product.status === 'active';
+    const newIsActive = !isCurrentlyActive;
     updateProductActive({ productId, isActive: newIsActive });
   };
 
@@ -1184,14 +1185,14 @@ const ViewProduct = () => {
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                checked={product.status === 'active' || product.status === 'approved'}
+                checked={product.status === 'active'}
                 onChange={handleStatusToggle}
                 disabled={isUpdatingStatus}
                 className="sr-only peer"
               />
               <div
                 className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300 dark:peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
-                  product.status === 'active' || product.status === 'approved'
+                  product.status === 'active'
                     ? 'peer-checked:bg-green-600 dark:peer-checked:bg-green-500'
                     : 'peer-checked:bg-gray-400 dark:peer-checked:bg-gray-500'
                 } ${isUpdatingStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}

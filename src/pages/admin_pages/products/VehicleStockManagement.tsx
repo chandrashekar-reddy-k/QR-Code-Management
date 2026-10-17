@@ -197,6 +197,7 @@ export default function VehicleStockManagement() {
 
       const mapped: VehicleInventoryItem[] = raw
         .filter((p: any) => {
+          if (p.isActive === false) return false;
           const isVehicle = p.liveStockChannel?.isVehicle !== undefined
             ? Boolean(p.liveStockChannel.isVehicle)
             : (p.isVehicle === true || (Array.isArray(p.tags) && p.tags.includes('CH:VEHICLE')));

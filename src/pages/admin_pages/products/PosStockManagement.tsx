@@ -161,6 +161,7 @@ export default function PosStockManagement() {
 
       const mapped: PosStockProduct[] = raw
         .filter((p: any) => {
+          if (p.isActive === false) return false;
           const isPos = p.posStoreStock?.isPosEnabled !== undefined
             ? Boolean(p.posStoreStock.isPosEnabled)
             : (p.isPos === true || (Array.isArray(p.tags) && p.tags.includes('CH:POS')));
