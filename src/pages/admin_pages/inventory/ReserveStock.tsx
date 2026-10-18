@@ -204,6 +204,9 @@ const ReserveStock: React.FC = () => {
           const grnList = map[item.id] || [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
 
+          // Match backend updateChannelAllocation: ONLINE_APP + POS_STORE + vehicleStockAssignments.
+          // Do not use `vehicleStoreStock ?? vehicleStock` — vehicleStoreStock is often 0 (no VEHICLE
+          // channel row), and `0 ?? x` short-circuits so real VSA qty is ignored and Available is overstated.
           let onlineStock = 0;
           let posStock = 0;
           if (Array.isArray(item.channelInventories)) {
@@ -212,17 +215,23 @@ const ReserveStock: React.FC = () => {
             if (onlineRecord) onlineStock = Number(onlineRecord.quantity) || 0;
             if (posRecord) posStock = Number(posRecord.quantity) || 0;
           } else {
-            onlineStock = item.onlineAppStock?.onlineStock ?? 0;
-            posStock = item.posStoreStock?.posStock ?? 0;
+            onlineStock = Number(item.onlineAppStock?.onlineStock ?? item.onlineStock ?? 0);
+            posStock = Number(item.posStoreStock?.posStock ?? item.posStock ?? 0);
           }
-          const vStock = Number(
-            item.vehicleStoreStock ??
-            item.vehicleStock ??
-            (Array.isArray(item.vehicleStockAssignments)
-              ? item.vehicleStockAssignments.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0)
-              : (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0))
-          );
-          const allocated = onlineStock + posStock + vStock;
+
+          const vsaAllocated = Array.isArray(item.vehicleStockAssignments)
+            ? item.vehicleStockAssignments.reduce(
+                (sum: number, v: any) => sum + (Number(v.quantity) || 0),
+                0
+              )
+            : (Array.isArray(item.vehicleStocks)
+                ? item.vehicleStocks.reduce(
+                    (sum: number, v: any) => sum + (Number(v.quantity) || 0),
+                    0
+                  )
+                : Number(item.vehicleStock || 0));
+
+          const allocated = onlineStock + posStock + vsaAllocated;
 
           const baseId = item.id ? item.id.split('_')[0] : item.id;
           const displayUnit = resolvedUnitMap[baseId] || resolvedUnitMap[item.id] || item.unit || 'units';
@@ -461,7 +470,11 @@ const ReserveStock: React.FC = () => {
       toast.success(`Stock reserved successfully for ${selectedItems.length} item(s).`);
     } catch (err: any) {
       console.error('Failed to save allocations:', err);
-      const backendMessage = err?.response?.data?.message || err?.message || 'Failed to save allocation. Please try again.';
+      const backendMessage =
+        err?.response?.data?.response ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to save allocation. Please try again.';
       toast.error(backendMessage);
     } finally {
       setIsSaving(false);
