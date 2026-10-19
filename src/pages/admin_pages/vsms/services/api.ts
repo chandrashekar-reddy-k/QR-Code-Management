@@ -47,7 +47,46 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 (token expired/invalid)
+// Handle 401 (token expired/invalid) — attempt silent token refresh before logging out
+let vsmsIsRefreshing = false;
+let vsmsRefreshPromise: Promise<string> | null = null;
+
+const vsmsRefreshAccessToken = async (): Promise<string> => {
+  const identityBaseUrl = (import.meta.env?.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
+
+  const refreshToken =
+    sessionStorage.getItem('staffRefreshToken') ||
+    localStorage.getItem('partnerRefreshToken') ||
+    localStorage.getItem('refreshToken');
+
+  if (!refreshToken) throw new Error('[VSMS] No refresh token available');
+
+  const res = await fetch(`${identityBaseUrl}/api/v1/auth/refresh-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  if (!res.ok) throw new Error(`[VSMS] Refresh failed with status ${res.status}`);
+
+  const data = await res.json();
+  const newToken = data?.data?.accessToken;
+  if (!newToken) throw new Error('[VSMS] Refresh response missing accessToken');
+
+  // Persist new access token to all active storage keys (preserving which keys were set)
+  if (sessionStorage.getItem('staffToken') !== null) sessionStorage.setItem('staffToken', newToken);
+  if (localStorage.getItem('partnerToken') !== null) localStorage.setItem('partnerToken', newToken);
+  if (localStorage.getItem('token') !== null) localStorage.setItem('token', newToken);
+  if (localStorage.getItem('authToken') !== null) localStorage.setItem('authToken', newToken);
+  if (data?.data?.refreshToken) {
+    if (sessionStorage.getItem('staffRefreshToken') !== null) sessionStorage.setItem('staffRefreshToken', data.data.refreshToken);
+    if (localStorage.getItem('partnerRefreshToken') !== null) localStorage.setItem('partnerRefreshToken', data.data.refreshToken);
+    if (localStorage.getItem('refreshToken') !== null) localStorage.setItem('refreshToken', data.data.refreshToken);
+  }
+
+  return newToken;
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -58,34 +97,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !error.config?._retry) {
-      error.config._retry = true;
-      const refreshToken = sessionStorage.getItem('staffRefreshToken') || localStorage.getItem('staffRefreshToken') || localStorage.getItem('partnerRefreshToken') || localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        try {
-          const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000').replace(/\/+$/, '');
-          const res = await axios.post(`${identityBaseUrl}/api/v1/auth/refresh-token`, { refreshToken });
-          if (res.data?.data?.accessToken) {
-            const newToken = res.data.data.accessToken;
-            sessionStorage.setItem('staffToken', newToken);
-            localStorage.setItem('staffToken', newToken);
-            localStorage.setItem('partnerToken', newToken);
-            localStorage.setItem('token', newToken);
-            if (res.data.data.refreshToken) {
-              sessionStorage.setItem('staffRefreshToken', res.data.data.refreshToken);
-              localStorage.setItem('staffRefreshToken', res.data.data.refreshToken);
-              localStorage.setItem('partnerRefreshToken', res.data.data.refreshToken);
-              localStorage.setItem('refreshToken', res.data.data.refreshToken);
-            }
-            error.config.headers = error.config.headers || {};
-            error.config.headers.Authorization = `Bearer ${newToken}`;
-            return api(error.config);
-          }
-        } catch (refreshErr) {
-          console.error('[API Interceptor] Token refresh failed:', refreshErr);
-        }
-      }
-
+    if (error.response?.status === 401) {
       if (window.location.pathname.includes('/success')) {
         console.warn('[API Interceptor] 401 Error on Success page. Skipping logout to preserve order view.');
         return Promise.reject(error);
@@ -96,8 +108,40 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      useUserStore.getState().clearUser();
-      window.location.href = '/login';
+      const originalRequest = error.config;
+      // Prevent infinite retry loop
+      if (originalRequest?._vsmsRetry) {
+        console.error('[API Interceptor] Retry after token refresh also got 401 — logging out');
+        useUserStore.getState().clearUser();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      // Attempt silent token refresh, queuing concurrent requests behind a single refresh call
+      try {
+        let newToken: string;
+        if (vsmsIsRefreshing && vsmsRefreshPromise) {
+          newToken = await vsmsRefreshPromise;
+        } else {
+          vsmsIsRefreshing = true;
+          vsmsRefreshPromise = vsmsRefreshAccessToken().finally(() => {
+            vsmsIsRefreshing = false;
+            vsmsRefreshPromise = null;
+          });
+          newToken = await vsmsRefreshPromise;
+        }
+
+        // Retry the original request with the refreshed token
+        originalRequest._vsmsRetry = true;
+        originalRequest.headers = { ...originalRequest.headers, Authorization: `Bearer ${newToken}` };
+        console.log('[API Interceptor] Token refreshed — retrying original request');
+        return api(originalRequest);
+      } catch (refreshErr) {
+        console.error('[API Interceptor] Token refresh failed — logging out:', refreshErr);
+        useUserStore.getState().clearUser();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
     }
     return Promise.reject(error);
   }

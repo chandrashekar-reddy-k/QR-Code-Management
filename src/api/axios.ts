@@ -36,7 +36,7 @@ api.interceptors.response.use(
       
       if (refreshToken) {
         try {
-          const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+          const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
           const res = await axios.post(`${identityBaseUrl}/api/v1/auth/refresh-token`, {
             refreshToken
           });
