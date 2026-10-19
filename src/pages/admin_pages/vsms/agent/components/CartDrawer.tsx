@@ -12,11 +12,37 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
     clearCart, 
     totalAmount, 
     appliedPromotion, 
-    setAppliedPromotion 
+    setAppliedPromotion,
+    customerName,
+    setCustomerName,
+    customerMobile,
+    setCustomerMobile
   } = useCartStore();
   const [couponCode, setCouponCode] = useState('');
   const [validating, setValidating] = useState(false);
   const navigate = useNavigate();
+
+  const validateCustomerDetails = () => {
+    const trimmedName = customerName?.trim();
+    const cleanMobile = customerMobile?.trim().replace(/\D/g, '');
+
+    if (!trimmedName || trimmedName.length === 0) {
+      toast.error('Customer Name is mandatory for sale billing');
+      return false;
+    }
+
+    if (!cleanMobile || cleanMobile.length === 0) {
+      toast.error('Customer Mobile Number is mandatory for sale billing');
+      return false;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      toast.error('Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9)');
+      return false;
+    }
+
+    return true;
+  };
 
   const handleUpdate = (item, newQty) => {
     if (newQty > item.quantity && newQty > (item.stock || 99)) {
@@ -31,6 +57,7 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
   };
 
   const handleProceed = () => {
+    if (!validateCustomerDetails()) return;
     onClose();
     setTimeout(() => {
         navigate('/vsms/agent-portal/payment');
@@ -97,6 +124,53 @@ export default function CartDrawer({ isOpen, onClose, products = [], routeId, vi
             <Trash2 size={16} />
             <span className="text-[9px] font-bold mt-0.5">Clear Cart</span>
           </button>
+        </div>
+
+        {/* Customer Details */}
+        <div className="bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black text-gray-900 tracking-tight flex items-center gap-1.5">
+              <span>Customer Details</span>
+              <span className="text-rose-500 font-bold">*</span>
+            </h3>
+            {(!customerName?.trim() || !customerMobile?.trim()) && (
+              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                Required
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-gray-700">Customer Name <span className="text-rose-500 font-bold">*</span></label>
+              <input
+                type="text"
+                required
+                placeholder="Enter Customer Name *"
+                value={customerName || ''}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] ${
+                  !customerName?.trim() ? 'border-amber-300' : 'border-gray-200'
+                }`}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-gray-700">Mobile Number <span className="text-rose-500 font-bold">*</span></label>
+              <input
+                type="tel"
+                required
+                maxLength={10}
+                placeholder="10-digit mobile *"
+                value={customerMobile || ''}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setCustomerMobile(val);
+                }}
+                className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] ${
+                  !customerMobile?.trim() ? 'border-amber-300' : 'border-gray-200'
+                }`}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Cart Items List */}

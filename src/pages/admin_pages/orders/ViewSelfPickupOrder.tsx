@@ -84,6 +84,7 @@ interface SelfPickupOrderView {
   vendorName: string;
   mobile: string;
   total: number;
+  subtotal: number;
   additionalCharges: number;
   taxAmount: number;
   walletUsed: number;
@@ -154,18 +155,31 @@ const ViewSelfPickupOrder = () => {
     if (!orderData) return null;
 
     // Transform items to products format
-    const transformedProducts = (orderData.items || []).map((item) => ({
-      id: item.id || item.productId || "",
-      name: item.product?.name || "Unknown Product",
-      variant: item.unit || "N/A",
-      quantity: item.quantity || 0,
-      price: item.unitPrice || 0,
-      image: item.product?.images?.[0] || "",
-    }));
+    const transformedProducts = (orderData.items || []).map((item) => {
+      const isExplicitFree = item.isFree === true || item.product?.isFree === true;
+      const rawPrice =
+        item.sellingPrice !== undefined && item.sellingPrice !== null ? Number(item.sellingPrice) :
+        item.finalPrice !== undefined && item.finalPrice !== null ? Number(item.finalPrice) :
+        item.unitPrice !== undefined && item.unitPrice !== null ? Number(item.unitPrice) :
+        item.price !== undefined && item.price !== null ? Number(item.price) :
+        item.totalPrice !== undefined && item.totalPrice !== null ? Number(item.totalPrice) / (item.quantity || 1) :
+        Number(item.product?.sellingPrice ?? item.product?.finalPrice ?? item.product?.price ?? 0);
+      const price = isExplicitFree ? 0 : rawPrice;
+      return {
+        id: item.id || item.productId || "",
+        name: item.product?.name || "Unknown Product",
+        variant: item.unit || "N/A",
+        quantity: item.quantity || 0,
+        price,
+        image: item.product?.images?.[0] || "",
+        isFree: isExplicitFree || price === 0,
+      };
+    });
 
     const paymentMethod = (orderData as any).paymentMethod || (orderData.payment as any)?.method || "N/A";
     const paymentStatus = (orderData as any).paymentStatus || (orderData.payment as any)?.status || "PENDING";
-
+    const couponOrDiscount = Number(orderData.couponDiscount || (orderData.couponCode ? orderData.discount : 0) || 0);
+    const subtotal = Number(orderData.totalAmount || 0) + couponOrDiscount;
 
     return {
       id: orderData.id || id || "",
@@ -178,6 +192,7 @@ const ViewSelfPickupOrder = () => {
       vendorName: "N/A", // Not in API response
       mobile: orderData.consumer?.phone || "N/A",
       total: orderData.totalAmount || 0,
+      subtotal,
       additionalCharges: 0, // Not in API response
       taxAmount: (orderData.taxAmount as number) || 0,
       walletUsed: 0, // Not in API response
@@ -741,7 +756,7 @@ const getSelfPickupNextStatus = (status: OrderStatus): OrderStatus | null => {
               <div className="flex justify-between text-sm sm:text-base">
                 <span className="text-gray-700">Subtotal</span>
                 <span className="text-gray-900 font-semibold">
-                  {formatCurrency(order.total)}
+                  {formatCurrency(order.subtotal ?? order.total)}
                 </span>
               </div>
               <div className="flex justify-between text-sm sm:text-base">

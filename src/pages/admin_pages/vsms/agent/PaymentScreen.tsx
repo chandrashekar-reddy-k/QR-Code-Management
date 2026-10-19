@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
 import { useUserStore } from '../store/userStore';
 import { ordersAPI } from '../services/api';
-import { ArrowLeft, Banknote, Smartphone, CreditCard, NotebookText, Check } from 'lucide-react';
+import { ArrowLeft, Banknote, Smartphone, CreditCard, NotebookText, Check, AlertTriangle, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const PAYMENT_MODES = [
@@ -19,7 +19,7 @@ export default function PaymentScreen() {
   const [loading, setLoading] = useState(false);
   const [cashReceived, setCashReceived] = useState('');
   const [splitAmounts, setSplitAmounts] = useState({ cash: '', upi: '' });
-  const { items, customerMobile, customerName, clearCart, totalAmount: cartTotal } = useCartStore();
+  const { items, customerMobile, setCustomerMobile, customerName, setCustomerName, clearCart, totalAmount: cartTotal } = useCartStore();
   const { user } = useUserStore() as any;
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,9 +29,16 @@ export default function PaymentScreen() {
   const numCashReceived = parseFloat(cashReceived) || 0;
   const changeDue = numCashReceived >= totalAmount ? numCashReceived - totalAmount : 0;
 
+  const cleanMobile = customerMobile?.trim().replace(/\D/g, '') || '';
+  const isCustomerInvalid = !orderId && (
+    !customerName?.trim() ||
+    !cleanMobile ||
+    !/^[6-9]\d{9}$/.test(cleanMobile)
+  );
+
   const isCashInvalid = selected === 'CASH' && (!cashReceived.trim() || numCashReceived < totalAmount);
   const isSplitInvalid = selected === 'CASH_UPI' && (!splitAmounts.cash || !splitAmounts.upi || Math.abs((parseFloat(splitAmounts.cash) || 0) + (parseFloat(splitAmounts.upi) || 0) - totalAmount) > 0.01);
-  const isSubmitDisabled = loading || isCashInvalid || isSplitInvalid;
+  const isSubmitDisabled = loading || isCashInvalid || isSplitInvalid || isCustomerInvalid;
 
   // Auto-fill split amounts logic
   const handleSplitInput = (field: 'cash' | 'upi', value: string) => {
@@ -45,8 +52,32 @@ export default function PaymentScreen() {
     }
   };
 
+  const validateCustomerDetails = () => {
+    if (!orderId) {
+      const trimmedName = customerName?.trim();
+      const cleanMob = customerMobile?.trim().replace(/\D/g, '');
+
+      if (!trimmedName || trimmedName.length === 0) {
+        toast.error('Customer Name is mandatory for sale billing');
+        return false;
+      }
+
+      if (!cleanMob || cleanMob.length === 0) {
+        toast.error('Customer Mobile Number is mandatory for sale billing');
+        return false;
+      }
+
+      if (!/^[6-9]\d{9}$/.test(cleanMob)) {
+        toast.error('Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9)');
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handlePayment = async () => {
     if (!selected) return toast.error('Please select a payment method');
+    if (!validateCustomerDetails()) return;
 
     if (selected === 'CASH') {
       if (!cashReceived.trim() || numCashReceived <= 0) {
@@ -89,8 +120,8 @@ export default function PaymentScreen() {
 
       // Step 1: Create order from cart in database
       const payload = {
-        mobile: customerMobile?.trim() || undefined,
-        customerName: customerName?.trim() || 'Walk-in Customer',
+        mobile: cleanMobile,
+        customerName: customerName?.trim(),
         items: items.map(i => ({ productId: i.productId || i.id, quantity: i.quantity || 1 })),
         deliverySlot: deliverySlot || 'MORNING',
         deliveryDate: deliveryDate || new Date().toISOString().split('T')[0],
@@ -148,6 +179,56 @@ export default function PaymentScreen() {
             </p>
           </div>
         </div>
+
+        {/* Customer Details Card (When creating sale from cart) */}
+        {!orderId && (
+          <div className="w-full bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black text-gray-900 tracking-tight flex items-center gap-1.5">
+                <User size={14} className="text-[#00891D]" />
+                <span>Customer Details</span>
+                <span className="text-rose-500 font-bold">*</span>
+              </h3>
+              {(!customerName?.trim() || !cleanMobile || !/^[6-9]\d{9}$/.test(cleanMobile)) && (
+                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <AlertTriangle size={10} /> Required
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-gray-700">Customer Name <span className="text-rose-500 font-bold">*</span></label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter Customer Name *"
+                  value={customerName || ''}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] ${
+                    !customerName?.trim() ? 'border-amber-300' : 'border-gray-200'
+                  }`}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-gray-700">Mobile Number <span className="text-rose-500 font-bold">*</span></label>
+                <input
+                  type="tel"
+                  required
+                  maxLength={10}
+                  placeholder="10-digit mobile *"
+                  value={customerMobile || ''}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setCustomerMobile(val);
+                  }}
+                  className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] ${
+                    !cleanMobile || !/^[6-9]\d{9}$/.test(cleanMobile) ? 'border-amber-300' : 'border-gray-200'
+                  }`}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Choose Payment Method Section */}
         <div className="w-full bg-white rounded-3xl p-4 border border-gray-100/90 shadow-sm space-y-4">

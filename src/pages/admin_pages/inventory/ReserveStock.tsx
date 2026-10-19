@@ -21,6 +21,10 @@ interface ReserveStockItem {
   stock: number;
   procuredQty: number;
   image: string;
+  currentOnline: number;
+  currentPos: number;
+  currentVehicle: number;
+  currentAllocated: number;
 }
 
 interface QtyCellProps {
@@ -209,17 +213,27 @@ const ReserveStock: React.FC = () => {
           // channel row), and `0 ?? x` short-circuits so real VSA qty is ignored and Available is overstated.
           let onlineStock = 0;
           let posStock = 0;
+          let vehicleStock = 0;
           if (Array.isArray(item.channelInventories)) {
-            const onlineRecord = item.channelInventories.find((ci: any) => ci.channel === 'ONLINE_APP');
-            const posRecord = item.channelInventories.find((ci: any) => ci.channel === 'POS_STORE');
+            const onlineRecord = item.channelInventories.find((ci: any) =>
+              ci.channel === 'ONLINE_APP' || ci.channel === 'ONLINE' || ci.channel === 'APP'
+            );
+            const posRecord = item.channelInventories.find((ci: any) =>
+              ci.channel === 'POS_STORE' || ci.channel === 'POS'
+            );
+            const vehicleRecord = item.channelInventories.find((ci: any) => ci.channel === 'VEHICLE');
             if (onlineRecord) onlineStock = Number(onlineRecord.quantity) || 0;
             if (posRecord) posStock = Number(posRecord.quantity) || 0;
-          } else {
+            if (vehicleRecord) vehicleStock = Number(vehicleRecord.quantity) || 0;
+          }
+          if (onlineStock === 0) {
             onlineStock = Number(item.onlineAppStock?.onlineStock ?? item.onlineStock ?? 0);
+          }
+          if (posStock === 0) {
             posStock = Number(item.posStoreStock?.posStock ?? item.posStock ?? 0);
           }
 
-          const vsaAllocated = Array.isArray(item.vehicleStockAssignments)
+          const vsaQty = Array.isArray(item.vehicleStockAssignments)
             ? item.vehicleStockAssignments.reduce(
                 (sum: number, v: any) => sum + (Number(v.quantity) || 0),
                 0
@@ -231,6 +245,7 @@ const ReserveStock: React.FC = () => {
                   )
                 : Number(item.vehicleStock || 0));
 
+          const vsaAllocated = vehicleStock > 0 ? vehicleStock : vsaQty;
           const allocated = onlineStock + posStock + vsaAllocated;
 
           const baseId = item.id ? item.id.split('_')[0] : item.id;
@@ -301,6 +316,10 @@ const ReserveStock: React.FC = () => {
                 stock: vItem.readyQty,
                 procuredQty: totalProcuredQty,
                 image: prodImage,
+                currentOnline: onlineStock,
+                currentPos: posStock,
+                currentVehicle: vsaAllocated,
+                currentAllocated: allocated,
               });
 
               initialQty[vItem.id] = {
@@ -335,6 +354,10 @@ const ReserveStock: React.FC = () => {
               stock: effectiveBaseQty,
               procuredQty: totalProcuredQty,
               image: prodImage,
+              currentOnline: onlineStock,
+              currentPos: posStock,
+              currentVehicle: vsaAllocated,
+              currentAllocated: allocated,
             });
 
             initialQty[item.id] = {
@@ -607,6 +630,25 @@ const ReserveStock: React.FC = () => {
                   </span>
                 ) : null}
               </div>
+
+              {/* Channel Stock Breakdown Pills */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                  item.currentOnline > 0 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-500 border-gray-200'
+                }`}>
+                  Online: {item.currentOnline}
+                </span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                  item.currentPos > 0 ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-500 border-gray-200'
+                }`}>
+                  POS: {item.currentPos}
+                </span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                  item.currentVehicle > 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-500 border-gray-200'
+                }`}>
+                  Vehicle: {item.currentVehicle}
+                </span>
+              </div>
             </div>
           </div>
         );
@@ -636,15 +678,24 @@ const ReserveStock: React.FC = () => {
         const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
         const avail = Number(item.available) || 0;
         return (
-          <QtyCell
-            itemId={item.id}
-            field="online"
-            value={qty.online || 0}
-            available={avail}
-            totalAllocated={total}
-            onChange={handleQtyChange}
-            onBlurValidate={handleBlurValidation}
-          />
+          <div className="flex flex-col items-center">
+            <QtyCell
+              itemId={item.id}
+              field="online"
+              value={qty.online || 0}
+              available={avail}
+              totalAllocated={total}
+              onChange={handleQtyChange}
+              onBlurValidate={handleBlurValidation}
+            />
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded mt-1 border whitespace-nowrap ${
+              item.currentOnline > 0
+                ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold'
+                : 'bg-gray-50 text-gray-500 border-gray-200'
+            }`}>
+              Present: {item.currentOnline}
+            </span>
+          </div>
         );
       }
     },
@@ -657,15 +708,24 @@ const ReserveStock: React.FC = () => {
         const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
         const avail = Number(item.available) || 0;
         return (
-          <QtyCell
-            itemId={item.id}
-            field="pos"
-            value={qty.pos || 0}
-            available={avail}
-            totalAllocated={total}
-            onChange={handleQtyChange}
-            onBlurValidate={handleBlurValidation}
-          />
+          <div className="flex flex-col items-center">
+            <QtyCell
+              itemId={item.id}
+              field="pos"
+              value={qty.pos || 0}
+              available={avail}
+              totalAllocated={total}
+              onChange={handleQtyChange}
+              onBlurValidate={handleBlurValidation}
+            />
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded mt-1 border whitespace-nowrap ${
+              item.currentPos > 0
+                ? 'bg-purple-50 text-purple-700 border-purple-200 font-bold'
+                : 'bg-gray-50 text-gray-500 border-gray-200'
+            }`}>
+              Present: {item.currentPos}
+            </span>
+          </div>
         );
       }
     },
@@ -678,15 +738,24 @@ const ReserveStock: React.FC = () => {
         const total = (qty.online || 0) + (qty.pos || 0) + (qty.vehicle || 0);
         const avail = Number(item.available) || 0;
         return (
-          <QtyCell
-            itemId={item.id}
-            field="vehicle"
-            value={qty.vehicle || 0}
-            available={avail}
-            totalAllocated={total}
-            onChange={handleQtyChange}
-            onBlurValidate={handleBlurValidation}
-          />
+          <div className="flex flex-col items-center">
+            <QtyCell
+              itemId={item.id}
+              field="vehicle"
+              value={qty.vehicle || 0}
+              available={avail}
+              totalAllocated={total}
+              onChange={handleQtyChange}
+              onBlurValidate={handleBlurValidation}
+            />
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded mt-1 border whitespace-nowrap ${
+              item.currentVehicle > 0
+                ? 'bg-amber-50 text-amber-700 border-amber-200 font-bold'
+                : 'bg-gray-50 text-gray-500 border-gray-200'
+            }`}>
+              Present: {item.currentVehicle}
+            </span>
+          </div>
         );
       }
     },
@@ -810,6 +879,8 @@ const ReserveStock: React.FC = () => {
           />
         </div>
       </div>
+
+
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">

@@ -184,6 +184,28 @@ export default function SalesEntry() {
     }
     setFiltered(result);
   }, [search, products, filterFreeOnly, filterCategory, filterSubCategory]);
+  const validateCustomerDetails = () => {
+    const trimmedName = customerName?.trim();
+    const cleanMobile = customerMobile?.trim().replace(/\D/g, '');
+
+    if (!trimmedName || trimmedName.length === 0) {
+      toast.error('Customer Name is mandatory for sale billing');
+      return false;
+    }
+
+    if (!cleanMobile || cleanMobile.length === 0) {
+      toast.error('Customer Mobile Number is mandatory for sale billing');
+      return false;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      toast.error('Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9)');
+      return false;
+    }
+
+    return true;
+  };
+
   return (
     <div className="min-h-screen pb-32 bg-[#FAFAFA]">
       {/* Sticky Header Section (Title + Customer Name & Mobile Card + Search + Categories fixed together) */}
@@ -200,28 +222,38 @@ export default function SalesEntry() {
               {/* Customer Name */}
               <div className="space-y-1">
                 <label className="text-xs font-extrabold text-gray-900 flex items-center gap-1">
-                  Customer Name <span className="text-gray-400 font-normal text-[10px]">(Optional)</span>
+                  Customer Name <span className="text-rose-500 font-bold">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="Customer Name (Optional)"
+                  required
+                  placeholder="Enter Customer Name *"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
+                  className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors ${
+                    !customerName?.trim() ? 'border-amber-300' : 'border-gray-200'
+                  }`}
                 />
               </div>
 
               {/* Mobile Number */}
               <div className="space-y-1">
                 <label className="text-xs font-extrabold text-gray-900 flex items-center gap-1">
-                  Mobile Number <span className="text-gray-400 font-normal text-[10px]">(Optional)</span>
+                  Mobile Number <span className="text-rose-500 font-bold">*</span>
                 </label>
                 <input
                   type="tel"
-                  placeholder="Enter Mobile Number (Optional)"
+                  required
+                  maxLength={10}
+                  placeholder="10-digit mobile *"
                   value={customerMobile}
-                  onChange={(e) => setCustomerMobile(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors"
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setCustomerMobile(val);
+                  }}
+                  className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#00891D] transition-colors ${
+                    !customerMobile?.trim() ? 'border-amber-300' : 'border-gray-200'
+                  }`}
                 />
               </div>
             </div>
@@ -315,7 +347,10 @@ export default function SalesEntry() {
             </div>
             <button
               type="button"
-              onClick={() => setCartOpen(true)}
+              onClick={() => {
+                if (!validateCustomerDetails()) return;
+                setCartOpen(true);
+              }}
               className="px-5 py-3 bg-[#00891D] hover:bg-[#007018] text-white rounded-2xl text-xs font-black shadow-sm active:scale-98 transition-all flex items-center gap-2 cursor-pointer"
             >
               <span>Review Cart</span>

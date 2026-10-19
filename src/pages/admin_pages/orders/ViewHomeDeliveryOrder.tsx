@@ -126,6 +126,8 @@ interface HomeDeliveryOrderView {
     quantity: number;
     price: number;
     image: string;
+    isFree?: boolean;
+    mrp?: number;
   }[];
   subtotal: number;
   deliveryCharges: number;
@@ -289,11 +291,20 @@ const ViewHomeDeliveryOrder = () => {
     // Transform items to products format
     const transformedProducts = (orderData.items || []).map((item) => {
       const prod = item.product || {};
-      const unitP = Number(item.unitPrice || 0);
-      const prodP = Number(prod.sellingPrice || prod.finalPrice || prod.price || 0);
-      const sellingP = unitP > 0 ? unitP : (prodP > 0 ? prodP : Number(item.totalPrice || 0) / (item.quantity || 1));
-      const mrpP = Number(item.mrp || prod.mrp || sellingP);
+      const isExplicitFree = item.isFree === true || prod.isFree === true;
+      const rawItemP =
+        item.sellingPrice !== undefined && item.sellingPrice !== null ? Number(item.sellingPrice) :
+        item.finalPrice !== undefined && item.finalPrice !== null ? Number(item.finalPrice) :
+        item.unitPrice !== undefined && item.unitPrice !== null ? Number(item.unitPrice) :
+        item.price !== undefined && item.price !== null ? Number(item.price) :
+        item.totalPrice !== undefined && item.totalPrice !== null ? Number(item.totalPrice) / (item.quantity || 1) :
+        null;
+      const rawProdP = Number(prod.sellingPrice ?? prod.finalPrice ?? prod.price ?? 0);
+      const sellingP = isExplicitFree ? 0 : (rawItemP !== null && !isNaN(rawItemP) ? rawItemP : rawProdP);
+      const rawMrp = Number(item.mrp ?? prod.mrp ?? 0);
+      const mrpP = rawMrp > 0 ? rawMrp : (item.discount ? sellingP + Number(item.discount) : (rawProdP > sellingP ? rawProdP : sellingP));
       const gstVal = Number(item.gst || item.taxRate || prod.gst || prod.taxRate || 0);
+      const isItemFree = isExplicitFree || sellingP === 0;
       return {
         ...item,
         id: item.id || item.productId || "",
@@ -313,6 +324,7 @@ const ViewHomeDeliveryOrder = () => {
         sgst: item.sgst,
         image: prod.images?.[0] || "",
         product: prod,
+        isFree: isItemFree,
       };
     });
 
@@ -328,8 +340,10 @@ const ViewHomeDeliveryOrder = () => {
       ? addressParts.join(", ")
       : "N/A";
 
-    // Calculate subtotal (totalAmount - deliveryCharge - discount)
-    const subtotal = orderData.totalAmount - (orderData.deliveryCharge || 0) - (orderData.discount || 0);
+    // Calculate subtotal before coupon/discounts: totalAmount + couponDiscount - deliveryCharge
+    const couponOrDiscount = Number(orderData.couponDiscount || orderData.discount || 0);
+    const deliveryCharge = Number(orderData.deliveryCharge || 0);
+    const subtotal = Number(orderData.totalAmount || 0) + couponOrDiscount - deliveryCharge;
 
     // Find agent name from deliveryAgents list using agentId or assignment snapshot
     const assignedAgent = orderData.agentId
@@ -1103,7 +1117,13 @@ const ViewHomeDeliveryOrder = () => {
 
                     <div className="flex items-center gap-3">
                       <div className="text-sm sm:text-base font-medium text-gray-900 whitespace-nowrap">
-                        {product.quantity} × {formatCurrency(product.price)}
+                        {product.isFree || product.price === 0 ? (
+                          <span className="text-emerald-600 font-bold">
+                            {product.quantity > 1 ? `${product.quantity} × ` : ""}FREE
+                          </span>
+                        ) : (
+                          `${product.quantity} × ${formatCurrency(product.price)}`
+                        )}
                       </div>
 
                       {order.status === OrderStatus.PROCESSING && (
