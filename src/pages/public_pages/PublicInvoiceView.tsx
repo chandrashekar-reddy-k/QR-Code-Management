@@ -201,26 +201,44 @@ export default function PublicInvoiceView() {
   // Calculations
   const rawItems = order.items || [];
   const totalAmount = Number(order.totalAmount || 0);
+  const deliveryFee = Number(order.deliveryCharge || 0);
+  const couponDiscount = Number(order.couponDiscount || (order.couponCode ? order.discount : 0) || 0);
+  const couponCode = order.couponCode ? String(order.couponCode).toUpperCase() : null;
 
   const subTotalMRP = rawItems.reduce((sum: number, i: any) => {
     const q = Number(i.quantity || 1);
-    const p = Number(i.sellingPrice ?? i.finalPrice ?? i.unitPrice ?? i.price ?? i.product?.sellingPrice ?? i.product?.price ?? 0);
-    const m = Number(i.mrp ?? i.product?.mrp ?? p);
-    return sum + m * q;
+    const isFree = i.isFree === true || i.product?.isFree === true;
+    const itemPrice =
+      i.sellingPrice !== undefined && i.sellingPrice !== null ? Number(i.sellingPrice) :
+      i.finalPrice !== undefined && i.finalPrice !== null ? Number(i.finalPrice) :
+      i.unitPrice !== undefined && i.unitPrice !== null ? Number(i.unitPrice) :
+      i.price !== undefined && i.price !== null ? Number(i.price) :
+      i.totalPrice !== undefined && i.totalPrice !== null ? Number(i.totalPrice) / q :
+      Number(i.product?.sellingPrice ?? i.product?.finalPrice ?? i.product?.price ?? 0);
+    const p = isFree ? 0 : itemPrice;
+    const rawProdPrice = Number(i.product?.price ?? 0);
+    const m = Number(i.mrp ?? i.product?.mrp ?? (i.discount ? p + Number(i.discount) : (rawProdPrice > p ? rawProdPrice : p)));
+    return sum + (m > 0 ? m : p) * q;
   }, 0) || totalAmount;
 
-  const totalSavings = Math.max(0, subTotalMRP - totalAmount);
+  const totalSavings = Math.max(0, subTotalMRP - (totalAmount - deliveryFee));
+  const productDiscount = Math.max(0, totalSavings - couponDiscount);
 
   const totalTax = rawItems.reduce((sum: number, item: any) => {
     const rate = Number(item.gst || item.taxRate || item.product?.taxRate || 0);
     const q = Number(item.quantity || 1);
-    const p = Number(item.price || item.unitPrice || 0);
-    if (rate <= 0) return sum;
+    const isFree = item.isFree === true || item.product?.isFree === true;
+    const p = isFree ? 0 : Number(
+      item.unitPrice ?? item.sellingPrice ?? item.finalPrice ?? item.price ??
+      (item.totalPrice !== undefined ? Number(item.totalPrice) / q : null) ??
+      item.product?.sellingPrice ?? item.product?.price ?? 0
+    );
+    if (rate <= 0 || p === 0) return sum;
     const taxable = (p * q) / (1 + rate / 100);
     return sum + ((p * q) - taxable);
   }, 0);
 
-  const taxableAmount = Math.max(0, totalAmount - totalTax);
+  const taxableAmount = Math.max(0, totalAmount - deliveryFee - totalTax);
 
   const orderDateObj = new Date(order.createdAt || order.orderDate || Date.now());
   const dateFormatted = orderDateObj.toLocaleDateString('en-IN', {
@@ -233,6 +251,7 @@ export default function PublicInvoiceView() {
     minute: '2-digit',
     hour12: true
   });
+  const cleanInvoiceNo = invoiceNo.startsWith('VK-') ? invoiceNo : `VK-${invoiceNo}`;
 
   const customerName = order.customerName || order.consumer?.name || order.customer?.name || '';
   const customerMobile = order.mobile || order.customerMobile || order.consumer?.phone || order.customer?.mobile || '';
@@ -259,7 +278,7 @@ export default function PublicInvoiceView() {
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
-                #VK-{invoiceNo} &bull; {dateFormatted}
+                #{cleanInvoiceNo} &bull; {dateFormatted}
               </p>
             </div>
           </div>
@@ -384,9 +403,20 @@ export default function PublicInvoiceView() {
                   {rawItems.map((item: any, idx: number) => {
                     const name = item.product?.name || item.name || item.productName || 'Product';
                     const qty = Number(item.quantity || item.qty || 1);
-                    const price = Math.round(Number(item.price || item.unitPrice || item.sellingPrice || item.finalPrice || 0));
-                    const mrp = Math.round(Number(item.mrp || item.product?.mrp || price));
-                    const itemTotal = price * qty;
+                    const isExplicitFree = item.isFree === true || item.product?.isFree === true;
+                    const rawItemPrice =
+                      item.sellingPrice !== undefined && item.sellingPrice !== null ? Number(item.sellingPrice) :
+                      item.finalPrice !== undefined && item.finalPrice !== null ? Number(item.finalPrice) :
+                      item.unitPrice !== undefined && item.unitPrice !== null ? Number(item.unitPrice) :
+                      item.price !== undefined && item.price !== null ? Number(item.price) :
+                      item.totalPrice !== undefined && item.totalPrice !== null ? Number(item.totalPrice) / qty :
+                      null;
+                    const rawProductPrice = Number(item.product?.sellingPrice ?? item.product?.finalPrice ?? item.product?.price ?? 0);
+                    const price = isExplicitFree ? 0 : (rawItemPrice !== null && !isNaN(rawItemPrice) ? rawItemPrice : rawProductPrice);
+                    const isItemFree = isExplicitFree || price === 0;
+                    const rawMrp = Number(item.mrp ?? item.product?.mrp ?? 0);
+                    const mrp = Math.round(rawMrp > 0 ? rawMrp : (item.discount ? price + Number(item.discount) : (rawProductPrice > price ? rawProductPrice : price)));
+                    const itemTotal = isItemFree ? 0 : Math.round(price * qty);
                     const itemImage = item.product?.image || item.product?.images?.[0] || item.image;
                     const gstRate = Number(item.gst || item.taxRate || item.product?.taxRate || 0);
 
@@ -419,7 +449,7 @@ export default function PublicInvoiceView() {
                             <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 font-medium">
                               <span className="font-bold text-slate-700">Qty: {qty}</span>
                               <span>&bull;</span>
-                              <span>₹{price} each</span>
+                              <span>{isItemFree ? <span className="text-emerald-600 font-bold">FREE</span> : `₹${Math.round(price)} each`}</span>
                               {mrp > price && (
                                 <>
                                   <span className="text-slate-300">|</span>
@@ -438,7 +468,7 @@ export default function PublicInvoiceView() {
                         {/* Amount */}
                         <div className="text-right flex-shrink-0">
                           <p className="text-sm sm:text-base font-black text-slate-900">
-                            ₹{itemTotal}
+                            {isItemFree ? <span className="text-emerald-600 font-bold">FREE</span> : `₹${itemTotal}`}
                           </p>
                           {mrp > price && (
                             <p className="text-[10px] font-bold text-emerald-600">
@@ -474,10 +504,24 @@ export default function PublicInvoiceView() {
                     <span className="font-bold text-slate-800">₹{Math.round(subTotalMRP)}</span>
                   </div>
 
-                  {totalSavings > 0 && (
+                  {productDiscount > 0 && (
                     <div className="flex justify-between items-center text-amber-700 font-semibold">
-                      <span>Total Savings</span>
-                      <span className="font-bold">- ₹{Math.round(totalSavings)}</span>
+                      <span>Product Discount</span>
+                      <span className="font-bold">- ₹{Math.round(productDiscount)}</span>
+                    </div>
+                  )}
+
+                  {couponDiscount > 0 && (
+                    <div className="flex justify-between items-center text-emerald-700 font-semibold">
+                      <span>Coupon {couponCode ? `(${couponCode})` : 'Discount'}</span>
+                      <span className="font-bold">- ₹{Math.round(couponDiscount)}</span>
+                    </div>
+                  )}
+
+                  {deliveryFee > 0 && (
+                    <div className="flex justify-between items-center text-slate-600 font-medium">
+                      <span>Delivery Fee</span>
+                      <span className="font-bold text-slate-800">₹{Math.round(deliveryFee)}</span>
                     </div>
                   )}
 
@@ -490,6 +534,13 @@ export default function PublicInvoiceView() {
                     <span>Total GST (Included)</span>
                     <span>₹{Math.round(totalTax)}</span>
                   </div>
+
+                  {totalSavings > 0 && (
+                    <div className="flex justify-between items-center text-amber-800 font-semibold bg-amber-50/80 p-2 rounded-xl border border-amber-200/60">
+                      <span>Total Savings</span>
+                      <span className="font-bold">₹{Math.round(totalSavings)}</span>
+                    </div>
+                  )}
 
                   <div className="pt-3 border-t border-slate-200 flex justify-between items-baseline">
                     <div>

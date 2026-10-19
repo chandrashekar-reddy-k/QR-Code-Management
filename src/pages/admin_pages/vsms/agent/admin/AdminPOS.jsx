@@ -468,15 +468,24 @@ export default function AdminPOS() {
   }, [products, searchTerm, selectedCategory]);
 
   const validateCustomerDetails = () => {
+    const trimmedName = customerName?.trim();
     const cleanMobile = customerMobile?.trim().replace(/\D/g, '');
 
-    // Customer details are now optional for standard POS walk-in sales
-    if (cleanMobile && cleanMobile.length > 0) {
-      if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
-        toast.error('Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9)');
-        return false;
-      }
+    if (!trimmedName || trimmedName.length === 0) {
+      toast.error('Customer Name is mandatory for sale billing');
+      return false;
     }
+
+    if (!cleanMobile || cleanMobile.length === 0) {
+      toast.error('Customer Mobile Number is mandatory for sale billing');
+      return false;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      toast.error('Please enter a valid 10-digit mobile number (starting with 6, 7, 8, or 9)');
+      return false;
+    }
+
     return true;
   };
 
@@ -1736,25 +1745,31 @@ export default function AdminPOS() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                          <User size={10} className="text-emerald-500" /> Name <span className="text-slate-400 font-normal">(Optional)</span>
+                          <User size={10} className="text-emerald-500" /> Customer Name <span className="text-rose-500 font-bold">*</span>
                         </label>
                         <input
                           type="text"
-                          placeholder="Walk-in Customer"
-                          className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
+                          required
+                          placeholder="Enter Customer Name *"
+                          className={`w-full bg-slate-50 border rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:ring-2 transition-all placeholder:text-slate-400 ${
+                            !customerName?.trim() ? 'border-amber-300 focus:border-emerald-500 focus:ring-emerald-500/10' : 'border-slate-200/80 focus:border-emerald-500 focus:ring-emerald-500/10'
+                          }`}
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
                         />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                          <Smartphone size={10} className="text-emerald-500" /> Mobile <span className="text-slate-400 font-normal">(Optional)</span>
+                          <Smartphone size={10} className="text-emerald-500" /> Mobile Number <span className="text-rose-500 font-bold">*</span>
                         </label>
                         <input
                           type="tel"
+                          required
                           maxLength={10}
-                          placeholder="Mobile (Optional)"
-                          className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
+                          placeholder="10-digit mobile *"
+                          className={`w-full bg-slate-50 border rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:ring-2 transition-all placeholder:text-slate-400 ${
+                            !customerMobile?.trim() ? 'border-amber-300 focus:border-emerald-500 focus:ring-emerald-500/10' : 'border-slate-200/80 focus:border-emerald-500 focus:ring-emerald-500/10'
+                          }`}
                           value={customerMobile}
                           onChange={(e) => {
                             const val = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -2030,15 +2045,40 @@ export default function AdminPOS() {
                         </div>
                       </div>
                     )}
-                    {selectedPaymentMode === 'CREDIT' && (!customerName?.trim() || !customerMobile?.trim()) && (
-                      <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 animate-in fade-in slide-in-from-top-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-rose-500 rounded-lg flex items-center justify-center text-white">
-                            <AlertTriangle size={16} />
+                    {(!customerName?.trim() || !customerMobile?.trim()) && (
+                      <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-rose-500 rounded-md flex items-center justify-center text-white shrink-0">
+                            <AlertTriangle size={12} />
                           </div>
-                          <div>
-                            <p className="text-[10px] font-black text-rose-900 uppercase tracking-wider">Required Info Missing</p>
-                            <p className="text-[9px] font-bold text-rose-500 uppercase">Name & Mobile needed for Credit</p>
+                          <p className="text-[10px] font-black text-rose-900 uppercase tracking-wider">Customer details are mandatory for billing</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-rose-700 uppercase tracking-widest block">Customer Name *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Enter name..."
+                              value={customerName || ''}
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              className="w-full bg-white border border-rose-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-rose-400/30 placeholder:text-gray-300"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-rose-700 uppercase tracking-widest block">Mobile Number *</label>
+                            <input
+                              type="tel"
+                              required
+                              maxLength={10}
+                              placeholder="10-digit mobile..."
+                              value={customerMobile || ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                setCustomerMobile(val);
+                              }}
+                              className="w-full bg-white border border-rose-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-rose-400/30 placeholder:text-gray-300"
+                            />
                           </div>
                         </div>
                       </div>
@@ -2046,22 +2086,31 @@ export default function AdminPOS() {
                   </div>
 
                   <div className="p-6 bg-slate-50/50 border-t border-slate-100">
-                    <button
-                      onClick={handlePayment}
-                      disabled={
-                        actionLoading || 
-                        !selectedPaymentMode ||
-                        (selectedPaymentMode === 'CASH' && (!cashReceived.trim() || (parseFloat(cashReceived) || 0) < totalAmount))
-                      }
-                      className={`w-full font-black py-5 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 ${
-                        (selectedPaymentMode === 'CASH' && (!cashReceived.trim() || (parseFloat(cashReceived) || 0) < totalAmount))
-                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                          : 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 shadow-emerald-600/20'
-                      }`}
-                    >
-                      {actionLoading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} strokeWidth={3} />}
-                      Complete Payment
-                    </button>
+                    {(() => {
+                      const isCashInvalid =
+                        selectedPaymentMode === 'CASH' &&
+                        (!cashReceived.trim() || (parseFloat(cashReceived) || 0) < totalAmount);
+                      const isCustomerInvalid =
+                        !customerName?.trim() ||
+                        !customerMobile?.trim() ||
+                        !/^[6-9]\d{9}$/.test(customerMobile.trim().replace(/\D/g, ''));
+                      const isButtonDisabled = actionLoading || !selectedPaymentMode || isCashInvalid || isCustomerInvalid;
+
+                      return (
+                        <button
+                          onClick={handlePayment}
+                          disabled={isButtonDisabled}
+                          className={`w-full font-black py-5 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 ${
+                            isButtonDisabled
+                              ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                              : 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 shadow-emerald-600/20'
+                          }`}
+                        >
+                          {actionLoading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} strokeWidth={3} />}
+                          Complete Payment
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -2178,25 +2227,31 @@ export default function AdminPOS() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                      <User size={10} className="text-emerald-500" /> Name <span className="text-slate-400 font-normal">(Optional)</span>
+                      <User size={10} className="text-emerald-500" /> Customer Name <span className="text-rose-500 font-bold">*</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="Walk-in Customer"
-                      className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
+                      required
+                      placeholder="Enter Customer Name *"
+                      className={`w-full bg-slate-50 border rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:ring-2 transition-all placeholder:text-slate-400 ${
+                        !customerName?.trim() ? 'border-amber-300 focus:border-emerald-500 focus:ring-emerald-500/10' : 'border-slate-200/80 focus:border-emerald-500 focus:ring-emerald-500/10'
+                      }`}
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                      <Smartphone size={10} className="text-emerald-500" /> Mobile <span className="text-slate-400 font-normal">(Optional)</span>
+                      <Smartphone size={10} className="text-emerald-500" /> Mobile Number <span className="text-rose-500 font-bold">*</span>
                     </label>
                     <input
                       type="tel"
+                      required
                       maxLength={10}
-                      placeholder="Mobile (Optional)"
-                      className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
+                      placeholder="10-digit mobile *"
+                      className={`w-full bg-slate-50 border rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:bg-white focus:ring-2 transition-all placeholder:text-slate-400 ${
+                        !customerMobile?.trim() ? 'border-amber-300 focus:border-emerald-500 focus:ring-emerald-500/10' : 'border-slate-200/80 focus:border-emerald-500 focus:ring-emerald-500/10'
+                      }`}
                       value={customerMobile}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -2237,23 +2292,29 @@ export default function AdminPOS() {
                     </p>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Name</label>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Name <span className="text-rose-500 font-bold">*</span></label>
                         <input
                           type="text"
-                          placeholder="Walk-in"
+                          required
+                          placeholder="Enter Customer Name *"
                           className="w-full bg-slate-50 border border-transparent rounded-2xl px-4 py-4 text-sm font-bold outline-none"
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Mobile</label>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Mobile <span className="text-rose-500 font-bold">*</span></label>
                         <input
                           type="tel"
-                          placeholder="9876..."
+                          required
+                          maxLength={10}
+                          placeholder="10-digit mobile *"
                           className="w-full bg-slate-50 border border-transparent rounded-2xl px-4 py-4 text-sm font-bold outline-none"
                           value={customerMobile}
-                          onChange={(e) => setCustomerMobile(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setCustomerMobile(val);
+                          }}
                         />
                       </div>
                     </div>

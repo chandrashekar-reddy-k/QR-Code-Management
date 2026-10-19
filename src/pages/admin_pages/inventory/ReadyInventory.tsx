@@ -176,19 +176,46 @@ const ReadyInventory: React.FC = () => {
             }
           });
 
-          const vehicleQty = Number(
-            item.vehicleStoreStock ??
-            item.vehicleStock ??
-            (Array.isArray(item.vehicleStockAssignments)
-              ? item.vehicleStockAssignments.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0)
-              : (Array.isArray(item.vehicleStocks) ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0) : 0))
-          );
+          // 1. Resolve Online stock from ChannelInventory, onlineStock, or onlineAppStock
+          let onlineQty = 0;
+          if (Array.isArray(item.channelInventories) && item.channelInventories.length > 0) {
+            const onlineRecord = item.channelInventories.find((ci: any) =>
+              ci.channel === 'ONLINE_APP' || ci.channel === 'ONLINE' || ci.channel === 'APP'
+            );
+            if (onlineRecord) onlineQty = Number(onlineRecord.quantity) || 0;
+          }
+          if (onlineQty === 0) {
+            onlineQty = Number(item.onlineStock ?? item.onlineAppStock?.onlineStock ?? 0);
+          }
+
+          // 2. Resolve POS stock from ChannelInventory, posStock, or posStoreStock
+          let posQty = 0;
+          if (Array.isArray(item.channelInventories) && item.channelInventories.length > 0) {
+            const posRecord = item.channelInventories.find((ci: any) =>
+              ci.channel === 'POS_STORE' || ci.channel === 'POS'
+            );
+            if (posRecord) posQty = Number(posRecord.quantity) || 0;
+          }
+          if (posQty === 0) {
+            posQty = Number(item.posStock ?? item.posStoreStock?.posStock ?? 0);
+          }
+
+          // 3. Resolve Vehicle stock from ChannelInventory (VEHICLE), vehicleStockAssignments, or vehicleStocks
+          let vehicleFromCi = 0;
+          if (Array.isArray(item.channelInventories) && item.channelInventories.length > 0) {
+            const vehicleRecord = item.channelInventories.find((ci: any) => ci.channel === 'VEHICLE');
+            if (vehicleRecord) vehicleFromCi = Number(vehicleRecord.quantity) || 0;
+          }
+          const vsaQty = Array.isArray(item.vehicleStockAssignments)
+            ? item.vehicleStockAssignments.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0)
+            : (Array.isArray(item.vehicleStocks)
+                ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0)
+                : 0);
+          const vehicleQty = vehicleFromCi > 0 ? vehicleFromCi : (vsaQty > 0 ? vsaQty : Number(item.vehicleStock || 0));
 
           const variantItems = Object.values(variantMap);
           if (variantItems.length > 0) {
             variantItems.forEach((vItem: any) => {
-              const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
-              const posQty = Number(item.posStoreStock?.posStock ?? 0);
               const remainingQty = Math.max(0, vItem.readyQty - onlineQty - posQty - vehicleQty);
 
               mappedData.push({
@@ -216,8 +243,6 @@ const ReadyInventory: React.FC = () => {
               fgPosted
             );
 
-            const onlineQty = Number(item.onlineAppStock?.onlineStock ?? 0);
-            const posQty = Number(item.posStoreStock?.posStock ?? 0);
             const remainingQty = Math.max(0, effectiveReadyQty - onlineQty - posQty - vehicleQty);
 
             mappedData.push({
@@ -330,23 +355,53 @@ const ReadyInventory: React.FC = () => {
     if (!editingItem) return;
     setSaving(true);
     try {
-      const totalQty = Number(editForm.readyQty) || 0;
+      const totalQty = Math.max(0, Number(editForm.readyQty) || 0);
+      const onlineQty = Math.max(0, Number(editForm.online) || 0);
+      const posQty = Math.max(0, Number(editForm.pos) || 0);
+      const vehicleQty = Math.max(0, Number(editForm.vehicle) || 0);
+      const totalAllocated = onlineQty + posQty + vehicleQty;
 
-      const targetId = editingItem.productId || editingItem.id;
+      if (totalAllocated > totalQty) {
+        toast.error(`Total allocated (${totalAllocated}) cannot exceed Ready Quantity (${totalQty}).`);
+        setSaving(false);
+        return;
+      }
+
+      const targetId = editingItem.productId || (typeof editingItem.id === 'string' && editingItem.id.includes('_') ? editingItem.id.split('_')[0] : editingItem.id);
+
+      // 1. Update Product Master Stock
       await inventoryService.updateProductStock(targetId, totalQty);
+
+      // 2. Update Channel Allocation in ChannelInventory (with mode='SET' so exact quantities are stored)
+      await inventoryService.saveChannelAllocation(targetId, {
+        onlineQty,
+        posQty,
+        vehicleQty,
+        mode: 'SET'
+      });
+
+      const remaining = Math.max(0, totalQty - totalAllocated);
 
       setData(prev => prev.map(p => {
         if (p.id === editingItem.id) {
-          const remaining = Math.max(0, totalQty - Number(p.online) - Number(p.pos) - Number(p.vehicle));
-          return { ...p, readyQty: String(totalQty), remainingQty: String(remaining) };
+          return {
+            ...p,
+            readyQty: String(totalQty),
+            online: String(onlineQty),
+            pos: String(posQty),
+            vehicle: String(vehicleQty),
+            remainingQty: String(remaining)
+          };
         }
         return p;
       }));
+
       closeEdit();
-      toast.success('Stock updated successfully');
-    } catch (err) {
+      toast.success('Ready stock and Channel Inventory updated successfully');
+      loadData();
+    } catch (err: any) {
       console.error('Failed to save:', err);
-      toast.error('Failed to save allocation. Please try again.');
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to save allocation. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -436,7 +491,13 @@ const ReadyInventory: React.FC = () => {
       label: '(ONLINE)',
       sortable: true,
       render: (item: ReadyInventoryItem) => (
-        <span className="text-sm text-gray-700">{item.online}</span>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+          Number(item.online) > 0
+            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+            : 'text-gray-500 bg-gray-50 border border-gray-200'
+        }`}>
+          {item.online}
+        </span>
       )
     },
     {
@@ -444,7 +505,13 @@ const ReadyInventory: React.FC = () => {
       label: '(POS)',
       sortable: true,
       render: (item: ReadyInventoryItem) => (
-        <span className="text-sm text-gray-700">{item.pos}</span>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+          Number(item.pos) > 0
+            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+            : 'text-gray-500 bg-gray-50 border border-gray-200'
+        }`}>
+          {item.pos}
+        </span>
       )
     },
     {
@@ -452,7 +519,13 @@ const ReadyInventory: React.FC = () => {
       label: '(VEHICLE)',
       sortable: true,
       render: (item: ReadyInventoryItem) => (
-        <span className="text-sm text-gray-700">{item.vehicle}</span>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+          Number(item.vehicle) > 0
+            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+            : 'text-gray-500 bg-gray-50 border border-gray-200'
+        }`}>
+          {item.vehicle}
+        </span>
       )
     },
     {
@@ -497,15 +570,93 @@ const ReadyInventory: React.FC = () => {
             {/* Modal Body */}
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Total Ready Quantity</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+                  Total Ready Quantity
+                </label>
                 <input
                   type="number"
                   min="0"
                   value={editForm.readyQty}
                   onChange={e => setEditForm(f => ({ ...f, readyQty: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-semibold"
                 />
-                <p className="text-xs text-gray-400 mt-2">To allocate quantities to sales channels, use the Reserve Stock screen.</p>
+              </div>
+
+              {/* Channel Inventory Allocation */}
+              <div className="pt-2 border-t border-gray-100">
+                <span className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2.5">
+                  Channel Inventory Stock Allocation
+                </span>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-blue-700 mb-1">
+                      Online App
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.online}
+                      onChange={e => setEditForm(f => ({ ...f, online: e.target.value }))}
+                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-800 bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-purple-700 mb-1">
+                      POS Store
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.pos}
+                      onChange={e => setEditForm(f => ({ ...f, pos: e.target.value }))}
+                      className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-800 bg-purple-50/30 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-amber-700 mb-1">
+                      Vehicle Sales
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.vehicle}
+                      onChange={e => setEditForm(f => ({ ...f, vehicle: e.target.value }))}
+                      className="w-full border border-amber-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-800 bg-amber-50/30 focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold text-center"
+                    />
+                  </div>
+                </div>
+
+                {/* Stock Summary Pill */}
+                {(() => {
+                  const tReady = Number(editForm.readyQty) || 0;
+                  const tOnline = Number(editForm.online) || 0;
+                  const tPos = Number(editForm.pos) || 0;
+                  const tVehicle = Number(editForm.vehicle) || 0;
+                  const tAlloc = tOnline + tPos + tVehicle;
+                  const tRem = tReady - tAlloc;
+                  const isOver = tAlloc > tReady;
+
+                  return (
+                    <div className="mt-3 p-2.5 rounded-lg bg-gray-50 border border-gray-200 space-y-1.5 text-xs">
+                      <div className="flex justify-between items-center text-gray-600">
+                        <span>Total Channel Allocated:</span>
+                        <span className="font-semibold text-gray-800">{tAlloc}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-gray-700">Remaining Unallocated:</span>
+                        <span className={`font-bold ${isOver ? 'text-red-600' : 'text-emerald-600'}`}>
+                          {tRem}
+                        </span>
+                      </div>
+                      {isOver && (
+                        <p className="text-[11px] text-red-600 font-semibold mt-1">
+                          ⚠️ Total allocated ({tAlloc}) exceeds Total Ready stock ({tReady}).
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

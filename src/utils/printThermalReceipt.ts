@@ -117,6 +117,7 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
   }
 
   const invoiceNo = getInvoiceNumber(order as any);
+  const formattedBillNo = invoiceNo.startsWith("VK-") ? `#${invoiceNo}` : `#VK-${invoiceNo}`;
   const orderDateObj = new Date(order.createdAt || order.orderDate || Date.now());
   const dateStr = !isNaN(orderDateObj.getTime())
     ? orderDateObj.toLocaleString("en-IN", {
@@ -184,30 +185,32 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
     const name = item.product?.name || item.name || item.productName || `Item #${idx + 1}`;
     const qty = Number(item.quantity || item.qty || 1);
 
-    const unitP = item.unitPrice && Number(item.unitPrice) > 0 ? Number(item.unitPrice) : null;
-    const itemP = item.price && Number(item.price) > 0 ? Number(item.price) : null;
-    const totP = item.totalPrice && Number(item.totalPrice) > 0 ? Number(item.totalPrice) / qty : null;
+    const isExplicitFree = item.isFree === true || item.product?.isFree === true;
 
-    const price = Number(
-      item.sellingPrice ??
-      item.finalPrice ??
-      item.posPrice ??
-      unitP ??
-      itemP ??
-      totP ??
-      item.product?.sellingPrice ??
-      item.product?.finalPrice ??
-      item.product?.posPrice ??
-      item.product?.price ??
-      0
-    );
+    const rawItemPrice =
+      item.sellingPrice !== undefined && item.sellingPrice !== null ? Number(item.sellingPrice) :
+      item.finalPrice !== undefined && item.finalPrice !== null ? Number(item.finalPrice) :
+      item.unitPrice !== undefined && item.unitPrice !== null ? Number(item.unitPrice) :
+      item.price !== undefined && item.price !== null ? Number(item.price) :
+      item.totalPrice !== undefined && item.totalPrice !== null ? Number(item.totalPrice) / (qty || 1) :
+      item.posPrice !== undefined && item.posPrice !== null ? Number(item.posPrice) :
+      null;
+
+    const rawProductPrice =
+      item.product?.sellingPrice !== undefined && item.product?.sellingPrice !== null ? Number(item.product.sellingPrice) :
+      item.product?.finalPrice !== undefined && item.product?.finalPrice !== null ? Number(item.product.finalPrice) :
+      item.product?.posPrice !== undefined && item.product?.posPrice !== null ? Number(item.product.posPrice) :
+      item.product?.price !== undefined && item.product?.price !== null ? Number(item.product.price) :
+      0;
+
+    const price = isExplicitFree ? 0 : (rawItemPrice !== null && !isNaN(rawItemPrice) ? rawItemPrice : rawProductPrice);
+    const isFree = isExplicitFree || price === 0;
 
     const rawMrp = Number(item.mrp ?? item.product?.mrp ?? 0);
-    const mrp = rawMrp > 0 ? rawMrp : (item.discount ? price + Number(item.discount) : price);
+    const mrp = rawMrp > 0 ? rawMrp : (item.discount ? price + Number(item.discount) : (rawProductPrice > price ? rawProductPrice : price));
     const gst = Number(item.gst ?? item.taxRate ?? item.product?.gst ?? item.product?.taxRate ?? 0);
     const hsn = item.hsnCode || item.hsn || item.product?.hsnCode || item.product?.hsn || "";
     const unit = item.unit || item.variant || item.product?.unit || "";
-    const isFree = item.isFree === true || item.product?.isFree === true || (price === 0 && rawMrp === 0);
 
     const itemTot = isFree ? 0 : price * qty;
     const taxable = gst > 0 ? itemTot / (1 + gst / 100) : itemTot;
@@ -230,11 +233,13 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
 
   const totalAmount = Number(order.totalAmount || 0);
   const subTotalMRP = itemsList.reduce((sum, i) => sum + (i.mrp || i.price) * i.qty, 0) || totalAmount;
-  const savings = Math.max(0, subTotalMRP - totalAmount);
-  const totalTax = itemsList.reduce((sum, item) => sum + item.itemTax, 0);
   const deliveryFee = Number(order.deliveryCharge || 0);
   const couponDiscount = Number(order.couponDiscount || (order.couponCode ? order.discount : 0) || 0);
   const couponCode = order.couponCode ? String(order.couponCode).toUpperCase() : null;
+  const totalSavings = Math.max(0, subTotalMRP - (totalAmount - deliveryFee));
+  const savings = totalSavings;
+  const productDiscount = Math.max(0, totalSavings - couponDiscount);
+  const totalTax = itemsList.reduce((sum, item) => sum + item.itemTax, 0);
   const taxableValue = Math.max(0, totalAmount - totalTax - deliveryFee);
 
   // Delivery details
@@ -321,7 +326,7 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
     <html lang="en">
       <head>
         <meta charset="utf-8" />
-        <title>Receipt #VK-${invoiceNo}</title>
+        <title>Receipt ${formattedBillNo}</title>
         <style>
           @page {
             size: 80mm auto;
@@ -450,7 +455,7 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
         <div class="divider"></div>
 
         <div class="row">
-          <span>Bill No: <b>#VK-${invoiceNo}</b></span>
+          <span>Bill No: <b>${formattedBillNo}</b></span>
         </div>
         <div class="row">
           <span>Date: ${dateStr}</span>
@@ -531,11 +536,11 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
         </div>
 
         ${
-          savings > 0
+          productDiscount > 0
             ? `
           <div class="total-row" style="color: #111;">
             <span>Product Discount</span>
-            <span>- Rs.${savings.toFixed(2)}</span>
+            <span>- Rs.${productDiscount.toFixed(2)}</span>
           </div>
         `
             : ""
@@ -593,6 +598,17 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
           <span>Rs.${totalAmount.toFixed(2)}</span>
         </div>
 
+        ${
+          totalSavings > 0
+            ? `
+          <div class="total-row bold" style="color: #166534; background: #f0fdf4; padding: 4px; border-radius: 4px; margin-top: 4px;">
+            <span>TOTAL SAVINGS</span>
+            <span>Rs.${totalSavings.toFixed(2)}</span>
+          </div>
+        `
+            : ""
+        }
+
         <div class="row bold" style="font-size: 10px; margin-top: 6px;">
           <span>Payment: <b>${paymentLabel}</b></span>
           <span style="${statusBadgeStyle}">[${paymentStatus}]</span>
@@ -610,10 +626,10 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
         }
 
         ${
-          savings > 0
+          totalSavings > 0
             ? `
           <div class="savings-box">
-            YOU SAVED: Rs.${savings.toFixed(2)}
+            YOU SAVED: Rs.${totalSavings.toFixed(2)}
           </div>
         `
             : ""

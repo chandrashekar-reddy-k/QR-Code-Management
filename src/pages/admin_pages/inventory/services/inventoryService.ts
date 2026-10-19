@@ -13,7 +13,7 @@ export const inventoryService = {
   updateProductInventoryType: async (productId: string, inventoryType: 'RAW' | 'READY' | 'RESERVE' | 'PRODUCTION', extra?: { transferQty?: number; grnId?: string }) => {
     return api.put(`/product/${productId}`, { inventoryType, ...extra });
   },
-  saveChannelAllocation: async (productId: string, allocation: { onlineQty: number; posQty: number; vehicleQty: number }) => {
+  saveChannelAllocation: async (productId: string, allocation: { onlineQty: number; posQty: number; vehicleQty: number; mode?: 'SET' | 'INCREMENT' }) => {
     return api.patch(`/product/${productId}/channel-allocation`, allocation);
   },
   updateProductStock: async (productId: string, stock: number) => {
