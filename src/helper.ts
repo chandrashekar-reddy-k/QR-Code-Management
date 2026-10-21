@@ -98,7 +98,8 @@ const refreshAccessToken = async (): Promise<string> => {
     throw new Error('No refresh token available');
   }
 
-  const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+  const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
+  // Supports both /refresh and /refresh-token (Identity Service exposes both)
   const fullUrl = `${identityBaseUrl}/api/v1/auth/refresh-token`;
   console.log('[AUTH] Calling refresh-token API:', fullUrl);
 

@@ -5,7 +5,7 @@ import { ordersAPI } from '../services/api';
 import adminAPI from '../services/adminService';
 import { CheckCircle, Home, Share2, Smartphone, Banknote, CreditCard, Download, ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { jsPDF } from 'jspdf';
+import { generateInvoicePDF, getInvoiceNumber } from '../../../../utils/generateInvoicePDF';
 import villagKartLogo from '../../../../assets/vk.png';
 
 const containsUnicode = (str: string) => /[^\x00-\x7F]/.test(str);
@@ -90,26 +90,6 @@ export default function SuccessScreen() {
 
   useEffect(() => {
     if (!id) return;
-    if (id.startsWith('ORD-')) {
-      setOrder({
-        id: id,
-        orderNumber: id.replace(/\D/g, '') || '13277',
-        totalAmount: 261,
-        paymentMode: 'CASH',
-        paymentStatus: 'PAID',
-        createdAt: new Date().toISOString(),
-        customer: {
-          name: 'Ramesh Kumar',
-          mobile: '98765 43210'
-        },
-        items: [
-          { id: '1', product: { name: 'Rice 5kg', price: 120 }, quantity: 1, totalPrice: 120 },
-          { id: '2', product: { name: 'Toor Dal 1kg', price: 140 }, quantity: 1, totalPrice: 140 },
-          { id: '3', product: { name: 'Sunflower Oil 1L', price: 110 }, quantity: 1, totalPrice: 110 }
-        ]
-      });
-      return;
-    }
 
     // 1. Fetch Order Details (Critical)
     ordersAPI.getById(id)
@@ -118,24 +98,6 @@ export default function SuccessScreen() {
       })
       .catch((err) => {
         console.warn('[SuccessScreen] Falling back to client order view:', err?.response?.status);
-        // Fallback order state
-        setOrder({
-          id: id || 'ORD-13277',
-          orderNumber: id?.replace(/\D/g, '') || '13277',
-          totalAmount: 261,
-          paymentMode: 'CASH',
-          paymentStatus: 'PAID',
-          createdAt: new Date().toISOString(),
-          customer: {
-            name: 'Ramesh Kumar',
-            mobile: '98765 43210'
-          },
-          items: [
-            { id: '1', product: { name: 'Rice 5kg', price: 120 }, quantity: 1, totalPrice: 120 },
-            { id: '2', product: { name: 'Toor Dal 1kg', price: 140 }, quantity: 1, totalPrice: 140 },
-            { id: '3', product: { name: 'Sunflower Oil 1L', price: 110 }, quantity: 1, totalPrice: 110 }
-          ]
-        });
       });
 
     // 2. Fetch Business Settings (Optional - Don't block order)
@@ -167,451 +129,6 @@ export default function SuccessScreen() {
     } finally {
       setIsDownloading(false);
     }
-  };
-
-  // Convert image URL to base64 for jsPDF
-  const loadImageAsBase64 = (url: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Canvas context not available'));
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.onerror = reject;
-      img.src = url;
-    });
-  };
-
-  const generateInvoicePDF = async (order: any, bizSettings: any) => {
-    if (!order) return null;
-    const settings = bizSettings || { businessName: 'VillagKart' };
-
-    // Load logo as base64
-    let logoBase64 = null;
-    try {
-      logoBase64 = await loadImageAsBase64(villagKartLogo);
-    } catch {
-      console.warn('Could not load logo, continuing without it');
-    }
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const margin = 20;
-    const contentWidth = pageWidth - margin * 2;
-    let y = 20;
-
-    // ── Colors ──
-    const emerald = [5, 150, 105];
-    const darkText = [15, 23, 42];
-    const grayText = [100, 116, 139];
-    const lightLine = [226, 232, 240];
-    const orangeAccent = [234, 88, 12];
-
-    // ══════════════════════════════════════
-    // HEADER — Company branding
-    // ══════════════════════════════════════
-    const headerHeight = 55;
-    pdf.setFillColor(255, 255, 255);
-    pdf.rect(0, 0, pageWidth, headerHeight, 'F');
-
-    // Logo
-    const logoWidth = 30;
-    const logoHeight = 30; // giving a slightly rectangular aspect ratio assuming a typical logo, but keeping it large 
-    const logoX = margin;
-    const logoY = 5;
-    if (logoBase64) {
-      pdf.addImage(logoBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
-    }
-
-    // Slogans placed directly below the logo (side by side)
-    pdf.setTextColor(...darkText);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(5);
-    const text1 = 'Shop any Time,';
-    const text2 = 'Save Everytime';
-    const textYPosition = logoY + logoHeight + 2;
-    const textBaseX = margin + 1.5; // Offset slightly to the right to center under logo
-    pdf.text(text1, textBaseX, textYPosition);
-
-    // Calculate width to place the second text next to it with a small divider/space
-    const text1Width = pdf.getTextWidth(`${text1} `);
-    pdf.text(` ${text2}`, textBaseX + text1Width - pdf.getTextWidth(' '), textYPosition);
-
-    // Invoice label (right-aligned)
-    pdf.setFontSize(28);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...darkText);
-    pdf.text('INVOICE', pageWidth - margin, 20, { align: 'right' });
-
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('Tax Invoice / Bill of Supply', pageWidth - margin, 27, { align: 'right' });
-
-    // Orange accent strip
-    pdf.setFillColor(...orangeAccent);
-    pdf.rect(0, headerHeight, pageWidth, 2, 'F');
-
-    y = headerHeight + 10;
-
-    // ══════════════════════════════════════
-    // INVOICE META — Two columns
-    // ══════════════════════════════════════
-    const invoiceNo = getInvoiceNumber(order);
-    const orderDate = new Date(order.createdAt);
-    const dateStr = orderDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-    const timeStr = orderDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    // Left column - Seller Details
-    pdf.setTextColor(...grayText);
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('INVOICE NUMBER', margin, y);
-    pdf.setTextColor(...darkText);
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(`#VK-${invoiceNo}`, margin, y + 6);
-
-    // Seller Info (Dynamic)
-    let sellerY = y + 15;
-    pdf.setTextColor(...grayText);
-    pdf.setFontSize(7);
-    pdf.text('SOLD BY:', margin, sellerY);
-    drawUnicodeText(pdf, settings.businessName.toUpperCase(), margin, sellerY + 4.5, { fontSize: 8.5, isBold: true, color: darkText });
-
-    let sellerDetailsY = sellerY + 9;
-    if (settings.gstNo) {
-      drawUnicodeText(pdf, `GSTIN: ${settings.gstNo}`, margin, sellerDetailsY, { fontSize: 7.5, color: grayText });
-      sellerDetailsY += 4;
-    }
-    if (settings.contactNo) {
-      drawUnicodeText(pdf, `Ph: ${settings.contactNo}`, margin, sellerDetailsY, { fontSize: 7.5, color: grayText });
-      sellerDetailsY += 4;
-    }
-    if (settings.email) {
-      drawUnicodeText(pdf, `Email: ${settings.email}`, margin, sellerDetailsY, { fontSize: 7.5, color: grayText });
-      sellerDetailsY += 4;
-    }
-    if (settings.address) {
-      let lines: string[] = [];
-      if (containsUnicode(settings.address)) {
-        const words = settings.address.split(' ');
-        let currentLine = '';
-        const maxW = contentWidth * 0.45;
-        for (const word of words) {
-          const testLine = currentLine ? `${currentLine} ${word}` : word;
-          if (getTextWidth(pdf, testLine, 7.5) > maxW) {
-            if (currentLine) lines.push(currentLine);
-            currentLine = word;
-          } else {
-            currentLine = testLine;
-          }
-        }
-        if (currentLine) lines.push(currentLine);
-      } else {
-        lines = pdf.splitTextToSize(settings.address, contentWidth * 0.45);
-      }
-
-      lines.forEach((line) => {
-        drawUnicodeText(pdf, line, margin, sellerDetailsY, { fontSize: 7.5, color: grayText });
-        sellerDetailsY += 3.5;
-      });
-    }
-
-    const leftColBottom = sellerDetailsY + 2;
-
-    // Right column
-    const paymentLabel = order.paymentMode === 'CASH' ? 'Cash' : order.paymentMode === 'UPI' ? 'UPI' : 'Card';
-    pdf.setTextColor(...grayText);
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('PAYMENT METHOD', pageWidth - margin, y, { align: 'right' });
-    pdf.setTextColor(...darkText);
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(paymentLabel, pageWidth - margin, y + 6, { align: 'right' });
-
-    pdf.setTextColor(...grayText);
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('DATE & TIME', pageWidth - margin, y + 16, { align: 'right' });
-    pdf.setTextColor(...darkText);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(`${dateStr} | ${timeStr}`, pageWidth - margin, y + 22, { align: 'right' });
-
-    const effCustomerName = order.customerName || order.customer?.name;
-    const effMobile = order.mobile || order.customerMobile || order.customer?.mobile;
-    if (effCustomerName || effMobile) {
-      pdf.setTextColor(...grayText);
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('BILL TO / CUSTOMER', pageWidth - margin, y + 32, { align: 'right' });
-      pdf.setTextColor(...darkText);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      let customerInfo = '';
-      if (effCustomerName && effMobile) {
-        customerInfo = `${effCustomerName.toUpperCase()} (${effMobile})`;
-      } else {
-        customerInfo = effCustomerName ? effCustomerName.toUpperCase() : effMobile;
-      }
-      drawUnicodeText(pdf, customerInfo, pageWidth - margin, y + 38, { fontSize: 10, align: 'right', color: darkText });
-    }
-
-    y = Math.max(leftColBottom, y + 46);
-
-    // Divider
-    pdf.setDrawColor(...lightLine);
-    pdf.setLineWidth(0.5);
-    pdf.line(margin, y, pageWidth - margin, y);
-    y += 8;
-
-    // ══════════════════════════════════════
-    // ITEMS TABLE
-    // ══════════════════════════════════════
-    const colX = {
-      sno: margin,
-      item: margin + 10,
-      qty: margin + contentWidth * 0.40,
-      gst: margin + contentWidth * 0.52,
-      mrp: margin + contentWidth * 0.62,
-      price: margin + contentWidth * 0.74,
-      amount: pageWidth - margin,
-    };
-
-    const maxPageHeight = pdf.internal.pageSize.getHeight() - 20;
-
-    const drawTableHeaders = (currentY: number) => {
-      pdf.setFillColor(248, 250, 252);
-      pdf.rect(margin, currentY - 4, contentWidth, 10, 'F');
-
-      pdf.setTextColor(...grayText);
-      pdf.setFontSize(7.5);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('S.NO', colX.sno, currentY + 2);
-      pdf.text('ITEM DESCRIPTION', colX.item, currentY + 2);
-      pdf.text('QTY', colX.qty, currentY + 2);
-      pdf.text('GST', colX.gst, currentY + 2);
-      pdf.text('MRP', colX.mrp, currentY + 2);
-      pdf.text('VK PRICE', colX.price, currentY + 2);
-      pdf.text('AMOUNT', colX.amount, currentY + 2, { align: 'right' });
-
-      return currentY + 10;
-    };
-
-    y = drawTableHeaders(y);
-
-    const items = order.items || [];
-    items.forEach((item: any, index: number) => {
-      const itemName = item.product?.name || `Product ${item.productId?.slice(-6) || ''}`;
-      const qty = item.quantity || 0;
-      const price = item.price || 0;
-      const mrpValue = item.mrp || price;
-      const amount = qty * price;
-      const gstRate = item.gst || 0;
-      const itemTaxable = amount / (1 + gstRate / 100);
-      const itemGstAmt = amount - itemTaxable;
-
-      // Handle Page Break
-      if (y > maxPageHeight - 10) {
-        pdf.addPage();
-        y = 20;
-
-        pdf.setTextColor(...grayText);
-        pdf.setFontSize(8);
-        pdf.setFont('helvetica', 'italic');
-        pdf.text(`Invoice #VK-${invoiceNo} (Continued)`, margin, y);
-
-        pdf.setFillColor(...orangeAccent);
-        pdf.rect(margin, y + 2, contentWidth, 0.5, 'F');
-
-        y += 12;
-        y = drawTableHeaders(y);
-      }
-
-      if (index % 2 === 0) {
-        pdf.setFillColor(255, 255, 255);
-      } else {
-        pdf.setFillColor(249, 250, 251);
-      }
-      pdf.rect(margin, y - 4, contentWidth, 9, 'F');
-
-      drawUnicodeText(pdf, `${index + 1}`, colX.sno, y + 1, { fontSize: 9, isBold: true, color: darkText });
-
-      const maxNameWidth = colX.qty - colX.item - 5;
-      let displayName = itemName;
-      while (getTextWidth(pdf, displayName, 9) > maxNameWidth && displayName.length > 3) {
-        displayName = displayName.slice(0, -4) + '...';
-      }
-      drawUnicodeText(pdf, displayName, colX.item, y + 1, { fontSize: 9, isBold: true, color: darkText });
-
-      pdf.text(`${qty}`, colX.qty, y + 1);
-      pdf.text(`${Math.round(itemGstAmt)}`, colX.gst, y + 1);
-
-      pdf.setTextColor(...grayText);
-      pdf.setFontSize(7);
-      pdf.text(`Rs.${Math.round(mrpValue)}`, colX.mrp, y + 1, { align: 'left' });
-
-      const isItemFree = price === 0;
-
-      pdf.setTextColor(...(isItemFree ? orangeAccent : emerald));
-      pdf.setFontSize(isItemFree ? 7 : 8);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(isItemFree ? 'GIFT/FREE' : `Rs.${Math.round(price)}`, colX.price, y + 1);
-
-      pdf.setTextColor(...darkText);
-      pdf.setFontSize(9);
-      pdf.text(isItemFree ? 'Rs.0' : `Rs.${Math.round(amount)}`, colX.amount, y + 1, { align: 'right' });
-
-      y += 9;
-    });
-
-    if (items.length === 0) {
-      pdf.setTextColor(...grayText);
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'italic');
-      pdf.text('No itemized details available', margin + contentWidth / 2, y + 1, { align: 'center' });
-      y += 9;
-    }
-
-    y += 2;
-
-    pdf.setDrawColor(...emerald);
-    pdf.setLineWidth(0.8);
-    pdf.line(margin, y, pageWidth - margin, y);
-    y += 8;
-
-    // ══════════════════════════════════════
-    // TOTALS & PAYMENT STATUS
-    // ══════════════════════════════════════
-    if (y > maxPageHeight - 65) {
-      pdf.addPage();
-      y = 20;
-
-      pdf.setTextColor(...grayText);
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'italic');
-      pdf.text(`Invoice #VK-${invoiceNo} (Continued)`, margin, y);
-
-      pdf.setFillColor(...orangeAccent);
-      pdf.rect(margin, y + 2, contentWidth, 0.5, 'F');
-
-      y += 12;
-    }
-    const totalsX = margin + contentWidth * 0.55;
-    const startY = y;
-    let rightY = startY;
-
-    const subTotalMRP = order.items?.reduce((sum: number, i: any) => sum + (i.mrp || i.price) * i.quantity, 0) || order.totalAmount;
-    const savings = subTotalMRP - order.totalAmount;
-
-    pdf.setTextColor(...grayText);
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Subtotal (MRP)', totalsX, rightY);
-    pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${Math.round(subTotalMRP)}`, colX.amount, rightY, { align: 'right' });
-    rightY += 7;
-
-    if (savings > 0) {
-      // Highlighted Savings Section
-      pdf.setFillColor(255, 247, 237); // Light orange background
-      pdf.roundedRect(totalsX - 3, rightY - 5, (pageWidth - margin) - totalsX + 6, 9, 1, 1, 'F');
-
-      pdf.setTextColor(...orangeAccent);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('TOTAL SAVINGS', totalsX, rightY + 1.5);
-      pdf.setFontSize(11);
-      pdf.text(`- Rs.${Math.round(savings)}`, colX.amount, rightY + 1.5, { align: 'right' });
-      rightY += 9;
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-    }
-
-    pdf.setTextColor(...grayText);
-    const totalTax = order.items?.reduce((sum: number, item: any) => {
-      const rate = item.gst || 0;
-      if (rate === 0) return sum;
-      const taxable = (item.price * item.quantity) / (1 + rate / 100);
-      return sum + ((item.price * item.quantity) - taxable);
-    }, 0) || 0;
-
-    pdf.setTextColor(...grayText);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Taxable Value', totalsX, rightY);
-    pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${Math.round(order.totalAmount - totalTax)}`, colX.amount, rightY, { align: 'right' });
-    rightY += 7;
-
-    pdf.setTextColor(...grayText);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(`Total GST (Incl.)`, totalsX, rightY);
-    pdf.setTextColor(...darkText);
-    pdf.text(`Rs.${Math.round(totalTax)}`, colX.amount, rightY, { align: 'right' });
-    rightY += 4;
-
-    pdf.setDrawColor(...lightLine);
-    pdf.setLineWidth(0.3);
-    pdf.line(totalsX, rightY, pageWidth - margin, rightY);
-    rightY += 7;
-
-    pdf.setFillColor(...emerald);
-    pdf.roundedRect(totalsX - 3, rightY - 5, (pageWidth - margin) - totalsX + 6, 14, 2, 2, 'F');
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('TOTAL', totalsX, rightY + 3);
-    pdf.setFontSize(14);
-    pdf.text(`Rs.${Math.round(order.totalAmount || 0)}`, colX.amount, rightY + 4, { align: 'right' });
-    rightY += 15;
-
-    const badgeWidth = (totalsX - margin) - 15;
-    pdf.setFillColor(236, 253, 245);
-    pdf.roundedRect(margin, startY, badgeWidth, 18, 3, 3, 'F');
-    pdf.setDrawColor(167, 243, 208);
-    pdf.setLineWidth(0.5);
-    pdf.roundedRect(margin, startY, badgeWidth, 18, 3, 3, 'S');
-
-    pdf.setTextColor(...emerald);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('PAYMENT STATUS', margin + badgeWidth / 2, startY + 7, { align: 'center' });
-    pdf.setFontSize(11);
-    const paidStr = order.status === 'DELIVERED' ? 'PAID' : 'PAID';
-    const pModeStr = order.paymentMode ? ` (${order.paymentMode})` : '';
-    pdf.text(`${paidStr}${pModeStr}`, margin + badgeWidth / 2, startY + 13, { align: 'center' });
-
-    y = Math.max(startY + 25, rightY + 5);
-
-    // ══════════════════════════════════════
-    // FOOTER
-    // ══════════════════════════════════════
-    pdf.setDrawColor(...lightLine);
-    pdf.setLineWidth(0.3);
-    pdf.line(margin, y, pageWidth - margin, y);
-    y += 12;
-
-    pdf.setTextColor(...emerald);
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Thanks for shopping in VillagKart', pageWidth / 2, y, { align: 'center' });
-    y += 6;
-
-    pdf.setTextColor(...grayText);
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('This is a computer-generated invoice and does not require a signature.', pageWidth / 2, y, { align: 'center' });
-    y += 4;
-    pdf.text(`Generated on ${new Date().toLocaleString('en-IN')}`, pageWidth / 2, y, { align: 'center' });
-
-    return pdf;
   };
 
   const handleShare = async () => {
@@ -720,32 +237,67 @@ export default function SuccessScreen() {
                   <span className="capitalize">{order.paymentMode?.toLowerCase()}</span>
                 </div>
               </div>
-              {order.items?.some((i: any) => i.mrp > i.price) && (
-                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 rounded-2xl shadow-lg shadow-emerald-500/10 border border-emerald-400 group">
-                  <div className="absolute top-0 right-0 p-2 opacity-10 transform translate-x-1 -translate-y-1">
-                    <CheckCircle size={36} strokeWidth={1} />
-                  </div>
-                  <div className="relative z-10 flex items-center justify-between px-1">
-                    <div className="flex flex-col">
-                      <span className="text-[8px] font-black text-white/70 uppercase tracking-[0.2em]">Extra Benefit</span>
-                      <h3 className="text-white font-black text-[10px] uppercase tracking-widest opacity-90">Total Savings</h3>
-                    </div>
-                    <div className="flex items-baseline gap-0.5">
-                      <span className="text-white text-xs font-bold">₹</span>
-                      <span className="text-xl font-black text-white tracking-tighter">
-                        {Math.round(order.items.reduce((sum: number, i: any) => sum + (i.mrp || i.price) * i.quantity, 0) - order.totalAmount)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
               {(() => {
-                const totalTax = order.items?.reduce((sum: number, item: any) => {
-                  const rate = item.gst || 0;
-                  if (rate === 0) return sum;
-                  const taxable = (item.price * item.quantity) / (1 + rate / 100);
-                  return sum + ((item.price * item.quantity) - taxable);
-                }, 0) || 0;
+                const rawItems = order.items || [];
+                const subTotalMRP = rawItems.reduce((sum: number, i: any) => {
+                  const q = Number(i.quantity || i.qty || 1);
+                  const p = Number(i.price ?? i.unitPrice ?? i.sellingPrice ?? 0);
+                  const m = Number(i.mrp ?? i.product?.mrp ?? (p + Number(i.discount || 0)));
+                  return sum + (m > 0 ? m : p) * q;
+                }, 0) || Number(order.totalAmount || 0);
+
+                const totalPaid = Number(order.totalAmount || 0);
+                const deliveryCharge = Number(order.deliveryCharge || 0);
+                const savings = Math.max(0, subTotalMRP - (totalPaid - deliveryCharge));
+
+                if (savings <= 0) return null;
+
+                return (
+                  <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 rounded-2xl shadow-lg shadow-emerald-500/10 border border-emerald-400 group">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 transform translate-x-1 -translate-y-1">
+                      <CheckCircle size={36} strokeWidth={1} />
+                    </div>
+                    <div className="relative z-10 flex items-center justify-between px-1">
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-white/70 uppercase tracking-[0.2em]">Extra Benefit</span>
+                        <h3 className="text-white font-black text-[10px] uppercase tracking-widest opacity-90">Total Savings</h3>
+                      </div>
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="text-white text-xs font-bold">₹</span>
+                        <span className="text-xl font-black text-white tracking-tighter">
+                          {savings.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+              {(() => {
+                const rawItems = order.items || [];
+                const totalTax = rawItems.reduce((sum: number, item: any) => {
+                  const q = Number(item.quantity || item.qty || 1);
+                  const p = Number(item.price ?? item.unitPrice ?? item.sellingPrice ?? 0);
+                  const tot = p * q;
+
+                  if (item.taxAmount && Number(item.taxAmount) > 0) {
+                    return sum + Number(item.taxAmount);
+                  }
+                  if (item.cgst || item.sgst) {
+                    return sum + Number(item.cgst || 0) + Number(item.sgst || 0);
+                  }
+                  const rate = Number(
+                    item.gst ??
+                    item.taxRate ??
+                    item.product?.gst ??
+                    item.product?.taxRate ??
+                    item.taxPercent ??
+                    item.product?.taxPercent ??
+                    0
+                  );
+                  if (rate === 0 || tot === 0) return sum;
+                  const taxable = tot / (1 + rate / 100);
+                  return sum + (tot - taxable);
+                }, 0);
 
                 if (totalTax > 0) {
                   return (

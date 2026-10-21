@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import { generateReportPDF } from './adminreports/ReportUtils';
+import { generateInvoicePDF, getInvoiceNumber } from '../../../utils/generateInvoicePDF';
 import { useSalesQuery, useVsmsCacheInvalidator } from './hooks/useVsmsCache';
 import Breadcrumbs from '../../../components/common/Breadcrumbs';
 import StatCard from '../../../components/ui/StatCard/StatCard';
@@ -657,139 +658,32 @@ export default function AdminSales() {
     exportHistoryToExcel();
   };
 
-  const handleDownloadDocument = (order) => {
+  const handleDownloadDocument = async (order) => {
     try {
       if (!order) return;
-      const doc = new jsPDF();
-      const returnAmt = order.returns?.reduce((sum, r) => sum + r.refundAmount, 0) || 0;
-
-      // Branding & Header
-      doc.setFillColor(16, 185, 129); // Emerald-600
-      doc.rect(0, 0, 210, 40, 'F');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
-      doc.setFont("helvetica", "bold");
-      doc.text("VILLAGKART", 20, 25);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text("PREMIUM RURAL COMMERCE SOLUTIONS", 20, 32);
-
-      doc.setFontSize(20);
-      doc.text("TAX INVOICE", 190, 25, { align: "right" });
-      doc.setFontSize(10);
-      doc.text(`#${order.displayId || order.orderNumber}`, 190, 32, { align: "right" });
-
-      // Information Grid (2 Columns)
-      doc.setTextColor(40, 40, 40);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("TRANSACTION DETAILS", 20, 55);
-      doc.line(20, 57, 190, 57);
-
-      const leftFields = [
-        ['Invoice ID', order.displayId || order.orderNumber],
-        ['Unique ID', order.id.slice(0, 18) + '...'],
-        ['Date', format(new Date(order.createdAt), 'dd-MM-yyyy')],
-        ['Time', format(new Date(order.createdAt), 'hh:mm a')],
-        ['Session', order.coverageType || 'N/A'],
-        ['Hub ID', order.storeId || 'N/A']
-      ];
-
-      const rightFields = [
-        ['Customer', order.customerName || 'Walk-in'],
-        ['Mobile', order.mobile || 'N/A'],
-        ['Agent (VGE)', order.user?.name || order.userName || 'N/A'],
-        ['Route', order.route?.routeName || 'N/A'],
-        ['Vehicle ID', order.vehicle?.vehicleNumber || 'N/A'],
-        ['Status', order.status || 'N/A']
-      ];
-
-      doc.setFontSize(9);
-      let y = 65;
-      leftFields.forEach(([label, value]) => {
-        doc.setFont("helvetica", "bold");
-        doc.text(`${label}:`, 20, y);
-        drawUnicodeText(doc, String(value), 50, y, { fontSize: 9, color: [40, 40, 40] });
-        y += 7;
-      });
-
-      y = 65;
-      rightFields.forEach(([label, value]) => {
-        doc.setFont("helvetica", "bold");
-        doc.text(`${label}:`, 110, y);
-        drawUnicodeText(doc, String(value), 145, y, { fontSize: 9, color: [40, 40, 40] });
-        y += 7;
-      });
-
-      // Financials
-      y = 115;
-      doc.setFillColor(248, 250, 252); // Slate-50
-      doc.rect(20, y - 5, 170, 25, 'F');
-
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text("FINANCIAL SUMMARY", 25, y + 2);
-
-      doc.setFontSize(9);
-      const grossAmount = order.totalAmount + (order.discountAmount || 0);
-      doc.text(`Gross Bill: Rs. ${grossAmount.toFixed(0)}`, 110, y + 2);
-      if (order.discountAmount > 0) {
-        doc.setTextColor(16, 185, 129); // Emerald-600
-        doc.text(`Promo Discount: -Rs. ${order.discountAmount.toFixed(0)}`, 110, y + 9);
-        doc.setTextColor(40, 40, 40);
-      }
-      doc.text(`Total Payable: Rs. ${order.totalAmount.toFixed(0)}`, 110, y + 16);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Net After Returns: Rs. ${(order.totalAmount - returnAmt).toFixed(0)}`, 25, y + 9);
-      doc.text(`Paid via: ${order.paymentMode}`, 25, y + 16);
-
-      // Items Table
-      y = 150;
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("ITEMIZED INVENTORY", 20, y);
-      doc.line(20, y + 2, 190, y + 2);
-
-      y += 10;
-      doc.setFontSize(9);
-      doc.setFillColor(241, 245, 249); // Slate-100
-      doc.rect(20, y - 5, 170, 8, 'F');
-      doc.text("Product Description", 25, y);
-      doc.text("Qty", 120, y);
-      doc.text("Price", 145, y);
-      doc.text("Total", 175, y, { align: "right" });
-
-      y += 8;
-      order.items?.forEach((item: any, idx: number) => {
-        if (y > 270) { doc.addPage(); y = 30; }
-        if (idx % 2 === 0) {
-          doc.setFillColor(255, 255, 255);
-        } else {
-          doc.setFillColor(252, 252, 252);
+      toast.loading('Generating invoice...', { id: 'invoice-gen' });
+      
+      let targetOrder = order;
+      if (order.id && (!order.items || order.items.length === 0 || order.items.some(i => !i.product?.name && !i.taxRate && (!i.taxAmount || i.taxAmount === 0)))) {
+        try {
+          const { data } = await ordersAPI.getById(order.id);
+          if (data) targetOrder = data;
+        } catch (fetchErr) {
+          console.warn('[AdminSales] Could not fetch enriched order, falling back to current order:', fetchErr);
         }
-        doc.rect(20, y - 5, 170, 7, 'F');
-        drawUnicodeText(doc, item.product?.name || item.productName || item.name || 'Unknown Item', 25, y, { fontSize: 9, color: [51, 65, 85] });
-        const qty = Number(item.quantity || item.qty || 1);
-        const price = Number(item.price ?? item.unitPrice ?? item.rate ?? 0);
-        doc.text(String(qty), 120, y);
-        doc.text(price.toFixed(0), 145, y);
-        doc.text((price * qty).toFixed(0), 185, y, { align: "right" });
-        y += 7;
-      });
+      }
 
-      // Footer
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text("This document is a computer-generated tax manifest of VillagKart Rural Solutions.", 105, 285, { align: "center" });
-      doc.text(`Generated At: ${format(new Date(), 'PPP p')}`, 105, 290, { align: "center" });
-
-      doc.save(`Invoice_${order.displayId || order.orderNumber}.pdf`);
-      toast.success('Professional document generated');
+      const pdf = await generateInvoicePDF(targetOrder);
+      if (pdf) {
+        const invNo = getInvoiceNumber(targetOrder);
+        pdf.save(`Invoice_${invNo}.pdf`);
+        toast.success('Professional invoice downloaded', { id: 'invoice-gen' });
+      } else {
+        toast.error('Failed to generate invoice', { id: 'invoice-gen' });
+      }
     } catch (error) {
       console.error('PDF Error:', error);
-      toast.error('Failed to generate professional report');
+      toast.error('Failed to generate professional invoice', { id: 'invoice-gen' });
     }
   };
 
@@ -1663,6 +1557,12 @@ export default function AdminSales() {
                   className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-100 transition-all active:scale-95 shadow-sm"
                 >
                   <FileDown size={16} /> Excel
+                </button>
+                <button
+                  onClick={() => handleDownloadDocument(detailOrder)}
+                  className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-700 transition-all active:scale-95 shadow-sm shadow-emerald-200"
+                >
+                  <FileText size={16} /> Download Invoice PDF
                 </button>
                 <button onClick={() => window.print()} className="bg-white text-gray-700 border border-gray-200 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-gray-50 transition-all active:scale-95 shadow-sm">
                   <Printer size={16} /> Print Invoice

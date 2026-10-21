@@ -233,14 +233,29 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
 
   const totalAmount = Number(order.totalAmount || 0);
   const subTotalMRP = itemsList.reduce((sum, i) => sum + (i.mrp || i.price) * i.qty, 0) || totalAmount;
+  const itemsSubtotal = itemsList.reduce((sum, i) => sum + i.itemTot, 0);
   const deliveryFee = Number(order.deliveryCharge || 0);
   const couponDiscount = Number(order.couponDiscount || (order.couponCode ? order.discount : 0) || 0);
   const couponCode = order.couponCode ? String(order.couponCode).toUpperCase() : null;
   const totalSavings = Math.max(0, subTotalMRP - (totalAmount - deliveryFee));
   const savings = totalSavings;
   const productDiscount = Math.max(0, totalSavings - couponDiscount);
-  const totalTax = itemsList.reduce((sum, item) => sum + item.itemTax, 0);
-  const taxableValue = Math.max(0, totalAmount - totalTax - deliveryFee);
+
+  // When an order-level coupon discount is applied, effective items total paid is reduced:
+  const itemsPaid = Math.max(0, totalAmount - deliveryFee);
+  const discountRatio = itemsSubtotal > 0 ? itemsPaid / itemsSubtotal : 1;
+
+  // Calculate actual GST on the discounted net paid value
+  const totalTax = itemsList.reduce((sum, item) => {
+    const discountedItemTot = item.itemTot * discountRatio;
+    const rate = Number(item.gst || 0);
+    if (rate <= 0 || discountedItemTot <= 0) return sum;
+    const itemTaxable = discountedItemTot / (1 + rate / 100);
+    return sum + (discountedItemTot - itemTaxable);
+  }, 0);
+
+  // Taxable Value is the net pre-tax base of items actually paid:
+  const taxableValue = Math.max(0, itemsPaid - totalTax);
 
   // Delivery details
   const deliveryType = order.deliveryType || "Home Delivery";
@@ -561,16 +576,18 @@ export const printThermalReceipt = (order: ThermalOrderData, bizSettings?: Therm
           deliveryFee > 0
             ? `
           <div class="total-row">
-            <span>Delivery Fee</span>
+            <span>Delivery Charges</span>
             <span>Rs.${deliveryFee.toFixed(2)}</span>
           </div>
         `
-            : `
+            : (deliveryType.toLowerCase().includes("home") || order.address || order.deliveryAddress)
+            ? `
           <div class="total-row">
-            <span>Delivery Fee</span>
-            <span>FREE</span>
+            <span>Delivery Charges</span>
+            <span class="bold" style="color: #166534;">FREE</span>
           </div>
         `
+            : ""
         }
 
         <div class="total-row">

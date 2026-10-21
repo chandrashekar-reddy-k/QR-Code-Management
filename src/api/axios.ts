@@ -36,7 +36,7 @@ api.interceptors.response.use(
       
       if (refreshToken) {
         try {
-          const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:4000').replace(/\/+$/, '');
+          const identityBaseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || 'https://identity.villagkart.com').replace(/\/+$/, '');
           const res = await axios.post(`${identityBaseUrl}/api/v1/auth/refresh-token`, {
             refreshToken
           });
@@ -65,8 +65,9 @@ api.interceptors.response.use(
         }
       }
       
-      // If we don't have a refresh token or refreshing fails, clear storage and redirect
-      if (!window.location.pathname.includes('/login')) {
+      // If we don't have a refresh token or refreshing fails, clear storage and redirect (skip on public invoice pages)
+      const pathname = window.location.pathname || '';
+      if (!pathname.includes('/login') && !pathname.startsWith('/invoice')) {
         if (isShopkeeper) {
           sessionStorage.removeItem('staffToken');
           sessionStorage.removeItem('staffRefreshToken');

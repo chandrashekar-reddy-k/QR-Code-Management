@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertTriangle, X, ArrowRight, Volume2, VolumeX, ShieldAlert } from "lucide-react";
-import { useUnassignedDeliveryAlert } from "../../contexts/UnassignedDeliveryAlertContext";
+import { useUnassignedDeliveryAlert, getPartnerOrShopkeeperContext } from "../../contexts/UnassignedDeliveryAlertContext";
 import { useNavigate, useLocation } from "react-router-dom";
 
 interface UnassignedDeliveryAlertPopupProps {
@@ -12,7 +12,8 @@ export function UnassignedDeliveryAlertPopup({ onViewOrder }: UnassignedDelivery
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!activeAlert) return null;
+  const authCtx = getPartnerOrShopkeeperContext();
+  if (!activeAlert || !authCtx.isAllowed) return null;
 
   const handleViewOrder = () => {
     const orderId = activeAlert.orderId;

@@ -51,14 +51,17 @@ export default function PublicInvoiceView() {
     const fetchEndpoints: string[] = [];
     baseCandidates.forEach((b) => {
       const clean = String(b).replace(/\/+$/, '');
+      if (!fetchEndpoints.includes(`${clean}/public/invoices/${id}`)) {
+        fetchEndpoints.push(`${clean}/public/invoices/${id}`);
+      }
       if (!fetchEndpoints.includes(`${clean}/vsms/orders/${id}`)) {
         fetchEndpoints.push(`${clean}/vsms/orders/${id}`);
       }
-      if (!fetchEndpoints.includes(`${clean}/orders/${id}`)) {
-        fetchEndpoints.push(`${clean}/orders/${id}`);
-      }
       if (!fetchEndpoints.includes(`${clean}/agent/orders/${id}`)) {
         fetchEndpoints.push(`${clean}/agent/orders/${id}`);
+      }
+      if (!fetchEndpoints.includes(`${clean}/orders/${id}`)) {
+        fetchEndpoints.push(`${clean}/orders/${id}`);
       }
     });
 
@@ -224,6 +227,20 @@ export default function PublicInvoiceView() {
   const totalSavings = Math.max(0, subTotalMRP - (totalAmount - deliveryFee));
   const productDiscount = Math.max(0, totalSavings - couponDiscount);
 
+  const itemsSubtotal = rawItems.reduce((sum: number, item: any) => {
+    const q = Number(item.quantity || 1);
+    const isFree = item.isFree === true || item.product?.isFree === true;
+    const p = isFree ? 0 : Number(
+      item.unitPrice ?? item.sellingPrice ?? item.finalPrice ?? item.price ??
+      (item.totalPrice !== undefined ? Number(item.totalPrice) / q : null) ??
+      item.product?.sellingPrice ?? item.product?.price ?? 0
+    );
+    return sum + p * q;
+  }, 0);
+
+  const itemsPaid = Math.max(0, totalAmount - deliveryFee);
+  const discountRatio = itemsSubtotal > 0 ? itemsPaid / itemsSubtotal : 1;
+
   const totalTax = rawItems.reduce((sum: number, item: any) => {
     const rate = Number(item.gst || item.taxRate || item.product?.taxRate || 0);
     const q = Number(item.quantity || 1);
@@ -233,12 +250,13 @@ export default function PublicInvoiceView() {
       (item.totalPrice !== undefined ? Number(item.totalPrice) / q : null) ??
       item.product?.sellingPrice ?? item.product?.price ?? 0
     );
-    if (rate <= 0 || p === 0) return sum;
-    const taxable = (p * q) / (1 + rate / 100);
-    return sum + ((p * q) - taxable);
+    const tot = p * q * discountRatio;
+    if (rate <= 0 || tot === 0) return sum;
+    const taxable = tot / (1 + rate / 100);
+    return sum + (tot - taxable);
   }, 0);
 
-  const taxableAmount = Math.max(0, totalAmount - deliveryFee - totalTax);
+  const taxableAmount = Math.max(0, itemsPaid - totalTax);
 
   const orderDateObj = new Date(order.createdAt || order.orderDate || Date.now());
   const dateFormatted = orderDateObj.toLocaleDateString('en-IN', {
@@ -253,8 +271,8 @@ export default function PublicInvoiceView() {
   });
   const cleanInvoiceNo = invoiceNo.startsWith('VK-') ? invoiceNo : `VK-${invoiceNo}`;
 
-  const customerName = order.customerName || order.consumer?.name || order.customer?.name || '';
-  const customerMobile = order.mobile || order.customerMobile || order.consumer?.phone || order.customer?.mobile || '';
+  const customerName = order.customer?.name || order.customerName || order.customer_name || order.consumer?.name || '';
+  const customerMobile = order.customer?.mobile || order.mobile || order.customerMobile || order.customer_phone || order.consumer?.phone || '';
 
   return (
     <div className="min-h-screen bg-slate-100/80 flex flex-col antialiased selection:bg-emerald-500 selection:text-white pb-24 md:pb-12">
@@ -518,10 +536,14 @@ export default function PublicInvoiceView() {
                     </div>
                   )}
 
-                  {deliveryFee > 0 && (
+                  {(deliveryFee > 0 || order.deliveryType === 'HOME_DELIVERY' || order.fulfillmentType === 'HOME_DELIVERY' || !!order.address) && (
                     <div className="flex justify-between items-center text-slate-600 font-medium">
-                      <span>Delivery Fee</span>
-                      <span className="font-bold text-slate-800">₹{Math.round(deliveryFee)}</span>
+                      <span>Delivery Charges</span>
+                      {deliveryFee > 0 ? (
+                        <span className="font-bold text-slate-800">₹{Math.round(deliveryFee)}</span>
+                      ) : (
+                        <span className="font-bold text-emerald-600">FREE</span>
+                      )}
                     </div>
                   )}
 

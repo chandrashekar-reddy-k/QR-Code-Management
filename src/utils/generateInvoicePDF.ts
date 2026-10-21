@@ -278,8 +278,8 @@ export const generateInvoicePDF = async (order: InvoiceOrder, bizSettings?: BizS
   pdf.setFont('helvetica', 'normal');
   pdf.text(`${dateStr} | ${timeStr}`, pageWidth - margin, y + 22, { align: 'right' });
 
-  const cName = order.customerName || order.consumer?.name;
-  const cPhone = order.mobile || order.customerPhone || order.consumer?.phone;
+  const cName = order.customerName || order.customer_name || order.customer?.name || order.consumer?.name;
+  const cPhone = order.mobile || order.customerPhone || order.customer_phone || order.customerMobile || order.customer?.mobile || order.consumer?.phone;
   if (cName || cPhone) {
     pdf.setTextColor(grayText[0], grayText[1], grayText[2]);
     pdf.setFontSize(8);
@@ -369,7 +369,30 @@ export const generateInvoicePDF = async (order: InvoiceOrder, bizSettings?: BizS
     const rawMrp = Number(item.mrp ?? item.product?.mrp ?? 0);
     const mrpValue = rawMrp > 0 ? rawMrp : (item.discount ? price + Number(item.discount) : (rawProductPrice > price ? rawProductPrice : price));
     const amount = isItemFree ? 0 : qty * price;
-    const gstRate = Number(item.gst ?? item.product?.gst ?? item.taxRate ?? item.product?.taxRate ?? 0);
+    
+    // Resolve GST Rate: check item.gst, item.taxRate, product taxRate, or calculate from stored taxAmount/cgst/sgst
+    let gstRate = Number(
+      item.gst ??
+      item.taxRate ??
+      item.product?.gst ??
+      item.product?.taxRate ??
+      item.taxPercent ??
+      item.product?.taxPercent ??
+      0
+    );
+
+    if (gstRate === 0 && amount > 0) {
+      const storedItemTax = Number(item.taxAmount || 0) > 0
+        ? Number(item.taxAmount)
+        : (Number(item.cgst || 0) + Number(item.sgst || 0) + Number(item.igst || 0));
+      
+      if (storedItemTax > 0) {
+        const taxable = amount - storedItemTax;
+        if (taxable > 0) {
+          gstRate = Math.round((storedItemTax / taxable) * 100);
+        }
+      }
+    }
 
     if (y > maxPageHeight - 10) {
       pdf.addPage();
@@ -501,22 +524,37 @@ export const generateInvoicePDF = async (order: InvoiceOrder, bizSettings?: BizS
     rightY += 7;
   }
 
-  if (deliveryFee > 0) {
+  const isHomeDelivery = order.deliveryType === 'HOME_DELIVERY' || order.deliveryType === 'Home Delivery' || order.fulfillmentType === 'HOME_DELIVERY' || !!order.address || !!order.shippingAddress || !!order.deliveryAddress || deliveryFee > 0;
+
+  if (isHomeDelivery || deliveryFee > 0) {
     pdf.setTextColor(grayText[0], grayText[1], grayText[2]);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Delivery Fee', totalsX, rightY);
-    pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
-    pdf.text(`Rs.${deliveryFee.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    pdf.text('Delivery Charges', totalsX, rightY);
+    if (deliveryFee > 0) {
+      pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
+      pdf.text(`Rs.${deliveryFee.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    } else {
+      pdf.setTextColor(emerald[0], emerald[1], emerald[2]);
+      pdf.text('FREE', colX.amount, rightY, { align: 'right' });
+    }
     rightY += 7;
   }
 
+  const itemsSubtotal = rawItems.reduce((sum, i) => {
+    const q = Number(i.quantity || i.qty || 1);
+    const isFree = i.isFree === true || i.product?.isFree === true;
+    const p = isFree ? 0 : Number(
+      i.unitPrice ?? i.sellingPrice ?? i.finalPrice ?? i.price ??
+      (i.totalPrice !== undefined ? Number(i.totalPrice) / q : null) ??
+      i.product?.sellingPrice ?? i.product?.price ?? 0
+    );
+    return sum + p * q;
+  }, 0);
+
+  const itemsPaid = Math.max(0, totalOrderAmount - deliveryFee);
+  const discountRatio = itemsSubtotal > 0 ? itemsPaid / itemsSubtotal : 1;
+
   const totalTax = rawItems.reduce((sum, item) => {
-    if (item.taxAmount && Number(item.taxAmount) > 0) {
-      return sum + Number(item.taxAmount);
-    }
-    if (item.cgst || item.sgst) {
-      return sum + Number(item.cgst || 0) + Number(item.sgst || 0);
-    }
     const q = Number(item.quantity || item.qty || 1);
     const isFree = item.isFree === true || item.product?.isFree === true;
     const p = isFree ? 0 : Number(
@@ -524,35 +562,52 @@ export const generateInvoicePDF = async (order: InvoiceOrder, bizSettings?: BizS
       (item.totalPrice !== undefined ? Number(item.totalPrice) / q : null) ??
       item.product?.sellingPrice ?? item.product?.price ?? 0
     );
-    const rate = Number(item.gst ?? item.product?.gst ?? item.taxRate ?? item.product?.taxRate ?? 0);
-    if (rate === 0 || p === 0) return sum;
-    const tot = p * q;
+    const tot = p * q * discountRatio;
+
+    if (discountRatio === 1 && (item.taxAmount && Number(item.taxAmount) > 0)) {
+      return sum + Number(item.taxAmount);
+    }
+    if (discountRatio === 1 && (item.cgst || item.sgst)) {
+      return sum + Number(item.cgst || 0) + Number(item.sgst || 0);
+    }
+    const rate = Number(
+      item.gst ??
+      item.taxRate ??
+      item.product?.gst ??
+      item.product?.taxRate ??
+      item.taxPercent ??
+      item.product?.taxPercent ??
+      0
+    );
+    if (rate === 0 || tot === 0) return sum;
     const taxable = tot / (1 + rate / 100);
     return sum + (tot - taxable);
   }, 0);
 
-  const taxableAmount = Math.max(0, totalOrderAmount - deliveryFee - totalTax);
+  const taxableAmount = Math.max(0, itemsPaid - totalTax);
 
-  pdf.setTextColor(grayText[0], grayText[1], grayText[2]);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Taxable Value', totalsX, rightY);
-  pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
-  pdf.text(`Rs.${taxableAmount.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
-  rightY += 7;
+  if (totalTax > 0) {
+    pdf.setTextColor(grayText[0], grayText[1], grayText[2]);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Taxable Value', totalsX, rightY);
+    pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
+    pdf.text(`Rs.${taxableAmount.toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    rightY += 7;
 
-  pdf.setTextColor(grayText[0], grayText[1], grayText[2]);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text(`CGST (Incl.)`, totalsX, rightY);
-  pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
-  pdf.text(`Rs.${(totalTax / 2).toFixed(2)}`, colX.amount, rightY, { align: 'right' });
-  rightY += 7;
+    pdf.setTextColor(grayText[0], grayText[1], grayText[2]);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`CGST (Incl.)`, totalsX, rightY);
+    pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
+    pdf.text(`Rs.${(totalTax / 2).toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    rightY += 7;
 
-  pdf.setTextColor(grayText[0], grayText[1], grayText[2]);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text(`SGST (Incl.)`, totalsX, rightY);
-  pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
-  pdf.text(`Rs.${(totalTax / 2).toFixed(2)}`, colX.amount, rightY, { align: 'right' });
-  rightY += 7;
+    pdf.setTextColor(grayText[0], grayText[1], grayText[2]);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`SGST (Incl.)`, totalsX, rightY);
+    pdf.setTextColor(darkText[0], darkText[1], darkText[2]);
+    pdf.text(`Rs.${(totalTax / 2).toFixed(2)}`, colX.amount, rightY, { align: 'right' });
+    rightY += 7;
+  }
 
   pdf.setDrawColor(lightLine[0], lightLine[1], lightLine[2]);
   pdf.line(totalsX, rightY, pageWidth - margin, rightY);
