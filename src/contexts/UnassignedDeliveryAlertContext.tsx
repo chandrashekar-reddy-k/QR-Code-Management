@@ -189,6 +189,25 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
 
     const pollUnassignedAlerts = async () => {
       if (isPolling) return;
+
+      // Don't poll if user is on public routes (invoices, login, forgot-password, etc.)
+      const currentPath = window.location.pathname || '';
+      if (currentPath.startsWith('/invoice') || currentPath.startsWith('/login') || currentPath.startsWith('/forgot-password') || currentPath.startsWith('/create-password')) {
+        return;
+      }
+
+      // Check if any auth token exists before calling authenticated endpoint
+      const token =
+        sessionStorage.getItem("staffToken") ||
+        sessionStorage.getItem("partnerToken") ||
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("staffToken") ||
+        localStorage.getItem("partnerToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("authToken");
+
+      if (!token) return;
+
       isPolling = true;
 
       try {

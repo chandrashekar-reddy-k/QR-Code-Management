@@ -65,8 +65,9 @@ api.interceptors.response.use(
         }
       }
       
-      // If we don't have a refresh token or refreshing fails, clear storage and redirect
-      if (!window.location.pathname.includes('/login')) {
+      // If we don't have a refresh token or refreshing fails, clear storage and redirect (skip on public invoice pages)
+      const pathname = window.location.pathname || '';
+      if (!pathname.includes('/login') && !pathname.startsWith('/invoice')) {
         if (isShopkeeper) {
           sessionStorage.removeItem('staffToken');
           sessionStorage.removeItem('staffRefreshToken');
