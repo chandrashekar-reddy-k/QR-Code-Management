@@ -239,6 +239,7 @@ export default function VehicleWiseReport({ initialSubTab = 'sales' }) {
     } else if (activeSubTab === 'item-sales') {
       fileName = 'Vehicle_Item_Wise_Sales_Report';
       excelRows = filteredData.map((r) => ({
+        'Date & Time': r.date ? new Date(r.date).toLocaleString() : '—',
         'Vehicle Number': r.vehicleNumber,
         'Vehicle Name': r.vehicleName,
         'Driver / Agent': r.driverName,
@@ -664,6 +665,7 @@ export default function VehicleWiseReport({ initialSubTab = 'sales' }) {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="py-3.5 px-4">Date & Time</th>
                     <th className="py-3.5 px-4">Vehicle</th>
                     <th className="py-3.5 px-4">Item & SKU</th>
                     <th className="py-3.5 px-4">Category</th>
@@ -676,6 +678,14 @@ export default function VehicleWiseReport({ initialSubTab = 'sales' }) {
                 <tbody className="divide-y divide-gray-100">
                   {filteredData.map((row, idx) => (
                     <tr key={idx} className="hover:bg-emerald-50/20 transition-colors">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="font-semibold text-gray-800">
+                          {row.date ? new Date(row.date).toLocaleDateString() : '—'}
+                        </div>
+                        <div className="text-[11px] text-gray-400">
+                          {row.date ? new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </div>
+                      </td>
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-gray-900">{row.vehicleNumber}</div>
                         <div className="text-[11px] text-gray-500">{row.vehicleName}</div>
