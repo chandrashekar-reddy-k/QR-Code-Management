@@ -43,6 +43,7 @@ export default function AdminReports() {
 
   const getSubTabFromParam = (param, subParam) => {
     if (subParam) return subParam;
+    if (param === 'vehicle-opening-stock') return 'opening-stock';
     if (param === 'vehicle-stock') return 'current-stock';
     if (param === 'vehicle-loading') return 'loading';
     if (param === 'vehicle-refill') return 'refilling';
@@ -72,6 +73,7 @@ export default function AdminReports() {
     if (activeTab === 'vehicle-wise') {
       const sub = getSubTabFromParam(tabParam, subTabParam);
       if (sub === 'sales') return 'Vehicle-wise Sales Report';
+      if (sub === 'opening-stock') return 'Vehicle Opening Stock Report';
       if (sub === 'current-stock') return 'Vehicle Current Stock Report';
       if (sub === 'loading') return 'Vehicle Loading Report';
       if (sub === 'refilling') return 'Vehicle Refilling Report';

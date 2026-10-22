@@ -719,6 +719,11 @@ export const sidebarConfig: MenuSection[] = [
         icon: Truck,
       },
       {
+        path: "/vsms/reports?tab=vehicle-wise&subTab=opening-stock",
+        label: "Opening Stock",
+        icon: ClipboardList,
+      },
+      {
         path: "/vsms/reports?tab=vehicle-wise&subTab=current-stock",
         label: "Vehicle Stock",
         icon: Boxes,

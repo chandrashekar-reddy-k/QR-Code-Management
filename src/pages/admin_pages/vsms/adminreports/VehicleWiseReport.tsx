@@ -120,6 +120,8 @@ export default function VehicleWiseReport({ initialSubTab = 'sales' }) {
       let res;
       if (activeSubTab === 'sales') {
         res = await adminAPI.getVehicleSalesSummaryReport(params);
+      } else if (activeSubTab === 'opening-stock') {
+        res = await adminAPI.getVehicleOpeningStockReport(params);
       } else if (activeSubTab === 'current-stock') {
         res = await adminAPI.getVehicleCurrentStockReport(params);
       } else if (activeSubTab === 'loading') {
@@ -192,6 +194,24 @@ export default function VehicleWiseReport({ initialSubTab = 'sales' }) {
         'UPI Sales (₹)': r.upiSales,
         'Card Sales (₹)': r.cardSales,
         'Credit Sales (₹)': r.creditSales,
+      }));
+    } else if (activeSubTab === 'opening-stock') {
+      fileName = 'Vehicle_Opening_Stock_Report';
+      excelRows = filteredData.map((r) => ({
+        'Date & Time': r.date ? new Date(r.date).toLocaleString() : '—',
+        'Vehicle Number': r.vehicleNumber,
+        'Vehicle Name': r.vehicleName,
+        'Warehouse/Store': r.storeName,
+        'Driver / Agent': r.driverName,
+        'Product Name': r.productName,
+        'SKU': r.sku,
+        'Category': r.category,
+        'Unit Price (₹)': r.price,
+        'Opening Qty Loaded': r.openingQuantity,
+        'Opening Stock Value (₹)': r.openingValue,
+        'Current Live Stock': r.currentStock,
+        'Current Stock Value (₹)': r.currentValue,
+        'Loaded By': r.loadedBy || '—',
       }));
     } else if (activeSubTab === 'current-stock') {
       fileName = 'Vehicle_Current_Stock_Report';
@@ -287,6 +307,31 @@ export default function VehicleWiseReport({ initialSubTab = 'sales' }) {
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tracked Vehicles</p>
                 <h3 className="text-xl sm:text-2xl font-black text-slate-800">{summaryData.totalVehicles || 0}</h3>
                 <span className="text-[10px] text-slate-500 font-semibold">In fleet inventory</span>
+              </div>
+            </>
+          )}
+
+          {activeSubTab === 'opening-stock' && (
+            <>
+              <div className="bg-indigo-50/70 border border-indigo-100 p-4 rounded-2xl">
+                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">Total Baseline Opening Qty</p>
+                <h3 className="text-xl sm:text-2xl font-black text-indigo-950">{formatNumber(summaryData.totalOpeningQuantity)}</h3>
+                <span className="text-[10px] text-indigo-600 font-semibold">Preserved initial allocation</span>
+              </div>
+              <div className="bg-emerald-50/70 border border-emerald-100 p-4 rounded-2xl">
+                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Total Opening Valuation</p>
+                <h3 className="text-xl sm:text-2xl font-black text-emerald-950">{formatCurrency(summaryData.totalOpeningValue)}</h3>
+                <span className="text-[10px] text-emerald-600 font-semibold">At unit selling price</span>
+              </div>
+              <div className="bg-blue-50/70 border border-blue-100 p-4 rounded-2xl">
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">Current Stock Remaining</p>
+                <h3 className="text-xl sm:text-2xl font-black text-blue-950">{formatNumber(summaryData.totalCurrentQuantity)}</h3>
+                <span className="text-[10px] text-blue-600 font-semibold">Valuation: {formatCurrency(summaryData.totalCurrentValue)}</span>
+              </div>
+              <div className="bg-purple-50/70 border border-purple-100 p-4 rounded-2xl">
+                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-1">Allocated Vehicles</p>
+                <h3 className="text-xl sm:text-2xl font-black text-purple-950">{summaryData.uniqueVehicles || 0}</h3>
+                <span className="text-[10px] text-purple-600 font-semibold">{summaryData.uniqueProducts || 0} unique SKUs</span>
               </div>
             </>
           )}
@@ -538,6 +583,73 @@ export default function VehicleWiseReport({ initialSubTab = 'sales' }) {
                         <span className="text-sm font-black text-emerald-700">
                           {formatCurrency(row.totalSales)}
                         </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* 1.5 Opening Stock Report Table */}
+            {activeSubTab === 'opening-stock' && (
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="py-3.5 px-4">Date & Time</th>
+                    <th className="py-3.5 px-4">Vehicle</th>
+                    <th className="py-3.5 px-4">Item & SKU</th>
+                    <th className="py-3.5 px-4">Category</th>
+                    <th className="py-3.5 px-4 text-right">Unit Price</th>
+                    <th className="py-3.5 px-4 text-center">Opening Qty Loaded</th>
+                    <th className="py-3.5 px-4 text-right">Opening Valuation</th>
+                    <th className="py-3.5 px-4 text-center">Current Live Stock</th>
+                    <th className="py-3.5 px-4">Loaded By</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredData.map((row) => (
+                    <tr key={row.id} className="hover:bg-emerald-50/20 transition-colors">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="font-semibold text-gray-800">
+                          {row.date ? new Date(row.date).toLocaleDateString() : '—'}
+                        </div>
+                        <div className="text-[11px] text-gray-400">
+                          {row.date ? new Date(row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-gray-900">{row.vehicleNumber}</div>
+                        <div className="text-[11px] text-gray-500">{row.vehicleName}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-gray-900">{row.productName}</div>
+                        <div className="text-[11px] font-mono text-gray-400">SKU: {row.sku}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700 font-medium text-[11px]">
+                          {row.category}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-medium text-gray-700">
+                        {formatCurrency(row.price)}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-black bg-indigo-100 text-indigo-900">
+                          {formatNumber(row.openingQuantity)} Units
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-bold text-emerald-800">
+                        {formatCurrency(row.openingValue)}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                          safeNum(row.currentStock) > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                          {formatNumber(row.currentStock)}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-gray-600 font-medium text-[11px]">
+                        {row.loadedBy || '—'}
                       </td>
                     </tr>
                   ))}

@@ -133,6 +133,7 @@ export const adminAPI = {
   getSessionReport: (params?: any) => api.get('/admin/reports/sessions', { params }),
   getVehicleAllPerformance: (params?: any) => api.get('/admin/reports/vehicle-all', { params }),
   getVehicleSalesSummaryReport: (params?: any) => api.get('/admin/reports/vehicle-sales', { params }),
+  getVehicleOpeningStockReport: (params?: any) => api.get('/admin/reports/vehicle-opening-stock', { params }),
   getVehicleCurrentStockReport: (params?: any) => api.get('/admin/reports/vehicle-current-stock', { params }),
   getVehicleStockMovementReport: (params?: any) => api.get('/admin/reports/vehicle-stock-movements', { params }),
   getVehicleItemSalesReport: (params?: any) => api.get('/admin/reports/vehicle-item-sales', { params }),
