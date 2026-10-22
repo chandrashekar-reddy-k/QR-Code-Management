@@ -138,7 +138,7 @@ export const initialStateCheckers = {
     pathname.startsWith("/promo-codes") ||
     pathname.startsWith("/banners") ||
     pathname.startsWith("/campaigns"),
-  isReportsOpen: (pathname: string) => pathname.startsWith("/reports"),
+  isReportsOpen: (pathname: string) => pathname.startsWith("/reports") || pathname.startsWith("/vsms/reports"),
   isSystemOpen: (pathname: string) => pathname.startsWith("/system"),
   isNotificationsOpen: (pathname: string) =>
     pathname.startsWith("/notifications"),
@@ -712,6 +712,31 @@ export const sidebarConfig: MenuSection[] = [
         path: "/vsms/reports?tab=credit",
         label: "Credit Sales",
         icon: CreditCard,
+      },
+      {
+        path: "/vsms/reports?tab=vehicle-wise&subTab=sales",
+        label: "Vehicle Sales",
+        icon: Truck,
+      },
+      {
+        path: "/vsms/reports?tab=vehicle-wise&subTab=current-stock",
+        label: "Vehicle Stock",
+        icon: Boxes,
+      },
+      {
+        path: "/vsms/reports?tab=vehicle-wise&subTab=loading",
+        label: "Vehicle Loading",
+        icon: Upload,
+      },
+      {
+        path: "/vsms/reports?tab=vehicle-wise&subTab=refilling",
+        label: "Vehicle Refilling",
+        icon: RefreshCw,
+      },
+      {
+        path: "/vsms/reports?tab=vehicle-wise&subTab=item-sales",
+        label: "Vehicle Item Sales",
+        icon: ShoppingBag,
       },
     ],
   },
