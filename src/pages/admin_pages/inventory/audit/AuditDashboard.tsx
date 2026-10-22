@@ -4,10 +4,17 @@ import {
   Search, Plus, Eye, ArrowRight, Settings, ChevronRight,
   Shield, CheckSquare, Square, ChevronDown, RefreshCw,
   TrendingUp, TrendingDown, MoreHorizontal, Layers,
-  ShoppingBag, Truck, Package, Store, Smartphone, FileSpreadsheet
+  ShoppingBag, Truck, Package, Store, Smartphone, FileSpreadsheet,
+  Download, FileText
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auditService, AuditMetrics, InventoryAuditItem } from './auditService';
+import {
+  exportSingleAuditPDF,
+  exportSingleAuditExcel,
+  exportAllAuditsSummaryPDF,
+  exportAllAuditsSummaryExcel
+} from './auditReportExport';
 import toast from 'react-hot-toast';
 
 export default function AuditDashboard() {
@@ -104,6 +111,61 @@ export default function AuditDashboard() {
     }
     return true;
   });
+
+  const handleDownloadSingleAudit = async (auditSummary: InventoryAuditItem, format: 'PDF' | 'EXCEL') => {
+    try {
+      toast.loading(`Preparing ${format} report for ${auditSummary.auditNumber}...`, { id: `dl-${auditSummary.id}` });
+      const res = await auditService.getAuditById(auditSummary.id);
+      if (res?.data?.success) {
+        const fullAudit = res.data.data;
+        if (format === 'PDF') {
+          exportSingleAuditPDF(fullAudit);
+        } else {
+          exportSingleAuditExcel(fullAudit);
+        }
+        toast.success(`${format} report downloaded successfully!`, { id: `dl-${auditSummary.id}` });
+      } else {
+        toast.error('Failed to load audit items for report', { id: `dl-${auditSummary.id}` });
+      }
+    } catch (err) {
+      toast.error('Failed to generate audit report', { id: `dl-${auditSummary.id}` });
+    }
+  };
+
+  const handleDownloadFilteredReports = (type: 'PDF' | 'EXCEL') => {
+    if (filteredAudits.length === 0) {
+      toast.error('No audits in current filter to export');
+      return;
+    }
+    if (type === 'PDF') {
+      exportAllAuditsSummaryPDF(filteredAudits, `${activeTab.toUpperCase()} AUDITS REPORT`);
+    } else {
+      exportAllAuditsSummaryExcel(filteredAudits);
+    }
+    toast.success(`${type} summary report downloaded!`);
+  };
+
+  const handleQuickReport = (reportType: string) => {
+    if (audits.length === 0) {
+      toast.error('No audit records available');
+      return;
+    }
+
+    if (reportType === 'Variance Report') {
+      const varianceAudits = audits.filter(a => (a.totalVarianceQty || 0) !== 0);
+      if (varianceAudits.length === 0) {
+        toast('No variance discrepancies found across audits!', { icon: '✅' });
+        return;
+      }
+      exportAllAuditsSummaryPDF(varianceAudits, 'DISCREPANCY & VARIANCE AUDIT REPORT');
+    } else if (reportType === 'Hub Audit Report') {
+      const hubAudits = audits.filter(a => a.scope === 'HUB_CONSOLIDATED');
+      exportAllAuditsSummaryPDF(hubAudits.length > 0 ? hubAudits : audits, 'CONSOLIDATED HUB AUDIT REPORT');
+    } else {
+      exportAllAuditsSummaryPDF(audits, `${reportType.toUpperCase()}`);
+    }
+    toast.success(`${reportType} downloaded!`);
+  };
 
   const formatAuditDate = (dateStr: string | null | undefined, fallback: string) => {
     if (!dateStr) return fallback;
@@ -308,44 +370,6 @@ export default function AuditDashboard() {
               </button>
             </div>
 
-            {/* Repacking */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-3 relative overflow-hidden transition-all opacity-90">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
-                    <Settings size={20} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="font-bold text-gray-900 text-sm">Repacking</h3>
-                      <span className="px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold tracking-wide">
-                        Coming Soon
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-400 font-medium">{metrics?.sectionCounts?.REPACKING ?? 0} SKUs</p>
-                  </div>
-                </div>
-                <ChevronRight size={16} className="text-gray-300" />
-              </div>
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-50">
-                <div>
-                  <span className="text-[10px] text-gray-400 block font-medium">Variance</span>
-                  <span className="font-bold text-gray-400 text-[11px]">3 items</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-gray-400 block font-medium">Last Audit</span>
-                  <span className="font-semibold text-gray-500 text-[11px]">12 Oct 2026</span>
-                </div>
-              </div>
-              <button 
-                type="button"
-                onClick={() => toast('Repacking audit section is coming soon!', { icon: '⏳' })}
-                className="w-full py-1.5 text-center text-xs font-bold text-gray-400 bg-gray-100 hover:bg-gray-150 rounded-xl transition-colors border border-gray-200 cursor-not-allowed"
-              >
-                Coming Soon
-              </button>
-            </div>
-
             {/* Ready Inventory */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-3 hover:border-gray-200 transition-all">
               <div className="flex items-start justify-between">
@@ -383,18 +407,21 @@ export default function AuditDashboard() {
             </div>
 
             {/* Vehicle Inventory */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-3 hover:border-gray-200 transition-all">
+            <div 
+              onClick={() => navigate('/vsms/stock-history?sub=tracking')}
+              className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-3 hover:border-gray-200 transition-all cursor-pointer group"
+            >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold group-hover:scale-105 transition-transform">
                     <Truck size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-sm">Vehicle Inventory</h3>
+                    <h3 className="font-bold text-gray-900 text-sm group-hover:text-emerald-700 transition-colors">Vehicle Inventory</h3>
                     <p className="text-[11px] text-gray-400 font-medium">{metrics?.sectionCounts?.VEHICLE ?? 0} SKUs</p>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-gray-400" />
+                <ChevronRight size={16} className="text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
               </div>
               <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-50">
                 <div>
@@ -411,10 +438,14 @@ export default function AuditDashboard() {
                 </div>
               </div>
               <button 
-                onClick={() => handleStartAudit('VEHICLE')}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/vsms/stock-history?sub=tracking');
+                }}
                 className="w-full py-1.5 text-center text-xs font-bold text-emerald-800 bg-emerald-50/60 hover:bg-emerald-100 rounded-xl transition-colors border border-emerald-100"
               >
-                Audit Now
+                View Live Vehicle Stock
               </button>
             </div>
 
@@ -539,11 +570,20 @@ export default function AuditDashboard() {
               </button>
 
               <button
-                onClick={() => navigate('/inventory/audits?scope=HUB_CONSOLIDATED')}
+                type="button"
+                onClick={() => {
+                  const hubAudits = audits.filter(a => a.scope === 'HUB_CONSOLIDATED');
+                  if (hubAudits.length > 0) {
+                    handleDownloadSingleAudit(hubAudits[0], 'PDF');
+                  } else {
+                    toast('No completed Hub audit yet. Running audit summary...', { icon: '📊' });
+                    exportAllAuditsSummaryPDF(audits, 'CONSOLIDATED HUB AUDIT REPORT');
+                  }
+                }}
                 className="w-full py-2 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl border border-gray-200 transition-all flex items-center justify-center gap-1.5"
               >
-                <FileSpreadsheet size={14} className="text-emerald-700" />
-                <span>View Last Hub Audit Report</span>
+                <Download size={14} className="text-emerald-700" />
+                <span>Download Hub Audit Report</span>
               </button>
             </div>
           </div>
@@ -577,16 +617,40 @@ export default function AuditDashboard() {
               ))}
             </div>
 
-            {/* Search Input in Table Header */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
-              <input
-                type="text"
-                placeholder="Search by audit ID, section or user..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 focus:outline-none focus:border-emerald-600 w-56"
-              />
+            {/* Export and Search in Table Header */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadFilteredReports('PDF')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  title="Download Current Audits as PDF"
+                >
+                  <Download size={13} />
+                  <span>PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadFilteredReports('EXCEL')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  title="Download Current Audits as Excel"
+                >
+                  <FileSpreadsheet size={13} />
+                  <span>Excel</span>
+                </button>
+              </div>
+
+              {/* Search Input in Table Header */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                <input
+                  type="text"
+                  placeholder="Search by audit ID, section or user..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 focus:outline-none focus:border-emerald-600 w-52"
+                />
+              </div>
             </div>
           </div>
 
@@ -663,18 +727,37 @@ export default function AuditDashboard() {
                           {new Date(a.cutoffTime).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
                         <td className="py-3.5 px-3 text-center">
-                          <button
-                            onClick={() => {
-                              if (a.status === 'DRAFT') {
-                                navigate(`/inventory/audits/${a.id}/conduct`);
-                              } else {
-                                navigate(`/inventory/audits/${a.id}/review`);
-                              }
-                            }}
-                            className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700 transition-colors"
-                          >
-                            <MoreHorizontal size={15} />
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadSingleAudit(a, 'PDF')}
+                              className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                              title="Download Audit PDF Report"
+                            >
+                              <FileText size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadSingleAudit(a, 'EXCEL')}
+                              className="p-1.5 hover:bg-emerald-50 text-gray-400 hover:text-emerald-700 rounded-lg transition-colors"
+                              title="Download Audit Excel Report"
+                            >
+                              <FileSpreadsheet size={14} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (a.status === 'DRAFT') {
+                                  navigate(`/inventory/audits/${a.id}/conduct`);
+                                } else {
+                                  navigate(`/inventory/audits/${a.id}/review`);
+                                }
+                              }}
+                              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700 transition-colors"
+                              title="Open Audit Session"
+                            >
+                              <MoreHorizontal size={15} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -685,99 +768,8 @@ export default function AuditDashboard() {
           </div>
         </div>
 
-        {/* Right 1 Column: Audit Permissions Card + Quick Reports */}
+        {/* Right 1 Column: Quick Reports */}
         <div className="space-y-5">
-          
-          {/* Audit Permissions Widget */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">
-                <Shield size={16} />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm">Audit Permissions</h3>
-                <p className="text-[10px] text-gray-400 font-medium">Manage access and roles</p>
-              </div>
-            </div>
-
-            {/* Matrix Checklist */}
-            <div className="space-y-3 pt-1 text-xs">
-              
-              {/* View Audit */}
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-700 text-[11px]">View Audit</span>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-600">
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Admin
-                  </span>
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Manager
-                  </span>
-                  <span className="flex items-center gap-0.5 text-gray-400">
-                    <Square size={13} /> Staff
-                  </span>
-                </div>
-              </div>
-
-              {/* Conduct Audit */}
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-700 text-[11px]">Conduct Audit</span>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-600">
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Admin
-                  </span>
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Manager
-                  </span>
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Staff
-                  </span>
-                </div>
-              </div>
-
-              {/* Approve Adjustments */}
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-700 text-[11px]">Approve Adjustments</span>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-600">
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Admin
-                  </span>
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Manager
-                  </span>
-                  <span className="flex items-center gap-0.5 text-gray-400">
-                    <Square size={13} /> Staff
-                  </span>
-                </div>
-              </div>
-
-              {/* View Reports */}
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-700 text-[11px]">View Reports</span>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-600">
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Admin
-                  </span>
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Manager
-                  </span>
-                  <span className="flex items-center gap-0.5 text-emerald-800">
-                    <CheckSquare size={13} className="text-emerald-700" /> Staff
-                  </span>
-                </div>
-              </div>
-
-            </div>
-
-            <button 
-              onClick={() => toast('Role permissions are synced with backend RBAC', { icon: '🔒' })}
-              className="w-full py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-bold rounded-xl border border-gray-200 transition-colors flex items-center justify-center gap-1.5"
-            >
-              <Settings size={13} />
-              <span>Manage Permissions</span>
-            </button>
-          </div>
-
           {/* Quick Reports Widget */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 space-y-3">
             <div className="flex items-center gap-2">
@@ -797,11 +789,14 @@ export default function AuditDashboard() {
               ].map(reportName => (
                 <div 
                   key={reportName}
-                  onClick={() => toast.success(`Generating ${reportName}...`)}
-                  className="py-2.5 flex items-center justify-between cursor-pointer hover:text-emerald-700 transition-colors"
+                  onClick={() => handleQuickReport(reportName)}
+                  className="py-2.5 flex items-center justify-between cursor-pointer hover:text-emerald-700 transition-colors group"
                 >
-                  <span>{reportName}</span>
-                  <ChevronRight size={14} className="text-gray-400" />
+                  <span className="flex items-center gap-2">
+                    <Download size={13} className="text-gray-400 group-hover:text-emerald-600 transition-colors" />
+                    <span>{reportName}</span>
+                  </span>
+                  <ChevronRight size={14} className="text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
               ))}
             </div>
@@ -844,7 +839,6 @@ export default function AuditDashboard() {
                   <option value="READY_INVENTORY">Ready Inventory (Finished Goods)</option>
                   <option value="HUB_CONSOLIDATED">Consolidated Hub Audit</option>
                   <option value="RAW_INVENTORY">Raw Inventory</option>
-                  <option value="REPACKING" disabled>Repacking Section (Coming Soon)</option>
                   <option value="VEHICLE">Vehicle Inventory</option>
                   <option value="POS_CHANNEL">POS Channel Stock</option>
                   <option value="ONLINE_CHANNEL">Online App Stock</option>

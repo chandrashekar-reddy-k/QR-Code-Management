@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ClipboardCheck, ArrowLeft, CheckCircle2, AlertTriangle, 
-  RefreshCw, Check, X, ShieldAlert, FileText, ArrowRight
+  RefreshCw, Check, X, ShieldAlert, FileText, ArrowRight,
+  Download, FileSpreadsheet
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { auditService } from './auditService';
+import { exportSingleAuditPDF, exportSingleAuditExcel } from './auditReportExport';
 import toast from 'react-hot-toast';
 
 export default function AuditReviewApproval() {
@@ -103,16 +105,46 @@ export default function AuditReviewApproval() {
           </div>
         </div>
 
-        {!isClosed && (
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
-            onClick={handleApproveAndReconcile}
-            disabled={isApproving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-100 transition-all self-start sm:self-auto disabled:opacity-60"
+            type="button"
+            onClick={() => {
+              if (!audit) return;
+              exportSingleAuditPDF({ ...audit, items });
+              toast.success('Audit PDF report downloaded!');
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+            title="Download Professional PDF Audit Report"
           >
-            <Check size={16} />
-            <span>{isApproving ? 'Posting Ledger Adjustments...' : 'Approve & Reconcile Stock'}</span>
+            <Download size={14} className="text-red-600" />
+            <span>PDF Report</span>
           </button>
-        )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!audit) return;
+              exportSingleAuditExcel({ ...audit, items });
+              toast.success('Audit Excel report downloaded!');
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+            title="Download Audit Spreadsheet"
+          >
+            <FileSpreadsheet size={14} className="text-emerald-700" />
+            <span>Excel</span>
+          </button>
+
+          {!isClosed && (
+            <button
+              onClick={handleApproveAndReconcile}
+              disabled={isApproving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-100 transition-all disabled:opacity-60"
+            >
+              <Check size={16} />
+              <span>{isApproving ? 'Posting Ledger Adjustments...' : 'Approve & Reconcile Stock'}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Screen 3: Variance KPI Metrics */}
