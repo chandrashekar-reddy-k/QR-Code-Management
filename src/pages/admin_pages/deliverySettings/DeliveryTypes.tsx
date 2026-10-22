@@ -11,7 +11,7 @@ import {
 } from "../../../hooks/deliverySettings";
 
 const getSettingByLabel = (
-  settings: { label: string; isEnabled: boolean; deliveryCharge: number }[],
+  settings: { label: string; isEnabled: boolean; deliveryCharge: number; freeDeliveryThreshold?: number | null }[],
   labels: string[]
 ) => settings.find((item) => labels.includes(item.label));
 
@@ -19,7 +19,6 @@ const deliveryTypesSchema = yup.object({
   expressDelivery: yup.boolean().required(),
   selfPickup: yup.boolean().required(),
   scheduledDelivery: yup.boolean().required(),
-  // pickUpAtVehicle: yup.boolean().required(),
   expressDeliveryCharge: yup
     .string()
     .when("expressDelivery", {
@@ -30,9 +29,21 @@ const deliveryTypesSchema = yup.object({
           .matches(/^\d+$/, "Delivery charge must be a valid number"),
       otherwise: (schema) => schema,
     }),
-  // expressExtraCharge: yup
-  //   .string()
-  //   .matches(/^\d*$/, "Extra charge must be a valid number"),
+  expressFreeDeliveryThreshold: yup
+    .string()
+    .when("expressDelivery", {
+      is: true,
+      then: (schema) =>
+        schema
+          .nullable()
+          .notRequired()
+          .test(
+            "is-valid-threshold",
+            "Minimum order value must be a valid non-negative number",
+            (val) => !val || /^\d+$/.test(val)
+          ),
+      otherwise: (schema) => schema,
+    }),
   scheduledDeliveryCharge: yup
     .string()
     .when("scheduledDelivery", {
@@ -43,17 +54,24 @@ const deliveryTypesSchema = yup.object({
           .matches(/^\d+$/, "Delivery charge must be a valid number"),
       otherwise: (schema) => schema,
     }),
+  scheduledFreeDeliveryThreshold: yup
+    .string()
+    .when("scheduledDelivery", {
+      is: true,
+      then: (schema) =>
+        schema
+          .nullable()
+          .notRequired()
+          .test(
+            "is-valid-threshold",
+            "Minimum order value must be a valid non-negative number",
+            (val) => !val || /^\d+$/.test(val)
+          ),
+      otherwise: (schema) => schema,
+    }),
 });
 
-type DeliveryTypesFormData = {
-  expressDelivery: boolean;
-  selfPickup: boolean;
-  scheduledDelivery: boolean;
-  // pickUpAtVehicle: boolean;
-  expressDeliveryCharge?: string;
-  // expressExtraCharge?: string;
-  scheduledDeliveryCharge?: string;
-};
+type DeliveryTypesFormData = yup.InferType<typeof deliveryTypesSchema>;
 
 const ToggleSwitch = ({
   checked,
@@ -96,10 +114,10 @@ const DeliveryTypes = () => {
       expressDelivery: false,
       selfPickup: false,
       scheduledDelivery: false,
-      // pickUpAtVehicle: false,
       expressDeliveryCharge: "",
-      // expressExtraCharge: "",
+      expressFreeDeliveryThreshold: "",
       scheduledDeliveryCharge: "",
+      scheduledFreeDeliveryThreshold: "",
     },
   });
 
@@ -114,29 +132,31 @@ const DeliveryTypes = () => {
       const scheduledDeliveryItem = getSettingByLabel(settings, [
         "Scheduled Delivery",
       ]);
-      // const pickupAtVehicleItem = getSettingByLabel(settings, [
-      //   "Pick up At Vehicle",
-      //   "Pickup At Vehicle",
-      //   "Pick At Vehicle",
-      // ]);
 
       reset({
         expressDelivery: expressDeliveryItem?.isEnabled ?? false,
         selfPickup: selfPickupItem?.isEnabled ?? false,
         scheduledDelivery: scheduledDeliveryItem?.isEnabled ?? false,
-        // pickUpAtVehicle: pickupAtVehicleItem?.isEnabled ?? false,
         expressDeliveryCharge:
-          expressDeliveryItem?.deliveryCharge !== undefined
+          expressDeliveryItem?.deliveryCharge !== undefined &&
+          expressDeliveryItem?.deliveryCharge !== null
             ? expressDeliveryItem.deliveryCharge.toString()
             : "",
+        expressFreeDeliveryThreshold:
+          expressDeliveryItem?.freeDeliveryThreshold !== undefined &&
+          expressDeliveryItem?.freeDeliveryThreshold !== null
+            ? expressDeliveryItem.freeDeliveryThreshold.toString()
+            : "",
         scheduledDeliveryCharge:
-          scheduledDeliveryItem?.deliveryCharge !== undefined
+          scheduledDeliveryItem?.deliveryCharge !== undefined &&
+          scheduledDeliveryItem?.deliveryCharge !== null
             ? scheduledDeliveryItem.deliveryCharge.toString()
             : "",
-        // expressExtraCharge:
-        //   pickupAtVehicleItem?.deliveryCharge !== undefined
-        //     ? pickupAtVehicleItem.deliveryCharge.toString()
-        //     : "",
+        scheduledFreeDeliveryThreshold:
+          scheduledDeliveryItem?.freeDeliveryThreshold !== undefined &&
+          scheduledDeliveryItem?.freeDeliveryThreshold !== null
+            ? scheduledDeliveryItem.freeDeliveryThreshold.toString()
+            : "",
       });
     }
   }, [data?.data?.deliverySettings, reset]);
@@ -144,20 +164,32 @@ const DeliveryTypes = () => {
   const expressDelivery = watch("expressDelivery");
   const selfPickup = watch("selfPickup");
   const scheduledDelivery = watch("scheduledDelivery");
-  // const pickUpAtVehicle = watch("pickUpAtVehicle");
 
   const onSubmit = (values: DeliveryTypesFormData) => {
-
     updateMutation.mutate({
       expressSettingsEnabled: values.expressDelivery,
       expressSettingsCharge: values.expressDelivery
         ? Number(values.expressDeliveryCharge ?? "") || 0
         : 0,
+      expressFreeDeliveryThreshold:
+        values.expressDelivery &&
+        values.expressFreeDeliveryThreshold !== undefined &&
+        values.expressFreeDeliveryThreshold !== "" &&
+        values.expressFreeDeliveryThreshold !== null
+          ? Number(values.expressFreeDeliveryThreshold)
+          : null,
       selfPickupEnabled: values.selfPickup,
       scheduledDeliveryEnabled: values.scheduledDelivery,
       scheduledDeliveryCharge: values.scheduledDelivery
         ? Number(values.scheduledDeliveryCharge ?? "") || 0
         : 0,
+      scheduledFreeDeliveryThreshold:
+        values.scheduledDelivery &&
+        values.scheduledFreeDeliveryThreshold !== undefined &&
+        values.scheduledFreeDeliveryThreshold !== "" &&
+        values.scheduledFreeDeliveryThreshold !== null
+          ? Number(values.scheduledFreeDeliveryThreshold)
+          : null,
     });
   };
 
@@ -200,7 +232,10 @@ const DeliveryTypes = () => {
                 checked={expressDelivery}
                 onChange={(value) => {
                   setValue("expressDelivery", value, { shouldValidate: true });
-                  if (!value) setValue("expressDeliveryCharge", "");
+                  if (!value) {
+                    setValue("expressDeliveryCharge", "");
+                    setValue("expressFreeDeliveryThreshold", "");
+                  }
                 }}
               />
             </div>
@@ -227,26 +262,26 @@ const DeliveryTypes = () => {
                     />
                   )}
                 />
-                {/* <Controller
-                  name="expressExtraCharge"
+                <Controller
+                  name="expressFreeDeliveryThreshold"
                   control={control}
                   render={({ field }) => (
                     <TextInput
                       label={
                         <span className="flex items-center gap-1">
-                          Extra Charges (<IndianRupee size={14} className="inline" />)
+                          Free Delivery Minimum Order Value (<IndianRupee size={14} className="inline" />)
                         </span>
                       }
                       type="text"
                       onlyNumbers
-                      maxLength={5}
+                      maxLength={7}
                       value={field.value}
                       onChange={field.onChange}
-                      placeholder="Enter delivery Charge"
-                      error={errors.expressExtraCharge?.message}
+                      placeholder="Enter minimum order value"
+                      error={errors.expressFreeDeliveryThreshold?.message}
                     />
                   )}
-                /> */}
+                />
               </div>
             )}
           </div>
@@ -272,32 +307,57 @@ const DeliveryTypes = () => {
                 checked={scheduledDelivery}
                 onChange={(value) => {
                   setValue("scheduledDelivery", value, { shouldValidate: true });
-                  if (!value) setValue("scheduledDeliveryCharge", "");
+                  if (!value) {
+                    setValue("scheduledDeliveryCharge", "");
+                    setValue("scheduledFreeDeliveryThreshold", "");
+                  }
                 }}
               />
             </div>
 
             {scheduledDelivery && (
-              <Controller
-                name="scheduledDeliveryCharge"
-                control={control}
-                render={({ field }) => (
-                  <TextInput
-                    label={
-                      <span className="flex items-center gap-1">
-                        Delivery Charges (<IndianRupee size={14} className="inline" />)
-                      </span>
-                    }
-                    type="text"
-                    onlyNumbers
-                    maxLength={5}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Enter delivery Charge"
-                    error={errors.scheduledDeliveryCharge?.message}
-                  />
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Controller
+                  name="scheduledDeliveryCharge"
+                  control={control}
+                  render={({ field }) => (
+                    <TextInput
+                      label={
+                        <span className="flex items-center gap-1">
+                          Delivery Charges (<IndianRupee size={14} className="inline" />)
+                        </span>
+                      }
+                      type="text"
+                      onlyNumbers
+                      maxLength={5}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Enter delivery Charge"
+                      error={errors.scheduledDeliveryCharge?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  name="scheduledFreeDeliveryThreshold"
+                  control={control}
+                  render={({ field }) => (
+                    <TextInput
+                      label={
+                        <span className="flex items-center gap-1">
+                          Free Delivery Minimum Order Value (<IndianRupee size={14} className="inline" />)
+                        </span>
+                      }
+                      type="text"
+                      onlyNumbers
+                      maxLength={7}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Enter minimum order value"
+                      error={errors.scheduledFreeDeliveryThreshold?.message}
+                    />
+                  )}
+                />
+              </div>
             )}
           </div>
 

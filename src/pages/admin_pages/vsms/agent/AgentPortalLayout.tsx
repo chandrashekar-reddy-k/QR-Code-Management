@@ -3,7 +3,8 @@ import { NavLink, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { 
   Home, MapPin, Package, Wallet, Clock, BarChart2, User, Activity, 
   FileText, Truck, AlertTriangle, Receipt, LogOut, Menu, X, Store,
-  ArrowDownToLine, ArrowUpFromLine, ShoppingBag, ShoppingCart, Hexagon, ArrowRightLeft
+  ArrowDownToLine, ArrowUpFromLine, ShoppingBag, ShoppingCart, Hexagon, ArrowRightLeft,
+  Smartphone, CheckCircle2
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { attendanceAPI } from '../services/api';
@@ -22,6 +23,18 @@ const menuSections = [
       { path: '/vsms/agent-portal/pre-orders', label: "Pre-Orders", icon: ShoppingBag },
       { path: '/vsms/agent-portal/scheduled-deliveries', label: "Scheduled Deliveries", icon: Package },
       { path: '/vsms/agent-portal/sales', label: "Sales POS", icon: BarChart2 },
+    ]
+  },
+  {
+    title: 'Route Orders',
+    items: [
+      { path: '/vsms/agent-portal/route-orders', label: "App Orders", icon: Smartphone },
+      { path: '/vsms/agent-portal/route-orders/processed', label: "Processed Orders", icon: CheckCircle2 },
+    ]
+  },
+  {
+    title: 'Vehicle & Inventory',
+    items: [
       { path: '/vsms/agent-portal/inventory', label: "Vehicle & Stock", icon: Truck },
       { path: '/vsms/agent-portal/stock-transfer', label: "Stock Transfer", icon: ArrowRightLeft },
     ]
