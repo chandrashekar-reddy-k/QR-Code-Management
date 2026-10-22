@@ -668,7 +668,7 @@ const ViewProduct = () => {
         case 'status':
           return (v.variantStatus || '').toLowerCase();
         default:
-          return (v as Record<string, unknown>)[field] as string | number ?? '';
+          return (v as unknown as Record<string, unknown>)[field] as string | number ?? '';
       }
     };
     return [...variantsWithResolvedUnitAndType].sort((a, b) => {
@@ -844,7 +844,7 @@ const ViewProduct = () => {
       subCategoryId: product.subCategoryId || product.subCategory,
       category: product.categoryId || product.category,
       subCategory: product.subCategoryId || product.subCategory,
-      mainImagePreview: product.mainImage || null,
+      mainImagePreview: product.mainImage || (Array.isArray((product as any).images) ? (product as any).images[0] : null) || null,
     };
     sessionStorage.setItem(`product_${productId}`, JSON.stringify(productDataForVariant));
     navigate(`/products/create?addVariant=true&productId=${productId}`);

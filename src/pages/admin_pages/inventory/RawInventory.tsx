@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Filter, RotateCcw, Send, Plus, X, Camera } from 'lucide-react';
+import { Filter, RotateCcw, Send, Plus, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 // @ts-ignore
@@ -9,12 +9,14 @@ import {
   SearchInput,
   PrimaryButton,
   Pagination,
-  Badge,
-  EditIconButton
+  Badge
 } from '../../../components/ui';
+import { masterDataService } from '../../../api/packing/masterDataService';
 
 interface RawInventoryItem {
   id: string;
+  baseId?: string;
+  grnList?: any[];
   name: string;
   sku: string;
   barcode?: string;
@@ -38,9 +40,6 @@ const RawInventory: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
-  const [editingItem, setEditingItem] = useState<RawInventoryItem | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', sku: '', quantity: '', price: '', type: 'Branded' as 'Branded' | 'Unbranded' });
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -101,8 +100,6 @@ const RawInventory: React.FC = () => {
         if (unconfiguredRes.status === 'fulfilled') {
           const unconfData = unconfiguredRes.value.data?.data || unconfiguredRes.value.data || unconfiguredRes.value || [];
           if (Array.isArray(unconfData) && unconfData.length > 0) {
-            // Re-initialize map to prevent duplicate counting from grnRes
-            map = {};
             unconfData.forEach((uItem: any) => {
               const baseProdId = uItem.product?.id || uItem.product?.productId;
               const rawProdId = uItem.productId;
@@ -125,11 +122,11 @@ const RawInventory: React.FC = () => {
                 }
 
                 if (!map[pid]) map[pid] = [];
-                if (!map[pid].some(g => g.grnItemId === uItem.id)) {
+                if (!map[pid].some(g => (uItem.id && g.grnItemId === uItem.id) || (grnId && g.grnId === grnId))) {
                   map[pid].push({
                     grnItemId: uItem.id,
                     grnId: grnId,
-                    grnDisplayId: uItem.grn?.displayId || uItem.grn?.grnNumber || grnId.slice(0, 8) || '',
+                    grnDisplayId: uItem.grn?.displayId || uItem.grn?.grnNumber || (grnId ? grnId.slice(0, 8) : ''),
                     receivedQty: recQty
                   });
                 }
@@ -142,8 +139,22 @@ const RawInventory: React.FC = () => {
         console.error('Error fetching procurement GRNs:', err);
       }
 
-      // 2. Fetch Raw Inventory
-      const response = await inventoryService.getRawInventory({ page: 1, limit: 2000 });
+      // 2. Fetch Raw Inventory and Product Catalog Master Data in parallel
+      const [response, catalogProducts] = await Promise.all([
+        inventoryService.getRawInventory({ page: 1, limit: 2000 }),
+        masterDataService.getProducts().catch(() => [])
+      ]);
+
+      const catalogMap = new Map<string, any>();
+      (catalogProducts || []).forEach((p: any) => {
+        if (p?.id) catalogMap.set(p.id, p);
+        if (Array.isArray(p?.variants)) {
+          p.variants.forEach((v: any) => {
+            if (v?.id) catalogMap.set(v.id, { ...v, sku: v.sku || p.sku });
+          });
+        }
+      });
+
       if (response.data && response.data.data) {
         const mappedData = response.data.data.products.map((item: any) => {
           const baseId = item.id ? item.id.split('_')[0] : item.id;
@@ -161,10 +172,16 @@ const RawInventory: React.FC = () => {
             ? item.images[0]
             : (typeof item.images === 'string' ? item.images : '') || item.image || item.masterProduct?.images?.[0] || item.masterProduct?.image || '';
 
+          // Resolve SKU from Master Data Service, item.sku, variant, or masterProduct
+          const catalogProd = catalogMap.get(item.id) || catalogMap.get(baseId) || (item.variants?.[0]?.id ? catalogMap.get(item.variants[0].id) : null);
+          const sku = catalogProd?.sku || catalogProd?.resolvedSku || item.sku || item.variants?.[0]?.sku || item.masterProduct?.sku || '-';
+
           return {
             id: item.id,
+            baseId,
+            grnList,
             name: item.name,
-            sku: item.sku || '-',
+            sku,
             barcode: item.barcode || item.posStoreStock?.barcode || '',
             category: item.category?.name || 'N/A',
             units: displayUnit,
@@ -177,6 +194,7 @@ const RawInventory: React.FC = () => {
             status: item.isActive,
             image: prodImage,
             inventoryType: item.inventoryType || 'RAW',
+            productionStock: item.productionStock,
             inProductionQty: inProdQty
           };
         });
@@ -198,9 +216,10 @@ const RawInventory: React.FC = () => {
     }
 
     if (selectedGRNId !== 'ALL') {
-      filtered = filtered.filter((item) => {
-        const grnMetas = grnItemsMap[item.id];
-        return grnMetas && Array.isArray(grnMetas) && grnMetas.some((g: any) => g.grnId === selectedGRNId);
+      filtered = filtered.filter((item: any) => {
+        const baseId = item.baseId || (item.id ? item.id.split('_')[0] : item.id);
+        const grnMetas = item.grnList || grnItemsMap[item.id] || grnItemsMap[baseId] || [];
+        return Array.isArray(grnMetas) && grnMetas.some((g: any) => g.grnId === selectedGRNId);
       });
     }
 
@@ -231,7 +250,7 @@ const RawInventory: React.FC = () => {
     }
 
     return filtered;
-  }, [data, searchTerm, typeFilter, sortField, sortDirection]);
+  }, [data, searchTerm, typeFilter, selectedGRNId, grnItemsMap, sortField, sortDirection]);
 
   // Pagination
   const paginatedData = filteredAndSortedData.slice(
@@ -259,13 +278,34 @@ const RawInventory: React.FC = () => {
     }
   };
 
+  const calculateGrnAvailable = (matchedGrn: any, item: any) => {
+    if (!matchedGrn) return 0;
+    const inProdQty = Number(item.inProductionQty || item.productionStock?.inProductionQty || 0);
+    const notes = String(item.productionStock?.notes || '');
+
+    let deductedQty = 0;
+    if (notes.includes(matchedGrn.grnId)) {
+      deductedQty = inProdQty;
+    } else if (!notes.includes('Transferred from GRN:')) {
+      deductedQty = inProdQty;
+    } else {
+      deductedQty = 0;
+    }
+
+    return Math.max(0, Number(matchedGrn.receivedQty || 0) - deductedQty);
+  };
+
   const sendToProduction = async (item: RawInventoryItem) => {
-    const grnMetas = grnItemsMap[item.id] || [];
-    const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
-    const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
-    const currentStock = typeof (item as any).procuredQty === 'number'
-      ? (item as any).procuredQty
-      : (typeof (item as any).stock === 'number' && (item as any).stock >= 0 ? (item as any).stock : (Number(item.quantity) || 0));
+    const baseId = item.baseId || (item.id ? item.id.split('_')[0] : item.id);
+    const grnMetas = item.grnList || grnItemsMap[item.id] || grnItemsMap[baseId] || [];
+    const matchedGrn = selectedGRNId !== 'ALL' ? grnMetas.find((g: any) => g.grnId === selectedGRNId) : null;
+    const isGrnFiltered = Boolean(matchedGrn);
+    const grnAvailable = matchedGrn ? calculateGrnAvailable(matchedGrn, item) : 0;
+    const currentStock = isGrnFiltered && matchedGrn
+      ? Math.min(grnAvailable, typeof (item as any).procuredQty === 'number' ? (item as any).procuredQty : (Number(item.quantity) || 0))
+      : (typeof (item as any).procuredQty === 'number'
+          ? (item as any).procuredQty
+          : (typeof (item as any).stock === 'number' && (item as any).stock >= 0 ? (item as any).stock : (Number(item.quantity) || 0)));
     const entered = sendQtyMap[item.id];
     const qtyToSend = Number(entered);
 
@@ -313,41 +353,7 @@ const RawInventory: React.FC = () => {
 
 
 
-  const openEdit = (item: RawInventoryItem) => {
-    setEditingItem(item);
-    setEditForm({
-      name: item.name,
-      sku: item.sku === '-' ? '' : item.sku,
-      quantity: item.quantity,
-      price: item.price.replace('₹', ''),
-      type: item.type,
-    });
-  };
 
-  const closeEdit = () => {
-    setEditingItem(null);
-    setSaving(false);
-  };
-
-  const saveEdit = async () => {
-    if (!editingItem) return;
-    setSaving(true);
-    try {
-      await inventoryService.updateProductInventoryType(editingItem.id, 'RAW');
-      setData(prev => prev.map(p =>
-        p.id === editingItem.id
-          ? { ...p, name: editForm.name, sku: editForm.sku || '-', quantity: editForm.quantity, price: '₹' + editForm.price, type: editForm.type, units: editForm.quantity + ' units' }
-          : p
-      ));
-      closeEdit();
-      toast.success('Successfully updated inventory');
-    } catch (err) {
-      console.error('Failed to save:', err);
-      toast.error('Failed to save changes. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -368,11 +374,18 @@ const RawInventory: React.FC = () => {
     );
   };
 
+  const isAllSelected =
+    filteredAndSortedData.length > 0 &&
+    filteredAndSortedData.every(item => selectedItems.includes(item.id));
+
   const toggleAll = () => {
-    if (selectedItems.length === paginatedData.length && paginatedData.length > 0) {
-      setSelectedItems([]);
+    if (isAllSelected) {
+      setSelectedItems(prev =>
+        prev.filter(id => !filteredAndSortedData.some(item => item.id === id))
+      );
     } else {
-      setSelectedItems(paginatedData.map(item => item.id));
+      const allIds = filteredAndSortedData.map(item => item.id);
+      setSelectedItems(prev => Array.from(new Set([...prev, ...allIds])));
     }
   };
 
@@ -422,9 +435,16 @@ const RawInventory: React.FC = () => {
         toast.error(`Please enter a send quantity for "${item.name}".`);
         return;
       }
-      const currentStock = typeof (item as any).procuredQty === 'number'
-        ? (item as any).procuredQty
-        : (typeof (item as any).stock === 'number' && (item as any).stock >= 0 ? (item as any).stock : (Number(item.quantity) || 0));
+      const baseId = item.baseId || (item.id ? item.id.split('_')[0] : item.id);
+      const grnMetas = item.grnList || grnItemsMap[item.id] || grnItemsMap[baseId] || [];
+      const matchedGrn = selectedGRNId !== 'ALL' ? grnMetas.find((g: any) => g.grnId === selectedGRNId) : null;
+      const isGrnFiltered = Boolean(matchedGrn);
+      const grnAvailable = matchedGrn ? calculateGrnAvailable(matchedGrn, item) : 0;
+      const currentStock = isGrnFiltered && matchedGrn
+        ? Math.min(grnAvailable, typeof (item as any).procuredQty === 'number' ? (item as any).procuredQty : (Number(item.quantity) || 0))
+        : (typeof (item as any).procuredQty === 'number'
+            ? (item as any).procuredQty
+            : (typeof (item as any).stock === 'number' && (item as any).stock >= 0 ? (item as any).stock : (Number(item.quantity) || 0)));
       if (currentStock > 0 && qtyToSend > currentStock) {
         toast.error(`Send quantity for "${item.name}" cannot exceed available stock (${currentStock}).`);
         return;
@@ -436,9 +456,10 @@ const RawInventory: React.FC = () => {
       let totalSentUnits = 0;
       await Promise.all(
         selectedObjects.map(async (item) => {
-          const grnMetas = grnItemsMap[item.id] || [];
-          const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
-          const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
+          const baseId = item.baseId || (item.id ? item.id.split('_')[0] : item.id);
+          const grnMetas = item.grnList || grnItemsMap[item.id] || grnItemsMap[baseId] || [];
+          const matchedGrn = selectedGRNId !== 'ALL' ? grnMetas.find((g: any) => g.grnId === selectedGRNId) : null;
+          const isGrnFiltered = Boolean(matchedGrn);
           const qtyToSend = Number(sendQtyMap[item.id]);
 
           totalSentUnits += qtyToSend;
@@ -467,9 +488,11 @@ const RawInventory: React.FC = () => {
       label: (
         <input
           type="checkbox"
-          className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer"
-          checked={selectedItems.length === paginatedData.length && paginatedData.length > 0}
+          className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          checked={isAllSelected}
+          disabled={filteredAndSortedData.length === 0}
           onChange={toggleAll}
+          title={isAllSelected ? "Deselect all" : `Select all ${filteredAndSortedData.length} items`}
         />
       ),
       sortable: false,
@@ -553,23 +576,20 @@ const RawInventory: React.FC = () => {
       label: <span className="w-full flex justify-center">PROCURED QTY</span>,
       sortable: true,
       render: (item: any) => {
-        const grnMetas = grnItemsMap[item.id] || [];
-        const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
-        const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
+        const baseId = item.baseId || (item.id ? item.id.split('_')[0] : item.id);
+        const grnMetas = item.grnList || grnItemsMap[item.id] || grnItemsMap[baseId] || [];
+        const matchedGrn = selectedGRNId !== 'ALL' ? grnMetas.find((g: any) => g.grnId === selectedGRNId) : null;
+        const isGrnFiltered = Boolean(matchedGrn);
         const currentQty = typeof item.procuredQty === 'number'
           ? item.procuredQty
           : (typeof item.stock === 'number' && item.stock >= 0 ? item.stock : (Number(item.quantity) || 0));
-        const displayQty = isGrnFiltered
-          ? Math.min(matchedGrn.receivedQty, currentQty)
+        const grnAvailable = matchedGrn ? calculateGrnAvailable(matchedGrn, item) : 0;
+        const displayQty = isGrnFiltered && matchedGrn
+          ? Math.min(grnAvailable, currentQty)
           : currentQty;
         return (
           <div className="flex flex-col items-center">
             <span className="text-sm text-gray-900 font-bold">{displayQty}</span>
-            {isGrnFiltered && (
-              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5">
-                GRN Received: {matchedGrn.receivedQty}
-              </span>
-            )}
           </div>
         );
       }
@@ -591,13 +611,15 @@ const RawInventory: React.FC = () => {
           return <span className="text-gray-400 text-xs text-center block">—</span>;
         }
 
-        const grnMetas = grnItemsMap[item.id] || [];
-        const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
-        const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
+        const baseId = item.baseId || (item.id ? item.id.split('_')[0] : item.id);
+        const grnMetas = item.grnList || grnItemsMap[item.id] || grnItemsMap[baseId] || [];
+        const matchedGrn = selectedGRNId !== 'ALL' ? grnMetas.find((g: any) => g.grnId === selectedGRNId) : null;
+        const isGrnFiltered = Boolean(matchedGrn);
         const currentStock = typeof item.procuredQty === 'number'
           ? item.procuredQty
           : (typeof item.stock === 'number' && item.stock >= 0 ? item.stock : (Number(item.quantity) || 0));
-        const maxQty = isGrnFiltered ? Math.min(matchedGrn.receivedQty, currentStock > 0 ? currentStock : matchedGrn.receivedQty) : currentStock;
+        const grnAvailable = matchedGrn ? calculateGrnAvailable(matchedGrn, item) : 0;
+        const maxQty = isGrnFiltered && matchedGrn ? Math.min(grnAvailable, currentStock > 0 ? currentStock : grnAvailable) : currentStock;
         const val = sendQtyMap[item.id] !== undefined ? sendQtyMap[item.id] : '';
 
         return (
@@ -641,7 +663,6 @@ const RawInventory: React.FC = () => {
               Send to Production
             </button>
           )}
-          <EditIconButton onClick={() => openEdit(item)} size={16} tooltip="Edit" />
         </div>
       )
     }
@@ -649,54 +670,6 @@ const RawInventory: React.FC = () => {
 
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
-      {/* Edit Modal */}
-      {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">Edit Raw Inventory</h2>
-                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{editingItem.name}</p>
-              </div>
-              <button onClick={closeEdit} className="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-1 hover:bg-gray-100">
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Quantity</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editForm.quantity}
-                  onChange={e => setEditForm(f => ({ ...f, quantity: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
-              <button
-                onClick={closeEdit}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveEdit}
-                disabled={saving}
-                className="px-5 py-2 text-sm font-medium text-white bg-[#008f33] hover:bg-[#007a2a] rounded-lg transition-colors disabled:opacity-60"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Page Title and Action Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -769,6 +742,7 @@ const RawInventory: React.FC = () => {
               setTypeFilter('ALL');
               setSelectedGRNId('ALL');
               setSearchTerm('');
+              setSelectedItems([]);
               setCurrentPage(1);
             }}
             className="flex items-center gap-1.5 px-4 h-full text-[#ea580c] hover:bg-orange-50 transition-colors text-sm font-medium cursor-pointer"
@@ -834,9 +808,16 @@ const RawInventory: React.FC = () => {
         {/* Selection Bar or Pagination */}
         {selectedItems.length > 0 ? (
           <div className="px-4 py-4 border-t border-gray-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-sm">
+            <div className="text-sm flex items-center gap-2">
               <span className="font-bold text-gray-900">{selectedItems.length}</span>
-              <span className="text-gray-500 ml-1">items selected</span>
+              <span className="text-gray-500">items selected</span>
+              <button
+                type="button"
+                onClick={() => setSelectedItems([])}
+                className="text-xs text-red-600 hover:text-red-700 underline font-medium cursor-pointer ml-2"
+              >
+                Clear selection
+              </button>
             </div>
             <div className="flex items-center gap-3">
               <button

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Filter, RotateCcw, Lock, X, Camera } from 'lucide-react';
+import { Filter, RotateCcw, Lock, Camera } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 // @ts-ignore
@@ -8,8 +8,7 @@ import {
   DataTable,
   SearchInput,
   PrimaryButton,
-  Pagination,
-  EditIconButton
+  Pagination
 } from '../../../components/ui';
 import { inventoryService } from './services/inventoryService';
 import procurementService from '../vsms/services/procurementService';
@@ -29,6 +28,7 @@ interface ReadyInventoryItem {
   rawUnit: string;
   image: string;
   productId?: string;
+  grnList?: any[];
 }
 
 
@@ -39,9 +39,6 @@ const ReadyInventory: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
-  const [editingItem, setEditingItem] = useState<ReadyInventoryItem | null>(null);
-  const [editForm, setEditForm] = useState({ readyQty: '', online: '0', pos: '0', vehicle: '0' });
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const navigate = useNavigate();
@@ -60,6 +57,7 @@ const ReadyInventory: React.FC = () => {
       // 1. Fetch GRNs & Procurement Items for unit resolution
       let map: Record<string, any[]> = {};
       let resolvedUnitMap: Record<string, string> = {};
+      let allGRNsList: any[] = [];
       try {
         const [grnRes, unconfiguredRes] = await Promise.allSettled([
           inventoryService.getProcurementGRNs(),
@@ -67,7 +65,7 @@ const ReadyInventory: React.FC = () => {
         ]);
 
         const list = grnRes.status === 'fulfilled' ? (grnRes.value.data?.data || grnRes.value.data || grnRes.value || []) : [];
-        setProcurementGRNs(list);
+        allGRNsList = list;
         list.forEach((grn: any) => {
           if (grn.items && Array.isArray(grn.items)) {
             grn.items.forEach((item: any) => {
@@ -125,7 +123,8 @@ const ReadyInventory: React.FC = () => {
 
           const baseId = item.id ? item.id.split('_')[0] : item.id;
           const displayUnit = resolvedUnitMap[baseId] || resolvedUnitMap[item.id] || item.unit || 'Units';
-          const grnList = map[item.id] || [];
+          const isDirectReady = item.inventoryType === 'READY';
+          const grnList = isDirectReady ? (map[item.id] || map[baseId] || []) : [];
           const totalProcuredQty = grnList.reduce((sum: number, g: any) => sum + (Number(g.receivedQty) || 0), 0);
 
           const fgList = Array.isArray(item.finishedGoods) ? item.finishedGoods : [];
@@ -134,7 +133,7 @@ const ReadyInventory: React.FC = () => {
           fgList.forEach((fg: any) => {
             let allocs = fg.costPayload?.outputAllocations;
             if (typeof allocs === 'string') {
-              try { allocs = JSON.parse(allocs); } catch (e) {}
+              try { allocs = JSON.parse(allocs); } catch (e) { }
             }
             if (Array.isArray(allocs) && allocs.length > 0) {
               allocs.forEach((alloc: any) => {
@@ -200,7 +199,7 @@ const ReadyInventory: React.FC = () => {
             posQty = Number(item.posStock ?? item.posStoreStock?.posStock ?? 0);
           }
 
-          // 3. Resolve Vehicle stock from ChannelInventory (VEHICLE), vehicleStockAssignments, or vehicleStocks
+          // 3. Resolve Vehicle stock from ChannelInventory (VEHICLE), vehicleStoreStock, or vehicleStock assignments/stocks
           let vehicleFromCi = 0;
           if (Array.isArray(item.channelInventories) && item.channelInventories.length > 0) {
             const vehicleRecord = item.channelInventories.find((ci: any) => ci.channel === 'VEHICLE');
@@ -211,7 +210,11 @@ const ReadyInventory: React.FC = () => {
             : (Array.isArray(item.vehicleStocks)
                 ? item.vehicleStocks.reduce((sum: number, v: any) => sum + (Number(v.quantity) || 0), 0)
                 : 0);
-          const vehicleQty = vehicleFromCi > 0 ? vehicleFromCi : (vsaQty > 0 ? vsaQty : Number(item.vehicleStock || 0));
+          const vehicleQty = vehicleFromCi > 0
+            ? vehicleFromCi
+            : (vsaQty > 0
+                ? vsaQty
+                : Number(item.vehicleStoreStock ?? item.vehicleStock ?? 0));
 
           const variantItems = Object.values(variantMap);
           if (variantItems.length > 0) {
@@ -232,7 +235,8 @@ const ReadyInventory: React.FC = () => {
                 vehicle: String(vehicleQty),
                 remainingQty: String(remainingQty),
                 rawUnit: vItem.rawUnit,
-                image: vItem.image
+                image: vItem.image,
+                grnList: []
               });
             });
           } else {
@@ -259,12 +263,22 @@ const ReadyInventory: React.FC = () => {
               vehicle: String(vehicleQty),
               remainingQty: String(Math.max(0, remainingQty)),
               rawUnit: displayUnit,
-              image: prodImage
+              image: prodImage,
+              grnList
             });
           }
         });
 
         setData(mappedData);
+
+        // Only include GRNs in the Ready Inventory dropdown that actually have ready items
+        const readyGRNIds = new Set<string>();
+        mappedData.forEach((d: any) => {
+          (d.grnList || []).forEach((g: any) => readyGRNIds.add(g.grnId));
+        });
+        const readyGRNs = allGRNsList.filter((grn: any) => readyGRNIds.has(grn.id));
+        setProcurementGRNs(readyGRNs);
+        setSelectedGRNId(prev => (prev !== 'ALL' && !readyGRNIds.has(prev) ? 'ALL' : prev));
       }
     } catch (error) {
       console.error('Error fetching ready inventory:', error);
@@ -278,9 +292,9 @@ const ReadyInventory: React.FC = () => {
     let filtered = data;
 
     if (selectedGRNId !== 'ALL') {
-      filtered = filtered.filter((item) => {
-        const grnMetas = grnItemsMap[item.id];
-        return grnMetas && Array.isArray(grnMetas) && grnMetas.some((g: any) => g.grnId === selectedGRNId);
+      filtered = filtered.filter((item: any) => {
+        const grnMetas = item.grnList || [];
+        return Array.isArray(grnMetas) && grnMetas.some((g: any) => g.grnId === selectedGRNId);
       });
     }
 
@@ -311,7 +325,7 @@ const ReadyInventory: React.FC = () => {
     }
 
     return filtered;
-  }, [data, searchTerm, sortField, sortDirection]);
+  }, [data, searchTerm, selectedGRNId, grnItemsMap, sortField, sortDirection]);
 
   // Pagination
   const paginatedData = filteredAndSortedData.slice(
@@ -341,71 +355,7 @@ const ReadyInventory: React.FC = () => {
     }
   };
 
-  const openEdit = (item: ReadyInventoryItem) => {
-    setEditingItem(item);
-    setEditForm({ readyQty: item.readyQty, online: item.online, pos: item.pos, vehicle: item.vehicle });
-  };
 
-  const closeEdit = () => {
-    setEditingItem(null);
-    setSaving(false);
-  };
-
-  const saveEdit = async () => {
-    if (!editingItem) return;
-    setSaving(true);
-    try {
-      const totalQty = Math.max(0, Number(editForm.readyQty) || 0);
-      const onlineQty = Math.max(0, Number(editForm.online) || 0);
-      const posQty = Math.max(0, Number(editForm.pos) || 0);
-      const vehicleQty = Math.max(0, Number(editForm.vehicle) || 0);
-      const totalAllocated = onlineQty + posQty + vehicleQty;
-
-      if (totalAllocated > totalQty) {
-        toast.error(`Total allocated (${totalAllocated}) cannot exceed Ready Quantity (${totalQty}).`);
-        setSaving(false);
-        return;
-      }
-
-      const targetId = editingItem.productId || (typeof editingItem.id === 'string' && editingItem.id.includes('_') ? editingItem.id.split('_')[0] : editingItem.id);
-
-      // 1. Update Product Master Stock
-      await inventoryService.updateProductStock(targetId, totalQty);
-
-      // 2. Update Channel Allocation in ChannelInventory (with mode='SET' so exact quantities are stored)
-      await inventoryService.saveChannelAllocation(targetId, {
-        onlineQty,
-        posQty,
-        vehicleQty,
-        mode: 'SET'
-      });
-
-      const remaining = Math.max(0, totalQty - totalAllocated);
-
-      setData(prev => prev.map(p => {
-        if (p.id === editingItem.id) {
-          return {
-            ...p,
-            readyQty: String(totalQty),
-            online: String(onlineQty),
-            pos: String(posQty),
-            vehicle: String(vehicleQty),
-            remainingQty: String(remaining)
-          };
-        }
-        return p;
-      }));
-
-      closeEdit();
-      toast.success('Ready stock and Channel Inventory updated successfully');
-      loadData();
-    } catch (err: any) {
-      console.error('Failed to save:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to save allocation. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const columns = [
     {
@@ -458,30 +408,19 @@ const ReadyInventory: React.FC = () => {
       )
     },
     {
-      key: 'units',
-      label: 'UNITS',
-      sortable: false,
-      render: (item: ReadyInventoryItem) => (
-        <span className="text-sm text-gray-500">{item.units}</span>
-      )
-    },
-    {
       key: 'readyQty',
       label: 'READY QTY',
       sortable: true,
       render: (item: any) => {
-        const grnMetas = grnItemsMap[item.id] || [];
-        const matchedGrn = grnMetas.find((g: any) => g.grnId === selectedGRNId) || grnMetas[0];
-        const isGrnFiltered = selectedGRNId !== 'ALL' && matchedGrn;
-        const displayQty = isGrnFiltered ? matchedGrn.receivedQty : (item.procuredQty > 0 ? item.procuredQty : item.readyQty);
+        const grnMetas = item.grnList || [];
+        const matchedGrn = selectedGRNId !== 'ALL' ? grnMetas.find((g: any) => g.grnId === selectedGRNId) : null;
+        const isGrnFiltered = Boolean(matchedGrn);
+        const displayQty = isGrnFiltered && matchedGrn
+          ? Math.min(matchedGrn.receivedQty, Number(item.readyQty) || 0)
+          : item.readyQty;
         return (
           <div className="flex flex-col">
             <span className="text-sm font-bold text-gray-900">{displayQty}</span>
-            {isGrnFiltered && (
-              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 w-fit">
-                GRN Received: {matchedGrn.receivedQty}
-              </span>
-            )}
           </div>
         );
       }
@@ -491,13 +430,7 @@ const ReadyInventory: React.FC = () => {
       label: '(ONLINE)',
       sortable: true,
       render: (item: ReadyInventoryItem) => (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-          Number(item.online) > 0
-            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-            : 'text-gray-500 bg-gray-50 border border-gray-200'
-        }`}>
-          {item.online}
-        </span>
+        <span className="text-sm text-gray-700">{item.online}</span>
       )
     },
     {
@@ -505,13 +438,7 @@ const ReadyInventory: React.FC = () => {
       label: '(POS)',
       sortable: true,
       render: (item: ReadyInventoryItem) => (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-          Number(item.pos) > 0
-            ? 'bg-purple-50 text-purple-700 border border-purple-200'
-            : 'text-gray-500 bg-gray-50 border border-gray-200'
-        }`}>
-          {item.pos}
-        </span>
+        <span className="text-sm text-gray-700">{item.pos}</span>
       )
     },
     {
@@ -519,13 +446,7 @@ const ReadyInventory: React.FC = () => {
       label: '(VEHICLE)',
       sortable: true,
       render: (item: ReadyInventoryItem) => (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-          Number(item.vehicle) > 0
-            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-            : 'text-gray-500 bg-gray-50 border border-gray-200'
-        }`}>
-          {item.vehicle}
-        </span>
+        <span className="text-sm text-gray-700">{item.vehicle}</span>
       )
     },
     {
@@ -537,148 +458,11 @@ const ReadyInventory: React.FC = () => {
           {item.remainingQty}
         </span>
       )
-    },
-    {
-      key: 'actions',
-      label: 'ACTION',
-      sortable: false,
-      render: (item: ReadyInventoryItem) => (
-        <div className="flex justify-center items-center">
-          <EditIconButton onClick={() => openEdit(item)} size={16} tooltip="Edit" />
-        </div>
-      )
     }
   ];
 
   return (
     <div className="w-full px-1 sm:px-2 md:px-3 pb-4">
-      {/* Edit Modal */}
-      {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">Edit Ready Inventory</h2>
-                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{editingItem.name}</p>
-              </div>
-              <button onClick={closeEdit} className="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-1 hover:bg-gray-100">
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-                  Total Ready Quantity
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editForm.readyQty}
-                  onChange={e => setEditForm(f => ({ ...f, readyQty: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent font-semibold"
-                />
-              </div>
-
-              {/* Channel Inventory Allocation */}
-              <div className="pt-2 border-t border-gray-100">
-                <span className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2.5">
-                  Channel Inventory Stock Allocation
-                </span>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-blue-700 mb-1">
-                      Online App
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editForm.online}
-                      onChange={e => setEditForm(f => ({ ...f, online: e.target.value }))}
-                      className="w-full border border-blue-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-800 bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-center"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-purple-700 mb-1">
-                      POS Store
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editForm.pos}
-                      onChange={e => setEditForm(f => ({ ...f, pos: e.target.value }))}
-                      className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-800 bg-purple-50/30 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold text-center"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-amber-700 mb-1">
-                      Vehicle Sales
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editForm.vehicle}
-                      onChange={e => setEditForm(f => ({ ...f, vehicle: e.target.value }))}
-                      className="w-full border border-amber-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-800 bg-amber-50/30 focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold text-center"
-                    />
-                  </div>
-                </div>
-
-                {/* Stock Summary Pill */}
-                {(() => {
-                  const tReady = Number(editForm.readyQty) || 0;
-                  const tOnline = Number(editForm.online) || 0;
-                  const tPos = Number(editForm.pos) || 0;
-                  const tVehicle = Number(editForm.vehicle) || 0;
-                  const tAlloc = tOnline + tPos + tVehicle;
-                  const tRem = tReady - tAlloc;
-                  const isOver = tAlloc > tReady;
-
-                  return (
-                    <div className="mt-3 p-2.5 rounded-lg bg-gray-50 border border-gray-200 space-y-1.5 text-xs">
-                      <div className="flex justify-between items-center text-gray-600">
-                        <span>Total Channel Allocated:</span>
-                        <span className="font-semibold text-gray-800">{tAlloc}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium text-gray-700">Remaining Unallocated:</span>
-                        <span className={`font-bold ${isOver ? 'text-red-600' : 'text-emerald-600'}`}>
-                          {tRem}
-                        </span>
-                      </div>
-                      {isOver && (
-                        <p className="text-[11px] text-red-600 font-semibold mt-1">
-                          ⚠️ Total allocated ({tAlloc}) exceeds Total Ready stock ({tReady}).
-                        </p>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
-              <button
-                onClick={closeEdit}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveEdit}
-                disabled={saving}
-                className="px-5 py-2 text-sm font-medium text-white bg-[#008f33] hover:bg-[#007a2a] rounded-lg transition-colors disabled:opacity-60"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Page Title and Action Button */}
       <div className="mb-3 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

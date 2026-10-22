@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { workOrderService, WorkOrder, WoStatus } from '../../../api/packing/workOrderService';
 import { barcodeService } from '../../../api/packing/barcodeService';
+import { masterDataService } from '../../../api/packing/masterDataService';
 import {
   Package,
   CheckCircle,
@@ -15,6 +16,103 @@ import {
   Save,
   Check,
 } from 'lucide-react';
+
+export const resolveProductAndSku = (alloc: any, wo: any, catalog: any[] = []) => {
+  // 1. Resolve Product Name
+  let productName =
+    alloc?.sourceProductName ||
+    alloc?.productName ||
+    alloc?.product ||
+    wo?.product?.name ||
+    '';
+
+  const packText = (alloc?.packSizeText || '').trim();
+
+  // If productName equals skuName or is empty, clean it up
+  if (!productName && alloc?.skuName) {
+    productName = alloc.skuName;
+  }
+  if (productName && packText && productName.toLowerCase().endsWith(packText.toLowerCase())) {
+    productName = productName.slice(0, productName.length - packText.length).trim();
+  }
+
+  // 2. Resolve SKU Code
+  let sku = alloc?.sku || alloc?.skuCode || alloc?.sourceProductSku || '';
+  if (sku === '—' || sku === 'N/A') sku = '';
+
+  // Look up in catalog products
+  if (!sku && catalog && catalog.length > 0) {
+    const matchedProduct = catalog.find((p: any) => {
+      const pName = (p.name || '').toLowerCase().trim();
+      const targetName = (productName || '').toLowerCase().trim();
+      return (
+        (alloc?.sourceProductId && p.id === alloc.sourceProductId) ||
+        (wo?.productId && p.id === wo.productId) ||
+        (targetName && pName === targetName) ||
+        (targetName && (pName.includes(targetName) || targetName.includes(pName)))
+      );
+    });
+
+    if (matchedProduct) {
+      if (!productName && matchedProduct.name) {
+        productName = matchedProduct.name;
+      }
+
+      // Check product variants for exact match on measurement + unit or variantName
+      if (Array.isArray(matchedProduct.variants) && matchedProduct.variants.length > 0) {
+        const matchedVariant = matchedProduct.variants.find((v: any) => {
+          const vText = `${v.measurement || ''} ${v.unit || ''}`.trim().toLowerCase();
+          const pTextLower = packText.toLowerCase();
+          const vName = (v.variantName || '').trim().toLowerCase();
+          const skuNameLower = (alloc?.skuName || '').trim().toLowerCase();
+
+          return (
+            (pTextLower && vText === pTextLower) ||
+            (vName && skuNameLower.includes(vName))
+          );
+        });
+
+        if (matchedVariant?.sku) {
+          sku = matchedVariant.sku;
+        }
+      }
+
+      // If no variant SKU, check product.sku
+      if (!sku && matchedProduct.sku) {
+        if (packText) {
+          const prefix = matchedProduct.sku.includes('-')
+            ? matchedProduct.sku.split('-')[0]
+            : matchedProduct.sku;
+          sku = `${prefix}-${packText.replace(/\s+/g, '-').toUpperCase()}`;
+        } else {
+          sku = matchedProduct.sku;
+        }
+      }
+    }
+  }
+
+  // Fallback to workOrder product SKU or sourceItems SKU
+  if (!sku) {
+    const woSku = wo?.product?.sku || (Array.isArray(wo?.sourceItems) && wo.sourceItems[0]?.sku);
+    if (woSku && woSku !== '—' && woSku !== 'N/A') {
+      sku = woSku;
+    }
+  }
+
+  // Final deterministic fallback: Generate from Product Name & Pack Size
+  if (!sku && productName) {
+    const codePart = productName
+      .replace(/[^A-Za-z0-9]/g, '')
+      .slice(0, 4)
+      .toUpperCase();
+    sku = packText ? `${codePart}-${packText.replace(/\s+/g, '-').toUpperCase()}` : `${codePart}-SKU`;
+  }
+
+  return {
+    productName: productName || 'Product',
+    sku: sku || '—',
+  };
+};
 
 const STAGES: { key: WoStatus; label: string }[] = [
   { key: 'MATERIAL_ISSUED', label: 'Material Issued' },
@@ -43,6 +141,7 @@ export const PackingExecutionDetails: React.FC = () => {
   const [pauseReason, setPauseReason] = useState<string>('');
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [allocInputs, setAllocInputs] = useState<any[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
 
   const showToast = (msg: string, isError = false) => {
     if (isError) setErrorMsg(msg);
@@ -53,9 +152,42 @@ export const PackingExecutionDetails: React.FC = () => {
     }, 3500);
   };
 
+  const getSourceItemsArray = (wo: any): any[] => {
+    let items = wo?.sourceItems;
+    if (typeof items === 'string') {
+      try { items = JSON.parse(items); } catch (e) {}
+    }
+    return Array.isArray(items) ? items : [];
+  };
+
+  const getOutputAllocationsArray = (wo: any): any[] => {
+    let allocs = wo?.outputAllocations;
+    if (typeof allocs === 'string') {
+      try { allocs = JSON.parse(allocs); } catch (e) {}
+    }
+    return Array.isArray(allocs) ? allocs : [];
+  };
+
+  const normalizeUnit = (u?: string) => {
+    if (!u) return '';
+    const trimmed = String(u).trim().toUpperCase();
+    if (trimmed === 'KILOGRAMS' || trimmed === 'KILOGRAM') return 'KG';
+    if (trimmed === 'GRAMS' || trimmed === 'GRAM') return 'GM';
+    if (trimmed === 'LITRES' || trimmed === 'LITRE' || trimmed === 'LITERS' || trimmed === 'LITER') return 'L';
+    if (trimmed === 'MILLILITRES' || trimmed === 'MILLILITRE' || trimmed === 'MILLILITERS' || trimmed === 'MILLILITER') return 'ML';
+    return trimmed;
+  };
+
+  const getWOUnit = (wo: any) => {
+    // Unit fetched strictly from Eligible Source Inventory (wo.sourceItems)
+    const items = getSourceItemsArray(wo);
+    const sourceUom = items[0]?.uom;
+    return sourceUom ? normalizeUnit(sourceUom) : '';
+  };
+
   // Helper to render product column with Primary Product + Counter Badge & Hover Popover for multi-product orders
   const renderProductColumn = (wo: any) => {
-    const items = Array.isArray(wo?.sourceItems) && wo.sourceItems.length > 0 ? wo.sourceItems : null;
+    const items = getSourceItemsArray(wo);
 
     if (items && items.length > 1) {
       const primaryName = items[0].product || 'Product 1';
@@ -97,25 +229,34 @@ export const PackingExecutionDetails: React.FC = () => {
 
   const formatRequiredQty = (wo: any) => {
     if (!wo) return '0';
-    if (Array.isArray(wo.outputAllocations) && wo.outputAllocations.length > 0) {
-      const map: Record<string, number> = {};
-      wo.outputAllocations.forEach((alloc: any) => {
-        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-        const fallbackUnit = (wo.sourceItems?.[0]?.uom || 'KG').toUpperCase();
-        const unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
-        const qty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
-        map[unit] = (map[unit] || 0) + qty;
-      });
-      const entries = Object.entries(map);
-      if (entries.length > 0) {
-        return entries.map(([uom, qty]) => `${qty} ${uom}`).join(', ');
+    const invUnit = getWOUnit(wo);
+    const allocs = getOutputAllocationsArray(wo);
+    if (allocs.length > 0) {
+      const totalAllocated = allocs.reduce((sum: number, alloc: any) => {
+        return sum + (Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1));
+      }, 0);
+      if (totalAllocated > 0) {
+        return `${parseFloat(totalAllocated.toFixed(3))} ${invUnit}`;
       }
     }
-    return `${wo.requiredQty || 0}`;
+    return `${parseFloat(Number(wo.requiredQty || 0).toFixed(3))} ${invUnit}`;
   };
 
   const handleAllocPackedChange = (idx: number, value: string) => {
-    const num = value === '' ? 0 : Math.max(0, parseInt(value) || 0);
+    const cleanStr = value.replace(/^0+(?=\d)/, '');
+    let num: number | '' = cleanStr === '' ? '' : Math.max(0, parseInt(cleanStr, 10) || 0);
+    const planned = Number(allocInputs[idx]?.plannedUnits) || 0;
+    const currentRejected = Number(allocInputs[idx]?.rejectedUnits) || 0;
+
+    if (num !== '' && planned > 0 && num > planned) {
+      showToast(`Packed units cannot exceed planned units (${planned}).`, true);
+      num = planned;
+    } else if (num !== '' && planned > 0 && num + currentRejected > planned) {
+      const maxAllowed = Math.max(0, planned - currentRejected);
+      showToast(`Total units (packed + rejected) cannot exceed planned units (${planned}). Max packed: ${maxAllowed}`, true);
+      num = maxAllowed;
+    }
+
     setAllocInputs((prev) => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], packedUnits: num };
@@ -129,7 +270,17 @@ export const PackingExecutionDetails: React.FC = () => {
   };
 
   const handleAllocRejectedChange = (idx: number, value: string) => {
-    const num = value === '' ? 0 : Math.max(0, parseInt(value) || 0);
+    const cleanStr = value.replace(/^0+(?=\d)/, '');
+    let num: number | '' = cleanStr === '' ? '' : Math.max(0, parseInt(cleanStr, 10) || 0);
+    const planned = Number(allocInputs[idx]?.plannedUnits) || 0;
+    const currentPacked = Number(allocInputs[idx]?.packedUnits) || 0;
+
+    if (num !== '' && planned > 0 && currentPacked + num > planned) {
+      const maxAllowed = Math.max(0, planned - currentPacked);
+      showToast(`Total units (packed + rejected) cannot exceed planned units (${planned}). Max rejected: ${maxAllowed}`, true);
+      num = maxAllowed;
+    }
+
     setAllocInputs((prev) => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], rejectedUnits: num };
@@ -146,7 +297,7 @@ const getReqForSKU = (alloc: any) => {
   if (!alloc) return 0;
   if (alloc.packedUnits !== '' && alloc.packedUnits !== null && alloc.packedUnits !== undefined) {
     const val = Number(alloc.packedUnits);
-    if (!isNaN(val) && val > 0) return val;
+    if (!isNaN(val)) return Math.max(0, val);
   }
   const plUnits = Number(alloc.plannedUnits);
   if (!isNaN(plUnits) && plUnits > 0) return plUnits;
@@ -187,7 +338,11 @@ const getReqForSKU = (alloc: any) => {
     if (!id) return;
     try {
       setLoading(true);
-      const res = await workOrderService.getWorkOrders();
+      const [res, catalog] = await Promise.all([
+        workOrderService.getWorkOrders(),
+        masterDataService.getProducts().catch(() => [])
+      ]);
+      setCatalogProducts(catalog || []);
       const found = res.data?.find((w) => w.id === id);
       if (found) {
         setSelectedWO(found);
@@ -195,10 +350,12 @@ const getReqForSKU = (alloc: any) => {
         setActualRejected(found.actualRejected || 0);
 
         let allocs: any[] = [];
-        if (Array.isArray((found as any).outputAllocations) && (found as any).outputAllocations.length > 0) {
-          allocs = (found as any).outputAllocations;
-        } else if (Array.isArray((found as any).sourceItems) && (found as any).sourceItems.length > 0) {
-          allocs = (found as any).sourceItems.map((item: any) => ({
+        const rawAllocs = getOutputAllocationsArray(found);
+        const rawSources = getSourceItemsArray(found);
+        if (rawAllocs.length > 0) {
+          allocs = rawAllocs;
+        } else if (rawSources.length > 0) {
+          allocs = rawSources.map((item: any) => ({
             skuName: item.product || item.skuName || item.skuCode || 'Item SKU',
             packSizeText: `${item.quantity || 1} ${item.uom || 'KG'}`,
             packSizeKg: item.packSizeKg || 1,
@@ -210,13 +367,18 @@ const getReqForSKU = (alloc: any) => {
           }));
         }
 
-        const initialAllocInputs = allocs.map((a: any) => ({
-          ...a,
-          packedUnits: a.packedUnits !== undefined && a.packedUnits !== null ? a.packedUnits : '',
-          rejectedUnits: a.rejectedUnits ?? 0,
-          labelsApplied: a.labelsApplied !== undefined && a.labelsApplied !== null ? a.labelsApplied : '',
-          labelsRejected: a.labelsRejected ?? 0,
-        }));
+        const initialAllocInputs = allocs.map((a: any) => {
+          const resolved = resolveProductAndSku(a, found, catalog || []);
+          return {
+            ...a,
+            sku: a.sku || resolved.sku,
+            productName: a.productName || resolved.productName,
+            packedUnits: a.packedUnits !== undefined && a.packedUnits !== null ? a.packedUnits : '',
+            rejectedUnits: a.rejectedUnits ?? 0,
+            labelsApplied: a.labelsApplied !== undefined && a.labelsApplied !== null ? a.labelsApplied : '',
+            labelsRejected: a.labelsRejected ?? 0,
+          };
+        });
         setAllocInputs(initialAllocInputs);
 
         if (initialAllocInputs.length > 0) {
@@ -265,20 +427,34 @@ const getReqForSKU = (alloc: any) => {
     );
   }
 
-  const isLabelingStage = selectedWO.status === 'LABEL_APPLICATION_IN_PROGRESS' || selectedWO.status === 'LABELS_APPLIED';
+  const isLabelingStage = [
+    'LABEL_APPLICATION_ASSIGNED',
+    'LABELS_PRINTED',
+    'LABEL_APPLICATION_IN_PROGRESS',
+    'LABELS_APPLIED',
+    'QC_PENDING',
+    'COMPLETED'
+  ].includes(selectedWO.status);
 
   // Packing logic
-  const reqQty = selectedWO.requiredQty || 1;
+  const invUnit = getWOUnit(selectedWO);
+  const totalAllocReq = allocInputs.length > 0
+    ? allocInputs.reduce((sum, a) => sum + (Number(a.totalQtyKg) || (Number(a.plannedUnits) || 0) * (a.packSizeKg || 1)), 0)
+    : 0;
+  const reqQty = totalAllocReq > 0 ? totalAllocReq : (selectedWO.requiredQty || 1);
   const packedQty = actualProduced;
   const packingRemaining = Math.max(0, reqQty - packedQty);
   const packingPct = Math.min(100, Math.round((packedQty / reqQty) * 100));
 
-  // Labeling logic
+  // Labeling logic (strictly based on actual packed quantities/units from packing execution)
+  const totalAllocPackedUnits = allocInputs.length > 0
+    ? allocInputs.reduce((sum, a) => sum + (Number(a.packedUnits) || 0), 0)
+    : 0;
   const reqLabels = allocInputs.length > 0
     ? allocInputs.reduce((sum, a) => sum + getReqForSKU(a), 0)
     : (packedQty > 0 ? packedQty : reqQty);
-  const labelsRemaining = Math.max(0, reqLabels - Number(labelsApplied) - Number(labelsRejected));
-  const labelingPct = Math.min(100, Math.round((Number(labelsApplied) / reqLabels) * 100) || 0);
+  const labelsRemaining = Math.max(0, reqLabels - Number(labelsApplied || 0) - Number(labelsRejected || 0));
+  const labelingPct = reqLabels > 0 ? Math.min(100, Math.round((Number(labelsApplied || 0) / reqLabels) * 100)) : 0;
 
 
 
@@ -298,16 +474,44 @@ const getReqForSKU = (alloc: any) => {
   };
 
   const handleSaveQuantity = async () => {
+    for (const alloc of allocInputs) {
+      const planned = Number(alloc.plannedUnits) || 0;
+      const packed = Number(alloc.packedUnits) || 0;
+      const rejected = Number(alloc.rejectedUnits) || 0;
+      const label = alloc.skuName || alloc.productName || 'SKU';
+      if (planned > 0 && packed > planned) {
+        showToast(`Packed units for ${label} cannot exceed planned units (${planned}).`, true);
+        return;
+      }
+      if (planned > 0 && packed + rejected > planned) {
+        showToast(`Total units for ${label} cannot exceed planned units (${planned}).`, true);
+        return;
+      }
+    }
+
     if (actualProduced > reqQty) {
       showToast(`Packed quantity cannot exceed required quantity (${reqQty}).`, true);
       return;
     }
     try {
       setActionLoading(true);
+      const allocationsPayload = allocInputs.map((a: any) => {
+        const resolved = resolveProductAndSku(a, selectedWO, catalogProducts);
+        return {
+          ...a,
+          sku: a.sku || resolved.sku,
+          productName: a.productName || resolved.productName,
+        };
+      });
       const updated = await workOrderService.updateQuantity(selectedWO.id, {
         actualProduced,
         actualRejected,
       });
+      if (allocationsPayload.length > 0) {
+        await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
+          outputAllocations: allocationsPayload,
+        });
+      }
       setSelectedWO(updated);
       showToast('Packed quantity updated successfully!');
       fetchWO();
@@ -356,6 +560,21 @@ const getReqForSKU = (alloc: any) => {
   };
 
   const handleCompletePacking = async () => {
+    for (const alloc of allocInputs) {
+      const planned = Number(alloc.plannedUnits) || 0;
+      const packed = Number(alloc.packedUnits) || 0;
+      const rejected = Number(alloc.rejectedUnits) || 0;
+      const label = alloc.skuName || alloc.productName || 'SKU';
+      if (planned > 0 && packed > planned) {
+        showToast(`Packed units for ${label} cannot exceed planned units (${planned}).`, true);
+        return;
+      }
+      if (planned > 0 && packed + rejected > planned) {
+        showToast(`Total units for ${label} cannot exceed planned units (${planned}).`, true);
+        return;
+      }
+    }
+
     if (actualProduced <= 0) {
       showToast('Packed quantity must be greater than 0 to complete packing.', true);
       return;
@@ -366,11 +585,24 @@ const getReqForSKU = (alloc: any) => {
     }
     try {
       setActionLoading(true);
+      const allocationsPayload = allocInputs.map((a: any) => {
+        const resolved = resolveProductAndSku(a, selectedWO, catalogProducts);
+        return {
+          ...a,
+          sku: a.sku || resolved.sku,
+          productName: a.productName || resolved.productName,
+        };
+      });
       // Ensure quantity is updated before marking complete
       await workOrderService.updateQuantity(selectedWO.id, {
         actualProduced,
         actualRejected,
       });
+      if (allocationsPayload.length > 0) {
+        await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
+          outputAllocations: allocationsPayload,
+        });
+      }
       const updated = await workOrderService.completePacking(selectedWO.id);
       setSelectedWO(updated);
       showToast(`Work Order ${updated.woNumber} packing completed!`);
@@ -421,15 +653,23 @@ const getReqForSKU = (alloc: any) => {
   const handleSaveLabelQuantities = async () => {
     const maxQty = reqLabels;
     if (Number(labelsApplied) + Number(labelsRejected) > maxQty) {
-      showToast('Total labels cannot exceed required quantity.', true);
+      showToast(`Total labels cannot exceed packed quantity (${maxQty}).`, true);
       return;
     }
     try {
       setActionLoading(true);
+      const allocationsPayload = allocInputs.map((a: any) => {
+        const resolved = resolveProductAndSku(a, selectedWO, catalogProducts);
+        return {
+          ...a,
+          sku: a.sku || resolved.sku,
+          productName: a.productName || resolved.productName,
+        };
+      });
       const updated = await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
         labelsApplied: Number(labelsApplied),
         labelsRejected: Number(labelsRejected),
-        outputAllocations: allocInputs.length > 0 ? allocInputs : undefined,
+        outputAllocations: allocationsPayload.length > 0 ? allocationsPayload : undefined,
       });
       setSelectedWO(updated);
       showToast('Label quantities updated successfully!');
@@ -445,15 +685,23 @@ const getReqForSKU = (alloc: any) => {
   const handleCompleteLabeling = async () => {
     const maxQty = reqLabels;
     if (Number(labelsApplied) + Number(labelsRejected) > maxQty) {
-      showToast('Total labels cannot exceed required quantity.', true);
+      showToast(`Total labels cannot exceed packed quantity (${maxQty}).`, true);
       return;
     }
     try {
       setActionLoading(true);
+      const allocationsPayload = allocInputs.map((a: any) => {
+        const resolved = resolveProductAndSku(a, selectedWO, catalogProducts);
+        return {
+          ...a,
+          sku: a.sku || resolved.sku,
+          productName: a.productName || resolved.productName,
+        };
+      });
       await workOrderService.updateWorkOrderStatus(selectedWO.id, selectedWO.status, {
         labelsApplied: Number(labelsApplied),
         labelsRejected: Number(labelsRejected),
-        outputAllocations: allocInputs.length > 0 ? allocInputs : undefined,
+        outputAllocations: allocationsPayload.length > 0 ? allocationsPayload : undefined,
       });
       await barcodeService.completeTask({
         workOrderId: selectedWO.id,
@@ -580,7 +828,13 @@ const getReqForSKU = (alloc: any) => {
                 SKU
               </span>
               <span className="text-slate-800 dark:text-white font-mono font-semibold block mt-0.5">
-                {selectedWO.product?.sku || (Array.isArray((selectedWO as any).sourceItems) && (selectedWO as any).sourceItems[0]?.sku) || 'N/A'}
+                {(allocInputs.length > 0 && allocInputs[0]?.sku && allocInputs[0].sku !== '—')
+                  ? allocInputs[0].sku
+                  : (selectedWO.product?.sku && selectedWO.product.sku !== '—'
+                      ? selectedWO.product.sku
+                      : (allocInputs.length > 0
+                          ? resolveProductAndSku(allocInputs[0], selectedWO, catalogProducts).sku
+                          : (Array.isArray((selectedWO as any).sourceItems) && (selectedWO as any).sourceItems[0]?.sku !== '—' && (selectedWO as any).sourceItems[0]?.sku) || 'N/A'))}
               </span>
             </div>
             <div>
@@ -611,10 +865,14 @@ const getReqForSKU = (alloc: any) => {
           <div className="grid grid-cols-2 gap-4 text-xs mb-4">
             <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-lg border border-slate-100 dark:border-gray-700">
               <span className="text-slate-400 dark:text-gray-400 block text-[9px] uppercase font-bold">
-                {isLabelingStage ? 'Required Labels' : 'Required Qty'}
+                {isLabelingStage ? 'Packed Qty' : 'Required Qty'}
               </span>
               <span className="text-sm font-bold text-slate-800 dark:text-white font-mono">
-                {isLabelingStage ? reqLabels : formatRequiredQty(selectedWO)}
+                {isLabelingStage
+                  ? (allocInputs.length > 0 && totalAllocPackedUnits > 0
+                      ? `${totalAllocPackedUnits} Packs (${parseFloat(Number(packedQty || 0).toFixed(3))} ${invUnit})`
+                      : `${parseFloat(Number(packedQty || 0).toFixed(3))} ${invUnit}`)
+                  : formatRequiredQty(selectedWO)}
               </span>
             </div>
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-100 dark:border-emerald-900">
@@ -622,15 +880,15 @@ const getReqForSKU = (alloc: any) => {
                 {isLabelingStage ? 'Labels Applied' : 'Packed Qty'}
               </span>
               <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300 font-mono">
-                {isLabelingStage ? (labelsApplied || 0) : packedQty}
+                {isLabelingStage ? (labelsApplied || 0) : `${parseFloat(Number(packedQty || 0).toFixed(3))} ${invUnit}`}
               </span>
             </div>
             <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-100 dark:border-amber-900">
               <span className="text-amber-600 dark:text-amber-400 block text-[9px] uppercase font-bold">
-                {isLabelingStage ? 'Remaining Labels' : 'Remaining Qty'}
+                {isLabelingStage ? 'Remaining to Label' : 'Remaining Qty'}
               </span>
               <span className="text-lg font-bold text-amber-700 dark:text-amber-300 font-mono">
-                {isLabelingStage ? labelsRemaining : packingRemaining}
+                {isLabelingStage ? labelsRemaining : `${parseFloat(Number(packingRemaining || 0).toFixed(3))} ${invUnit}`}
               </span>
             </div>
             <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-lg border border-rose-100 dark:border-rose-900">
@@ -638,7 +896,7 @@ const getReqForSKU = (alloc: any) => {
                 {isLabelingStage ? 'Rejected Labels' : 'Rejected Qty'}
               </span>
               <span className="text-lg font-bold text-rose-700 dark:text-rose-300 font-mono">
-                {isLabelingStage ? (labelsRejected || 0) : actualRejected}
+                {isLabelingStage ? (labelsRejected || 0) : `${parseFloat(Number(actualRejected || 0).toFixed(3))} ${invUnit}`}
               </span>
             </div>
           </div>
@@ -786,7 +1044,8 @@ const getReqForSKU = (alloc: any) => {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-gray-700/50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
-                      <th className="py-2.5 px-3">TARGET SKU</th>
+                      <th className="py-2.5 px-3">SKU</th>
+                      <th className="py-2.5 px-3">PRODUCT NAME</th>
                       <th className="py-2.5 px-3">PACK SIZE</th>
                       <th className="py-2.5 px-3 text-center">PLANNED UNITS</th>
                       <th className="py-2.5 px-3 text-center">PACKED UNITS (GOOD)</th>
@@ -796,14 +1055,17 @@ const getReqForSKU = (alloc: any) => {
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
                     {allocInputs.map((alloc: any, idx: number) => {
-                      const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-                      const unit = parts.length > 1 ? parts.slice(1).join(' ') : 'KG';
+                      const unit = invUnit;
                       const totalPackedKg = (Number(alloc.packedUnits) || 0) * (alloc.packSizeKg || 1);
+                      const resolved = resolveProductAndSku(alloc, selectedWO, catalogProducts);
 
                       return (
                         <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-gray-700/30">
+                          <td className="py-2.5 px-3 font-mono font-semibold text-indigo-700 dark:text-indigo-400">
+                            {alloc.sku || resolved.sku}
+                          </td>
                           <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
-                            {alloc.skuName}
+                            {alloc.productName || resolved.productName}
                           </td>
                           <td className="py-2.5 px-3 text-slate-600 dark:text-gray-300 font-semibold">
                             {alloc.packSizeText}
@@ -816,7 +1078,8 @@ const getReqForSKU = (alloc: any) => {
                               type="number"
                               min="0"
                               max={alloc.plannedUnits}
-                              value={alloc.packedUnits === undefined || alloc.packedUnits === null ? '' : alloc.packedUnits}
+                              placeholder="0"
+                              value={alloc.packedUnits === undefined || alloc.packedUnits === null || alloc.packedUnits === '' || alloc.packedUnits === 0 ? '' : alloc.packedUnits}
                               onChange={(e) => handleAllocPackedChange(idx, e.target.value)}
                               className="w-24 p-1.5 text-center border border-slate-200 dark:border-gray-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-emerald-600 dark:bg-gray-900 dark:text-white"
                             />
@@ -825,7 +1088,8 @@ const getReqForSKU = (alloc: any) => {
                             <input
                               type="number"
                               min="0"
-                              value={alloc.rejectedUnits === 0 ? '' : alloc.rejectedUnits}
+                              placeholder="0"
+                              value={alloc.rejectedUnits === 0 || alloc.rejectedUnits === '' || alloc.rejectedUnits == null ? '' : alloc.rejectedUnits}
                               onChange={(e) => handleAllocRejectedChange(idx, e.target.value)}
                               className="w-24 p-1.5 text-center border border-slate-200 dark:border-gray-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-rose-600 dark:bg-gray-900 dark:text-white"
                             />
@@ -845,11 +1109,11 @@ const getReqForSKU = (alloc: any) => {
                 <div className="flex gap-6 font-mono text-xs">
                   <div>
                     <span className="text-slate-400 text-[10px] uppercase block">Total Packed Qty</span>
-                    <strong className="text-emerald-600 dark:text-emerald-400">{actualProduced}</strong>
+                    <strong className="text-emerald-600 dark:text-emerald-400">{actualProduced} {invUnit}</strong>
                   </div>
                   <div>
                     <span className="text-slate-400 text-[10px] uppercase block">Total Rejected Qty</span>
-                    <strong className="text-rose-600 dark:text-rose-400">{actualRejected}</strong>
+                    <strong className="text-rose-600 dark:text-rose-400">{actualRejected} {invUnit}</strong>
                   </div>
                 </div>
               </div>
@@ -918,9 +1182,10 @@ const getReqForSKU = (alloc: any) => {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-gray-700/50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
-                      <th className="py-2.5 px-3">TARGET SKU</th>
+                      <th className="py-2.5 px-3">SKU</th>
+                      <th className="py-2.5 px-3">PRODUCT NAME</th>
                       <th className="py-2.5 px-3">PACK SIZE</th>
-                      <th className="py-2.5 px-3 text-center">REQUIRED LABELS</th>
+                      <th className="py-2.5 px-3 text-center">PACKED UNITS (TO LABEL)</th>
                       <th className="py-2.5 px-3 text-center">LABELS APPLIED</th>
                       <th className="py-2.5 px-3 text-center">REJECTED LABELS</th>
                       <th className="py-2.5 px-3 text-right">REMAINING LABELS</th>
@@ -931,11 +1196,15 @@ const getReqForSKU = (alloc: any) => {
                       const applied = alloc.labelsApplied ?? 0;
                       const rejected = alloc.labelsRejected ?? 0;
                       const rem = Math.max(0, reqForSKU - applied - rejected);
+                      const resolved = resolveProductAndSku(alloc, selectedWO, catalogProducts);
 
                       return (
                         <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-gray-700/30">
+                          <td className="py-2.5 px-3 font-mono font-semibold text-indigo-700 dark:text-indigo-400">
+                            {alloc.sku || resolved.sku}
+                          </td>
                           <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
-                            {alloc.skuName}
+                            {alloc.productName || resolved.productName}
                           </td>
                           <td className="py-2.5 px-3 text-slate-600 dark:text-gray-300 font-semibold">
                             {alloc.packSizeText}
