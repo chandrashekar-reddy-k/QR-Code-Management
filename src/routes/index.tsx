@@ -139,6 +139,18 @@ const PosStockManagement = lazy(
 const VehicleStockManagement = lazy(
   () => import("../pages/admin_pages/products/VehicleStockManagement")
 );
+
+// Centralized Inventory Audit Module
+const AuditDashboard = lazy(
+  () => import("../pages/admin_pages/inventory/audit/AuditDashboard")
+);
+const ConductAudit = lazy(
+  () => import("../pages/admin_pages/inventory/audit/ConductAudit")
+);
+const AuditReviewApproval = lazy(
+  () => import("../pages/admin_pages/inventory/audit/AuditReviewApproval")
+);
+
 const AddProduct = lazy(
   () => import("../pages/admin_pages/products/AddProducts")
 );
@@ -1506,6 +1518,21 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/inventory/ready",
     component: ReadyInventory,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/audits",
+    component: AuditDashboard,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/audits/:id/conduct",
+    component: ConductAudit,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/audits/:id/review",
+    component: AuditReviewApproval,
     requiresAuth: true,
   },
   {
