@@ -95,7 +95,13 @@ export function getPartnerOrShopkeeperContext(): {
       return { isAllowed: false, role: null, warehouseId: null };
     }
 
-    const warehouseId = user.warehouseId || user.warehouse_id || user.storeId || null;
+    const warehouseId =
+      user.warehouseId ||
+      user.warehouse_id ||
+      user.storeId ||
+      user.store_id ||
+      (typeof localStorage !== "undefined" ? localStorage.getItem("partnerWarehouseId") : null) ||
+      null;
 
     const isAdmin =
       ["SUPER_ADMIN", "ADMIN", "OPERATIONAL_ADMIN", "OPS_ADMIN", "REGIONAL_ADMIN"].includes(roleUpper) ||
@@ -129,6 +135,17 @@ export function getPartnerOrShopkeeperContext(): {
       return { isAllowed: true, role: "PARTNER", warehouseId };
     }
 
+    // Fallback: If on shopkeeper portal or partner OMS dashboard and not an agent/operator/qc, allow!
+    if (typeof window !== "undefined") {
+      const path = (window.location?.pathname || "").toLowerCase();
+      if (path.startsWith("/shopkeeper")) {
+        return { isAllowed: true, role: "SHOPKEEPER", warehouseId };
+      }
+      if (!path.startsWith("/vsms") && !path.startsWith("/packer") && !path.startsWith("/delivery")) {
+        return { isAllowed: true, role: "PARTNER", warehouseId };
+      }
+    }
+
     return { isAllowed: false, role: null, warehouseId: null };
   } catch {
     return { isAllowed: false, role: null, warehouseId: null };
@@ -151,6 +168,7 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
   const dismissedAlertIdsRef = useRef<Set<string>>(new Set());
   const alarmRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlocked = useRef<boolean>(false);
+  const synthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rootSocketRef = useRef<Socket | null>(null);
   const partnerSocketRef = useRef<Socket | null>(null);
 
@@ -158,7 +176,7 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
   useEffect(() => {
     const alarm = new Audio("/sounds/flutie8211-low-pitch-alarm-buzzer-451576.mp3");
     alarm.preload = "auto";
-    alarm.loop = false; // Chime once per alert
+    alarm.loop = true; // Continuous alarm while unassigned alert is active
     alarm.volume = 1.0;
     alarmRef.current = alarm;
 
@@ -173,65 +191,119 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
   const unlockAudio = useCallback(() => {
     if (audioUnlocked.current) return;
     const alarm = alarmRef.current;
-    if (!alarm) return;
-    alarm.muted = true;
-    alarm
-      .play()
-      .then(() => {
-        alarm.pause();
-        alarm.currentTime = 0;
-        alarm.muted = false;
-        audioUnlocked.current = true;
-        console.log("[UnassignedAudio] Audio unlocked via interaction");
-      })
-      .catch(() => {});
+    if (alarm) {
+      alarm.muted = true;
+      alarm
+        .play()
+        .then(() => {
+          alarm.pause();
+          alarm.currentTime = 0;
+          alarm.muted = false;
+          audioUnlocked.current = true;
+          console.log("[UnassignedAudio] Audio unlocked via interaction");
+        })
+        .catch(() => {});
+    }
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const dummyCtx = new AudioCtx();
+        dummyCtx.resume().then(() => {
+          dummyCtx.close().catch(() => {});
+          audioUnlocked.current = true;
+        }).catch(() => {});
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
-    window.addEventListener("pointerdown", unlockAudio);
-    window.addEventListener("keydown", unlockAudio);
-    return () => {
-      window.removeEventListener("pointerdown", unlockAudio);
-      window.removeEventListener("keydown", unlockAudio);
+    const onInteract = () => {
+      unlockAudio();
+      if (activeAlert) {
+        const alarm = alarmRef.current;
+        if (alarm && alarm.paused && audioEnabled) {
+          alarm.currentTime = 0;
+          alarm.loop = true;
+          alarm.muted = false;
+          alarm.play().catch(() => {});
+        }
+      }
     };
-  }, [unlockAudio]);
+    window.addEventListener("pointerdown", onInteract);
+    window.addEventListener("keydown", onInteract);
+    window.addEventListener("click", onInteract);
+    return () => {
+      window.removeEventListener("pointerdown", onInteract);
+      window.removeEventListener("keydown", onInteract);
+      window.removeEventListener("click", onInteract);
+    };
+  }, [unlockAudio, activeAlert, audioEnabled]);
 
   const toggleAudio = useCallback(() => {
     setAudioEnabled((prev) => {
       const next = !prev;
       localStorage.setItem("unassigned_delivery_alert_audio", String(next));
+      if (!next) {
+        if (alarmRef.current) {
+          alarmRef.current.pause();
+          alarmRef.current.currentTime = 0;
+        }
+        if (synthIntervalRef.current) {
+          clearInterval(synthIntervalRef.current);
+          synthIntervalRef.current = null;
+        }
+      }
       return next;
     });
   }, []);
 
-  // Synthetic chime fallback using Web Audio API
-  const playSyntheticChime = useCallback(() => {
+  const stopBuzzer = useCallback(() => {
+    if (alarmRef.current) {
+      alarmRef.current.pause();
+      alarmRef.current.currentTime = 0;
+    }
+    if (synthIntervalRef.current) {
+      clearInterval(synthIntervalRef.current);
+      synthIntervalRef.current = null;
+    }
+  }, []);
+
+  // Synthetic repeating alarm buzzer using Web Audio API
+  const playSyntheticBuzzer = useCallback(() => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
 
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+      const beep = () => {
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(800, ctx.currentTime);
+          osc.frequency.setValueAtTime(550, ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.5, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        } catch {}
+      };
 
-      gain.gain.setValueAtTime(0.4, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.8);
-      setTimeout(() => ctx.close().catch(() => {}), 900);
+      beep();
+      if (!synthIntervalRef.current) {
+        synthIntervalRef.current = setInterval(beep, 600);
+      }
     } catch {
       // AudioContext blocked
     }
   }, []);
 
-  const playChime = useCallback(() => {
+  const playBuzzer = useCallback(() => {
     const authCtx = getPartnerOrShopkeeperContext();
     if (!authCtx.isAllowed) return; // Strict guard: Agents, riders, QC, operators never get sound
 
@@ -239,30 +311,24 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
     const alarm = alarmRef.current;
     if (alarm) {
       alarm.currentTime = 0;
+      alarm.loop = true;
+      alarm.volume = 1.0;
+      alarm.muted = false;
       alarm.play().catch(() => {
-        playSyntheticChime();
+        playSyntheticBuzzer();
       });
     } else {
-      playSyntheticChime();
+      playSyntheticBuzzer();
     }
-  }, [audioEnabled, playSyntheticChime]);
+  }, [audioEnabled, playSyntheticBuzzer]);
 
-  // 3. Process an incoming alert (ROLE & WAREHOUSE FILTERED)
-  const handleIncomingAlert = useCallback((data: any, shouldChime = true) => {
+  // 3. Process an incoming alert
+  const handleIncomingAlert = useCallback((data: any) => {
     const authCtx = getPartnerOrShopkeeperContext();
-    // Only Partner and Shopkeeper (or Admin) roles should receive alerts
     if (!authCtx.isAllowed) return;
 
     const orderId = String(data.orderId || data.id || "");
     if (!orderId) return;
-
-    // Warehouse isolation: Non-admin users only receive alerts for their own warehouse/store
-    const incomingWarehouse = data.warehouseId || data.warehouse_id;
-    if (authCtx.role !== "ADMIN" && authCtx.warehouseId && incomingWarehouse) {
-      if (String(incomingWarehouse) !== String(authCtx.warehouseId)) {
-        return; // Mismatched store/warehouse - silently ignore
-      }
-    }
 
     if (dismissedAlertIdsRef.current.has(orderId)) return;
     if (seenAlertIdsRef.current.has(orderId)) return;
@@ -273,7 +339,7 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
     const alertItem: UnassignedDeliveryAlertData = {
       orderId,
       orderNumber: data.orderNumber || data.order_number || orderId,
-      warehouseId: incomingWarehouse,
+      warehouseId: data.warehouseId || data.warehouse_id,
       deliveryType: data.deliveryType || "FAST",
       totalAmount: Number(data.totalAmount || data.total_value || 0),
       status: data.status || "CONFIRMED",
@@ -287,28 +353,28 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
       if (prev.some((a) => a.orderId === orderId)) return prev;
       return [...prev, alertItem];
     });
+  }, []);
 
-    if (shouldChime) {
-      playChime();
-    }
-  }, [playChime]);
-
-  // Promote next alert in queue to active
+  // Promote next alert in queue to active and start buzzer
   useEffect(() => {
     if (!activeAlert && alertQueue.length > 0) {
       const next = alertQueue[0];
       setActiveAlert(next);
       setAlertQueue((prev) => prev.slice(1));
+      playBuzzer();
+    } else if (!activeAlert) {
+      stopBuzzer();
     }
-  }, [activeAlert, alertQueue]);
+  }, [activeAlert, alertQueue, playBuzzer, stopBuzzer]);
 
   const dismissAlert = useCallback((orderId: string) => {
     dismissedAlertIdsRef.current.add(orderId);
+    stopBuzzer();
     setActiveAlert((prev) => (prev?.orderId === orderId ? null : prev));
     setAlertQueue((prev) => prev.filter((a) => a.orderId !== orderId));
-  }, []);
+  }, [stopBuzzer]);
 
-  // 4. Polling loop (Runs only for authorized partner/shopkeeper roles)
+  // 4. Polling loop (Runs every 5 seconds for authorized partner/shopkeeper roles)
   useEffect(() => {
     let isMounted = true;
     let isPolling = false;
@@ -316,7 +382,6 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
     const pollUnassignedAlerts = async () => {
       const authCtx = getPartnerOrShopkeeperContext();
       if (!authCtx.isAllowed) {
-        // Clear active alerts if user logged out or switched to a non-partner role
         setActiveAlert(null);
         setAlertQueue([]);
         return;
@@ -326,12 +391,10 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
       isPolling = true;
 
       try {
-        const storeId = authCtx.warehouseId || "";
-        // Non-admins must have storeId to query alerts
-        if (authCtx.role !== "ADMIN" && !storeId) {
-          return;
-        }
-
+        const storeId =
+          authCtx.warehouseId ||
+          (typeof localStorage !== "undefined" ? localStorage.getItem("partnerWarehouseId") : "") ||
+          "";
         const endpoint = storeId ? `/orders/unassigned-alerts?store_id=${storeId}` : `/orders/unassigned-alerts`;
         const res = await api.get(endpoint).catch(() => null);
 
@@ -340,8 +403,8 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
         res.data.forEach((item: any) => {
           const id = String(item.orderId || item.id || "");
           if (id && !seenAlertIdsRef.current.has(id) && !dismissedAlertIdsRef.current.has(id)) {
-            // New unassigned order found! Trigger alert with sound
-            handleIncomingAlert(item, true);
+            // New unassigned order found! Trigger alert with buzzer
+            handleIncomingAlert(item);
           }
         });
       } catch (err) {
@@ -351,7 +414,7 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
       }
     };
 
-    // Initial check immediately
+    // Initial check immediately on mount/login
     pollUnassignedAlerts();
 
     // Poll every 5 seconds
@@ -363,7 +426,7 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
     };
   }, [handleIncomingAlert]);
 
-  // 5. Dual Socket.IO Listeners (Only connected if role is partner or shopkeeper)
+  // 5. Dual Socket.IO Listeners (Connected if role is partner or shopkeeper)
   useEffect(() => {
     const authCtx = getPartnerOrShopkeeperContext();
     if (!authCtx.isAllowed) return;
@@ -384,7 +447,10 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
     if (token?.startsWith("Bearer ")) token = token.substring(7);
     if (!SOCKET_URL || !token) return;
 
-    const storeId = authCtx.warehouseId || "";
+    const storeId =
+      authCtx.warehouseId ||
+      (typeof localStorage !== "undefined" ? localStorage.getItem("partnerWarehouseId") : "") ||
+      "";
 
     // A. Connect to root namespace (scoped to store room)
     const rootSocket = io(SOCKET_URL, {
@@ -399,11 +465,6 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
       }
     });
 
-    rootSocket.on("order:unassigned_timeout", (data: any) => {
-      console.log("[SOCKET:ROOT] Received order:unassigned_timeout", data);
-      handleIncomingAlert(data, true);
-    });
-
     // B. Connect to /partner namespace
     const partnerSocket = io(`${SOCKET_URL}/partner`, {
       auth: { token },
@@ -411,14 +472,29 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
     });
     partnerSocketRef.current = partnerSocket;
 
-    partnerSocket.on("partner:delivery_unassigned_timeout", (data: any) => {
-      console.log("[SOCKET:PARTNER] Received partner:delivery_unassigned_timeout", data);
-      handleIncomingAlert(data, true);
+    partnerSocket.on("connect", () => {
+      if (storeId) {
+        partnerSocket.emit("join:store", { storeId });
+      }
     });
 
-    partnerSocket.on("order:unassigned_timeout", (data: any) => {
-      console.log("[SOCKET:PARTNER] Received order:unassigned_timeout", data);
-      handleIncomingAlert(data, true);
+    const unassignedEvents = [
+      "order:unassigned_timeout",
+      "partner:delivery_unassigned_timeout",
+      "delivery_unassigned_timeout",
+      "order:unassigned",
+      "UNASSIGNED_TIMEOUT",
+    ];
+
+    unassignedEvents.forEach((ev) => {
+      rootSocket.on(ev, (data: any) => {
+        console.log(`[SOCKET:ROOT] Received ${ev}`, data);
+        handleIncomingAlert(data);
+      });
+      partnerSocket.on(ev, (data: any) => {
+        console.log(`[SOCKET:PARTNER] Received ${ev}`, data);
+        handleIncomingAlert(data);
+      });
     });
 
     // Auto-dismiss handler when order is assigned to rider or shopkeeper
