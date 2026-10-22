@@ -19,6 +19,7 @@ interface UnassignedDeliveryAlertContextType {
   activeAlert: UnassignedDeliveryAlertData | null;
   alertQueue: UnassignedDeliveryAlertData[];
   dismissAlert: (orderId: string) => void;
+  dismissAll: () => void;
   audioEnabled: boolean;
   toggleAudio: () => void;
 }
@@ -152,6 +153,38 @@ export function getPartnerOrShopkeeperContext(): {
   }
 }
 
+const DISMISSED_ALERTS_STORAGE_KEY = "vk_dismissed_unassigned_order_ids";
+
+function getStoredDismissedAlertIds(): Set<string> {
+  try {
+    if (typeof localStorage === "undefined") return new Set();
+    const raw = localStorage.getItem(DISMISSED_ALERTS_STORAGE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return new Set(parsed.map(String));
+    }
+  } catch (err) {
+    console.warn("Failed to load dismissed alert IDs from localStorage", err);
+  }
+  return new Set();
+}
+
+function persistDismissedAlertIds(ids: string[]) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const current = getStoredDismissedAlertIds();
+    ids.forEach((id) => {
+      if (id) current.add(String(id));
+    });
+    // Keep max 500 recent dismissed orders
+    const arr = Array.from(current).slice(-500);
+    localStorage.setItem(DISMISSED_ALERTS_STORAGE_KEY, JSON.stringify(arr));
+  } catch (err) {
+    console.warn("Failed to persist dismissed alert IDs", err);
+  }
+}
+
 export function UnassignedDeliveryAlertProvider({ children }: { children: React.ReactNode }) {
   const [alertQueue, setAlertQueue] = useState<UnassignedDeliveryAlertData[]>([]);
   const [activeAlert, setActiveAlert] = useState<UnassignedDeliveryAlertData | null>(null);
@@ -165,7 +198,7 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
   });
 
   const seenAlertIdsRef = useRef<Set<string>>(new Set());
-  const dismissedAlertIdsRef = useRef<Set<string>>(new Set());
+  const dismissedAlertIdsRef = useRef<Set<string>>(getStoredDismissedAlertIds());
   const alarmRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlocked = useRef<boolean>(false);
   const synthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -328,17 +361,30 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
     if (!authCtx.isAllowed) return;
 
     const orderId = String(data.orderId || data.id || "");
+    const orderNumber = String(data.orderNumber || data.order_number || "");
     if (!orderId) return;
 
-    if (dismissedAlertIdsRef.current.has(orderId)) return;
-    if (seenAlertIdsRef.current.has(orderId)) return;
+    // Strict check: if dismissed in current session or previously (from localStorage), do not show
+    if (
+      dismissedAlertIdsRef.current.has(orderId) ||
+      (orderNumber && dismissedAlertIdsRef.current.has(orderNumber))
+    ) {
+      return;
+    }
+    if (
+      seenAlertIdsRef.current.has(orderId) ||
+      (orderNumber && seenAlertIdsRef.current.has(orderNumber))
+    ) {
+      return;
+    }
 
     seenAlertIdsRef.current.add(orderId);
+    if (orderNumber) seenAlertIdsRef.current.add(orderNumber);
 
     const timeoutSec = Number(data.timeoutSeconds || 120);
     const alertItem: UnassignedDeliveryAlertData = {
       orderId,
-      orderNumber: data.orderNumber || data.order_number || orderId,
+      orderNumber: orderNumber || orderId,
       warehouseId: data.warehouseId || data.warehouse_id,
       deliveryType: data.deliveryType || "FAST",
       totalAmount: Number(data.totalAmount || data.total_value || 0),
@@ -350,7 +396,9 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
     };
 
     setAlertQueue((prev) => {
-      if (prev.some((a) => a.orderId === orderId)) return prev;
+      if (prev.some((a) => a.orderId === orderId || (orderNumber && a.orderNumber === orderNumber))) {
+        return prev;
+      }
       return [...prev, alertItem];
     });
   }, []);
@@ -368,11 +416,38 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
   }, [activeAlert, alertQueue, playBuzzer, stopBuzzer]);
 
   const dismissAlert = useCallback((orderId: string) => {
-    dismissedAlertIdsRef.current.add(orderId);
+    if (!orderId) return;
+
+    const target = activeAlert?.orderId === orderId ? activeAlert : alertQueue.find((a) => a.orderId === orderId);
+    const idsToStore = [orderId];
+    if (target?.orderNumber) idsToStore.push(target.orderNumber);
+
+    idsToStore.forEach((id) => dismissedAlertIdsRef.current.add(id));
+    persistDismissedAlertIds(idsToStore);
+
     stopBuzzer();
     setActiveAlert((prev) => (prev?.orderId === orderId ? null : prev));
     setAlertQueue((prev) => prev.filter((a) => a.orderId !== orderId));
-  }, [stopBuzzer]);
+  }, [activeAlert, alertQueue, stopBuzzer]);
+
+  const dismissAll = useCallback(() => {
+    const idsToStore: string[] = [];
+    if (activeAlert) {
+      idsToStore.push(activeAlert.orderId);
+      if (activeAlert.orderNumber) idsToStore.push(activeAlert.orderNumber);
+    }
+    alertQueue.forEach((a) => {
+      idsToStore.push(a.orderId);
+      if (a.orderNumber) idsToStore.push(a.orderNumber);
+    });
+
+    idsToStore.forEach((id) => dismissedAlertIdsRef.current.add(id));
+    persistDismissedAlertIds(idsToStore);
+
+    stopBuzzer();
+    setActiveAlert(null);
+    setAlertQueue([]);
+  }, [activeAlert, alertQueue, stopBuzzer]);
 
   // 4. Polling loop (Runs every 5 seconds for authorized partner/shopkeeper roles)
   useEffect(() => {
@@ -402,7 +477,15 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
 
         res.data.forEach((item: any) => {
           const id = String(item.orderId || item.id || "");
-          if (id && !seenAlertIdsRef.current.has(id) && !dismissedAlertIdsRef.current.has(id)) {
+          const orderNum = String(item.orderNumber || item.order_number || "");
+          const isDismissed =
+            (id && dismissedAlertIdsRef.current.has(id)) ||
+            (orderNum && dismissedAlertIdsRef.current.has(orderNum));
+          const isSeen =
+            (id && seenAlertIdsRef.current.has(id)) ||
+            (orderNum && seenAlertIdsRef.current.has(orderNum));
+
+          if (id && !isSeen && !isDismissed) {
             // New unassigned order found! Trigger alert with buzzer
             handleIncomingAlert(item);
           }
@@ -524,6 +607,7 @@ export function UnassignedDeliveryAlertProvider({ children }: { children: React.
         activeAlert,
         alertQueue,
         dismissAlert,
+        dismissAll,
         audioEnabled,
         toggleAudio,
       }}
@@ -540,6 +624,7 @@ export function useUnassignedDeliveryAlert() {
       activeAlert: null,
       alertQueue: [],
       dismissAlert: () => {},
+      dismissAll: () => {},
       audioEnabled: true,
       toggleAudio: () => {},
     };
