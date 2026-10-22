@@ -361,13 +361,18 @@ export default function ShopkeeperERP() {
 
   useEffect(() => {
     const handleNav = (e: any) => {
-      if (e.detail?.screen) {
-        setScreen(e.detail.screen as Screen);
+      const dest = e.detail?.screen;
+      if (dest) {
+        const data =
+          e.detail?.data ||
+          e.detail?.order ||
+          (e.detail?.orderId ? { id: e.detail.orderId, orderNumber: e.detail.orderNumber } : undefined);
+        navigate(dest, data);
       }
     };
     window.addEventListener("shopkeeperNavigateScreen", handleNav);
     return () => window.removeEventListener("shopkeeperNavigateScreen", handleNav);
-  }, []);
+  }, [screen]);
 
   const navigate = (dest: string, data?: unknown) => {
     setHistory(prev => [...prev, screen]);

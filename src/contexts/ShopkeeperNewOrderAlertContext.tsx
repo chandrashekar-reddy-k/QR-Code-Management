@@ -182,25 +182,46 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
     };
   }, [unlockAudioSilent]);
 
-  const playSynthAlarm = () => {
+  const synthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopSynthAlarm = useCallback(() => {
+    if (synthIntervalRef.current) {
+      clearInterval(synthIntervalRef.current);
+      synthIntervalRef.current = null;
+    }
+  }, []);
+
+  const playSynthAlarm = useCallback(() => {
     try {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextClass) return;
       const ctx = new AudioContextClass();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      setTimeout(() => {
-        osc.stop();
-        ctx.close();
-      }, 600);
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+
+      const beep = () => {
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(800, ctx.currentTime);
+          osc.frequency.setValueAtTime(600, ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.5, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        } catch (e) {}
+      };
+
+      beep();
+      if (!synthIntervalRef.current) {
+        synthIntervalRef.current = setInterval(beep, 600);
+      }
     } catch (e) {}
-  };
+  }, []);
 
   const playAlarm = useCallback(() => {
     if (!audioEnabled) return;
@@ -219,7 +240,7 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
       playSynthAlarm();
       setIsBuzzing(true);
     }
-  }, [audioEnabled]);
+  }, [audioEnabled, playSynthAlarm]);
 
   const stopAlarm = useCallback(() => {
     const alarm = alarmRef.current;
@@ -227,8 +248,9 @@ export function ShopkeeperNewOrderAlertProvider({ children }: { children: React.
       alarm.pause();
       alarm.currentTime = 0;
     }
+    stopSynthAlarm();
     setIsBuzzing(false);
-  }, []);
+  }, [stopSynthAlarm]);
 
   const handleIncomingOrder = useCallback((rawOrder: any) => {
     const orderId = String(rawOrder.id || rawOrder.orderId || rawOrder.order_id || rawOrder.orderNumber || "");
