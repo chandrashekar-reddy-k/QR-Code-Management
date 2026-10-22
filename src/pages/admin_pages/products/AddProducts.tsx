@@ -15,6 +15,7 @@ import {
   Camera,
   // Trash2,
 } from "lucide-react";
+// @ts-ignore
 import BarcodeScannerOverlay from "../../../components/BarcodeScannerOverlay";
 import Breadcrumbs from "../../../components/common/Breadcrumbs";
 import BackButton from "../../../components/common/BackButton";
@@ -331,6 +332,9 @@ function getEmptyCreateProductFormData(): FormData {
         shippingClass: "",
         variantStatus: "active",
         metaTitle: "",
+        metaKeywords: "",
+        schemaMarkup: "",
+        metaDescription: "",
         primaryImage: null,
         secondaryImage: null,
         barcodeImage: null,
@@ -460,21 +464,21 @@ const AddProduct: React.FC<AddProductProps> = ({
       setVariantStep(1); // Reset to first variant step
       // Mark steps 1, 2, 3 as completed since parent product is already created
       setCompletedSteps([1, 2, 3]);
-      // Get productId from URL and load parent product data
+      let initMainImage: string | null = null;
       if (productIdFromUrl) {
         setSavedProductId(productIdFromUrl);
-        // Get parent product data from sessionStorage
         const storedProductData = sessionStorage.getItem(
           `product_${productIdFromUrl}`,
         );
         if (storedProductData) {
           try {
             const parsed = JSON.parse(storedProductData);
+            initMainImage = parsed.mainImagePreview || null;
             setParentProductData({
               productName: parsed.productName || parsed.name || "",
               category: parsed.categoryId || parsed.category || "",
               subCategory: parsed.subCategoryId || parsed.subCategory || "",
-              mainImagePreview: parsed.mainImagePreview || null,
+              mainImagePreview: initMainImage,
             });
           } catch (error) {
             console.error("Error parsing stored product data:", error);
@@ -532,12 +536,73 @@ const AddProduct: React.FC<AddProductProps> = ({
           ],
         }));
         // Reset variant image previews and errors
-        setVariantImagePreviews({});
+        if (initMainImage) {
+          setVariantImagePreviews({
+            1: {
+              primary: initMainImage,
+              secondary: null,
+              barcode: null,
+            },
+          });
+        } else {
+          setVariantImagePreviews({});
+        }
         setErrors({});
       }
       setExpandedSections({});
     }
   }, [shouldShowVariants, productIdFromUrl, isEditVariantMode]);
+
+  // Sync parent product data and base image from live API when adding variants
+  useEffect(() => {
+    if (!shouldShowVariants || isEditVariantMode || !productData) return;
+    const pDataObj =
+      productData && typeof productData === "object"
+        ? (productData as Record<string, unknown>)
+        : null;
+    const pPayload =
+      pDataObj?.data && typeof pDataObj.data === "object"
+        ? (pDataObj.data as Record<string, unknown>)
+        : pDataObj;
+    const pRec = ((pPayload as any)?.product || pPayload) as
+      | Record<string, unknown>
+      | undefined;
+    if (!pRec) return;
+
+    const pName = String(pRec.name || pRec.productName || "").trim();
+    const pImg =
+      (Array.isArray(pRec.images) && pRec.images[0]) ||
+      pRec.mainImage ||
+      pRec.image ||
+      null;
+
+    if (pName || pImg) {
+      setParentProductData((prev) => ({
+        productName: prev?.productName || pName,
+        category:
+          prev?.category || String(pRec.categoryId || pRec.category || ""),
+        subCategory:
+          prev?.subCategory ||
+          String(pRec.subCategoryId || pRec.subCategory || ""),
+        mainImagePreview:
+          prev?.mainImagePreview || (pImg ? String(pImg) : null),
+      }));
+
+      if (pImg) {
+        setVariantImagePreviews((prev) => {
+          if (prev[1]?.primary) return prev;
+          return {
+            ...prev,
+            1: {
+              primary: String(pImg),
+              secondary: prev[1]?.secondary ?? null,
+              barcode: prev[1]?.barcode ?? null,
+            },
+          };
+        });
+      }
+    }
+  }, [shouldShowVariants, isEditVariantMode, productData]);
 
   const resetCreateProductForm = useCallback(
     (opts?: {
@@ -1119,8 +1184,24 @@ const AddProduct: React.FC<AddProductProps> = ({
           suffixWhenMultiple: prev.variants.length > 1 ? v.id : undefined,
         });
 
-        // Add / edit variant URL flow: user sets variant name in UI; keep SKU etc. auto-synced only.
+        // Add / edit variant URL flow: auto-sync variant name and SKU for new variants
         if (shouldShowVariants) {
+          if (!isEditVariantMode) {
+            if (
+              v.variantName === autoVariantName &&
+              v.sku === sku &&
+              v.variantStatus === "active"
+            ) {
+              return v;
+            }
+            changed = true;
+            return {
+              ...v,
+              variantName: autoVariantName,
+              sku,
+              variantStatus: "active" as const,
+            };
+          }
           if (v.sku === sku && v.variantStatus === "active") return v;
           changed = true;
           return { ...v, sku, variantStatus: "active" as const };
@@ -2233,10 +2314,26 @@ const AddProduct: React.FC<AddProductProps> = ({
       let secondaryImages: string[] = [];
       let barcodeImageUrl: string | null = null;
 
+      const baseProductImageUrl =
+        parentProductData?.mainImagePreview ||
+        (Array.isArray((productData as any)?.images) && (productData as any).images[0]) ||
+        (productData as any)?.mainImage ||
+        (productData as any)?.image ||
+        (productData as any)?.data?.images?.[0] ||
+        (productData as any)?.data?.mainImage ||
+        (productData as any)?.data?.image ||
+        (productData as any)?.data?.product?.images?.[0] ||
+        (productData as any)?.data?.product?.mainImage ||
+        (productData as any)?.data?.product?.image ||
+        existingPrimaryUrl ||
+        null;
+
       if (variant.primaryImage) {
         primaryImages = [await uploadImage(variant.primaryImage)];
-      } else if (isEditVariantMode && existingPrimaryUrl) {
+      } else if (existingPrimaryUrl) {
         primaryImages = [existingPrimaryUrl];
+      } else if (baseProductImageUrl) {
+        primaryImages = [baseProductImageUrl];
       }
       if (variant.secondaryImage) {
         secondaryImages = [await uploadImage(variant.secondaryImage)];
@@ -2574,9 +2671,6 @@ const AddProduct: React.FC<AddProductProps> = ({
         formData.variants?.[0]?.barcode ||
         ""
       ).trim();
-
-      // costPrice for partner API (typically lower than price)
-      const costPrice = price > 0 ? Math.round(price * 0.6 * 100) / 100 : 0;
 
       // Build payload - only include fields with values (omit empty strings/arrays to avoid 500 from partner API)
       const payload: any = {
@@ -3104,9 +3198,9 @@ const AddProduct: React.FC<AddProductProps> = ({
               productId: productId,
               name: formData.productName,
               skuCode: payload.sku || 'NO-SKU',
-              brand: formData.brand || '',
-              hsnCode: formData.hsnCode || '',
-              category: typeof formData.category === 'string' ? formData.category : (formData.category?.name || 'UNCATEGORIZED'),
+              brand: formData.brands || '',
+              hsnCode: (formData as any).hsnCode || '',
+              category: typeof formData.category === 'string' ? formData.category : 'UNCATEGORIZED',
               subCategory: formData.subCategory || '',
               mrp: Number(payload.mrp || 0),
               purchasePrice: Number(payload.price || payload.purchasePrice || 0),
@@ -5206,6 +5300,11 @@ const AddProduct: React.FC<AddProductProps> = ({
                                             alt="Primary preview"
                                             className="w-full h-auto rounded-lg max-h-32 object-contain mx-auto"
                                           />
+                                          {!variant.primaryImage && (
+                                            <p className="text-[10px] text-center font-medium text-emerald-600 dark:text-emerald-400 mt-1">
+                                              Inherited from base product
+                                            </p>
+                                          )}
                                           <button
                                             type="button"
                                             onClick={() =>
@@ -5961,7 +6060,7 @@ const AddProduct: React.FC<AddProductProps> = ({
       </Modal>
       {isBarcodeScannerOpen && (
         <BarcodeScannerOverlay
-          onScan={(code) => {
+          onScan={(code: string) => {
             setFormData((prev) => ({ ...prev, barcode: code }));
             setIsBarcodeScannerOpen(false);
           }}

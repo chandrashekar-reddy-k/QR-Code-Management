@@ -1213,7 +1213,7 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
             className={`overflow-hidden ${isOpen ? "dropdown-enter" : "dropdown-exit"
               }`}
             style={{
-              maxHeight: isOpen ? "500px" : "0",
+              maxHeight: isOpen ? "2000px" : "0",
               transition:
                 section.stateKey === "isUserManagementOpen" && isOpen
                   ? "max-height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)"

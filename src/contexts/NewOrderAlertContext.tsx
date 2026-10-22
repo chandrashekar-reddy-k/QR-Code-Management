@@ -169,32 +169,98 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
     });
   }, [enableAudio]);
 
+  const synthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopSynthAlarm = useCallback(() => {
+    if (synthIntervalRef.current) {
+      clearInterval(synthIntervalRef.current);
+      synthIntervalRef.current = null;
+    }
+  }, []);
+
+  const playSynthAlarm = useCallback(() => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+
+      const beep = () => {
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(800, ctx.currentTime);
+          osc.frequency.setValueAtTime(600, ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.5, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        } catch (e) {}
+      };
+
+      beep();
+      if (!synthIntervalRef.current) {
+        synthIntervalRef.current = setInterval(beep, 600);
+      }
+    } catch (e) {}
+  }, []);
+
   const unlockAudioSilent = useCallback(() => {
     if (audioUnlocked.current) return;
     const alarm = alarmRef.current;
-    if (!alarm) return;
-    alarm.muted = true;
-    alarm
-      .play()
-      .then(() => {
-        alarm.pause();
-        alarm.currentTime = 0;
-        alarm.muted = false;
-        alarm.volume = 1.0;
-        audioUnlocked.current = true;
-        console.log("[ALARM] Audio unlocked silently");
-      })
-      .catch(() => { });
+    if (alarm) {
+      alarm.muted = true;
+      alarm
+        .play()
+        .then(() => {
+          alarm.pause();
+          alarm.currentTime = 0;
+          alarm.muted = false;
+          alarm.volume = 1.0;
+          audioUnlocked.current = true;
+          console.log("[ALARM] Audio unlocked silently");
+        })
+        .catch(() => { });
+    }
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const dummyCtx = new AudioCtx();
+        dummyCtx.resume().then(() => {
+          dummyCtx.close().catch(() => {});
+          audioUnlocked.current = true;
+        }).catch(() => {});
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
-    window.addEventListener("pointerdown", unlockAudioSilent);
-    window.addEventListener("keydown", unlockAudioSilent);
-    return () => {
-      window.removeEventListener("pointerdown", unlockAudioSilent);
-      window.removeEventListener("keydown", unlockAudioSilent);
+    const onInteract = () => {
+      unlockAudioSilent();
+      if (activeOrder && isBuzzing) {
+        const alarm = alarmRef.current;
+        if (alarm && alarm.paused && audioEnabled) {
+          alarm.currentTime = 0;
+          alarm.muted = false;
+          alarm.volume = 1.0;
+          alarm.play().catch(() => {});
+        }
+      }
     };
-  }, [unlockAudioSilent]);
+    window.addEventListener("pointerdown", onInteract);
+    window.addEventListener("keydown", onInteract);
+    window.addEventListener("click", onInteract);
+    return () => {
+      window.removeEventListener("pointerdown", onInteract);
+      window.removeEventListener("keydown", onInteract);
+      window.removeEventListener("click", onInteract);
+    };
+  }, [unlockAudioSilent, activeOrder, isBuzzing, audioEnabled]);
 
   // -----------------------------------------------------------------------
   // 3. playAlarm / stopAlarm
@@ -205,30 +271,37 @@ export function NewOrderAlertProvider({ children }: { children: React.ReactNode 
       return;
     }
     const alarm = alarmRef.current;
-    if (!alarm) return;
-    alarm.currentTime = 0;
-    alarm.volume = 1.0;
-    alarm.muted = false;
-    alarm
-      .play()
-      .then(() => {
-        setIsBuzzing(true);
-        console.log("[ALARM] Playing alarm sound");
-      })
-      .catch((err) => {
-        console.error("[ALARM] Playback blocked:", err.message,
-          "— click Enable Sound banner first");
-      });
-  }, [audioEnabled]);
+    if (alarm) {
+      alarm.currentTime = 0;
+      alarm.volume = 1.0;
+      alarm.muted = false;
+      alarm
+        .play()
+        .then(() => {
+          setIsBuzzing(true);
+          console.log("[ALARM] Playing alarm sound");
+        })
+        .catch((err) => {
+          console.warn("[ALARM] HTML5 audio blocked, falling back to Web Audio buzzer:", err.message);
+          playSynthAlarm();
+          setIsBuzzing(true);
+        });
+    } else {
+      playSynthAlarm();
+      setIsBuzzing(true);
+    }
+  }, [audioEnabled, playSynthAlarm]);
 
   const stopAlarm = useCallback(() => {
     const alarm = alarmRef.current;
-    if (!alarm) return;
-    alarm.pause();
-    alarm.currentTime = 0;
+    if (alarm) {
+      alarm.pause();
+      alarm.currentTime = 0;
+    }
+    stopSynthAlarm();
     setIsBuzzing(false);
     console.log("[ALARM] Stopped");
-  }, []);
+  }, [stopSynthAlarm]);
 
   // -----------------------------------------------------------------------
   // 4. handleIncomingOrder — normalise + deduplicate + enqueue

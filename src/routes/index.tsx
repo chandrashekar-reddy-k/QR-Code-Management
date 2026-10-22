@@ -476,6 +476,9 @@ const ManageAdmins = lazy(
 const ManagePartners = lazy(
   () => import("../pages/admin_pages/userManagement/ManagePartners")
 );
+const ManageCustomers = lazy(
+  () => import("../pages/admin_pages/userManagement/ManageCustomers")
+);
 const ViewAdmin = lazy(
   () => import("../pages/admin_pages/userManagement/ViewAdmin")
 );
@@ -1703,7 +1706,7 @@ export const protectedRoutes: RouteConfig[] = [
   },
   {
     path: "/user-management/customers",
-    component: UnderDevelopment,
+    component: ManageCustomers,
     requiresAuth: true,
   },
   {

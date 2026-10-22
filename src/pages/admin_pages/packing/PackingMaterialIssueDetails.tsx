@@ -576,8 +576,8 @@ export const PackingMaterialIssueDetails: React.FC = () => {
                     <tr>
                       <th className="px-4 py-3">SKU</th>
                       <th className="px-4 py-3">Product Name</th>
+                      <th className="px-4 py-3 text-center">Pack Size</th>
                       <th className="px-4 py-3 text-center">Planned Qty</th>
-                      <th className="px-4 py-3 text-center">UOM / Pack Size</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
@@ -589,11 +589,11 @@ export const PackingMaterialIssueDetails: React.FC = () => {
                         <td className="px-4 py-3 font-semibold text-slate-800 dark:text-white">
                           {item.name}
                         </td>
-                        <td className="px-4 py-3 text-center font-bold text-slate-800 dark:text-white">
-                          {item.plannedUnits} units
-                        </td>
                         <td className="px-4 py-3 text-center font-mono text-slate-600 dark:text-gray-300">
                           {item.packSize}
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-800 dark:text-white">
+                          {item.plannedUnits} units
                         </td>
                       </tr>
                     ))}

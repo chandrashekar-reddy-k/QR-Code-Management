@@ -13,6 +13,8 @@ import {
   PendingQCWorkOrder,
 } from '../../../api/packing/qualityCheckService';
 import { workOrderService } from '../../../api/packing/workOrderService';
+import { masterDataService } from '../../../api/packing/masterDataService';
+import { resolveProductAndSku } from './PackingExecutionDetails';
 import toast from 'react-hot-toast';
 
 const DEFAULT_CHECKS = {
@@ -61,12 +63,47 @@ const CHECKLIST_SECTIONS = [
   },
 ];
 
+const getSourceItemsArray = (wo: any): any[] => {
+  let items = wo?.sourceItems;
+  if (typeof items === 'string') {
+    try { items = JSON.parse(items); } catch (e) {}
+  }
+  return Array.isArray(items) ? items : [];
+};
+
+const getOutputAllocationsArray = (wo: any): any[] => {
+  let allocs = wo?.outputAllocations;
+  if (typeof allocs === 'string') {
+    try { allocs = JSON.parse(allocs); } catch (e) {}
+  }
+  return Array.isArray(allocs) ? allocs : [];
+};
+
+const normalizeUnit = (u?: string) => {
+  if (!u) return '';
+  const trimmed = String(u).trim().toUpperCase();
+  if (trimmed === 'KILOGRAMS' || trimmed === 'KILOGRAM') return 'KG';
+  if (trimmed === 'GRAMS' || trimmed === 'GRAM') return 'GM';
+  if (trimmed === 'LITRES' || trimmed === 'LITRE' || trimmed === 'LITERS' || trimmed === 'LITER') return 'L';
+  if (trimmed === 'MILLILITRES' || trimmed === 'MILLILITRE' || trimmed === 'MILLILITERS' || trimmed === 'MILLILITER') return 'ML';
+  if (trimmed === 'PACKS' || trimmed === 'PACK') return 'PACK';
+  if (trimmed === 'PIECES' || trimmed === 'PIECE' || trimmed === 'PCS') return 'PCS';
+  return trimmed;
+};
+
+const getWOUnit = (wo: any) => {
+  const items = getSourceItemsArray(wo);
+  const sourceUom = items[0]?.uom || items[0]?.unit || (wo as any)?.uom || (wo as any)?.product?.unit;
+  return sourceUom ? normalizeUnit(sourceUom) : 'KG';
+};
+
 export const PackingQualityCheck: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<PendingQCWorkOrder | null>(null);
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
   // Form fields
@@ -86,11 +123,15 @@ export const PackingQualityCheck: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      // Fetch work orders or pending QC list
-      const [pendingRes, woData] = await Promise.all([
+      // Fetch work orders or pending QC list and catalog products
+      const [pendingRes, woData, productsRes] = await Promise.all([
         qualityCheckService.getPendingQCWorkOrders().catch(() => ({ data: [] })),
         workOrderService.getWorkOrderById(id).catch(() => null),
+        masterDataService.getProducts().catch(() => ({ data: [] })),
       ]);
+
+      const catalog = (productsRes as any)?.data || (Array.isArray(productsRes) ? productsRes : []);
+      setCatalogProducts(catalog);
 
       const pendingList: PendingQCWorkOrder[] = Array.isArray(pendingRes) ? pendingRes : (pendingRes as any)?.data || [];
       let found: any = pendingList.find((w) => w.id === id || w.woNumber === id) || null;
@@ -113,9 +154,23 @@ export const PackingQualityCheck: React.FC = () => {
 
       if (found) {
         setSelectedWO(found);
-        const packed = found.actualProduced ?? found.requiredQty ?? 0;
-        setFormPackedQty(packed);
-        setFormCheckedQty(packed || '');
+        const allocs = getOutputAllocationsArray(found);
+        let totalPackedUnits = 0;
+        if (allocs.length > 0) {
+          totalPackedUnits = allocs.reduce((sum: number, alloc: any) => {
+            const val = alloc.packedUnits !== undefined && alloc.packedUnits !== null
+              ? Number(alloc.packedUnits)
+              : alloc.packedQty !== undefined && alloc.packedQty !== null
+              ? Number(alloc.packedQty)
+              : Number(alloc.plannedUnits) || 0;
+            return sum + (isNaN(val) ? 0 : val);
+          }, 0);
+        } else {
+          totalPackedUnits = Number((found as any).packedUnits ?? found.actualProduced ?? found.requiredQty ?? 0);
+        }
+
+        setFormPackedQty(totalPackedUnits);
+        setFormCheckedQty(totalPackedUnits || '');
         setFormBatchNo(found.batchNumber ?? `BATCH-${found.woNumber.split('-').pop()}`);
       }
     } catch (err) {
@@ -209,16 +264,16 @@ export const PackingQualityCheck: React.FC = () => {
     );
   }
 
-  const outputAllocations = Array.isArray((selectedWO as any)?.outputAllocations) ? (selectedWO as any).outputAllocations : [];
-  const sourceItems = Array.isArray((selectedWO as any)?.sourceItems) ? (selectedWO as any).sourceItems : [];
+  const outputAllocations = getOutputAllocationsArray(selectedWO);
+  const sourceItems = getSourceItemsArray(selectedWO);
 
   const displayProductName = (() => {
     if (!selectedWO) return '—';
     if (outputAllocations.length > 1) {
-      return `${outputAllocations.length} Products (${outputAllocations.map((a: any) => a.skuName || a.productName || 'Item').join(', ')})`;
+      return `${outputAllocations.length} Products (${outputAllocations.map((a: any) => resolveProductAndSku(a, selectedWO, catalogProducts).productName || 'Item').join(', ')})`;
     }
     if (outputAllocations.length === 1) {
-      return outputAllocations[0].skuName || selectedWO.product?.name || '—';
+      return resolveProductAndSku(outputAllocations[0], selectedWO, catalogProducts).productName || selectedWO.product?.name || '—';
     }
     if (sourceItems.length > 1) {
       return `${sourceItems.length} Source Products (${sourceItems.map((s: any) => s.product || s.productName || 'Item').join(', ')})`;
@@ -228,21 +283,20 @@ export const PackingQualityCheck: React.FC = () => {
 
   const displayRequiredQty = (() => {
     if (!selectedWO) return '0 units';
-    if (outputAllocations.length > 0) {
-      const map: Record<string, number> = {};
-      outputAllocations.forEach((alloc: any) => {
-        const parts = alloc.packSizeText ? alloc.packSizeText.trim().split(' ') : [];
-        const fallbackUnit = ((sourceItems[0]?.uom) || 'KG').toUpperCase();
-        const unit = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : fallbackUnit;
-        const qty = Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1);
-        map[unit] = (map[unit] || 0) + qty;
-      });
-      const entries = Object.entries(map);
-      if (entries.length > 0) {
-        return entries.map(([uom, qty]) => `${qty} ${uom}`).join(', ');
-      }
+    const invUnit = getWOUnit(selectedWO);
+    const allocs = getOutputAllocationsArray(selectedWO);
+    if (allocs.length > 0) {
+      const totalAllocated = allocs.reduce((sum: number, alloc: any) => {
+        return sum + (Number(alloc.totalQtyKg) || (Number(alloc.plannedUnits) || 0) * (alloc.packSizeKg || 1));
+      }, 0);
+      const reqVal = totalAllocated > 0 ? totalAllocated : Number(selectedWO.requiredQty || 0);
+      return `${parseFloat(Number(reqVal).toFixed(3))} ${invUnit}`;
     }
-    return `${selectedWO.requiredQty ?? 0} units`;
+    const sources = getSourceItemsArray(selectedWO);
+    if (sources.length > 1) {
+      return sources.map((s: any) => `${parseFloat(Number(s.quantity || s.issueQuantity || 0).toFixed(3))} ${normalizeUnit(s.uom || invUnit)}`).join(', ');
+    }
+    return `${parseFloat(Number(selectedWO.requiredQty || 0).toFixed(3))} ${invUnit || 'units'}`;
   })();
 
   return (
@@ -338,7 +392,8 @@ export const PackingQualityCheck: React.FC = () => {
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="bg-slate-100 dark:bg-gray-700/60 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
-                          <th className="py-2.5 px-3.5">TARGET PRODUCT / SKU</th>
+                          <th className="py-2.5 px-3.5">SKU</th>
+                          <th className="py-2.5 px-3.5">PRODUCT NAME</th>
                           <th className="py-2.5 px-3.5">PACK SIZE</th>
                           <th className="py-2.5 px-3.5 text-center">PLANNED UNITS</th>
                           <th className="py-2.5 px-3.5 text-center">PACKED QTY</th>
@@ -347,10 +402,14 @@ export const PackingQualityCheck: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
                         {outputAllocations.map((alloc: any, idx: number) => {
+                          const resolved = resolveProductAndSku(alloc, selectedWO, catalogProducts);
                           return (
                             <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-gray-700/30">
+                              <td className="py-2.5 px-3.5 font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                                {resolved.sku}
+                              </td>
                               <td className="py-2.5 px-3.5 font-bold text-slate-900 dark:text-white">
-                                {alloc.skuName || alloc.productName || selectedWO.product?.name || '—'}
+                                {resolved.productName}
                               </td>
                               <td className="py-2.5 px-3.5 text-slate-600 dark:text-gray-300">
                                 <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-gray-700 text-[11px] font-semibold">
@@ -364,7 +423,7 @@ export const PackingQualityCheck: React.FC = () => {
                                 {alloc.packedUnits ?? alloc.packedQty ?? alloc.plannedUnits ?? '—'}
                               </td>
                               <td className="py-2.5 px-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                                {alloc.totalQtyKg ? `${parseFloat(Number(alloc.totalQtyKg).toFixed(3))} KG` : '—'}
+                                {alloc.totalQtyKg ? `${parseFloat(Number(alloc.totalQtyKg).toFixed(3))} ${getWOUnit(selectedWO)}` : '—'}
                               </td>
                             </tr>
                           );
@@ -440,7 +499,17 @@ export const PackingQualityCheck: React.FC = () => {
                     required
                     className="w-full p-2.5 border border-slate-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-900 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00891D]"
                     value={formInspectionType}
-                    onChange={(e) => setFormInspectionType(e.target.value)}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      setFormInspectionType(newType);
+                      if (newType === '100% Inspection' && formPackedQty > 0) {
+                        setFormCheckedQty(formPackedQty);
+                      } else if (newType === 'Sampling Inspection' && formPackedQty > 0) {
+                        setFormCheckedQty(Math.max(1, Math.round(formPackedQty * 0.1)));
+                      } else if (newType === 'Random Inspection' && formPackedQty > 0) {
+                        setFormCheckedQty(Math.max(1, Math.round(formPackedQty * 0.05)));
+                      }
+                    }}
                   >
                     <option value="" className="dark:bg-gray-800">-- Select Inspection Type --</option>
                     <option className="dark:bg-gray-800">100% Inspection</option>

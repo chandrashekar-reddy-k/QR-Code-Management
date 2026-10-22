@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, PackageSearch, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, PackageSearch, Loader2, Search } from 'lucide-react';
 import { masterDataService } from '../../../api/packing/masterDataService';
 import { workOrderService, WoPriority } from '../../../api/packing/workOrderService';
 import { inventoryService } from '../inventory/services/inventoryService';
 import procurementService from '../vsms/services/procurementService';
+import { Pagination } from '../../../components/ui';
 
 export interface SourceInventoryRow {
   id: string;
@@ -19,6 +20,7 @@ export interface SourceInventoryRow {
 
 export interface SkuOption {
   name: string;
+  skuCode?: string;
   packSizeText: string;
   packSizeKg: number;
   sourceProductId?: string;
@@ -28,6 +30,7 @@ export interface SkuOption {
 export interface OutputSkuRow {
   id: string;
   skuName: string;
+  skuCode?: string;
   packSizeText: string;
   packSizeKg: number;
   plannedUnits: number | '';
@@ -49,13 +52,13 @@ function parseUnitAndMeasurement(item: any, defaultUnit: string = 'KG') {
   const textToSearch = `${item.sku || ''} ${item.variantName || ''} ${item.name || ''}`.toUpperCase();
 
   // Try parsing measurement and unit from item name / variant (e.g. "Sugar 1kg", "500 gm", "1 L")
-  const match = textToSearch.match(/(\d+(?:\.\d+)?)\s*(KG|KILOGRAM|GM|GRAM|\bG\b|ML|LITRE|LTR|\bL\b|PCS|PACKET|PIECE)/i);
+  const match = textToSearch.match(/(\d+(?:\.\d+)?)\s*(KG|KILOGRAM|KILO\s*GRAMS?|GM|GRAM|\bG\b|ML|MILLILITRE|LITRE|LTR|\bL\b|PCS|PACKET|PIECE)/i);
   if (match) {
     if (!rawMeas) rawMeas = parseFloat(match[1]);
-    const matchedUnit = match[2].toUpperCase();
+    const matchedUnit = match[2].toUpperCase().replace(/\s+/g, '');
     if (!rawUnit || rawUnit === 'P' || rawUnit === 'PCS' || rawUnit === 'PACKET' || /^[0-9a-f-]{36}$/i.test(String(rawUnit).trim()) || /^\d+$/.test(String(rawUnit).trim())) {
-      if (matchedUnit === 'KILOGRAM' || matchedUnit === 'KG') rawUnit = 'KG';
-      else if (matchedUnit === 'GRAM' || matchedUnit === 'GM' || matchedUnit === 'G') rawUnit = 'GM';
+      if (matchedUnit === 'KILOGRAM' || matchedUnit === 'KILOGRAMS' || matchedUnit === 'KG' || matchedUnit.includes('KILO')) rawUnit = 'KG';
+      else if (matchedUnit === 'GRAM' || matchedUnit === 'GRAMS' || matchedUnit === 'GM' || matchedUnit === 'G') rawUnit = 'GM';
       else if (matchedUnit === 'MILLILITRE' || matchedUnit === 'ML') rawUnit = 'ML';
       else if (matchedUnit === 'LITRE' || matchedUnit === 'LTR' || matchedUnit === 'L') rawUnit = 'L';
       else if (matchedUnit === 'PACKET' || matchedUnit === 'PCS' || matchedUnit === 'PIECE') rawUnit = 'PCS';
@@ -64,11 +67,11 @@ function parseUnitAndMeasurement(item: any, defaultUnit: string = 'KG') {
 
   if (!rawMeas) rawMeas = 1;
   if (!rawUnit || rawUnit === 'P' || rawUnit === 'PCS' || rawUnit === 'PACKET' || /^[0-9a-f-]{36}$/i.test(String(rawUnit).trim()) || /^\d+$/.test(String(rawUnit).trim())) {
-    if (textToSearch.includes('GRAM') || textToSearch.includes(' GM') || textToSearch.includes(' G')) {
-      rawUnit = 'GM';
-    } else if (textToSearch.includes('KG') || textToSearch.includes('KILOGRAM')) {
+    if (textToSearch.includes('KG') || textToSearch.includes('KILOGRAM') || textToSearch.includes('KILO')) {
       rawUnit = 'KG';
-    } else if (textToSearch.includes('ML') || textToSearch.includes('MILLILITRE')) {
+    } else if (textToSearch.includes('GRAM') || textToSearch.includes(' GM') || textToSearch.includes(' G')) {
+      rawUnit = 'GM';
+    } else if (textToSearch.includes('MILLILITRE') || textToSearch.includes(' ML')) {
       rawUnit = 'ML';
     } else if (textToSearch.includes('LITRE') || textToSearch.includes(' LTR')) {
       rawUnit = 'L';
@@ -77,20 +80,28 @@ function parseUnitAndMeasurement(item: any, defaultUnit: string = 'KG') {
     }
   }
 
-  const unitUpper = String(rawUnit).toUpperCase();
+  const unitUpper = String(rawUnit).toUpperCase().trim();
   let packSizeKg = rawMeas;
   let displayUnit = rawUnit;
 
-  if (unitUpper === 'G' || unitUpper === 'GM' || unitUpper.includes('GRAM')) {
-    displayUnit = 'GM';
-    packSizeKg = rawMeas / 1000;
-  } else if (unitUpper === 'ML' || unitUpper.includes('MILLILITRE')) {
-    displayUnit = 'ML';
-    packSizeKg = rawMeas / 1000;
-  } else if (unitUpper.includes('KG') || unitUpper.includes('KILOGRAM')) {
+  if (
+    unitUpper === 'KG' ||
+    unitUpper === 'KILOGRAM' ||
+    unitUpper === 'KILOGRAMS' ||
+    unitUpper === 'KILO GRAM' ||
+    unitUpper === 'KILO GRAMS' ||
+    unitUpper.includes('KILO') ||
+    unitUpper.includes('KG')
+  ) {
     displayUnit = 'KG';
     packSizeKg = rawMeas;
-  } else if (unitUpper === 'L' || unitUpper.includes('LITRE')) {
+  } else if (unitUpper === 'G' || unitUpper === 'GM' || unitUpper === 'GRAM' || unitUpper === 'GRAMS' || unitUpper.includes('GRAM')) {
+    displayUnit = 'GM';
+    packSizeKg = rawMeas / 1000;
+  } else if (unitUpper === 'ML' || unitUpper.includes('MILLILITRE') || unitUpper.includes('MILLILITER')) {
+    displayUnit = 'ML';
+    packSizeKg = rawMeas / 1000;
+  } else if (unitUpper === 'L' || unitUpper === 'LTR' || unitUpper.includes('LITRE') || unitUpper.includes('LITER')) {
     displayUnit = 'L';
     packSizeKg = rawMeas;
   }
@@ -117,6 +128,11 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
   const [fetchedCatalogProducts, setFetchedCatalogProducts] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Pagination & Search state for Eligible Source Inventory table
+  const [sourceSearchTerm, setSourceSearchTerm] = useState<string>('');
+  const [sourceCurrentPage, setSourceCurrentPage] = useState<number>(1);
+  const [sourceItemsPerPage, setSourceItemsPerPage] = useState<number>(10);
 
   useEffect(() => {
     if (sourceInventoryData) {
@@ -202,7 +218,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
           const textToSearch = `${p.sku || ''} ${p.name || ''} ${p.category?.name || ''}`.toUpperCase();
 
           if (!uomVal || uomVal === 'P' || uomVal === 'PCS' || uomVal === 'PACKET' || /^[0-9a-f-]{36}$/i.test(String(uomVal).trim()) || /^\d+$/.test(String(uomVal).trim())) {
-            if (textToSearch.includes('KG') || textToSearch.includes('KILOGRAM')) {
+            if (textToSearch.includes('KG') || textToSearch.includes('KILOGRAM') || textToSearch.includes('KILO')) {
               uomVal = 'KG';
             } else if (textToSearch.includes('GM') || textToSearch.includes('GRAM')) {
               uomVal = 'GM';
@@ -252,9 +268,36 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
     fetchCatalogProducts();
   }, [sourceInventoryData]);
 
-  // Source inventory list (dynamic from props/API)
-  const sourceList = liveSourceData;
-  const selectedItems = sourceList.filter((i) => selectedSourceIds.includes(i.id));
+  // Source inventory list with search filter and pagination
+  const filteredSourceList = React.useMemo(() => {
+    if (!sourceSearchTerm.trim()) return liveSourceData;
+    const term = sourceSearchTerm.toLowerCase().trim();
+    return liveSourceData.filter(
+      (item) =>
+        (item.product && item.product.toLowerCase().includes(term)) ||
+        (item.sku && item.sku.toLowerCase().includes(term)) ||
+        (item.category && item.category.toLowerCase().includes(term)) ||
+        (item.batch && item.batch.toLowerCase().includes(term)) ||
+        (item.grn && item.grn.toLowerCase().includes(term))
+    );
+  }, [liveSourceData, sourceSearchTerm]);
+
+  const sourceTotalPages = Math.ceil(filteredSourceList.length / sourceItemsPerPage) || 1;
+  const paginatedSourceList = React.useMemo(() => {
+    const start = (sourceCurrentPage - 1) * sourceItemsPerPage;
+    return filteredSourceList.slice(start, start + sourceItemsPerPage);
+  }, [filteredSourceList, sourceCurrentPage, sourceItemsPerPage]);
+
+  const sourcePagination = {
+    page: sourceCurrentPage,
+    limit: sourceItemsPerPage,
+    total: filteredSourceList.length,
+    totalPages: sourceTotalPages,
+    hasNext: sourceCurrentPage < sourceTotalPages,
+    hasPrev: sourceCurrentPage > 1,
+  };
+
+  const selectedItems = liveSourceData.filter((i) => selectedSourceIds.includes(i.id));
   const primarySelectedItem = selectedItems[0];
   const sourceUom = primarySelectedItem?.uom || 'KG';
 
@@ -281,13 +324,17 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
     );
   };
 
-  const isAllSelected = sourceList.length > 0 && selectedSourceIds.length === sourceList.length;
+  const isAllSelected =
+    filteredSourceList.length > 0 &&
+    filteredSourceList.every((item) => selectedSourceIds.includes(item.id));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      setSelectedSourceIds([]);
+      const filteredIds = new Set(filteredSourceList.map((i) => i.id));
+      setSelectedSourceIds((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
-      setSelectedSourceIds(sourceList.map((item) => item.id));
+      const allIds = filteredSourceList.map((item) => item.id);
+      setSelectedSourceIds((prev) => Array.from(new Set([...prev, ...allIds])));
     }
   };
 
@@ -324,6 +371,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
 
           options.push({
             name: mainOptionName,
+            skuCode: p.sku || p.skuCode || '',
             packSizeText: `${parsedMain.measurement} ${parsedMain.unit}`,
             packSizeKg: parsedMain.packSizeKg,
             sourceProductId: sItem.id,
@@ -337,12 +385,13 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                 ? v.variantName
                 : `${parsedVar.measurement} ${parsedVar.unit}`;
 
-              const variantOptionName = p.name.toLowerCase().includes(varLabel.toLowerCase())
-                ? `${p.name} ${varLabel}`
+              const variantOptionName = varLabel.toLowerCase().includes(p.name.toLowerCase())
+                ? varLabel
                 : `${p.name} ${varLabel}`;
 
               options.push({
                 name: variantOptionName,
+                skuCode: v.sku || v.skuCode || p.sku || '',
                 packSizeText: `${parsedVar.measurement} ${parsedVar.unit}`,
                 packSizeKg: parsedVar.packSizeKg,
                 sourceProductId: sItem.id,
@@ -357,47 +406,48 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
         const uomUpper = itemUom.toUpperCase();
         if (uomUpper === 'L' || uomUpper === 'ML' || uomUpper.includes('LITRE')) {
           options.push(
-            { name: `${prodName} 1 L`, packSizeText: '1 L', packSizeKg: 1.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
-            { name: `${prodName} 500 ML`, packSizeText: '500 ML', packSizeKg: 0.5, sourceProductId: sItem.id, sourceProductName: sItem.product },
-            { name: `${prodName} 250 ML`, packSizeText: '250 ML', packSizeKg: 0.25, sourceProductId: sItem.id, sourceProductName: sItem.product },
-            { name: `${prodName} 100 ML`, packSizeText: '100 ML', packSizeKg: 0.1, sourceProductId: sItem.id, sourceProductName: sItem.product },
-            { name: `${prodName} 5 L`, packSizeText: '5 L', packSizeKg: 5.0, sourceProductId: sItem.id, sourceProductName: sItem.product }
+            { name: `${prodName} 1 L`, skuCode: '', packSizeText: '1 L', packSizeKg: 1.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
+            { name: `${prodName} 500 ML`, skuCode: '', packSizeText: '500 ML', packSizeKg: 0.5, sourceProductId: sItem.id, sourceProductName: sItem.product },
+            { name: `${prodName} 250 ML`, skuCode: '', packSizeText: '250 ML', packSizeKg: 0.25, sourceProductId: sItem.id, sourceProductName: sItem.product },
+            { name: `${prodName} 100 ML`, skuCode: '', packSizeText: '100 ML', packSizeKg: 0.1, sourceProductId: sItem.id, sourceProductName: sItem.product },
+            { name: `${prodName} 5 L`, skuCode: '', packSizeText: '5 L', packSizeKg: 5.0, sourceProductId: sItem.id, sourceProductName: sItem.product }
           );
         } else if (uomUpper.includes('PACKET') || uomUpper.includes('PCS') || uomUpper.includes('PIECE') || uomUpper.includes('BOX') || uomUpper === 'P') {
           const nameUpper = selectedName.toUpperCase();
-          if (nameUpper.includes('KG') || nameUpper.includes('KILOGRAM') || nameUpper.includes('GM') || nameUpper.includes('GRAM')) {
+          if (nameUpper.includes('KG') || nameUpper.includes('KILOGRAM') || nameUpper.includes('KILO') || nameUpper.includes('GM') || nameUpper.includes('GRAM')) {
             options.push(
-              { name: `${prodName} 1 KG`, packSizeText: '1 KG', packSizeKg: 1.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
-              { name: `${prodName} 500 GM`, packSizeText: '500 GM', packSizeKg: 0.5, sourceProductId: sItem.id, sourceProductName: sItem.product },
-              { name: `${prodName} 250 GM`, packSizeText: '250 GM', packSizeKg: 0.25, sourceProductId: sItem.id, sourceProductName: sItem.product },
-              { name: `${prodName} 100 GM`, packSizeText: '100 GM', packSizeKg: 0.1, sourceProductId: sItem.id, sourceProductName: sItem.product },
-              { name: `${prodName} 5 KG`, packSizeText: '5 KG', packSizeKg: 5.0, sourceProductId: sItem.id, sourceProductName: sItem.product }
+              { name: `${prodName} 1 KG`, skuCode: '', packSizeText: '1 KG', packSizeKg: 1.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
+              { name: `${prodName} 500 GM`, skuCode: '', packSizeText: '500 GM', packSizeKg: 0.5, sourceProductId: sItem.id, sourceProductName: sItem.product },
+              { name: `${prodName} 250 GM`, skuCode: '', packSizeText: '250 GM', packSizeKg: 0.25, sourceProductId: sItem.id, sourceProductName: sItem.product },
+              { name: `${prodName} 100 GM`, skuCode: '', packSizeText: '100 GM', packSizeKg: 0.1, sourceProductId: sItem.id, sourceProductName: sItem.product },
+              { name: `${prodName} 5 KG`, skuCode: '', packSizeText: '5 KG', packSizeKg: 5.0, sourceProductId: sItem.id, sourceProductName: sItem.product }
             );
           } else {
             options.push(
-              { name: `${prodName} 1 ${itemUom}`, packSizeText: `1 ${itemUom}`, packSizeKg: 1.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
-              { name: `${prodName} 5 ${itemUom}`, packSizeText: `5 ${itemUom}`, packSizeKg: 5.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
-              { name: `${prodName} 10 ${itemUom}`, packSizeText: `10 ${itemUom}`, packSizeKg: 10.0, sourceProductId: sItem.id, sourceProductName: sItem.product }
+              { name: `${prodName} 1 ${itemUom}`, skuCode: '', packSizeText: `1 ${itemUom}`, packSizeKg: 1.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
+              { name: `${prodName} 5 ${itemUom}`, skuCode: '', packSizeText: `5 ${itemUom}`, packSizeKg: 5.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
+              { name: `${prodName} 10 ${itemUom}`, skuCode: '', packSizeText: `10 ${itemUom}`, packSizeKg: 10.0, sourceProductId: sItem.id, sourceProductName: sItem.product }
             );
           }
         } else {
           options.push(
-            { name: `${prodName} 1 KG`, packSizeText: '1 KG', packSizeKg: 1.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
-            { name: `${prodName} 500 GM`, packSizeText: '500 GM', packSizeKg: 0.5, sourceProductId: sItem.id, sourceProductName: sItem.product },
-            { name: `${prodName} 250 GM`, packSizeText: '250 GM', packSizeKg: 0.25, sourceProductId: sItem.id, sourceProductName: sItem.product },
-            { name: `${prodName} 100 GM`, packSizeText: '100 GM', packSizeKg: 0.1, sourceProductId: sItem.id, sourceProductName: sItem.product },
-            { name: `${prodName} 5 KG`, packSizeText: '5 KG', packSizeKg: 5.0, sourceProductId: sItem.id, sourceProductName: sItem.product }
+            { name: `${prodName} 1 KG`, skuCode: '', packSizeText: '1 KG', packSizeKg: 1.0, sourceProductId: sItem.id, sourceProductName: sItem.product },
+            { name: `${prodName} 500 GM`, skuCode: '', packSizeText: '500 GM', packSizeKg: 0.5, sourceProductId: sItem.id, sourceProductName: sItem.product },
+            { name: `${prodName} 250 GM`, skuCode: '', packSizeText: '250 GM', packSizeKg: 0.25, sourceProductId: sItem.id, sourceProductName: sItem.product },
+            { name: `${prodName} 100 GM`, skuCode: '', packSizeText: '100 GM', packSizeKg: 0.1, sourceProductId: sItem.id, sourceProductName: sItem.product },
+            { name: `${prodName} 5 KG`, skuCode: '', packSizeText: '5 KG', packSizeKg: 5.0, sourceProductId: sItem.id, sourceProductName: sItem.product }
           );
         }
       }
     });
 
-    // Deduplicate options by option name
+    // Deduplicate options by option name and skuCode
     const uniqueOptions: SkuOption[] = [];
     const seenNames = new Set<string>();
     options.forEach((opt) => {
-      if (!seenNames.has(opt.name)) {
-        seenNames.add(opt.name);
+      const key = `${opt.name}_${opt.skuCode || ''}`;
+      if (!seenNames.has(key)) {
+        seenNames.add(key);
         uniqueOptions.push(opt);
       }
     });
@@ -452,13 +502,13 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
     outputRows.forEach((row) => {
       const units = Number(row.plannedUnits) || 0;
       if (units <= 0) return;
-      const parts = row.packSizeText ? row.packSizeText.trim().split(' ') : [];
-      const uom = parts.length > 1 ? parts.slice(1).join(' ').toUpperCase() : (sourceUom || 'KG').toUpperCase();
+      const matchedSource = selectedItems.find((item) => item.id === row.sourceProductId) || primarySelectedItem;
+      const uom = (matchedSource?.uom || sourceUom || 'KG').toUpperCase();
       const qty = units * row.packSizeKg;
       map[uom] = (map[uom] || 0) + qty;
     });
     return map;
-  }, [outputRows, sourceUom]);
+  }, [outputRows, selectedItems, primarySelectedItem, sourceUom]);
 
   const plannedConsumptionDisplay = React.useMemo(() => {
     const entries = Object.entries(plannedConsumptionByUom);
@@ -478,6 +528,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
   const handleAddSkuRow = () => {
     const defaultOption = activeSkuOptions[0] || {
       name: 'Select Product SKU',
+      skuCode: '—',
       packSizeText: '1 KG',
       packSizeKg: 1.0,
     };
@@ -485,6 +536,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
     const newRow: OutputSkuRow = {
       id: `row-${Date.now()}`,
       skuName: defaultOption.name,
+      skuCode: defaultOption.skuCode || '—',
       packSizeText: defaultOption.packSizeText,
       packSizeKg: defaultOption.packSizeKg,
       plannedUnits: '',
@@ -508,6 +560,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
           ? {
               ...r,
               skuName: matchedOption.name,
+              skuCode: matchedOption.skuCode || '—',
               packSizeText: matchedOption.packSizeText,
               packSizeKg: matchedOption.packSizeKg,
               sourceProductId: matchedOption.sourceProductId,
@@ -559,6 +612,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
         })),
         outputAllocations: validOutputRows.map((r) => ({
           skuName: r.skuName,
+          sku: r.skuCode && r.skuCode !== '—' && r.skuCode !== '-' ? r.skuCode : undefined,
           packSizeText: r.packSizeText,
           packSizeKg: r.packSizeKg,
           plannedUnits: Number(r.plannedUnits),
@@ -690,13 +744,28 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
       {/* STEP 1 CONTENT: SELECT SOURCE INVENTORY */}
       {activeStep === 1 && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xs overflow-hidden flex flex-col">
-          <div className="p-5 border-b border-slate-100 dark:border-gray-700">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              Eligible Source Inventory
-            </h2>
-            <p className="text-xs text-slate-400 dark:text-gray-400 font-medium mt-0.5">
-              Raw / unpacked inventory available for repacking
-            </p>
+          <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Eligible Source Inventory
+              </h2>
+              <p className="text-xs text-slate-400 dark:text-gray-400 font-medium mt-0.5">
+                Raw / unpacked inventory available for repacking
+              </p>
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search inventory, SKU, batch..."
+                value={sourceSearchTerm}
+                onChange={(e) => {
+                  setSourceSearchTerm(e.target.value);
+                  setSourceCurrentPage(1);
+                }}
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-gray-700/50 border border-slate-200 dark:border-gray-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#044e3a] focus:border-[#044e3a]"
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -707,15 +776,29 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                   Loading eligible source inventory...
                 </span>
               </div>
-            ) : sourceList.length === 0 ? (
+            ) : filteredSourceList.length === 0 ? (
               <div className="p-12 text-center flex flex-col items-center justify-center gap-2">
                 <PackageSearch size={32} className="text-slate-300 dark:text-gray-600" />
                 <span className="text-xs font-bold text-slate-500 dark:text-gray-400">
-                  No eligible source inventory items found.
+                  {liveSourceData.length > 0
+                    ? `No eligible source inventory items matching "${sourceSearchTerm}".`
+                    : 'No eligible source inventory items found.'}
                 </span>
-                <span className="text-[11px] text-slate-400 dark:text-gray-500">
-                  Items with available status, a valid batch, and quantity &gt; 0 will appear here when connected to backend API.
-                </span>
+                {liveSourceData.length > 0 ? (
+                  <button
+                    onClick={() => {
+                      setSourceSearchTerm('');
+                      setSourceCurrentPage(1);
+                    }}
+                    className="text-xs text-[#044e3a] dark:text-emerald-400 font-bold hover:underline cursor-pointer mt-1"
+                  >
+                    Clear search
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-slate-400 dark:text-gray-500">
+                    Items with available status, a valid batch, and quantity &gt; 0 will appear here when connected to backend API.
+                  </span>
+                )}
               </div>
             ) : (
               <table className="w-full text-left text-xs border-collapse">
@@ -740,7 +823,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
-                  {sourceList.map((row) => {
+                  {paginatedSourceList.map((row) => {
                     const isSelected = selectedSourceIds.includes(row.id);
                     return (
                       <tr
@@ -788,6 +871,52 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
               </table>
             )}
           </div>
+
+          {/* Source Inventory Pagination */}
+          {filteredSourceList.length > 0 && (
+            <div className="px-4 py-3 border-t border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-slate-500 dark:text-gray-400 whitespace-nowrap">Show</span>
+                <select
+                  value={sourceItemsPerPage.toString()}
+                  onChange={(e) => {
+                    setSourceItemsPerPage(Number(e.target.value));
+                    setSourceCurrentPage(1);
+                  }}
+                  className="h-7 text-xs border border-slate-200 dark:border-gray-600 rounded px-2 focus:outline-none focus:ring-1 focus:ring-[#044e3a] bg-white dark:bg-gray-700 text-slate-800 dark:text-gray-200 font-medium"
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span className="text-slate-500 dark:text-gray-400 whitespace-nowrap">
+                  Showing{" "}
+                  <span className="font-bold text-slate-800 dark:text-gray-200">
+                    {Math.min((sourceCurrentPage - 1) * sourceItemsPerPage + 1, filteredSourceList.length)}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-bold text-slate-800 dark:text-gray-200">
+                    {Math.min(sourceCurrentPage * sourceItemsPerPage, filteredSourceList.length)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-bold text-slate-800 dark:text-gray-200">
+                    {filteredSourceList.length}
+                  </span>{" "}
+                  items
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Pagination
+                  currentPage={sourceCurrentPage}
+                  pagination={sourcePagination}
+                  onPageChange={setSourceCurrentPage}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="p-4 bg-slate-50/90 dark:bg-gray-900/50 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs font-semibold text-slate-600 dark:text-gray-300 flex items-center gap-1.5 flex-wrap">
@@ -887,10 +1016,11 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50/70 dark:bg-gray-900/40 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
-                        <th className="py-3 px-4 font-bold w-[35%]">SKU</th>
-                        <th className="py-3 px-4 font-bold w-[20%]">PACK SIZE</th>
-                        <th className="py-3 px-4 font-bold text-center w-[20%]">PLANNED UNITS</th>
-                        <th className="py-3 px-4 font-bold text-right w-[20%]">CALCULATED QUANTITY</th>
+                        <th className="py-3 px-4 font-bold w-[20%]">SKU CODE</th>
+                        <th className="py-3 px-4 font-bold w-[30%]">VARIANT NAME</th>
+                        <th className="py-3 px-4 font-bold w-[15%]">PACK SIZE</th>
+                        <th className="py-3 px-4 font-bold text-center w-[15%]">PLANNED UNITS</th>
+                        <th className="py-3 px-4 font-bold text-right w-[15%]">CALCULATED QUANTITY</th>
                         <th className="py-3 px-4 font-bold text-center w-[5%]">ACTION</th>
                       </tr>
                     </thead>
@@ -901,6 +1031,15 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                         return (
                           <tr key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-gray-700/20">
                             <td className="py-3 px-4">
+                              {row.skuCode && row.skuCode !== '—' && row.skuCode !== '-' ? (
+                                <span className="font-mono font-bold text-[11px] text-slate-700 dark:text-gray-200 bg-slate-100 dark:bg-gray-800 border border-slate-200/80 dark:border-gray-700 px-2.5 py-1 rounded-md inline-block">
+                                  {row.skuCode}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-mono text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
                               {activeSkuOptions.length > 0 ? (
                                 <select
                                   value={row.skuName}
@@ -908,7 +1047,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                                   className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg bg-white font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-800 text-xs cursor-pointer"
                                 >
                                   {activeSkuOptions.map((opt: SkuOption) => (
-                                    <option key={opt.name} value={opt.name}>
+                                    <option key={`${opt.name}_${opt.skuCode || ''}`} value={opt.name}>
                                       {opt.name}
                                     </option>
                                   ))}
@@ -924,7 +1063,7 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                                       )
                                     )
                                   }
-                                  placeholder="Enter SKU Name..."
+                                  placeholder="Enter Variant Name..."
                                   className="w-full p-2 border border-slate-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-lg font-semibold text-xs outline-none focus:ring-1 focus:ring-emerald-800"
                                 />
                               )}
@@ -945,7 +1084,11 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                               />
                             </td>
                             <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white font-mono text-sm">
-                              {calcQty} {row.packSizeText.split(' ').slice(1).join(' ') || 'units'}
+                              {(() => {
+                                const matchedSource = selectedItems.find((item) => item.id === row.sourceProductId) || primarySelectedItem;
+                                const invUnit = matchedSource?.uom || sourceUom || 'KG';
+                                return `${calcQty} ${invUnit}`;
+                              })()}
                             </td>
                             <td className="py-3 px-4 text-center">
                               <button
@@ -1094,15 +1237,25 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50/70 dark:bg-gray-900/40 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
-                      <th className="py-3 px-4 font-bold w-[40%]">TARGET SKU</th>
-                      <th className="py-3 px-4 font-bold w-[20%]">PACK SIZE</th>
-                      <th className="py-3 px-4 font-bold text-center w-[20%]">UNITS</th>
-                      <th className="py-3 px-4 font-bold text-right w-[20%]">TOTAL QUANTITY</th>
+                      <th className="py-3 px-4 font-bold w-[20%]">SKU CODE</th>
+                      <th className="py-3 px-4 font-bold w-[30%]">VARIANT NAME</th>
+                      <th className="py-3 px-4 font-bold w-[15%]">PACK SIZE</th>
+                      <th className="py-3 px-4 font-bold text-center w-[15%]">UNITS</th>
+                      <th className="py-3 px-4 font-bold text-right w-[20%]">TOTAL REQ QUANTITY</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
                     {outputRows.map((row) => (
                       <tr key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-gray-700/20">
+                        <td className="py-3.5 px-4">
+                          {row.skuCode && row.skuCode !== '—' && row.skuCode !== '-' ? (
+                            <span className="font-mono font-bold text-[11px] text-slate-700 dark:text-gray-200 bg-slate-100 dark:bg-gray-800 border border-slate-200/80 dark:border-gray-700 px-2.5 py-1 rounded-md inline-block">
+                              {row.skuCode}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 font-mono text-xs">—</span>
+                          )}
+                        </td>
                         <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
                           {row.skuName}
                         </td>
@@ -1114,9 +1267,9 @@ export const CreateWorkOrderFlow: React.FC<CreateWorkOrderFlowProps> = ({
                         </td>
                         <td className="py-3.5 px-4 text-right font-bold text-slate-900 dark:text-white font-mono text-sm">
                           {(() => {
-                            const parts = row.packSizeText ? row.packSizeText.trim().split(' ') : [];
-                            const uom = parts.length > 1 ? parts.slice(1).join(' ') : sourceUom;
-                            return `${((Number(row.plannedUnits) || 0) * row.packSizeKg).toFixed(2)} ${uom}`;
+                            const matchedSource = selectedItems.find((item) => item.id === row.sourceProductId) || primarySelectedItem;
+                            const invUnit = matchedSource?.uom || sourceUom || 'KG';
+                            return `${((Number(row.plannedUnits) || 0) * row.packSizeKg).toFixed(2)} ${invUnit}`;
                           })()}
                         </td>
                       </tr>

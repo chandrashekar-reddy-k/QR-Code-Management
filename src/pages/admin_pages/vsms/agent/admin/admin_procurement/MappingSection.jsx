@@ -582,7 +582,6 @@ const MappingSection = ({ can, setHideMainHeader }) => {
                                               </span>
                                             )}
                                           </div>
-                                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">SKU: {String(p.id).slice(-6).toUpperCase()}</span>
                                         </div>
                                       </div>
 

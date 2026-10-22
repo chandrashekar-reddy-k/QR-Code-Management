@@ -11,10 +11,12 @@ import ReturnReport from './adminreports/ReturnReport';
 import DamageReport from './adminreports/DamageReport';
 import ProcurementSalesReport from './adminreports/ProcurementSalesReport';
 import CreditSalesReport from './adminreports/CreditSalesReport';
+import VehicleWiseReport from './adminreports/VehicleWiseReport';
 
 export default function AdminReports() {
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
+  const subTabParam = searchParams.get('subTab');
 
   const getTabFromParam = (param) => {
     if (!param) return 'day-wise';
@@ -26,7 +28,27 @@ export default function AdminReports() {
     if (param === 'damages' || param === 'damage') return 'damages';
     if (param === 'procurement' || param === 'procurement-sales') return 'procurement';
     if (param === 'credit' || param === 'credit-sales') return 'credit';
+    if (
+      param === 'vehicle-wise' || 
+      param === 'vehicle-sales' || 
+      param === 'vehicle-stock' || 
+      param === 'vehicle-loading' || 
+      param === 'vehicle-refill' || 
+      param === 'vehicle-item-sales'
+    ) {
+      return 'vehicle-wise';
+    }
     return param;
+  };
+
+  const getSubTabFromParam = (param, subParam) => {
+    if (subParam) return subParam;
+    if (param === 'vehicle-opening-stock') return 'opening-stock';
+    if (param === 'vehicle-stock') return 'current-stock';
+    if (param === 'vehicle-loading') return 'loading';
+    if (param === 'vehicle-refill') return 'refilling';
+    if (param === 'vehicle-item-sales') return 'item-sales';
+    return 'sales';
   };
 
   const [activeTab, setActiveTab] = useState(() => getTabFromParam(tabParam));
@@ -44,6 +66,21 @@ export default function AdminReports() {
     'damages': 'Damage Report',
     'procurement': 'Procurement Sales Report',
     'credit': 'Credit Sales Report',
+    'vehicle-wise': 'Vehicle-wise Reports & Analytics',
+  };
+
+  const getPageTitle = () => {
+    if (activeTab === 'vehicle-wise') {
+      const sub = getSubTabFromParam(tabParam, subTabParam);
+      if (sub === 'sales') return 'Vehicle-wise Sales Report';
+      if (sub === 'opening-stock') return 'Vehicle Opening Stock Report';
+      if (sub === 'current-stock') return 'Vehicle Current Stock Report';
+      if (sub === 'loading') return 'Vehicle Loading Report';
+      if (sub === 'refilling') return 'Vehicle Refilling Report';
+      if (sub === 'item-sales') return 'Vehicle Item-wise Sales Report';
+      return 'Vehicle-wise Reports';
+    }
+    return reportTitles[activeTab] || 'VSMS Reports & Analytics';
   };
 
   return (
@@ -55,7 +92,7 @@ export default function AdminReports() {
             <div className="p-2 rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-200">
               <BarChart3 size={24} />
             </div>
-            {reportTitles[activeTab] || 'VSMS Reports & Analytics'}
+            {getPageTitle()}
           </h1>
           <Breadcrumbs />
         </div>
@@ -71,6 +108,7 @@ export default function AdminReports() {
         {activeTab === 'damages' && <DamageReport />}
         {activeTab === 'procurement' && <ProcurementSalesReport />}
         {activeTab === 'credit' && <CreditSalesReport />}
+        {activeTab === 'vehicle-wise' && <VehicleWiseReport initialSubTab={getSubTabFromParam(tabParam, subTabParam)} />}
       </div>
     </div>
   );

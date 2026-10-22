@@ -12,7 +12,24 @@ import { finishedGoodsService, FinishedGoodsRecord } from '../../../api/packing/
 import { workOrderService, WorkOrder } from '../../../api/packing/workOrderService';
 import { qualityCheckService, QCRecord } from '../../../api/packing/qualityCheckService';
 import { masterDataService } from '../../../api/packing/masterDataService';
+import { resolveProductAndSku } from './PackingExecutionDetails';
 import toast from 'react-hot-toast';
+
+const getSourceItemsArray = (wo: any): any[] => {
+  let items = wo?.sourceItems;
+  if (typeof items === 'string') {
+    try { items = JSON.parse(items); } catch (e) {}
+  }
+  return Array.isArray(items) ? items : [];
+};
+
+const getOutputAllocationsArray = (wo: any): any[] => {
+  let allocs = wo?.outputAllocations;
+  if (typeof allocs === 'string') {
+    try { allocs = JSON.parse(allocs); } catch (e) {}
+  }
+  return Array.isArray(allocs) ? allocs : [];
+};
 
 const formatDateTime = (dateStr?: string) => {
   if (!dateStr) return '—';
@@ -46,7 +63,7 @@ export const PackingFinishedGoods: React.FC = () => {
         workOrderService.getWorkOrderById(id).catch(() => null),
         qualityCheckService.getQualityChecks({ limit: 500 }).catch(() => ({ data: [] })),
         finishedGoodsService.getFinishedGoods({ limit: 500 }).catch(() => ({ data: [] })),
-        masterDataService.getProducts('inventoryType=PRODUCTION').catch(() => masterDataService.getProducts().catch(() => [])),
+        masterDataService.getProducts().catch(() => masterDataService.getProducts('inventoryType=PRODUCTION').catch(() => [])),
       ]);
 
       if (Array.isArray(catalogRes)) {
@@ -170,16 +187,16 @@ export const PackingFinishedGoods: React.FC = () => {
     );
   }
 
-  const outputAllocations = Array.isArray((workOrder as any)?.outputAllocations) ? (workOrder as any).outputAllocations : [];
-  const sourceItems = Array.isArray((workOrder as any)?.sourceItems) ? (workOrder as any).sourceItems : [];
+  const outputAllocations = getOutputAllocationsArray(workOrder);
+  const sourceItems = getSourceItemsArray(workOrder);
 
   const displayProductName = (() => {
     if (!workOrder) return 'Product';
     if (outputAllocations.length > 1) {
-      return `${outputAllocations.length} Products (${outputAllocations.map((a: any) => a.skuName || a.productName || 'Item').join(', ')})`;
+      return `${outputAllocations.length} Products (${outputAllocations.map((a: any) => resolveProductAndSku(a, workOrder, liveProducts).productName || 'Item').join(', ')})`;
     }
     if (outputAllocations.length === 1) {
-      return outputAllocations[0].skuName || workOrder.product?.name || 'Product';
+      return resolveProductAndSku(outputAllocations[0], workOrder, liveProducts).productName || workOrder.product?.name || 'Product';
     }
     if (sourceItems.length > 1) {
       return `${sourceItems.length} Source Products (${sourceItems.map((s: any) => s.product || s.productName || 'Item').join(', ')})`;
@@ -276,17 +293,18 @@ export const PackingFinishedGoods: React.FC = () => {
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-slate-100 dark:bg-gray-700/60 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
-                        <th className="py-2.5 px-3.5">TARGET PRODUCT / SKU</th>
+                        <th className="py-2.5 px-3.5">SKU</th>
+                        <th className="py-2.5 px-3.5">PRODUCT NAME</th>
                         <th className="py-2.5 px-3.5">PACK SIZE</th>
                         <th className="py-2.5 px-3.5 text-center">PLANNED UNITS</th>
                         <th className="py-2.5 px-3.5 text-center">PACKED QTY</th>
-                        <th className="py-2.5 px-3.5 text-center">QC APPROVED QTY</th>
                         <th className="py-2.5 px-3.5 text-right">TOTAL AVAILABLE QTY</th>
                         <th className="py-2.5 px-3.5 text-right">TOTAL CONSUMED QTY</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-gray-700/50 font-medium">
                       {outputAllocations.map((alloc: any, idx: number) => {
+                        const resolved = resolveProductAndSku(alloc, workOrder, liveProducts);
                         const matchedSourceItem = sourceItems.find(
                           (s: any) =>
                             (alloc.sourceProductId && (s.id === alloc.sourceProductId || s.productId === alloc.sourceProductId)) ||
@@ -307,7 +325,6 @@ export const PackingFinishedGoods: React.FC = () => {
                           : alloc.availableQty ?? (workOrder?.product as any)?.stock ?? (workOrder?.product as any)?.availableStock ?? '—';
 
                         const uom = matchedLiveProduct?.uom?.abbreviation || matchedLiveProduct?.unit || matchedSourceItem?.uom || (alloc.packSizeText ? alloc.packSizeText.trim().split(' ').pop() : 'KG');
-                        const approvedQty = alloc.approvedQty ?? alloc.packedUnits ?? alloc.packedQty ?? alloc.plannedUnits ?? '—';
 
                         const formatMatchedQuantities = (availRaw: any, rawUom: string, totalQtyKg: any) => {
                           if (availRaw === '—' || availRaw === undefined || availRaw === null) {
@@ -367,8 +384,11 @@ export const PackingFinishedGoods: React.FC = () => {
 
                         return (
                           <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-gray-700/30">
+                            <td className="py-2.5 px-3.5 font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                              {resolved.sku}
+                            </td>
                             <td className="py-2.5 px-3.5 font-bold text-slate-900 dark:text-white">
-                              {alloc.skuName || alloc.productName || workOrder.product?.name || '—'}
+                              {resolved.productName}
                             </td>
                             <td className="py-2.5 px-3.5 text-slate-600 dark:text-gray-300">
                               <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-gray-700 text-[11px] font-semibold">
@@ -380,9 +400,6 @@ export const PackingFinishedGoods: React.FC = () => {
                             </td>
                             <td className="py-2.5 px-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400">
                               {alloc.packedUnits ?? alloc.packedQty ?? alloc.plannedUnits ?? '—'}
-                            </td>
-                            <td className="py-2.5 px-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400">
-                              {approvedQty}
                             </td>
                             <td className="py-2.5 px-3.5 text-right font-bold text-blue-600 dark:text-blue-400 font-mono">
                               {matchedQuantities.availableStr}
@@ -451,14 +468,20 @@ export const PackingFinishedGoods: React.FC = () => {
                   Product Inventory Allocation ({outputAllocations.length})
                 </span>
                 {outputAllocations.map((alloc: any, idx: number) => {
+                  const resolved = resolveProductAndSku(alloc, workOrder, liveProducts);
                   const qty = Number(alloc.packedUnits ?? alloc.packedQty ?? alloc.plannedUnits) || 0;
                   const totalKg = alloc.totalQtyKg ? `${parseFloat(Number(alloc.totalQtyKg).toFixed(3))} KG` : '';
                   return (
                     <div key={idx} className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/60 flex flex-wrap justify-between items-center gap-3">
                       <div>
-                        <span className="block text-xs font-bold text-slate-900 dark:text-white">
-                          {alloc.skuName || alloc.productName || workOrder.product?.name || 'Product'}
-                        </span>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-gray-700">
+                            {resolved.sku}
+                          </span>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            {resolved.productName}
+                          </span>
+                        </div>
                         <span className="text-xs text-emerald-600 dark:text-emerald-300">
                           Pack Size: <strong>{alloc.packSizeText || (alloc.packSizeKg ? `${alloc.packSizeKg} KG` : '—')}</strong> {totalKg ? `• Total: ${totalKg}` : ''}
                         </span>
@@ -517,12 +540,18 @@ export const PackingFinishedGoods: React.FC = () => {
                       Allocated Per Product ({outputAllocations.length})
                     </span>
                     {outputAllocations.map((alloc: any, idx: number) => {
+                      const resolved = resolveProductAndSku(alloc, workOrder, liveProducts);
                       const qty = Number(alloc.approvedQty ?? alloc.packedUnits ?? alloc.packedQty ?? alloc.plannedUnits) || 0;
                       return (
                         <div key={idx} className="flex justify-between items-center text-xs">
-                          <span className="font-semibold text-slate-700 dark:text-gray-300 truncate max-w-[170px]" title={alloc.skuName || alloc.productName}>
-                            {alloc.skuName || alloc.productName}
-                          </span>
+                          <div className="flex flex-col truncate max-w-[170px]">
+                            <span className="font-semibold text-slate-800 dark:text-gray-200 truncate" title={resolved.productName}>
+                              {resolved.productName}
+                            </span>
+                            <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 truncate" title={resolved.sku}>
+                              {resolved.sku}
+                            </span>
+                          </div>
                           <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                             {qty} units
                           </span>

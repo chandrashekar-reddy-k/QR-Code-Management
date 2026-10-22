@@ -8,7 +8,7 @@ interface UnassignedDeliveryAlertPopupProps {
 }
 
 export function UnassignedDeliveryAlertPopup({ onViewOrder }: UnassignedDeliveryAlertPopupProps) {
-  const { activeAlert, alertQueue, dismissAlert, audioEnabled, toggleAudio } = useUnassignedDeliveryAlert();
+  const { activeAlert, alertQueue, dismissAlert, dismissAll, audioEnabled, toggleAudio } = useUnassignedDeliveryAlert();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,17 +25,29 @@ export function UnassignedDeliveryAlertPopup({ onViewOrder }: UnassignedDelivery
       return;
     }
 
-    // Context-sensitive navigation
-    if (location.pathname.startsWith("/shopkeeper")) {
-      // In Shopkeeper ERP: navigate to ready-orders screen or trigger custom event
+    const isShopkeeper = location.pathname.startsWith("/shopkeeper") || authCtx.role === "SHOPKEEPER";
+
+    if (isShopkeeper) {
+      // In Shopkeeper portal: navigate to order-details screen with full order context
+      sessionStorage.setItem("staffActiveOrder", JSON.stringify({ id: orderId, orderNumber, order_number: orderNumber }));
+      
+      if (!location.pathname.startsWith("/shopkeeper")) {
+        navigate("/shopkeeper");
+      }
+
       window.dispatchEvent(
         new CustomEvent("shopkeeperNavigateScreen", {
-          detail: { screen: "ready-orders", orderId, orderNumber },
+          detail: {
+            screen: "order-details",
+            orderId,
+            orderNumber,
+            data: { id: orderId, orderNumber, order_number: orderNumber },
+          },
         })
       );
     } else {
-      // In Partner OMS: navigate to orders management
-      navigate(`/orders?search=${encodeURIComponent(orderNumber)}`);
+      // In Partner OMS / Admin: navigate to the order view page
+      navigate(`/home-delivery-orders/view/${orderId}`);
     }
   };
 
@@ -116,6 +128,16 @@ export function UnassignedDeliveryAlertPopup({ onViewOrder }: UnassignedDelivery
         </div>
 
         <div className="flex items-center gap-2">
+          {alertQueue.length > 0 && (
+            <button
+              type="button"
+              onClick={dismissAll}
+              className="px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition"
+              title="Dismiss all unassigned alerts"
+            >
+              Dismiss All
+            </button>
+          )}
           <button
             type="button"
             onClick={() => dismissAlert(activeAlert.orderId)}
