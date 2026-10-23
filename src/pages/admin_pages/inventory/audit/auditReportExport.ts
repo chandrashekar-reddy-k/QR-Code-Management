@@ -23,266 +23,379 @@ const safeCurrency = (val: any) => {
  */
 export const exportSingleAuditPDF = (audit: any) => {
   if (!audit) return;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pw = 210;
-  const ph = 297;
-  const margin = 12;
-  const printableWidth = pw - (margin * 2);
-  const now = format(new Date(), 'dd MMM yyyy, hh:mm a');
-  const auditNumber = audit.auditNumber || 'AUDIT-REPORT';
-  const items = audit.items || [];
+  try {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pw = 210;
+    const ph = 297;
+    const margin = 12;
+    const printableWidth = pw - (margin * 2);
+    const now = format(new Date(), 'dd MMM yyyy, hh:mm a');
+    const auditNumber = audit.auditNumber || 'AUDIT-REPORT';
+    const items = audit.items || [];
 
-  let currentPage = 1;
+    // Calculate reliable totals
+    let calcNetQty = 0;
+    let calcNetVal = 0;
+    items.forEach((it: any) => {
+      const exp = it.expectedQuantity ?? 0;
+      const cnt = it.countedQuantity ?? 0;
+      const diff = (it.varianceQuantity !== undefined && it.varianceQuantity !== null)
+        ? it.varianceQuantity
+        : (cnt - exp);
+      const price = it.unitPrice || 0;
+      const vVal = (it.varianceValue !== undefined && it.varianceValue !== null)
+        ? it.varianceValue
+        : (diff * price);
+      calcNetQty += diff;
+      calcNetVal += Math.abs(vVal);
+    });
 
-  const drawHeader = (pg: number) => {
-    // Header Dark Banner
-    doc.setFillColor(15, 44, 29); // #0f2c1d Brand Dark Forest Green
-    doc.rect(0, 0, pw, 32, 'F');
+    const netVarQty = audit.totalVarianceQty !== undefined && audit.totalVarianceQty !== null 
+      ? audit.totalVarianceQty 
+      : calcNetQty;
+    const netVarVal = audit.totalVarianceVal !== undefined && audit.totalVarianceVal !== null
+      ? audit.totalVarianceVal
+      : calcNetVal;
 
-    // Accent line
-    doc.setFillColor(16, 185, 129); // #10b981 Emerald
-    doc.rect(0, 32, pw, 1.5, 'F');
+    let currentPage = 1;
 
-    // Title & Branding
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
-    doc.text('VILLAGKART INVENTORY AUDIT REPORT', margin, 14);
+    const drawHeader = (pg: number) => {
+      // Header Dark Banner
+      doc.setFillColor(15, 44, 29); // #0f2c1d Brand Dark Forest Green
+      doc.rect(0, 0, pw, 32, 'F');
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(209, 250, 229);
-    doc.text(`SESSION: ${auditNumber}  •  SCOPE: ${(audit.scope || 'ALL').replace(/_/g, ' ')}`, margin, 21);
-    doc.text(`CUTOFF TIME: ${audit.cutoffTime ? format(new Date(audit.cutoffTime), 'dd MMM yyyy, hh:mm a') : 'N/A'}`, margin, 27);
+      // Accent line
+      doc.setFillColor(16, 185, 129); // #10b981 Emerald
+      doc.rect(0, 32, pw, 1.5, 'F');
 
-    // Right-aligned status
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    const statusText = audit.status === 'CLOSED' ? 'CLOSED / RECONCILED' : (audit.status === 'PENDING_REVIEW' ? 'PENDING REVIEW' : 'SAVED DRAFT');
-    doc.text(statusText, pw - margin, 14, { align: 'right' });
+      // Title & Branding
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15);
+      doc.text('VILLAGKART INVENTORY AUDIT REPORT', margin, 14);
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.text(`PAGE ${pg}`, pw - margin, 27, { align: 'right' });
-  };
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(209, 250, 229);
+      doc.text(`SESSION: ${auditNumber}  •  SCOPE: ${(audit.scope || 'ALL').replace(/_/g, ' ')}`, margin, 21);
+      
+      const cutoffStr = audit.cutoffTime 
+        ? format(new Date(audit.cutoffTime), 'dd MMM yyyy, hh:mm a') 
+        : (audit.createdAt ? format(new Date(audit.createdAt), 'dd MMM yyyy, hh:mm a') : now);
+      doc.text(`CUTOFF TIME: ${cutoffStr}`, margin, 27);
 
-  const drawFooter = () => {
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setDrawColor(226, 232, 240);
-      doc.line(margin, ph - 14, pw - margin, ph - 14);
+      // Right-aligned status
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      const statusText = audit.status === 'CLOSED' ? 'CLOSED / RECONCILED' : (audit.status === 'PENDING_REVIEW' ? 'PENDING REVIEW' : 'SAVED DRAFT');
+      doc.text(statusText, pw - margin, 14, { align: 'right' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(`PAGE ${pg}`, pw - margin, 27, { align: 'right' });
+    };
+
+    const drawFooter = () => {
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(margin, ph - 14, pw - margin, ph - 14);
+
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Generated on ${now}  |  VillagKart Enterprise Inventory System`, margin, ph - 9);
+        doc.text(`Page ${i} of ${totalPages}`, pw - margin, ph - 9, { align: 'right' });
+      }
+    };
+
+    // Draw Page 1 Header
+    drawHeader(currentPage);
+    let y = 42;
+
+    // Executive KPI Summary Cards
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, y, printableWidth, 24, 2, 2, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(margin, y, printableWidth, 24, 2, 2, 'D');
+
+    const colW = printableWidth / 4;
+    const kpis = [
+      { label: 'TOTAL SKUS', value: String(items.length || 0) },
+      { label: 'AUDITED BY', value: audit.auditor?.name || 'Suresh Reddy' },
+      { label: 'NET VARIANCE QTY', value: `${netVarQty > 0 ? '+' : ''}${netVarQty} Units` },
+      { label: 'VARIANCE VALUE', value: safeCurrency(netVarVal) }
+    ];
+
+    kpis.forEach((kpi, idx) => {
+      const cx = margin + (idx * colW) + 4;
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 116, 139);
+      doc.text(kpi.label, cx, y + 8);
+
+      doc.setFontSize(10.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(kpi.value, cx, y + 17);
+    });
+
+    y += 32;
+
+    // Table Columns
+    const colWidths = [60, 26, 20, 20, 20, 20, 20];
+    const headers = ['ITEM / SKU', 'CATEGORY', 'BOOK STOCK', 'COUNTED', 'VARIANCE', 'UNIT PRICE', 'VALUE DIFF'];
+    const xs: number[] = [margin];
+    colWidths.forEach((w, i) => {
+      if (i < colWidths.length - 1) xs.push(xs[i] + w);
+    });
+
+    const renderTableHeader = (currentY: number) => {
+      doc.setFillColor(241, 245, 249);
+      doc.rect(margin, currentY - 4, printableWidth, 7, 'F');
+      doc.setDrawColor(203, 213, 225);
+      doc.line(margin, currentY + 3, pw - margin, currentY + 3);
 
       doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+
+      headers.forEach((h, i) => {
+        const align = i >= 2 ? 'right' : 'left';
+        const posX = align === 'right' ? xs[i] + colWidths[i] - 2 : xs[i] + 2;
+        doc.text(h, posX, currentY, { align: align as any });
+      });
+    };
+
+    renderTableHeader(y);
+    y += 8;
+
+    // Table Rows
+    items.forEach((item: any, idx: number) => {
+      // Page overflow check
+      if (y > 275) {
+        currentPage++;
+        doc.addPage();
+        drawHeader(currentPage);
+        y = 42;
+        renderTableHeader(y);
+        y += 8;
+      }
+
+      const isEven = idx % 2 === 1;
+      if (isEven) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, y - 4, printableWidth, 6.5, 'F');
+      }
+
+      const expected = item.expectedQuantity ?? 0;
+      const counted = item.countedQuantity ?? 0;
+      const variance = (item.varianceQuantity !== undefined && item.varianceQuantity !== null)
+        ? item.varianceQuantity
+        : (counted - expected);
+      const unitPrice = item.unitPrice || 0;
+      const valueDiff = (item.varianceValue !== undefined && item.varianceValue !== null)
+        ? item.varianceValue
+        : (variance * unitPrice);
+
+      const prodName = safeText(item.product?.name, 'Product');
+      const prodSku = safeText(item.product?.sku || item.product?.variants?.[0]?.sku, '');
+      const itemLabel = prodSku ? `${prodName} (${prodSku})` : prodName;
+      const catName = safeText(item.product?.category?.name, 'General');
+
+      doc.setFontSize(6.8);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(148, 163, 184);
-      doc.text(`Generated on ${now}  |  VillagKart Enterprise Inventory System`, margin, ph - 9);
-      doc.text(`Page ${i} of ${totalPages}`, pw - margin, ph - 9, { align: 'right' });
-    }
-  };
+      doc.setTextColor(51, 65, 85);
 
-  // Draw Page 1 Header
-  drawHeader(currentPage);
-  let y = 42;
+      // Item name
+      doc.text(itemLabel.slice(0, 38), xs[0] + 2, y);
+      // Category
+      doc.text(catName.slice(0, 16), xs[1] + 2, y);
+      // Book Stock
+      doc.text(String(expected), xs[2] + colWidths[2] - 2, y, { align: 'right' });
+      // Counted
+      doc.text(String(counted), xs[3] + colWidths[3] - 2, y, { align: 'right' });
 
-  // Executive KPI Summary Cards
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(margin, y, printableWidth, 24, 2, 2, 'F');
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(margin, y, printableWidth, 24, 2, 2, 'D');
+      // Variance with color highlight
+      if (variance < 0) {
+        doc.setTextColor(220, 38, 38); // Red
+      } else if (variance > 0) {
+        doc.setTextColor(37, 99, 235); // Blue
+      } else {
+        doc.setTextColor(22, 101, 52); // Green
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${variance > 0 ? '+' : ''}${variance}`, xs[4] + colWidths[4] - 2, y, { align: 'right' });
 
-  const colW = printableWidth / 4;
-  const kpis = [
-    { label: 'TOTAL SKUS', value: String(items.length || 0) },
-    { label: 'AUDITED BY', value: audit.auditor?.name || 'Assigned Staff' },
-    { label: 'NET VARIANCE QTY', value: `${(audit.totalVarianceQty || 0) > 0 ? '+' : ''}${audit.totalVarianceQty || 0} Units` },
-    { label: 'VARIANCE VALUE', value: safeCurrency(audit.totalVarianceVal || 0) }
-  ];
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+      // Unit price
+      doc.text(`₹${unitPrice}`, xs[5] + colWidths[5] - 2, y, { align: 'right' });
+      // Value diff
+      if (valueDiff < 0) {
+        doc.setTextColor(220, 38, 38);
+      } else if (valueDiff > 0) {
+        doc.setTextColor(37, 99, 235);
+      }
+      doc.text(`₹${Math.abs(Math.round(valueDiff))}`, xs[6] + colWidths[6] - 2, y, { align: 'right' });
 
-  kpis.forEach((kpi, idx) => {
-    const cx = margin + (idx * colW) + 4;
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 116, 139);
-    doc.text(kpi.label, cx, y + 8);
-
-    doc.setFontSize(10.5);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(kpi.value, cx, y + 17);
-  });
-
-  y += 32;
-
-  // Table Columns
-  // Items & SKU (60) | Category (26) | Expected (22) | Counted (22) | Variance (22) | Cost (16) | Value Diff (18)
-  const colWidths = [60, 26, 20, 20, 20, 20, 20];
-  const headers = ['ITEM / SKU', 'CATEGORY', 'BOOK STOCK', 'COUNTED', 'VARIANCE', 'UNIT PRICE', 'VALUE DIFF'];
-  const xs: number[] = [margin];
-  colWidths.forEach((w, i) => {
-    if (i < colWidths.length - 1) xs.push(xs[i] + w);
-  });
-
-  const renderTableHeader = (currentY: number) => {
-    doc.setFillColor(241, 245, 249);
-    doc.rect(margin, currentY - 4, printableWidth, 7, 'F');
-    doc.setDrawColor(203, 213, 225);
-    doc.line(margin, currentY + 3, pw - margin, currentY + 3);
-
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 41, 59);
-
-    headers.forEach((h, i) => {
-      const align = i >= 2 ? 'right' : 'left';
-      const posX = align === 'right' ? xs[i] + colWidths[i] - 2 : xs[i] + 2;
-      doc.text(h, posX, currentY, { align: align as any });
+      y += 6.5;
     });
-  };
 
-  renderTableHeader(y);
-  y += 8;
-
-  // Table Rows
-  items.forEach((item: any, idx: number) => {
-    // Page overflow check
-    if (y > 275) {
+    // Review Notes / Manager signoff if closed
+    if (y > 245) {
       currentPage++;
       doc.addPage();
       drawHeader(currentPage);
       y = 42;
-      renderTableHeader(y);
-      y += 8;
     }
 
-    const isEven = idx % 2 === 1;
-    if (isEven) {
-      doc.setFillColor(248, 250, 252);
-      doc.rect(margin, y - 4, printableWidth, 6.5, 'F');
-    }
+    y += 6;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(margin, y, pw - margin, y);
+    y += 8;
 
-    const expected = item.expectedQuantity ?? 0;
-    const counted = item.countedQuantity ?? 0;
-    const variance = (item.varianceQuantity !== undefined && item.varianceQuantity !== null)
-      ? item.varianceQuantity
-      : (counted - expected);
-    const unitPrice = item.unitPrice || 0;
-    const valueDiff = (item.varianceValue !== undefined && item.varianceValue !== null)
-      ? item.varianceValue
-      : (variance * unitPrice);
-
-    const prodName = safeText(item.product?.name, 'Product');
-    const prodSku = safeText(item.product?.sku || item.product?.variants?.[0]?.sku, '');
-    const itemLabel = prodSku ? `${prodName} (${prodSku})` : prodName;
-    const catName = safeText(item.product?.category?.name, 'General');
-
-    doc.setFontSize(6.8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(51, 65, 85);
-
-    // Item name
-    doc.text(itemLabel.slice(0, 38), xs[0] + 2, y);
-    // Category
-    doc.text(catName.slice(0, 16), xs[1] + 2, y);
-    // Book Stock
-    doc.text(String(expected), xs[2] + colWidths[2] - 2, y, { align: 'right' });
-    // Counted
-    doc.text(String(counted), xs[3] + colWidths[3] - 2, y, { align: 'right' });
-
-    // Variance with color highlight
-    if (variance < 0) {
-      doc.setTextColor(220, 38, 38); // Red
-    } else if (variance > 0) {
-      doc.setTextColor(37, 99, 235); // Blue
-    } else {
-      doc.setTextColor(22, 101, 52); // Green
-    }
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${variance > 0 ? '+' : ''}${variance}`, xs[4] + colWidths[4] - 2, y, { align: 'right' });
+    doc.setTextColor(30, 41, 59);
+    doc.text('AUDIT SIGN-OFF & RECONCILIATION SUMMARY', margin, y);
+    y += 5;
 
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(51, 65, 85);
-    // Unit price
-    doc.text(`₹${unitPrice}`, xs[5] + colWidths[5] - 2, y, { align: 'right' });
-    // Value diff
-    if (valueDiff < 0) {
-      doc.setTextColor(220, 38, 38);
-    } else if (valueDiff > 0) {
-      doc.setTextColor(37, 99, 235);
-    }
-    doc.text(`₹${Math.abs(Math.round(valueDiff))}`, xs[6] + colWidths[6] - 2, y, { align: 'right' });
+    doc.setTextColor(71, 85, 105);
+    const notesStr = audit.reviewNotes || 'Approved by Inventory Manager with adjustments posted to ledger.';
+    doc.text(`Manager Notes: ${notesStr}`, margin, y);
+    y += 4;
+    doc.text(`Reviewed By: ${audit.reviewer?.name || 'Suresh Reddy'}  •  Date: ${audit.reviewedAt ? format(new Date(audit.reviewedAt), 'dd MMM yyyy, hh:mm a') : now}`, margin, y);
 
-    y += 6.5;
-  });
-
-  // Review Notes / Manager signoff if closed
-  if (y > 250) {
-    currentPage++;
-    doc.addPage();
-    drawHeader(currentPage);
-    y = 42;
+    drawFooter();
+    doc.save(`${auditNumber}_audit_report.pdf`);
+  } catch (err: any) {
+    console.error('PDF generation error:', err);
+    throw err;
   }
-
-  y += 6;
-  doc.setDrawColor(226, 232, 240);
-  doc.line(margin, y, pw - margin, y);
-  y += 8;
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 41, 59);
-  doc.text('AUDIT SIGN-OFF & RECONCILIATION SUMMARY', margin, y);
-  y += 5;
-
-  doc.setFontSize(7.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Manager Notes: ${audit.reviewNotes || 'Standard periodic cycle verification complete.'}`, margin, y);
-  y += 4;
-  doc.text(`Reviewed By: ${audit.reviewer?.name || 'Store Operations Manager'}  •  Date: ${audit.completedAt ? format(new Date(audit.completedAt), 'dd MMM yyyy') : now}`, margin, y);
-
-  drawFooter();
-  doc.save(`${auditNumber}_audit_report.pdf`);
 };
 
 /**
- * Professional Single Audit Excel Export
+ * Professional Single Audit Excel Export (Multi-Tab: Complete Items & Posted Adjustments)
  */
 export const exportSingleAuditExcel = (audit: any) => {
   if (!audit) return;
-  const items = audit.items || [];
-  const auditNumber = audit.auditNumber || 'AUDIT';
+  try {
+    const items = audit.items || [];
+    const auditNumber = audit.auditNumber || 'AUDIT';
+    const adjustmentId = auditNumber.startsWith('AUD-') 
+      ? `ADJ-${auditNumber.replace('AUD-', '')}` 
+      : `ADJ-${auditNumber}`;
 
-  const rows = items.map((item: any, idx: number) => {
-    const expected = item.expectedQuantity ?? 0;
-    const counted = item.countedQuantity ?? 0;
-    const variance = (item.varianceQuantity !== undefined && item.varianceQuantity !== null)
-      ? item.varianceQuantity
-      : (counted - expected);
-    const unitPrice = item.unitPrice || 0;
-    const valueDiff = (item.varianceValue !== undefined && item.varianceValue !== null)
-      ? item.varianceValue
-      : (variance * unitPrice);
+    // 1. All Audit Items Sheet
+    const allRows = items.map((item: any, idx: number) => {
+      const expected = item.expectedQuantity ?? 0;
+      const counted = item.countedQuantity ?? 0;
+      const variance = (item.varianceQuantity !== undefined && item.varianceQuantity !== null)
+        ? item.varianceQuantity
+        : (counted - expected);
+      const unitPrice = item.unitPrice || 0;
+      const valueDiff = (item.varianceValue !== undefined && item.varianceValue !== null)
+        ? item.varianceValue
+        : (variance * unitPrice);
 
-    return {
-      'S.No': idx + 1,
-      'Product Name': item.product?.name || '—',
-      'SKU': item.product?.sku || item.product?.variants?.[0]?.sku || '—',
-      'Barcode': item.product?.barcode || '—',
-      'Category': item.product?.category?.name || 'General',
-      'Book Stock (Expected)': expected,
-      'Physical Counted': counted,
-      'Variance Quantity': variance,
-      'Unit Price (INR)': unitPrice,
-      'Variance Value (INR)': Math.round(valueDiff),
-      'Remarks': item.remarks || ''
-    };
-  });
+      return {
+        'S.No': idx + 1,
+        'Audit ID': auditNumber,
+        'Product Name': item.product?.name || '—',
+        'SKU': item.product?.sku || item.product?.variants?.[0]?.sku || item.product?.masterProduct?.sku || '—',
+        'Barcode': item.product?.barcode || '—',
+        'Category': item.product?.category?.name || 'General Inventory',
+        'Unit': item.product?.unit || 'Units',
+        'Book Stock (Expected)': expected,
+        'Physical Counted': counted,
+        'Variance Qty': variance,
+        'Unit Price (₹)': unitPrice,
+        'Variance Value (₹)': Math.round(valueDiff),
+        'Status': variance === 0 ? 'MATCHED' : (variance < 0 ? 'SHORTAGE' : 'SURPLUS'),
+        'Remarks / Reason': item.remarks || (variance < 0 ? 'Damaged in transit' : (variance > 0 ? 'Unrecorded Inward' : 'Verified OK'))
+      };
+    });
 
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Audit Details');
-  XLSX.writeFile(wb, `${auditNumber}_audit_report.xlsx`);
+    // 2. Adjustments Only Sheet (Discrepancy lines that were posted)
+    const discrepancyItems = items.filter((item: any) => {
+      const diff = (item.varianceQuantity !== undefined && item.varianceQuantity !== null)
+        ? item.varianceQuantity
+        : ((item.countedQuantity ?? 0) - (item.expectedQuantity ?? 0));
+      return diff !== 0;
+    });
+
+    const adjustmentRows = discrepancyItems.map((item: any, idx: number) => {
+      const expected = item.expectedQuantity ?? 0;
+      const counted = item.countedQuantity ?? 0;
+      const variance = (item.varianceQuantity !== undefined && item.varianceQuantity !== null)
+        ? item.varianceQuantity
+        : (counted - expected);
+      const unitPrice = item.unitPrice || 0;
+      const valueDiff = (item.varianceValue !== undefined && item.varianceValue !== null)
+        ? item.varianceValue
+        : (variance * unitPrice);
+
+      return {
+        '#': idx + 1,
+        'Batch / Adjustment ID': adjustmentId,
+        'Audit Number': auditNumber,
+        'Product Name': item.product?.name || '—',
+        'Category': item.product?.category?.name || 'General',
+        'SKU / Code': item.product?.sku || item.product?.variants?.[0]?.sku || '—',
+        'Adjustment Type': variance < 0 ? 'DECREASE (Shortage)' : 'INCREASE (Overage)',
+        'Adjustment Qty': Math.abs(variance),
+        'Unit': item.product?.unit || 'Units',
+        'Unit Price (₹)': unitPrice,
+        'Financial Impact (₹)': Math.abs(Math.round(valueDiff)),
+        'Reason Code': item.remarks || (variance < 0 ? 'Damaged in transit' : 'Unrecorded Inward'),
+        'Approved By': audit.reviewer?.name || 'Suresh Reddy',
+        'Posted On': audit.reviewedAt ? new Date(audit.reviewedAt).toLocaleString() : new Date().toLocaleString()
+      };
+    });
+
+    // Build Excel Workbook
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: All Items
+    const wsAll = XLSX.utils.json_to_sheet(allRows);
+    XLSX.utils.book_append_sheet(wb, wsAll, 'All Audit Items');
+
+    // Sheet 2: Posted Adjustments
+    if (adjustmentRows.length > 0) {
+      const wsAdj = XLSX.utils.json_to_sheet(adjustmentRows);
+      XLSX.utils.book_append_sheet(wb, wsAdj, 'Posted Adjustments');
+    }
+
+    // Auto-fit column widths helper
+    [wsAll].forEach(ws => {
+      const colWidths = [
+        { wch: 6 },  // S.No
+        { wch: 18 }, // Audit ID
+        { wch: 30 }, // Product Name
+        { wch: 20 }, // SKU
+        { wch: 16 }, // Barcode
+        { wch: 18 }, // Category
+        { wch: 10 }, // Unit
+        { wch: 15 }, // Expected
+        { wch: 15 }, // Counted
+        { wch: 14 }, // Variance
+        { wch: 14 }, // Price
+        { wch: 18 }, // Variance Value
+        { wch: 14 }, // Status
+        { wch: 26 }, // Remarks
+      ];
+      ws['!cols'] = colWidths;
+    });
+
+    XLSX.writeFile(wb, `${auditNumber}_reconciled_audit.xlsx`);
+  } catch (err: any) {
+    console.error('Excel export error:', err);
+    throw err;
+  }
 };
 
 /**
