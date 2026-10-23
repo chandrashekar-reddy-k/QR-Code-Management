@@ -161,7 +161,15 @@ export function useSalesQuery(
     queryFn: async () => {
       const params: Record<string, any> = { limit: 50000 };
       if (storeFilterId) params.storeId = storeFilterId;
-      const todayStr = new Date().toISOString().split('T')[0];
+
+      const formatLocalDate = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const todayStr = formatLocalDate(new Date());
 
       if (filterDate === 'Today') {
         params.fromDate = todayStr;
@@ -169,18 +177,17 @@ export function useSalesQuery(
       } else if (filterDate === 'Yesterday') {
         const d = new Date();
         d.setDate(d.getDate() - 1);
-        const yestStr = d.toISOString().split('T')[0];
+        const yestStr = formatLocalDate(d);
         params.fromDate = yestStr;
         params.toDate = yestStr;
       } else if (filterDate === 'Last 7 Days' || filterDate === 'This Week') {
         const d = new Date();
         d.setDate(d.getDate() - 7);
-        params.fromDate = d.toISOString().split('T')[0];
+        params.fromDate = formatLocalDate(d);
         params.toDate = todayStr;
       } else if (filterDate === 'This Month') {
-        const d = new Date();
-        d.setDate(1);
-        params.fromDate = d.toISOString().split('T')[0];
+        const d = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        params.fromDate = formatLocalDate(d);
         params.toDate = todayStr;
       } else if (filterDate === 'Custom' || filterDate === 'Custom Range') {
         if (customStartDate) params.fromDate = customStartDate;

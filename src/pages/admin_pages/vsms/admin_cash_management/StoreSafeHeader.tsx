@@ -531,9 +531,20 @@ const StoreSafeHeader = ({
                     setSafeMovementData({ amount: '', type: 'DEPOSIT', description: '', denominations: { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 2: 0, 1: 0 } });
                     setShowSafeMovementModal(true);
                   }}
-                  className="bg-[#0e8345] hover:bg-[#0c6f3a] text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                  className="bg-[#0e8345] hover:bg-[#0c6f3a] text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   Move to Safe
+                </button>
+              )}
+              {can('CASH', 'CREATE', 'SAFE_CONTROL') && (
+                <button
+                  onClick={() => {
+                    setSafeMovementData({ amount: '', type: 'WITHDRAW', description: '', denominations: { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, 5: 0, 2: 0, 1: 0 } });
+                    setShowSafeMovementModal(true);
+                  }}
+                  className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-800 px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-xs active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Bring to Counter
                 </button>
               )}
             </div>

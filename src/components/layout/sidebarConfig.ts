@@ -19,6 +19,7 @@ import {
   Radio,
   Boxes,
   ClipboardList,
+  ClipboardCheck,
   Wallet,
   DollarSign,
   Sliders,
@@ -384,6 +385,11 @@ export const sidebarConfig: MenuSection[] = [
         path: "/inventory/vehicle",
         label: "Vehicle Stock Management",
         icon: Truck,
+      },
+      {
+        path: "/inventory/audits",
+        label: "Hub & Section Audits",
+        icon: ClipboardCheck,
       },
       {
         path: "/vsms/stock-history",

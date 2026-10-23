@@ -139,6 +139,18 @@ const PosStockManagement = lazy(
 const VehicleStockManagement = lazy(
   () => import("../pages/admin_pages/products/VehicleStockManagement")
 );
+
+// Centralized Inventory Audit Module
+const AuditDashboard = lazy(
+  () => import("../pages/admin_pages/inventory/audit/AuditDashboard")
+);
+const ConductAudit = lazy(
+  () => import("../pages/admin_pages/inventory/audit/ConductAudit")
+);
+const AuditReviewApproval = lazy(
+  () => import("../pages/admin_pages/inventory/audit/AuditReviewApproval")
+);
+
 const AddProduct = lazy(
   () => import("../pages/admin_pages/products/AddProducts")
 );
@@ -668,6 +680,7 @@ const SuccessScreen = lazy(() => import("../pages/admin_pages/vsms/agent/Success
 const OpeningCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/OpeningCashEntry"));
 const ClosingCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/ClosingCashEntry"));
 const AgentStockTransfer = lazy(() => import("../pages/admin_pages/vsms/agent/AgentStockTransfer"));
+const RouteAppOrders = lazy(() => import("../pages/admin_pages/vsms/agent/RouteAppOrders"));
 
 
 const PublicInvoiceView = lazy(() => import("../pages/public_pages/PublicInvoiceView"));
@@ -1509,6 +1522,21 @@ export const protectedRoutes: RouteConfig[] = [
     requiresAuth: true,
   },
   {
+    path: "/inventory/audits",
+    component: AuditDashboard,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/audits/:id/conduct",
+    component: ConductAudit,
+    requiresAuth: true,
+  },
+  {
+    path: "/inventory/audits/:id/review",
+    component: AuditReviewApproval,
+    requiresAuth: true,
+  },
+  {
     path: "/inventory/raw/configure",
     component: ConfigureStock,
     requiresAuth: true,
@@ -2075,6 +2103,21 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/agent-portal/sales",
     component: () => <AgentPortalLayout><SalesEntry /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/route-orders",
+    component: () => <AgentPortalLayout><RouteAppOrders /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/route-orders/processed",
+    component: () => <AgentPortalLayout><RouteAppOrders /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/app-orders",
+    component: () => <AgentPortalLayout><RouteAppOrders /></AgentPortalLayout>,
     requiresAuth: true,
   },
   {
