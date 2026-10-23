@@ -680,6 +680,7 @@ const SuccessScreen = lazy(() => import("../pages/admin_pages/vsms/agent/Success
 const OpeningCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/OpeningCashEntry"));
 const ClosingCashEntry = lazy(() => import("../pages/admin_pages/vsms/agent/ClosingCashEntry"));
 const AgentStockTransfer = lazy(() => import("../pages/admin_pages/vsms/agent/AgentStockTransfer"));
+const RouteAppOrders = lazy(() => import("../pages/admin_pages/vsms/agent/RouteAppOrders"));
 
 
 const PublicInvoiceView = lazy(() => import("../pages/public_pages/PublicInvoiceView"));
@@ -2102,6 +2103,21 @@ export const protectedRoutes: RouteConfig[] = [
   {
     path: "/vsms/agent-portal/sales",
     component: () => <AgentPortalLayout><SalesEntry /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/route-orders",
+    component: () => <AgentPortalLayout><RouteAppOrders /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/route-orders/processed",
+    component: () => <AgentPortalLayout><RouteAppOrders /></AgentPortalLayout>,
+    requiresAuth: true,
+  },
+  {
+    path: "/vsms/agent-portal/app-orders",
+    component: () => <AgentPortalLayout><RouteAppOrders /></AgentPortalLayout>,
     requiresAuth: true,
   },
   {
