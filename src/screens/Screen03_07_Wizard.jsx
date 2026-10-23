@@ -454,7 +454,7 @@ export const Screen03_07_Wizard = () => {
           STEP 3 (Screen 05): Design Studio (Three-Panel Layout)
           ========================================================================= */}
       {wizardStep === 3 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr 280px', gap: '20px' }}>
+        <div className="design-studio-grid">
           {/* Panel 1: Design Controls */}
           <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>

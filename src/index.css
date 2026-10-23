@@ -642,7 +642,7 @@ button, input, select, textarea {
   background-color: #F9FAFB;
 }
 
-/* Grid Utilities */
+/* Grid Utilities & Responsive Layouts */
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -659,6 +659,94 @@ button, input, select, textarea {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+}
+
+@media (max-width: 1280px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-4, .grid-3, .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Three-Panel Design Studio Grid (Adapts to screen size) */
+.design-studio-grid {
+  display: grid;
+  grid-template-columns: 290px minmax(320px, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+}
+
+@media (max-width: 1320px) {
+  .design-studio-grid {
+    grid-template-columns: 280px 1fr;
+  }
+  .design-studio-grid > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 920px) {
+  .design-studio-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tabs Navigation & Button Styles */
+.tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 2px solid #E5E7EB;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: none;
+  background: transparent;
+  color: #4B5563;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--trans-fast);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--color-primary);
+  background-color: #F9FAFB;
+}
+
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 700;
 }
 
 /* KPI StatCard (VillagKart / Packer Style) */

@@ -174,7 +174,7 @@ export const Screen08_Details = () => {
           </div>
 
           {/* Core Info */}
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#111827', margin: 0 }}>
                 {qr.name}
@@ -223,12 +223,12 @@ export const Screen08_Details = () => {
         {/* 6 Detail Tabs */}
         <div className="tabs-nav" style={{ marginTop: '24px', marginBottom: 0 }}>
           {[
-            { id: 'overview', label: '1. Overview & Performance' },
-            { id: 'destinations', label: '2. Destinations & Versions' },
-            { id: 'assets', label: '3. Generated Assets & Print' },
-            { id: 'history', label: `4. Scan History (${qrEvents.length})` },
-            { id: 'analytics', label: '5. Analytics Breakdown' },
-            { id: 'audit', label: `6. Audit Log (${qrAudit.length})` },
+            { id: 'overview', label: 'Overview & Performance' },
+            { id: 'destinations', label: 'Destinations & Routing' },
+            { id: 'assets', label: 'Assets & Print Specs' },
+            { id: 'history', label: `Scan History (${qrEvents.length})` },
+            { id: 'analytics', label: 'Analytics Breakdown' },
+            { id: 'audit', label: `Audit Trail (${qrAudit.length})` },
           ].map((tab) => (
             <button
               key={tab.id}

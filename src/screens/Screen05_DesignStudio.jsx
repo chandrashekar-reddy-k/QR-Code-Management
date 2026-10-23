@@ -230,8 +230,8 @@ export const Screen05_DesignStudio = () => {
         </div>
       </div>
 
-      {/* Three-Panel Desktop Workspace Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr 340px', gap: '18px', alignItems: 'start' }}>
+      {/* Three-Panel Desktop Workspace Layout (Responsive) */}
+      <div className="design-studio-grid">
         
         {/* PANEL 1: Design Controls & Brand Guidelines */}
         <div className="vk-card" style={{ padding: '16px' }}>
@@ -509,7 +509,7 @@ export const Screen05_DesignStudio = () => {
             <button
               onClick={() => setExportTab('print')}
               className={`btn btn-sm ${exportTab === 'print' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ flex: 1, fontSize: '12px' }}
+              style={{ flex: 1, fontSize: '11.5px', padding: '6px 6px' }}
             >
               <Printer size={13} />
               Print Assets
@@ -517,7 +517,7 @@ export const Screen05_DesignStudio = () => {
             <button
               onClick={() => setExportTab('digital')}
               className={`btn btn-sm ${exportTab === 'digital' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ flex: 1, fontSize: '12px' }}
+              style={{ flex: 1, fontSize: '11.5px', padding: '6px 6px' }}
             >
               <Share2 size={13} />
               Digital Assets

@@ -75,7 +75,7 @@ export const QRProvider = ({ children }) => {
     routingBehavior: 'auto',
     // Step 3 Design Studio
     template: 'VillagKart Branded',
-    fgColor: '#176B45',
+    fgColor: '#00891D',
     bgColor: '#FFFFFF',
     showLogo: true,
     hasCtaFrame: true,
