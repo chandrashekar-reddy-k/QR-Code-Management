@@ -10,14 +10,17 @@ export interface DeliverySettingItem {
   isEnabled: boolean;
   label: string;
   deliveryCharge: number;
+  freeDeliveryThreshold?: number | null;
 }
 
 export interface DeliveryTypesData {
   expressSettingsEnabled: boolean;
   expressSettingsCharge: number;
+  expressFreeDeliveryThreshold?: number | null;
   selfPickupEnabled: boolean;
   scheduledDeliveryEnabled: boolean;
   scheduledDeliveryCharge: number;
+  scheduledFreeDeliveryThreshold?: number | null;
 }
 
 interface GetDeliveryTypesResponse {
@@ -60,9 +63,11 @@ const useUpdateDeliveryTypes = () => {
     mutationFn: (payload: {
       expressSettingsEnabled: boolean;
       expressSettingsCharge?: number;
+      expressFreeDeliveryThreshold?: number | null;
       selfPickupEnabled: boolean;
       scheduledDeliveryEnabled: boolean;
       scheduledDeliveryCharge?: number;
+      scheduledFreeDeliveryThreshold?: number | null;
     }) => {
       // Transform to API payload format matching the exact structure
       const apiPayload: UpdateDeliveryTypesPayload = {
@@ -71,16 +76,25 @@ const useUpdateDeliveryTypes = () => {
             isEnabled: payload.expressSettingsEnabled,
             label: "Express Settings",
             deliveryCharge: payload.expressSettingsCharge ?? 0,
+            freeDeliveryThreshold:
+              payload.expressFreeDeliveryThreshold !== undefined
+                ? payload.expressFreeDeliveryThreshold
+                : null,
           },
           {
             isEnabled: payload.scheduledDeliveryEnabled,
             label: "Scheduled Delivery",
             deliveryCharge: payload.scheduledDeliveryCharge ?? 0,
+            freeDeliveryThreshold:
+              payload.scheduledFreeDeliveryThreshold !== undefined
+                ? payload.scheduledFreeDeliveryThreshold
+                : null,
           },
           {
             isEnabled: payload.selfPickupEnabled,
             label: "Self Pickup",
             deliveryCharge: 0,
+            freeDeliveryThreshold: null,
           },
         ],
       };

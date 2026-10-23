@@ -33,7 +33,17 @@ const Sidebar = ({ isOpen = true, setIsOpen }: SidebarProps) => {
       if (!token) return;
       const baseUrl = (import.meta.env.VITE_IDENTITY_SERVICE_URL || "https://identity.villagkart.com").replace(/\/+$/, '');
       const res = await fetch(`${baseUrl}/api/v1/auth/me?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem('partnerToken');
+          localStorage.removeItem('token');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('staffToken');
+          sessionStorage.removeItem('staffToken');
+          localStorage.removeItem('permissions');
+        }
+        return;
+      }
       const data = await res.json();
       if (data.data?.accessToken) {
         localStorage.setItem('partnerToken', data.data.accessToken);
