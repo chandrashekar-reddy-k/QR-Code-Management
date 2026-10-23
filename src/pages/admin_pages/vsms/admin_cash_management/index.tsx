@@ -776,6 +776,7 @@ export default function AdminCashManagementContent() {
             setShowBankModal(false);
             fetchStoreRegister();
           }}
+          storeRegisterData={storeRegisterData}
           date={date}
           storeFilterId={storeFilterId}
         />
@@ -787,6 +788,7 @@ export default function AdminCashManagementContent() {
             setShowSafeMovementModal(false);
             fetchStoreRegister();
           }}
+          initialMovementType={safeMovementData.type === 'WITHDRAW' ? 'WITHDRAW_TO_COUNTER' : 'DEPOSIT_TO_SAFE'}
           storeRegisterData={storeRegisterData}
           date={date}
           storeFilterId={storeFilterId}

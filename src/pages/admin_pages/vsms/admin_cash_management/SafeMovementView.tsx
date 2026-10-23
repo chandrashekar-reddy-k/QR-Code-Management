@@ -12,11 +12,12 @@ export default function SafeMovementView({
   onBack, 
   onClose, 
   onSuccess,
+  initialMovementType = 'DEPOSIT_TO_SAFE',
   storeRegisterData: propsStoreRegisterData, 
   date = format(new Date(), 'yyyy-MM-dd'),
   storeFilterId 
 }) {
-  const [movementType, setMovementType] = useState('DEPOSIT_TO_SAFE'); // 'DEPOSIT_TO_SAFE' or 'WITHDRAW_TO_COUNTER'
+  const [movementType, setMovementType] = useState(initialMovementType); // 'DEPOSIT_TO_SAFE' or 'WITHDRAW_TO_COUNTER'
   const [storeRegisterData, setStoreRegisterData] = useState(propsStoreRegisterData || null);
   const [loadingRegister, setLoadingRegister] = useState(!propsStoreRegisterData);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +51,12 @@ export default function SafeMovementView({
   };
 
   useEffect(() => {
+    if (initialMovementType) {
+      setMovementType(initialMovementType);
+    }
+  }, [initialMovementType]);
+
+  useEffect(() => {
     if (!propsStoreRegisterData) {
       fetchRegister();
     } else {
@@ -58,8 +65,8 @@ export default function SafeMovementView({
   }, [propsStoreRegisterData, date, storeFilterId]);
 
   // Metric balances
-  const availableCounterCash = storeRegisterData?.liveMetrics?.availableCash || 0;
-  const inSafeCash = storeRegisterData?.liveMetrics?.safeTotal || 0;
+  const availableCounterCash = Math.max(0, storeRegisterData?.liveMetrics?.availableCash || 0);
+  const inSafeCash = Math.max(0, (storeRegisterData?.liveMetrics?.safeBalance ?? storeRegisterData?.liveMetrics?.safeTotal) || 0);
 
   // Calculate total movement amount dynamically from denominations
   const totalMovement = Object.entries(denominations).reduce((sum, [denom, count]) => {
@@ -67,7 +74,7 @@ export default function SafeMovementView({
   }, 0);
 
   const handleDenomChange = (val, denom) => {
-    const qty = Math.max(0, parseInt(val) || 0);
+    const qty = val === '' ? 0 : Math.max(0, parseInt(val, 10) || 0);
     setDenominations(prev => ({
       ...prev,
       [denom]: qty
@@ -81,22 +88,25 @@ export default function SafeMovementView({
     }
 
     if (movementType === 'DEPOSIT_TO_SAFE' && totalMovement > availableCounterCash + 0.01) {
-      toast.error('Movement amount cannot exceed available counter cash');
+      toast.error(`Movement amount cannot exceed available counter cash (₹${availableCounterCash.toFixed(2)})`);
       return;
     }
 
     if (movementType === 'WITHDRAW_TO_COUNTER' && totalMovement > inSafeCash + 0.01) {
-      toast.error('Movement amount cannot exceed available safe cash');
+      toast.error(`Movement amount cannot exceed available safe cash (₹${inSafeCash.toFixed(2)})`);
       return;
     }
 
     setIsSubmitting(true);
     try {
+      // Map UI movement type to backend expected type: 'DEPOSIT' or 'WITHDRAW'
+      const backendType = (movementType === 'DEPOSIT_TO_SAFE' || movementType === 'DEPOSIT') ? 'DEPOSIT' : 'WITHDRAW';
+      
       await createSafeMovement({
         date,
         amount: totalMovement,
-        type: movementType,
-        description: description || (movementType === 'DEPOSIT_TO_SAFE' ? 'Move to Safe' : 'Bring to Counter'),
+        type: backendType,
+        description: description || (backendType === 'DEPOSIT' ? 'Move to Safe' : 'Bring to Counter'),
         denominations,
         storeId: storeFilterId
       });
@@ -137,34 +147,28 @@ export default function SafeMovementView({
       {/* Main Form Card Container */}
       <div className="bg-white rounded-3xl border border-gray-200/80 p-6 md:p-8 shadow-xs space-y-6">
         {/* Direction Segmented Control */}
-        <div className="inline-flex bg-white border border-gray-200 rounded-2xl p-1 shadow-2xs">
+        <div className="inline-flex bg-gray-100 p-1.5 rounded-2xl gap-1">
           <button
             type="button"
             onClick={() => setMovementType('DEPOSIT_TO_SAFE')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all relative cursor-pointer ${
+            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               movementType === 'DEPOSIT_TO_SAFE'
-                ? 'text-[#0e8345] bg-white'
-                : 'text-gray-400 hover:text-gray-600'
+                ? 'bg-white text-[#0e8345] shadow-sm'
+                : 'text-gray-500 hover:text-gray-800'
             }`}
           >
             Move to Safe
-            {movementType === 'DEPOSIT_TO_SAFE' && (
-              <div className="absolute bottom-1 left-4 right-4 h-0.5 bg-[#0e8345] rounded-full" />
-            )}
           </button>
           <button
             type="button"
             onClick={() => setMovementType('WITHDRAW_TO_COUNTER')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all relative cursor-pointer ${
+            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               movementType === 'WITHDRAW_TO_COUNTER'
-                ? 'text-[#0e8345] bg-white'
-                : 'text-gray-400 hover:text-gray-600'
+                ? 'bg-white text-[#0e8345] shadow-sm'
+                : 'text-gray-500 hover:text-gray-800'
             }`}
           >
             Bring to Counter
-            {movementType === 'WITHDRAW_TO_COUNTER' && (
-              <div className="absolute bottom-1 left-4 right-4 h-0.5 bg-[#0e8345] rounded-full" />
-            )}
           </button>
         </div>
 
@@ -193,7 +197,8 @@ export default function SafeMovementView({
                         <input
                           type="number"
                           min="0"
-                          value={denominations[denom] !== undefined ? denominations[denom] : 0}
+                          value={denominations[denom] || ''}
+                          placeholder="0"
                           onChange={(e) => handleDenomChange(e.target.value, denom)}
                           className="w-28 text-center bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                         />
@@ -251,10 +256,21 @@ export default function SafeMovementView({
             <button
               type="button"
               onClick={handleConfirmMovement}
-              disabled={isSubmitting || totalMovement <= 0}
-              className="px-8 py-3 bg-[#0e8345] hover:bg-[#0c6f3a] text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              disabled={
+                isSubmitting || 
+                totalMovement <= 0 || 
+                (movementType === 'DEPOSIT_TO_SAFE' && totalMovement > availableCounterCash + 0.01) ||
+                (movementType === 'WITHDRAW_TO_COUNTER' && totalMovement > inSafeCash + 0.01)
+              }
+              className="px-8 py-3 bg-[#0e8345] hover:bg-[#0c6f3a] text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Confirm & Move'}
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : movementType === 'WITHDRAW_TO_COUNTER' ? (
+                'Bring to Counter'
+              ) : (
+                'Confirm & Move to Safe'
+              )}
             </button>
           </div>
         </div>

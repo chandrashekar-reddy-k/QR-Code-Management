@@ -11,17 +11,21 @@ export default function BankDepositView({
   onBack, 
   onClose, 
   onSuccess,
+  storeRegisterData,
   date = format(new Date(), 'yyyy-MM-dd'),
   storeFilterId 
 }) {
   const user = useUserStore(s => s.user);
   const [amount, setAmount] = useState('');
   const [branchName, setBranchName] = useState('');
-  const [depositedBy, setDepositedBy] = useState(user?.name || 'Admin');
-  const [verifiedBy, setVerifiedBy] = useState(user?.name || 'Admin User');
+  const [depositedBy, setDepositedBy] = useState(user?.name || user?.fullName || 'Suresh Reddy');
+  const [verifiedBy, setVerifiedBy] = useState(user?.name || user?.fullName || 'Suresh Reddy');
   const [receiptImage, setReceiptImage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Available in safe cash
+  const safeBalance = Math.max(0, storeRegisterData?.liveMetrics?.safeBalance || 0);
 
   const handleBack = () => {
     if (onBack) onBack();
@@ -62,6 +66,11 @@ export default function BankDepositView({
       return;
     }
 
+    if (numAmount > safeBalance) {
+      toast.error(`Transfer amount exceeds Available Safe Cash (Max: ₹${safeBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })})`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await addBankDeposit({
@@ -75,7 +84,7 @@ export default function BankDepositView({
         storeId: storeFilterId
       });
 
-      toast.success('Bank deposit created successfully!');
+      toast.success('Bank deposit created successfully from safe!');
       if (onSuccess) onSuccess();
       else handleBack();
     } catch (err) {
@@ -106,20 +115,56 @@ export default function BankDepositView({
 
       {/* Main Form Card Container */}
       <div className="bg-white rounded-3xl border border-gray-200/80 p-6 md:p-8 shadow-xs space-y-6">
+        
+        {/* Safe Balance Info Banner */}
+        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#0e8345] text-white flex items-center justify-center font-bold shadow-xs">
+              ₹
+            </div>
+            <div>
+              <p className="text-xs font-bold text-emerald-950 uppercase tracking-wide">Available Safe Balance</p>
+              <p className="text-xs text-emerald-700 font-medium mt-0.5">
+                Bank transfers can only be processed from available safe funds
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-xl sm:text-2xl font-black text-[#0e8345] tabular-nums">
+              ₹{safeBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
         {/* Form Inputs Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Amount to Transfer */}
           <div>
-            <label className="block text-xs font-bold text-gray-900 mb-2">Amount to Transfer</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-gray-900">Amount to Transfer</label>
+              <span className="text-[10px] font-semibold text-gray-400">
+                Max: ₹{safeBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
             <input
               type="number"
               min="0"
+              max={safeBalance}
               step="any"
               placeholder="₹0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-xs font-semibold text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-2xs placeholder:text-gray-400"
+              className={`w-full bg-white border rounded-2xl px-4 py-3.5 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 transition-all shadow-2xs placeholder:text-gray-400 ${
+                parseFloat(amount) > safeBalance
+                  ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 text-rose-600'
+                  : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20'
+              }`}
             />
+            {parseFloat(amount) > safeBalance && (
+              <p className="text-[11px] text-rose-600 font-bold mt-1.5 flex items-center gap-1">
+                ⚠️ Transfer amount exceeds available safe balance (₹{safeBalance.toFixed(2)})
+              </p>
+            )}
           </div>
 
           {/* Branch to Transfer */}
@@ -198,8 +243,8 @@ export default function BankDepositView({
           <button
             type="button"
             onClick={handleConfirmTransfer}
-            disabled={isSubmitting || uploading || !amount || parseFloat(amount) <= 0}
-            className="px-8 py-3 bg-[#0e8345] hover:bg-[#0c6f3a] text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+            disabled={isSubmitting || uploading || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > safeBalance || safeBalance <= 0}
+            className="px-8 py-3 bg-[#0e8345] hover:bg-[#0c6f3a] text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
           >
             {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Confirm Bank Transfer'}
           </button>
