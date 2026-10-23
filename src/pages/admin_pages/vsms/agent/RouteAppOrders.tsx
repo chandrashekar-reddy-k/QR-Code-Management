@@ -4,7 +4,7 @@ import {
   Package, MapPin, Phone, Clock, Loader2, RefreshCw, 
   Search, ChevronRight, ShoppingBag, User, CheckCircle2, 
   Smartphone, Navigation, Calendar, X, AlertCircle, ArrowRight,
-  Eye, Truck, Check, Store, ShieldAlert
+  Eye, Truck, Check, Store, ShieldAlert, Bell
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -30,6 +30,8 @@ export default function RouteAppOrders() {
   // Modals & Action loading
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [deliveryPromptOrder, setDeliveryPromptOrder] = useState<any | null>(null);
+  const [isPaymentCollectedChoice, setIsPaymentCollectedChoice] = useState<boolean>(true);
 
   // Sync tab with URL search parameter
   const switchTab = (tab: 'app_orders' | 'processed') => {
@@ -76,15 +78,21 @@ export default function RouteAppOrders() {
     fetchOrders();
   }, [fetchOrders]);
 
-  const handleStatusTransition = async (orderId: string, nextStatus: string) => {
+  const handleStatusTransition = async (orderId: string, nextStatus: string, paymentCollected?: boolean) => {
     setActionLoadingId(orderId);
     try {
-      const res = await updateAgentOrderStatus(orderId, nextStatus);
+      const res = await updateAgentOrderStatus(orderId, nextStatus, undefined, paymentCollected);
       if (res.success) {
         toast.success(res.message || `Order updated to ${nextStatus}`);
         if (selectedOrder?.id === orderId) {
-          setSelectedOrder(prev => prev ? { ...prev, status: nextStatus } : null);
+          setSelectedOrder(prev => prev ? { 
+            ...prev, 
+            status: nextStatus,
+            codCollected: paymentCollected ?? prev.codCollected,
+            paymentStatus: paymentCollected ? 'SUCCESS' : (paymentCollected === false ? 'PENDING' : prev.paymentStatus)
+          } : null);
         }
+        setDeliveryPromptOrder(null);
         await fetchOrders(true);
       } else {
         toast.error(res.message || 'Status update failed');
@@ -94,6 +102,15 @@ export default function RouteAppOrders() {
       toast.error(err?.response?.data?.message || 'Failed to update order status');
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const triggerAction = (order: any, act: any) => {
+    if (['COMPLETED', 'DELIVERED'].includes(act.action)) {
+      setDeliveryPromptOrder(order);
+      setIsPaymentCollectedChoice(order.paymentMethod === 'COD');
+    } else {
+      handleStatusTransition(order.id, act.action);
     }
   };
 
@@ -270,6 +287,31 @@ export default function RouteAppOrders() {
         </div>
       </div>
 
+      {/* 4.5 Vehicle Agent Alert Banner for New Incoming Orders */}
+      {orders.some((o) => o.status === 'PLACED') && (
+        <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-400 dark:border-amber-600 flex items-center justify-between gap-3 shadow-md animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-lg shrink-0">
+              <Bell size={20} className="animate-bounce" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-amber-950 dark:text-amber-200">
+                New Customer App Orders Waiting!
+              </h4>
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                You have {orders.filter((o) => o.status === 'PLACED').length} new incoming order(s) for your vehicle. Please review and accept.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setStatusFilter('PLACED')}
+            className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black uppercase tracking-wider transition-colors shrink-0 shadow-sm"
+          >
+            View New
+          </button>
+        </div>
+      )}
+
       {/* 5. Order Cards List */}
       {loading ? (
         <div className="space-y-4">
@@ -313,7 +355,7 @@ export default function RouteAppOrders() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {getStatusBadge(order.status)}
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                       order.paymentMethod === 'COD'
@@ -321,6 +363,13 @@ export default function RouteAppOrders() {
                         : 'bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800'
                     }`}>
                       {order.paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'UPI Paid'}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      order.codCollected || order.paymentStatus === 'SUCCESS'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                        : 'bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                    }`}>
+                      {order.codCollected || order.paymentStatus === 'SUCCESS' ? 'Payment: Collected' : 'Payment: Pending'}
                     </span>
                   </div>
                 </div>
@@ -414,7 +463,7 @@ export default function RouteAppOrders() {
                         <button
                           key={act.action}
                           disabled={isActing}
-                          onClick={() => handleStatusTransition(order.id, act.action)}
+                          onClick={() => triggerAction(order, act)}
                           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-[0.98] disabled:opacity-50 ${btnStyle}`}
                         >
                           {isActing ? (
@@ -536,12 +585,115 @@ export default function RouteAppOrders() {
               {selectedOrder.allowedActions && selectedOrder.allowedActions.map((act) => (
                 <button
                   key={act.action}
-                  onClick={() => handleStatusTransition(selectedOrder.id, act.action)}
+                  onClick={() => triggerAction(selectedOrder, act)}
                   className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 shadow-md transition-all active:scale-95"
                 >
                   {act.label}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Delivered to Customer: Payment Collection Confirmation Modal */}
+      {deliveryPromptOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-gray-150 dark:border-slate-800 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center font-bold">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Deliver & Collect Payment
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Order #{deliveryPromptOrder.displayId}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeliveryPromptOrder(null)}
+                className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Customer</p>
+                <p className="font-bold text-xs text-slate-800 dark:text-white truncate max-w-[180px]">
+                  {deliveryPromptOrder.customer.name}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Amount Due</p>
+                <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                  ₹{deliveryPromptOrder.totalAmount}
+                </p>
+              </div>
+            </div>
+
+            {/* Payment Collected Control */}
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Payment Collected?
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentCollectedChoice(true)}
+                  className={`p-3 rounded-2xl border-2 text-center transition-all ${
+                    isPaymentCollectedChoice
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-black shadow-sm'
+                      : 'border-gray-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-gray-300 font-semibold'
+                  }`}
+                >
+                  <span className="block text-sm">✅ Yes</span>
+                  <span className="text-[10px] opacity-80">Payment Collected</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentCollectedChoice(false)}
+                  className={`p-3 rounded-2xl border-2 text-center transition-all ${
+                    !isPaymentCollectedChoice
+                      ? 'border-rose-500 bg-rose-50/70 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 font-black shadow-sm'
+                      : 'border-gray-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-gray-300 font-semibold'
+                  }`}
+                >
+                  <span className="block text-sm">❌ No</span>
+                  <span className="text-[10px] opacity-80">Pending Collection</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 pt-1">
+                Delivery completion does not automatically mark payment collected. Select 'Yes' only if cash/UPI was received.
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeliveryPromptOrder(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={actionLoadingId === deliveryPromptOrder.id}
+                onClick={() => handleStatusTransition(deliveryPromptOrder.id, 'COMPLETED', isPaymentCollectedChoice)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 disabled:opacity-50"
+              >
+                {actionLoadingId === deliveryPromptOrder.id ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Check size={14} strokeWidth={3} />
+                )}
+                <span>Confirm Delivery</span>
+              </button>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   FileDown, Search, Filter, ShoppingCart, Calendar, Truck, Download, ChevronRight, ChevronLeft, ChevronDown,
   Loader2, ArrowLeft, User, Smartphone, Shield, Coins, Package, Info, MapPin, Printer, Clock,
@@ -40,6 +40,60 @@ const calculateMargin = (item) => {
     return calculatedMargin > 0 ? calculatedMargin : totAmt * 0.20;
   }
   return totAmt * 0.20;
+};
+
+export const getOrderSourceClassification = (order) => {
+  if (!order) {
+    return {
+      source: 'POS',
+      label: 'POS',
+      badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      isAppOrder: false,
+      isVehicleOrder: false,
+      isPosOrder: true
+    };
+  }
+
+  const orderType = (order.orderType || '').toUpperCase();
+  const fulfillmentType = (order.fulfillmentType || '').toUpperCase();
+  const deliveryType = (order.deliveryType || '').toUpperCase();
+  const hasVehicle = Boolean(order.vehicleId || order.vehicle);
+
+  // Vehicle Orders: App-originated orders assigned to a vehicle and classified as vehicle fulfillment
+  const isVehicleFulfillment = fulfillmentType === 'VEHICLE_PICKUP' || deliveryType === 'PICKUP_AT_VEHICLE' || orderType === 'VEHICLE';
+
+  if (orderType === 'ONLINE' && isVehicleFulfillment && hasVehicle) {
+    return {
+      source: 'VEHICLE',
+      label: 'Vehicle App',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      isAppOrder: true,
+      isVehicleOrder: true,
+      isPosOrder: false
+    };
+  }
+
+  // App Orders: consumer application originated orders
+  if (orderType === 'ONLINE') {
+    return {
+      source: 'APP',
+      label: 'App',
+      badgeClass: 'bg-sky-50 text-sky-700 border-sky-200',
+      isAppOrder: true,
+      isVehicleOrder: false,
+      isPosOrder: false
+    };
+  }
+
+  // POS Sales: orders created directly by partner through POS sales workflow
+  return {
+    source: 'POS',
+    label: 'POS',
+    badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    isAppOrder: false,
+    isVehicleOrder: false,
+    isPosOrder: true
+  };
 };
 
 const containsUnicode = (str) => /[^\x00-\x7F]/.test(str);
@@ -156,18 +210,52 @@ export default function AdminSales() {
     return () => document.head.removeChild(style);
   }, []);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const storeFilterId = searchParams.get('storeId');
+  const location = useLocation();
+  const isTenantRoute = location.pathname.includes('/tenant/');
+  const currentUser = useUserStore(s => s.user);
+  const can = useUserStore(s => s.can);
+
   const [sales, setSales] = useState([]);
   const [stores, setStores] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState('Today');
   const [customStartDate, setCustomStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [saleType, setSaleType] = useState('ALL'); // ALL, POS, AGENT
-  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL'); // ALL, COMPLETED, PENDING, CANCELLED, RETURNED
+  const [deliveryTypeFilter, setDeliveryTypeFilter] = useState('ALL'); // ALL, STORE_PICKUP, HOME_DELIVERY, VEHICLE_PICKUP, POS
+  const saleType = deliveryTypeFilter; // Compatibility alias
+  const setSaleType = setDeliveryTypeFilter; // Compatibility alias
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL'); // ALL, READY_FOR_PICKUP, DELIVERED, COMPLETED, etc.
+  const [orderSourceFilter, setOrderSourceFilter] = useState('ALL'); // ALL, POS, APP, VEHICLE
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Debounce searchInput into searchQuery
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Master reset filter function
+  const handleResetFilters = useCallback(() => {
+    setSearchInput('');
+    setSearchQuery('');
+    setFilterDate('Today');
+    setCustomStartDate(format(new Date(), 'yyyy-MM-dd'));
+    setCustomEndDate(format(new Date(), 'yyyy-MM-dd'));
+    setDeliveryTypeFilter('ALL');
+    setOrderStatusFilter('ALL');
+    setOrderSourceFilter('ALL');
+    setSearchParams({});
+    setCurrentPage(1);
+  }, [setSearchParams]);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [showCreateSale, setShowCreateSale] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
@@ -302,13 +390,6 @@ export default function AdminSales() {
     c.mobile.includes(customerSearchQuery)
   );
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const storeFilterId = searchParams.get('storeId');
-  const location = useLocation();
-  const isTenantRoute = location.pathname.includes('/tenant/');
-  const currentUser = useUserStore(s => s.user);
-  const can = useUserStore(s => s.can);
-
   const { invalidateSales } = useVsmsCacheInvalidator();
   const { data: cachedSalesData, isLoading: isSalesQueryLoading, isFetching: isSalesQueryFetching, refetch: refetchSalesQuery } = useSalesQuery(storeFilterId, filterDate, customStartDate, customEndDate);
 
@@ -428,7 +509,8 @@ export default function AdminSales() {
 
   // The order to render in the detail view (enriched if available, fallback to list data)
   const detailOrder = fullOrder || viewingOrder;
-  const canEditOrder = detailOrder && !['CANCELLED', 'RETURNED'].includes(detailOrder.status);
+  const isOnlineAppOrder = (detailOrder?.orderType || viewingOrder?.orderType) === 'ONLINE';
+  const canEditOrder = detailOrder && !['CANCELLED', 'RETURNED'].includes(detailOrder.status) && !isOnlineAppOrder;
 
   // ── Edit Quantity ──
   const handleEditQty = async () => {
@@ -545,9 +627,12 @@ export default function AdminSales() {
       const returnAmt = s.returns?.reduce((sum, r) => sum + r.refundAmount, 0) || 0;
       const totalQty = s.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
       const totalDiscount = s.items?.reduce((sum, i) => sum + (i.discount || 0), 0) || 0;
+      const classification = getOrderSourceClassification(s);
 
       return {
         'Invoice ID': s.displayId || s.orderNumber,
+        'Order Source': classification.label,
+        'Fulfillment Type': s.fulfillmentType || s.deliveryType || 'N/A',
         'Date': format(new Date(s.createdAt), 'dd-MM-yyyy'),
         'Time': format(new Date(s.createdAt), 'hh:mm a'),
         'Transaction date': format(new Date(s.createdAt), 'dd-MM-yyyy'),
@@ -1129,11 +1214,115 @@ export default function AdminSales() {
     reader.readAsBinaryString(file);
   };
 
+
+  // Keep hooks unconditional - conditional skeleton render is handled inside return JSX below
+  const isSkeletonLoading = loading && sales.length === 0 && !cachedSalesData;
+
+  // Gatekeeper removed for Tenant Owners to allow "All Stores" sales view
+
+  // Apply Store filter and combined filters mathematically to sales
+  const listToRender = useMemo(() => {
+    return sales.filter(s => {
+      const orderStoreId = s.storeId || s.warehouseId || s.allocatedStoreId || s.pickupStoreId;
+      if (storeFilterId && orderStoreId && orderStoreId !== storeFilterId) return false;
+
+      // Tab filtering
+      if (roleTab === 'Admins') {
+        const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'TENANT_OWNER'];
+        if (!adminRoles.includes(s.user?.role)) return false;
+      } else if (roleTab === 'Agent') {
+        if (s.user?.role !== 'SALES_AGENT') return false;
+      }
+
+      // Delivery Type Filter
+      if (deliveryTypeFilter && deliveryTypeFilter !== 'ALL') {
+        const fulfillment = (s.fulfillmentType || s.deliveryType || '').toUpperCase();
+        const orderType = (s.orderType || '').toUpperCase();
+        if (deliveryTypeFilter === 'STORE_PICKUP') {
+          if (fulfillment !== 'STORE_PICKUP' && fulfillment !== 'PICKUP_STORE' && !(orderType === 'POS' && !s.vehicleId && !fulfillment)) return false;
+        } else if (deliveryTypeFilter === 'HOME_DELIVERY') {
+          if (fulfillment !== 'HOME_DELIVERY') return false;
+        } else if (deliveryTypeFilter === 'VEHICLE_PICKUP') {
+          const isVehicle = fulfillment === 'VEHICLE_PICKUP' || fulfillment === 'PICKUP_AT_VEHICLE' || orderType === 'VEHICLE' || Boolean(s.vehicleId);
+          if (!isVehicle) return false;
+        } else if (deliveryTypeFilter === 'POS') {
+          const isPos = orderType === 'POS' || (!s.vehicleId && orderType !== 'ONLINE' && fulfillment !== 'HOME_DELIVERY');
+          if (!isPos) return false;
+        }
+      }
+
+      // Order Source Filter
+      if (orderSourceFilter && orderSourceFilter !== 'ALL') {
+        const classification = getOrderSourceClassification(s);
+        if (orderSourceFilter === 'POS' && !classification.isPosOrder) return false;
+        if (orderSourceFilter === 'APP' && !classification.isAppOrder) return false;
+        if (orderSourceFilter === 'VEHICLE' && !classification.isVehicleOrder) return false;
+      }
+
+      // Order Status Filter (Canonical Statuses)
+      if (orderStatusFilter && orderStatusFilter !== 'ALL') {
+        const statusUpper = (s.status || '').toUpperCase();
+        if (orderStatusFilter === 'READY_FOR_PICKUP') {
+          if (statusUpper !== 'READY_FOR_PICKUP') return false;
+        } else if (orderStatusFilter === 'DELIVERED') {
+          if (statusUpper !== 'DELIVERED') return false;
+        } else if (orderStatusFilter === 'COMPLETED') {
+          if (!['COMPLETED', 'DELIVERED'].includes(statusUpper)) return false;
+        } else if (orderStatusFilter === 'OUT_FOR_DELIVERY') {
+          if (statusUpper !== 'OUT_FOR_DELIVERY') return false;
+        } else if (orderStatusFilter === 'PROCESSING') {
+          if (!['PROCESSING', 'PACKED'].includes(statusUpper)) return false;
+        } else if (orderStatusFilter === 'CONFIRMED') {
+          if (statusUpper !== 'CONFIRMED') return false;
+        } else if (orderStatusFilter === 'PENDING') {
+          if (!['PENDING', 'PLACED', 'CREATED'].includes(statusUpper)) return false;
+        } else if (orderStatusFilter === 'CANCELLED') {
+          if (!['CANCELLED', 'CANCELED'].includes(statusUpper)) return false;
+        } else if (orderStatusFilter === 'RETURNED') {
+          if (!['RETURNED', 'RETURN_INITIATED'].includes(statusUpper)) return false;
+        } else if (orderStatusFilter === 'PARTIALLY_RETURNED') {
+          if (statusUpper !== 'PARTIALLY_RETURNED') return false;
+        } else if (statusUpper !== orderStatusFilter) {
+          return false;
+        }
+      }
+
+      // Search filter across orderNumber, displayId, id, customer name, mobile, vehicle number, village
+      if (searchQuery && searchQuery.trim()) {
+        const query = searchQuery.trim().toLowerCase();
+        const cleanQuery = query.replace(/^vk-?/i, '');
+
+        const orderNum = (s.orderNumber || '').toLowerCase();
+        const cleanOrderNum = orderNum.replace(/^vk-?/i, '');
+        const displayId = (s.displayId || '').toLowerCase();
+        const orderId = (s.id || '').toLowerCase();
+        const custName = (s.customerName || s.consumer?.name || s.customer?.name || '').toLowerCase();
+        const phone = (s.mobile || s.consumer?.phone || s.customer?.mobile || '').toLowerCase();
+        const vehNum = (s.vehicle?.vehicleNumber || s.vehicleNumber || '').toLowerCase();
+        const routeOrVillage = (s.villageName || s.route?.routeName || '').toLowerCase();
+
+        const matchesSearch =
+          orderNum.includes(query) ||
+          (cleanQuery.length > 0 && cleanOrderNum.includes(cleanQuery)) ||
+          displayId.includes(query) ||
+          orderId.includes(query) ||
+          custName.includes(query) ||
+          phone.includes(query) ||
+          vehNum.includes(query) ||
+          routeOrVillage.includes(query);
+
+        if (!matchesSearch) return false;
+      }
+
+      return true;
+    });
+  }, [sales, storeFilterId, roleTab, deliveryTypeFilter, orderStatusFilter, orderSourceFilter, searchQuery]);
+
   const summaryStats = useMemo(() => {
-    const totalRev = sales.reduce((acc, s) => acc + (Number(s.totalAmount) || 0), 0);
-    const totalOrd = sales.length;
-    const totalMargin = sales.reduce((acc, item) => acc + calculateMargin(item), 0);
-    const totalCash = sales.reduce((acc, s) => {
+    const totalRev = listToRender.reduce((acc, s) => acc + (Number(s.totalAmount) || 0), 0);
+    const totalOrd = listToRender.length;
+    const totalMargin = listToRender.reduce((acc, item) => acc + calculateMargin(item), 0);
+    const totalCash = listToRender.reduce((acc, s) => {
       const pMode = (s.paymentMode || '').toUpperCase();
       if (pMode === 'CASH' || pMode === 'COD') {
         return acc + (Number(s.totalAmount) || 0);
@@ -1148,46 +1337,7 @@ export default function AdminSales() {
       totalCash: totalCash,
       avgOrderValue: avgVal,
     };
-  }, [sales]);
-
-  // Keep hooks unconditional - conditional skeleton render is handled inside return JSX below
-  const isSkeletonLoading = loading && sales.length === 0 && !cachedSalesData;
-
-  // Gatekeeper removed for Tenant Owners to allow "All Stores" sales view
-
-  // Apply Store filter mathematically to sales
-  const listToRender = useMemo(() => {
-    return sales.filter(s => {
-      const orderStoreId = s.storeId || s.warehouseId || s.allocatedStoreId || s.pickupStoreId;
-      if (storeFilterId && orderStoreId && orderStoreId !== storeFilterId) return false;
-
-      // Tab filtering
-      if (roleTab === 'Admins') {
-        const adminRoles = ['ADMIN', 'SUPER_ADMIN', 'TENANT_OWNER'];
-        if (!adminRoles.includes(s.user?.role)) return false;
-      } else if (roleTab === 'Agent') {
-        if (s.user?.role !== 'SALES_AGENT') return false;
-      }
-      // Segmented Control Filter
-      if (saleType === 'POS' && s.vehicleId) return false;
-      if (saleType === 'AGENT' && !s.vehicleId) return false;
-
-      // Order Status Filter
-      if (orderStatusFilter && orderStatusFilter !== 'ALL') {
-        const statusUpper = (s.status || '').toUpperCase();
-        if (orderStatusFilter === 'COMPLETED' && !['COMPLETED', 'DELIVERED', 'PARTIALLY_RETURNED'].includes(statusUpper)) return false;
-        if (orderStatusFilter === 'PARTIALLY_RETURNED' && statusUpper !== 'PARTIALLY_RETURNED') return false;
-        if (orderStatusFilter === 'PENDING' && !['PENDING', 'CONFIRMED', 'PLACED'].includes(statusUpper)) return false;
-        if (orderStatusFilter === 'CANCELLED' && !['CANCELLED', 'CANCELED'].includes(statusUpper)) return false;
-        if (orderStatusFilter === 'RETURNED' && !['RETURNED', 'PARTIALLY_RETURNED'].includes(statusUpper)) return false;
-      }
-
-      const query = searchQuery.toLowerCase();
-      const invoiceStr = s.orderNumber ? `vk-${s.orderNumber}` : `vk-${Date.now().toString().slice(-6)}`;
-      const customerName = s.customerName ? s.customerName.toLowerCase() : '';
-      return invoiceStr.includes(query) || (s.mobile && s.mobile.includes(searchQuery)) || customerName.includes(query);
-    });
-  }, [sales, storeFilterId, roleTab, saleType, orderStatusFilter, searchQuery]);
+  }, [listToRender]);
 
   // Apply Column Sorting to Lists
   const sortedListToRender = useMemo(() => {
@@ -1199,17 +1349,21 @@ export default function AdminSales() {
           aVal = a.orderNumber || (a.id ? String(a.id).replace(/\D/g, '') : '') || '';
           bVal = b.orderNumber || (b.id ? String(b.id).replace(/\D/g, '') : '') || '';
           break;
+        case 'orderSource':
+          aVal = getOrderSourceClassification(a).label;
+          bVal = getOrderSourceClassification(b).label;
+          break;
         case 'createdAt':
           aVal = new Date(a.createdAt || 0).getTime();
           bVal = new Date(b.createdAt || 0).getTime();
           break;
         case 'customerName':
-          aVal = (a.customerName || 'Walk-in').toLowerCase();
-          bVal = (b.customerName || 'Walk-in').toLowerCase();
+          aVal = (a.customerName || a.consumer?.name || 'Walk-in').toLowerCase();
+          bVal = (b.customerName || b.consumer?.name || 'Walk-in').toLowerCase();
           break;
         case 'soldBy':
-          aVal = (a.user?.name || a.userName || 'System').toLowerCase();
-          bVal = (b.user?.name || b.userName || 'System').toLowerCase();
+          aVal = (a.orderType === 'ONLINE' ? 'Consumer App' : (a.user?.name || a.userName || 'System')).toLowerCase();
+          bVal = (b.orderType === 'ONLINE' ? 'Consumer App' : (b.user?.name || b.userName || 'System')).toLowerCase();
           break;
         case 'totalAmount':
           aVal = Number(a.totalAmount) || 0;
@@ -1632,6 +1786,14 @@ export default function AdminSales() {
                     <h2 className="text-2xl font-black text-gray-900 tracking-tight">
                       Invoice <span className="text-emerald-600">#{detailOrder.displayId || detailOrder.orderNumber || viewingOrder.displayId || viewingOrder.orderNumber}</span>
                     </h2>
+                    {(() => {
+                      const classification = getOrderSourceClassification(detailOrder || viewingOrder);
+                      return (
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${classification.badgeClass}`}>
+                          {classification.label}
+                        </span>
+                      );
+                    })()}
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
                       (detailOrder.status || viewingOrder.status) === 'PARTIALLY_RETURNED' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                       (detailOrder.status || viewingOrder.status) === 'RETURNED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
@@ -1751,7 +1913,10 @@ export default function AdminSales() {
                       </div>
                       <div>
                         <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Vehicle ID</p>
-                        <p className="text-xs font-black text-white uppercase">{viewingOrder.vehicle?.vehicleNumber || 'No Vehicle'}</p>
+                        <p className="text-xs font-black text-white uppercase">{(detailOrder || viewingOrder).vehicle?.vehicleNumber || (detailOrder || viewingOrder).vehicleId || 'No Vehicle'}</p>
+                        {(detailOrder || viewingOrder).vehicle?.model && (
+                          <p className="text-[10px] text-slate-400">Model: {(detailOrder || viewingOrder).vehicle.model}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1760,7 +1925,16 @@ export default function AdminSales() {
                       </div>
                       <div>
                         <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Route Name</p>
-                        <p className="text-xs font-black text-white uppercase">{viewingOrder.route?.routeName || 'Direct'}</p>
+                        <p className="text-xs font-black text-white uppercase">{(detailOrder || viewingOrder).route?.routeName || (detailOrder || viewingOrder).routeId || 'Direct'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-slate-800 rounded-xl flex items-center justify-center text-slate-300">
+                        <Package size={18} />
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Fulfillment Type</p>
+                        <p className="text-xs font-black text-white uppercase">{(detailOrder || viewingOrder).fulfillmentType || (detailOrder || viewingOrder).deliveryType || 'Standard POS'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1769,7 +1943,7 @@ export default function AdminSales() {
                       </div>
                       <div>
                         <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Village Name</p>
-                        <p className="text-xs font-black text-white uppercase">{viewingOrder.villageName || 'In-Store'}</p>
+                        <p className="text-xs font-black text-white uppercase">{(detailOrder || viewingOrder).villageName || 'In-Store'}</p>
                       </div>
                     </div>
                   </div>
@@ -2064,7 +2238,18 @@ export default function AdminSales() {
                   </div>
                 )}
 
-                {/* Cancel Order */}
+                {/* App Order Notice & Cancel Order */}
+                {isOnlineAppOrder && (
+                  <div className="p-4 bg-sky-50 rounded-2xl border border-sky-200/60 flex items-start gap-3 text-sky-800">
+                    <Info size={18} className="shrink-0 text-sky-600 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-sky-900">Consumer App Order</p>
+                      <p className="text-[11px] font-medium text-sky-700 mt-0.5">
+                        Item alterations, POS returns, and direct cancellations are disabled for consumer app orders. Lifecycle updates are managed through the app fulfillment workflow.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {canEditOrder && (
                   <button
                     onClick={() => setShowCancelConfirm(true)}
@@ -2172,6 +2357,29 @@ export default function AdminSales() {
                         <Filter size={18} className="text-gray-700" />
                       </div>
 
+                      {/* Order Source Filter */}
+                      <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[155px] relative flex items-center justify-between flex-shrink-0">
+                        <select
+                          value={orderSourceFilter}
+                          onChange={(e) => {
+                            setOrderSourceFilter(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}
+                          className="w-full bg-transparent border-0 font-bold text-xs sm:text-sm text-gray-900 focus:outline-none cursor-pointer pr-4"
+                        >
+                          <option value="ALL">Order Source</option>
+                          <option value="ALL">All Orders</option>
+                          <option value="POS">POS Sales</option>
+                          <option value="APP">App Orders</option>
+                          <option value="VEHICLE">Vehicle Orders</option>
+                        </select>
+                        <ChevronDown
+                          size={16}
+                          className="pointer-events-none text-gray-500 flex-shrink-0"
+                        />
+                      </div>
+
                       {/* Status Filter */}
                       <div className="px-3 sm:px-4 py-3 sm:py-4 w-[140px] sm:w-[150px] relative flex items-center justify-between flex-shrink-0">
                         <select
@@ -2184,11 +2392,17 @@ export default function AdminSales() {
                           className="w-full bg-transparent border-0 font-bold text-xs sm:text-sm text-gray-900 focus:outline-none cursor-pointer pr-4"
                         >
                           <option value="ALL">Status</option>
+                          <option value="ALL">All Statuses</option>
+                          <option value="READY_FOR_PICKUP">Ready for Pickup</option>
+                          <option value="DELIVERED">Delivered</option>
                           <option value="COMPLETED">Completed</option>
-                          <option value="PARTIALLY_RETURNED">Partially Returned</option>
-                          <option value="RETURNED">Returned</option>
-                          <option value="PENDING">Pending</option>
+                          <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                          <option value="PROCESSING">Processing / Packed</option>
+                          <option value="CONFIRMED">Confirmed</option>
+                          <option value="PENDING">Pending / Placed</option>
                           <option value="CANCELLED">Cancelled</option>
+                          <option value="RETURNED">Returned</option>
+                          <option value="PARTIALLY_RETURNED">Partially Returned</option>
                         </select>
                         <ChevronDown
                           size={16}
@@ -2221,12 +2435,12 @@ export default function AdminSales() {
                         />
                       </div>
 
-                      {/* Delivery Type / Sale Type Filter */}
+                      {/* Delivery Type Filter */}
                       <div className="px-3 sm:px-4 py-3 sm:py-4 w-[150px] sm:w-[160px] relative flex items-center justify-between flex-shrink-0">
                         <select
-                          value={saleType}
+                          value={deliveryTypeFilter}
                           onChange={(e) => {
-                            setSaleType(e.target.value);
+                            setDeliveryTypeFilter(e.target.value);
                             setCurrentPage(1);
                           }}
                           style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}
@@ -2234,8 +2448,10 @@ export default function AdminSales() {
                         >
                           <option value="ALL">Delivery Type</option>
                           <option value="ALL">All Types</option>
-                          <option value="POS">POS</option>
-                          <option value="AGENT">Agent (Scheduled)</option>
+                          <option value="STORE_PICKUP">Store Pickup / In-Store</option>
+                          <option value="HOME_DELIVERY">Home Delivery</option>
+                          <option value="VEHICLE_PICKUP">Vehicle Pickup</option>
+                          <option value="POS">POS Sale</option>
                         </select>
                         <ChevronDown
                           size={16}
@@ -2246,14 +2462,7 @@ export default function AdminSales() {
                       {/* Reset Filter Button */}
                       <div className="px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0">
                         <button
-                          onClick={() => {
-                            setSearchQuery('');
-                            setFilterDate('Today');
-                            setSaleType('ALL');
-                            setOrderStatusFilter('ALL');
-                            setSearchParams({});
-                            setCurrentPage(1);
-                          }}
+                          onClick={handleResetFilters}
                           className="flex items-center gap-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap hover:opacity-80 text-orange-600 dark:text-orange-400 w-full sm:w-auto justify-center"
                         >
                           <RotateCcw
@@ -2270,12 +2479,9 @@ export default function AdminSales() {
                       <div className="relative flex items-center bg-white rounded-xl shadow-md border border-gray-200 px-3 py-2">
                         <input
                           type="text"
-                          placeholder="Search"
-                          value={searchQuery}
-                          onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            setCurrentPage(1);
-                          }}
+                          placeholder="Search order #, customer, phone..."
+                          value={searchInput}
+                          onChange={(e) => setSearchInput(e.target.value)}
                           className="w-full bg-transparent border-none text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none pr-8"
                         />
                         <Search size={16} className="absolute right-3 text-gray-400 pointer-events-none" />
@@ -2311,10 +2517,18 @@ export default function AdminSales() {
               )}
 
               <div className="space-y-4">
-                {sales.length === 0 ? (
+                {activeList.length === 0 ? (
                   <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200">
                     <ShoppingCart size={48} className="mx-auto text-gray-300 mb-2" />
-                    <p className="text-gray-500">No sales found for this period</p>
+                    <p className="text-gray-700 font-bold text-sm">No sales found matching the selected filters</p>
+                    <p className="text-gray-400 text-xs mt-1">Try adjusting your search query or filter options</p>
+                    <button
+                      onClick={handleResetFilters}
+                      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-semibold hover:bg-orange-100 transition-colors"
+                    >
+                      <RotateCcw size={13} />
+                      Reset Filters
+                    </button>
                   </div>
                 ) : (
                   <>
@@ -2356,10 +2570,18 @@ export default function AdminSales() {
                                       <ShoppingCart size={20} />
                                     </div>
                                     <div>
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 flex-wrap">
                                         <h3 className="text-sm font-bold text-gray-900 uppercase">
                                           {item.displayId || (item.orderNumber ? `VK-${item.orderNumber}` : `VK-${String(item.id).replace(/\D/g, '').slice(0, 6)}`)}
                                         </h3>
+                                        {(() => {
+                                          const classification = getOrderSourceClassification(item);
+                                          return (
+                                            <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${classification.badgeClass}`}>
+                                              {classification.label}
+                                            </span>
+                                          );
+                                        })()}
                                         <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md ${item.coverageType === 'MORNING' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'}`}>
                                           {item.coverageType || 'N/A'}
                                         </span>
@@ -2483,6 +2705,15 @@ export default function AdminSales() {
                                       <div className="flex items-center justify-center gap-1">
                                         <span>Invoice ID</span>
                                         <ArrowUpDown size={12} className={sortField === 'orderNumber' ? 'text-emerald-600' : 'text-gray-400'} />
+                                      </div>
+                                    </th>
+                                    <th
+                                      onClick={() => handleSort('orderSource')}
+                                      className="px-4 py-3 text-center cursor-pointer select-none hover:bg-gray-100/60"
+                                    >
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span>Order Source</span>
+                                        <ArrowUpDown size={12} className={sortField === 'orderSource' ? 'text-emerald-600' : 'text-gray-400'} />
                                       </div>
                                     </th>
                                     <th
@@ -2612,6 +2843,24 @@ export default function AdminSales() {
                                           )}
                                         </div>
                                       </td>
+                                      {/* Order Source */}
+                                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                                        {(() => {
+                                          const classification = getOrderSourceClassification(item);
+                                          return (
+                                            <div className="flex flex-col items-center gap-0.5">
+                                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${classification.badgeClass}`}>
+                                                {classification.label}
+                                              </span>
+                                              {classification.isVehicleOrder && item.vehicle?.vehicleNumber && (
+                                                <span className="text-[9px] font-semibold text-gray-400 flex items-center gap-1 mt-0.5">
+                                                  <Truck size={10} /> {item.vehicle.vehicleNumber}
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        })()}
+                                      </td>
                                       {/* Date & Time */}
                                       <td className="px-4 py-3.5 text-center whitespace-nowrap">
                                         <span className="text-xs sm:text-sm text-gray-800 font-medium">
@@ -2621,16 +2870,16 @@ export default function AdminSales() {
                                       {/* Customer */}
                                       <td className="px-4 py-3.5 text-center">
                                         <div className="text-xs sm:text-sm text-gray-800 font-medium">
-                                          {item.customerName || 'Walk-in Customer'}
+                                          {item.customerName || item.consumer?.name || 'Walk-in Customer'}
                                         </div>
                                         <div className="text-xs text-emerald-600 font-medium">
-                                          {item.mobile || item.customerPhone || 'N/A'}
+                                          {item.mobile || item.consumer?.phone || item.customerPhone || 'N/A'}
                                         </div>
                                       </td>
                                       {/* Sold By */}
                                       <td className="px-4 py-3.5 text-center">
                                         <span className="text-xs sm:text-sm text-gray-800 font-medium">
-                                          {item.user?.name || item.userName || item.soldBy || 'System'}
+                                          {item.orderType === 'ONLINE' ? (item.vehicle?.driverName || item.agent?.name || item.vehicle?.assignedUsers?.[0]?.name || item.user?.name || 'Consumer App') : (item.user?.name || item.userName || item.soldBy || 'System')}
                                         </span>
                                       </td>
                                       {/* Amount */}
@@ -2681,7 +2930,7 @@ export default function AdminSales() {
                       <div className="flex items-center justify-between bg-white px-8 py-4 rounded-[2rem] border border-gray-100 shadow-sm">
                         <div className="flex items-center gap-2">
                           <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, listToRender.length)} of {listToRender.length}
+                            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, activeList.length)} of {activeList.length}
                           </p>
                         </div>
 

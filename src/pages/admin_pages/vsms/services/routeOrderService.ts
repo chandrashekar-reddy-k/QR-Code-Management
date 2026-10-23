@@ -15,7 +15,7 @@ export const getAgentAppOrders = async (params: RouteAppOrderQuery = {}) => {
   return response.data;
 };
 
-export const updateAgentOrderStatus = async (orderId: string, nextStatus: string, reason?: string) => {
-  const response = await api.put(`/agent/route-orders/${orderId}/status`, { nextStatus, reason });
+export const updateAgentOrderStatus = async (orderId: string, nextStatus: string, reason?: string, paymentCollected?: boolean) => {
+  const response = await api.put(`/agent/route-orders/${orderId}/status`, { nextStatus, reason, paymentCollected });
   return response.data;
 };
