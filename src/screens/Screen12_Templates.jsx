@@ -53,7 +53,7 @@ export const Screen12_Templates = () => {
       <div className="vk-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 className="vk-card-title">Screen 12 · QR Templates Library</h2>
+            <h2 className="vk-card-title">Brand QR Templates Library</h2>
             <p className="vk-card-subtitle">
               Approved brand gallery for posters, vehicle vinyls, flyers and WhatsApp campaign assets
             </p>

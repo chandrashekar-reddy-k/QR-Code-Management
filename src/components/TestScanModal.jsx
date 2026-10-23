@@ -66,7 +66,7 @@ export const TestScanModal = () => {
                 Interactive QR Scanner Simulator
               </h2>
               <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>
-                Screen 05 Validation · Test scan decoding & device-based routing logic
+                Test scan decoding & device-based routing resolution
               </p>
             </div>
           </div>
@@ -159,7 +159,7 @@ export const TestScanModal = () => {
               }}>
                 <div style={{ fontWeight: 700, color: '#00891D', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShieldCheck size={15} />
-                  Routing Resolution (Screen 04 Spec):
+                  Device Routing Resolution:
                 </div>
                 <div style={{ color: '#4B5563', lineHeight: '1.4' }}>
                   {isBot ? (

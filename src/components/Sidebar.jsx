@@ -13,6 +13,8 @@ import {
   Settings,
   ChevronRight,
   Sparkles,
+  Palette,
+  FileText,
 } from 'lucide-react';
 
 export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
@@ -24,24 +26,26 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     {
       group: 'QR Studio Core',
       items: [
-        { id: 'dashboard', label: '01 · QR Dashboard', icon: LayoutDashboard },
-        { id: 'listing', label: '02 · QR Inventory', icon: QrCode },
-        { id: 'wizard', label: '03-07 · Create QR Studio', icon: PlusCircle, isHighlight: true },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'listing', label: 'QR Inventory', icon: QrCode },
+        { id: 'wizard', label: 'Create QR Code', icon: PlusCircle, isHighlight: true },
+        { id: 'design-studio', label: 'Design Studio', icon: Palette },
+        { id: 'details', label: 'QR Code Details', icon: FileText },
       ],
     },
     {
       group: 'Analytics & Tracking',
       items: [
-        { id: 'scan-history', label: '09 · Scan History Log', icon: History },
-        { id: 'analytics', label: '10 · Analytics Dashboard', icon: BarChart3 },
-        { id: 'campaigns', label: '11 · Campaign Management', icon: Megaphone },
+        { id: 'analytics', label: 'Analytics Dashboard', icon: BarChart3 },
+        { id: 'scan-history', label: 'Scan History Log', icon: History },
+        { id: 'campaigns', label: 'Campaign Management', icon: Megaphone },
       ],
     },
     {
       group: 'Distribution & Assets',
       items: [
-        { id: 'templates', label: '12 · Templates Library', icon: Layers },
-        { id: 'referrals', label: '13 · Referral QR (VGE)', icon: Users },
+        { id: 'templates', label: 'Templates Library', icon: Layers },
+        { id: 'referrals', label: 'Referral QR (VGE)', icon: Users },
       ],
     },
     {
@@ -49,12 +53,12 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       items: [
         {
           id: 'permissions',
-          label: '14 · Approvals & Access',
+          label: 'Permissions & Approvals',
           icon: ShieldCheck,
           badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : null,
           badgeAlert: true,
         },
-        { id: 'settings', label: '15 · Settings & Audit', icon: Settings },
+        { id: 'settings', label: 'Settings & Audit Logs', icon: Settings },
       ],
     },
   ];

@@ -29,7 +29,7 @@ export const Screen13_Referrals = () => {
       <div className="vk-card" style={{ padding: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 className="vk-card-title">Screen 13 · Referral QR & Customer Acquisition</h2>
+            <h2 className="vk-card-title">Referral QR & Customer Acquisition</h2>
             <p className="vk-card-subtitle">
               Connects QR scanning to Village Gramin Executives (VGEs) and customer referral commission tracking
             </p>

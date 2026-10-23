@@ -42,7 +42,7 @@ export const Screen15_Settings = () => {
       <div className="vk-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 className="vk-card-title">Screen 15 · Settings & Immutable Audit Logs</h2>
+            <h2 className="vk-card-title">Settings & Immutable Audit Logs</h2>
             <p className="vk-card-subtitle">
               System redirect domain rules, abuse rate limits, retention windows and tamper-evident audit logs
             </p>

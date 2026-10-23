@@ -52,7 +52,7 @@ export const Screen10_Analytics = () => {
       <div className="vk-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 className="vk-card-title">Screen 10 · Enterprise Analytics Dashboard</h2>
+            <h2 className="vk-card-title">Enterprise Analytics Dashboard</h2>
             <p className="vk-card-subtitle">
               Answers the 5 core questions: scan volumes, channels, app registrations, first orders & best hub assets
             </p>

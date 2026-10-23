@@ -54,7 +54,7 @@ export const Screen14_Permissions = () => {
       <div className="vk-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 className="vk-card-title">Screen 14 · Permissions & Publication Approvals</h2>
+            <h2 className="vk-card-title">Permissions & Publication Approvals</h2>
             <p className="vk-card-subtitle">
               Role-based access matrix and pending review queue for sensitive operational & financial QR codes
             </p>

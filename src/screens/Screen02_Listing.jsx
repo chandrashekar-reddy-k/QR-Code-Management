@@ -115,7 +115,26 @@ export const Screen02_Listing = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Search and Filter Bar (Screen 02 Spec) */}
+      {/* Page Title Card */}
+      <div className="vk-card" style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h2 className="vk-card-title">QR Code Inventory</h2>
+            <p className="vk-card-subtitle">
+              Central catalog for managing dynamic routing, lifecycle states, bulk operations and asset exports
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveScreen('wizard')}
+            className="btn btn-primary btn-sm"
+          >
+            <Plus size={15} />
+            Create QR Code
+          </button>
+        </div>
+      </div>
+
+      {/* Search and Filter Bar */}
       <div className="vk-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
           {/* Search box */}

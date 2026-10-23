@@ -91,11 +91,11 @@ export const Screen03_07_Wizard = () => {
       {/* 5-Step Stepper Header */}
       <div className="wizard-stepper">
         {[
-          { step: 1, label: '03 Basic Details' },
-          { step: 2, label: '04 Destinations' },
-          { step: 3, label: '05 Design Studio' },
-          { step: 4, label: '06 Print & Digital' },
-          { step: 5, label: '07 Review & Publish' },
+          { step: 1, label: 'Basic Details' },
+          { step: 2, label: 'Destinations' },
+          { step: 3, label: 'Design Studio' },
+          { step: 4, label: 'Print & Digital' },
+          { step: 5, label: 'Review & Publish' },
         ].map((s, idx, arr) => (
           <React.Fragment key={s.step}>
             <div
@@ -119,7 +119,7 @@ export const Screen03_07_Wizard = () => {
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Screen 03 · Basic QR Details & Purpose</h2>
+              <h2 className="vk-card-title">Basic QR Details & Purpose</h2>
               <p className="vk-card-subtitle">
                 Dynamic form configuration adapted to rural commerce channels and roles
               </p>
@@ -331,7 +331,7 @@ export const Screen03_07_Wizard = () => {
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Screen 04 · Destination & Routing Engine</h2>
+              <h2 className="vk-card-title">Destination & Routing Engine</h2>
               <p className="vk-card-subtitle">
                 Configure smart device routing for Android, iOS and fallback landing pages
               </p>
@@ -585,7 +585,7 @@ export const Screen03_07_Wizard = () => {
           <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
             <div style={{ textAlign: 'center', marginBottom: '16px' }}>
               <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#00891D', fontWeight: 700, letterSpacing: '0.05em' }}>
-                Screen 05 · Draft Live Preview
+                Draft Live Preview
               </div>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>
                 Real SVG/Canvas QR Output
@@ -733,7 +733,7 @@ export const Screen03_07_Wizard = () => {
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Screen 06 · Print & Digital Export Packages</h2>
+              <h2 className="vk-card-title">Print & Digital Export Packages</h2>
               <p className="vk-card-subtitle">Generate CMYK/RGB vector and raster assets ready for distribution</p>
             </div>
 
@@ -906,7 +906,7 @@ export const Screen03_07_Wizard = () => {
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Screen 07 · Review & Publish Verification</h2>
+              <h2 className="vk-card-title">Review & Publish Verification</h2>
               <p className="vk-card-subtitle">
                 System validation checklist before QR routing is published live
               </p>

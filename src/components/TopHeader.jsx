@@ -28,17 +28,19 @@ export const TopHeader = ({ onMenuClick }) => {
   const pendingCount = approvals.filter((a) => a.status === 'Pending').length;
 
   const titles = {
-    dashboard: { title: '01 · QR Dashboard', sub: 'Performance overview, live scan trends and quick actions' },
-    listing: { title: '02 · QR Code Inventory', sub: 'Central management table, multifaceted filtering and batch operations' },
-    wizard: { title: '03-07 · QR Studio Wizard', sub: 'Configure destination, customize branding, export print/digital & publish' },
-    details: { title: '08 · QR Code Management', sub: 'Overview, destinations, assets, scan event records and version audit log' },
-    'scan-history': { title: '09 · Scan History Log', sub: 'Operational investigation tool, device forensics and conversion attribution' },
-    analytics: { title: '10 · Analytics Dashboard', sub: 'Scan volume, funnel conversion, hub/village breakdown & device routing' },
-    campaigns: { title: '11 · Campaign Management', sub: 'Marketing initiatives, budget tracking, CPA metrics and asset grouping' },
-    templates: { title: '12 · QR Templates Library', sub: 'Standardized approved designs, dimensions, brand protections and presets' },
-    referrals: { title: '13 · Referral QR Management', sub: 'Village Gramin Executive (VGE) incentives and verified customer acquisition' },
-    permissions: { title: '14 · Approvals & Role Access', sub: 'Role permission matrix and publication approval queue' },
-    settings: { title: '15 · Settings & Audit Logs', sub: 'System redirect domains, retention policies, abuse detection & immutable logs' },
+    dashboard: { title: 'QR Operations Dashboard', sub: 'Performance overview, live scan trends and quick actions' },
+    listing: { title: 'QR Code Inventory', sub: 'Central management table, multifaceted filtering and batch operations' },
+    wizard: { title: 'Create QR Code', sub: 'Configure destination, customize branding, export print/digital & publish' },
+    'design-studio': { title: 'Design Studio & Export', sub: 'Brand templates, real-time contrast safeguards, vector print layouts & digital packages' },
+    details: { title: 'QR Code Details & Lifecycle', sub: 'Overview, destinations, assets, scan event records and version audit log' },
+    'scan-history': { title: 'Scan History & Event Log', sub: 'Operational investigation tool, device forensics and conversion attribution' },
+    analytics: { title: 'Analytics Dashboard', sub: 'Scan volume, funnel conversion, hub/village breakdown & device routing' },
+    campaigns: { title: 'Campaign Management', sub: 'Marketing initiatives, budget tracking, CPA metrics and asset grouping' },
+    templates: { title: 'QR Templates Library', sub: 'Standardized approved designs, dimensions, brand protections and presets' },
+    referrals: { title: 'Referral QR Management', sub: 'Village Gramin Executive (VGE) incentives and verified customer acquisition' },
+    permissions: { title: 'Permissions & Approvals', sub: 'Role permission matrix and publication approval queue' },
+    settings: { title: 'Settings & Audit Logs', sub: 'System redirect domains, retention policies, abuse detection & immutable logs' },
+    mobile: { title: 'Mobile Field Mode', sub: 'Compact field pocket interface for VGEs and Hub Managers on the move' },
   };
 
   const currentMeta = titles[activeScreen] || { title: 'VillagKart QR Studio', sub: 'Enterprise Management' };
@@ -92,7 +94,7 @@ export const TopHeader = ({ onMenuClick }) => {
           <button
             onClick={() => setViewMode('mobile')}
             className={`device-toggle-btn ${viewMode === 'mobile' ? 'active' : ''}`}
-            title="Screen 18: Mobile Responsive Field Mode"
+            title="Mobile Responsive Field Mode"
           >
             <Smartphone size={14} />
             <span style={{ fontSize: '12px' }}>Field Pocket</span>

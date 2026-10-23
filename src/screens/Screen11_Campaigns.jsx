@@ -82,7 +82,7 @@ export const Screen11_Campaigns = () => {
       <div className="vk-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 className="vk-card-title">Screen 11 · Campaign Management</h2>
+            <h2 className="vk-card-title">Campaign Management</h2>
             <p className="vk-card-subtitle">
               Group multiple QR assets under a single marketing initiative, budget & territory attribution
             </p>

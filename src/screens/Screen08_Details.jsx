@@ -25,6 +25,7 @@ import {
 export const Screen08_Details = () => {
   const {
     selectedQrId,
+    setSelectedQrId,
     setActiveScreen,
     qrCodes,
     togglePauseQR,
@@ -74,17 +75,45 @@ export const Screen08_Details = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Top Back & Actions Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <button
-          onClick={() => setActiveScreen('listing')}
-          className="btn btn-secondary btn-sm"
-        >
-          <ArrowLeft size={15} />
-          Back to QR Listing
-        </button>
+      {/* Top Back & QR Selector Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => setActiveScreen('listing')}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft size={15} />
+            Back to QR Inventory
+          </button>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#4B5563' }}>Select QR:</label>
+            <select
+              value={qr.id}
+              onChange={(e) => setSelectedQrId(e.target.value)}
+              className="form-control"
+              style={{ width: '220px', padding: '6px 10px', fontSize: '12.5px' }}
+            >
+              {qrCodes.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.id} · {q.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => {
+              setSelectedQrId(qr.id);
+              setActiveScreen('design-studio');
+            }}
+            className="btn btn-secondary btn-sm"
+          >
+            <Edit3 size={14} color="#00891D" />
+            Customize in Design Studio
+          </button>
           <button
             onClick={() => setTestScanModal({ isOpen: true, qrCode: qr })}
             className="btn btn-secondary btn-sm"

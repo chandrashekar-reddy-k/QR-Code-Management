@@ -84,7 +84,7 @@ export const Screen01_Dashboard = () => {
               <span className="badge badge-active" style={{ fontSize: '11px' }}>
                 VillagKart QR Studio · Production Live
               </span>
-              <span style={{ fontSize: '12px', color: '#6B7280' }}>Screen 01 Specification</span>
+              <span style={{ fontSize: '12px', color: '#6B7280' }}>Enterprise Operations Overview</span>
             </div>
             <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#111827', margin: 0 }}>
               Good morning

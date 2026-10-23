@@ -9,6 +9,7 @@ import { ToastContainer } from './components/ToastContainer';
 import { Screen01_Dashboard } from './screens/Screen01_Dashboard';
 import { Screen02_Listing } from './screens/Screen02_Listing';
 import { Screen03_07_Wizard } from './screens/Screen03_07_Wizard';
+import { Screen05_DesignStudio } from './screens/Screen05_DesignStudio';
 import { Screen08_Details } from './screens/Screen08_Details';
 import { Screen09_ScanHistory } from './screens/Screen09_ScanHistory';
 import { Screen10_Analytics } from './screens/Screen10_Analytics';
@@ -31,6 +32,8 @@ const MainAppContent = () => {
         return <Screen02_Listing />;
       case 'wizard':
         return <Screen03_07_Wizard />;
+      case 'design-studio':
+        return <Screen05_DesignStudio />;
       case 'details':
         return <Screen08_Details />;
       case 'scan-history':
@@ -47,6 +50,8 @@ const MainAppContent = () => {
         return <Screen14_Permissions />;
       case 'settings':
         return <Screen15_Settings />;
+      case 'mobile':
+        return <Screen18_MobileFieldMode />;
       default:
         return <Screen01_Dashboard />;
     }
@@ -63,11 +68,11 @@ const MainAppContent = () => {
 
         <main className="content-container">
           {viewMode === 'mobile' ? (
-            /* Screen 18: Mobile Simulator Viewport */
+            /* Mobile Simulator Viewport */
             <div style={{ textAlign: 'center' }}>
               <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <span className="badge badge-active" style={{ fontSize: '12px' }}>
-                  Screen 18 · Mobile-Responsive Field Simulation Mode
+                  Mobile-Responsive Field Simulation Mode
                 </span>
                 <button
                   onClick={() => setViewMode('desktop')}
