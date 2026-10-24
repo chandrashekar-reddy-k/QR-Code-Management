@@ -70,7 +70,15 @@ export const QRProvider = ({ children }) => {
   // Master Data
   const [qrCodes, setQrCodes] = useState(() => {
     const saved = localStorage.getItem('vk_qr_codes');
-    return saved ? JSON.parse(saved) : INITIAL_QR_CODES;
+    if (!saved) return INITIAL_QR_CODES;
+    try {
+      const parsed = JSON.parse(saved);
+      const existingIds = new Set(parsed.map((q) => q.id));
+      const missing = INITIAL_QR_CODES.filter((q) => !existingIds.has(q.id));
+      return [...parsed, ...missing];
+    } catch {
+      return INITIAL_QR_CODES;
+    }
   });
 
   const [campaigns, setCampaigns] = useState(() => {
