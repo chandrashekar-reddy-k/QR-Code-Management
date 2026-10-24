@@ -35,7 +35,11 @@ export const QRWizard = () => {
     setWizardStep,
     wizardData,
     setWizardData,
+    wizardNotification,
+    setWizardNotification,
     publishWizardQR,
+    saveWizardDraft,
+    resetWizard,
     setActiveScreen,
     setSelectedQrId,
     currentRole,
@@ -161,14 +165,12 @@ export const QRWizard = () => {
 
   // Save Draft Helper
   const handleSaveDraft = () => {
-    publishWizardQR(true);
-    showToast('Draft saved to QR inventory.');
+    saveWizardDraft();
   };
 
   // Continue to QR Details after publishing
   const handleContinueToDetails = () => {
-    publishWizardQR(isApprovalRequired);
-    setActiveScreen('details');
+    publishWizardQR();
   };
 
   return (
@@ -196,6 +198,70 @@ export const QRWizard = () => {
           </React.Fragment>
         ))}
       </div>
+
+      {/* Wizard Reset / Submission Notice Banner */}
+      {wizardNotification && (
+        <div
+          style={{
+            background: wizardNotification.type === 'draft' ? '#F0F9FF' : '#F0FDF4',
+            border: `1px solid ${wizardNotification.type === 'draft' ? '#BAE6FD' : '#BBF7D0'}`,
+            borderRadius: '10px',
+            padding: '12px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '18px' }}>{wizardNotification.type === 'draft' ? '💾' : '🎉'}</span>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: wizardNotification.type === 'draft' ? '#0369A1' : '#166534' }}>
+                {wizardNotification.message}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {wizardNotification.targetScreen && (
+              <button
+                onClick={() => {
+                  const target = wizardNotification.targetScreen;
+                  setWizardNotification(null);
+                  setActiveScreen(target);
+                }}
+                className="btn btn-sm"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  padding: '5px 12px',
+                  background: wizardNotification.type === 'draft' ? '#0284C7' : '#00891D',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                {wizardNotification.targetLabel} →
+              </button>
+            )}
+            <button
+              onClick={() => setWizardNotification(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px',
+                color: '#6B7280',
+                padding: '2px 6px',
+              }}
+              title="Dismiss notification"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           PAGE 3 / STEP 1: Create QR: Basic Details
@@ -491,172 +557,120 @@ export const QRWizard = () => {
       {/* =========================================================================
           PAGE 4 / STEP 2: Destination Configuration
           ========================================================================= */}
+      {/* =========================================================================
+          PAGE 4 / STEP 2: Destination & Routing Configuration
+          ========================================================================= */}
       {wizardStep === 2 && (
-        <div className="vk-card">
-          <div className="vk-card-header">
+        <div className="vk-card" style={{ padding: '24px' }}>
+          {/* Card Header */}
+          <div className="vk-card-header" style={{ marginBottom: '20px', borderBottom: '1px solid #E5E7EB', paddingBottom: '16px' }}>
             <div>
-              <h2 className="vk-card-title">Destination Configuration</h2>
+              <h2 className="vk-card-title">Destination & Routing Configuration</h2>
               <p className="vk-card-subtitle">
-                Define where the QR code sends a user after scanning, device routing, and deep-link parameters
+                Configure where users land after scanning. The printed QR encodes the dynamic shortlink so destinations can be changed anytime without reprinting.
               </p>
             </div>
-            {/* Top Quick Status */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="badge badge-outline" style={{ fontFamily: 'monospace' }}>
-                QR: {wizardData.name}
+              <span className="badge badge-active" style={{ fontSize: '11px', padding: '3px 9px' }}>
+                ⚡ Cloudflare Edge Routing (45ms)
               </span>
-              <button onClick={handleValidateDestinations} className="btn btn-secondary btn-sm">
-                <RefreshCw size={13} />
-                Validate URLs
-              </button>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {/* 1. ARCHITECTURE & ROUTING FLOW DIAGRAM */}
-            <div style={{
-              background: '#F9FAFB',
-              border: '1px solid #E5E7EB',
-              borderRadius: '10px',
-              padding: '14px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              fontSize: '12.5px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 700, color: '#111827' }}>How Redirection Works:</span>
-                  <span style={{ background: '#FFFFFF', padding: '5px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontWeight: 600 }}>
-                    📱 1. Scan Printed QR
-                  </span>
-                  <ArrowRight size={14} color="#00891D" />
-                  <span style={{ background: '#E8F5EA', padding: '5px 10px', borderRadius: '6px', border: '1px solid #C8E6C9', color: '#006B17', fontFamily: 'monospace', fontWeight: 700 }}>
-                    2. https://qr.villagkart.com/{wizardData.redirectCode || 'your-slug'}
-                  </span>
-                  <ArrowRight size={14} color="#00891D" />
-                  <span
-                    style={{
-                      background: '#00891D',
-                      padding: '5px 12px',
-                      borderRadius: '6px',
-                      color: '#FFFFFF',
-                      fontWeight: 700,
-                      maxWidth: '280px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title={wizardData.fallbackUrl || 'Target Destination URL'}
-                  >
-                    🎯 3. {wizardData.fallbackUrl ? (wizardData.fallbackUrl.length > 28 ? wizardData.fallbackUrl.substring(0, 28) + '...' : wizardData.fallbackUrl) : 'Your Target Destination URL'}
-                  </span>
-                </div>
-              </div>
-              <div style={{ color: '#4B5563', fontSize: '12px', lineHeight: 1.4, borderTop: '1px dashed #E5E7EB', paddingTop: '8px' }}>
-                💡 <strong>Dynamic QR Advantage:</strong> The physical QR code printed on paper or vinyl encodes the shortlink (e.g. <code>https://qr.villagkart.com/{wizardData.redirectCode || 'your-slug'}</code>). When scanned, our edge routers forward the user to your Target Destination URL below. <em>You can change your Destination URL anytime in the future without having to reprint or replace your QR codes!</em>
-              </div>
-            </div>
-
-            {/* 2. CHOOSE ROUTING OPTION */}
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
-                <span>Select Where This QR Code Sends Users (Routing Mode):</span>
-                <span style={{ fontWeight: 500, color: '#6B7280', fontSize: '12px' }}>Choose the option that fits your campaign</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+            {/* 1. ROUTING STRATEGY (Clean, Compact 2-Option Card Switcher) */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', marginBottom: '8px' }}>
+                Routing Strategy:
               </label>
-              <div className="grid-3">
-                {[
-                  {
-                    id: 'fallback_only',
-                    title: 'Always open the web landing page',
-                    badge: '⭐ Recommended (Direct Target URL)',
-                    desc: 'Direct all traffic to your target destination URL (e.g. promotional page, catalog, video, website, form) regardless of whether scanned on Android, iPhone, or PC.',
-                    icon: <Globe size={18} color="#00891D" />,
-                  },
-                  {
-                    id: 'auto',
-                    title: 'Automatically route based on device',
-                    badge: 'Mobile App Stores (Android / iOS)',
-                    desc: 'Detects phone OS: Android phones route to Google Play Store / App Intent, iPhones route to Apple App Store, and PC/Mac opens the fallback website.',
-                    icon: <Smartphone size={18} color="#3B82F6" />,
-                  },
-                  {
-                    id: 'landing',
-                    title: 'Show an Android/iOS landing page',
-                    badge: 'Branded Splash Page',
-                    desc: 'Displays a responsive mobile web landing page with Android and iOS download action buttons plus website link.',
-                    icon: <Laptop size={18} color="#8B5CF6" />,
-                  },
-                ].map((b) => (
-                  <div
-                    key={b.id}
-                    onClick={() => {
-                      setWizardData((prev) => {
-                        const next = { ...prev, routingBehavior: b.id };
-                        if (b.id === 'fallback_only') {
-                          const target = prev.fallbackUrl || prev.androidUrl || 'https://villagkart.com/campaign/phirangipuram-launch';
-                          next.fallbackUrl = target;
-                          next.androidUrl = target;
-                          next.iosUrl = target;
-                        }
-                        return next;
-                      });
-                    }}
-                    style={{
-                      padding: '14px',
-                      borderRadius: '8px',
-                      border: wizardData.routingBehavior === b.id ? '2px solid #00891D' : '1px solid #E5E7EB',
-                      background: wizardData.routingBehavior === b.id ? '#E8F5EA' : '#FFFFFF',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      transition: 'all 0.15s ease',
-                      boxShadow: wizardData.routingBehavior === b.id ? '0 2px 6px rgba(0,137,29,0.1)' : 'none',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {b.icon}
-                          <span style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>{b.title}</span>
-                        </div>
-                        {wizardData.routingBehavior === b.id && <Check size={16} color="#00891D" />}
-                      </div>
-                      <span style={{ fontSize: '11px', background: wizardData.routingBehavior === b.id ? '#C8E6C9' : '#F3F4F6', color: '#006B17', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                        {b.badge}
-                      </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {/* Mode A: Direct Target URL */}
+                <div
+                  onClick={() => {
+                    const target = wizardData.fallbackUrl || wizardData.androidUrl || 'https://villagkart.com/campaign/phirangipuram-launch';
+                    setWizardData((prev) => ({
+                      ...prev,
+                      routingBehavior: 'fallback_only',
+                      fallbackUrl: target,
+                      androidUrl: target,
+                      iosUrl: target,
+                    }));
+                  }}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    border: wizardData.routingBehavior === 'fallback_only' ? '2px solid #00891D' : '1px solid #E5E7EB',
+                    background: wizardData.routingBehavior === 'fallback_only' ? '#F0FDF4' : '#FFFFFF',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>
+                      <Globe size={18} color="#00891D" />
+                      Direct Destination URL
                     </div>
-                    <div style={{ fontSize: '11.5px', color: '#6B7280', marginTop: '8px', lineHeight: 1.35 }}>{b.desc}</div>
+                    {wizardData.routingBehavior === 'fallback_only' && <Check size={16} color="#00891D" />}
                   </div>
-                ))}
+                  <p style={{ fontSize: '12px', color: '#4B5563', margin: 0, lineHeight: 1.4 }}>
+                    Directs all scanners (Android, iPhone, PC) to a single website, YouTube video, promotional page, or form.
+                  </p>
+                </div>
+
+                {/* Mode B: Smart Device Routing */}
+                <div
+                  onClick={() => {
+                    setWizardData((prev) => ({
+                      ...prev,
+                      routingBehavior: 'auto',
+                    }));
+                  }}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    border: wizardData.routingBehavior === 'auto' ? '2px solid #00891D' : '1px solid #E5E7EB',
+                    background: wizardData.routingBehavior === 'auto' ? '#F0FDF4' : '#FFFFFF',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>
+                      <Smartphone size={18} color="#2563EB" />
+                      Smart Device OS Routing
+                    </div>
+                    {wizardData.routingBehavior === 'auto' && <Check size={16} color="#00891D" />}
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#4B5563', margin: 0, lineHeight: 1.4 }}>
+                    Detects device operating system: routes Android to Google Play Store, iOS to App Store, and PC to fallback site.
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* 3. PRIMARY TARGET DESTINATION URL (WHERE USERS GO) */}
+            {/* 2. TARGET DESTINATION INPUT (Direct URL vs Multi-OS) */}
             {wizardData.routingBehavior === 'fallback_only' ? (
-              /* Mode 1: DIRECT DESTINATION URL (Web, YouTube, etc.) */
-              <div className="form-group" style={{ background: '#E8F5EA', padding: '20px', borderRadius: '10px', border: '2px solid #00891D', boxShadow: '0 2px 8px rgba(0,137,29,0.08)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                  <label className="form-label" style={{ fontSize: '14px', fontWeight: 800, color: '#006B17', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                    <Globe size={19} color="#00891D" />
-                    Target Destination URL (Where your QR sends users) <span className="required-dot">*</span>
+              <div style={{
+                background: '#FAFAFA',
+                border: '1px solid #E5E7EB',
+                borderRadius: '10px',
+                padding: '18px 20px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', margin: 0 }}>
+                    Target Destination URL <span className="required-dot">*</span>
                   </label>
-                  <span className="badge badge-active" style={{ fontSize: '11px', padding: '3px 8px' }}>
-                    Active: All Devices (Android + iOS + Desktop)
+                  <span style={{ fontSize: '11.5px', color: '#166534', fontWeight: 600 }}>
+                    Active for all devices (Android, iPhone, Desktop)
                   </span>
                 </div>
 
-                <p style={{ fontSize: '12.5px', color: '#1B5E20', margin: '0 0 12px 0', lineHeight: 1.4 }}>
-                  👉 <strong>Put your new or unique URL here!</strong> Anyone who scans this QR code with their mobile phone or tablet will be redirected directly to this link.
-                </p>
-
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <input
                       type="url"
                       className="form-control"
-                      style={{ fontSize: '14.5px', fontWeight: 600, padding: '11px 14px', borderColor: '#00891D', background: '#FFFFFF', borderRadius: '8px' }}
+                      style={{ fontSize: '14px', fontWeight: 600, padding: '10px 14px' }}
                       value={wizardData.fallbackUrl}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -667,7 +681,7 @@ export const QRWizard = () => {
                           iosUrl: val,
                         }));
                       }}
-                      placeholder="e.g. https://villagkart.com/seasonal-produce or https://youtube.com/watch?v=..."
+                      placeholder="e.g. https://villagkart.com/seasonal-produce or https://youtube.com/..."
                       required
                     />
                   </div>
@@ -676,19 +690,21 @@ export const QRWizard = () => {
                       href={wizardData.fallbackUrl.startsWith('http') ? wizardData.fallbackUrl : `https://${wizardData.fallbackUrl}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn btn-secondary"
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', borderColor: '#00891D', color: '#00891D', fontWeight: 600 }}
-                      title="Open destination in a new browser tab to test"
+                      className="btn btn-secondary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '40px', padding: '0 12px', fontWeight: 600 }}
+                      title="Test URL in new browser tab"
                     >
-                      <ExternalLink size={15} />
+                      <ExternalLink size={14} />
                       Test Link
                     </a>
                   )}
                 </div>
 
-                {/* Quick Presets Chips */}
-                <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#006B17' }}>Quick Presets (Click to fill):</span>
+                {/* Quick Presets Pills */}
+                <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#6B7280', marginRight: '4px' }}>
+                    Quick Presets:
+                  </span>
                   {[
                     { label: '🌾 Seasonal Produce', url: 'https://villagkart.com/seasonal-produce' },
                     { label: '🛒 Daily Fresh Store', url: 'https://villagkart.com/fresh-store' },
@@ -708,69 +724,37 @@ export const QRWizard = () => {
                         showToast(`Set destination to ${p.url}`);
                       }}
                       style={{
-                        padding: '4px 10px',
+                        padding: '3px 10px',
                         background: '#FFFFFF',
-                        border: '1px solid #A5D6A7',
+                        border: '1px solid #D1D5DB',
                         borderRadius: '20px',
                         fontSize: '11.5px',
-                        fontWeight: 600,
-                        color: '#1B5E20',
+                        fontWeight: 500,
+                        color: '#374151',
                         cursor: 'pointer',
-                        transition: 'background 0.1s ease',
+                        transition: 'all 0.1s ease',
                       }}
                     >
                       {p.label}
                     </button>
                   ))}
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', fontSize: '12px', color: '#006B17', fontWeight: 600 }}>
-                  <CheckCircle2 size={15} color="#00891D" />
-                  <span>Target verified. When scanned from an Android phone, iPhone, or PC, users will land on: <strong>{wizardData.fallbackUrl || 'https://villagkart.com/campaign/phirangipuram-launch'}</strong></span>
-                </div>
               </div>
-            ) : wizardData.routingBehavior === 'auto' ? (
-              /* Mode 2: SMART DEVICE ROUTING (Android + iOS + Fallback) */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: '#F8FAFC', padding: '18px', borderRadius: '10px', border: '1px solid #CBD5E1' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#1E293B' }}>
-                      📱 Smart Mobile App Routing (Device OS Specific)
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#64748B' }}>
-                      Use this mode to route Android users to Google Play Store and iOS users to Apple App Store.
-                    </div>
-                  </div>
-                  <span className="badge badge-outline" style={{ borderColor: '#3B82F6', color: '#1D4ED8' }}>
-                    Mobile OS Detection Active
-                  </span>
-                </div>
-
-                {/* Smart Assistant Notice if user entered youtube in androidUrl */}
-                {wizardData.androidUrl && (wizardData.androidUrl.includes('youtube.com') || wizardData.androidUrl.includes('youtu.be')) && (
-                  <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', padding: '10px 14px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '12px' }}>
-                    <div style={{ color: '#92400E' }}>
-                      💡 <strong>Notice:</strong> You entered a YouTube link in the Android App field. If you want <em>both Android and iPhone</em> users to open YouTube directly, switch to <strong>"Always open the web landing page"</strong>.
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateData('routingBehavior', 'fallback_only');
-                        updateData('fallbackUrl', wizardData.androidUrl);
-                        showToast('Switched to Single Direct Web URL!');
-                      }}
-                      className="btn btn-sm btn-primary"
-                      style={{ flexShrink: 0, padding: '4px 10px', fontSize: '11.5px' }}
-                    >
-                      ⚡ Switch to Single URL
-                    </button>
-                  </div>
-                )}
-
+            ) : (
+              /* When Smart Device Routing is active */
+              <div style={{
+                background: '#FAFAFA',
+                border: '1px solid #E5E7EB',
+                borderRadius: '10px',
+                padding: '18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+              }}>
                 <div className="grid-2">
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 600 }}>
-                      Android App Destination URL (Google Play Store / Intent)
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '12.5px' }}>
+                      Android App Store / Intent URL
                     </label>
                     <input
                       type="url"
@@ -779,12 +763,12 @@ export const QRWizard = () => {
                       onChange={(e) => updateData('androidUrl', e.target.value)}
                       placeholder="https://play.google.com/store/apps/details?id=com.villagkart.customer"
                     />
-                    <p className="form-helper">Scanners using Android smartphones are routed to this Play Store / in-app intent</p>
+                    <p className="form-helper">Scanned from Android devices</p>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 600 }}>
-                      iOS App Destination URL (Apple App Store / Universal Link)
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '12.5px' }}>
+                      iOS App Store / Universal Link
                     </label>
                     <input
                       type="url"
@@ -793,84 +777,51 @@ export const QRWizard = () => {
                       onChange={(e) => updateData('iosUrl', e.target.value)}
                       placeholder="https://apps.apple.com/in/app/villagkart-rural-fresh/id192837482"
                     />
-                    <p className="form-helper">Scanners using iPhones/iPads are routed to this Apple App Store link</p>
+                    <p className="form-helper">Scanned from iPhones & iPads</p>
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 600 }}>
-                    Fallback Website URL (Required for Desktop Browsers & Non-Mobile Scanners) <span className="required-dot">*</span>
-                  </label>
-                  <input
-                    type="url"
-                    className="form-control"
-                    value={wizardData.fallbackUrl}
-                    onChange={(e) => updateData('fallbackUrl', e.target.value)}
-                    placeholder="https://villagkart.com/seasonal-produce"
-                    required
-                  />
-                  <p className="form-helper">Destination for desktop/laptop browsers or devices where native app is unavailable</p>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 600 }}>Deep-Link Support (Custom In-App URI Scheme)</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={wizardData.deepLink || ''}
-                    onChange={(e) => updateData('deepLink', e.target.value)}
-                    placeholder="villagkart://campaign/phirangipuram-launch?ref=vge901"
-                  />
-                  <p className="form-helper">Optional; launches specific in-app view directly if mobile app is already installed</p>
-                </div>
-              </div>
-            ) : (
-              /* Mode 3: CHOICE LANDING PAGE */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: '#F9FAFB', padding: '16px', borderRadius: '10px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>
-                  🌐 Choice Landing Page Endpoints:
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Fallback Website URL <span className="required-dot">*</span></label>
-                  <input
-                    type="url"
-                    className="form-control"
-                    value={wizardData.fallbackUrl}
-                    onChange={(e) => updateData('fallbackUrl', e.target.value)}
-                    placeholder="https://villagkart.com/download-app"
-                  />
-                  <p className="form-helper">Web landing page where users choose to download or browse</p>
-                </div>
                 <div className="grid-2">
-                  <div className="form-group">
-                    <label className="form-label">Android App Download Button Link</label>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '12.5px' }}>
+                      Fallback Website URL (Desktop & Unmatched) <span className="required-dot">*</span>
+                    </label>
                     <input
                       type="url"
                       className="form-control"
-                      value={wizardData.androidUrl}
-                      onChange={(e) => updateData('androidUrl', e.target.value)}
-                      placeholder="https://play.google.com/store/apps/details?id=..."
+                      value={wizardData.fallbackUrl}
+                      onChange={(e) => updateData('fallbackUrl', e.target.value)}
+                      placeholder="https://villagkart.com/seasonal-produce"
+                      required
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">iOS App Download Button Link</label>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '12.5px' }}>
+                      Optional Custom In-App Deep Link
+                    </label>
                     <input
-                      type="url"
+                      type="text"
                       className="form-control"
-                      value={wizardData.iosUrl}
-                      onChange={(e) => updateData('iosUrl', e.target.value)}
-                      placeholder="https://apps.apple.com/in/app/..."
+                      value={wizardData.deepLink || ''}
+                      onChange={(e) => updateData('deepLink', e.target.value)}
+                      placeholder="villagkart://campaign/phirangipuram-launch?ref=vge901"
                     />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 4. QR REDIRECT CODE & SHORTLINK */}
-            <div className="form-group" style={{ background: '#FFFFFF', padding: '16px', borderRadius: '10px', border: '1px solid #E5E7EB' }}>
+            {/* 3. DYNAMIC SHORTLINK SLUG (Compact Inline Field) */}
+            <div style={{
+              background: '#FFFFFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: '10px',
+              padding: '16px 20px',
+            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>
-                  QR Redirect Short Code (The Dynamic URL Encoded Inside the QR Matrix) <span className="required-dot">*</span>
+                <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', margin: 0 }}>
+                  Dynamic Shortlink Slug <span className="required-dot">*</span>
                 </label>
                 <button
                   type="button"
@@ -882,10 +833,10 @@ export const QRWizard = () => {
                       .replace(/^-+|-+$/g, '');
                     const randomSlug = `${base || 'vk'}-${Math.floor(100 + Math.random() * 900)}`;
                     updateData('redirectCode', randomSlug);
-                    showToast(`Generated dynamic slug: ${randomSlug}`);
+                    showToast(`Generated slug: ${randomSlug}`);
                   }}
                   className="btn btn-ghost btn-sm"
-                  style={{ fontSize: '11px', padding: '2px 8px', color: '#00891D', fontWeight: 600 }}
+                  style={{ fontSize: '11.5px', padding: '2px 8px', color: '#00891D', fontWeight: 600 }}
                 >
                   <RefreshCw size={12} />
                   Generate New Slug
@@ -894,333 +845,161 @@ export const QRWizard = () => {
 
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <span style={{
-                  padding: '10px 14px',
+                  padding: '9px 12px',
                   background: '#F3F4F6',
                   border: '1px solid #D1D5DB',
                   borderRight: 'none',
-                  borderTopLeftRadius: '8px',
-                  borderBottomLeftRadius: '8px',
+                  borderTopLeftRadius: '6px',
+                  borderBottomLeftRadius: '6px',
                   color: '#4B5563',
-                  fontSize: '13.5px',
+                  fontSize: '13px',
                   fontWeight: 600,
+                  whiteSpace: 'nowrap',
                 }}>
                   https://qr.villagkart.com/
                 </span>
                 <input
                   type="text"
                   className="form-control"
-                  style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, fontFamily: 'monospace', fontWeight: 700, fontSize: '14px' }}
+                  style={{
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    fontSize: '13.5px',
+                  }}
                   value={wizardData.redirectCode}
                   onChange={(e) => updateData('redirectCode', e.target.value)}
-                  placeholder={`e.g. ${wizardData.name ? 'vk-' + wizardData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 16) : 'vk-promo-summer'}`}
+                  placeholder="custom-slug"
                 />
               </div>
-              <p className="form-helper" style={{ marginTop: '6px' }}>
-                <strong>Why this exists:</strong> The printed QR code stores <code>https://qr.villagkart.com/{wizardData.redirectCode || 'your-slug'}</code>. When someone scans it, our Cloudflare edge router forwards them in under 45ms to your <strong>Target Destination URL</strong> (<code>{wizardData.fallbackUrl || 'https://villagkart.com'}</code>).
+              <p className="form-helper" style={{ margin: '6px 0 0 0' }}>
+                Encoded directly into the printed QR. Forwards to your destination URL with sub-45ms Cloudflare edge routing.
               </p>
             </div>
 
-            {/* 5. LIVE ROUTING SUMMARY BOX */}
+            {/* 4. LIVE FORWARDING RESOLUTION STRIP (Single Unified Pipeline) */}
             {(() => {
-              const currentDirectUrl = (wizardData.fallbackUrl || '').trim();
-              const currentAndroidUrl = wizardData.routingBehavior === 'fallback_only'
-                ? currentDirectUrl
-                : ((wizardData.androidUrl || '').trim() || currentDirectUrl);
-              const currentIosUrl = wizardData.routingBehavior === 'fallback_only'
-                ? currentDirectUrl
-                : ((wizardData.iosUrl || '').trim() || currentDirectUrl);
-              const currentDesktopUrl = currentDirectUrl;
-              const currentSlug = (wizardData.redirectCode || '').trim() || (wizardData.name ? 'vk-' + wizardData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 16) : 'vk-promo');
-              const incomingScanUrl = `https://qr.villagkart.com/${currentSlug}`;
-
-              const isDirectMode = wizardData.routingBehavior === 'fallback_only';
-
-              const activeDeviceResolvedUrl =
-                previewDevice === 'android' ? currentAndroidUrl :
-                previewDevice === 'ios' ? currentIosUrl :
-                previewDevice === 'desktop' ? currentDesktopUrl :
-                'Bot Filtered (OpenGraph tags only)';
+              const currentSlug = (wizardData.redirectCode || '').trim() || 'your-slug';
+              const shortlink = `https://qr.villagkart.com/${currentSlug}`;
+              const targetUrl = wizardData.fallbackUrl || 'https://villagkart.com';
 
               return (
                 <div style={{
-                  background: '#FFFFFF',
-                  border: '2px solid #00891D',
-                  borderRadius: '12px',
-                  padding: '16px 20px',
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: '10px',
+                  padding: '14px 18px',
                   display: 'flex',
-                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
                   gap: '14px',
-                  boxShadow: '0 4px 12px rgba(0,137,29,0.06)',
                 }}>
-                  {/* Header Row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ display: 'inline-block', width: '9px', height: '9px', borderRadius: '50%', background: '#00891D' }} />
-                      <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#111827' }}>
-                        ⚡ Real-Time Forwarding Resolution Preview
-                      </div>
-                      <span className="badge badge-active" style={{ fontSize: '10.5px' }}>
-                        {isDirectMode ? 'Direct Single Target URL' : wizardData.routingBehavior === 'auto' ? 'Smart OS Device Routing' : 'Choice Landing Page'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
+                    {/* Pipeline step 1 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
+                        1. Printed QR
+                      </span>
+                      <ArrowRight size={14} color="#00891D" />
+                    </div>
+
+                    {/* Pipeline step 2 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #86EFAC',
+                        borderRadius: '4px',
+                        padding: '3px 8px',
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        color: '#166534',
+                      }}>
+                        {shortlink}
+                      </span>
+                      <ArrowRight size={14} color="#00891D" />
+                    </div>
+
+                    {/* Pipeline step 3 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
+                        2. Resolves to:
+                      </span>
+                      <span style={{
+                        background: '#00891D',
+                        color: '#FFFFFF',
+                        borderRadius: '4px',
+                        padding: '3px 10px',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        maxWidth: '260px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }} title={targetUrl}>
+                        {targetUrl}
                       </span>
                     </div>
+                  </div>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTestScanModal({
-                            isOpen: true,
-                            qrCode: {
-                              id: 'VK-TEST-' + (wizardData.redirectCode || 'preview'),
-                              name: wizardData.name || 'New Promo QR',
-                              type: wizardData.type || 'Campaign',
-                              status: 'Active',
-                              hubName: wizardData.hubId || 'Phirangipuram Hub',
-                              village: wizardData.village || 'Phirangipuram Village',
-                              destination: {
-                                redirectCode: wizardData.redirectCode,
-                                androidUrl: wizardData.androidUrl,
-                                iosUrl: wizardData.iosUrl,
-                                fallbackUrl: wizardData.fallbackUrl,
-                                routingBehavior: wizardData.routingBehavior,
-                              },
-                              design: {
-                                fgColor: wizardData.fgColor,
-                                bgColor: wizardData.bgColor,
-                              },
+                  {/* Single Clean Simulator Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTestScanModal({
+                          isOpen: true,
+                          qrCode: {
+                            id: 'VK-TEST-' + (wizardData.redirectCode || 'preview'),
+                            name: wizardData.name || 'New Promo QR',
+                            type: wizardData.type || 'Campaign',
+                            status: 'Active',
+                            hubName: wizardData.hubId || 'Phirangipuram Hub',
+                            village: wizardData.village || 'Phirangipuram Village',
+                            destination: {
+                              redirectCode: wizardData.redirectCode,
+                              androidUrl: wizardData.androidUrl,
+                              iosUrl: wizardData.iosUrl,
+                              fallbackUrl: wizardData.fallbackUrl,
+                              routingBehavior: wizardData.routingBehavior,
                             },
-                          });
-                        }}
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '4px 10px', fontSize: '11.5px', color: '#00891D', fontWeight: 600 }}
-                      >
-                        <Smartphone size={13} />
-                        Simulate Viewfinder
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Device Simulator Filter Tabs */}
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#6B7280', marginRight: '4px' }}>Simulate Device:</span>
-                    {[
-                      { id: 'android', label: '🤖 Android Phone' },
-                      { id: 'ios', label: '🍏 Apple iPhone' },
-                      { id: 'desktop', label: '💻 Desktop / PC' },
-                      { id: 'bot', label: '🕷️ WhatsApp / Bot' },
-                    ].map((d) => (
-                      <button
-                        key={d.id}
-                        type="button"
-                        onClick={() => setPreviewDevice(d.id)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '5px 12px',
-                          borderRadius: '20px',
-                          fontSize: '11.5px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          border: previewDevice === d.id ? '1px solid #00891D' : '1px solid #E5E7EB',
-                          background: previewDevice === d.id ? '#00891D' : '#F9FAFB',
-                          color: previewDevice === d.id ? '#FFFFFF' : '#4B5563',
-                        }}
-                      >
-                        {d.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Live Animated Forwarding Pipeline for the active device */}
-                  <div style={{
-                    background: '#F0FDF4',
-                    border: '1px solid #BBF7D0',
-                    borderRadius: '8px',
-                    padding: '12px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>1. Encoded Shortlink</span>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '13px', color: '#14532D' }}>
-                          {incomingScanUrl}
-                        </span>
-                      </div>
-
-                      <ArrowRight size={16} color="#00891D" />
-
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>2. Edge Rule Triggered</span>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#15803D' }}>
-                          {previewDevice === 'android' ? (isDirectMode ? 'Android ➔ Direct Web Forward' : 'Android ➔ Play Store')
-                            : previewDevice === 'ios' ? (isDirectMode ? 'iOS ➔ Direct Web Forward' : 'iOS ➔ App Store')
-                            : previewDevice === 'desktop' ? 'Desktop ➔ Web Forward'
-                            : 'Bot ➔ Social Meta Tags Only'}
-                        </span>
-                      </div>
-
-                      <ArrowRight size={16} color="#00891D" />
-
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>3. Target Forwarding Endpoint</span>
-                        <span style={{
-                          fontFamily: 'monospace',
-                          fontWeight: 700,
-                          fontSize: '13px',
-                          color: activeDeviceResolvedUrl ? '#0F172A' : '#DC2626',
-                          background: '#FFFFFF',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          border: activeDeviceResolvedUrl ? '1px solid #86EFAC' : '1px dashed #FCA5A5',
-                        }}>
-                          {activeDeviceResolvedUrl || '⚠️ No destination URL entered (Please type URL above)'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {activeDeviceResolvedUrl && activeDeviceResolvedUrl.startsWith('http') && (
-                      <a
-                        href={activeDeviceResolvedUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                        style={{ background: '#FFFFFF', borderColor: '#00891D', color: '#00891D', fontWeight: 600, padding: '3px 8px', fontSize: '11px' }}
-                      >
-                        <ExternalLink size={12} />
-                        Test Open
-                      </a>
-                    )}
-                  </div>
-
-                  {/* All 3 Platforms Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                    <div style={{
-                      padding: '10px 12px',
-                      background: previewDevice === 'android' ? '#E8F5EA' : '#F8FAFC',
-                      borderRadius: '8px',
-                      border: previewDevice === 'android' ? '2px solid #00891D' : '1px solid #E2E8F0',
-                      cursor: 'pointer',
-                    }} onClick={() => setPreviewDevice('android')}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 700 }}>🤖 Android Smartphone</span>
-                        {previewDevice === 'android' && <span className="badge badge-active" style={{ fontSize: '9px', padding: '1px 5px' }}>Active</span>}
-                      </div>
-                      <div style={{
-                        fontWeight: 700,
-                        color: currentAndroidUrl ? '#0F172A' : '#DC2626',
-                        wordBreak: 'break-all',
-                        marginTop: '4px',
-                        fontSize: '12px',
-                        fontFamily: 'monospace',
-                      }}>
-                        {currentAndroidUrl || '(No URL entered)'}
-                      </div>
-                      <div style={{ fontSize: '10.5px', color: '#00891D', marginTop: '4px' }}>
-                        {isDirectMode ? '➔ Direct Web Target' : '➔ Play Store / Intent'}
-                      </div>
-                    </div>
-
-                    <div style={{
-                      padding: '10px 12px',
-                      background: previewDevice === 'ios' ? '#E8F5EA' : '#F8FAFC',
-                      borderRadius: '8px',
-                      border: previewDevice === 'ios' ? '2px solid #00891D' : '1px solid #E2E8F0',
-                      cursor: 'pointer',
-                    }} onClick={() => setPreviewDevice('ios')}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 700 }}>🍏 iPhone / iPad</span>
-                        {previewDevice === 'ios' && <span className="badge badge-active" style={{ fontSize: '9px', padding: '1px 5px' }}>Active</span>}
-                      </div>
-                      <div style={{
-                        fontWeight: 700,
-                        color: currentIosUrl ? '#0F172A' : '#DC2626',
-                        wordBreak: 'break-all',
-                        marginTop: '4px',
-                        fontSize: '12px',
-                        fontFamily: 'monospace',
-                      }}>
-                        {currentIosUrl || '(No URL entered)'}
-                      </div>
-                      <div style={{ fontSize: '10.5px', color: '#00891D', marginTop: '4px' }}>
-                        {isDirectMode ? '➔ Direct Web Target' : '➔ App Store'}
-                      </div>
-                    </div>
-
-                    <div style={{
-                      padding: '10px 12px',
-                      background: previewDevice === 'desktop' ? '#E8F5EA' : '#F8FAFC',
-                      borderRadius: '8px',
-                      border: previewDevice === 'desktop' ? '2px solid #00891D' : '1px solid #E2E8F0',
-                      cursor: 'pointer',
-                    }} onClick={() => setPreviewDevice('desktop')}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 700 }}>💻 Desktop / Laptop</span>
-                        {previewDevice === 'desktop' && <span className="badge badge-active" style={{ fontSize: '9px', padding: '1px 5px' }}>Active</span>}
-                      </div>
-                      <div style={{
-                        fontWeight: 700,
-                        color: currentDesktopUrl ? '#0F172A' : '#DC2626',
-                        wordBreak: 'break-all',
-                        marginTop: '4px',
-                        fontSize: '12px',
-                        fontFamily: 'monospace',
-                      }}>
-                        {currentDesktopUrl || '(No URL entered)'}
-                      </div>
-                      <div style={{ fontSize: '10.5px', color: '#00891D', marginTop: '4px' }}>
-                        ➔ Direct Web Target
-                      </div>
-                    </div>
+                            design: {
+                              fgColor: wizardData.fgColor,
+                              bgColor: wizardData.bgColor,
+                            },
+                          },
+                        });
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{
+                        background: '#FFFFFF',
+                        borderColor: '#00891D',
+                        color: '#00891D',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                      }}
+                    >
+                      <Smartphone size={14} />
+                      Simulate Smartphone Scan
+                    </button>
                   </div>
                 </div>
               );
             })()}
-
-            {/* 6. HTTPS & APPROVED DOMAIN VALIDATION */}
-            <div style={{
-              padding: '12px 16px',
-              borderRadius: '8px',
-              background: destValidation.tested && !destValidation.isValid ? '#FEE2E2' : '#E8F5EA',
-              border: `1px solid ${destValidation.tested && !destValidation.isValid ? '#FCA5A5' : '#C8E6C9'}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '12.5px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <ShieldCheck size={18} color={destValidation.tested && !destValidation.isValid ? '#DC2626' : '#00891D'} />
-                <div>
-                  <strong style={{ color: destValidation.tested && !destValidation.isValid ? '#DC2626' : '#006B17' }}>
-                    {destValidation.tested
-                      ? destValidation.isValid
-                        ? 'HTTPS & Destination Endpoint Verified'
-                        : 'Destination Validation Error'
-                      : 'SSL / HTTPS & Domain Security'}
-                  </strong>
-                  <div style={{ color: '#4B5563', marginTop: '2px' }}>
-                    {destValidation.error || 'All destinations require https:// and are verified for 0 broken redirect latency.'}
-                  </div>
-                </div>
-              </div>
-              <button onClick={handleValidateDestinations} className="btn btn-secondary btn-sm" style={{ padding: '4px 10px' }}>
-                Test Destination
-              </button>
-            </div>
           </div>
 
-          {/* Button: Continue to Design Studio */}
-          <div className="modal-footer" style={{ background: 'transparent', padding: '20px 0 0 0', display: 'flex', justifyContent: 'space-between' }}>
+          {/* Navigation Footer */}
+          <div className="modal-footer" style={{ background: 'transparent', padding: '24px 0 0 0', display: 'flex', justifyContent: 'space-between' }}>
             <button onClick={() => setWizardStep(1)} className="btn btn-secondary btn-sm">
               <ArrowLeft size={15} />
-              Back
+              Back to Details
             </button>
-            <button onClick={() => setWizardStep(3)} className="btn btn-primary btn-sm">
+            <button onClick={() => setWizardStep(3)} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               Continue to Design Studio
               <ArrowRight size={15} />
             </button>
@@ -1917,7 +1696,7 @@ export const QRWizard = () => {
               {/* Workflow Actions: Generate & Submit for Approval */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
-                  onClick={() => publishWizardQR(true)}
+                  onClick={() => publishWizardQR()}
                   className="btn btn-primary"
                   style={{
                     width: '100%',

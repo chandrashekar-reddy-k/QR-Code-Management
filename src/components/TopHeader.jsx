@@ -11,9 +11,16 @@ export const TopHeader = ({ onMenuClick }) => {
     activeScreen,
     setActiveScreen,
     approvals,
+    qrCodes,
+    startNewQRCode,
   } = useQR();
 
-  const pendingCount = approvals.filter((a) => a.status === 'Pending').length;
+  const pendingCount = approvals.filter((a) => {
+    if (a.status !== 'Pending') return false;
+    const matchingQr = qrCodes?.find((q) => q.id === a.qrId);
+    if (matchingQr && matchingQr.status === 'Draft') return false;
+    return true;
+  }).length;
 
   const titles = {
     dashboard: { title: 'QR Operations Dashboard', sub: 'Performance overview, live scan trends and quick actions' },
@@ -75,7 +82,7 @@ export const TopHeader = ({ onMenuClick }) => {
         {/* Quick Create QR Button */}
         {activeScreen !== 'wizard' && (
           <button
-            onClick={() => setActiveScreen('wizard')}
+            onClick={() => startNewQRCode()}
             className="btn btn-primary btn-sm"
           >
             <Plus size={15} />

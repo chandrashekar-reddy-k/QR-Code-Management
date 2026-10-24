@@ -14,6 +14,51 @@ import {
 
 const QRContext = createContext(null);
 
+// Factory for fresh wizard starting state
+export const getInitialWizardData = () => ({
+  name: 'New Phirangipuram Promo QR',
+  type: 'Campaign',
+  purpose: 'Promote seasonal fresh arrivals at village mandal collection hub',
+  owner: 'Anita Rao',
+  department: 'Marketing',
+  campaignId: 'CMP-001',
+  campaign: 'Phirangipuram Launch',
+  hubId: 'HUB-01',
+  village: 'Phirangipuram Village',
+  startDate: new Date().toISOString().split('T')[0],
+  expiryDate: '2026-12-31',
+  trackingEnabled: true,
+  approvalRequired: false,
+  vehicleId: '',
+  productId: '',
+  referralCode: '',
+  // Step 2 Destination
+  redirectCode: 'vk-phr-promo',
+  androidUrl: 'https://villagkart.com/campaign/phirangipuram-launch',
+  androidDeepLink: 'villagkart://campaign/phirangipuram-launch?ref=vge901',
+  iosUrl: 'https://apps.apple.com/in/app/villagkart-rural-fresh/id192837482',
+  iosUniversalLink: 'https://villagkart.com/campaign/seasonal',
+  fallbackUrl: 'https://villagkart.com/campaign/phirangipuram-launch',
+  routingBehavior: 'fallback_only',
+  // Step 3 Design Studio
+  template: 'VillagKart Branded',
+  fgColor: '#00891D',
+  bgColor: '#FFFFFF',
+  showLogo: true,
+  hasCtaFrame: true,
+  ctaText: 'SCAN FOR FRESH SAVINGS',
+  campaignTitle: 'VillagKart Fresh Harvest',
+  supportingText: 'Farm direct to your village doorstep',
+  quietZone: 4,
+  errorCorrection: 'Q',
+  // Step 4 Export
+  exportUnit: 'cm',
+  exportWidth: 4,
+  exportHeight: 4,
+  exportDpi: 300,
+  exportFormat: 'SVG',
+});
+
 export const QRProvider = ({ children }) => {
   // Navigation & View Mode
   const [activeScreen, setActiveScreen] = useState('dashboard'); // 'dashboard', 'listing', 'wizard', 'details', 'scan-history', 'analytics', 'campaigns', 'campaign-detail', 'templates', 'referrals', 'permissions', 'settings'
@@ -48,49 +93,21 @@ export const QRProvider = ({ children }) => {
 
   // Create/Edit Wizard State (Screens 03, 04, 05, 06, 07)
   const [wizardStep, setWizardStep] = useState(1); // 1: Basic Details, 2: Destination, 3: Design Studio, 4: Export, 5: Review & Publish
-  const [wizardData, setWizardData] = useState({
-    name: 'New Phirangipuram Promo QR',
-    type: 'Campaign',
-    purpose: 'Promote seasonal fresh arrivals at village mandal collection hub',
-    owner: 'Anita Rao',
-    department: 'Marketing',
-    campaignId: 'CMP-001',
-    campaign: 'Phirangipuram Launch',
-    hubId: 'HUB-01',
-    village: 'Phirangipuram Village',
-    startDate: new Date().toISOString().split('T')[0],
-    expiryDate: '2026-12-31',
-    trackingEnabled: true,
-    approvalRequired: false,
-    vehicleId: '',
-    productId: '',
-    referralCode: '',
-    // Step 2 Destination
-    redirectCode: 'vk-phr-promo',
-    androidUrl: 'https://villagkart.com/campaign/phirangipuram-launch',
-    androidDeepLink: 'villagkart://campaign/phirangipuram-launch?ref=vge901',
-    iosUrl: 'https://apps.apple.com/in/app/villagkart-rural-fresh/id192837482',
-    iosUniversalLink: 'https://villagkart.com/campaign/seasonal',
-    fallbackUrl: 'https://villagkart.com/campaign/phirangipuram-launch',
-    routingBehavior: 'fallback_only',
-    // Step 3 Design Studio
-    template: 'VillagKart Branded',
-    fgColor: '#00891D',
-    bgColor: '#FFFFFF',
-    showLogo: true,
-    hasCtaFrame: true,
-    ctaText: 'SCAN FOR FRESH SAVINGS',
-    campaignTitle: 'VillagKart Fresh Harvest',
-    supportingText: 'Farm direct to your village doorstep',
-    quietZone: 4,
-    errorCorrection: 'Q',
-    // Step 4 Export
-    exportUnit: 'cm',
-    exportWidth: 4,
-    exportHeight: 4,
-    exportDpi: 300,
-    exportFormat: 'SVG',
-  });
+  const [wizardData, setWizardData] = useState(getInitialWizardData);
+  const [wizardNotification, setWizardNotification] = useState(null);
+
+  // Reset wizard back to starting point (Step 1 with clean initial defaults)
+  const resetWizard = (clearNotification = false) => {
+    setWizardStep(1);
+    setWizardData(getInitialWizardData());
+    if (clearNotification) setWizardNotification(null);
+  };
+
+  // Start new QR code creation flow from beginning
+  const startNewQRCode = () => {
+    resetWizard(true);
+    setActiveScreen('wizard');
+  };
 
   // Test Scan Modal Simulator
   const [testScanModal, setTestScanModal] = useState({
@@ -175,50 +192,50 @@ export const QRProvider = ({ children }) => {
   };
 
   // Save new QR from wizard and submit for approval
-  const publishWizardQR = (submitForApproval = true) => {
+  const publishWizardQR = () => {
     const newId = 'QR-000' + String(qrCodes.length + 1).padStart(2, '0');
     const hub = INITIAL_HUBS.find((h) => h.id === wizardData.hubId) || INITIAL_HUBS[0];
     const initialStatus = 'Pending Approval';
 
     const newQR = {
       id: newId,
-      name: wizardData.name,
-      type: wizardData.type,
+      name: wizardData.name || `QR Code ${newId}`,
+      type: wizardData.type || 'Campaign',
       status: initialStatus,
-      campaign: wizardData.campaign,
-      campaignId: wizardData.campaignId,
-      owner: wizardData.owner,
-      department: wizardData.department,
-      hubId: wizardData.hubId,
+      campaign: wizardData.campaign || 'Direct Routing',
+      campaignId: wizardData.campaignId || 'CMP-001',
+      owner: wizardData.owner || 'Anita Rao',
+      department: wizardData.department || 'Marketing',
+      hubId: wizardData.hubId || 'HUB-01',
       hubName: hub.name,
-      village: wizardData.village,
+      village: wizardData.village || 'Phirangipuram Village',
       createdAt: new Date().toISOString().split('T')[0],
       lastModified: new Date().toISOString().split('T')[0],
-      expiryDate: wizardData.expiryDate,
-      trackingEnabled: wizardData.trackingEnabled,
+      expiryDate: wizardData.expiryDate || '2026-12-31',
+      trackingEnabled: wizardData.trackingEnabled !== false,
       approvalRequired: true,
       version: 'v1.0',
-      reviewerComments: '',
+      reviewerComments: 'Awaiting administrative governance review.',
       destination: {
-        redirectCode: wizardData.redirectCode,
-        androidUrl: wizardData.androidUrl,
-        androidDeepLink: wizardData.androidDeepLink,
-        iosUrl: wizardData.iosUrl,
-        iosUniversalLink: wizardData.iosUniversalLink,
-        fallbackUrl: wizardData.fallbackUrl,
-        routingBehavior: wizardData.routingBehavior,
+        redirectCode: wizardData.redirectCode || `vk-${Math.floor(1000 + Math.random() * 9000)}`,
+        androidUrl: wizardData.androidUrl || wizardData.fallbackUrl,
+        androidDeepLink: wizardData.androidDeepLink || '',
+        iosUrl: wizardData.iosUrl || wizardData.fallbackUrl,
+        iosUniversalLink: wizardData.iosUniversalLink || '',
+        fallbackUrl: wizardData.fallbackUrl || 'https://villagkart.com',
+        routingBehavior: wizardData.routingBehavior || 'fallback_only',
       },
       design: {
-        template: wizardData.template,
-        fgColor: wizardData.fgColor,
-        bgColor: wizardData.bgColor,
-        showLogo: wizardData.showLogo,
-        hasCtaFrame: wizardData.hasCtaFrame,
-        ctaText: wizardData.ctaText,
-        campaignTitle: wizardData.campaignTitle,
-        supportingText: wizardData.supportingText,
-        quietZone: wizardData.quietZone,
-        errorCorrection: wizardData.errorCorrection,
+        template: wizardData.template || 'VillagKart Branded',
+        fgColor: wizardData.fgColor || '#00891D',
+        bgColor: wizardData.bgColor || '#FFFFFF',
+        showLogo: wizardData.showLogo !== false,
+        hasCtaFrame: wizardData.hasCtaFrame !== false,
+        ctaText: wizardData.ctaText || 'SCAN FOR FRESH SAVINGS',
+        campaignTitle: wizardData.campaignTitle || 'VillagKart Fresh Harvest',
+        supportingText: wizardData.supportingText || 'Farm direct to your village doorstep',
+        quietZone: wizardData.quietZone || 4,
+        errorCorrection: wizardData.errorCorrection || 'Q',
       },
       metrics: {
         scans: 0,
@@ -234,12 +251,12 @@ export const QRProvider = ({ children }) => {
     const newApproval = {
       id: 'APP-' + Math.floor(100 + Math.random() * 900),
       qrId: newId,
-      qrName: wizardData.name,
-      type: wizardData.type,
-      requestingUser: `${wizardData.owner} (${wizardData.department})`,
+      qrName: newQR.name,
+      type: newQR.type,
+      requestingUser: `${newQR.owner} (${newQR.department})`,
       submittedDate: new Date().toISOString().replace('T', ' ').substring(0, 16),
       configVersion: 'v1.0',
-      riskClassification: wizardData.type === 'Payment' ? 'High (Payment Flow)' : 'Medium (Marketing Campaign)',
+      riskClassification: newQR.type === 'Payment' ? 'High (Payment Flow)' : 'Medium (Marketing Campaign)',
       validationResults: {
         qrDecodes: true,
         destinationsActive: true,
@@ -250,11 +267,95 @@ export const QRProvider = ({ children }) => {
       reviewerComments: '',
     };
     setApprovals((prev) => [newApproval, ...prev]);
-    addAuditLog('Submitted for Approval', `${newId} (${wizardData.name})`, 'Created new QR config');
+    addAuditLog('Submitted for Approval', `${newId} (${newQR.name})`, 'Created new QR config');
     showToast(`QR Code ${newId} generated! Submitted to Permissions & Approvals for review.`, 'warning');
 
     setSelectedQrId(newId);
-    setActiveScreen('permissions');
+    // Reset wizard back to starting point (Step 1 with clean initial defaults)
+    resetWizard();
+    setWizardNotification({
+      type: 'submitted',
+      qrId: newId,
+      name: newQR.name,
+      message: `QR Code ${newId} (${newQR.name}) generated & submitted for approval! Wizard is reset to Step 1 so you can create another QR code, or switch screens when you are ready.`,
+      targetScreen: 'permissions',
+      targetLabel: 'View in Permissions & Approvals',
+    });
+    return newId;
+  };
+
+  // Save new QR as Inactive Draft - does NOT submit to permissions or create an approval entry
+  const saveWizardDraft = () => {
+    const newId = 'QR-000' + String(qrCodes.length + 1).padStart(2, '0');
+    const hub = INITIAL_HUBS.find((h) => h.id === wizardData.hubId) || INITIAL_HUBS[0];
+    const initialStatus = 'Draft';
+
+    const newQR = {
+      id: newId,
+      name: wizardData.name || `Draft QR ${newId}`,
+      type: wizardData.type || 'Campaign',
+      status: initialStatus,
+      campaign: wizardData.campaign || 'Direct Routing',
+      campaignId: wizardData.campaignId || 'CMP-001',
+      owner: wizardData.owner || 'Anita Rao',
+      department: wizardData.department || 'Marketing',
+      hubId: wizardData.hubId || 'HUB-01',
+      hubName: hub.name,
+      village: wizardData.village || 'Phirangipuram Village',
+      createdAt: new Date().toISOString().split('T')[0],
+      lastModified: new Date().toISOString().split('T')[0],
+      expiryDate: wizardData.expiryDate || '2026-12-31',
+      trackingEnabled: wizardData.trackingEnabled !== false,
+      approvalRequired: false,
+      version: 'v1.0 (Draft)',
+      reviewerComments: 'Saved as inactive draft. Not submitted for administrative review.',
+      destination: {
+        redirectCode: wizardData.redirectCode || `vk-draft-${Math.floor(1000 + Math.random() * 9000)}`,
+        androidUrl: wizardData.androidUrl || wizardData.fallbackUrl,
+        androidDeepLink: wizardData.androidDeepLink || '',
+        iosUrl: wizardData.iosUrl || wizardData.fallbackUrl,
+        iosUniversalLink: wizardData.iosUniversalLink || '',
+        fallbackUrl: wizardData.fallbackUrl || 'https://villagkart.com',
+        routingBehavior: wizardData.routingBehavior || 'fallback_only',
+      },
+      design: {
+        template: wizardData.template || 'VillagKart Branded',
+        fgColor: wizardData.fgColor || '#00891D',
+        bgColor: wizardData.bgColor || '#FFFFFF',
+        showLogo: wizardData.showLogo !== false,
+        hasCtaFrame: wizardData.hasCtaFrame !== false,
+        ctaText: wizardData.ctaText || 'SCAN FOR FRESH SAVINGS',
+        campaignTitle: wizardData.campaignTitle || 'VillagKart Fresh Harvest',
+        supportingText: wizardData.supportingText || 'Farm direct to your village doorstep',
+        quietZone: wizardData.quietZone || 4,
+        errorCorrection: wizardData.errorCorrection || 'Q',
+      },
+      metrics: {
+        scans: 0,
+        uniqueVisitors: 0,
+        verifiedRegistrations: 0,
+        firstOrders: 0,
+        conversionRate: 0,
+      },
+    };
+
+    setQrCodes((prev) => [newQR, ...prev]);
+
+    // Note: Do NOT add to approvals list! Inactive drafts do NOT go to Permissions & Approvals.
+    addAuditLog('Saved Inactive Draft', `${newId} (${newQR.name})`, 'Saved as Draft in QR Inventory');
+    showToast(`QR Code ${newId} saved as Inactive Draft in QR Inventory.`);
+
+    setSelectedQrId(newId);
+    // Reset wizard back to starting point (Step 1 with clean initial defaults)
+    resetWizard();
+    setWizardNotification({
+      type: 'draft',
+      qrId: newId,
+      name: newQR.name,
+      message: `QR Code ${newId} (${newQR.name}) saved as inactive draft! Wizard is reset to Step 1 so you can create another QR code, or switch screens when you are ready.`,
+      targetScreen: 'listing',
+      targetLabel: 'View in QR Inventory',
+    });
     return newId;
   };
 
@@ -357,15 +458,12 @@ export const QRProvider = ({ children }) => {
     if (action === 'approve') {
       showToast(`QR Code ${targetQrId || approvalId} approved! Now live in QR Inventory.`, 'success');
       if (targetQrId) setSelectedQrId(targetQrId);
-      setActiveScreen('listing');
     } else if (action === 'request_changes') {
-      showToast(`Changes requested for ${targetQrId || approvalId}. Redirected to QR Code Details.`, 'warning');
+      showToast(`Changes requested for ${targetQrId || approvalId}. Updated status in Details.`, 'warning');
       if (targetQrId) setSelectedQrId(targetQrId);
-      setActiveScreen('details');
     } else if (action === 'reject') {
-      showToast(`QR Code ${targetQrId || approvalId} rejected. Redirected to QR Code Details.`, 'error');
+      showToast(`QR Code ${targetQrId || approvalId} rejected. Updated status in Details.`, 'error');
       if (targetQrId) setSelectedQrId(targetQrId);
-      setActiveScreen('details');
     }
   };
 
@@ -405,7 +503,13 @@ export const QRProvider = ({ children }) => {
         setWizardStep,
         wizardData,
         setWizardData,
+        wizardNotification,
+        setWizardNotification,
         publishWizardQR,
+        saveWizardDraft,
+        resetWizard,
+        startNewQRCode,
+        getInitialWizardData,
         testScanModal,
         setTestScanModal,
         simulateScan,

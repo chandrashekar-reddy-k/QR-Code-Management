@@ -18,9 +18,21 @@ import {
 } from 'lucide-react';
 
 export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
-  const { activeScreen, setActiveScreen, approvals, currentRole } = useQR();
+  const {
+    activeScreen,
+    setActiveScreen,
+    approvals,
+    qrCodes,
+    currentRole,
+    startNewQRCode,
+  } = useQR();
 
-  const pendingApprovalsCount = approvals.filter((a) => a.status === 'Pending').length;
+  const pendingApprovalsCount = approvals.filter((a) => {
+    if (a.status !== 'Pending') return false;
+    const matchingQr = qrCodes?.find((q) => q.id === a.qrId);
+    if (matchingQr && matchingQr.status === 'Draft') return false;
+    return true;
+  }).length;
 
   const navSections = [
     {
@@ -107,7 +119,11 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
                 <button
                   key={item.id}
                   onClick={() => {
-                    setActiveScreen(item.id);
+                    if (item.id === 'wizard') {
+                      startNewQRCode();
+                    } else {
+                      setActiveScreen(item.id);
+                    }
                     if (setMobileOpen) setMobileOpen(false);
                   }}
                   className={`sidebar-nav-item ${isActive ? 'active' : ''}`}

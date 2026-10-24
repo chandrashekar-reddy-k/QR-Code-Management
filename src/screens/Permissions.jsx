@@ -68,8 +68,18 @@ export const Permissions = () => {
     vge: false,
   });
 
-  const pendingApprovals = approvals.filter((a) => a.status === 'Pending');
-  const resolvedApprovals = approvals.filter((a) => a.status !== 'Pending');
+  const pendingApprovals = approvals.filter((a) => {
+    if (a.status !== 'Pending') return false;
+    const matchingQr = qrCodes?.find((q) => q.id === a.qrId);
+    if (matchingQr && matchingQr.status === 'Draft') return false;
+    return true;
+  });
+  const resolvedApprovals = approvals.filter((a) => {
+    if (a.status === 'Pending') return false;
+    const matchingQr = qrCodes?.find((q) => q.id === a.qrId);
+    if (matchingQr && matchingQr.status === 'Draft') return false;
+    return true;
+  });
 
   const handleCommentChange = (id, text) => {
     setCommentInputs((prev) => ({ ...prev, [id]: text }));
