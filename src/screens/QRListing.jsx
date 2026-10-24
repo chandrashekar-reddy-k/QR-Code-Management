@@ -208,7 +208,7 @@ export const QRListing = () => {
             className="btn btn-primary btn-sm"
           >
             <Plus size={15} />
-            + Create QR
+            Create QR
           </button>
         </div>
       </div>

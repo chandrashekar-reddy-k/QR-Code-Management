@@ -130,7 +130,7 @@ export const Campaigns = () => {
           </div>
           <button onClick={() => setIsCreating(true)} className="btn btn-primary btn-sm">
             <Plus size={15} />
-            + Create Campaign
+            Create Campaign
           </button>
         </div>
       </div>
