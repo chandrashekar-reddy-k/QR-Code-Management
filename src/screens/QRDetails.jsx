@@ -27,6 +27,8 @@ export const QRDetails = () => {
     selectedQrId,
     setSelectedQrId,
     setActiveScreen,
+    setWizardData,
+    setWizardStep,
     qrCodes,
     togglePauseQR,
     archiveQR,
@@ -57,6 +59,51 @@ export const QRDetails = () => {
     setCopiedLink(true);
     showToast('Redirect shortlink copied to clipboard!');
     setTimeout(() => setCopiedLink(false), 3000);
+  };
+
+  const handleDownload = () => {
+    const canvas = document.querySelector('.details-qr-preview canvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `${qr.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_qr.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    showToast(`Downloaded QR asset package for ${qr.name}.`);
+  };
+
+  const handleEdit = () => {
+    setWizardData({
+      name: qr.name,
+      type: qr.type,
+      purpose: qr.purpose || `Strategic distribution for ${qr.name}`,
+      owner: qr.owner,
+      department: qr.department || 'Operations',
+      campaignId: qr.campaignId || 'CMP-001',
+      campaign: qr.campaign || 'Direct Distribution',
+      hubId: qr.hubId || 'HUB-01',
+      village: qr.village || 'Phirangipuram Village',
+      expiryDate: qr.expiryDate || '2026-12-31',
+      redirectCode: qr.destination?.redirectCode || qr.id.toLowerCase(),
+      androidUrl: qr.destination?.androidUrl || '',
+      iosUrl: qr.destination?.iosUrl || '',
+      fallbackUrl: qr.destination?.fallbackUrl || 'https://villagkart.com',
+      routingBehavior: qr.destination?.routingBehavior || 'auto',
+      template: qr.design?.template || 'VillagKart Branded',
+      fgColor: qr.design?.fgColor || '#00891D',
+      bgColor: qr.design?.bgColor || '#FFFFFF',
+      showLogo: qr.design?.showLogo ?? true,
+      hasCtaFrame: qr.design?.hasCtaFrame ?? true,
+      ctaText: qr.design?.ctaText || 'SCAN TO CONNECT',
+      campaignTitle: qr.design?.campaignTitle || qr.name,
+      supportingText: qr.design?.supportingText || 'VillagKart Rural Commerce',
+      errorCorrection: qr.design?.errorCorrection || 'Q',
+      exportWidth: 15,
+      exportHeight: 15,
+      exportUnit: 'cm',
+    });
+    setWizardStep(1);
+    setActiveScreen('wizard');
   };
 
   const handleSaveDestinationVersion = () => {
@@ -103,45 +150,56 @@ export const QRDetails = () => {
           </div>
         </div>
 
+        {/* Page 8 Required Actions: Edit, Download, Copy URL, Pause, Archive */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
-            onClick={() => {
-              setSelectedQrId(qr.id);
-              setActiveScreen('design-studio');
-            }}
+            onClick={handleEdit}
             className="btn btn-secondary btn-sm"
+            title="Edit QR Configuration"
           >
             <Edit3 size={14} color="#00891D" />
-            Customize in Design Studio
+            Edit
           </button>
           <button
-            onClick={() => setTestScanModal({ isOpen: true, qrCode: qr })}
+            onClick={handleDownload}
             className="btn btn-secondary btn-sm"
+            title="Download QR Asset Package"
           >
-            <Smartphone size={14} color="#00891D" />
-            Test Scan Simulator
+            <Download size={14} />
+            Download
           </button>
           <button
             onClick={copyUrl}
             className="btn btn-secondary btn-sm"
+            title="Copy Redirect URL"
           >
             {copiedLink ? <Check size={14} color="#00891D" /> : <Copy size={14} />}
-            {copiedLink ? 'Copied' : 'Copy Shortlink'}
+            {copiedLink ? 'Copied' : 'Copy URL'}
           </button>
           <button
             onClick={() => togglePauseQR(qr.id)}
             className="btn btn-secondary btn-sm"
+            title={qr.status === 'Active' ? 'Pause QR' : 'Resume QR'}
           >
             {qr.status === 'Active' ? <Pause size={14} color="#D97706" /> : <Play size={14} color="#00891D" />}
-            {qr.status === 'Active' ? 'Pause QR' : 'Resume QR'}
+            {qr.status === 'Active' ? 'Pause' : 'Resume'}
           </button>
           <button
             onClick={() => archiveQR(qr.id)}
             className="btn btn-secondary btn-sm"
             style={{ color: '#DC2626' }}
+            title="Archive QR Code"
           >
             <Archive size={14} />
             Archive
+          </button>
+          <button
+            onClick={() => setTestScanModal({ isOpen: true, qrCode: qr })}
+            className="btn btn-secondary btn-sm"
+            title="Open Interactive Smartphone Simulator"
+          >
+            <Smartphone size={14} color="#00891D" />
+            Test Scan
           </button>
         </div>
       </div>
@@ -196,6 +254,8 @@ export const QRDetails = () => {
               <div>Campaign: <strong>{qr.campaign || 'Direct'}</strong></div>
               <div>Hub: <strong>{qr.hubName || 'Phirangipuram Hub'}</strong></div>
               <div>Owner: <strong>{qr.owner}</strong> ({qr.department})</div>
+              <div>Created: <strong>{qr.createdAt || '2026-03-01'}</strong></div>
+              <div>Last Modified: <strong>{qr.lastModified || '2026-03-20'}</strong></div>
               <div>Expiry: <strong>{qr.expiryDate || 'Unlimited'}</strong></div>
             </div>
           </div>

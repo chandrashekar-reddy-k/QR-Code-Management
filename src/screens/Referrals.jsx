@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQR } from '../context/QRContext';
+import { QRCodeRenderer } from '../components/QRCodeRenderer';
 import {
   Users,
   Award,
@@ -11,17 +12,57 @@ import {
   AlertTriangle,
   ArrowRight,
   Filter,
+  Eye,
+  Download,
+  Pause,
+  Play,
+  BarChart2,
+  X,
+  Search,
 } from 'lucide-react';
 
 export const Referrals = () => {
-  const { qrCodes, setTestScanModal, showToast } = useQR();
+  const { qrCodes, setQrCodes, setSelectedQrId, setActiveScreen, setTestScanModal, showToast } = useQR();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPerfQr, setSelectedPerfQr] = useState(null);
 
   const referralQrs = qrCodes.filter((q) => q.type === 'Referral');
+
+  const filteredReferrals = referralQrs.filter((ref) => {
+    return (
+      (ref.referralCode && ref.referralCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      ref.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ref.owner.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (ref.hubName && ref.hubName.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  });
 
   const totalReferralScans = referralQrs.reduce((a, b) => a + (b.metrics?.scans || 0), 0);
   const totalReferralRegs = referralQrs.reduce((a, b) => a + (b.metrics?.verifiedRegistrations || 0), 0);
   const totalReferralOrders = referralQrs.reduce((a, b) => a + (b.metrics?.firstOrders || 0), 0);
-  const totalRewardsDisbursed = referralQrs.reduce((a, b) => a + (b.metrics?.earnedRewards || 0), 0);
+  const totalRewardsDisbursed = referralQrs.reduce((a, b) => a + (b.metrics?.earnedRewards || (b.metrics?.firstOrders || 0) * 50), 0);
+
+  // Row Actions Handlers
+  const handleViewQR = (ref) => {
+    setTestScanModal({ isOpen: true, qrCode: ref });
+  };
+
+  const handleDownload = (ref) => {
+    showToast(`Downloading QR package for referral partner ${ref.owner}...`);
+  };
+
+  const handleToggleActivatePause = (refId) => {
+    setQrCodes((prev) =>
+      prev.map((q) =>
+        q.id === refId ? { ...q, status: q.status === 'Active' ? 'Paused' : 'Active' } : q
+      )
+    );
+    showToast('Toggled referral QR activation status.');
+  };
+
+  const handleViewPerformance = (ref) => {
+    setSelectedPerfQr(ref);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -29,15 +70,15 @@ export const Referrals = () => {
       <div className="vk-card" style={{ padding: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 className="vk-card-title">Referral QR & Customer Acquisition</h2>
+            <h2 className="vk-card-title">Referral QR Management</h2>
             <p className="vk-card-subtitle">
-              Connects QR scanning to Village Gramin Executives (VGEs) and customer referral commission tracking
+              Manage referral QR codes assigned to Village Gramin Executives (VGEs) and customers with anti-abuse journey tracking
             </p>
           </div>
-          <span className="badge badge-active">Anti-Fraud Engine Active</span>
+          <span className="badge badge-active">Anti-Self Referral Active</span>
         </div>
 
-        {/* Visual Referral Flow */}
+        {/* Visual Referral Journey Flow (Scan -> Registration -> First Order) */}
         <div style={{
           marginTop: '16px',
           padding: '14px',
@@ -46,7 +87,7 @@ export const Referrals = () => {
           borderRadius: '10px',
         }}>
           <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#006B17', textTransform: 'uppercase', marginBottom: '8px' }}>
-            Verified Referral Milestone Sequence:
+            Verified Multi-Stage Referral Journey:
           </div>
           <div style={{
             display: 'flex',
@@ -57,7 +98,7 @@ export const Referrals = () => {
             fontSize: '12.5px',
             color: '#111827',
           }}>
-            <span>1. QR Scan</span>
+            <span>1. Scan QR</span>
             <ArrowRight size={14} color="#00891D" />
             <span>2. Referral Landing Page</span>
             <ArrowRight size={14} color="#00891D" />
@@ -65,12 +106,12 @@ export const Referrals = () => {
             <ArrowRight size={14} color="#00891D" />
             <span>4. Customer Registration</span>
             <ArrowRight size={14} color="#00891D" />
-            <span>5. First Grocery Order</span>
+            <span>5. Verified First Order</span>
             <ArrowRight size={14} color="#00891D" />
-            <span style={{ fontWeight: 700, color: '#00891D' }}>6. Verified Incentive Disbursal</span>
+            <span style={{ fontWeight: 700, color: '#00891D' }}>6. Incentive Disbursal (₹50)</span>
           </div>
           <p style={{ margin: '8px 0 0 0', fontSize: '11.5px', color: '#4B5563' }}>
-            * Anti-fraud policy: Scans alone never generate rewards. Incentives require verified delivery of customer first order.
+            * Business Rule: Scans alone never trigger rewards. Preventing duplicate and self-referral abuse via device IMEI and phone validation.
           </p>
         </div>
       </div>
@@ -112,7 +153,7 @@ export const Referrals = () => {
 
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">Incentives Disbursed</span>
+            <span className="kpi-title">Eligible Rewards Disbursed</span>
             <div className="kpi-icon"><Award size={18} /></div>
           </div>
           <div className="kpi-value">₹{totalRewardsDisbursed.toLocaleString()}</div>
@@ -125,7 +166,24 @@ export const Referrals = () => {
       {/* Referral Records Table */}
       <div className="vk-card">
         <div className="vk-card-header">
-          <h3 className="vk-card-title">Referral Partner Performance Table</h3>
+          <div>
+            <h3 className="vk-card-title">Referral Partner Performance Table</h3>
+            <p className="vk-card-subtitle">
+              Field executive tracking, activation status, conversion funnel and commission audit
+            </p>
+          </div>
+
+          <div style={{ position: 'relative', width: '260px' }}>
+            <Search size={15} color="#9CA3AF" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="Search referral code or partner..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="form-control"
+              style={{ paddingLeft: '32px', fontSize: '12.5px', padding: '6px 10px 6px 32px' }}
+            />
+          </div>
         </div>
 
         <div className="vk-table-container">
@@ -133,18 +191,18 @@ export const Referrals = () => {
             <thead>
               <tr>
                 <th>Referral Code & QR ID</th>
-                <th>Partner Name & Role</th>
-                <th>Assigned Hub & Village</th>
-                <th>Status</th>
+                <th>Referral Owner & Role</th>
+                <th>Assigned Hub & Territory</th>
+                <th>Activation Status</th>
                 <th>Scans</th>
                 <th>Verified Reg.</th>
                 <th>First Orders</th>
-                <th>Eligible Commission</th>
+                <th>Eligible Rewards & Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {referralQrs.map((ref) => (
+              {filteredReferrals.map((ref) => (
                 <tr key={ref.id}>
                   <td>
                     <div style={{ fontWeight: 700, color: '#00891D', fontFamily: 'monospace' }}>
@@ -154,14 +212,16 @@ export const Referrals = () => {
                   </td>
                   <td>
                     <div style={{ fontWeight: 600, color: '#111827' }}>{ref.owner}</div>
-                    <div style={{ fontSize: '11.5px', color: '#6B7280' }}>{ref.referralRole || 'VGE Field Agent'}</div>
+                    <div style={{ fontSize: '11px', color: '#6B7280' }}>{ref.referralRole || 'Village Gramin Executive (VGE)'}</div>
                   </td>
                   <td>
                     <div style={{ fontWeight: 500 }}>{ref.hubName}</div>
-                    <div style={{ fontSize: '11.5px', color: '#6B7280' }}>{ref.village}</div>
+                    <div style={{ fontSize: '11px', color: '#6B7280' }}>{ref.village}</div>
                   </td>
                   <td>
-                    <span className="badge badge-active">{ref.status}</span>
+                    <span className={`badge badge-${ref.status === 'Active' ? 'active' : 'paused'}`}>
+                      {ref.status}
+                    </span>
                   </td>
                   <td style={{ fontWeight: 700 }}>{(ref.metrics?.scans || 0).toLocaleString()}</td>
                   <td style={{ fontWeight: 700, color: '#00891D' }}>
@@ -174,16 +234,56 @@ export const Referrals = () => {
                     <span style={{ fontWeight: 800, color: '#111827' }}>
                       ₹{(ref.metrics?.earnedRewards || (ref.metrics?.firstOrders || 0) * 50).toLocaleString()}
                     </span>
-                    <div style={{ fontSize: '10.5px', color: '#00891D', fontWeight: 600 }}>Eligible & Disbursed</div>
+                    <div style={{ fontSize: '10.5px', color: '#00891D', fontWeight: 600 }}>Disbursed (₹50/order)</div>
                   </td>
+
+                  {/* Actions: View QR, Download, Activate/Pause, View Performance */}
                   <td style={{ textAlign: 'right' }}>
-                    <button
-                      onClick={() => setTestScanModal({ isOpen: true, qrCode: ref })}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <Smartphone size={13} color="#00891D" />
-                      Test Scan
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                      {/* View QR */}
+                      <button
+                        onClick={() => handleViewQR(ref)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '4px 8px' }}
+                        title="View QR in Simulator"
+                      >
+                        <Eye size={12} color="#00891D" />
+                        View QR
+                      </button>
+
+                      {/* Download */}
+                      <button
+                        onClick={() => handleDownload(ref)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '4px 8px' }}
+                        title="Download Referral QR Asset"
+                      >
+                        <Download size={12} />
+                        Download
+                      </button>
+
+                      {/* Activate / Pause */}
+                      <button
+                        onClick={() => handleToggleActivatePause(ref.id)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '4px 8px' }}
+                        title={ref.status === 'Active' ? 'Pause Referral QR' : 'Activate Referral QR'}
+                      >
+                        {ref.status === 'Active' ? <Pause size={12} color="#D97706" /> : <Play size={12} color="#00891D" />}
+                        {ref.status === 'Active' ? 'Pause' : 'Activate'}
+                      </button>
+
+                      {/* View Performance */}
+                      <button
+                        onClick={() => handleViewPerformance(ref)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '4px 8px' }}
+                        title="View Performance Analytics"
+                      >
+                        <BarChart2 size={12} color="#00891D" />
+                        Performance
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -191,9 +291,71 @@ export const Referrals = () => {
           </table>
         </div>
       </div>
+
+      {/* Performance Drawer Modal */}
+      {selectedPerfQr && (
+        <div className="drawer-overlay" onClick={() => setSelectedPerfQr(null)}>
+          <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BarChart2 size={18} color="#00891D" />
+                <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>
+                  Referral Journey · {selectedPerfQr.referralCode}
+                </h3>
+              </div>
+              <button onClick={() => setSelectedPerfQr(null)} className="btn btn-ghost" style={{ padding: '4px' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ padding: '14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>Assigned Partner</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>{selectedPerfQr.owner}</div>
+                <div style={{ fontSize: '12px', color: '#00891D', fontWeight: 600 }}>{selectedPerfQr.hubName} · {selectedPerfQr.village}</div>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px' }}>Journey Milestones</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px', borderBottom: '1px solid #E5E7EB' }}>
+                    <span>Total Telemetry Scans</span>
+                    <strong>{(selectedPerfQr.metrics?.scans || 0).toLocaleString()}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px', borderBottom: '1px solid #E5E7EB' }}>
+                    <span>Verified Customer Registrations</span>
+                    <strong style={{ color: '#00891D' }}>{(selectedPerfQr.metrics?.verifiedRegistrations || 0).toLocaleString()}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px', borderBottom: '1px solid #E5E7EB' }}>
+                    <span>Completed First Orders</span>
+                    <strong style={{ color: '#00A322' }}>{(selectedPerfQr.metrics?.firstOrders || 0).toLocaleString()}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px', borderBottom: '1px solid #E5E7EB' }}>
+                    <span>Earned Commission Disbursed</span>
+                    <strong style={{ color: '#111827' }}>₹{(selectedPerfQr.metrics?.earnedRewards || (selectedPerfQr.metrics?.firstOrders || 0) * 50).toLocaleString()}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                onClick={() => {
+                  setSelectedQrId(selectedPerfQr.id);
+                  setActiveScreen('details');
+                  setSelectedPerfQr(null);
+                }}
+                className="btn btn-primary btn-sm"
+              >
+                Open Full QR Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
- 
+
 export { Referrals as Screen13_Referrals };
 export default Referrals;

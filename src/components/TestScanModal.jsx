@@ -24,7 +24,9 @@ export const TestScanModal = () => {
   const isIos = simulatedDevice.includes('iOS');
   const isBot = simulatedDevice.includes('Bot');
 
-  const resolvedUrl = isAndroid
+  const resolvedUrl = destination.routingBehavior === 'fallback_only'
+    ? destination.fallbackUrl
+    : isAndroid
     ? (destination.androidUrl || destination.fallbackUrl)
     : isIos
     ? (destination.iosUrl || destination.fallbackUrl)

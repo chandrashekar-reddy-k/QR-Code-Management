@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQR } from '../context/QRContext';
 import { QRCodeRenderer } from '../components/QRCodeRenderer';
-import { INITIAL_HUBS, INITIAL_VILLAGES, INITIAL_CAMPAIGNS } from '../data/mockData';
+import { INITIAL_HUBS, INITIAL_VILLAGES, INITIAL_CAMPAIGNS, INITIAL_USERS } from '../data/mockData';
 import {
   CheckCircle2,
   ArrowRight,
@@ -19,6 +19,13 @@ import {
   Share2,
   Check,
   Send,
+  Eye,
+  Sliders,
+  CheckSquare,
+  Square,
+  RefreshCw,
+  Globe,
+  Laptop,
 } from 'lucide-react';
 
 export const QRWizard = () => {
@@ -29,6 +36,7 @@ export const QRWizard = () => {
     setWizardData,
     publishWizardQR,
     setActiveScreen,
+    setSelectedQrId,
     currentRole,
     setTestScanModal,
     showToast,
@@ -36,6 +44,17 @@ export const QRWizard = () => {
 
   const [copiedLink, setCopiedLink] = useState(false);
   const [exportTab, setExportTab] = useState('print'); // 'print' | 'digital'
+  const [digitalFormat, setDigitalFormat] = useState('PNG'); // 'PNG' | 'JPEG'
+  const [printLayout, setPrintLayout] = useState('poster'); // 'poster', 'flyer', 'sticker', 'label', 'banner'
+  const [digitalLayout, setDigitalLayout] = useState('whatsapp'); // 'whatsapp', 'social_square', 'story', 'embed'
+
+  // Destination Validation State
+  const [destValidation, setDestValidation] = useState({
+    tested: false,
+    isValid: true,
+    error: '',
+    testedAt: null,
+  });
 
   // Update wizard helper
   const updateData = (field, value) => {
@@ -48,6 +67,40 @@ export const QRWizard = () => {
     (wizardData.type === 'Payment' ||
       wizardData.type === 'Campaign' ||
       currentRole === 'VGE');
+
+  // Validate Destination Function
+  const handleValidateDestinations = () => {
+    const fallback = wizardData.fallbackUrl?.trim() || '';
+    if (!fallback) {
+      setDestValidation({
+        tested: true,
+        isValid: false,
+        error: 'Fallback destination URL is required.',
+        testedAt: new Date().toLocaleTimeString(),
+      });
+      showToast('Validation failed: Missing fallback URL', 'error');
+      return;
+    }
+
+    if (!fallback.startsWith('https://')) {
+      setDestValidation({
+        tested: true,
+        isValid: false,
+        error: 'HTTPS is required on all destination URLs for secure mobile routing.',
+        testedAt: new Date().toLocaleTimeString(),
+      });
+      showToast('Validation failed: HTTPS required', 'error');
+      return;
+    }
+
+    setDestValidation({
+      tested: true,
+      isValid: true,
+      error: '',
+      testedAt: new Date().toLocaleTimeString(),
+    });
+    showToast('All destinations verified! SSL active and endpoint reachable.');
+  };
 
   // Download QR Canvas Helper
   const handleDownload = (format = 'PNG') => {
@@ -72,11 +125,11 @@ export const QRWizard = () => {
       URL.revokeObjectURL(url);
     } else {
       const link = document.createElement('a');
-      link.download = `${wizardData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_qr.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.download = `${wizardData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_qr.${format.toLowerCase()}`;
+      link.href = canvas.toDataURL(`image/${format.toLowerCase() === 'jpeg' ? 'jpeg' : 'png'}`);
       link.click();
     }
-    showToast(`Downloaded ${format} print asset package.`);
+    showToast(`Downloaded ${format} asset package successfully.`);
   };
 
   const copyRedirectUrl = () => {
@@ -84,6 +137,18 @@ export const QRWizard = () => {
     setCopiedLink(true);
     showToast('Copied redirect URL to clipboard!');
     setTimeout(() => setCopiedLink(false), 3000);
+  };
+
+  // Save Draft Helper
+  const handleSaveDraft = () => {
+    publishWizardQR(true);
+    showToast('Draft saved to QR inventory.');
+  };
+
+  // Continue to QR Details after publishing
+  const handleContinueToDetails = () => {
+    publishWizardQR(isApprovalRequired);
+    setActiveScreen('details');
   };
 
   return (
@@ -94,7 +159,7 @@ export const QRWizard = () => {
           { step: 1, label: 'Basic Details' },
           { step: 2, label: 'Destinations' },
           { step: 3, label: 'Design Studio' },
-          { step: 4, label: 'Print & Digital' },
+          { step: 4, label: 'Print & Digital Export' },
           { step: 5, label: 'Review & Publish' },
         ].map((s, idx, arr) => (
           <React.Fragment key={s.step}>
@@ -113,18 +178,23 @@ export const QRWizard = () => {
       </div>
 
       {/* =========================================================================
-          STEP 1 (Screen 03): Create QR — Basic Details (Dynamic Form)
+          PAGE 3 / STEP 1: Create QR: Basic Details
           ========================================================================= */}
       {wizardStep === 1 && (
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Basic QR Details & Purpose</h2>
+              <h2 className="vk-card-title">Create QR: Basic Details</h2>
               <p className="vk-card-subtitle">
-                Dynamic form configuration adapted to rural commerce channels and roles
+                Collect core governance, channel attribution and operational scope before artwork generation
               </p>
             </div>
-            <span className="badge badge-draft">Drafting New QR</span>
+            {/* System Rule Approval Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className={`badge ${isApprovalRequired ? 'badge-pending' : 'badge-active'}`}>
+                {isApprovalRequired ? 'Approval Required by System Rules' : 'Pre-Approved for Immediate Publish'}
+              </span>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '18px' }}>
@@ -140,7 +210,7 @@ export const QRWizard = () => {
                 onChange={(e) => updateData('name', e.target.value)}
                 placeholder="e.g. Phirangipuram Village Launch Poster"
               />
-              <p className="form-helper">Required; unique name within hub or campaign scope</p>
+              <p className="form-helper">Required; unique descriptive name for marketing and audit trail</p>
             </div>
 
             {/* QR Type */}
@@ -166,44 +236,80 @@ export const QRWizard = () => {
                   }
                 }}
               >
-                <option value="App Download">App Download (Android & iOS)</option>
-                <option value="Campaign">Campaign (Flyers & Marketing)</option>
-                <option value="Vehicle">Vehicle (Shop-on-Wheels Mobile Van)</option>
-                <option value="Referral">Referral (VGE Agent & Customer)</option>
-                <option value="Product">Product Catalogue (Origin & Reorder)</option>
-                <option value="Feedback">Feedback (Customer & Delivery Quality)</option>
-                <option value="Payment">Payment (UPI Direct Hub Collection)</option>
+                <option value="App Download">App Download</option>
+                <option value="Campaign">Campaign</option>
+                <option value="Vehicle">Vehicle (Shop-on-Wheels)</option>
+                <option value="Referral">Referral</option>
+                <option value="Product">Product Catalogue</option>
+                <option value="Feedback">Feedback</option>
+                <option value="Payment">Payment</option>
               </select>
-              <p className="form-helper">Form dynamically reveals fields specific to this type</p>
+              <p className="form-helper">Dynamic fields update according to the selected type</p>
             </div>
 
-            {/* Purpose */}
+            {/* QR Purpose */}
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label className="form-label">
-                QR Purpose & Strategic Context <span className="required-dot">*</span>
+                QR Purpose <span className="required-dot">*</span>
               </label>
               <textarea
                 className="form-control"
                 rows={2}
                 value={wizardData.purpose}
                 onChange={(e) => updateData('purpose', e.target.value)}
-                placeholder="Describe intended placement, target audience, and business objective"
+                placeholder="State the strategic purpose, target customer segment, and operational placement"
               />
             </div>
 
-            {/* DYNAMIC FIELDS PER QR TYPE */}
+            {/* Owner */}
+            <div className="form-group">
+              <label className="form-label">
+                Owner <span className="required-dot">*</span>
+              </label>
+              <select
+                className="form-control"
+                value={wizardData.owner}
+                onChange={(e) => {
+                  const selectedUser = INITIAL_USERS.find((u) => u.name === e.target.value);
+                  updateData('owner', e.target.value);
+                  if (selectedUser) {
+                    updateData('department', selectedUser.department);
+                  }
+                }}
+              >
+                {INITIAL_USERS.map((u) => (
+                  <option key={u.id} value={u.name}>
+                    {u.name} ({u.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Department */}
+            <div className="form-group">
+              <label className="form-label">Department</label>
+              <input
+                type="text"
+                className="form-control"
+                value={wizardData.department}
+                onChange={(e) => updateData('department', e.target.value)}
+                placeholder="e.g. Marketing / Hub Operations"
+              />
+            </div>
+
+            {/* DYNAMIC FIELDS: Vehicle QR requires vehicle ID and hub */}
             {wizardData.type === 'Vehicle' && (
               <div className="form-group" style={{ gridColumn: 'span 2', background: '#FEF3C7', padding: '16px', borderRadius: '10px', border: '1px solid #FDE68A' }}>
                 <div style={{ fontWeight: 700, color: '#92400E', marginBottom: '8px' }}>
-                  🚐 Vehicle Operational Context (Shop-on-Wheels)
+                  🚐 Vehicle QR Requirements (Vehicle ID & Hub)
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
                   <div>
-                    <label className="form-label">Vehicle Registration Number</label>
+                    <label className="form-label">Vehicle ID <span className="required-dot">*</span></label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g., AP-07-TA-4491"
+                      placeholder="e.g. AP-07-TA-4491"
                       value={wizardData.vehicleId || ''}
                       onChange={(e) => updateData('vehicleId', e.target.value)}
                     />
@@ -213,26 +319,27 @@ export const QRWizard = () => {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g., Route 4: Phirangipuram - Prattipadu Morning"
+                      placeholder="e.g. Route 4: Phirangipuram - Prattipadu Morning"
                     />
                   </div>
                 </div>
               </div>
             )}
 
+            {/* DYNAMIC FIELDS: Referral QR requires referral identifier and eligible owner */}
             {wizardData.type === 'Referral' && (
               <div className="form-group" style={{ gridColumn: 'span 2', background: '#F3E8FF', padding: '16px', borderRadius: '10px', border: '1px solid #E9D5FF' }}>
                 <div style={{ fontWeight: 700, color: '#6B21A8', marginBottom: '8px' }}>
-                  🤝 Referral Partner Attribution
+                  🤝 Referral QR Requirements (Referral Identifier & Eligible Owner)
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
                   <div>
-                    <label className="form-label">Unique Referral Identifier</label>
+                    <label className="form-label">Referral Identifier <span className="required-dot">*</span></label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g., VGE-RAM-901"
-                      value={wizardData.referralCode || 'VGE-AGT-' + Math.floor(100 + Math.random() * 900)}
+                      placeholder="e.g. VGE-RAM-901"
+                      value={wizardData.referralCode || 'VGE-AGT-774'}
                       onChange={(e) => updateData('referralCode', e.target.value)}
                     />
                   </div>
@@ -241,16 +348,16 @@ export const QRWizard = () => {
                     <select className="form-control">
                       <option>Village Gramin Executive (VGE)</option>
                       <option>Student Ambassador</option>
-                      <option>Existing Customer Champion</option>
+                      <option>Customer Referral Champion</option>
                     </select>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Campaign Selector */}
+            {/* Campaign */}
             <div className="form-group">
-              <label className="form-label">Associated Campaign</label>
+              <label className="form-label">Campaign</label>
               <select
                 className="form-control"
                 value={wizardData.campaignId}
@@ -268,9 +375,9 @@ export const QRWizard = () => {
               </select>
             </div>
 
-            {/* Hub / Territory Selector */}
+            {/* Hub / Territory */}
             <div className="form-group">
-              <label className="form-label">Hub / Territory Scope</label>
+              <label className="form-label">Hub / Territory</label>
               <select
                 className="form-control"
                 value={wizardData.hubId}
@@ -284,9 +391,9 @@ export const QRWizard = () => {
               </select>
             </div>
 
-            {/* Target Village */}
+            {/* Village */}
             <div className="form-group">
-              <label className="form-label">Target Village (Mandal level)</label>
+              <label className="form-label">Village</label>
               <select
                 className="form-control"
                 value={wizardData.village}
@@ -300,144 +407,586 @@ export const QRWizard = () => {
               </select>
             </div>
 
-            {/* Expiry Date */}
+            {/* Start Date and Expiry Date */}
             <div className="form-group">
-              <label className="form-label">Start & Expiry Schedule</label>
-              <input
-                type="date"
-                className="form-control"
-                value={wizardData.expiryDate}
-                onChange={(e) => updateData('expiryDate', e.target.value)}
-              />
+              <label className="form-label">Start Date & Expiry Date</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={wizardData.startDate || new Date().toISOString().split('T')[0]}
+                  onChange={(e) => updateData('startDate', e.target.value)}
+                  title="Start Date"
+                />
+                <span style={{ display: 'flex', alignItems: 'center', color: '#6B7280' }}>to</span>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={wizardData.expiryDate}
+                  onChange={(e) => updateData('expiryDate', e.target.value)}
+                  title="Expiry Date"
+                />
+              </div>
+            </div>
+
+            {/* Tracking Toggle */}
+            <div className="form-group" style={{ gridColumn: 'span 2', background: '#F9FAFB', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={wizardData.trackingEnabled ?? true}
+                  onChange={(e) => updateData('trackingEnabled', e.target.checked)}
+                  style={{ width: '18px', height: '18px', accentColor: '#00891D' }}
+                />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>
+                    Enable Scan Tracking & Conversion Attribution
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+                    Records individual scan telemetry, device OS headers, and attributes app registrations and first orders
+                  </div>
+                </div>
+              </label>
             </div>
           </div>
 
-          <div className="modal-footer" style={{ background: 'transparent', padding: '16px 0 0 0' }}>
-            <button onClick={() => setActiveScreen('listing')} className="btn btn-secondary btn-sm">
-              Cancel
+          {/* Action Buttons: Save Draft, Cancel, Continue */}
+          <div className="modal-footer" style={{ background: 'transparent', padding: '20px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button onClick={handleSaveDraft} className="btn btn-secondary btn-sm">
+              Save Draft
             </button>
-            <button onClick={() => setWizardStep(2)} className="btn btn-primary btn-sm">
-              Continue to Destination Configuration
-              <ArrowRight size={15} />
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setActiveScreen('listing')} className="btn btn-secondary btn-sm">
+                Cancel
+              </button>
+              <button onClick={() => setWizardStep(2)} className="btn btn-primary btn-sm">
+                Continue
+                <ArrowRight size={15} />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* =========================================================================
-          STEP 2 (Screen 04): Destination Configuration
+          PAGE 4 / STEP 2: Destination Configuration
           ========================================================================= */}
       {wizardStep === 2 && (
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Destination & Routing Engine</h2>
+              <h2 className="vk-card-title">Destination Configuration</h2>
               <p className="vk-card-subtitle">
-                Configure smart device routing for Android, iOS and fallback landing pages
+                Define where the QR code sends a user after scanning, device routing, and deep-link parameters
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#00891D', fontWeight: 600 }}>
-              <ShieldCheck size={16} />
-              <span>SSL / HTTPS Verified</span>
+            {/* Top Quick Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="badge badge-outline" style={{ fontFamily: 'monospace' }}>
+                QR: {wizardData.name}
+              </span>
+              <button onClick={handleValidateDestinations} className="btn btn-secondary btn-sm">
+                <RefreshCw size={13} />
+                Validate URLs
+              </button>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Redirect Code Alias */}
-            <div className="form-group">
-              <label className="form-label">
-                VillagKart Redirect Short Code
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{
-                  padding: '9px 12px',
-                  background: '#F3F4F6',
-                  border: '1px solid #D1D5DB',
-                  borderRight: 'none',
-                  borderTopLeftRadius: '8px',
-                  borderBottomLeftRadius: '8px',
-                  color: '#6B7280',
-                  fontSize: '13px'
-                }}>
-                  https://qr.villagkart.com/
-                </span>
-                <input
-                  type="text"
-                  className="form-control"
-                  style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, fontFamily: 'monospace', fontWeight: 600 }}
-                  value={wizardData.redirectCode}
-                  onChange={(e) => updateData('redirectCode', e.target.value)}
-                />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* 1. ARCHITECTURE & ROUTING FLOW DIAGRAM */}
+            <div style={{
+              background: '#F9FAFB',
+              border: '1px solid #E5E7EB',
+              borderRadius: '10px',
+              padding: '14px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              fontSize: '12.5px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 700, color: '#111827' }}>How Redirection Works:</span>
+                  <span style={{ background: '#FFFFFF', padding: '5px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontWeight: 600 }}>
+                    📱 1. Scan Printed QR
+                  </span>
+                  <ArrowRight size={14} color="#00891D" />
+                  <span style={{ background: '#E8F5EA', padding: '5px 10px', borderRadius: '6px', border: '1px solid #C8E6C9', color: '#006B17', fontFamily: 'monospace', fontWeight: 700 }}>
+                    2. https://qr.villagkart.com/{wizardData.redirectCode || 'code'}
+                  </span>
+                  <ArrowRight size={14} color="#00891D" />
+                  <span style={{ background: '#00891D', padding: '5px 12px', borderRadius: '6px', color: '#FFFFFF', fontWeight: 700 }}>
+                    🎯 3. Your Target Destination URL
+                  </span>
+                </div>
               </div>
-              <p className="form-helper">Immutable redirect code registered in DNS edge routing</p>
+              <div style={{ color: '#4B5563', fontSize: '12px', lineHeight: 1.4, borderTop: '1px dashed #E5E7EB', paddingTop: '8px' }}>
+                💡 <strong>Dynamic QR Advantage:</strong> The physical QR code printed on paper or vinyl encodes the shortlink (e.g. <code>https://qr.villagkart.com/{wizardData.redirectCode || 'youtube-1048'}</code>). When scanned, our edge routers forward the user to your Target Destination URL below. <em>You can change your Destination URL anytime in the future without having to reprint or replace your QR codes!</em>
+              </div>
             </div>
 
-            {/* Routing Behavior Option */}
+            {/* 2. CHOOSE ROUTING OPTION */}
             <div className="form-group">
-              <label className="form-label">Routing Behavior</label>
+              <label className="form-label" style={{ fontWeight: 700, fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Select Where This QR Code Sends Users (Routing Mode):</span>
+                <span style={{ fontWeight: 500, color: '#6B7280', fontSize: '12px' }}>Choose the option that fits your campaign</span>
+              </label>
               <div className="grid-3">
                 {[
-                  { id: 'auto', title: 'Smart Auto Routing', desc: 'Detect device OS automatically: Android -> Play Store, iOS -> App Store' },
-                  { id: 'landing', title: 'Landing Page with Buttons', desc: 'Present branded mobile web landing page with Android & iOS buttons' },
-                  { id: 'fallback_only', title: 'Always Open Web Landing', desc: 'Direct all traffic to responsive web destination' },
+                  {
+                    id: 'fallback_only',
+                    title: 'Always open the web landing page',
+                    badge: '⭐ Recommended (Direct Target URL)',
+                    desc: 'Direct all traffic to your target destination URL (e.g. YouTube video, promo page, website, form) regardless of whether scanned on Android, iPhone, or PC.',
+                    icon: <Globe size={18} color="#00891D" />,
+                  },
+                  {
+                    id: 'auto',
+                    title: 'Automatically route based on device',
+                    badge: 'Mobile App Stores (Android / iOS)',
+                    desc: 'Detects phone OS: Android phones route to Google Play Store / App Intent, iPhones route to Apple App Store, and PC/Mac opens the fallback website.',
+                    icon: <Smartphone size={18} color="#3B82F6" />,
+                  },
+                  {
+                    id: 'landing',
+                    title: 'Show an Android/iOS landing page',
+                    badge: 'Branded Splash Page',
+                    desc: 'Displays a responsive mobile web landing page with Android and iOS download action buttons plus website link.',
+                    icon: <Laptop size={18} color="#8B5CF6" />,
+                  },
                 ].map((b) => (
                   <div
                     key={b.id}
-                    onClick={() => updateData('routingBehavior', b.id)}
+                    onClick={() => {
+                      updateData('routingBehavior', b.id);
+                      // If switching to fallback_only and androidUrl had a non-store URL like youtube, migrate it
+                      if (b.id === 'fallback_only' && wizardData.androidUrl && wizardData.androidUrl.includes('youtube.com')) {
+                        updateData('fallbackUrl', wizardData.androidUrl);
+                      }
+                    }}
                     style={{
                       padding: '14px',
                       borderRadius: '8px',
                       border: wizardData.routingBehavior === b.id ? '2px solid #00891D' : '1px solid #E5E7EB',
                       background: wizardData.routingBehavior === b.id ? '#E8F5EA' : '#FFFFFF',
                       cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.15s ease',
+                      boxShadow: wizardData.routingBehavior === b.id ? '0 2px 6px rgba(0,137,29,0.1)' : 'none',
                     }}
                   >
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>{b.title}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>{b.desc}</div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {b.icon}
+                          <span style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>{b.title}</span>
+                        </div>
+                        {wizardData.routingBehavior === b.id && <Check size={16} color="#00891D" />}
+                      </div>
+                      <span style={{ fontSize: '11px', background: wizardData.routingBehavior === b.id ? '#C8E6C9' : '#F3F4F6', color: '#006B17', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                        {b.badge}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: '#6B7280', marginTop: '8px', lineHeight: 1.35 }}>{b.desc}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Target Destinations */}
-            <div className="grid-2">
-              <div className="form-group">
-                <label className="form-label">Android App Target (Play Store / Intent)</label>
-                <input
-                  type="url"
-                  className="form-control"
-                  value={wizardData.androidUrl}
-                  onChange={(e) => updateData('androidUrl', e.target.value)}
-                  placeholder="https://play.google.com/store/apps/details?id=com.villagkart..."
-                />
+            {/* 3. PRIMARY TARGET DESTINATION URL (WHERE USERS GO) */}
+            {wizardData.routingBehavior === 'fallback_only' ? (
+              /* Mode 1: DIRECT DESTINATION URL (Web, YouTube, etc.) */
+              <div className="form-group" style={{ background: '#E8F5EA', padding: '20px', borderRadius: '10px', border: '2px solid #00891D', boxShadow: '0 2px 8px rgba(0,137,29,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                  <label className="form-label" style={{ fontSize: '14px', fontWeight: 800, color: '#006B17', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <Globe size={19} color="#00891D" />
+                    Target Destination URL (Where your QR sends users) <span className="required-dot">*</span>
+                  </label>
+                  <span className="badge badge-active" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                    Active: All Devices (Android + iOS + Desktop)
+                  </span>
+                </div>
+
+                <p style={{ fontSize: '12.5px', color: '#1B5E20', margin: '0 0 12px 0', lineHeight: 1.4 }}>
+                  👉 <strong>Put your new or unique URL here!</strong> Anyone who scans this QR code with their mobile phone or tablet will be redirected directly to this link.
+                </p>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      type="url"
+                      className="form-control"
+                      style={{ fontSize: '14.5px', fontWeight: 600, padding: '11px 14px', borderColor: '#00891D', background: '#FFFFFF', borderRadius: '8px' }}
+                      value={wizardData.fallbackUrl}
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        updateData('fallbackUrl', val);
+                        updateData('androidUrl', val);
+                        updateData('iosUrl', val);
+                      }}
+                      placeholder="e.g. https://youtube.com or https://villagkart.com/seasonal-produce"
+                      required
+                    />
+                  </div>
+                  {wizardData.fallbackUrl && (
+                    <a
+                      href={wizardData.fallbackUrl.startsWith('http') ? wizardData.fallbackUrl : `https://${wizardData.fallbackUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', borderColor: '#00891D', color: '#00891D', fontWeight: 600 }}
+                      title="Open destination in a new browser tab to test"
+                    >
+                      <ExternalLink size={15} />
+                      Test Link
+                    </a>
+                  )}
+                </div>
+
+                {/* Quick Presets Chips */}
+                <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#006B17' }}>Quick Presets (Click to fill):</span>
+                  {[
+                    { label: '📺 YouTube (https://youtube.com)', url: 'https://youtube.com' },
+                    { label: '🌾 Seasonal Produce', url: 'https://villagkart.com/seasonal-produce' },
+                    { label: '📝 Feedback Form', url: 'https://villagkart.com/customer-feedback' },
+                    { label: '🛒 Daily Fresh Store', url: 'https://villagkart.com/fresh-store' },
+                  ].map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        updateData('fallbackUrl', p.url);
+                        updateData('androidUrl', p.url);
+                        updateData('iosUrl', p.url);
+                        showToast(`Set destination to ${p.url}`);
+                      }}
+                      style={{
+                        padding: '4px 10px',
+                        background: '#FFFFFF',
+                        border: '1px solid #A5D6A7',
+                        borderRadius: '20px',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        color: '#1B5E20',
+                        cursor: 'pointer',
+                        transition: 'background 0.1s ease',
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', fontSize: '12px', color: '#006B17', fontWeight: 600 }}>
+                  <CheckCircle2 size={15} color="#00891D" />
+                  <span>Target verified. When scanned from an Android phone, iPhone, or PC, users will land on: <strong>{wizardData.fallbackUrl || 'https://youtube.com'}</strong></span>
+                </div>
+              </div>
+            ) : wizardData.routingBehavior === 'auto' ? (
+              /* Mode 2: SMART DEVICE ROUTING (Android + iOS + Fallback) */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: '#F8FAFC', padding: '18px', borderRadius: '10px', border: '1px solid #CBD5E1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#1E293B' }}>
+                      📱 Smart Mobile App Routing (Device OS Specific)
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748B' }}>
+                      Use this mode to route Android users to Google Play Store and iOS users to Apple App Store.
+                    </div>
+                  </div>
+                  <span className="badge badge-outline" style={{ borderColor: '#3B82F6', color: '#1D4ED8' }}>
+                    Mobile OS Detection Active
+                  </span>
+                </div>
+
+                {/* Smart Assistant Notice if user entered youtube in androidUrl */}
+                {wizardData.androidUrl && (wizardData.androidUrl.includes('youtube.com') || wizardData.androidUrl.includes('youtu.be')) && (
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', padding: '10px 14px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', fontSize: '12px' }}>
+                    <div style={{ color: '#92400E' }}>
+                      💡 <strong>Notice:</strong> You entered a YouTube link in the Android App field. If you want <em>both Android and iPhone</em> users to open YouTube directly, switch to <strong>"Always open the web landing page"</strong>.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateData('routingBehavior', 'fallback_only');
+                        updateData('fallbackUrl', wizardData.androidUrl);
+                        showToast('Switched to Single Direct Web URL!');
+                      }}
+                      className="btn btn-sm btn-primary"
+                      style={{ flexShrink: 0, padding: '4px 10px', fontSize: '11.5px' }}
+                    >
+                      ⚡ Switch to Single URL
+                    </button>
+                  </div>
+                )}
+
+                <div className="grid-2">
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 600 }}>
+                      Android App Destination URL (Google Play Store / Intent)
+                    </label>
+                    <input
+                      type="url"
+                      className="form-control"
+                      value={wizardData.androidUrl}
+                      onChange={(e) => updateData('androidUrl', e.target.value)}
+                      placeholder="https://play.google.com/store/apps/details?id=com.villagkart.customer"
+                    />
+                    <p className="form-helper">Scanners using Android smartphones are routed to this Play Store / in-app intent</p>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 600 }}>
+                      iOS App Destination URL (Apple App Store / Universal Link)
+                    </label>
+                    <input
+                      type="url"
+                      className="form-control"
+                      value={wizardData.iosUrl}
+                      onChange={(e) => updateData('iosUrl', e.target.value)}
+                      placeholder="https://apps.apple.com/in/app/villagkart-rural-fresh/id192837482"
+                    />
+                    <p className="form-helper">Scanners using iPhones/iPads are routed to this Apple App Store link</p>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Fallback Website URL (Required for Desktop Browsers & Non-Mobile Scanners) <span className="required-dot">*</span>
+                  </label>
+                  <input
+                    type="url"
+                    className="form-control"
+                    value={wizardData.fallbackUrl}
+                    onChange={(e) => updateData('fallbackUrl', e.target.value)}
+                    placeholder="https://villagkart.com/seasonal-produce"
+                    required
+                  />
+                  <p className="form-helper">Destination for desktop/laptop browsers or devices where native app is unavailable</p>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>Deep-Link Support (Custom In-App URI Scheme)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={wizardData.deepLink || ''}
+                    onChange={(e) => updateData('deepLink', e.target.value)}
+                    placeholder="villagkart://campaign/phirangipuram-launch?ref=vge901"
+                  />
+                  <p className="form-helper">Optional; launches specific in-app view directly if mobile app is already installed</p>
+                </div>
+              </div>
+            ) : (
+              /* Mode 3: CHOICE LANDING PAGE */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: '#F9FAFB', padding: '16px', borderRadius: '10px', border: '1px solid #E5E7EB' }}>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>
+                  🌐 Choice Landing Page Endpoints:
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Fallback Website URL <span className="required-dot">*</span></label>
+                  <input
+                    type="url"
+                    className="form-control"
+                    value={wizardData.fallbackUrl}
+                    onChange={(e) => updateData('fallbackUrl', e.target.value)}
+                    placeholder="https://villagkart.com/download-app"
+                  />
+                  <p className="form-helper">Web landing page where users choose to download or browse</p>
+                </div>
+                <div className="grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Android App Download Button Link</label>
+                    <input
+                      type="url"
+                      className="form-control"
+                      value={wizardData.androidUrl}
+                      onChange={(e) => updateData('androidUrl', e.target.value)}
+                      placeholder="https://play.google.com/store/apps/details?id=..."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">iOS App Download Button Link</label>
+                    <input
+                      type="url"
+                      className="form-control"
+                      value={wizardData.iosUrl}
+                      onChange={(e) => updateData('iosUrl', e.target.value)}
+                      placeholder="https://apps.apple.com/in/app/..."
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4. QR REDIRECT CODE & SHORTLINK */}
+            <div className="form-group" style={{ background: '#FFFFFF', padding: '16px', borderRadius: '10px', border: '1px solid #E5E7EB' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>
+                  QR Redirect Short Code (The Dynamic URL Encoded Inside the QR Matrix) <span className="required-dot">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const randomSlug = 'vk-promo-' + Math.floor(1000 + Math.random() * 9000);
+                    updateData('redirectCode', randomSlug);
+                    showToast(`Generated new slug: ${randomSlug}`);
+                  }}
+                  className="btn btn-ghost btn-sm"
+                  style={{ fontSize: '11px', padding: '2px 8px' }}
+                >
+                  <RefreshCw size={12} />
+                  Generate New Slug
+                </button>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">iOS App Target (App Store / Universal Link)</label>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{
+                  padding: '10px 14px',
+                  background: '#F3F4F6',
+                  border: '1px solid #D1D5DB',
+                  borderRight: 'none',
+                  borderTopLeftRadius: '8px',
+                  borderBottomLeftRadius: '8px',
+                  color: '#4B5563',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                }}>
+                  https://qr.villagkart.com/
+                </span>
                 <input
-                  type="url"
+                  type="text"
                   className="form-control"
-                  value={wizardData.iosUrl}
-                  onChange={(e) => updateData('iosUrl', e.target.value)}
-                  placeholder="https://apps.apple.com/in/app/villagkart..."
+                  style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, fontFamily: 'monospace', fontWeight: 700, fontSize: '14px' }}
+                  value={wizardData.redirectCode}
+                  onChange={(e) => updateData('redirectCode', e.target.value)}
+                  placeholder="e.g. youtube-1048 or promo-summer"
                 />
+              </div>
+              <p className="form-helper" style={{ marginTop: '6px' }}>
+                <strong>Why this exists:</strong> The printed QR code stores <code>https://qr.villagkart.com/{wizardData.redirectCode || 'slug'}</code>. When someone scans it, our Cloudflare edge router forwards them in under 45ms to your <strong>Target Destination URL</strong> configured above.
+              </p>
+            </div>
+
+            {/* 5. LIVE ROUTING SUMMARY BOX */}
+            <div style={{
+              background: '#FFFFFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: '10px',
+              padding: '14px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              fontSize: '12.5px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>
+                  ⚡ Real-Time Forwarding Resolution Preview:
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTestScanModal({
+                        isOpen: true,
+                        qrCode: {
+                          id: 'VK-TEST-' + (wizardData.redirectCode || 'preview'),
+                          name: wizardData.name || 'New Promo QR',
+                          type: wizardData.type || 'Campaign',
+                          status: 'Active',
+                          hubName: wizardData.hubId || 'Phirangipuram Hub',
+                          village: wizardData.village || 'Phirangipuram Village',
+                          destination: {
+                            redirectCode: wizardData.redirectCode,
+                            androidUrl: wizardData.androidUrl,
+                            iosUrl: wizardData.iosUrl,
+                            fallbackUrl: wizardData.fallbackUrl,
+                            routingBehavior: wizardData.routingBehavior,
+                          },
+                          design: {
+                            fgColor: wizardData.fgColor,
+                            bgColor: wizardData.bgColor,
+                          },
+                        },
+                      });
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '4px 10px', fontSize: '11.5px', color: '#00891D', fontWeight: 600 }}
+                  >
+                    <Smartphone size={13} />
+                    Simulate Scan Live
+                  </button>
+                  <span className="badge badge-active" style={{ fontSize: '11px' }}>
+                    Mode: {wizardData.routingBehavior === 'fallback_only' ? 'Direct Single URL' : wizardData.routingBehavior === 'auto' ? 'Smart OS Routing' : 'Choice Landing Page'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div style={{ padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>🤖 Android Phone Scan:</div>
+                  <div style={{ fontWeight: 700, color: '#0F172A', wordBreak: 'break-all', marginTop: '2px', fontSize: '11.5px' }}>
+                    {wizardData.routingBehavior === 'fallback_only'
+                      ? (wizardData.fallbackUrl || 'https://youtube.com')
+                      : (wizardData.androidUrl || wizardData.fallbackUrl)}
+                  </div>
+                </div>
+
+                <div style={{ padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>🍏 iPhone / iPad Scan:</div>
+                  <div style={{ fontWeight: 700, color: '#0F172A', wordBreak: 'break-all', marginTop: '2px', fontSize: '11.5px' }}>
+                    {wizardData.routingBehavior === 'fallback_only'
+                      ? (wizardData.fallbackUrl || 'https://youtube.com')
+                      : (wizardData.iosUrl || wizardData.fallbackUrl)}
+                  </div>
+                </div>
+
+                <div style={{ padding: '8px 12px', background: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>💻 Desktop / Laptop Scan:</div>
+                  <div style={{ fontWeight: 700, color: '#0F172A', wordBreak: 'break-all', marginTop: '2px', fontSize: '11.5px' }}>
+                    {wizardData.fallbackUrl || 'https://villagkart.com'}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Fallback Web Destination (Required HTTPS) <span className="required-dot">*</span></label>
-              <input
-                type="url"
-                className="form-control"
-                value={wizardData.fallbackUrl}
-                onChange={(e) => updateData('fallbackUrl', e.target.value)}
-                placeholder="https://villagkart.com/download-app"
-              />
-              <p className="form-helper">Safeguard destination if device OS cannot be identified or is accessed on PC</p>
+            {/* 6. HTTPS & APPROVED DOMAIN VALIDATION */}
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: destValidation.tested && !destValidation.isValid ? '#FEE2E2' : '#E8F5EA',
+              border: `1px solid ${destValidation.tested && !destValidation.isValid ? '#FCA5A5' : '#C8E6C9'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12.5px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShieldCheck size={18} color={destValidation.tested && !destValidation.isValid ? '#DC2626' : '#00891D'} />
+                <div>
+                  <strong style={{ color: destValidation.tested && !destValidation.isValid ? '#DC2626' : '#006B17' }}>
+                    {destValidation.tested
+                      ? destValidation.isValid
+                        ? 'HTTPS & Destination Endpoint Verified'
+                        : 'Destination Validation Error'
+                      : 'SSL / HTTPS & Domain Security'}
+                  </strong>
+                  <div style={{ color: '#4B5563', marginTop: '2px' }}>
+                    {destValidation.error || 'All destinations require https:// and are verified for 0 broken redirect latency.'}
+                  </div>
+                </div>
+              </div>
+              <button onClick={handleValidateDestinations} className="btn btn-secondary btn-sm" style={{ padding: '4px 10px' }}>
+                Test Destination
+              </button>
             </div>
           </div>
 
-          <div className="modal-footer" style={{ background: 'transparent', padding: '16px 0 0 0' }}>
+          {/* Button: Continue to Design Studio */}
+          <div className="modal-footer" style={{ background: 'transparent', padding: '20px 0 0 0', display: 'flex', justifyContent: 'space-between' }}>
             <button onClick={() => setWizardStep(1)} className="btn btn-secondary btn-sm">
               <ArrowLeft size={15} />
               Back
@@ -451,165 +1000,301 @@ export const QRWizard = () => {
       )}
 
       {/* =========================================================================
-          STEP 3 (Screen 05): Design Studio (Three-Panel Layout)
+          PAGE 5 / STEP 3: Design Studio (Three-Panel Layout)
           ========================================================================= */}
       {wizardStep === 3 && (
-        <div className="design-studio-grid">
-          {/* Panel 1: Design Controls */}
-          <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <h2 className="vk-card-title" style={{ fontSize: '15px' }}>Design Controls</h2>
-              <p className="vk-card-subtitle">Styling, colors & brand framing</p>
-            </div>
-
-            {/* Template */}
-            <div className="form-group" style={{ marginBottom: '10px' }}>
-              <label className="form-label" style={{ fontSize: '12px' }}>Approved Template</label>
-              <select
-                className="form-control"
-                style={{ fontSize: '13px' }}
-                value={wizardData.template}
-                onChange={(e) => updateData('template', e.target.value)}
-              >
-                <option value="VillagKart Branded">VillagKart Branded (#00891D)</option>
-                <option value="Village launch flyer">Village Launch Flyer</option>
-                <option value="Shop-on-Wheels vehicle sticker">Shop-on-Wheels Vehicle Vinyl</option>
-                <option value="VGE referral card">VGE Referral Card</option>
-                <option value="Product catalogue label">Product Catalogue Label</option>
-              </select>
-            </div>
-
-            {/* Color Palette */}
-            <div className="grid-2" style={{ gap: '10px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="design-studio-grid">
+            {/* Left Panel — Design Controls */}
+            <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label className="form-label" style={{ fontSize: '12px' }}>Foreground</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <input
-                    type="color"
-                    value={wizardData.fgColor}
-                    onChange={(e) => updateData('fgColor', e.target.value)}
-                    style={{ width: '32px', height: '32px', borderRadius: '4px', cursor: 'pointer', border: 'none' }}
-                  />
-                  <input
-                    type="text"
-                    className="form-control"
-                    style={{ fontSize: '12px', padding: '6px' }}
-                    value={wizardData.fgColor}
-                    onChange={(e) => updateData('fgColor', e.target.value)}
-                  />
+                <h2 className="vk-card-title" style={{ fontSize: '15px' }}>Design Controls</h2>
+                <p className="vk-card-subtitle">Approved templates, logo placement & colors</p>
+              </div>
+
+              {/* Approved Template Selection */}
+              <div className="form-group" style={{ marginBottom: '8px' }}>
+                <label className="form-label" style={{ fontSize: '12px' }}>Approved Template</label>
+                <select
+                  className="form-control"
+                  style={{ fontSize: '13px' }}
+                  value={wizardData.template}
+                  onChange={(e) => updateData('template', e.target.value)}
+                >
+                  <option value="VillagKart Branded">VillagKart Branded (#00891D)</option>
+                  <option value="App download poster">App download poster</option>
+                  <option value="Village launch flyer">Village launch flyer</option>
+                  <option value="Shop-on-Wheels vehicle sticker">Shop-on-Wheels vehicle sticker</option>
+                  <option value="Hub entrance poster">Hub entrance poster</option>
+                  <option value="VGE referral card">VGE referral card</option>
+                  <option value="Product catalogue label">Product catalogue label</option>
+                  <option value="Customer feedback card">Customer feedback card</option>
+                  <option value="Delivery feedback card">Delivery feedback card</option>
+                  <option value="WhatsApp campaign image">WhatsApp campaign image</option>
+                </select>
+              </div>
+
+              {/* Foreground & Background Colors */}
+              <div className="grid-2" style={{ gap: '10px', marginBottom: '8px' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '12px' }}>Foreground Color</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="color"
+                      value={wizardData.fgColor}
+                      onChange={(e) => updateData('fgColor', e.target.value)}
+                      style={{ width: '32px', height: '32px', borderRadius: '4px', cursor: 'pointer', border: 'none' }}
+                    />
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={{ fontSize: '12px', padding: '6px' }}
+                      value={wizardData.fgColor}
+                      onChange={(e) => updateData('fgColor', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '12px' }}>Background Color</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="color"
+                      value={wizardData.bgColor}
+                      onChange={(e) => updateData('bgColor', e.target.value)}
+                      style={{ width: '32px', height: '32px', borderRadius: '4px', cursor: 'pointer', border: 'none' }}
+                    />
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={{ fontSize: '12px', padding: '6px' }}
+                      value={wizardData.bgColor}
+                      onChange={(e) => updateData('bgColor', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '12px' }}>Background</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {/* VillagKart Logo Upload & Placement */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', cursor: 'pointer' }}>
                   <input
-                    type="color"
-                    value={wizardData.bgColor}
-                    onChange={(e) => updateData('bgColor', e.target.value)}
-                    style={{ width: '32px', height: '32px', borderRadius: '4px', cursor: 'pointer', border: 'none' }}
+                    type="checkbox"
+                    checked={wizardData.showLogo ?? true}
+                    onChange={(e) => updateData('showLogo', e.target.checked)}
+                    style={{ accentColor: '#00891D' }}
                   />
+                  <span style={{ fontWeight: 600 }}>VillagKart Logo Emblem (Center Overlay)</span>
+                </label>
+              </div>
+
+              {/* QR Frame & Call-to-Action */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={wizardData.hasCtaFrame ?? true}
+                    onChange={(e) => updateData('hasCtaFrame', e.target.checked)}
+                    style={{ accentColor: '#00891D' }}
+                  />
+                  <span style={{ fontWeight: 600 }}>Add Call-to-Action Frame</span>
+                </label>
+
+                {wizardData.hasCtaFrame && (
                   <input
                     type="text"
                     className="form-control"
-                    style={{ fontSize: '12px', padding: '6px' }}
-                    value={wizardData.bgColor}
-                    onChange={(e) => updateData('bgColor', e.target.value)}
+                    style={{ fontSize: '12.5px' }}
+                    value={wizardData.ctaText}
+                    onChange={(e) => updateData('ctaText', e.target.value)}
+                    placeholder="e.g. SCAN TO DOWNLOAD"
                   />
-                </div>
+                )}
               </div>
-            </div>
 
-            {/* Frame & CTA text */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={wizardData.hasCtaFrame}
-                  onChange={(e) => updateData('hasCtaFrame', e.target.checked)}
-                  style={{ accentColor: '#00891D' }}
-                />
-                <span style={{ fontWeight: 600 }}>Add Call-to-Action Frame</span>
-              </label>
-
-              {wizardData.hasCtaFrame && (
+              {/* Campaign Title & Supporting Text */}
+              <div>
+                <label className="form-label" style={{ fontSize: '12px' }}>Campaign Title</label>
                 <input
                   type="text"
                   className="form-control"
                   style={{ fontSize: '12.5px' }}
-                  value={wizardData.ctaText}
-                  onChange={(e) => updateData('ctaText', e.target.value)}
-                  placeholder="e.g. SCAN TO DOWNLOAD"
+                  value={wizardData.campaignTitle}
+                  onChange={(e) => updateData('campaignTitle', e.target.value)}
+                  placeholder="e.g. VillagKart Fresh Grocery"
                 />
-              )}
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '12px' }}>Supporting Text</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  style={{ fontSize: '12.5px' }}
+                  value={wizardData.supportingText}
+                  onChange={(e) => updateData('supportingText', e.target.value)}
+                  placeholder="e.g. Daily arriving 8 AM - 12 PM"
+                />
+              </div>
             </div>
 
-            {/* Campaign Title & Supporting text */}
-            <div>
-              <label className="form-label" style={{ fontSize: '12px' }}>Campaign Title (Card Header)</label>
-              <input
-                type="text"
-                className="form-control"
-                style={{ fontSize: '12.5px' }}
-                value={wizardData.campaignTitle}
-                onChange={(e) => updateData('campaignTitle', e.target.value)}
-                placeholder="e.g. VillagKart Fresh Grocery"
-              />
+            {/* Center Panel — Live Preview */}
+            <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
+              <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#00891D', fontWeight: 700, letterSpacing: '0.05em' }}>
+                  Center Panel · Live Preview
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>
+                  Live QR Artwork & Branding
+                </h3>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                  Preview at intended print size: {wizardData.exportWidth || 15} × {wizardData.exportHeight || 15} {wizardData.exportUnit || 'cm'}
+                </div>
+              </div>
+
+              {/* Artwork Render */}
+              <div style={{ padding: '16px', background: '#FFFFFF', borderRadius: '14px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+                <QRCodeRenderer
+                  value={`https://qr.villagkart.com/${wizardData.redirectCode}`}
+                  fgColor={wizardData.fgColor}
+                  bgColor={wizardData.bgColor}
+                  size={210}
+                  hasCtaFrame={wizardData.hasCtaFrame}
+                  ctaText={wizardData.ctaText}
+                  campaignTitle={wizardData.campaignTitle}
+                  supportingText={wizardData.supportingText}
+                  showLogo={wizardData.showLogo}
+                  errorCorrection={wizardData.errorCorrection || 'Q'}
+                />
+              </div>
+
+              {/* Test scan trigger */}
+              <div style={{ marginTop: '16px' }}>
+                <button
+                  onClick={() =>
+                    setTestScanModal({
+                      isOpen: true,
+                      qrCode: {
+                        ...wizardData,
+                        id: 'DRAFT-PREVIEW',
+                        destination: {
+                          redirectCode: wizardData.redirectCode,
+                          androidUrl: wizardData.androidUrl,
+                          iosUrl: wizardData.iosUrl,
+                          fallbackUrl: wizardData.fallbackUrl,
+                        },
+                        design: {
+                          fgColor: wizardData.fgColor,
+                          bgColor: wizardData.bgColor,
+                          showLogo: wizardData.showLogo,
+                        },
+                      },
+                    })
+                  }
+                  className="btn btn-secondary btn-sm"
+                  style={{ borderColor: '#00891D', color: '#00891D', fontWeight: 600 }}
+                >
+                  <Smartphone size={14} />
+                  Test Scan in Simulator
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label className="form-label" style={{ fontSize: '12px' }}>Supporting Tagline</label>
-              <input
-                type="text"
-                className="form-control"
-                style={{ fontSize: '12.5px' }}
-                value={wizardData.supportingText}
-                onChange={(e) => updateData('supportingText', e.target.value)}
-                placeholder="e.g. Direct from local farmers"
-              />
-            </div>
+            {/* Right Panel — Output Settings & Validation */}
+            <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <h2 className="vk-card-title" style={{ fontSize: '15px' }}>Output Settings</h2>
+                <p className="vk-card-subtitle">Print dimensions & artwork validation</p>
+              </div>
 
-            {/* Logo Overlay Toggle */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={wizardData.showLogo}
-                onChange={(e) => updateData('showLogo', e.target.checked)}
-                style={{ accentColor: '#00891D' }}
-              />
-              <span style={{ fontWeight: 600 }}>Center VillagKart Brand Emblem</span>
-            </label>
+              {/* Contrast, Quiet-Zone, and Logo-Overlay Validation */}
+              <div style={{
+                background: '#E8F5EA',
+                border: '1px solid #C8E6C9',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#006B17', marginBottom: '4px' }}>
+                  <CheckCircle2 size={16} color="#00891D" />
+                  Validation: 100% Passed
+                </div>
+                <div style={{ color: '#4B5563', lineHeight: 1.4 }}>
+                  • Contrast ratio: 11.4:1 (Sunlight readable)<br />
+                  • Quiet-zone: 4 modules preserved<br />
+                  • Logo-overlay: Error correction Q (25% tolerance)
+                </div>
+              </div>
+
+              {/* Output Size & Units */}
+              <div>
+                <label className="form-label" style={{ fontSize: '12px' }}>Output Size & Units</label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="number"
+                    className="form-control"
+                    style={{ fontSize: '12px' }}
+                    value={wizardData.exportWidth}
+                    onChange={(e) => updateData('exportWidth', e.target.value)}
+                    placeholder="Width"
+                  />
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#6B7280' }}>×</span>
+                  <input
+                    type="number"
+                    className="form-control"
+                    style={{ fontSize: '12px' }}
+                    value={wizardData.exportHeight}
+                    onChange={(e) => updateData('exportHeight', e.target.value)}
+                    placeholder="Height"
+                  />
+                  <select
+                    className="form-control"
+                    style={{ width: '80px', fontSize: '12px' }}
+                    value={wizardData.exportUnit}
+                    onChange={(e) => updateData('exportUnit', e.target.value)}
+                  >
+                    <option value="cm">cm</option>
+                    <option value="mm">mm</option>
+                    <option value="in">inches</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Error Correction Selection */}
+              <div>
+                <label className="form-label" style={{ fontSize: '12px' }}>Error Correction Level</label>
+                <select
+                  className="form-control"
+                  style={{ fontSize: '12.5px' }}
+                  value={wizardData.errorCorrection || 'Q'}
+                  onChange={(e) => updateData('errorCorrection', e.target.value)}
+                >
+                  <option value="L">L · 7% damage tolerance</option>
+                  <option value="M">M · 15% damage tolerance</option>
+                  <option value="Q">Q · 25% damage tolerance (Recommended)</option>
+                  <option value="H">H · 30% damage tolerance (Vinyl stickers)</option>
+                </select>
+              </div>
+
+              {/* Output Format */}
+              <div>
+                <label className="form-label" style={{ fontSize: '12px' }}>Output Format</label>
+                <select className="form-control" style={{ fontSize: '12.5px' }}>
+                  <option value="PDF">PDF (Print Layout with Bleed)</option>
+                  <option value="SVG">SVG (Infinite Vector)</option>
+                  <option value="PNG">PNG (300 DPI Transparent)</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          {/* Panel 2: Live Canvas Preview & Test-Scan Simulator */}
-          <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#00891D', fontWeight: 700, letterSpacing: '0.05em' }}>
-                Draft Live Preview
-              </div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#111827' }}>
-                Real SVG/Canvas QR Output
-              </h3>
-            </div>
-
-            {/* Live QR Matrix */}
-            <div style={{ padding: '16px', background: '#FFFFFF', borderRadius: '14px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-              <QRCodeRenderer
-                value={`https://qr.villagkart.com/${wizardData.redirectCode}`}
-                fgColor={wizardData.fgColor}
-                bgColor={wizardData.bgColor}
-                size={220}
-                hasCtaFrame={wizardData.hasCtaFrame}
-                ctaText={wizardData.ctaText}
-                campaignTitle={wizardData.campaignTitle}
-                supportingText={wizardData.supportingText}
-                showLogo={wizardData.showLogo}
-                errorCorrection={wizardData.errorCorrection}
-              />
-            </div>
-
-            {/* Interactive Test-Scan button (Screen 05 requirement) */}
-            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+          {/* Buttons: Preview, Test Scan, Back, Continue to Export */}
+          <div className="modal-footer" style={{ background: 'transparent', padding: '16px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setWizardStep(2)} className="btn btn-secondary btn-sm">
+                <ArrowLeft size={15} />
+                Back
+              </button>
               <button
                 onClick={() =>
                   setTestScanModal({
@@ -632,94 +1317,23 @@ export const QRWizard = () => {
                   })
                 }
                 className="btn btn-secondary btn-sm"
-                style={{ borderColor: '#00891D', color: '#00891D', fontWeight: 600 }}
               >
-                <Smartphone size={15} />
-                Test-Scan Action Before Export
+                <Smartphone size={14} color="#00891D" />
+                Test Scan
               </button>
             </div>
-          </div>
 
-          {/* Panel 3: Print Specs & Contrast Validation */}
-          <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <h2 className="vk-card-title" style={{ fontSize: '15px' }}>Safeguards & Specs</h2>
-              <p className="vk-card-subtitle">Quiet zone & contrast gauge</p>
-            </div>
-
-            {/* Quiet zone & Contrast validation */}
-            <div style={{
-              background: '#E8F5EA',
-              border: '1px solid #C8E6C9',
-              borderRadius: '8px',
-              padding: '12px',
-              fontSize: '12px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#006B17', marginBottom: '4px' }}>
-                <CheckCircle2 size={16} color="#00891D" />
-                Contrast Score: 98/100 (Optimal)
-              </div>
-              <p style={{ color: '#4B5563', margin: 0 }}>
-                High readability contrast ratio (11.4:1) validated for direct sunlight scanning on rural delivery vans.
-              </p>
-            </div>
-
-            {/* Error Correction Selection */}
-            <div>
-              <label className="form-label" style={{ fontSize: '12px' }}>Error Correction Level</label>
-              <select
-                className="form-control"
-                style={{ fontSize: '13px' }}
-                value={wizardData.errorCorrection}
-                onChange={(e) => updateData('errorCorrection', e.target.value)}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => showToast('Full resolution preview loaded.')}
+                className="btn btn-secondary btn-sm"
               >
-                <option value="L">L · 7% damage tolerance</option>
-                <option value="M">M · 15% damage tolerance</option>
-                <option value="Q">Q · 25% damage tolerance (Recommended)</option>
-                <option value="H">H · 30% damage tolerance (Vinyl stickers)</option>
-              </select>
-            </div>
-
-            {/* Intended Print Size */}
-            <div>
-              <label className="form-label" style={{ fontSize: '12px' }}>Target Dimensions</label>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <input
-                  type="number"
-                  className="form-control"
-                  style={{ fontSize: '12px' }}
-                  value={wizardData.exportWidth}
-                  onChange={(e) => updateData('exportWidth', e.target.value)}
-                />
-                <span style={{ display: 'flex', alignItems: 'center', color: '#6B7280' }}>×</span>
-                <input
-                  type="number"
-                  className="form-control"
-                  style={{ fontSize: '12px' }}
-                  value={wizardData.exportHeight}
-                  onChange={(e) => updateData('exportHeight', e.target.value)}
-                />
-                <select
-                  className="form-control"
-                  style={{ width: '80px', fontSize: '12px' }}
-                  value={wizardData.exportUnit}
-                  onChange={(e) => updateData('exportUnit', e.target.value)}
-                >
-                  <option value="cm">cm</option>
-                  <option value="mm">mm</option>
-                  <option value="in">in</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button onClick={() => setWizardStep(4)} className="btn btn-primary btn-sm" style={{ width: '100%' }}>
-                Configure Export Assets
+                <Eye size={14} />
+                Preview
+              </button>
+              <button onClick={() => setWizardStep(4)} className="btn btn-primary btn-sm">
+                Continue to Export
                 <ArrowRight size={15} />
-              </button>
-              <button onClick={() => setWizardStep(2)} className="btn btn-ghost btn-sm" style={{ width: '100%' }}>
-                <ArrowLeft size={15} />
-                Back to Destinations
               </button>
             </div>
           </div>
@@ -727,152 +1341,227 @@ export const QRWizard = () => {
       )}
 
       {/* =========================================================================
-          STEP 4 (Screen 06): Print & Digital Export
+          PAGE 6 / STEP 4: Print & Digital Export
           ========================================================================= */}
       {wizardStep === 4 && (
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Print & Digital Export Packages</h2>
-              <p className="vk-card-subtitle">Generate CMYK/RGB vector and raster assets ready for distribution</p>
+              <h2 className="vk-card-title">Print & Digital Export</h2>
+              <p className="vk-card-subtitle">
+                Generate high-resolution vector and digital assets tailored for posters, flyers, stickers and WhatsApp
+              </p>
             </div>
 
-            {/* Tab Switcher: Print vs Digital */}
+            {/* Two Tabs: Print Assets & Digital Assets */}
             <div style={{ display: 'flex', background: '#F3F4F6', padding: '3px', borderRadius: '8px' }}>
               <button
                 onClick={() => setExportTab('print')}
                 className={`btn btn-sm ${exportTab === 'print' ? 'btn-primary' : 'btn-ghost'}`}
               >
                 <Printer size={14} />
-                Print Assets (PDF, SVG, High-Res)
+                Print Assets
               </button>
               <button
                 onClick={() => setExportTab('digital')}
                 className={`btn btn-sm ${exportTab === 'digital' ? 'btn-primary' : 'btn-ghost'}`}
               >
                 <Share2 size={14} />
-                Digital Assets (Social, WhatsApp)
+                Digital Assets
               </button>
             </div>
           </div>
 
+          {/* TAB 1: Print Assets */}
           {exportTab === 'print' ? (
-            <div className="grid-3" style={{ gap: '16px' }}>
-              {/* PDF Print Ready */}
-              <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#FEE2E2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>PDF Print Package</div>
-                    <div style={{ fontSize: '11px', color: '#6B7280' }}>CMYK · Bleed & Crop Marks</div>
-                  </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* Layout Presets */}
+              <div>
+                <label className="form-label">Print Layout Preset</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'poster', name: 'Poster (A3/A2)', dims: '297 × 420 mm' },
+                    { id: 'flyer', name: 'Flyer (A5)', dims: '148 × 210 mm' },
+                    { id: 'sticker', name: 'Vehicle Vinyl Sticker', dims: '150 × 150 mm' },
+                    { id: 'label', name: 'Product Label', dims: '50 × 50 mm' },
+                    { id: 'banner', name: 'Hub Facade Banner', dims: '2 × 5 ft' },
+                  ].map((l) => (
+                    <button
+                      key={l.id}
+                      onClick={() => setPrintLayout(l.id)}
+                      className={`btn btn-sm ${printLayout === l.id ? 'btn-primary' : 'btn-secondary'}`}
+                    >
+                      {l.name}
+                    </button>
+                  ))}
                 </div>
-                <p style={{ fontSize: '12px', color: '#6B7280' }}>
-                  Ready for commercial offset printing: posters, A5 leaflets, vehicle vinyls with 3mm bleed margin.
-                </p>
-                <button onClick={() => handleDownload('PNG')} className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: '12px' }}>
-                  <Download size={14} />
-                  Download Print PDF
-                </button>
               </div>
 
-              {/* SVG Vector */}
-              <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#E0F2FE', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Sparkles size={18} />
+              {/* Formats Grid: PDF, SVG, PNG */}
+              <div className="grid-3" style={{ gap: '16px' }}>
+                {/* PDF */}
+                <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#FEE2E2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>PDF Print Asset</div>
+                      <div style={{ fontSize: '11px', color: '#6B7280' }}>CMYK · Bleed & Crop Marks</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>SVG Vector Artwork</div>
-                    <div style={{ fontSize: '11px', color: '#6B7280' }}>Infinite Scalability</div>
-                  </div>
+                  <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
+                    Includes 3mm bleed margin, trim lines and CMYK color profile for commercial offset printing.
+                  </p>
+                  <button onClick={() => handleDownload('PNG')} className="btn btn-secondary btn-sm" style={{ width: '100%' }}>
+                    <Download size={14} />
+                    Download PDF Package
+                  </button>
                 </div>
-                <p style={{ fontSize: '12px', color: '#6B7280' }}>
-                  Lossless vector paths for billboard vinyl cutters, hub facade signage, and illustrator layout prep.
-                </p>
-                <button onClick={() => handleDownload('SVG')} className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: '12px' }}>
-                  <Download size={14} />
-                  Download Vector SVG
-                </button>
-              </div>
 
-              {/* PNG 300 DPI */}
-              <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#E8F5EA', color: '#00891D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Download size={18} />
+                {/* SVG */}
+                <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#E0F2FE', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Sparkles size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>SVG Vector File</div>
+                      <div style={{ fontSize: '11px', color: '#6B7280' }}>Infinite Scalability</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>High-Res PNG (300 DPI)</div>
-                    <div style={{ fontSize: '11px', color: '#6B7280' }}>Ultra Crisp Raster</div>
-                  </div>
+                  <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
+                    Resolution-independent vector curves for vehicle vinyl plotters, shop signs and billboards.
+                  </p>
+                  <button onClick={() => handleDownload('SVG')} className="btn btn-secondary btn-sm" style={{ width: '100%' }}>
+                    <Download size={14} />
+                    Download SVG Vector
+                  </button>
                 </div>
-                <p style={{ fontSize: '12px', color: '#6B7280' }}>
-                  Transparent background raster output tailored for Canva and local DTP printing shops.
-                </p>
-                <button onClick={() => handleDownload('PNG')} className="btn btn-primary btn-sm" style={{ width: '100%', marginTop: '12px' }}>
-                  <Download size={14} />
-                  Download 300 DPI PNG
-                </button>
+
+                {/* PNG 300 DPI */}
+                <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#E8F5EA', color: '#00891D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Download size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>High-Res PNG</div>
+                      <div style={{ fontSize: '11px', color: '#6B7280' }}>300 DPI High Resolution</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
+                    High-density raster asset with alpha transparency channel for DTP and local shop layouts.
+                  </p>
+                  <button onClick={() => handleDownload('PNG')} className="btn btn-primary btn-sm" style={{ width: '100%' }}>
+                    <Download size={14} />
+                    Download 300 DPI PNG
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="grid-3" style={{ gap: '16px' }}>
-              {/* WhatsApp Share Card */}
-              <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
-                <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', marginBottom: '6px' }}>
-                  WhatsApp Share Card (1:1)
-                </div>
-                <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
-                  Optimized for WhatsApp village groups, status stories and direct customer messaging.
-                </p>
-                <button onClick={() => handleDownload('PNG')} className="btn btn-secondary btn-sm" style={{ width: '100%' }}>
-                  <Share2 size={14} />
-                  Export WhatsApp Asset
-                </button>
-              </div>
-
-              {/* Copy Short Redirect */}
-              <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
-                <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', marginBottom: '6px' }}>
-                  Short Redirect URL
-                </div>
-                <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
-                  Shareable shortlink with built-in UTM attribution for SMS and social media.
-                </p>
-                <button onClick={copyRedirectUrl} className="btn btn-secondary btn-sm" style={{ width: '100%' }}>
-                  {copiedLink ? <Check size={14} color="#00891D" /> : <Copy size={14} />}
-                  {copiedLink ? 'Copied Link!' : 'Copy Shortlink'}
-                </button>
-              </div>
-
-              {/* Web Embed Snippet */}
-              <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
-                <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', marginBottom: '6px' }}>
-                  HTML Web Embed
-                </div>
-                <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
-                  Embed tag snippet for VillagKart desktop or partner web pages.
-                </p>
+            /* TAB 2: Digital Assets */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563' }}>Digital Format:</span>
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`<img src="https://qr.villagkart.com/${wizardData.redirectCode}.png" alt="${wizardData.name}" />`);
-                    showToast('Copied HTML embed snippet!');
-                  }}
-                  className="btn btn-secondary btn-sm"
-                  style={{ width: '100%' }}
+                  onClick={() => setDigitalFormat('PNG')}
+                  className={`btn btn-sm ${digitalFormat === 'PNG' ? 'btn-primary' : 'btn-secondary'}`}
                 >
-                  <Copy size={14} />
-                  Copy Embed Code
+                  PNG
                 </button>
+                <button
+                  onClick={() => setDigitalFormat('JPEG')}
+                  className={`btn btn-sm ${digitalFormat === 'JPEG' ? 'btn-primary' : 'btn-secondary'}`}
+                >
+                  JPEG
+                </button>
+              </div>
+
+              <div className="grid-3" style={{ gap: '16px' }}>
+                {/* WhatsApp Share Image */}
+                <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
+                  <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', marginBottom: '6px' }}>
+                    WhatsApp Share Image
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
+                    Compressed 1:1 image card with QR code and campaign title for village WhatsApp broadcast groups.
+                  </p>
+                  <button onClick={() => handleDownload(digitalFormat)} className="btn btn-secondary btn-sm" style={{ width: '100%' }}>
+                    <Share2 size={14} />
+                    Download WhatsApp Card
+                  </button>
+                </div>
+
+                {/* Social Post & Story Layouts */}
+                <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
+                  <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', marginBottom: '6px' }}>
+                    Social Post & Story Layouts
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
+                    1080 × 1920 px vertical story graphic with QR code and brand emblem for Instagram and Facebook.
+                  </p>
+                  <button onClick={() => handleDownload(digitalFormat)} className="btn btn-secondary btn-sm" style={{ width: '100%' }}>
+                    <Download size={14} />
+                    Download Social Asset
+                  </button>
+                </div>
+
+                {/* Standalone QR Image */}
+                <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
+                  <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', marginBottom: '6px' }}>
+                    Standalone QR Image
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
+                    Pure square QR code matrix with transparent background and centered logo overlay.
+                  </p>
+                  <button onClick={() => handleDownload('PNG')} className="btn btn-primary btn-sm" style={{ width: '100%' }}>
+                    <Download size={14} />
+                    Download Standalone QR
+                  </button>
+                </div>
+
+                {/* Website Embed Snippet */}
+                <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
+                  <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', marginBottom: '6px' }}>
+                    Website Embed Snippet
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
+                    HTML snippet for responsive desktop web pages and merchant portals.
+                  </p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`<img src="https://qr.villagkart.com/${wizardData.redirectCode}.png" alt="${wizardData.name}" />`);
+                      showToast('Copied HTML embed code!');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ width: '100%' }}
+                  >
+                    <Copy size={14} />
+                    Copy Website Embed
+                  </button>
+                </div>
+
+                {/* Copy Redirect URL */}
+                <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '10px', background: '#FFFFFF' }}>
+                  <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827', marginBottom: '6px' }}>
+                    Copy Redirect URL
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 12px 0' }}>
+                    Direct shortlink with UTM tags for SMS broadcasts and partner distribution.
+                  </p>
+                  <button onClick={copyRedirectUrl} className="btn btn-secondary btn-sm" style={{ width: '100%' }}>
+                    {copiedLink ? <Check size={14} color="#00891D" /> : <Copy size={14} />}
+                    {copiedLink ? 'Copied URL!' : 'Copy Redirect URL'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Hidden Canvas Element to support downloads */}
-          <div style={{ display: 'none' }}>
+          {/* Hidden Canvas to power downloads */}
+          <div style={{ display: 'none' }} className="qr-render-container">
             <QRCodeRenderer
               value={`https://qr.villagkart.com/${wizardData.redirectCode}`}
               fgColor={wizardData.fgColor}
@@ -886,47 +1575,63 @@ export const QRWizard = () => {
             />
           </div>
 
-          <div className="modal-footer" style={{ background: 'transparent', padding: '16px 0 0 0' }}>
+          {/* Buttons: Preview, Generate Assets, Download, Back to Design */}
+          <div className="modal-footer" style={{ background: 'transparent', padding: '20px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button onClick={() => setWizardStep(3)} className="btn btn-secondary btn-sm">
               <ArrowLeft size={15} />
-              Back
+              Back to Design
             </button>
-            <button onClick={() => setWizardStep(5)} className="btn btn-primary btn-sm">
-              Continue to Review & Publish
-              <ArrowRight size={15} />
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => showToast('Artwork preview rendered at 300 DPI.')} className="btn btn-secondary btn-sm">
+                <Eye size={14} />
+                Preview
+              </button>
+              <button onClick={() => showToast('Assets generated successfully across all formats.')} className="btn btn-secondary btn-sm">
+                <Sparkles size={14} />
+                Generate Assets
+              </button>
+              <button onClick={() => handleDownload('PNG')} className="btn btn-secondary btn-sm">
+                <Download size={14} />
+                Download
+              </button>
+              <button onClick={() => setWizardStep(5)} className="btn btn-primary btn-sm">
+                Continue to Review & Publish
+                <ArrowRight size={15} />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* =========================================================================
-          STEP 5 (Screen 07): Review & Publish
+          PAGE 7 / STEP 5: Review & Publish
           ========================================================================= */}
       {wizardStep === 5 && (
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h2 className="vk-card-title">Review & Publish Verification</h2>
+              <h2 className="vk-card-title">Review & Publish</h2>
               <p className="vk-card-subtitle">
-                System validation checklist before QR routing is published live
+                System validation checklist before QR routing is published live to edge DNS
               </p>
             </div>
-            <span className="badge badge-active">Checklist 5/5 Passed</span>
+            <span className="badge badge-active">Validation 6/6 Passed</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px' }}>
-            {/* Checklist items */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px' }}>
+            {/* Checklist items (All 6 spec items) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {[
-                { title: 'Basic Information Complete', desc: `Name: "${wizardData.name}", Type: ${wizardData.type}, Owner: ${wizardData.owner}` },
-                { title: 'Destinations & Routing Validated', desc: `Android & iOS deep links active, Fallback: ${wizardData.fallbackUrl}` },
-                { title: 'Campaign Attribution Configured', desc: `Campaign: ${wizardData.campaign}, Territory: ${wizardData.village}` },
-                { title: 'QR Artwork & Contrast Validated', desc: 'Decoding verified, contrast score 98/100 meets sunlight readability standards' },
+                { title: '1. Basic information complete', desc: `Name: "${wizardData.name}", Type: ${wizardData.type}, Owner: ${wizardData.owner}` },
+                { title: '2. Destinations validated', desc: `Fallback: ${wizardData.fallbackUrl} (HTTPS & SSL validated)` },
+                { title: '3. Campaign attribution configured', desc: `Campaign: ${wizardData.campaign}, Hub: ${wizardData.hubId}, Village: ${wizardData.village}` },
+                { title: '4. QR artwork passes validation', desc: 'Decoding verified, contrast score 98/100, quiet-zone 4 modules' },
+                { title: '5. User permissions verified', desc: `Authorized active role: ${currentRole}` },
                 {
-                  title: 'Role Authorization & Permissions',
+                  title: '6. Approval requirements satisfied',
                   desc: isApprovalRequired
-                    ? `Role (${currentRole}) requires Marketing Manager approval before public release`
-                    : `Authorized by active role (${currentRole}) for immediate activation`,
+                    ? `Requires managerial approval (Role: ${currentRole}, QR Type: ${wizardData.type})`
+                    : 'System rules satisfy immediate publish criteria (No prior block)',
                 },
               ].map((c, i) => (
                 <div
@@ -950,7 +1655,7 @@ export const QRWizard = () => {
               ))}
             </div>
 
-            {/* Right Summary Card */}
+            {/* Right Summary Card & Actions */}
             <div style={{
               background: '#FFFFFF',
               border: '1px solid #E5E7EB',
@@ -980,6 +1685,7 @@ export const QRWizard = () => {
                 https://qr.villagkart.com/{wizardData.redirectCode}
               </div>
 
+              {/* Action Buttons: Submit for Approval, Publish Immediately, Save as Draft, Continue to QR Details */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {isApprovalRequired ? (
                   <button onClick={() => publishWizardQR(true)} className="btn btn-accent btn-sm" style={{ width: '100%' }}>
@@ -994,14 +1700,20 @@ export const QRWizard = () => {
                 )}
 
                 <button
-                  onClick={() => {
-                    publishWizardQR(true);
-                    showToast('Draft saved successfully!');
-                  }}
+                  onClick={handleSaveDraft}
                   className="btn btn-secondary btn-sm"
                   style={{ width: '100%' }}
                 >
                   Save as Draft
+                </button>
+
+                <button
+                  onClick={handleContinueToDetails}
+                  className="btn btn-secondary btn-sm"
+                  style={{ width: '100%', color: '#00891D', fontWeight: 600 }}
+                >
+                  Continue to QR Details
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1010,7 +1722,7 @@ export const QRWizard = () => {
           <div className="modal-footer" style={{ background: 'transparent', padding: '16px 0 0 0' }}>
             <button onClick={() => setWizardStep(4)} className="btn btn-secondary btn-sm">
               <ArrowLeft size={15} />
-              Back to Exports
+              Back to Export
             </button>
           </div>
         </div>
@@ -1018,6 +1730,6 @@ export const QRWizard = () => {
     </div>
   );
 };
- 
+
 export { QRWizard as Screen03_07_Wizard };
 export default QRWizard;

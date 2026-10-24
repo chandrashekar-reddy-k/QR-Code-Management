@@ -62,26 +62,26 @@ export const Permissions = () => {
 
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={() => setActiveTab('queue')}
-              className={`btn btn-sm ${activeTab === 'queue' ? 'btn-primary' : 'btn-secondary'}`}
-            >
-              Approval Queue ({pendingApprovals.length})
-            </button>
-            <button
               onClick={() => setActiveTab('matrix')}
               className={`btn btn-sm ${activeTab === 'matrix' ? 'btn-primary' : 'btn-secondary'}`}
             >
-              Role Permission Matrix
+              Section A — Role Permissions
+            </button>
+            <button
+              onClick={() => setActiveTab('queue')}
+              className={`btn btn-sm ${activeTab === 'queue' ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              Section B — Approval Queue ({pendingApprovals.length})
             </button>
           </div>
         </div>
       </div>
 
-      {/* SECTION 1: Approval Queue */}
+      {/* SECTION B: Approval Queue */}
       {activeTab === 'queue' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="vk-card">
-            <h3 className="vk-card-title">Pending Submissions Awaiting Authorization</h3>
+            <h3 className="vk-card-title">Section B — Approval Queue</h3>
             <p className="vk-card-subtitle">
               Screen 07 submissions tied to reviewed configuration version and security validation
             </p>
@@ -219,12 +219,12 @@ export const Permissions = () => {
         </div>
       )}
 
-      {/* SECTION 2: Role Permission Matrix */}
+      {/* SECTION A: Role Permission Matrix */}
       {activeTab === 'matrix' && (
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h3 className="vk-card-title">Default Role Permission Matrix</h3>
+              <h3 className="vk-card-title">Section A — Role Permissions Matrix</h3>
               <p className="vk-card-subtitle">
                 System specification default matrix (Page 20). Admin users can toggle permissions to configure live governance.
               </p>

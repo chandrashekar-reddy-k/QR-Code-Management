@@ -40,7 +40,16 @@ export const Dashboard = () => {
 
   const [dateRange, setDateRange] = useState('30d');
   const [selectedHub, setSelectedHub] = useState('all');
+  const [selectedOrg, setSelectedOrg] = useState('all');
+  const [selectedVillage, setSelectedVillage] = useState('all');
+  const [selectedCampaign, setSelectedCampaign] = useState('all');
+  const [selectedOwner, setSelectedOwner] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('2026-10-01');
+  const [customEndDate, setCustomEndDate] = useState('2026-10-24');
+  const [showScopeFilters, setShowScopeFilters] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const pendingApprovalsCount = approvals.filter((a) => a.status === 'Pending').length;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -49,18 +58,29 @@ export const Dashboard = () => {
     return 'Good evening';
   };
 
-  // Compute live metrics from qrCodes & scanEvents
-  const totalCodes = qrCodes.length;
-  const activeCodes = qrCodes.filter((q) => q.status === 'Active').length;
-  const pendingCodes = qrCodes.filter((q) => q.status === 'Pending Approval').length;
-  const expiredCodes = qrCodes.filter((q) => q.status === 'Expired').length;
+  // Filter QR codes by scope filters (Organization, Hub, Village, Campaign, Owner)
+  const filteredQRs = useMemo(() => {
+    return qrCodes.filter((q) => {
+      if (selectedHub !== 'all' && q.hubId && q.hubId !== selectedHub) return false;
+      if (selectedVillage !== 'all' && q.village && !q.village.includes(selectedVillage)) return false;
+      if (selectedCampaign !== 'all' && q.campaign && !q.campaign.includes(selectedCampaign)) return false;
+      if (selectedOwner !== 'all' && q.owner && !q.owner.includes(selectedOwner)) return false;
+      return true;
+    });
+  }, [qrCodes, selectedHub, selectedVillage, selectedCampaign, selectedOwner]);
 
-  const totalScans = qrCodes.reduce((acc, q) => acc + (q.metrics?.scans || 0), 0);
-  const totalRegistrations = qrCodes.reduce((acc, q) => acc + (q.metrics?.verifiedRegistrations || 0), 0);
-  const totalFirstOrders = qrCodes.reduce((acc, q) => acc + (q.metrics?.firstOrders || 0), 0);
+  // Compute live metrics from filteredQRs
+  const totalCodes = filteredQRs.length;
+  const activeCodes = filteredQRs.filter((q) => q.status === 'Active').length;
+  const pendingCodes = filteredQRs.filter((q) => q.status === 'Pending Approval').length;
+  const expiredCodes = filteredQRs.filter((q) => q.status === 'Expired').length;
+
+  const totalScans = filteredQRs.reduce((acc, q) => acc + (q.metrics?.scans || 0), 0);
+  const totalRegistrations = filteredQRs.reduce((acc, q) => acc + (q.metrics?.verifiedRegistrations || 0), 0);
+  const totalFirstOrders = filteredQRs.reduce((acc, q) => acc + (q.metrics?.firstOrders || 0), 0);
 
   // Top performing QR codes
-  const topQrCodes = [...qrCodes]
+  const topQrCodes = [...filteredQRs]
     .sort((a, b) => (b.metrics?.scans || 0) - (a.metrics?.scans || 0))
     .slice(0, 4);
 
@@ -162,7 +182,7 @@ export const Dashboard = () => {
                 { id: 'today', label: 'Today' },
                 { id: '7d', label: '7 Days' },
                 { id: '30d', label: '30 Days' },
-                { id: 'all', label: 'All Time' },
+                { id: 'custom', label: 'Custom' },
               ].map((item) => {
                 const isActive = dateRange === item.id;
                 return (
@@ -170,7 +190,7 @@ export const Dashboard = () => {
                     key={item.id}
                     onClick={() => {
                       setDateRange(item.id);
-                      if (showToast) showToast(`Timeframe set to: ${item.label}`);
+                      if (showToast) showToast(`Date filter set to: ${item.label}`);
                     }}
                     style={{
                       padding: '6px 13px',
@@ -192,40 +212,19 @@ export const Dashboard = () => {
               })}
             </div>
 
-            {/* Hub / Territory Selector */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: '#FFFFFF',
-              border: '1px solid #E5E7EB',
-              padding: '5px 10px',
-              borderRadius: '8px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-            }}>
-              <MapPin size={14} color="#00891D" />
-              <select
-                value={selectedHub}
-                onChange={(e) => setSelectedHub(e.target.value)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#111827',
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  outline: 'none',
-                  cursor: 'pointer',
-                  paddingRight: '4px'
-                }}
-              >
-                <option value="all">All Hubs & Territories</option>
-                <option value="HUB-01">Phirangipuram Hub</option>
-                <option value="HUB-02">Guntur Central Hub</option>
-                <option value="HUB-03">Tenali Rural Hub</option>
-                <option value="HUB-04">Narasaraopet Hub</option>
-                <option value="HUB-05">Bapatla Coastal Hub</option>
-              </select>
-            </div>
+            {/* Scope Filter Toggle Button */}
+            <button
+              onClick={() => setShowScopeFilters(!showScopeFilters)}
+              className={`btn btn-sm ${showScopeFilters ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Scope Filters: Organization, Hub, Village, Campaign, Owner"
+            >
+              <Filter size={14} />
+              <span>Scope Filters</span>
+              {(selectedOrg !== 'all' || selectedHub !== 'all' || selectedVillage !== 'all' || selectedCampaign !== 'all' || selectedOwner !== 'all') && (
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: showScopeFilters ? '#FFFFFF' : '#00891D' }} />
+              )}
+            </button>
 
             {/* Live Sync / Refresh Action Button */}
             <button
@@ -247,6 +246,254 @@ export const Dashboard = () => {
               <RotateCw size={14} className={isRefreshing ? 'spin-anim' : ''} />
             </button>
           </div>
+        </div>
+
+        {/* Custom Date Range Picker */}
+        {dateRange === 'custom' && (
+          <div style={{
+            marginTop: '14px',
+            padding: '10px 14px',
+            background: '#F9FAFB',
+            borderRadius: '8px',
+            border: '1px solid #E5E7EB',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+            fontSize: '12.5px'
+          }}>
+            <span style={{ fontWeight: 600, color: '#374151' }}>Custom Date Scope:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ color: '#6B7280' }}>From:</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="form-control"
+                style={{ padding: '4px 8px', fontSize: '12px', width: 'auto' }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ color: '#6B7280' }}>To:</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="form-control"
+                style={{ padding: '4px 8px', fontSize: '12px', width: 'auto' }}
+              />
+            </div>
+            <button
+              onClick={() => {
+                if (showToast) showToast(`Custom scope applied: ${customStartDate} to ${customEndDate}`);
+              }}
+              className="btn btn-primary btn-sm"
+              style={{ padding: '4px 10px', fontSize: '11.5px' }}
+            >
+              Apply Range
+            </button>
+          </div>
+        )}
+
+        {/* Scope Filters (Organization, Hub, Village, Campaign, Owner) */}
+        {showScopeFilters && (
+          <div style={{
+            marginTop: '16px',
+            padding: '14px 18px',
+            background: '#F9FAFB',
+            borderRadius: '10px',
+            border: '1px solid #E5E7EB',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '12px',
+          }}>
+            {/* Organization */}
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: '#4B5563', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                Organization
+              </label>
+              <select
+                value={selectedOrg}
+                onChange={(e) => setSelectedOrg(e.target.value)}
+                className="form-control"
+                style={{ fontSize: '12.5px', padding: '6px 8px' }}
+              >
+                <option value="all">All Organizations (VillagKart)</option>
+                <option value="retail">VillagKart Retail Pvt Ltd</option>
+                <option value="supply">VillagKart Agro Supply Chain</option>
+              </select>
+            </div>
+
+            {/* Hub */}
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: '#4B5563', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                Collection Hub
+              </label>
+              <select
+                value={selectedHub}
+                onChange={(e) => setSelectedHub(e.target.value)}
+                className="form-control"
+                style={{ fontSize: '12.5px', padding: '6px 8px' }}
+              >
+                <option value="all">All Hubs & Territories</option>
+                <option value="HUB-01">Phirangipuram Hub</option>
+                <option value="HUB-02">Guntur Central Hub</option>
+                <option value="HUB-03">Tenali Rural Hub</option>
+                <option value="HUB-04">Narasaraopet Hub</option>
+                <option value="HUB-05">Bapatla Coastal Hub</option>
+              </select>
+            </div>
+
+            {/* Village */}
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: '#4B5563', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                Target Village
+              </label>
+              <select
+                value={selectedVillage}
+                onChange={(e) => setSelectedVillage(e.target.value)}
+                className="form-control"
+                style={{ fontSize: '12.5px', padding: '6px 8px' }}
+              >
+                <option value="all">All Villages (18 Active)</option>
+                <option value="Phirangipuram">Phirangipuram Village</option>
+                <option value="Prattipadu">Prattipadu Village</option>
+                <option value="Siripuram">Siripuram Village</option>
+                <option value="Tenali">Tenali Rural</option>
+                <option value="Bapatla">Bapatla Coastal</option>
+              </select>
+            </div>
+
+            {/* Campaign */}
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: '#4B5563', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                Campaign
+              </label>
+              <select
+                value={selectedCampaign}
+                onChange={(e) => setSelectedCampaign(e.target.value)}
+                className="form-control"
+                style={{ fontSize: '12.5px', padding: '6px 8px' }}
+              >
+                <option value="all">All Campaigns</option>
+                <option value="Village Launch">Village Launch Festival</option>
+                <option value="Mobile App">VillagKart Mobile App</option>
+                <option value="Tenali">Tenali Festival Agro Promo</option>
+                <option value="Shop-on-Wheels">Shop-on-Wheels Daily</option>
+              </select>
+            </div>
+
+            {/* Owner */}
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: '#4B5563', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                Owner / Executive
+              </label>
+              <select
+                value={selectedOwner}
+                onChange={(e) => setSelectedOwner(e.target.value)}
+                className="form-control"
+                style={{ fontSize: '12.5px', padding: '6px 8px' }}
+              >
+                <option value="all">All Owners</option>
+                <option value="Marketing Team">Marketing Team</option>
+                <option value="Logistics Fleet Lead">Logistics Fleet Lead</option>
+                <option value="Kiran Kumar">Kiran Kumar (VGE)</option>
+                <option value="Ramesh Naidu">Ramesh Naidu (Hub Mgr)</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Operational Health & Alert Status (Pending Approvals, Expired Codes, Destination Failures) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gap: '14px',
+      }}>
+        {/* Pending Approvals */}
+        <div
+          onClick={() => setActiveScreen('permissions')}
+          style={{
+            padding: '14px 18px',
+            background: pendingApprovalsCount > 0 ? '#FFFBEB' : '#FFFFFF',
+            border: pendingApprovalsCount > 0 ? '1px solid #FCD34D' : '1px solid #E5E7EB',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>Pending Approvals</div>
+              <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                {pendingApprovalsCount} QR code{pendingApprovalsCount === 1 ? '' : 's'} awaiting review
+              </div>
+            </div>
+          </div>
+          <span className="badge badge-pending">Review</span>
+        </div>
+
+        {/* Expired Codes */}
+        <div
+          onClick={() => setActiveScreen('listing')}
+          style={{
+            padding: '14px 18px',
+            background: expiredCodes > 0 ? '#FEF2F2' : '#FFFFFF',
+            border: expiredCodes > 0 ? '1px solid #FECACA' : '1px solid #E5E7EB',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#FEE2E2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>Expired QR Codes</div>
+              <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                {expiredCodes} inactive asset{expiredCodes === 1 ? '' : 's'} past validity
+              </div>
+            </div>
+          </div>
+          <span className="badge badge-outline">Manage</span>
+        </div>
+
+        {/* Destination Failures */}
+        <div
+          style={{
+            padding: '14px 18px',
+            background: '#F0FDF4',
+            border: '1px solid #BBF7D0',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>Destination Health</div>
+              <div style={{ fontSize: '12px', color: '#15803D', fontWeight: 600 }}>
+                0 Broken Endpoints · 100% Reachable
+              </div>
+            </div>
+          </div>
+          <span className="badge badge-active">Live Healthy</span>
         </div>
       </div>
 
@@ -270,7 +517,7 @@ export const Dashboard = () => {
         {/* Total Scans */}
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">Total Scans ({dateRange === 'today' ? 'Today' : dateRange === '7d' ? '7 Days' : dateRange === '30d' ? '30 Days' : 'All Time'})</span>
+            <span className="kpi-title">Total Scans ({dateRange === 'today' ? 'Today' : dateRange === '7d' ? '7 Days' : dateRange === '30d' ? '30 Days' : 'Custom Scope'})</span>
             <div className="kpi-icon">
               <Activity size={18} />
             </div>

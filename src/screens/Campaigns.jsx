@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQR } from '../context/QRContext';
+import { INITIAL_HUBS, INITIAL_VILLAGES, INITIAL_USERS } from '../data/mockData';
 import {
   Megaphone,
   Plus,
@@ -15,6 +16,9 @@ import {
   Download,
   AlertCircle,
   CheckCircle2,
+  X,
+  Target,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const Campaigns = () => {
@@ -22,17 +26,23 @@ export const Campaigns = () => {
   const [selectedCampaign, setSelectedCampaign] = useState(campaigns[0]);
   const [isCreating, setIsCreating] = useState(false);
 
-  // New Campaign Form State
+  // New Campaign Form State (Page 11 Creation Fields)
   const [newCamp, setNewCamp] = useState({
     name: '',
     objective: '',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '2026-12-31',
+    marketingOwner: 'Anita Rao',
     budget: 150000,
     targetHubName: 'Phirangipuram Hub',
-    targetVillages: 'Phirangipuram, Prattipadu',
-    source: 'Posters & Leaflets',
-    medium: 'Offline Print QR',
+    targetMandal: 'Phirangipuram',
+    targetVillage: 'Phirangipuram Village',
+    source: 'Posters, Leaflets & Grocery Stalls',
+    medium: 'Offline Print QR + WhatsApp Viral',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '2026-12-31',
+    attributionWindowDays: 30,
+    targetRegistrations: 2500,
+    targetFirstOrders: 1000,
+    linkedQrIds: ['QR-00001'],
   });
 
   const handleCreateCampaign = (e) => {
@@ -46,19 +56,24 @@ export const Campaigns = () => {
     const created = {
       id: newId,
       name: newCamp.name,
-      objective: newCamp.objective,
-      startDate: newCamp.startDate,
-      endDate: newCamp.endDate,
-      owner: 'Marketing Team',
-      budget: Number(newCamp.budget),
+      objective: newCamp.objective || 'Accelerate village customer acquisition and app onboarding',
+      owner: newCamp.marketingOwner,
+      budget: Number(newCamp.budget) || 0,
       spent: 0,
       targetHub: 'HUB-01',
       targetHubName: newCamp.targetHubName,
-      targetVillages: newCamp.targetVillages.split(',').map((s) => s.trim()),
+      targetVillages: [newCamp.targetVillage],
       source: newCamp.source,
       medium: newCamp.medium,
+      startDate: newCamp.startDate,
+      endDate: newCamp.endDate,
+      attributionWindowDays: Number(newCamp.attributionWindowDays),
+      conversionGoals: {
+        registrations: Number(newCamp.targetRegistrations),
+        firstOrders: Number(newCamp.targetFirstOrders),
+      },
       status: 'Active',
-      totalQrCodes: 0,
+      totalQrCodes: newCamp.linkedQrIds.length,
       metrics: {
         totalScans: 0,
         verifiedRegistrations: 0,
@@ -71,10 +86,36 @@ export const Campaigns = () => {
     setCampaigns((prev) => [created, ...prev]);
     setSelectedCampaign(created);
     setIsCreating(false);
-    showToast(`Campaign ${newCamp.name} created successfully!`);
+    showToast(`Campaign "${newCamp.name}" created successfully!`);
   };
 
-  const associatedQRs = qrCodes.filter((q) => q.campaignId === selectedCampaign?.id || q.campaign === selectedCampaign?.name);
+  const handleExportCampaign = () => {
+    if (!selectedCampaign) return;
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [
+        'Campaign ID,Name,Objective,Owner,Status,Start Date,End Date,Budget,Spent,Scans,Registrations,First Orders,CPA',
+        `"${selectedCampaign.id}","${selectedCampaign.name}","${selectedCampaign.objective}","${selectedCampaign.owner}","${selectedCampaign.status}","${selectedCampaign.startDate}","${selectedCampaign.endDate}",${selectedCampaign.budget || 0},${selectedCampaign.spent || 0},${selectedCampaign.metrics?.totalScans || 0},${selectedCampaign.metrics?.verifiedRegistrations || 0},${selectedCampaign.metrics?.firstOrders || 0},${selectedCampaign.metrics?.costPerRegistration || 0}`,
+      ]
+        .concat(['\nAssociated QR Codes,ID,Type,Status,Scans,Registrations'])
+        .concat(
+          associatedQRs.map(
+            (q) =>
+              `"${q.name}","${q.id}","${q.type}","${q.status}",${q.metrics?.scans || 0},${q.metrics?.verifiedRegistrations || 0}`
+          )
+        )
+        .join('\n');
+    const encoded = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.href = encoded;
+    link.download = `campaign_${selectedCampaign.id}_report_${Date.now()}.csv`;
+    link.click();
+    showToast(`Exported ${selectedCampaign.name} report CSV!`);
+  };
+
+  const associatedQRs = qrCodes.filter(
+    (q) => q.campaignId === selectedCampaign?.id || q.campaign === selectedCampaign?.name
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -84,25 +125,32 @@ export const Campaigns = () => {
           <div>
             <h2 className="vk-card-title">Campaign Management</h2>
             <p className="vk-card-subtitle">
-              Group multiple QR assets under a single marketing initiative, budget & territory attribution
+              Group and measure multiple QR codes under marketing initiatives, budgets, attribution windows & conversion targets
             </p>
           </div>
           <button onClick={() => setIsCreating(true)} className="btn btn-primary btn-sm">
             <Plus size={15} />
-            Create Campaign
+            + Create Campaign
           </button>
         </div>
       </div>
 
-      {/* Creation Modal */}
+      {/* Campaign Creation Modal (All Page 11 Creation Fields) */}
       {isCreating && (
         <div className="modal-overlay" onClick={() => setIsCreating(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-card" style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>Create Marketing Campaign</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Megaphone size={18} color="#00891D" />
+                <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>Create Marketing Campaign</h3>
+              </div>
+              <button onClick={() => setIsCreating(false)} className="btn btn-ghost" style={{ padding: '4px' }}>
+                <X size={16} />
+              </button>
             </div>
             <form onSubmit={handleCreateCampaign}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
+                {/* Campaign name and objective */}
                 <div className="form-group">
                   <label className="form-label">Campaign Name <span className="required-dot">*</span></label>
                   <input
@@ -111,6 +159,7 @@ export const Campaigns = () => {
                     placeholder="e.g. Tenali Festival Agro Promo"
                     value={newCamp.name}
                     onChange={(e) => setNewCamp({ ...newCamp, name: e.target.value })}
+                    required
                   />
                 </div>
 
@@ -119,37 +168,107 @@ export const Campaigns = () => {
                   <textarea
                     className="form-control"
                     rows={2}
-                    placeholder="Describe target user behavior and customer acquisition goals"
+                    placeholder="State customer acquisition goals, promotional discounts, and target behavior"
                     value={newCamp.objective}
                     onChange={(e) => setNewCamp({ ...newCamp, objective: e.target.value })}
                   />
                 </div>
 
+                {/* Marketing Owner and Budget (Optional) */}
                 <div className="grid-2">
                   <div className="form-group">
-                    <label className="form-label">Budget (INR ₹)</label>
+                    <label className="form-label">Marketing Owner</label>
+                    <select
+                      className="form-control"
+                      value={newCamp.marketingOwner}
+                      onChange={(e) => setNewCamp({ ...newCamp, marketingOwner: e.target.value })}
+                    >
+                      {INITIAL_USERS.map((u) => (
+                        <option key={u.id} value={u.name}>
+                          {u.name} ({u.role})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Budget (INR ₹, optional)</label>
                     <input
                       type="number"
                       className="form-control"
                       value={newCamp.budget}
                       onChange={(e) => setNewCamp({ ...newCamp, budget: e.target.value })}
+                      placeholder="e.g. 150000"
                     />
                   </div>
+                </div>
+
+                {/* Hub, Mandal, and Village */}
+                <div className="grid-3">
                   <div className="form-group">
-                    <label className="form-label">Target Hub</label>
+                    <label className="form-label">Hub</label>
                     <select
                       className="form-control"
                       value={newCamp.targetHubName}
                       onChange={(e) => setNewCamp({ ...newCamp, targetHubName: e.target.value })}
                     >
-                      <option>Phirangipuram Hub</option>
-                      <option>Guntur Central Hub</option>
-                      <option>Tenali Rural Hub</option>
-                      <option>Narasaraopet Hub</option>
+                      {INITIAL_HUBS.map((h) => (
+                        <option key={h.id} value={h.name}>{h.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Mandal</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newCamp.targetMandal}
+                      onChange={(e) => setNewCamp({ ...newCamp, targetMandal: e.target.value })}
+                      placeholder="e.g. Phirangipuram"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Village</label>
+                    <select
+                      className="form-control"
+                      value={newCamp.targetVillage}
+                      onChange={(e) => setNewCamp({ ...newCamp, targetVillage: e.target.value })}
+                    >
+                      {INITIAL_VILLAGES.map((v) => (
+                        <option key={v.id} value={v.name}>{v.name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
+                {/* Source and Medium */}
+                <div className="grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Source</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newCamp.source}
+                      onChange={(e) => setNewCamp({ ...newCamp, source: e.target.value })}
+                      placeholder="e.g. Vehicle Vinyls, Posters"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Medium</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newCamp.medium}
+                      onChange={(e) => setNewCamp({ ...newCamp, medium: e.target.value })}
+                      placeholder="e.g. Offline Print QR"
+                    />
+                  </div>
+                </div>
+
+                {/* Start Date and End Date */}
                 <div className="grid-2">
                   <div className="form-group">
                     <label className="form-label">Start Date</label>
@@ -160,6 +279,7 @@ export const Campaigns = () => {
                       onChange={(e) => setNewCamp({ ...newCamp, startDate: e.target.value })}
                     />
                   </div>
+
                   <div className="form-group">
                     <label className="form-label">End Date</label>
                     <input
@@ -170,7 +290,45 @@ export const Campaigns = () => {
                     />
                   </div>
                 </div>
+
+                {/* Attribution Window and Conversion Goals */}
+                <div className="grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Attribution Window</label>
+                    <select
+                      className="form-control"
+                      value={newCamp.attributionWindowDays}
+                      onChange={(e) => setNewCamp({ ...newCamp, attributionWindowDays: Number(e.target.value) })}
+                    >
+                      <option value={7}>7 Days</option>
+                      <option value={14}>14 Days</option>
+                      <option value={30}>30 Days (Standard)</option>
+                      <option value={60}>60 Days</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Target Registrations</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={newCamp.targetRegistrations}
+                      onChange={(e) => setNewCamp({ ...newCamp, targetRegistrations: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Target First Orders</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={newCamp.targetFirstOrders}
+                      onChange={(e) => setNewCamp({ ...newCamp, targetFirstOrders: e.target.value })}
+                    />
+                  </div>
+                </div>
               </div>
+
               <div className="modal-footer">
                 <button type="button" onClick={() => setIsCreating(false)} className="btn btn-secondary btn-sm">
                   Cancel
@@ -186,10 +344,11 @@ export const Campaigns = () => {
 
       {/* Main Campaign Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '20px' }}>
-        {/* Campaign List */}
+        {/* Campaign List (Page 11: Name, Objective, Owner, Start/end dates, Status, Associated QR codes, Metrics) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {campaigns.map((camp) => {
             const isSelected = selectedCampaign?.id === camp.id;
+            const campQrCount = qrCodes.filter((q) => q.campaignId === camp.id || q.campaign === camp.name).length;
             return (
               <div
                 key={camp.id}
@@ -211,12 +370,15 @@ export const Campaigns = () => {
                     {camp.status}
                   </span>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#111827' }}>{camp.name}</div>
-                <div style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 10px 0' }}>
-                  Target: {camp.targetHubName}
+                <div style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>{camp.name}</div>
+                <div style={{ fontSize: '12px', color: '#4B5563', margin: '4px 0 8px 0', lineHeight: 1.3 }}>
+                  {camp.objective}
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#6B7280', marginBottom: '8px' }}>
+                  Owner: <strong>{camp.owner}</strong> · {camp.startDate} to {camp.endDate}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#374151', borderTop: '1px solid #E5E7EB', paddingTop: '8px' }}>
-                  <span>{(camp.metrics?.totalScans || 0).toLocaleString()} Scans</span>
+                  <span>{campQrCount} QR Codes · {(camp.metrics?.totalScans || 0).toLocaleString()} Scans</span>
                   <span style={{ fontWeight: 700, color: '#00891D' }}>
                     {(camp.metrics?.verifiedRegistrations || 0).toLocaleString()} Reg
                   </span>
@@ -226,7 +388,7 @@ export const Campaigns = () => {
           })}
         </div>
 
-        {/* Selected Campaign Detail */}
+        {/* Selected Campaign Detail Page (Page 11: Timeline, performance, spend, CPA, export actions) */}
         {selectedCampaign && (
           <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="vk-card-header">
@@ -239,12 +401,30 @@ export const Campaigns = () => {
                   {selectedCampaign.name}
                 </h2>
                 <p style={{ fontSize: '13px', color: '#4B5563', margin: 0 }}>
-                  {selectedCampaign.objective}
+                  {selectedCampaign.objective} · Managed by <strong>{selectedCampaign.owner}</strong>
                 </p>
+              </div>
+
+              {/* Export Action */}
+              <button onClick={handleExportCampaign} className="btn btn-secondary btn-sm">
+                <FileSpreadsheet size={14} />
+                Export Campaign CSV
+              </button>
+            </div>
+
+            {/* Campaign Timeline Progress */}
+            <div style={{ background: '#F9FAFB', padding: '14px 18px', borderRadius: '10px', border: '1px solid #E5E7EB' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: '#4B5563', marginBottom: '6px' }}>
+                <span><strong>Timeline:</strong> {selectedCampaign.startDate}</span>
+                <span><strong>Hub:</strong> {selectedCampaign.targetHubName}</span>
+                <span><strong>End:</strong> {selectedCampaign.endDate}</span>
+              </div>
+              <div style={{ height: '8px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: '45%', height: '100%', background: '#00891D' }} />
               </div>
             </div>
 
-            {/* Campaign Metrics Grid */}
+            {/* Campaign Metrics Grid: Spend, Scans, Registrations, CPA */}
             <div className="grid-4">
               <div style={{ padding: '14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
                 <div style={{ fontSize: '12px', color: '#6B7280' }}>Total Campaign Scans</div>
@@ -261,7 +441,7 @@ export const Campaigns = () => {
               </div>
 
               <div style={{ padding: '14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>Cost per Registration</div>
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>Cost per Acquisition (CPA)</div>
                 <div style={{ fontSize: '22px', fontWeight: 800, color: '#00A322' }}>
                   ₹{selectedCampaign.metrics?.costPerRegistration || 0}
                 </div>
@@ -275,12 +455,12 @@ export const Campaigns = () => {
               </div>
             </div>
 
-            {/* Associated QR Assets */}
+            {/* Associated QR Codes */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <h3 className="vk-card-title">
                   <QrCode size={17} color="#00891D" />
-                  Associated QR Assets ({associatedQRs.length})
+                  Associated QR Codes ({associatedQRs.length})
                 </h3>
                 <button
                   onClick={() => setActiveScreen('wizard')}
@@ -328,7 +508,7 @@ export const Campaigns = () => {
                               }}
                               className="btn btn-secondary btn-sm"
                             >
-                              Manage
+                              Manage Details
                             </button>
                           </td>
                         </tr>
@@ -344,6 +524,6 @@ export const Campaigns = () => {
     </div>
   );
 };
- 
+
 export { Campaigns as Screen11_Campaigns };
 export default Campaigns;
