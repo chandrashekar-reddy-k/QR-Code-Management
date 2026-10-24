@@ -1,30 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQR } from '../context/QRContext';
 import {
   Menu,
   Plus,
-  Monitor,
-  Smartphone,
   ShieldAlert,
-  Bell,
-  Search,
-  CheckCircle2,
-  X,
 } from 'lucide-react';
 
 export const TopHeader = ({ onMenuClick }) => {
   const {
     activeScreen,
     setActiveScreen,
-    currentRole,
-    setCurrentRole,
-    viewMode,
-    setViewMode,
     approvals,
-    showToast,
   } = useQR();
 
-  const [headerSearch, setHeaderSearch] = useState('');
   const pendingCount = approvals.filter((a) => a.status === 'Pending').length;
 
   const titles = {
@@ -63,43 +51,7 @@ export const TopHeader = ({ onMenuClick }) => {
       </div>
 
       <div className="header-right">
-        {/* Role Selector Pill */}
-        <div className="role-pill-selector" title="Switch active user role to test role-based access matrix">
-          <span style={{ color: '#00891D', fontSize: '11.5px', fontWeight: 700 }}>Role:</span>
-          <select
-            className="role-select"
-            value={currentRole}
-            onChange={(e) => {
-              setCurrentRole(e.target.value);
-              showToast(`Switched active role to: ${e.target.value}`);
-            }}
-          >
-            <option value="Admin">Admin (Full Access)</option>
-            <option value="Marketing">Marketing Manager</option>
-            <option value="Hub Manager">Hub Manager (Hub Scope)</option>
-            <option value="VGE">VGE (Field Executive)</option>
-          </select>
-        </div>
 
-        {/* View Mode Toggle (Screen 18 Mobile Field Simulator) */}
-        <div style={{ display: 'flex', gap: '3px', background: '#F3F4F6', padding: '3px', borderRadius: '8px' }}>
-          <button
-            onClick={() => setViewMode('desktop')}
-            className={`device-toggle-btn ${viewMode === 'desktop' ? 'active' : ''}`}
-            title="Desktop ERP View"
-          >
-            <Monitor size={14} />
-            <span style={{ fontSize: '12px' }}>Desktop</span>
-          </button>
-          <button
-            onClick={() => setViewMode('mobile')}
-            className={`device-toggle-btn ${viewMode === 'mobile' ? 'active' : ''}`}
-            title="Mobile Responsive Field Mode"
-          >
-            <Smartphone size={14} />
-            <span style={{ fontSize: '12px' }}>Field Pocket</span>
-          </button>
-        </div>
 
         {/* Pending approvals alert badge */}
         {pendingCount > 0 && (
