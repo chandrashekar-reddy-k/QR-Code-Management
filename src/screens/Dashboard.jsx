@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQR } from '../context/QRContext';
 import {
   QrCode,
@@ -20,6 +20,7 @@ import {
   Activity,
   Play,
   RotateCw,
+  MapPin,
 } from 'lucide-react';
 
 export const Dashboard = () => {
@@ -33,10 +34,20 @@ export const Dashboard = () => {
     setWizardData,
     setWizardStep,
     setTestScanModal,
+    currentRole,
+    showToast,
   } = useQR();
 
   const [dateRange, setDateRange] = useState('30d');
   const [selectedHub, setSelectedHub] = useState('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   // Compute live metrics from qrCodes & scanEvents
   const totalCodes = qrCodes.length;
@@ -71,65 +82,128 @@ export const Dashboard = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Hero Welcome & Filter Control Bar (Clean ERP Card) */}
-      <div className="vk-card" style={{ padding: '20px 24px' }}>
+      <div className="vk-card" style={{ padding: '22px 26px', background: 'linear-gradient(135deg, #FFFFFF 0%, #FAFCFA 100%)', borderTop: '3px solid #00891D' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '16px',
+          gap: '20px',
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span className="badge badge-active" style={{ fontSize: '11px' }}>
+          {/* Left Context: Live Status, Title, Subtitle */}
+          <div style={{ flex: '1 1 480px', minWidth: '300px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#E8F5EA',
+                color: '#00891D',
+                padding: '3px 10px',
+                borderRadius: '20px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                letterSpacing: '0.2px',
+                border: '1px solid #C8E6C9'
+              }}>
+                <span style={{
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background: '#00891D',
+                  boxShadow: '0 0 0 2px rgba(0, 137, 29, 0.25)',
+                  display: 'inline-block'
+                }} />
                 VillagKart QR Studio · Production Live
+              </div>
+              <span style={{ fontSize: '12px', color: '#D1D5DB' }}>|</span>
+              <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#4B5563' }}>
+                Enterprise Operations Overview
               </span>
-              <span style={{ fontSize: '12px', color: '#6B7280' }}>Enterprise Operations Overview</span>
             </div>
-            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#111827', margin: 0 }}>
-              Good morning
+
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: 800,
+              color: '#111827',
+              margin: '0 0 6px 0',
+              letterSpacing: '-0.3px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span>{getGreeting()}, {currentRole === 'Admin' ? 'Operations Lead' : currentRole}</span>
+              <span style={{ fontSize: '20px' }}>👋</span>
             </h2>
-            <p style={{ color: '#4B5563', fontSize: '13.5px', marginTop: '4px', maxWidth: '680px' }}>
+
+            <p style={{
+              color: '#4B5563',
+              fontSize: '13.5px',
+              margin: 0,
+              maxWidth: '680px',
+              lineHeight: 1.5
+            }}>
               Manage QR codes, campaigns and customer acquisition across rural collection hubs, Shop-on-Wheels vehicles and field executives.
             </p>
           </div>
 
-          {/* Filter Bar */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#F9FAFB',
-            padding: '6px 10px',
-            borderRadius: '8px',
-            border: '1px solid #E5E7EB'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Calendar size={14} color="#00891D" />
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#111827',
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="today">Today</option>
-                <option value="7d">Last 7 Days</option>
-                <option value="30d">Last 30 Days</option>
-                <option value="custom">Custom Scope</option>
-              </select>
+          {/* Right Controls: Modern Segmented Timeframe & Hub Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Segmented Timeframe Pill Switcher */}
+            <div style={{
+              display: 'inline-flex',
+              background: '#F3F4F6',
+              padding: '3px',
+              borderRadius: '9px',
+              border: '1px solid #E5E7EB',
+              gap: '2px'
+            }}>
+              {[
+                { id: 'today', label: 'Today' },
+                { id: '7d', label: '7 Days' },
+                { id: '30d', label: '30 Days' },
+                { id: 'all', label: 'All Time' },
+              ].map((item) => {
+                const isActive = dateRange === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setDateRange(item.id);
+                      if (showToast) showToast(`Timeframe set to: ${item.label}`);
+                    }}
+                    style={{
+                      padding: '6px 13px',
+                      fontSize: '12px',
+                      fontWeight: isActive ? 700 : 500,
+                      color: isActive ? '#00891D' : '#4B5563',
+                      background: isActive ? '#FFFFFF' : 'transparent',
+                      border: 'none',
+                      borderRadius: '7px',
+                      boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      outline: 'none',
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
 
-            <div style={{ width: '1px', height: '16px', background: '#D1D5DB' }} />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Filter size={14} color="#00891D" />
+            {/* Hub / Territory Selector */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#FFFFFF',
+              border: '1px solid #E5E7EB',
+              padding: '5px 10px',
+              borderRadius: '8px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            }}>
+              <MapPin size={14} color="#00891D" />
               <select
                 value={selectedHub}
                 onChange={(e) => setSelectedHub(e.target.value)}
@@ -140,7 +214,8 @@ export const Dashboard = () => {
                   fontSize: '12.5px',
                   fontWeight: 600,
                   outline: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  paddingRight: '4px'
                 }}
               >
                 <option value="all">All Hubs & Territories</option>
@@ -151,6 +226,26 @@ export const Dashboard = () => {
                 <option value="HUB-05">Bapatla Coastal Hub</option>
               </select>
             </div>
+
+            {/* Live Sync / Refresh Action Button */}
+            <button
+              onClick={() => {
+                setIsRefreshing(true);
+                setTimeout(() => setIsRefreshing(false), 600);
+                if (showToast) showToast('Dashboard metrics refreshed in real-time!');
+              }}
+              className="btn btn-secondary btn-sm"
+              style={{
+                padding: '7px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '8px'
+              }}
+              title="Refresh live metrics"
+            >
+              <RotateCw size={14} className={isRefreshing ? 'spin-anim' : ''} />
+            </button>
           </div>
         </div>
       </div>
@@ -175,7 +270,7 @@ export const Dashboard = () => {
         {/* Total Scans */}
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">Total Scans (30 Days)</span>
+            <span className="kpi-title">Total Scans ({dateRange === 'today' ? 'Today' : dateRange === '7d' ? '7 Days' : dateRange === '30d' ? '30 Days' : 'All Time'})</span>
             <div className="kpi-icon">
               <Activity size={18} />
             </div>
