@@ -406,7 +406,76 @@ export const Dashboard = () => {
         )}
       </div>
 
-      {/* Operational Health & Alert Status (Pending Approvals, Expired Codes, Destination Failures) */}
+      {/* KPI Cards Row (VillagKart Admin StatCard Theme) */}
+      <div className="grid-4">
+        {/* Total QR Codes */}
+        <div className="kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">Total QR Codes</span>
+            <div className="kpi-icon">
+              <QrCode size={18} />
+            </div>
+          </div>
+          <div className="kpi-value">{totalCodes}</div>
+          <div className="kpi-trend trend-up">
+            <span style={{ color: '#00891D', fontWeight: 600 }}>{activeCodes} Active</span>
+            <span style={{ color: '#6B7280' }}>· {pendingCodes} Pending · {expiredCodes} Expired</span>
+          </div>
+        </div>
+
+        {/* Total Scans */}
+        <div className="kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">Total Scans ({dateRange === 'today' ? 'Today' : dateRange === '7d' ? '7 Days' : dateRange === '30d' ? '30 Days' : 'Custom Scope'})</span>
+            <div className="kpi-icon">
+              <Activity size={18} />
+            </div>
+          </div>
+          <div className="kpi-value">{totalScans.toLocaleString()}</div>
+          <div className="kpi-trend trend-up">
+            <ArrowUpRight size={14} />
+            <span>+18.4% vs previous 30 days</span>
+          </div>
+        </div>
+
+        {/* Attributed Registrations */}
+        <div className="kpi-card" title="Verified customer accounts registered within the 30-day attribution window after scanning this QR code">
+          <div className="kpi-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="kpi-title">Attributed Registrations</span>
+              <HelpCircle size={13} color="#9CA3AF" />
+            </div>
+            <div className="kpi-icon">
+              <Users size={18} />
+            </div>
+          </div>
+          <div className="kpi-value">{totalRegistrations.toLocaleString()}</div>
+          <div className="kpi-trend trend-up">
+            <ArrowUpRight size={14} />
+            <span>+24.1% verified customer apps</span>
+          </div>
+        </div>
+
+        {/* Attributed Orders */}
+        <div className="kpi-card" title="First-time rural grocery and fresh produce purchase orders completed by customers who scanned this QR code">
+          <div className="kpi-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="kpi-title">Attributed First Orders</span>
+              <HelpCircle size={13} color="#9CA3AF" />
+            </div>
+            <div className="kpi-icon">
+              <TrendingUp size={18} />
+            </div>
+          </div>
+          <div className="kpi-value">{totalFirstOrders.toLocaleString()}</div>
+          <div className="kpi-trend trend-up">
+            <ArrowUpRight size={14} />
+            <span>+31.6% rural village grocery orders</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Operational Health & Alert Status (Pending Approvals, Expired Codes, Destination Failures) - Positioned after KPIs */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -495,75 +564,6 @@ export const Dashboard = () => {
             </div>
           </div>
           <span className="badge badge-active">Live Healthy</span>
-        </div>
-      </div>
-
-      {/* KPI Cards Row (VillagKart Admin StatCard Theme) */}
-      <div className="grid-4">
-        {/* Total QR Codes */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">Total QR Codes</span>
-            <div className="kpi-icon">
-              <QrCode size={18} />
-            </div>
-          </div>
-          <div className="kpi-value">{totalCodes}</div>
-          <div className="kpi-trend trend-up">
-            <span style={{ color: '#00891D', fontWeight: 600 }}>{activeCodes} Active</span>
-            <span style={{ color: '#6B7280' }}>· {pendingCodes} Pending · {expiredCodes} Expired</span>
-          </div>
-        </div>
-
-        {/* Total Scans */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">Total Scans ({dateRange === 'today' ? 'Today' : dateRange === '7d' ? '7 Days' : dateRange === '30d' ? '30 Days' : 'Custom Scope'})</span>
-            <div className="kpi-icon">
-              <Activity size={18} />
-            </div>
-          </div>
-          <div className="kpi-value">{totalScans.toLocaleString()}</div>
-          <div className="kpi-trend trend-up">
-            <ArrowUpRight size={14} />
-            <span>+18.4% vs previous 30 days</span>
-          </div>
-        </div>
-
-        {/* Attributed Registrations */}
-        <div className="kpi-card" title="Verified customer accounts registered within the 30-day attribution window after scanning this QR code">
-          <div className="kpi-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="kpi-title">Attributed Registrations</span>
-              <HelpCircle size={13} color="#9CA3AF" />
-            </div>
-            <div className="kpi-icon">
-              <Users size={18} />
-            </div>
-          </div>
-          <div className="kpi-value">{totalRegistrations.toLocaleString()}</div>
-          <div className="kpi-trend trend-up">
-            <ArrowUpRight size={14} />
-            <span>+24.1% verified customer apps</span>
-          </div>
-        </div>
-
-        {/* Attributed Orders */}
-        <div className="kpi-card" title="First-time rural grocery and fresh produce purchase orders completed by customers who scanned this QR code">
-          <div className="kpi-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="kpi-title">Attributed First Orders</span>
-              <HelpCircle size={13} color="#9CA3AF" />
-            </div>
-            <div className="kpi-icon">
-              <TrendingUp size={18} />
-            </div>
-          </div>
-          <div className="kpi-value">{totalFirstOrders.toLocaleString()}</div>
-          <div className="kpi-trend trend-up">
-            <ArrowUpRight size={14} />
-            <span>+31.6% rural village grocery orders</span>
-          </div>
         </div>
       </div>
 
