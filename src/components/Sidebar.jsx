@@ -77,7 +77,6 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
               e.currentTarget.style.display = 'none';
             }}
           />
-          <span className="sidebar-brand-badge">QR Studio</span>
         </div>
       </div>
 
