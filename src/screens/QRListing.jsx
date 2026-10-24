@@ -195,10 +195,6 @@ export const QRListing = () => {
               <FileSpreadsheet size={15} />
               Export CSV
             </button>
-            <button onClick={() => setActiveScreen('wizard')} className="btn btn-primary btn-sm">
-              <Plus size={15} />
-              Create QR
-            </button>
           </div>
         </div>
 
