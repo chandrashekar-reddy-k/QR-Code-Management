@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQR } from '../context/QRContext';
+import { QRCodeRenderer } from '../components/QRCodeRenderer';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -13,6 +14,7 @@ import {
   Edit2,
   Save,
   RotateCcw,
+  RotateCw,
   Plus,
   Trash2,
   Check,
@@ -22,6 +24,9 @@ import {
   Shield,
   HelpCircle,
   Sliders,
+  Eye,
+  ExternalLink,
+  AlertTriangle,
 } from 'lucide-react';
 import { INITIAL_PERMISSIONS_MATRIX } from '../data/mockData';
 
@@ -32,12 +37,20 @@ export const Permissions = () => {
     approvals,
     handleApprovalAction,
     currentRole,
+    qrCodes,
     showToast,
     addAuditLog,
   } = useQR();
 
-  const [activeTab, setActiveTab] = useState('matrix'); // Default to 'matrix' for Role Permissions
+  // If there are pending approvals, default to 'queue' tab
+  const [activeTab, setActiveTab] = useState(() => {
+    return approvals.some((a) => a.status === 'Pending') ? 'queue' : 'matrix';
+  });
   const [commentInputs, setCommentInputs] = useState({});
+
+  // Review Modal State
+  const [reviewModalApp, setReviewModalApp] = useState(null);
+  const [reviewComment, setReviewComment] = useState('');
 
   // Permissions Matrix Editing State
   const [isEditingMatrix, setIsEditingMatrix] = useState(false);
@@ -258,7 +271,14 @@ export const Permissions = () => {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
-                      <div>
+                      <div
+                        onClick={() => {
+                          setReviewModalApp(app);
+                          setReviewComment(commentInputs[app.id] || '');
+                        }}
+                        style={{ cursor: 'pointer' }}
+                        title="Click to open comprehensive review modal"
+                      >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span className="badge badge-pending">Pending Review</span>
                           <span className="badge badge-outline">{app.type}</span>
@@ -274,7 +294,7 @@ export const Permissions = () => {
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'right' }}>
+                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                         <span style={{
                           fontSize: '11px',
                           fontWeight: 700,
@@ -285,6 +305,26 @@ export const Permissions = () => {
                         }}>
                           {app.riskClassification}
                         </span>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReviewModalApp(app);
+                            setReviewComment(commentInputs[app.id] || '');
+                          }}
+                          className="btn btn-primary btn-sm"
+                          style={{
+                            background: '#00891D',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontWeight: 700,
+                            padding: '5px 12px',
+                          }}
+                        >
+                          <Eye size={14} />
+                          Review QR Code
+                        </button>
                       </div>
                     </div>
 
@@ -322,6 +362,7 @@ export const Permissions = () => {
                         <button
                           onClick={() => handleApprovalAction(app.id, 'request_changes', commentInputs[app.id])}
                           className="btn btn-secondary btn-sm"
+                          style={{ color: '#D97706', fontWeight: 600 }}
                         >
                           Request Changes
                         </button>
@@ -932,6 +973,253 @@ export const Permissions = () => {
           </div>
         </div>
       )}
+
+      {/* Interactive Review Modal Dialog */}
+      {reviewModalApp && (() => {
+        const targetQr = qrCodes.find((q) => q.id === reviewModalApp.qrId);
+        const targetUrl = targetQr?.destination?.fallbackUrl || targetQr?.destination?.androidUrl || 'https://villagkart.com';
+        const shortlink = `https://qr.villagkart.com/${targetQr?.destination?.redirectCode || reviewModalApp.qrId}`;
+
+        return (
+          <div className="modal-overlay" onClick={() => setReviewModalApp(null)}>
+            <div
+              className="modal-card"
+              style={{ maxWidth: '660px', width: '92%' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header" style={{ borderBottom: '1px solid #E5E7EB' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    background: '#E8F5EA',
+                    color: '#00891D',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#111827' }}>
+                      Review QR Code: {reviewModalApp.qrName}
+                    </h3>
+                    <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>
+                      Administrative pre-flight quality verification & routing authorization
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReviewModalApp(null)}
+                  className="btn btn-ghost"
+                  style={{ padding: '6px' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px' }}>
+                {/* QR Preview & Core Routing Specs */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '150px 1fr',
+                  gap: '20px',
+                  alignItems: 'center',
+                  background: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '10px',
+                  padding: '16px',
+                }}>
+                  <div style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  }}>
+                    <QRCodeRenderer
+                      value={targetUrl}
+                      fgColor={targetQr?.design?.fgColor || '#00891D'}
+                      bgColor="#FFFFFF"
+                      size={134}
+                      hasCtaFrame={false}
+                      showLogo={targetQr?.design?.showLogo ?? true}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span className="badge badge-pending">Pending Review</span>
+                      <span className="badge badge-outline">{reviewModalApp.type}</span>
+                      <span style={{ fontSize: '12px', color: '#6B7280', fontFamily: 'monospace' }}>
+                        {reviewModalApp.qrId} · {reviewModalApp.configVersion}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>
+                        Target Destination URL:
+                      </div>
+                      <a
+                        href={targetUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          fontSize: '12.5px',
+                          color: '#00891D',
+                          fontWeight: 600,
+                          wordBreak: 'break-all',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        {targetUrl}
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: '#4B5563', lineHeight: 1.5 }}>
+                      Submitted by <strong>{reviewModalApp.requestingUser}</strong> on {reviewModalApp.submittedDate}
+                    </div>
+
+                    <div style={{ fontSize: '11.5px', color: '#6B7280' }}>
+                      Routing Shortlink: <code style={{ color: '#111827' }}>{shortlink}</code>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pre-flight Automated Verification Checklist */}
+                <div style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                }}>
+                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
+                    Automated Pre-Flight Verification
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '12px', color: '#166534' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={14} color="#00891D" />
+                      <span>QR matrix decodes to valid destination</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={14} color="#00891D" />
+                      <span>SSL / HTTPS active endpoint</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={14} color="#00891D" />
+                      <span>Contrast score: 98/100 (Print ready)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={14} color="#00891D" />
+                      <span>UTM attribution tags preserved</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reviewer Feedback / Condition Notes Textarea */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: 700 }}>
+                    Reviewer Notes & Feedback:
+                  </label>
+                  <textarea
+                    rows={3}
+                    className="form-control"
+                    placeholder="Enter review notes, feedback for revisions, or conditional approval comments..."
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    style={{ fontSize: '13px', lineHeight: 1.5 }}
+                  />
+                  <p className="form-helper">
+                    These notes will be recorded in the audit trail and displayed in QR Code Details if changes are requested or rejected.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Decision Actions: Accept, Request Changes, Reject */}
+              <div
+                className="modal-footer"
+                style={{
+                  borderTop: '1px solid #E5E7EB',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setReviewModalApp(null)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Cancel
+                </button>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleApprovalAction(reviewModalApp.id, 'reject', reviewComment);
+                      setReviewModalApp(null);
+                    }}
+                    className="btn btn-danger btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <XCircle size={14} />
+                    Reject
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleApprovalAction(reviewModalApp.id, 'request_changes', reviewComment);
+                      setReviewModalApp(null);
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      background: '#FEF3C7',
+                      color: '#B45309',
+                      borderColor: '#FDE68A',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <RotateCw size={14} />
+                    Request Changes
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleApprovalAction(reviewModalApp.id, 'approve', reviewComment);
+                      setReviewModalApp(null);
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{
+                      background: '#00891D',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <CheckCircle2 size={15} />
+                    Accept & Approve Live
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

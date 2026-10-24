@@ -174,11 +174,11 @@ export const QRProvider = ({ children }) => {
     );
   };
 
-  // Save new or updated QR from wizard
-  const publishWizardQR = (submitForApproval = false) => {
+  // Save new QR from wizard and submit for approval
+  const publishWizardQR = (submitForApproval = true) => {
     const newId = 'QR-000' + String(qrCodes.length + 1).padStart(2, '0');
     const hub = INITIAL_HUBS.find((h) => h.id === wizardData.hubId) || INITIAL_HUBS[0];
-    const initialStatus = submitForApproval ? 'Pending Approval' : 'Active';
+    const initialStatus = 'Pending Approval';
 
     const newQR = {
       id: newId,
@@ -196,8 +196,9 @@ export const QRProvider = ({ children }) => {
       lastModified: new Date().toISOString().split('T')[0],
       expiryDate: wizardData.expiryDate,
       trackingEnabled: wizardData.trackingEnabled,
-      approvalRequired: wizardData.approvalRequired,
+      approvalRequired: true,
       version: 'v1.0',
+      reviewerComments: '',
       destination: {
         redirectCode: wizardData.redirectCode,
         androidUrl: wizardData.androidUrl,
@@ -230,34 +231,31 @@ export const QRProvider = ({ children }) => {
 
     setQrCodes((prev) => [newQR, ...prev]);
 
-    if (submitForApproval) {
-      const newApproval = {
-        id: 'APP-' + Math.floor(100 + Math.random() * 900),
-        qrId: newId,
-        qrName: wizardData.name,
-        type: wizardData.type,
-        requestingUser: `${wizardData.owner} (${wizardData.department})`,
-        submittedDate: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        configVersion: 'v1.0',
-        riskClassification: wizardData.type === 'Payment' ? 'High (Payment Flow)' : 'Medium (Marketing Campaign)',
-        validationResults: {
-          qrDecodes: true,
-          destinationsActive: true,
-          contrastScore: 98,
-          utmValid: true,
-        },
-        status: 'Pending',
-        reviewerComments: '',
-      };
-      setApprovals((prev) => [newApproval, ...prev]);
-      addAuditLog('Submitted for Approval', `${newId} (${wizardData.name})`, 'Created new QR config');
-      showToast(`QR Code ${newId} submitted for manager approval!`, 'warning');
-    } else {
-      addAuditLog('Published QR Code', `${newId} (${wizardData.name})`, 'Published live v1.0');
-      showToast(`QR Code ${newId} published successfully! Live & routing active.`);
-    }
+    const newApproval = {
+      id: 'APP-' + Math.floor(100 + Math.random() * 900),
+      qrId: newId,
+      qrName: wizardData.name,
+      type: wizardData.type,
+      requestingUser: `${wizardData.owner} (${wizardData.department})`,
+      submittedDate: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      configVersion: 'v1.0',
+      riskClassification: wizardData.type === 'Payment' ? 'High (Payment Flow)' : 'Medium (Marketing Campaign)',
+      validationResults: {
+        qrDecodes: true,
+        destinationsActive: true,
+        contrastScore: 98,
+        utmValid: true,
+      },
+      status: 'Pending',
+      reviewerComments: '',
+    };
+    setApprovals((prev) => [newApproval, ...prev]);
+    addAuditLog('Submitted for Approval', `${newId} (${wizardData.name})`, 'Created new QR config');
+    showToast(`QR Code ${newId} generated! Submitted to Permissions & Approvals for review.`, 'warning');
 
-    setActiveScreen('listing');
+    setSelectedQrId(newId);
+    setActiveScreen('permissions');
+    return newId;
   };
 
   // Simulate Real Scan Event
@@ -318,37 +316,57 @@ export const QRProvider = ({ children }) => {
 
   // Approve / Reject in queue
   const handleApprovalAction = (approvalId, action, comments = '') => {
+    let targetQrId = null;
+    let targetQrName = '';
+    const newStatus = action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'Changes Requested';
+
     setApprovals((prev) =>
       prev.map((app) => {
         if (app.id === approvalId) {
-          const newStatus = action === 'approve' ? 'Approved' : action === 'reject' ? 'Rejected' : 'Changes Requested';
-          
-          // Also update QR code status
-          setQrCodes((qrs) =>
-            qrs.map((q) => {
-              if (q.id === app.qrId) {
-                return {
-                  ...q,
-                  status: action === 'approve' ? 'Active' : action === 'reject' ? 'Rejected' : 'Draft',
-                };
-              }
-              return q;
-            })
-          );
-
-          addAuditLog(
-            `Approval Action: ${newStatus}`,
-            `${app.qrId} (${app.qrName})`,
-            comments || `Reviewer action: ${newStatus}`,
-            newStatus
-          );
-
-          showToast(`Approval ${app.id} marked as ${newStatus}`);
+          targetQrId = app.qrId;
+          targetQrName = app.qrName;
           return { ...app, status: newStatus, reviewerComments: comments };
         }
         return app;
       })
     );
+
+    // Update QR code status
+    setQrCodes((qrs) =>
+      qrs.map((q) => {
+        if (q.id === targetQrId || (targetQrId === null && q.id === selectedQrId)) {
+          const qrStatus = action === 'approve' ? 'Active' : action === 'reject' ? 'Rejected' : 'Changes Requested';
+          return {
+            ...q,
+            status: qrStatus,
+            reviewerComments: comments || (action === 'request_changes' ? 'Reviewer requested configuration or artwork changes.' : action === 'reject' ? 'Rejected by governance reviewer.' : ''),
+            lastModified: new Date().toISOString().split('T')[0],
+          };
+        }
+        return q;
+      })
+    );
+
+    addAuditLog(
+      `Approval Action: ${newStatus}`,
+      `${targetQrId || approvalId} (${targetQrName || 'QR Code'})`,
+      comments || `Reviewer action: ${newStatus}`,
+      newStatus
+    );
+
+    if (action === 'approve') {
+      showToast(`QR Code ${targetQrId || approvalId} approved! Now live in QR Inventory.`, 'success');
+      if (targetQrId) setSelectedQrId(targetQrId);
+      setActiveScreen('listing');
+    } else if (action === 'request_changes') {
+      showToast(`Changes requested for ${targetQrId || approvalId}. Redirected to QR Code Details.`, 'warning');
+      if (targetQrId) setSelectedQrId(targetQrId);
+      setActiveScreen('details');
+    } else if (action === 'reject') {
+      showToast(`QR Code ${targetQrId || approvalId} rejected. Redirected to QR Code Details.`, 'error');
+      if (targetQrId) setSelectedQrId(targetQrId);
+      setActiveScreen('details');
+    }
   };
 
   return (

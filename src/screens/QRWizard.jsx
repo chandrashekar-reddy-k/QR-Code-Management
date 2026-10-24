@@ -1914,35 +1914,45 @@ export const QRWizard = () => {
                 https://qr.villagkart.com/{wizardData.redirectCode}
               </div>
 
-              {/* Action Buttons: Submit for Approval, Publish Immediately, Save as Draft, Continue to QR Details */}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {isApprovalRequired ? (
-                  <button onClick={() => publishWizardQR(true)} className="btn btn-accent btn-sm" style={{ width: '100%' }}>
-                    <Send size={14} />
-                    Submit for Approval
-                  </button>
-                ) : (
-                  <button onClick={() => publishWizardQR(false)} className="btn btn-primary btn-sm" style={{ width: '100%' }}>
-                    <CheckCircle2 size={14} />
-                    Publish Immediately
-                  </button>
-                )}
+              {/* Workflow Actions: Generate & Submit for Approval */}
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  onClick={() => publishWizardQR(true)}
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: '10px 16px',
+                    fontSize: '13.5px',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: '#00891D',
+                  }}
+                >
+                  <Send size={16} />
+                  Generate & Submit for Approval
+                </button>
+
+                <div style={{
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  fontSize: '11.5px',
+                  color: '#166534',
+                  lineHeight: 1.4,
+                }}>
+                  🔒 <strong>Governance Workflow:</strong> Once generated, this QR code transitions to <strong>Permissions & Approvals</strong> for pre-flight administrative review before live routing.
+                </div>
 
                 <button
                   onClick={handleSaveDraft}
                   className="btn btn-secondary btn-sm"
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', marginTop: '2px' }}
                 >
-                  Save as Draft
-                </button>
-
-                <button
-                  onClick={handleContinueToDetails}
-                  className="btn btn-secondary btn-sm"
-                  style={{ width: '100%', color: '#00891D', fontWeight: 600 }}
-                >
-                  Continue to QR Details
-                  <ArrowRight size={14} />
+                  Save as Inactive Draft
                 </button>
               </div>
             </div>

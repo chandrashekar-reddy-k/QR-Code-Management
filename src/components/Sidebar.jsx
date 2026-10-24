@@ -67,7 +67,22 @@ export const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Brand Header with Official VillagKart Logo */}
       <div className="sidebar-header">
-        <div className="sidebar-logo-container">
+        <div
+          className="sidebar-logo-container"
+          onClick={() => {
+            setActiveScreen('dashboard');
+            if (setMobileOpen) setMobileOpen(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              setActiveScreen('dashboard');
+              if (setMobileOpen) setMobileOpen(false);
+            }
+          }}
+          title="VillagKart — Dashboard"
+          role="button"
+          tabIndex={0}
+        >
           <img
             src="/villagekart_logo.svg"
             alt="VillagKart"

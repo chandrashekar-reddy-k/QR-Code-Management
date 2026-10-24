@@ -269,8 +269,10 @@ export const QRListing = () => {
             >
               <option value="all">All Statuses</option>
               <option value="Active">Active</option>
-              <option value="Draft">Draft</option>
               <option value="Pending Approval">Pending Approval</option>
+              <option value="Changes Requested">Changes Requested</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Draft">Draft</option>
               <option value="Paused">Paused</option>
               <option value="Expired">Expired</option>
               <option value="Archived">Archived</option>
