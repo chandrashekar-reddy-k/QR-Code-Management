@@ -168,6 +168,14 @@ export const TestScanModal = () => {
                     <span style={{ color: '#DC2626' }}>
                       ⚠️ <strong>Bot Traffic Detected:</strong> Filtered out to protect analytics accuracy.
                     </span>
+                  ) : destination.routingBehavior === 'fallback_only' ? (
+                    <span>
+                      🌐 <strong>Direct Target URL:</strong> All devices (Android, iOS, PC) bypass app stores and redirect directly to your target destination URL.
+                    </span>
+                  ) : destination.routingBehavior === 'landing' ? (
+                    <span>
+                      📄 <strong>Choice Landing Page:</strong> Displays responsive mobile landing page with Android and iOS download buttons.
+                    </span>
                   ) : isAndroid ? (
                     <span>
                       🤖 <strong>Android OS Detected:</strong> Deep links to <code>villagkart://</code> or routes to Google Play Store with campaign UTM tags preserved.
