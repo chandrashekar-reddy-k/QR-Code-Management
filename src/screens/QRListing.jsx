@@ -426,7 +426,7 @@ export const QRListing = () => {
                           title="Click to test-scan in simulator"
                         >
                           <QRCodeRenderer
-                            value={`https://qr.villagkart.com/${qr.destination?.redirectCode || qr.id}`}
+                            value={qr.destination?.fallbackUrl || qr.destination?.androidUrl || `https://qr.villagkart.com/${qr.destination?.redirectCode || qr.id}`}
                             fgColor={qr.design?.fgColor || '#00891D'}
                             bgColor="#FFFFFF"
                             size={38}
@@ -462,8 +462,36 @@ export const QRListing = () => {
 
                       {/* Destination */}
                       <td>
-                        <div style={{ fontSize: '11.5px', color: '#4B5563', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          <code>/{qr.destination?.redirectCode || 'target'}</code>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxWidth: '165px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <code style={{ fontSize: '11px', color: '#00891D', background: '#E8F5EA', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
+                              /{qr.destination?.redirectCode || 'target'}
+                            </code>
+                            {(qr.destination?.fallbackUrl || qr.destination?.androidUrl) && (
+                              <a
+                                href={qr.destination.fallbackUrl || qr.destination.androidUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: 'inline-flex', alignItems: 'center', color: '#00891D' }}
+                                title={`Open target destination in new tab: ${qr.destination.fallbackUrl || qr.destination.androidUrl}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink size={12} />
+                              </a>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '10.5px',
+                              color: '#6B7280',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={qr.destination?.fallbackUrl || qr.destination?.androidUrl || 'No target configured'}
+                          >
+                            {qr.destination?.fallbackUrl || qr.destination?.androidUrl || 'Direct Destination'}
+                          </div>
                         </div>
                       </td>
 

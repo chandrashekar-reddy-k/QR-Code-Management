@@ -1384,7 +1384,7 @@ export const QRWizard = () => {
               {/* Artwork Render */}
               <div style={{ padding: '16px', background: '#FFFFFF', borderRadius: '14px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
                 <QRCodeRenderer
-                  value={`https://qr.villagkart.com/${wizardData.redirectCode}`}
+                  value={wizardData.fallbackUrl || wizardData.androidUrl || `https://qr.villagkart.com/${wizardData.redirectCode}`}
                   fgColor={wizardData.fgColor}
                   bgColor={wizardData.bgColor}
                   size={210}
@@ -1792,7 +1792,7 @@ export const QRWizard = () => {
           {/* Hidden Canvas to power downloads */}
           <div style={{ display: 'none' }} className="qr-render-container">
             <QRCodeRenderer
-              value={`https://qr.villagkart.com/${wizardData.redirectCode}`}
+              value={wizardData.fallbackUrl || wizardData.androidUrl || `https://qr.villagkart.com/${wizardData.redirectCode}`}
               fgColor={wizardData.fgColor}
               bgColor={wizardData.bgColor}
               size={360}
@@ -1898,7 +1898,7 @@ export const QRWizard = () => {
             }}>
               <div style={{ marginBottom: '12px' }}>
                 <QRCodeRenderer
-                  value={`https://qr.villagkart.com/${wizardData.redirectCode}`}
+                  value={wizardData.fallbackUrl || wizardData.androidUrl || `https://qr.villagkart.com/${wizardData.redirectCode}`}
                   fgColor={wizardData.fgColor}
                   bgColor={wizardData.bgColor}
                   size={140}

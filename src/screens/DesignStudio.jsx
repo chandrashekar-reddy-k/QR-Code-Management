@@ -453,7 +453,7 @@ export const DesignStudio = () => {
             {/* Core QR Renderer */}
             <div style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.12)', borderRadius: '12px', overflow: 'hidden' }}>
               <QRCodeRenderer
-                value={`https://qr.villagkart.com/${currentQR?.destination?.redirectCode || currentQR?.id || 'vk'}`}
+                value={currentQR?.destination?.fallbackUrl || currentQR?.destination?.androidUrl || `https://qr.villagkart.com/${currentQR?.destination?.redirectCode || currentQR?.id || 'vk'}`}
                 size={previewSize === 'small' ? 180 : previewSize === 'medium' ? 240 : 280}
                 fgColor={designForm.fgColor}
                 bgColor={designForm.bgColor}

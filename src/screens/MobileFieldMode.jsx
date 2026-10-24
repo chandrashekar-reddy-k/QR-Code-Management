@@ -151,7 +151,7 @@ export const MobileFieldMode = () => {
                 }}
               >
                 <QRCodeRenderer
-                  value={`https://qr.villagkart.com/${qr.destination?.redirectCode || qr.id}`}
+                  value={qr.destination?.fallbackUrl || qr.destination?.androidUrl || `https://qr.villagkart.com/${qr.destination?.redirectCode || qr.id}`}
                   fgColor={qr.design?.fgColor || '#00891D'}
                   bgColor="#FFFFFF"
                   size={48}

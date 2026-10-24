@@ -35,6 +35,9 @@ export const TestScanModal = () => {
   const handleSimulate = () => {
     setScanStatus('redirected');
     simulateScan(qr, simulatedDevice, triggerConversion);
+    if (resolvedUrl && resolvedUrl.startsWith('http') && !isBot) {
+      window.open(resolvedUrl, '_blank');
+    }
   };
 
   const handleClose = () => {
@@ -116,7 +119,7 @@ export const TestScanModal = () => {
               textAlign: 'center',
             }}>
               <QRCodeRenderer
-                value={`https://qr.villagkart.com/${destination.redirectCode || 'test'}`}
+                value={resolvedUrl || destination.fallbackUrl || destination.androidUrl || `https://qr.villagkart.com/${destination.redirectCode || 'test'}`}
                 fgColor={qr.design?.fgColor || '#00891D'}
                 bgColor="#FFFFFF"
                 size={140}
@@ -124,7 +127,7 @@ export const TestScanModal = () => {
                 showLogo={qr.design?.showLogo ?? true}
               />
               <div style={{ marginTop: '8px', fontSize: '11px', color: '#00891D', fontWeight: 700 }}>
-                ● Real QR Canvas
+                ● Real QR Canvas — Scan with Phone
               </div>
             </div>
 
@@ -193,15 +196,47 @@ export const TestScanModal = () => {
 
                 <div style={{
                   marginTop: '8px',
-                  padding: '6px 8px',
+                  padding: '8px 10px',
                   background: '#E8F5EA',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                  fontSize: '11px',
-                  wordBreak: 'break-all',
-                  color: '#006B17'
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  flexWrap: 'wrap',
                 }}>
-                  Target: {resolvedUrl || 'https://villagkart.com'}
+                  <div style={{
+                    fontFamily: 'monospace',
+                    fontSize: '11px',
+                    wordBreak: 'break-all',
+                    color: '#006B17',
+                    fontWeight: 700,
+                  }}>
+                    Target: {resolvedUrl || 'https://villagkart.com'}
+                  </div>
+                  {resolvedUrl && resolvedUrl.startsWith('http') && (
+                    <a
+                      href={resolvedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary btn-sm"
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        background: '#FFFFFF',
+                        borderColor: '#00891D',
+                        color: '#00891D',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      title="Open destination in a new browser tab"
+                    >
+                      <ExternalLink size={12} />
+                      Open URL Now
+                    </a>
+                  )}
                 </div>
               </div>
 

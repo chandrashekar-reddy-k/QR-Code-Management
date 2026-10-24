@@ -222,7 +222,7 @@ export const QRDetails = () => {
             title="Click to launch interactive test-scan"
           >
             <QRCodeRenderer
-              value={`https://qr.villagkart.com/${dest.redirectCode || qr.id}`}
+              value={dest.fallbackUrl || dest.androidUrl || `https://qr.villagkart.com/${dest.redirectCode || qr.id}`}
               fgColor={qr.design?.fgColor || '#00891D'}
               bgColor="#FFFFFF"
               size={110}
