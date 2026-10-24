@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import { QRProvider, useQR } from './context/QRContext';
-import { Sidebar } from './components/Sidebar';
-import { TopHeader } from './components/TopHeader';
-import { TestScanModal } from './components/TestScanModal';
-import { ToastContainer } from './components/ToastContainer';
+import { Sidebar, TopHeader, TestScanModal, ToastContainer } from './components';
 
 // Screens
-import { Screen01_Dashboard } from './screens/Screen01_Dashboard';
-import { Screen02_Listing } from './screens/Screen02_Listing';
-import { Screen03_07_Wizard } from './screens/Screen03_07_Wizard';
-import { Screen05_DesignStudio } from './screens/Screen05_DesignStudio';
-import { Screen08_Details } from './screens/Screen08_Details';
-import { Screen09_ScanHistory } from './screens/Screen09_ScanHistory';
-import { Screen10_Analytics } from './screens/Screen10_Analytics';
-import { Screen11_Campaigns } from './screens/Screen11_Campaigns';
-import { Screen12_Templates } from './screens/Screen12_Templates';
-import { Screen13_Referrals } from './screens/Screen13_Referrals';
-import { Screen14_Permissions } from './screens/Screen14_Permissions';
-import { Screen15_Settings } from './screens/Screen15_Settings';
-import { Screen18_MobileFieldMode } from './screens/Screen18_MobileFieldMode';
+import {
+  Dashboard,
+  QRListing,
+  QRWizard,
+  DesignStudio,
+  QRDetails,
+  ScanHistory,
+  Analytics,
+  Campaigns,
+  Templates,
+  Referrals,
+  Permissions,
+  Settings,
+  MobileFieldMode,
+} from './screens';
 
 const MainAppContent = () => {
   const { activeScreen, viewMode, setViewMode } = useQR();
@@ -27,33 +26,33 @@ const MainAppContent = () => {
   const renderActiveScreen = () => {
     switch (activeScreen) {
       case 'dashboard':
-        return <Screen01_Dashboard />;
+        return <Dashboard />;
       case 'listing':
-        return <Screen02_Listing />;
+        return <QRListing />;
       case 'wizard':
-        return <Screen03_07_Wizard />;
+        return <QRWizard />;
       case 'design-studio':
-        return <Screen05_DesignStudio />;
+        return <DesignStudio />;
       case 'details':
-        return <Screen08_Details />;
+        return <QRDetails />;
       case 'scan-history':
-        return <Screen09_ScanHistory />;
+        return <ScanHistory />;
       case 'analytics':
-        return <Screen10_Analytics />;
+        return <Analytics />;
       case 'campaigns':
-        return <Screen11_Campaigns />;
+        return <Campaigns />;
       case 'templates':
-        return <Screen12_Templates />;
+        return <Templates />;
       case 'referrals':
-        return <Screen13_Referrals />;
+        return <Referrals />;
       case 'permissions':
-        return <Screen14_Permissions />;
+        return <Permissions />;
       case 'settings':
-        return <Screen15_Settings />;
+        return <Settings />;
       case 'mobile':
-        return <Screen18_MobileFieldMode />;
+        return <MobileFieldMode />;
       default:
-        return <Screen01_Dashboard />;
+        return <Dashboard />;
     }
   };
 
@@ -85,7 +84,7 @@ const MainAppContent = () => {
               <div className="mobile-simulator-wrapper">
                 <div className="mobile-notch" />
                 <div className="mobile-simulator-content">
-                  <Screen18_MobileFieldMode />
+                  <MobileFieldMode />
                 </div>
               </div>
             </div>

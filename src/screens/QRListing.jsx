@@ -20,7 +20,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-export const Screen02_Listing = () => {
+export const QRListing = () => {
   const {
     qrCodes,
     setActiveScreen,
@@ -448,3 +448,6 @@ export const Screen02_Listing = () => {
     </div>
   );
 };
+ 
+export { QRListing as Screen02_Listing };
+export default QRListing;

@@ -13,7 +13,7 @@ import {
   Filter,
 } from 'lucide-react';
 
-export const Screen13_Referrals = () => {
+export const Referrals = () => {
   const { qrCodes, setTestScanModal, showToast } = useQR();
 
   const referralQrs = qrCodes.filter((q) => q.type === 'Referral');
@@ -194,3 +194,6 @@ export const Screen13_Referrals = () => {
     </div>
   );
 };
+ 
+export { Referrals as Screen13_Referrals };
+export default Referrals;

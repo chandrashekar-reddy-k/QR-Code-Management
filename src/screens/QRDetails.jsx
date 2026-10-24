@@ -22,7 +22,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 
-export const Screen08_Details = () => {
+export const QRDetails = () => {
   const {
     selectedQrId,
     setSelectedQrId,
@@ -521,3 +521,6 @@ export const Screen08_Details = () => {
     </div>
   );
 };
+ 
+export { QRDetails as Screen08_Details };
+export default QRDetails;

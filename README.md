@@ -103,24 +103,27 @@ QR-Code-Management/
 │   │   ├── Sidebar.jsx          # Clean white ERP navigation sidebar
 │   │   ├── TopHeader.jsx        # Top action bar with search, role & device toggle
 │   │   ├── TestScanModal.jsx    # Interactive device routing scanner simulator
-│   │   └── ToastContainer.jsx   # Global alert & notification banners
+│   │   ├── ToastContainer.jsx   # Global alert & notification banners
+│   │   └── index.js             # Centralized component barrel export
 │   ├── context/
 │   │   └── QRContext.jsx        # Central state store with localStorage persistence
 │   ├── data/
 │   │   └── mockData.js          # Enterprise seed data for hubs, villages, & QRs
 │   ├── screens/
-│   │   ├── Screen01_Dashboard.jsx
-│   │   ├── Screen02_Listing.jsx
-│   │   ├── Screen03_07_Wizard.jsx
-│   │   ├── Screen08_Details.jsx
-│   │   ├── Screen09_ScanHistory.jsx
-│   │   ├── Screen10_Analytics.jsx
-│   │   ├── Screen11_Campaigns.jsx
-│   │   ├── Screen12_Templates.jsx
-│   │   ├── Screen13_Referrals.jsx
-│   │   ├── Screen14_Permissions.jsx
-│   │   ├── Screen15_Settings.jsx
-│   │   └── Screen18_MobileFieldMode.jsx
+│   │   ├── Dashboard.jsx        # Performance overview, live scan trends and quick actions
+│   │   ├── QRListing.jsx        # Central QR inventory, faceted filtering & batch operations
+│   │   ├── QRWizard.jsx         # 5-step QR creation, branding & export wizard
+│   │   ├── DesignStudio.jsx     # Brand customization, safety contrast check & vector exports
+│   │   ├── QRDetails.jsx        # QR lifecycle overview, assets, scan event records & version audit
+│   │   ├── ScanHistory.jsx      # Device forensics, location logs & conversion attribution
+│   │   ├── Analytics.jsx        # Scan volume trends, device routing & village breakdown
+│   │   ├── Campaigns.jsx        # Marketing initiatives, CPA metrics & asset grouping
+│   │   ├── Templates.jsx        # Approved brand templates, dimensions & presets
+│   │   ├── Referrals.jsx        # Village Gramin Executive (VGE) incentives & acquisition
+│   │   ├── Permissions.jsx      # Role matrix and publication approval workflows
+│   │   ├── Settings.jsx         # Redirect domains, retention policies & tamper-evident audit log
+│   │   ├── MobileFieldMode.jsx  # Compact field pocket simulator for VGEs & Hub Managers
+│   │   └── index.js             # Centralized screen barrel export
 │   ├── App.jsx                  # Main layout and screen router
 │   ├── index.css                # VillagKart ERP design tokens and component styles
 │   └── main.jsx                 # React root entry point

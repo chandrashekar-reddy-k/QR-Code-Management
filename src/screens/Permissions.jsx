@@ -12,7 +12,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 
-export const Screen14_Permissions = () => {
+export const Permissions = () => {
   const {
     permissionsMatrix,
     setPermissionsMatrix,
@@ -286,3 +286,6 @@ export const Screen14_Permissions = () => {
     </div>
   );
 };
+ 
+export { Permissions as Screen14_Permissions };
+export default Permissions;

@@ -15,7 +15,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-export const Screen18_MobileFieldMode = () => {
+export const MobileFieldMode = () => {
   const {
     qrCodes,
     currentRole,
@@ -204,3 +204,6 @@ export const Screen18_MobileFieldMode = () => {
     </div>
   );
 };
+ 
+export { MobileFieldMode as Screen18_MobileFieldMode };
+export default MobileFieldMode;

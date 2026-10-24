@@ -15,7 +15,7 @@ import {
   Radio,
 } from 'lucide-react';
 
-export const Screen09_ScanHistory = () => {
+export const ScanHistory = () => {
   const { scanEvents, qrCodes, setTestScanModal } = useQR();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -283,3 +283,6 @@ export const Screen09_ScanHistory = () => {
     </div>
   );
 };
+ 
+export { ScanHistory as Screen09_ScanHistory };
+export default ScanHistory;

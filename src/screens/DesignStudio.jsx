@@ -21,7 +21,7 @@ import {
   Info,
 } from 'lucide-react';
 
-export const Screen05_DesignStudio = () => {
+export const DesignStudio = () => {
   const {
     qrCodes,
     selectedQrId,
@@ -716,3 +716,6 @@ export const Screen05_DesignStudio = () => {
     </div>
   );
 };
+ 
+export { DesignStudio as Screen05_DesignStudio };
+export default DesignStudio;

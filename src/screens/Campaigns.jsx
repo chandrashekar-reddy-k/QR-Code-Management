@@ -17,7 +17,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
-export const Screen11_Campaigns = () => {
+export const Campaigns = () => {
   const { campaigns, qrCodes, setCampaigns, setActiveScreen, setSelectedQrId, showToast } = useQR();
   const [selectedCampaign, setSelectedCampaign] = useState(campaigns[0]);
   const [isCreating, setIsCreating] = useState(false);
@@ -344,3 +344,6 @@ export const Screen11_Campaigns = () => {
     </div>
   );
 };
+ 
+export { Campaigns as Screen11_Campaigns };
+export default Campaigns;

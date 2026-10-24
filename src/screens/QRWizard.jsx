@@ -21,7 +21,7 @@ import {
   Send,
 } from 'lucide-react';
 
-export const Screen03_07_Wizard = () => {
+export const QRWizard = () => {
   const {
     wizardStep,
     setWizardStep,
@@ -1018,3 +1018,6 @@ export const Screen03_07_Wizard = () => {
     </div>
   );
 };
+ 
+export { QRWizard as Screen03_07_Wizard };
+export default QRWizard;

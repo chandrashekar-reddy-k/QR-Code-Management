@@ -16,7 +16,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-export const Screen10_Analytics = () => {
+export const Analytics = () => {
   const { qrCodes, campaigns, showToast } = useQR();
   const [timeframe, setTimeframe] = useState('30d');
 
@@ -310,3 +310,6 @@ export const Screen10_Analytics = () => {
     </div>
   );
 };
+ 
+export { Analytics as Screen10_Analytics };
+export default Analytics;

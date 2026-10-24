@@ -22,7 +22,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 
-export const Screen01_Dashboard = () => {
+export const Dashboard = () => {
   const {
     qrCodes,
     scanEvents,
@@ -608,3 +608,6 @@ export const Screen01_Dashboard = () => {
     </div>
   );
 };
+ 
+export { Dashboard as Screen01_Dashboard };
+export default Dashboard;

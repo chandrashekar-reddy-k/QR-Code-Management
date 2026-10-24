@@ -13,7 +13,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
-export const Screen12_Templates = () => {
+export const Templates = () => {
   const { templates, setTemplates, setActiveScreen, setWizardData, showToast } = useQR();
   const [filterCategory, setFilterCategory] = useState('all');
 
@@ -174,3 +174,6 @@ export const Screen12_Templates = () => {
     </div>
   );
 };
+ 
+export { Templates as Screen12_Templates };
+export default Templates;

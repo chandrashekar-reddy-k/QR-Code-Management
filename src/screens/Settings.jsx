@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQR } from '../context/QRContext';
 import {
-  Settings,
+  Settings as SettingsIcon,
   History,
   Shield,
   Save,
@@ -13,7 +13,7 @@ import {
   Search,
 } from 'lucide-react';
 
-export const Screen15_Settings = () => {
+export const Settings = () => {
   const { settings, setSettings, auditLogs, currentRole, showToast } = useQR();
   const [activeTab, setActiveTab] = useState('settings'); // 'settings' | 'audit'
   const [formData, setFormData] = useState({ ...settings });
@@ -53,7 +53,7 @@ export const Screen15_Settings = () => {
               onClick={() => setActiveTab('settings')}
               className={`btn btn-sm ${activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'}`}
             >
-              <Settings size={14} />
+              <SettingsIcon size={14} />
               System QR Settings
             </button>
             <button
@@ -237,3 +237,6 @@ export const Screen15_Settings = () => {
     </div>
   );
 };
+ 
+export { Settings as Screen15_Settings };
+export default Settings;
