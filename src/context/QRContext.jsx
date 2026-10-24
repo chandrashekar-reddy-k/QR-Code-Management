@@ -295,6 +295,7 @@ export const QRProvider = ({ children }) => {
           const newScans = (item.metrics?.scans || 0) + (isBot ? 0 : 1);
           const newUnique = (item.metrics?.uniqueVisitors || 0) + (isBot ? 0 : 1);
           const newReg = (item.metrics?.verifiedRegistrations || 0) + (triggerConversion ? 1 : 0);
+          const newOrders = (item.metrics?.firstOrders || 0) + (triggerConversion ? 1 : 0);
           const newRate = newScans > 0 ? ((newReg / newScans) * 100).toFixed(1) : 0;
           return {
             ...item,
@@ -303,6 +304,7 @@ export const QRProvider = ({ children }) => {
               scans: newScans,
               uniqueVisitors: newUnique,
               verifiedRegistrations: newReg,
+              firstOrders: newOrders,
               conversionRate: parseFloat(newRate),
             },
           };

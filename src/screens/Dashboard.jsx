@@ -21,6 +21,7 @@ import {
   Play,
   RotateCw,
   MapPin,
+  HelpCircle,
 } from 'lucide-react';
 
 export const Dashboard = () => {
@@ -530,9 +531,12 @@ export const Dashboard = () => {
         </div>
 
         {/* Attributed Registrations */}
-        <div className="kpi-card">
+        <div className="kpi-card" title="Verified customer accounts registered within the 30-day attribution window after scanning this QR code">
           <div className="kpi-header">
-            <span className="kpi-title">Attributed Registrations</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="kpi-title">Attributed Registrations</span>
+              <HelpCircle size={13} color="#9CA3AF" />
+            </div>
             <div className="kpi-icon">
               <Users size={18} />
             </div>
@@ -545,9 +549,12 @@ export const Dashboard = () => {
         </div>
 
         {/* Attributed Orders */}
-        <div className="kpi-card">
+        <div className="kpi-card" title="First-time rural grocery and fresh produce purchase orders completed by customers who scanned this QR code">
           <div className="kpi-header">
-            <span className="kpi-title">Attributed First Orders</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="kpi-title">Attributed First Orders</span>
+              <HelpCircle size={13} color="#9CA3AF" />
+            </div>
             <div className="kpi-icon">
               <TrendingUp size={18} />
             </div>
