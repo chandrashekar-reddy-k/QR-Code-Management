@@ -60,9 +60,25 @@ export const QRWizard = () => {
   // Interactive Live Forwarding Preview Device
   const [previewDevice, setPreviewDevice] = useState('android'); // 'android' | 'ios' | 'desktop' | 'bot'
 
-  // Update wizard helper
+  // Update wizard helper with smart dynamic slug derivation
   const updateData = (field, value) => {
-    setWizardData((prev) => ({ ...prev, [field]: value }));
+    setWizardData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'name') {
+        const isDefaultOrAuto =
+          !prev.redirectCode ||
+          prev.redirectCode === 'vk-phr-promo' ||
+          prev.redirectCode === 'youtube-1048' ||
+          prev.redirectCode.startsWith('vk-');
+        if (isDefaultOrAuto && typeof value === 'string' && value.trim()) {
+          const autoSlug = 'vk-' + value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20);
+          if (autoSlug.length > 3) {
+            next.redirectCode = autoSlug;
+          }
+        }
+      }
+      return next;
+    });
   };
 
   // Determine if approval is needed based on role & QR type
@@ -516,16 +532,29 @@ export const QRWizard = () => {
                   </span>
                   <ArrowRight size={14} color="#00891D" />
                   <span style={{ background: '#E8F5EA', padding: '5px 10px', borderRadius: '6px', border: '1px solid #C8E6C9', color: '#006B17', fontFamily: 'monospace', fontWeight: 700 }}>
-                    2. https://qr.villagkart.com/{wizardData.redirectCode || 'code'}
+                    2. https://qr.villagkart.com/{wizardData.redirectCode || 'your-slug'}
                   </span>
                   <ArrowRight size={14} color="#00891D" />
-                  <span style={{ background: '#00891D', padding: '5px 12px', borderRadius: '6px', color: '#FFFFFF', fontWeight: 700 }}>
-                    🎯 3. Your Target Destination URL
+                  <span
+                    style={{
+                      background: '#00891D',
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      color: '#FFFFFF',
+                      fontWeight: 700,
+                      maxWidth: '280px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={wizardData.fallbackUrl || 'Target Destination URL'}
+                  >
+                    🎯 3. {wizardData.fallbackUrl ? (wizardData.fallbackUrl.length > 28 ? wizardData.fallbackUrl.substring(0, 28) + '...' : wizardData.fallbackUrl) : 'Your Target Destination URL'}
                   </span>
                 </div>
               </div>
               <div style={{ color: '#4B5563', fontSize: '12px', lineHeight: 1.4, borderTop: '1px dashed #E5E7EB', paddingTop: '8px' }}>
-                💡 <strong>Dynamic QR Advantage:</strong> The physical QR code printed on paper or vinyl encodes the shortlink (e.g. <code>https://qr.villagkart.com/{wizardData.redirectCode || 'youtube-1048'}</code>). When scanned, our edge routers forward the user to your Target Destination URL below. <em>You can change your Destination URL anytime in the future without having to reprint or replace your QR codes!</em>
+                💡 <strong>Dynamic QR Advantage:</strong> The physical QR code printed on paper or vinyl encodes the shortlink (e.g. <code>https://qr.villagkart.com/{wizardData.redirectCode || 'your-slug'}</code>). When scanned, our edge routers forward the user to your Target Destination URL below. <em>You can change your Destination URL anytime in the future without having to reprint or replace your QR codes!</em>
               </div>
             </div>
 
@@ -541,7 +570,7 @@ export const QRWizard = () => {
                     id: 'fallback_only',
                     title: 'Always open the web landing page',
                     badge: '⭐ Recommended (Direct Target URL)',
-                    desc: 'Direct all traffic to your target destination URL (e.g. YouTube video, promo page, website, form) regardless of whether scanned on Android, iPhone, or PC.',
+                    desc: 'Direct all traffic to your target destination URL (e.g. promotional page, catalog, video, website, form) regardless of whether scanned on Android, iPhone, or PC.',
                     icon: <Globe size={18} color="#00891D" />,
                   },
                   {
@@ -565,7 +594,7 @@ export const QRWizard = () => {
                       setWizardData((prev) => {
                         const next = { ...prev, routingBehavior: b.id };
                         if (b.id === 'fallback_only') {
-                          const target = prev.fallbackUrl || prev.androidUrl || 'https://youtube.com';
+                          const target = prev.fallbackUrl || prev.androidUrl || 'https://villagkart.com/campaign/phirangipuram-launch';
                           next.fallbackUrl = target;
                           next.androidUrl = target;
                           next.iosUrl = target;
@@ -638,7 +667,7 @@ export const QRWizard = () => {
                           iosUrl: val,
                         }));
                       }}
-                      placeholder="e.g. https://youtube.com or https://villagkart.com/seasonal-produce"
+                      placeholder="e.g. https://villagkart.com/seasonal-produce or https://youtube.com/watch?v=..."
                       required
                     />
                   </div>
@@ -661,10 +690,10 @@ export const QRWizard = () => {
                 <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#006B17' }}>Quick Presets (Click to fill):</span>
                   {[
-                    { label: '📺 YouTube (https://youtube.com)', url: 'https://youtube.com' },
                     { label: '🌾 Seasonal Produce', url: 'https://villagkart.com/seasonal-produce' },
-                    { label: '📝 Feedback Form', url: 'https://villagkart.com/customer-feedback' },
                     { label: '🛒 Daily Fresh Store', url: 'https://villagkart.com/fresh-store' },
+                    { label: '📝 Feedback Form', url: 'https://villagkart.com/customer-feedback' },
+                    { label: '📺 YouTube Video Demo', url: 'https://youtube.com/watch?v=villagkart-fresh' },
                   ].map((p, i) => (
                     <button
                       key={i}
@@ -697,7 +726,7 @@ export const QRWizard = () => {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', fontSize: '12px', color: '#006B17', fontWeight: 600 }}>
                   <CheckCircle2 size={15} color="#00891D" />
-                  <span>Target verified. When scanned from an Android phone, iPhone, or PC, users will land on: <strong>{wizardData.fallbackUrl || 'https://youtube.com'}</strong></span>
+                  <span>Target verified. When scanned from an Android phone, iPhone, or PC, users will land on: <strong>{wizardData.fallbackUrl || 'https://villagkart.com/campaign/phirangipuram-launch'}</strong></span>
                 </div>
               </div>
             ) : wizardData.routingBehavior === 'auto' ? (
@@ -846,12 +875,17 @@ export const QRWizard = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    const randomSlug = 'vk-promo-' + Math.floor(1000 + Math.random() * 9000);
+                    const base = (wizardData.name || wizardData.type || 'promo')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, '-')
+                      .slice(0, 16)
+                      .replace(/^-+|-+$/g, '');
+                    const randomSlug = `${base || 'vk'}-${Math.floor(100 + Math.random() * 900)}`;
                     updateData('redirectCode', randomSlug);
-                    showToast(`Generated new slug: ${randomSlug}`);
+                    showToast(`Generated dynamic slug: ${randomSlug}`);
                   }}
                   className="btn btn-ghost btn-sm"
-                  style={{ fontSize: '11px', padding: '2px 8px' }}
+                  style={{ fontSize: '11px', padding: '2px 8px', color: '#00891D', fontWeight: 600 }}
                 >
                   <RefreshCw size={12} />
                   Generate New Slug
@@ -878,11 +912,11 @@ export const QRWizard = () => {
                   style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, fontFamily: 'monospace', fontWeight: 700, fontSize: '14px' }}
                   value={wizardData.redirectCode}
                   onChange={(e) => updateData('redirectCode', e.target.value)}
-                  placeholder="e.g. youtube-1048 or promo-summer"
+                  placeholder={`e.g. ${wizardData.name ? 'vk-' + wizardData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 16) : 'vk-promo-summer'}`}
                 />
               </div>
               <p className="form-helper" style={{ marginTop: '6px' }}>
-                <strong>Why this exists:</strong> The printed QR code stores <code>https://qr.villagkart.com/{wizardData.redirectCode || 'slug'}</code>. When someone scans it, our Cloudflare edge router forwards them in under 45ms to your <strong>Target Destination URL</strong> configured above.
+                <strong>Why this exists:</strong> The printed QR code stores <code>https://qr.villagkart.com/{wizardData.redirectCode || 'your-slug'}</code>. When someone scans it, our Cloudflare edge router forwards them in under 45ms to your <strong>Target Destination URL</strong> (<code>{wizardData.fallbackUrl || 'https://villagkart.com'}</code>).
               </p>
             </div>
 
@@ -896,7 +930,7 @@ export const QRWizard = () => {
                 ? currentDirectUrl
                 : ((wizardData.iosUrl || '').trim() || currentDirectUrl);
               const currentDesktopUrl = currentDirectUrl;
-              const currentSlug = (wizardData.redirectCode || '').trim() || 'youtube-1048';
+              const currentSlug = (wizardData.redirectCode || '').trim() || (wizardData.name ? 'vk-' + wizardData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 16) : 'vk-promo');
               const incomingScanUrl = `https://qr.villagkart.com/${currentSlug}`;
 
               const isDirectMode = wizardData.routingBehavior === 'fallback_only';

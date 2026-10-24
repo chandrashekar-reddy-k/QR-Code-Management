@@ -66,12 +66,12 @@ export const QRProvider = ({ children }) => {
     productId: '',
     referralCode: '',
     // Step 2 Destination
-    redirectCode: 'youtube-1048',
-    androidUrl: 'https://youtube.com',
+    redirectCode: 'vk-phr-promo',
+    androidUrl: 'https://villagkart.com/campaign/phirangipuram-launch',
     androidDeepLink: 'villagkart://campaign/phirangipuram-launch?ref=vge901',
     iosUrl: 'https://apps.apple.com/in/app/villagkart-rural-fresh/id192837482',
     iosUniversalLink: 'https://villagkart.com/campaign/seasonal',
-    fallbackUrl: 'https://youtube.com',
+    fallbackUrl: 'https://villagkart.com/campaign/phirangipuram-launch',
     routingBehavior: 'fallback_only',
     // Step 3 Design Studio
     template: 'VillagKart Branded',
