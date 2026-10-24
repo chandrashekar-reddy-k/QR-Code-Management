@@ -67,26 +67,26 @@ export const Settings = () => {
               className={`btn btn-sm ${activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'}`}
             >
               <SettingsIcon size={14} />
-              Section A — QR Settings
+              QR Settings
             </button>
             <button
               onClick={() => setActiveTab('audit')}
               className={`btn btn-sm ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'}`}
             >
               <History size={14} />
-              Section B — Audit Logs ({auditLogs.length})
+              Audit Logs ({auditLogs.length})
             </button>
           </div>
         </div>
       </div>
 
-      {/* SECTION A: QR Settings (All Page 15 Settings) */}
+      {/* QR Settings */}
       {activeTab === 'settings' && (
         <form onSubmit={handleSave}>
           <div className="vk-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 className="vk-card-title">Section A — Global QR Governance & Routing Settings</h3>
+                <h3 className="vk-card-title">Global QR Governance & Routing Settings</h3>
                 <p className="vk-card-subtitle">Edge redirect domains, templates, default export formats and security rules</p>
               </div>
               <button type="submit" className="btn btn-primary btn-sm">
@@ -271,7 +271,7 @@ export const Settings = () => {
           <div className="vk-card-header">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 className="vk-card-title">Section B — Tamper-Evident System Audit Trail</h3>
+                <h3 className="vk-card-title">Tamper-Evident System Audit Trail</h3>
                 <span className="badge badge-active" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Lock size={11} /> Protected Against Modification
                 </span>

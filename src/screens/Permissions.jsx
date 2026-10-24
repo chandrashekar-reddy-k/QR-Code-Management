@@ -65,23 +65,23 @@ export const Permissions = () => {
               onClick={() => setActiveTab('matrix')}
               className={`btn btn-sm ${activeTab === 'matrix' ? 'btn-primary' : 'btn-secondary'}`}
             >
-              Section A — Role Permissions
+              Role Permissions
             </button>
             <button
               onClick={() => setActiveTab('queue')}
               className={`btn btn-sm ${activeTab === 'queue' ? 'btn-primary' : 'btn-secondary'}`}
             >
-              Section B — Approval Queue ({pendingApprovals.length})
+              Approval Queue ({pendingApprovals.length})
             </button>
           </div>
         </div>
       </div>
 
-      {/* SECTION B: Approval Queue */}
+      {/* Approval Queue */}
       {activeTab === 'queue' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="vk-card">
-            <h3 className="vk-card-title">Section B — Approval Queue</h3>
+            <h3 className="vk-card-title">Approval Queue</h3>
             <p className="vk-card-subtitle">
               Screen 07 submissions tied to reviewed configuration version and security validation
             </p>
@@ -219,12 +219,12 @@ export const Permissions = () => {
         </div>
       )}
 
-      {/* SECTION A: Role Permission Matrix */}
+      {/* Role Permission Matrix */}
       {activeTab === 'matrix' && (
         <div className="vk-card">
           <div className="vk-card-header">
             <div>
-              <h3 className="vk-card-title">Section A — Role Permissions Matrix</h3>
+              <h3 className="vk-card-title">Role Permissions Matrix</h3>
               <p className="vk-card-subtitle">
                 System specification default matrix (Page 20). Admin users can toggle permissions to configure live governance.
               </p>
