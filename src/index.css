@@ -548,15 +548,15 @@ button, input, select, textarea {
 
 .badge-changes-requested,
 .badge-changes {
-  background-color: #FEF3C7;
-  color: #B45309;
-  border-color: #FDE68A;
+  background-color: #FFF7ED;
+  color: #C2410C;
+  border-color: #FDBA74;
 }
 
 .badge-rejected {
-  background-color: #FEE2E2;
-  color: #DC2626;
-  border-color: #FECACA;
+  background-color: #FFF1F2;
+  color: #BE123C;
+  border-color: #FECDD3;
 }
 
 .badge-paused {

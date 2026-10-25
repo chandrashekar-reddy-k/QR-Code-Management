@@ -75,7 +75,13 @@ export const QRProvider = ({ children }) => {
       const parsed = JSON.parse(saved);
       const existingIds = new Set(parsed.map((q) => q.id));
       const missing = INITIAL_QR_CODES.filter((q) => !existingIds.has(q.id));
-      return [...parsed, ...missing];
+      const updated = parsed.map((item) => {
+        if (item.id === 'QR-00013' && item.status === 'Changes Requested') {
+          return { ...item, status: 'Active' };
+        }
+        return item;
+      });
+      return [...updated, ...missing];
     } catch {
       return INITIAL_QR_CODES;
     }
