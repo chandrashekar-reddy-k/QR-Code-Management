@@ -111,7 +111,7 @@ export default function SalesEntry() {
         }
       }
 
-      const params = {};
+      const params = { channel: 'VEHICLE' };
       if (vehicleId) {
         params.vehicleId = vehicleId;
       }

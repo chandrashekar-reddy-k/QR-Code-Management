@@ -119,10 +119,12 @@ export default function PaymentScreen() {
       }
 
       // Step 1: Create order from cart in database
+      const targetVehicleId = user?.assignedVehicleId || user?.assignedVehicle?.id;
       const payload = {
         mobile: cleanMobile,
         customerName: customerName?.trim(),
-        items: items.map(i => ({ productId: i.productId || i.id, quantity: i.quantity || 1 })),
+        vehicleId: targetVehicleId,
+        items: items.map(i => ({ productId: i.productId || i.id, productVariantId: i.productVariantId || null, quantity: i.quantity || 1 })),
         deliverySlot: deliverySlot || 'MORNING',
         deliveryDate: deliveryDate || new Date().toISOString().split('T')[0],
         couponCode: useCartStore.getState().appliedPromotion?.code
