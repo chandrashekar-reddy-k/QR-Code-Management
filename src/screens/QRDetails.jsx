@@ -51,7 +51,7 @@ export const QRDetails = () => {
   const [editingDest, setEditingDest] = useState(false);
   const [newFallbackUrl, setNewFallbackUrl] = useState('');
 
-  // 3 Governance Options: Select QR (All), Change Req, Rejected (Removed 'Normal')
+  // 3 Governance Options: Select QR (All), Change Request, Rejected (Removed 'Normal')
   const changesQrs = qrCodes.filter((q) => q.status === 'Changes Requested');
   const rejectedQrs = qrCodes.filter((q) => q.status === 'Rejected');
   const selectAllQrs = qrCodes;
@@ -149,7 +149,7 @@ export const QRDetails = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* =========================================================================
-          VIEW MODE 1: GRID OF ALL BOXES IN CATEGORY (Select QR, Change Req, Rejected)
+          VIEW MODE 1: GRID OF ALL BOXES IN CATEGORY (Select QR, Change Request, Rejected)
           ========================================================================= */}
       {viewMode === 'grid' && (
         <>
@@ -169,7 +169,7 @@ export const QRDetails = () => {
             </div>
           </div>
 
-          {/* 3 Options QR Governance Selector: Select QR, Change Req, Rejected */}
+          {/* 3 Options QR Governance Selector: Select QR, Change Request, Rejected */}
           <div style={{
             background: '#FFFFFF',
             border: '1px solid #E5E7EB',
@@ -225,7 +225,7 @@ export const QRDetails = () => {
                   </span>
                 </button>
 
-                {/* Option 2: Change Req (Updated: Warm Amber-Orange) */}
+                {/* Option 2: Change Request (Updated: Warm Amber-Orange) */}
                 <button
                   type="button"
                   onClick={() => handleCategorySelect('changes')}
@@ -245,7 +245,7 @@ export const QRDetails = () => {
                   }}
                 >
                   <AlertTriangle size={14} color={categoryFilter === 'changes' ? '#EA580C' : '#6B7280'} />
-                  <span>Change Req</span>
+                  <span>Change Request</span>
                   <span style={{
                     fontSize: '11px',
                     padding: '1px 6px',
@@ -295,7 +295,7 @@ export const QRDetails = () => {
                 <Search size={14} color="#9CA3AF" style={{ position: 'absolute', left: '10px', top: '9px' }} />
                 <input
                   type="text"
-                  placeholder={`Filter in ${categoryFilter === 'changes' ? 'Change Req' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'}...`}
+                  placeholder={`Filter in ${categoryFilter === 'changes' ? 'Change Request' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="form-control"
@@ -317,7 +317,7 @@ export const QRDetails = () => {
                 <span>
                   Showing all <strong>{currentCategoryQrs.length}</strong> box{currentCategoryQrs.length === 1 ? '' : 'es'} in{' '}
                   <strong style={{ color: categoryFilter === 'changes' ? '#C2410C' : categoryFilter === 'rejected' ? '#BE123C' : '#00891D' }}>
-                    {categoryFilter === 'changes' ? 'Change Req' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'}
+                    {categoryFilter === 'changes' ? 'Change Request' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'}
                   </strong>
                   {' '}— click any box to open its details completely in full screen:
                 </span>
@@ -346,7 +346,7 @@ export const QRDetails = () => {
                     {categoryFilter === 'changes' ? <CheckCircle2 size={22} color="#00891D" /> : <HelpCircle size={22} />}
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: '#1F2937', marginBottom: '4px' }}>
-                    {categoryFilter === 'changes' ? '0 Change Requests Pending' : 'No QR Codes Found'}
+                    {categoryFilter === 'changes' ? 'No Change Requests Found' : 'No QR Codes Found'}
                   </div>
                   <div style={{ fontSize: '12px', color: '#6B7280', maxWidth: '400px', margin: '0 auto' }}>
                     {categoryFilter === 'changes'
@@ -516,7 +516,7 @@ export const QRDetails = () => {
                 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <ArrowLeft size={15} />
-                Back to {categoryFilter === 'changes' ? 'Change Req' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'} Boxes ({currentCategoryQrs.length})
+                Back to {categoryFilter === 'changes' ? 'Change Request' : categoryFilter === 'rejected' ? 'Rejected' : 'Select QR'} Boxes ({currentCategoryQrs.length})
               </button>
               <button
                 onClick={() => setActiveScreen('listing')}
@@ -623,7 +623,7 @@ export const QRDetails = () => {
                   color: categoryFilter === 'changes' ? '#C2410C' : '#475569',
                 }}
               >
-                Change Req ({changesQrs.length})
+                Change Request ({changesQrs.length})
               </button>
               <button
                 onClick={() => handleCategorySelect('rejected')}

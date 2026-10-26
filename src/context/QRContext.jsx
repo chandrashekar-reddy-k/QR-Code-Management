@@ -75,10 +75,12 @@ export const QRProvider = ({ children }) => {
     try {
       const parsed = JSON.parse(saved);
       const existingIds = new Set(parsed.map((q) => q.id));
+      const initialMap = new Map(INITIAL_QR_CODES.map((q) => [q.id, q]));
       const missing = INITIAL_QR_CODES.filter((q) => !existingIds.has(q.id));
       const updated = parsed.map((item) => {
-        if (item.status === 'Changes Requested') {
-          return { ...item, status: 'Active' };
+        const initial = initialMap.get(item.id);
+        if (initial && (initial.status === 'Changes Requested' || initial.status === 'Rejected')) {
+          return { ...item, status: initial.status, reviewerComments: initial.reviewerComments || item.reviewerComments };
         }
         return item;
       });
@@ -104,10 +106,12 @@ export const QRProvider = ({ children }) => {
     try {
       const parsed = JSON.parse(saved);
       const existingIds = new Set(parsed.map((a) => a.id));
+      const initialMap = new Map(INITIAL_APPROVALS.map((a) => [a.id, a]));
       const missing = INITIAL_APPROVALS.filter((a) => !existingIds.has(a.id));
       const updated = parsed.map((a) => {
-        if (a.status === 'Changes Requested') {
-          return { ...a, status: 'Approved' };
+        const initial = initialMap.get(a.id);
+        if (initial && (initial.status === 'Changes Requested' || initial.status === 'Rejected')) {
+          return { ...a, status: initial.status, reviewerComments: initial.reviewerComments || a.reviewerComments };
         }
         return a;
       });
